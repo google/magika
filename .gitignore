@@ -1,0 +1,11 @@
+*.pyc
+__pycache__/
+.ipynb_checkpoints
+venv/
+.env
+*.swp
+*.h5
+*.egg-info
+dist/*
+*.pickle
+.s.yml

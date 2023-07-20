@@ -44,7 +44,8 @@
         "model_target_label": "ai",
         "target_label": "ai",
         "correct_labels": [
-            "ai"
+            "ai",
+            "pdf"
         ],
         "in_scope": true
     },
@@ -422,7 +423,8 @@
         "model_target_label": "coff",
         "target_label": "coff",
         "correct_labels": [
-            "coff"
+            "coff",
+            "exp"
         ],
         "in_scope": true
     },
@@ -742,8 +744,8 @@
         ],
         "in_scope": true
     },
-    "dos_mbr": {
-        "name": "dos_mbr",
+    "dosmbr": {
+        "name": "dosmbr",
         "extensions": [],
         "mime_type": null,
         "vt_type": null,
@@ -796,7 +798,8 @@
         "model_target_label": "elf",
         "target_label": "elf",
         "correct_labels": [
-            "elf"
+            "elf",
+            "so"
         ],
         "in_scope": true
     },
@@ -902,6 +905,19 @@
         ],
         "in_scope": true
     },
+    "exp": {
+        "name": "exp",
+        "extensions": [],
+        "mime_type": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope": false
+    },
     "flac": {
         "name": "flac",
         "extensions": [
@@ -946,7 +962,7 @@
             "fpx"
         ],
         "mime_type": null,
-        "vt_type": null,
+        "vt_type": "fpx",
         "datasets": [],
         "parent": null,
         "tags": [],
@@ -1503,7 +1519,8 @@
         "model_target_label": "macho",
         "target_label": "macho",
         "correct_labels": [
-            "macho"
+            "macho",
+            "dylib"
         ],
         "in_scope": true
     },
@@ -1870,6 +1887,7 @@
         "model_target_label": "odex",
         "target_label": "odex",
         "correct_labels": [
+            "odex",
             "elf"
         ],
         "in_scope": true
@@ -2008,6 +2026,19 @@
         ],
         "in_scope": true
     },
+    "palmos": {
+        "name": "palmos",
+        "extensions": [],
+        "mime_type": null,
+        "vt_type": "palmos",
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope": false
+    },
     "pascal": {
         "name": "pascal",
         "extensions": [
@@ -2075,7 +2106,8 @@
         "model_target_label": "pdf",
         "target_label": "pdf",
         "correct_labels": [
-            "pdf"
+            "pdf",
+            "ai"
         ],
         "in_scope": true
     },
@@ -2109,7 +2141,8 @@
         "model_target_label": "pem",
         "target_label": "pem",
         "correct_labels": [
-            "pem"
+            "pem",
+            "pgpkey"
         ],
         "in_scope": true
     },
@@ -2134,6 +2167,19 @@
             "perl"
         ],
         "in_scope": true
+    },
+    "pgpkey": {
+        "name": "pgpkey",
+        "extensions": [],
+        "mime_type": "application/pgp-keys",
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope": false
     },
     "php": {
         "name": "php",
@@ -3325,7 +3371,8 @@
         "model_target_label": "zip",
         "target_label": "xlsx",
         "correct_labels": [
-            "xlsx"
+            "xlsx",
+            "xlsb"
         ],
         "in_scope": true
     },

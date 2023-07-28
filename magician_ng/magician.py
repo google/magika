@@ -20,7 +20,7 @@ l = get_logger()
 
 # TODO move these into a config file
 GC_BUCKET_URL_PREFIX = 'https://storage.googleapis.com/magician-ng/'
-MODEL_HASH = '0e9ecda1a7f66430f3ffe7f14423b388c67b140679c46c74d54e17fd1214c67a'
+MODEL_HASH = '4c05e27a4c5ff1be43e0bb31d40f4d18d6b6e39992cd065d472ca0fa0bd5ca6e'
 
 
 class Magician():
@@ -28,6 +28,7 @@ class Magician():
         self,
         model_dir: Optional[Path] = None,
         threshold: float = 0.0,
+        mime_output_flag: bool = False,
         verbose: bool = False,
         debug: bool = False):
 
@@ -58,8 +59,8 @@ class Magician():
         else:
             # use default model_dir, and download if not found
             self.model_dir = Path(f'{os.environ["HOME"]}/.cache/magician/model/')
-            self.model_path = self.model_dir / 'model.onnx'
-            self.model_config_path = self.model_dir / 'model_config.json'
+            self.model_path = self.model_dir / f'model-{MODEL_HASH}.onnx'
+            self.model_config_path = self.model_dir / f'model_config-{MODEL_HASH}.json'
             if not self.model_path.is_file() or not self.model_config_path.is_file():
                 self.model_dir.mkdir(parents=True, exist_ok=True)
                 model_url = GC_BUCKET_URL_PREFIX + f'model-{MODEL_HASH}.onnx'
@@ -85,6 +86,7 @@ class Magician():
         self.target_labels_space = np.array(self.model_config['train_dataset_info']['target_labels_info']['target_labels_space'])
 
         self.threshold = threshold
+        self.mime_output_flag = mime_output_flag
 
         self.ctm = ContentTypesManager()
         self.onnx_session = None
@@ -96,7 +98,7 @@ class Magician():
             elapsed_time = time.time() - start_time
             l.debug(f'ONNX DL model "{self.model_path}" loaded in {elapsed_time:.03f} seconds')
 
-    def get_content_types(self, paths: List[Path]) -> Dict[str, Any]:
+    def get_content_types(self, paths: List[Path]) -> List:
         # extract the features and store them in a dict, keyed by path
         start_time = time.time()
         beg_size = self.input_sizes['beg']
@@ -110,10 +112,7 @@ class Magician():
         elapsed_time = time.time() - start_time
         l.debug(f'Raw features extracted in {elapsed_time:.03f} seconds')
 
-        predictions: Dict[str, Any] = {}
-        for path in paths:
-            predictions[str(path)] = {'path': str(path)}
-
+        predictions = []
         if len(features) > 0:
             self._load_model()
             X = self.prepare_input(features)
@@ -134,7 +133,9 @@ class Magician():
                     self.threshold,
                 )
                 l.debug(f'Adding DL result for {path}')
-                predictions[str(path)].update({
+
+                entry = {
+                    'path': str(path),
                     'dl': {
                         'ct_label': ct_label,
                         'score': float(score),
@@ -143,7 +144,13 @@ class Magician():
                         'ct_label': output_ct_label,
                         'score': float(output_score),
                     }
-                })
+                }
+
+                if self.mime_output_flag:
+                    entry['dl']['mime_type'] = self.ctm.get_mime_type(ct_label, default_mime_type=ContentType.UNKNOWN_MIME_TYPE)
+                    entry['output']['mime_type'] = self.ctm.get_mime_type(output_ct_label, default_mime_type=ContentType.UNKNOWN_MIME_TYPE)
+
+                predictions.append(entry)
 
         return predictions
 
@@ -187,9 +194,70 @@ class Magician():
         # as padding).  For all these reasons, for now we implement the exact
         # clone of what we do for features extraction, even if not ideal.
 
-        with open(file_path, 'rb') as f:
-            content = f.read()
+        assert beg_size <= 512
+        assert mid_size <= 512
+        assert end_size <= 512
 
+        block_size = 4096
+
+        file_size = file_path.stat().st_size
+
+        if file_size < 2*block_size:
+            # fast path for small files
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            beg, mid, end = self.extract_features_from_content(content, beg_size, mid_size, end_size)
+        else:
+            # avoid reading the entire file
+            with open(file_path, 'rb') as f:
+                if beg_size > 0:
+                    beg_full = f.read(block_size)
+                    beg_full = beg_full.lstrip()
+                    if len(beg_full) < beg_size:
+                        # Note that this is an approximation with respect what we do
+                        # at feature extraction. What we do is different if, for
+                        # example, the first two blocks of content are whitespaces:
+                        # for feature extraction, we would keep reading content,
+                        # while here we stop after two blocks.
+                        beg_full += f.read(block_size)
+                    beg = beg_full[:beg_size]
+                else:
+                    beg = b''
+
+                if mid_size > 0:
+                    mid_idx = file_size // 2
+                    mid_left_idx = mid_idx - mid_size // 2
+                    f.seek(mid_left_idx, 0)  # whence = 0: start of the file
+                    mid = f.read(mid_size)
+                else:
+                    mid = b''
+
+                if end_size > 0:
+                    f.seek(-block_size, 2)  # whence = 2: end of the file
+                    end_full = f.read(block_size)
+                    end_full = end_full.rstrip()
+                    if len(end_full) < end_size:
+                        # Same as above
+                        f.seek(-2*block_size, 2)  # whence = 2: end of the file
+                        end_full = f.read(block_size) + end_full
+                    end = end_full[-end_size:]
+                else:
+                    end = b''
+
+        beg_ints = list(map(int, beg))
+        assert len(beg_ints) == beg_size
+        mid_ints = list(map(int, mid))
+        assert len(mid_ints) == mid_size
+        end_ints = list(map(int, end))
+        assert len(end_ints) == end_size
+
+        return {
+            'beg': beg_ints,
+            'mid': mid_ints,
+            'end': end_ints,
+        }
+
+    def extract_features_from_content(self, content: bytes, beg_size: int, mid_size: int, end_size: int) -> Tuple[bytes, bytes, bytes]:
         content = content.strip()
 
         if beg_size > 0:
@@ -200,9 +268,6 @@ class Magician():
                 beg = content + (b'\x00' * padding_size)
         else:
             beg = b''
-        # convert to ints and, if needed, add padding
-        beg_ints = list(map(int, beg))
-        assert len(beg_ints) == beg_size
 
         if mid_size > 0:
             mid_idx = len(content) // 2
@@ -223,8 +288,6 @@ class Magician():
                 mid = left_padding + content + right_padding
         else:
             mid = b''
-        mid_ints = list(map(int, mid))
-        assert len(mid_ints) == mid_size
 
         if end_size > 0:
             if len(content) > end_size:
@@ -234,14 +297,8 @@ class Magician():
                 end = (b'\x00' * padding_size) + content
         else:
             end = b''
-        end_ints = list(map(int, end))
-        assert len(end_ints) == end_size
 
-        return {
-            'beg': beg_ints,
-            'mid': mid_ints,
-            'end': end_ints,
-        }
+        return beg, mid, end
 
     def prepare_input(self, features: List):
         """
@@ -300,7 +357,18 @@ class Magician():
     def get_raw_predictions(self, X):
         assert self.onnx_session is not None
         start_time = time.time()
-        raw_predictions = self.onnx_session.run(['target_label'], X)[0]
+        raw_predictions_list = []
+        samples_num = X['bytes'].shape[0]
+        batch_size = 1000
+        batches_num = samples_num // batch_size
+        if samples_num % batch_size != 0:
+            batches_num += 1
+        for batch_idx in range(batches_num):
+            l.debug(f'Getting raw predictions for batch {batch_idx+1}/{batches_num}')
+            start_idx = batch_idx * batch_size
+            end_idx = min((batch_idx + 1) * batch_size, samples_num)
+            batch_raw_predictions = self.onnx_session.run(['target_label'], {'bytes': X['bytes'][start_idx:end_idx, :]})[0]
+            raw_predictions_list.append(batch_raw_predictions)
         elapsed_time = time.time() - start_time
         l.debug(f'DL raw prediction in {elapsed_time:.03f} seconds')
-        return raw_predictions
+        return np.concatenate(raw_predictions_list)

@@ -16,6 +16,7 @@ class ContentType():
 
     # the tool returned unknown, '',  None, or similar
     UNKNOWN = 'unknown'
+    UNKNOWN_MIME_TYPE = 'application/unknown'
 
     # the tool returned an output that we currently do not map to our content types
     UNSUPPORTED = 'unsupported'
@@ -186,6 +187,12 @@ class ContentTypesManager():
 
     def get(self, content_type_name: str) -> Optional[ContentType]:
         return self.cts.get(content_type_name)
+
+    def get_mime_type(self, content_type_name: str, default_mime_type: Optional[str] = None) -> Optional[str]:
+        ct = self.get(content_type_name)
+        if ct is None: return default_mime_type
+        if ct.mime_type is None: return default_mime_type
+        return ct.mime_type
 
     def get_ct_by_ext(self, ext: str) -> Optional[ContentType]:
         return self.ext2ct.get(ext)

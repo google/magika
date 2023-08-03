@@ -4,19 +4,15 @@ import os
 from pathlib import Path
 import logging
 import json
-import subprocess
 import sys
-import tarfile
 from tabulate import tabulate
 from typing import List, Optional
 
 import click
 
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-from magician_ng import get_logger
-from magician_ng.magician import Magician
+from magika import get_logger
+from magika.magika import Magika
 
 
 l = get_logger()
@@ -51,8 +47,8 @@ def main(
     Determine the content types of PATHS.
 
     PATHS is one or more paths. A path can point to a file or a directory: if it
-    points to a directory, Magician processes all files within such directory.
-    Note that by default Magician does not recursively process files in
+    points to a directory, Magika processes all files within such directory.
+    Note that by default Magika does not recursively process files in
     subdirectories (use -r to enable recursive processing).
     """
 
@@ -95,7 +91,7 @@ def main(
     l.info(f'Considering {len(paths)} files')
     l.debug(f'Files: {paths}')
 
-    m = Magician(
+    m = Magika(
         model_dir=model_dir,
         threshold=threshold,
         mime_output_flag=mime_output_flag,
@@ -123,7 +119,7 @@ def main(
 
 
 def print_content_types_list():
-    from magician_ng.content_types import ContentTypesManager
+    from magika.content_types import ContentTypesManager
     from tabulate import tabulate
 
     ctm = ContentTypesManager()

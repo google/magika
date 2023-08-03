@@ -1,6 +1,7 @@
-# Magician NG
+# Magika
 
-CLI for Magician NG (public name: Magician).
+A tool to detect content types with deep learning.
+
 
 ## Setup
 
@@ -12,6 +13,6 @@ $ poetry install
 
 ## Usage
 
-Help: `magician --help`
+Help: `magika --help`
 
 Example: `magician . -r -d --jsonl`

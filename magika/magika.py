@@ -12,18 +12,18 @@ import sys
 import numpy as np
 import onnxruntime as rt
 
-from magician_ng.content_types import ContentTypesManager, ContentType
-from magician_ng import get_logger
+from magika.content_types import ContentTypesManager, ContentType
+from magika import get_logger
 
 l = get_logger()
 
 
 # TODO move these into a config file
-GC_BUCKET_URL_PREFIX = 'https://storage.googleapis.com/magician-ng/'
+GC_BUCKET_URL_PREFIX = 'https://storage.googleapis.com/magika/'
 MODEL_HASH = '4c05e27a4c5ff1be43e0bb31d40f4d18d6b6e39992cd065d472ca0fa0bd5ca6e'
 
 
-class Magician():
+class Magika():
     def __init__(
         self,
         model_dir: Optional[Path] = None,
@@ -41,8 +41,8 @@ class Magician():
             l.setLevel(logging.DEBUG)
 
         if model_dir is None:
-            if os.environ.get('MAGICIAN_MODEL_DIR') not in [None, '']:
-                model_dir = Path(os.environ.get('MAGICIAN_MODEL_DIR'))
+            if os.environ.get('MAGIKA_MODEL_DIR') not in [None, '']:
+                model_dir = Path(os.environ.get('MAGIKA_MODEL_DIR'))
 
         if model_dir is not None:
             self.model_dir = model_dir
@@ -58,7 +58,7 @@ class Magician():
                 raise Exception(f'Model config not found at "{str(self.model_config)}"')
         else:
             # use default model_dir, and download if not found
-            self.model_dir = Path(f'{os.environ["HOME"]}/.cache/magician/model/')
+            self.model_dir = Path(f'{os.environ["HOME"]}/.cache/magika/model/')
             self.model_path = self.model_dir / f'model-{MODEL_HASH}.onnx'
             self.model_config_path = self.model_dir / f'model_config-{MODEL_HASH}.json'
             if not self.model_path.is_file() or not self.model_config_path.is_file():

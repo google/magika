@@ -23,7 +23,7 @@ def load_env():
 load_env()
 
 
-def get_logger(logger_name='magician'):
+def get_logger(logger_name='magika'):
     FORMAT = "%(name)s: %(message)s"
     logging.basicConfig(
         level="INFO", format=FORMAT, datefmt="[%x %X]", handlers=[

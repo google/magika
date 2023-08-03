@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 from typing import List, Union, Dict, Any, Optional, Set
 
-from magician_ng import get_logger
+from magika import get_logger
 
 
 l = get_logger()

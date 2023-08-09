@@ -3,6 +3,8 @@
         "name": "ace",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -10,6 +12,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "aff": {
@@ -18,6 +21,8 @@
             "aff"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -25,6 +30,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "ai": {
@@ -32,7 +38,9 @@
         "extensions": [
             "ai"
         ],
-        "mime_type": null,
+        "mime_type": "application/pdf",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -47,6 +55,7 @@
             "ai",
             "pdf"
         ],
+        "threshold": 0.9999350107,
         "in_scope": true
     },
     "algol68": {
@@ -55,6 +64,8 @@
             "a68"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -62,6 +73,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "apk": {
@@ -69,7 +81,9 @@
         "extensions": [
             "apk"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.android.package-archive",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -85,6 +99,7 @@
         "correct_labels": [
             "apk"
         ],
+        "threshold": 0.7899631625,
         "in_scope": true
     },
     "appleplist": {
@@ -92,7 +107,9 @@
         "extensions": [
             "plist"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-plist",
+        "group": "misc",
+        "magic": null,
         "vt_type": "appleplist",
         "datasets": [
             "vt-ext"
@@ -107,12 +124,15 @@
         "correct_labels": [
             "appleplist"
         ],
+        "threshold": 0.9998674375,
         "in_scope": true
     },
     "arj": {
         "name": "arj",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -120,6 +140,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "asm": {
@@ -128,7 +149,9 @@
             "S",
             "asm"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-asm",
+        "group": "code",
+        "magic": "assembler source",
         "vt_type": null,
         "datasets": [
             "github"
@@ -143,6 +166,7 @@
         "correct_labels": [
             "asm"
         ],
+        "threshold": 0.7993208179,
         "in_scope": true
     },
     "asp": {
@@ -151,7 +175,9 @@
             "aspx",
             "asp"
         ],
-        "mime_type": null,
+        "mime_type": "text/html",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -166,6 +192,7 @@
         "correct_labels": [
             "asp"
         ],
+        "threshold": 0.8508241367,
         "in_scope": true
     },
     "avi": {
@@ -174,6 +201,8 @@
             "avi"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -181,12 +210,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "ax": {
         "name": "ax",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -194,6 +226,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "batch": {
@@ -201,7 +234,9 @@
         "extensions": [
             "bat"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-msdos-batch",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -216,12 +251,15 @@
         "correct_labels": [
             "batch"
         ],
+        "threshold": 0.5235640764,
         "in_scope": true
     },
     "bcad": {
         "name": "bcad",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -229,6 +267,23 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
+        "in_scope": false
+    },
+    "bib": {
+        "name": "bib",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "bmp": {
@@ -236,7 +291,9 @@
         "extensions": [
             "bmp"
         ],
-        "mime_type": null,
+        "mime_type": "image/bmp",
+        "group": "image",
+        "magic": null,
         "vt_type": "bmp",
         "datasets": [
             "vt-ext"
@@ -251,6 +308,7 @@
         "correct_labels": [
             "bmp"
         ],
+        "threshold": 0.9999998808,
         "in_scope": true
     },
     "bpl": {
@@ -259,6 +317,8 @@
             "bpl"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -266,6 +326,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "bzip": {
@@ -275,7 +336,9 @@
             "tbz2",
             "tar.bz2"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-bzip2",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -290,6 +353,7 @@
         "correct_labels": [
             "bzip"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "c": {
@@ -301,7 +365,9 @@
             "hpp",
             "cc"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-c",
+        "group": "code",
+        "magic": null,
         "vt_type": "c,cpp",
         "datasets": [
             "github"
@@ -316,6 +382,7 @@
         "correct_labels": [
             "c"
         ],
+        "threshold": 0.6505447364,
         "in_scope": true
     },
     "cab": {
@@ -323,7 +390,9 @@
         "extensions": [
             "cab"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.ms-cab-compressed",
+        "group": "archive",
+        "magic": null,
         "vt_type": "cab",
         "datasets": [
             "vt-ext"
@@ -337,14 +406,33 @@
         "correct_labels": [
             "cab"
         ],
+        "threshold": 1.0,
         "in_scope": true
+    },
+    "cad": {
+        "name": "cad",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "threshold": null,
+        "in_scope": false
     },
     "cat": {
         "name": "cat",
         "extensions": [
             "cat"
         ],
-        "mime_type": null,
+        "mime_type": "application/octet-stream",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -359,12 +447,15 @@
             "cat",
             "ctl"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "cdf": {
         "name": "cdf",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -372,6 +463,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "chm": {
@@ -380,6 +472,8 @@
             "chm"
         ],
         "mime_type": "application/chm",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -393,12 +487,15 @@
         "correct_labels": [
             "chm"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "clojure": {
         "name": "clojure",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -406,12 +503,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "coff": {
         "name": "coff",
         "extensions": [],
-        "mime_type": null,
+        "mime_type": "application/x-coff",
+        "group": "executable",
+        "magic": null,
         "vt_type": "coff",
         "datasets": [
             "vt-type"
@@ -426,12 +526,15 @@
             "coff",
             "exp"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "com": {
         "name": "com",
         "extensions": [],
         "mime_type": "application/x-dosexec",
+        "group": null,
+        "magic": null,
         "vt_type": "com",
         "datasets": [],
         "parent": null,
@@ -439,6 +542,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "cpl": {
@@ -446,7 +550,9 @@
         "extensions": [
             "cpl"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -462,6 +568,7 @@
             "pebin",
             "cpl"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "crx": {
@@ -469,7 +576,9 @@
         "extensions": [
             "crx"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-chrome-extension",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -485,6 +594,7 @@
         "correct_labels": [
             "crx"
         ],
+        "threshold": 0.9999938703,
         "in_scope": true
     },
     "cs": {
@@ -492,7 +602,9 @@
         "extensions": [
             "cs"
         ],
-        "mime_type": null,
+        "mime_type": "text/plain",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -507,6 +619,7 @@
         "correct_labels": [
             "cs"
         ],
+        "threshold": 0.9065284804,
         "in_scope": true
     },
     "css": {
@@ -514,7 +627,9 @@
         "extensions": [
             "css"
         ],
-        "mime_type": null,
+        "mime_type": "text/css",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -529,6 +644,7 @@
         "correct_labels": [
             "css"
         ],
+        "threshold": 0.7439679208,
         "in_scope": true
     },
     "csv": {
@@ -536,7 +652,9 @@
         "extensions": [
             "csv"
         ],
-        "mime_type": null,
+        "mime_type": "text/csv",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -551,12 +669,15 @@
         "correct_labels": [
             "csv"
         ],
+        "threshold": 0.658643426,
         "in_scope": true
     },
     "ctl": {
         "name": "ctl",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -564,6 +685,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "deb": {
@@ -571,7 +693,9 @@
         "extensions": [
             "deb"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.debian.binary-package",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -586,6 +710,7 @@
         "correct_labels": [
             "deb"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "dex": {
@@ -594,6 +719,8 @@
             "dex"
         ],
         "mime_type": "application/x-android-dex",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -607,12 +734,15 @@
         "correct_labels": [
             "dex"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "dey": {
         "name": "dey",
         "extensions": [],
         "mime_type": "application/x-android-dey",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -620,6 +750,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "diff": {
@@ -628,6 +759,8 @@
             "diff"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -635,6 +768,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "dll": {
@@ -642,7 +776,9 @@
         "extensions": [
             "dll"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": null,
         "vt_type": "pedll",
         "datasets": [
             "vt-ext"
@@ -658,6 +794,7 @@
             "pebin",
             "dll"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "dmg": {
@@ -665,7 +802,9 @@
         "extensions": [
             "dmg"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-apple-diskimage",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -679,6 +818,7 @@
         "correct_labels": [
             "dmg"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "doc": {
@@ -686,7 +826,9 @@
         "extensions": [
             "doc"
         ],
-        "mime_type": null,
+        "mime_type": "application/msword",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -701,6 +843,7 @@
         "correct_labels": [
             "doc"
         ],
+        "threshold": 0.6137960213,
         "in_scope": true
     },
     "dockerfile": {
@@ -709,6 +852,8 @@
             "=Dockerfile"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -716,6 +861,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "docx": {
@@ -724,7 +870,9 @@
             "docx",
             "docm"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -742,12 +890,15 @@
             "docx",
             "tmdx"
         ],
+        "threshold": 0.7684693339,
         "in_scope": true
     },
     "dosmbr": {
         "name": "dosmbr",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -755,6 +906,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "dylib": {
@@ -762,7 +914,9 @@
         "extensions": [
             "dylib"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-mach-o",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -778,6 +932,7 @@
             "macho",
             "dylib"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "elf": {
@@ -785,7 +940,9 @@
         "extensions": [
             "elf"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": null,
         "vt_type": "elf",
         "datasets": [
             "vt-type"
@@ -801,6 +958,7 @@
             "elf",
             "so"
         ],
+        "threshold": 0.9999997616,
         "in_scope": true
     },
     "emf": {
@@ -808,7 +966,9 @@
         "extensions": [
             "emf"
         ],
-        "mime_type": null,
+        "mime_type": "application/octet-stream",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -822,6 +982,7 @@
         "correct_labels": [
             "emf"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "eml": {
@@ -829,7 +990,9 @@
         "extensions": [
             "eml"
         ],
-        "mime_type": null,
+        "mime_type": "message/rfc822",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -843,6 +1006,7 @@
         "correct_labels": [
             "eml"
         ],
+        "threshold": 0.9968693733,
         "in_scope": true
     },
     "epub": {
@@ -850,7 +1014,9 @@
         "extensions": [
             "epub"
         ],
-        "mime_type": null,
+        "mime_type": "application/epub+zip",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -866,12 +1032,15 @@
         "correct_labels": [
             "epub"
         ],
+        "threshold": 0.9999918604,
         "in_scope": true
     },
     "ese": {
         "name": "ese",
         "extensions": [],
         "mime_type": "application/x-ms-ese",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -879,6 +1048,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "exe": {
@@ -886,7 +1056,9 @@
         "extensions": [
             "exe"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": null,
         "vt_type": "peexe",
         "datasets": [
             "vt-ext",
@@ -903,12 +1075,15 @@
             "pebin",
             "exe"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "exp": {
         "name": "exp",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -916,6 +1091,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "flac": {
@@ -923,7 +1099,9 @@
         "extensions": [
             "flac"
         ],
-        "mime_type": null,
+        "mime_type": "audio/flac",
+        "group": "audio",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -937,6 +1115,7 @@
         "correct_labels": [
             "flac"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "fortran": {
@@ -947,6 +1126,8 @@
             "f03"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -954,6 +1135,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "fpx": {
@@ -962,6 +1144,8 @@
             "fpx"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": "fpx",
         "datasets": [],
         "parent": null,
@@ -969,6 +1153,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "gif": {
@@ -976,7 +1161,9 @@
         "extensions": [
             "gif"
         ],
-        "mime_type": null,
+        "mime_type": "image/gif",
+        "group": "image",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -991,6 +1178,7 @@
         "correct_labels": [
             "gif"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "go": {
@@ -998,7 +1186,9 @@
         "extensions": [
             "go"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-golang",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -1013,6 +1203,7 @@
         "correct_labels": [
             "go"
         ],
+        "threshold": 0.9825072098,
         "in_scope": true
     },
     "gpx": {
@@ -1021,6 +1212,8 @@
             "gpx"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1028,6 +1221,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "gzip": {
@@ -1038,7 +1232,9 @@
             "tgz",
             "tar.gz"
         ],
-        "mime_type": null,
+        "mime_type": "application/gzip",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1053,6 +1249,7 @@
         "correct_labels": [
             "gzip"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "hfs": {
@@ -1061,6 +1258,8 @@
             "hfs"
         ],
         "mime_type": "application/x-hfs",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1068,6 +1267,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "hlp": {
@@ -1076,6 +1276,8 @@
             "hlp"
         ],
         "mime_type": "application/winhlp",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1089,6 +1291,7 @@
         "correct_labels": [
             "hlp"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "hta": {
@@ -1097,6 +1300,8 @@
             "hta"
         ],
         "mime_type": "application/hta",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1104,6 +1309,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "html": {
@@ -1114,7 +1320,9 @@
             "xhtml",
             "xht"
         ],
-        "mime_type": null,
+        "mime_type": "text/html",
+        "group": "code",
+        "magic": null,
         "vt_type": "html",
         "datasets": [
             "github"
@@ -1129,12 +1337,15 @@
         "correct_labels": [
             "html"
         ],
+        "threshold": 0.5024505138,
         "in_scope": true
     },
     "hve": {
         "name": "hve",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1142,6 +1353,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "ico": {
@@ -1149,7 +1361,9 @@
         "extensions": [
             "ico"
         ],
-        "mime_type": null,
+        "mime_type": "image/vnd.microsoft.icon",
+        "group": "image",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1163,6 +1377,7 @@
         "correct_labels": [
             "ico"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "img": {
@@ -1171,6 +1386,8 @@
             "img"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1178,6 +1395,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "ini": {
@@ -1185,7 +1403,9 @@
         "extensions": [
             "ini"
         ],
-        "mime_type": null,
+        "mime_type": "text/plain",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -1200,6 +1420,7 @@
         "correct_labels": [
             "ini"
         ],
+        "threshold": 0.6208169293,
         "in_scope": true
     },
     "internetshortcut": {
@@ -1208,6 +1429,8 @@
             "url"
         ],
         "mime_type": "application/x-mswinurl",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1221,12 +1444,15 @@
         "correct_labels": [
             "internetshortcut"
         ],
+        "threshold": 0.9999782848,
         "in_scope": true
     },
     "iosapp": {
         "name": "iosapp",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1234,6 +1460,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "iso": {
@@ -1242,7 +1469,9 @@
             "iso"
         ],
         "mime_type": "application/x-iso9660-image",
-        "vt_type": null,
+        "group": "archive",
+        "magic": null,
+        "vt_type": "isoimage",
         "datasets": [
             "vt-ext"
         ],
@@ -1256,6 +1485,7 @@
             "iso",
             "udf"
         ],
+        "threshold": 0.9641154498,
         "in_scope": true
     },
     "jar": {
@@ -1263,7 +1493,9 @@
         "extensions": [
             "jar"
         ],
-        "mime_type": null,
+        "mime_type": "application/java-archive",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1279,6 +1511,7 @@
         "correct_labels": [
             "jar"
         ],
+        "threshold": 0.7285026756,
         "in_scope": true
     },
     "java": {
@@ -1286,7 +1519,9 @@
         "extensions": [
             "java"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-java",
+        "group": "code",
+        "magic": null,
         "vt_type": "java",
         "datasets": [
             "github"
@@ -1301,6 +1536,7 @@
         "correct_labels": [
             "java"
         ],
+        "threshold": 0.7787298602,
         "in_scope": true
     },
     "javabytecode": {
@@ -1308,7 +1544,9 @@
         "extensions": [
             "class"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-java-applet",
+        "group": "code",
+        "magic": null,
         "vt_type": "class",
         "datasets": [
             "vt-ext"
@@ -1322,6 +1560,7 @@
         "correct_labels": [
             "javabytecode"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "javascript": {
@@ -1329,7 +1568,9 @@
         "extensions": [
             "js"
         ],
-        "mime_type": null,
+        "mime_type": "application/javascript",
+        "group": "code",
+        "magic": null,
         "vt_type": "javascript",
         "datasets": [
             "github",
@@ -1346,6 +1587,7 @@
         "correct_labels": [
             "javascript"
         ],
+        "threshold": 0.7491717947,
         "in_scope": true
     },
     "jpeg": {
@@ -1354,7 +1596,9 @@
             "jpg",
             "jpeg"
         ],
-        "mime_type": null,
+        "mime_type": "image/jpeg",
+        "group": "image",
+        "magic": null,
         "vt_type": "jpeg",
         "datasets": [
             "vt-ext"
@@ -1369,6 +1613,7 @@
         "correct_labels": [
             "jpeg"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "json": {
@@ -1376,7 +1621,9 @@
         "extensions": [
             "json"
         ],
-        "mime_type": null,
+        "mime_type": "application/json",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -1391,6 +1638,7 @@
         "correct_labels": [
             "json"
         ],
+        "threshold": 0.7581591353,
         "in_scope": true
     },
     "ko": {
@@ -1398,7 +1646,9 @@
         "extensions": [
             "ko"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1414,6 +1664,7 @@
             "elf",
             "ko"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "latex": {
@@ -1421,7 +1672,9 @@
         "extensions": [
             "tex"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-tex",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -1436,6 +1689,7 @@
         "correct_labels": [
             "latex"
         ],
+        "threshold": 0.8698396489,
         "in_scope": true
     },
     "lisp": {
@@ -1443,7 +1697,9 @@
         "extensions": [
             "lisp"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-lisp",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -1458,6 +1714,7 @@
         "correct_labels": [
             "lisp"
         ],
+        "threshold": 0.9921380976,
         "in_scope": true
     },
     "lnk": {
@@ -1465,7 +1722,9 @@
         "extensions": [
             "lnk"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-ms-shortcut",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1479,6 +1738,7 @@
         "correct_labels": [
             "lnk"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "m3u": {
@@ -1487,7 +1747,9 @@
             "m3u8",
             "m3u"
         ],
-        "mime_type": null,
+        "mime_type": "text/plain",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1501,12 +1763,15 @@
         "correct_labels": [
             "m3u"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "macho": {
         "name": "macho",
         "extensions": [],
         "mime_type": "application/x-mach-o",
+        "group": "executable",
+        "magic": null,
         "vt_type": "macho",
         "datasets": [
             "vt-type"
@@ -1522,6 +1787,7 @@
             "macho",
             "dylib"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "maff": {
@@ -1530,6 +1796,8 @@
             "maff"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1537,6 +1805,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "makefile": {
@@ -1544,7 +1813,9 @@
         "extensions": [
             "=Makefile"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-makefile",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -1559,6 +1830,7 @@
         "correct_labels": [
             "makefile"
         ],
+        "threshold": 0.9525600028,
         "in_scope": true
     },
     "markdown": {
@@ -1566,7 +1838,9 @@
         "extensions": [
             "md"
         ],
-        "mime_type": null,
+        "mime_type": "text/markdown",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -1581,6 +1855,7 @@
         "correct_labels": [
             "markdown"
         ],
+        "threshold": 0.4938508916,
         "in_scope": true
     },
     "mht": {
@@ -1589,6 +1864,8 @@
             "mht"
         ],
         "mime_type": "application/x-mimearchive",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1602,12 +1879,15 @@
         "correct_labels": [
             "mht"
         ],
+        "threshold": 0.9999984503,
         "in_scope": true
     },
     "mkv": {
         "name": "mkv",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1615,12 +1895,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "mov": {
         "name": "mov",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1628,6 +1911,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "mp3": {
@@ -1635,7 +1919,9 @@
         "extensions": [
             "mp3"
         ],
-        "mime_type": null,
+        "mime_type": "audio/mpeg",
+        "group": "audio",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1650,6 +1936,7 @@
         "correct_labels": [
             "mp3"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "mp4": {
@@ -1657,7 +1944,9 @@
         "extensions": [
             "mp4"
         ],
-        "mime_type": null,
+        "mime_type": "video/mp4",
+        "group": "video",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1672,12 +1961,15 @@
         "correct_labels": [
             "mp4"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "mscompress": {
         "name": "mscompress",
         "extensions": [],
         "mime_type": "application/x-ms-compress-szdd",
+        "group": "archive",
+        "magic": null,
         "vt_type": "mscompress",
         "datasets": [
             "vt-type"
@@ -1691,6 +1983,7 @@
         "correct_labels": [
             "mscompress"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "msi": {
@@ -1698,7 +1991,9 @@
         "extensions": [
             "msi"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-msi",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1713,6 +2008,7 @@
         "correct_labels": [
             "msi"
         ],
+        "threshold": 0.815530479,
         "in_scope": true
     },
     "mst": {
@@ -1721,6 +2017,8 @@
             "mst"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1728,12 +2026,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "msvisio": {
         "name": "msvisio",
         "extensions": [],
         "mime_type": "application/vnd.ms-visio.drawing.main+xml",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1741,6 +2042,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "mui": {
@@ -1748,7 +2050,9 @@
         "extensions": [
             "mui"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-dosexec",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1764,6 +2068,7 @@
             "pebin",
             "mui"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "mum": {
@@ -1771,7 +2076,9 @@
         "extensions": [
             "mum"
         ],
-        "mime_type": null,
+        "mime_type": "text/xml",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1785,6 +2092,7 @@
         "correct_labels": [
             "mum"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "mun": {
@@ -1793,6 +2101,8 @@
             "mun"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1800,12 +2110,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "nim": {
         "name": "nim",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1813,6 +2126,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "null": {
@@ -1821,6 +2135,8 @@
             "null"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1828,6 +2144,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "object": {
@@ -1836,6 +2153,8 @@
             "o"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1843,6 +2162,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "ocx": {
@@ -1850,7 +2170,9 @@
         "extensions": [
             "ocx"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1867,6 +2189,7 @@
             "ax",
             "ocx"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "odex": {
@@ -1874,7 +2197,9 @@
         "extensions": [
             "odex"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1890,6 +2215,7 @@
             "odex",
             "elf"
         ],
+        "threshold": 0.99997733,
         "in_scope": true
     },
     "odp": {
@@ -1897,7 +2223,9 @@
         "extensions": [
             "odp"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.oasis.opendocument.presentation",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1912,6 +2240,7 @@
         "correct_labels": [
             "odp"
         ],
+        "threshold": 0.9999998808,
         "in_scope": true
     },
     "ods": {
@@ -1919,7 +2248,9 @@
         "extensions": [
             "ods"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.oasis.opendocument.spreadsheet",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1934,6 +2265,7 @@
         "correct_labels": [
             "ods"
         ],
+        "threshold": 0.9999649435,
         "in_scope": true
     },
     "odt": {
@@ -1941,7 +2273,9 @@
         "extensions": [
             "odt"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.oasis.opendocument.text",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1956,6 +2290,7 @@
         "correct_labels": [
             "odt"
         ],
+        "threshold": 0.9998734295,
         "in_scope": true
     },
     "ogg": {
@@ -1963,7 +2298,9 @@
         "extensions": [
             "ogg"
         ],
-        "mime_type": null,
+        "mime_type": "audio/ogg",
+        "group": "audio",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -1978,12 +2315,15 @@
         "correct_labels": [
             "ogg"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "ole": {
         "name": "ole",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -1991,12 +2331,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "ooxml": {
         "name": "ooxml",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2004,12 +2347,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "outlook": {
         "name": "outlook",
         "extensions": [],
-        "mime_type": null,
+        "mime_type": "application/vnd.ms-outlook",
+        "group": "misc",
+        "magic": null,
         "vt_type": "outlook",
         "datasets": [
             "vt-type"
@@ -2024,12 +2370,15 @@
         "correct_labels": [
             "outlook"
         ],
+        "threshold": 0.9817098036,
         "in_scope": true
     },
     "palmos": {
         "name": "palmos",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": "palmos",
         "datasets": [],
         "parent": null,
@@ -2037,6 +2386,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "pascal": {
@@ -2045,6 +2395,8 @@
             "pascal"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2052,12 +2404,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "pbm": {
         "name": "pbm",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2065,6 +2420,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "pcap": {
@@ -2073,7 +2429,9 @@
             "pcap",
             "pcapng"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.tcpdump.pcap",
+        "group": "misc",
+        "magic": null,
         "vt_type": "pcap",
         "datasets": [
             "vt-ext"
@@ -2087,6 +2445,7 @@
         "correct_labels": [
             "pcap"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "pdf": {
@@ -2094,7 +2453,9 @@
         "extensions": [
             "pdf"
         ],
-        "mime_type": null,
+        "mime_type": "application/pdf",
+        "group": "doc",
+        "magic": "PDF document",
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2109,12 +2470,15 @@
             "pdf",
             "ai"
         ],
+        "threshold": 0.9736056823,
         "in_scope": true
     },
     "pebin": {
         "name": "pebin",
         "extensions": [],
-        "mime_type": null,
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2122,6 +2486,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "pem": {
@@ -2130,6 +2495,8 @@
             "pem"
         ],
         "mime_type": "application/x-pem-file",
+        "group": "misc",
+        "magic": "PEM certificate",
         "vt_type": null,
         "datasets": [
             "github"
@@ -2144,6 +2511,7 @@
             "pem",
             "pgpkey"
         ],
+        "threshold": 0.9990733483,
         "in_scope": true
     },
     "perl": {
@@ -2151,7 +2519,9 @@
         "extensions": [
             "pl"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-perl",
+        "group": "code",
+        "magic": "Perl script text executable",
         "vt_type": "perl",
         "datasets": [
             "github"
@@ -2166,12 +2536,15 @@
         "correct_labels": [
             "perl"
         ],
+        "threshold": 0.8153136641,
         "in_scope": true
     },
     "pgpkey": {
         "name": "pgpkey",
         "extensions": [],
         "mime_type": "application/pgp-keys",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2179,6 +2552,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "php": {
@@ -2186,7 +2560,9 @@
         "extensions": [
             "php"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-php",
+        "group": "code",
+        "magic": null,
         "vt_type": "php",
         "datasets": [
             "github"
@@ -2201,6 +2577,7 @@
         "correct_labels": [
             "php"
         ],
+        "threshold": 0.7648788854,
         "in_scope": true
     },
     "png": {
@@ -2208,7 +2585,9 @@
         "extensions": [
             "png"
         ],
-        "mime_type": null,
+        "mime_type": "image/png",
+        "group": "image",
+        "magic": null,
         "vt_type": "png",
         "datasets": [
             "vt-ext"
@@ -2223,6 +2602,7 @@
         "correct_labels": [
             "png"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "postscript": {
@@ -2230,7 +2610,9 @@
         "extensions": [
             "ps"
         ],
-        "mime_type": null,
+        "mime_type": "application/postscript",
+        "group": "doc",
+        "magic": null,
         "vt_type": "postscript",
         "datasets": [
             "vt-ext"
@@ -2244,6 +2626,7 @@
         "correct_labels": [
             "postscript"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "powershell": {
@@ -2251,7 +2634,9 @@
         "extensions": [
             "ps1"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-powershell",
+        "group": "code",
+        "magic": null,
         "vt_type": "ps",
         "datasets": [
             "github",
@@ -2268,6 +2653,7 @@
         "correct_labels": [
             "powershell"
         ],
+        "threshold": 0.8520130259,
         "in_scope": true
     },
     "ppt": {
@@ -2275,7 +2661,9 @@
         "extensions": [
             "ppt"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.ms-powerpoint",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2290,6 +2678,7 @@
         "correct_labels": [
             "ppt"
         ],
+        "threshold": 0.7114852214,
         "in_scope": true
     },
     "pptx": {
@@ -2298,7 +2687,9 @@
             "pptx",
             "pptm"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2315,12 +2706,15 @@
         "correct_labels": [
             "pptx"
         ],
+        "threshold": 0.6667670846,
         "in_scope": true
     },
     "printfox": {
         "name": "printfox",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2328,6 +2722,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "pub": {
@@ -2336,6 +2731,8 @@
             "pub"
         ],
         "mime_type": "application/x-mspublisher",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2346,6 +2743,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "python": {
@@ -2353,7 +2751,9 @@
         "extensions": [
             "py"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-python",
+        "group": "code",
+        "magic": null,
         "vt_type": "python",
         "datasets": [
             "github"
@@ -2368,6 +2768,7 @@
         "correct_labels": [
             "python"
         ],
+        "threshold": 0.8172048116,
         "in_scope": true
     },
     "pythonbytecode": {
@@ -2376,7 +2777,9 @@
             "pyc",
             "pyo"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-bytecode.python",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2390,6 +2793,7 @@
         "correct_labels": [
             "pythonbytecode"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "pythonpar": {
@@ -2398,6 +2802,8 @@
             "par"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2405,6 +2811,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "rar": {
@@ -2412,7 +2819,9 @@
         "extensions": [
             "rar"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-rar",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2427,6 +2836,7 @@
         "correct_labels": [
             "rar"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "rdf": {
@@ -2434,7 +2844,9 @@
         "extensions": [
             "rdf"
         ],
-        "mime_type": null,
+        "mime_type": "application/rdf+xml",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -2448,6 +2860,7 @@
         "correct_labels": [
             "rdf"
         ],
+        "threshold": 0.9969519657,
         "in_scope": true
     },
     "rll": {
@@ -2456,6 +2869,8 @@
             "rll"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2463,6 +2878,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "rpm": {
@@ -2470,7 +2886,9 @@
         "extensions": [
             "rpm"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-rpm",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2485,6 +2903,7 @@
         "correct_labels": [
             "rpm"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "rst": {
@@ -2492,7 +2911,9 @@
         "extensions": [
             "rst"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-rst",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -2507,6 +2928,7 @@
         "correct_labels": [
             "rst"
         ],
+        "threshold": 0.5506858346,
         "in_scope": true
     },
     "rtf": {
@@ -2514,7 +2936,9 @@
         "extensions": [
             "rtf"
         ],
-        "mime_type": null,
+        "mime_type": "text/rtf",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2528,6 +2952,7 @@
         "correct_labels": [
             "rtf"
         ],
+        "threshold": 0.9999875903,
         "in_scope": true
     },
     "ruby": {
@@ -2535,7 +2960,9 @@
         "extensions": [
             "rb"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-ruby",
+        "group": "code",
+        "magic": null,
         "vt_type": "ruby",
         "datasets": [
             "github"
@@ -2550,6 +2977,7 @@
         "correct_labels": [
             "ruby"
         ],
+        "threshold": 0.9082584482,
         "in_scope": true
     },
     "rust": {
@@ -2557,7 +2985,9 @@
         "extensions": [
             "rs"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-rust",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -2572,6 +3002,7 @@
         "correct_labels": [
             "rust"
         ],
+        "threshold": 0.9800394034,
         "in_scope": true
     },
     "s": {
@@ -2580,6 +3011,8 @@
             "s"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2587,6 +3020,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "scala": {
@@ -2594,7 +3028,9 @@
         "extensions": [
             "scala"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-scala",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -2609,6 +3045,7 @@
         "correct_labels": [
             "scala"
         ],
+        "threshold": 0.944536432,
         "in_scope": true
     },
     "scr": {
@@ -2616,7 +3053,9 @@
         "extensions": [
             "scr"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2632,12 +3071,15 @@
             "pebin",
             "scr"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "scriptwsf": {
         "name": "scriptwsf",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2645,6 +3087,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "sevenzip": {
@@ -2652,7 +3095,9 @@
         "extensions": [
             "7z"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-7z-compressed",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2667,12 +3112,15 @@
         "correct_labels": [
             "sevenzip"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "sgml": {
         "name": "sgml",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2680,6 +3128,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "sh3d": {
@@ -2688,6 +3137,8 @@
             "sh3d"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2695,6 +3146,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "shell": {
@@ -2702,7 +3154,9 @@
         "extensions": [
             "sh"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-shellscript",
+        "group": "code",
+        "magic": null,
         "vt_type": "shell",
         "datasets": [
             "github"
@@ -2717,6 +3171,7 @@
         "correct_labels": [
             "shell"
         ],
+        "threshold": 0.57040378,
         "in_scope": true
     },
     "smali": {
@@ -2724,7 +3179,9 @@
         "extensions": [
             "smali"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-smali",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -2738,6 +3195,7 @@
         "correct_labels": [
             "smali"
         ],
+        "threshold": 0.9999998808,
         "in_scope": true
     },
     "so": {
@@ -2745,7 +3203,9 @@
         "extensions": [
             "so"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2761,6 +3221,7 @@
             "elf",
             "so"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "sql": {
@@ -2768,7 +3229,9 @@
         "extensions": [
             "sql"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-sql",
+        "group": "code",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -2783,12 +3246,15 @@
         "correct_labels": [
             "sql"
         ],
+        "threshold": 0.913041023,
         "in_scope": true
     },
     "squashfs": {
         "name": "squashfs",
         "extensions": [],
-        "mime_type": null,
+        "mime_type": "application/octet-stream",
+        "group": "archive",
+        "magic": null,
         "vt_type": "squashfs",
         "datasets": [
             "vt-type"
@@ -2802,12 +3268,15 @@
         "correct_labels": [
             "squashfs"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "svd": {
         "name": "svd",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2815,6 +3284,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "svg": {
@@ -2822,7 +3292,9 @@
         "extensions": [
             "svg"
         ],
-        "mime_type": null,
+        "mime_type": "image/svg+xml",
+        "group": "image",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -2836,6 +3308,7 @@
         "correct_labels": [
             "svg"
         ],
+        "threshold": 0.9994688559,
         "in_scope": true
     },
     "swf": {
@@ -2843,7 +3316,9 @@
         "extensions": [
             "swf"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-shockwave-flash",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2857,12 +3332,15 @@
         "correct_labels": [
             "swf"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "symlink": {
         "name": "symlink",
         "extensions": [],
-        "mime_type": null,
+        "mime_type": "text/plain",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "synthetic"
@@ -2877,6 +3355,7 @@
             "symlink",
             "txt"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "sys": {
@@ -2885,6 +3364,8 @@
             "sys"
         ],
         "mime_type": "application/x-windows-driver",
+        "group": "executable",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2900,6 +3381,7 @@
             "pebin",
             "sys"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "tar": {
@@ -2907,7 +3389,9 @@
         "extensions": [
             "tar"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-tar",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2922,6 +3406,7 @@
         "correct_labels": [
             "tar"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "tga": {
@@ -2929,7 +3414,9 @@
         "extensions": [
             "tga"
         ],
-        "mime_type": null,
+        "mime_type": "image/x-tga",
+        "group": "image",
+        "magic": null,
         "vt_type": "targa",
         "datasets": [
             "vt-ext"
@@ -2943,6 +3430,7 @@
         "correct_labels": [
             "tga"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "tiff": {
@@ -2951,7 +3439,9 @@
             "tiff",
             "tif"
         ],
-        "mime_type": null,
+        "mime_type": "image/tiff",
+        "group": "image",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -2966,6 +3456,7 @@
         "correct_labels": [
             "tiff"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "tmdx": {
@@ -2975,6 +3466,8 @@
             "tmvx"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -2982,6 +3475,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "torrent": {
@@ -2989,7 +3483,9 @@
         "extensions": [
             "torrent"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-bittorrent",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3003,12 +3499,15 @@
         "correct_labels": [
             "torrent"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "troff": {
         "name": "troff",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -3016,6 +3515,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "ttf": {
@@ -3023,7 +3523,9 @@
         "extensions": [
             "ttf"
         ],
-        "mime_type": null,
+        "mime_type": "font/sfnt",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3037,6 +3539,7 @@
         "correct_labels": [
             "ttf"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "txt": {
@@ -3044,7 +3547,9 @@
         "extensions": [
             "txt"
         ],
-        "mime_type": null,
+        "mime_type": "text/plain",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github",
@@ -3060,12 +3565,15 @@
         "correct_labels": [
             "txt"
         ],
+        "threshold": 0.4490435027,
         "in_scope": true
     },
     "udf": {
         "name": "udf",
         "extensions": [],
         "mime_type": "application/x-udf-image",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -3073,6 +3581,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "unixcompress": {
@@ -3081,6 +3590,8 @@
             "z"
         ],
         "mime_type": "application/x-compress",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -3088,12 +3599,15 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "unknown": {
         "name": "unknown",
         "extensions": [],
-        "mime_type": null,
+        "mime_type": "application/octet-stream",
+        "group": "unknown",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "synthetic"
@@ -3107,6 +3621,7 @@
         "correct_labels": [
             "unknown"
         ],
+        "threshold": 0.9922373652,
         "in_scope": true
     },
     "vba": {
@@ -3115,6 +3630,8 @@
             "vbs"
         ],
         "mime_type": "text/vbscript",
+        "group": "code",
+        "magic": null,
         "vt_type": "vba",
         "datasets": [
             "vt-ext",
@@ -3129,12 +3646,15 @@
         "correct_labels": [
             "vba"
         ],
+        "threshold": 0.9502266347,
         "in_scope": true
     },
     "vhd": {
         "name": "vhd",
         "extensions": [],
         "mime_type": "application/x-vhd",
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -3142,6 +3662,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "wasm": {
@@ -3150,6 +3671,8 @@
             "wasm"
         ],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -3157,6 +3680,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "wav": {
@@ -3164,7 +3688,9 @@
         "extensions": [
             "wav"
         ],
-        "mime_type": null,
+        "mime_type": "audio/x-wav",
+        "group": "audio",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3179,6 +3705,7 @@
         "correct_labels": [
             "wav"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "webm": {
@@ -3186,7 +3713,9 @@
         "extensions": [
             "webm"
         ],
-        "mime_type": null,
+        "mime_type": "video/webm",
+        "group": "video",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3201,6 +3730,7 @@
         "correct_labels": [
             "webm"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "webp": {
@@ -3208,7 +3738,9 @@
         "extensions": [
             "webp"
         ],
-        "mime_type": null,
+        "mime_type": "image/webp",
+        "group": "image",
+        "magic": null,
         "vt_type": "webp",
         "datasets": [
             "vt-ext"
@@ -3223,6 +3755,7 @@
         "correct_labels": [
             "webp"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "winregistry": {
@@ -3230,7 +3763,9 @@
         "extensions": [
             "reg"
         ],
-        "mime_type": null,
+        "mime_type": "text/x-ms-regedit",
+        "group": "misc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3245,6 +3780,7 @@
         "correct_labels": [
             "winregistry"
         ],
+        "threshold": 0.9983598471,
         "in_scope": true
     },
     "wmf": {
@@ -3252,7 +3788,9 @@
         "extensions": [
             "wmf"
         ],
-        "mime_type": null,
+        "mime_type": "image/wmf",
+        "group": "image",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3266,12 +3804,15 @@
         "correct_labels": [
             "wmf"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "woff": {
         "name": "woff",
         "extensions": [],
         "mime_type": null,
+        "group": null,
+        "magic": null,
         "vt_type": null,
         "datasets": [],
         "parent": null,
@@ -3279,6 +3820,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
+        "threshold": null,
         "in_scope": false
     },
     "xar": {
@@ -3286,7 +3828,9 @@
         "extensions": [
             "pkg"
         ],
-        "mime_type": "application/x-xar-compressed",
+        "mime_type": "application/x-xar",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3301,6 +3845,7 @@
         "correct_labels": [
             "xar"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "xls": {
@@ -3308,7 +3853,9 @@
         "extensions": [
             "xls"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.ms-excel",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3323,6 +3870,7 @@
         "correct_labels": [
             "xls"
         ],
+        "threshold": 0.8155949342,
         "in_scope": true
     },
     "xlsb": {
@@ -3330,7 +3878,9 @@
         "extensions": [
             "xlsb"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3348,6 +3898,7 @@
             "xlsb",
             "xlsx"
         ],
+        "threshold": 0.5597740352,
         "in_scope": true
     },
     "xlsx": {
@@ -3356,7 +3907,9 @@
             "xlsx",
             "xlsm"
         ],
-        "mime_type": null,
+        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "group": "doc",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3374,6 +3927,7 @@
             "xlsx",
             "xlsb"
         ],
+        "threshold": 0.7314397573,
         "in_scope": true
     },
     "xml": {
@@ -3381,7 +3935,9 @@
         "extensions": [
             "xml"
         ],
-        "mime_type": null,
+        "mime_type": "text/xml",
+        "group": "text",
+        "magic": null,
         "vt_type": "xml",
         "datasets": [
             "github"
@@ -3396,6 +3952,7 @@
         "correct_labels": [
             "xml"
         ],
+        "threshold": 0.5840077344,
         "in_scope": true
     },
     "xpi": {
@@ -3403,7 +3960,9 @@
         "extensions": [
             "xpi"
         ],
-        "mime_type": null,
+        "mime_type": "application/zip",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3419,6 +3978,7 @@
         "correct_labels": [
             "xpi"
         ],
+        "threshold": 0.9806626779,
         "in_scope": true
     },
     "xz": {
@@ -3426,7 +3986,9 @@
         "extensions": [
             "xz"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-xz",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3441,6 +4003,7 @@
         "correct_labels": [
             "xz"
         ],
+        "threshold": 1.0,
         "in_scope": true
     },
     "yaml": {
@@ -3449,7 +4012,9 @@
             "yml",
             "yaml"
         ],
-        "mime_type": null,
+        "mime_type": "application/x-yaml",
+        "group": "text",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "github"
@@ -3464,6 +4029,7 @@
         "correct_labels": [
             "yaml"
         ],
+        "threshold": 0.7159810019,
         "in_scope": true
     },
     "zip": {
@@ -3471,7 +4037,9 @@
         "extensions": [
             "zip"
         ],
-        "mime_type": null,
+        "mime_type": "application/zip",
+        "group": "archive",
+        "magic": null,
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -3487,12 +4055,15 @@
         "correct_labels": [
             "zip"
         ],
+        "threshold": 0.8564036322,
         "in_scope": true
     },
     "zlibstream": {
         "name": "zlibstream",
         "extensions": [],
-        "mime_type": null,
+        "mime_type": "application/zlib",
+        "group": "misc",
+        "magic": null,
         "vt_type": "zlib",
         "datasets": [
             "vt-type"
@@ -3506,6 +4077,7 @@
         "correct_labels": [
             "zlibstream"
         ],
+        "threshold": 1.0,
         "in_scope": true
     }
 }

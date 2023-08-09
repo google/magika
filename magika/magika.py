@@ -13,9 +13,7 @@ import numpy as np
 import onnxruntime as rt
 
 from magika.content_types import ContentTypesManager, ContentType
-from magika import get_logger
-
-l = get_logger()
+from magika.logger import Logger
 
 
 # TODO move these into a config file
@@ -27,18 +25,22 @@ class Magika():
     def __init__(
         self,
         model_dir: Optional[Path] = None,
-        threshold: float = 0.0,
         mime_output_flag: bool = False,
+        compatibility_mode_flag: bool = False,
+        output_highest_probability: bool = False,
         verbose: bool = False,
-        debug: bool = False):
+        debug: bool = False,
+        use_colors: bool = False):
 
         self.verbose = verbose
         self.debug = debug
 
+        self.l = Logger(use_colors=use_colors)
+
         if verbose:
-            l.setLevel(logging.INFO)
+            self.l.setLevel(logging.INFO)
         if debug:
-            l.setLevel(logging.DEBUG)
+            self.l.setLevel(logging.DEBUG)
 
         if model_dir is None:
             if os.environ.get('MAGIKA_MODEL_DIR') not in [None, '']:
@@ -64,11 +66,11 @@ class Magika():
             if not self.model_path.is_file() or not self.model_config_path.is_file():
                 self.model_dir.mkdir(parents=True, exist_ok=True)
                 model_url = GC_BUCKET_URL_PREFIX + f'model-{MODEL_HASH}.onnx'
-                l.info(f'Downloading DL model {model_url} => {self.model_path}')
+                self.l.info(f'Downloading DL model {model_url} => {self.model_path}')
                 with open(self.model_path, 'wb') as f:
                     f.write(requests.get(model_url).content)
                 model_config_url = GC_BUCKET_URL_PREFIX + f'model_config-{MODEL_HASH}.json'
-                l.info(f'Downloading DL model config {model_config_url} => {self.model_config_path}')
+                self.l.info(f'Downloading DL model config {model_config_url} => {self.model_config_path}')
                 with open(self.model_config_path, 'wb') as f:
                     f.write(requests.get(model_config_url).content)
 
@@ -85,8 +87,9 @@ class Magika():
         }
         self.target_labels_space = np.array(self.model_config['train_dataset_info']['target_labels_info']['target_labels_space'])
 
-        self.threshold = threshold
         self.mime_output_flag = mime_output_flag
+        self.compatibility_mode_flag = compatibility_mode_flag
+        self.output_highest_probability = output_highest_probability
 
         self.ctm = ContentTypesManager()
         self.onnx_session = None
@@ -96,7 +99,7 @@ class Magika():
             start_time = time.time()
             self.onnx_session = rt.InferenceSession(self.model_path)
             elapsed_time = time.time() - start_time
-            l.debug(f'ONNX DL model "{self.model_path}" loaded in {elapsed_time:.03f} seconds')
+            self.l.debug(f'ONNX DL model "{self.model_path}" loaded in {elapsed_time:.03f} seconds')
 
     def get_content_types(self, paths: List[Path]) -> List:
         # extract the features and store them in a dict, keyed by path
@@ -106,11 +109,11 @@ class Magika():
         end_size = self.input_sizes['end']
         paths = sorted(paths)
         features = []
-        l.debug(f'Extracting features for {len(paths)} samples')
+        self.l.debug(f'Extracting features for {len(paths)} samples')
         for path in tqdm(paths, disable=not (self.verbose or self.debug)):
             features.append((path, self.extract_features(path, beg_size, mid_size, end_size)))
         elapsed_time = time.time() - start_time
-        l.debug(f'Raw features extracted in {elapsed_time:.03f} seconds')
+        self.l.debug(f'Raw features extracted in {elapsed_time:.03f} seconds')
 
         predictions = []
         if len(features) > 0:
@@ -130,9 +133,8 @@ class Magika():
                     path,
                     ct_label,
                     score,
-                    self.threshold,
                 )
-                l.debug(f'Adding DL result for {path}')
+                self.l.debug(f'Adding DL result for {path}')
 
                 entry = {
                     'path': str(path),
@@ -146,9 +148,19 @@ class Magika():
                     }
                 }
 
+                # add group info
+                entry['dl']['group'] = self.ctm.get_group(ct_label)
+                entry['output']['group'] = self.ctm.get_group(output_ct_label)
+
                 if self.mime_output_flag:
-                    entry['dl']['mime_type'] = self.ctm.get_mime_type(ct_label, default_mime_type=ContentType.UNKNOWN_MIME_TYPE)
-                    entry['output']['mime_type'] = self.ctm.get_mime_type(output_ct_label, default_mime_type=ContentType.UNKNOWN_MIME_TYPE)
+                    entry['dl']['mime_type'] = self.ctm.get_mime_type(ct_label)
+                    entry['output']['mime_type'] = self.ctm.get_mime_type(output_ct_label)
+
+                if self.compatibility_mode_flag and not self.mime_output_flag:
+                    # Note: if compatibility mode is set and the user wants the
+                    # MIME type, we don't need to get the magic
+                    entry['dl']['magic'] = self.ctm.get_magic(ct_label)
+                    entry['output']['magic'] = self.ctm.get_magic(output_ct_label)
 
                 predictions.append(entry)
 
@@ -157,11 +169,14 @@ class Magika():
     def get_content_type(self, path: Path) -> Dict[str, Dict[str, Union[int, float]]]:
         return self.get_content_types([path])[str(path)]
 
-    def get_output_ct_label(self, path: Path, ct_label: str, score: float, threshold: float) -> Tuple[str, float]:
+    def get_output_ct_label(self, path: Path, ct_label: str, score: float) -> Tuple[str, float]:
         if path.stat().st_size == 0:
             output_ct_label = ContentType.EMPTY
             output_score = 1.0
-        elif score >= threshold:
+        elif self.output_highest_probability:
+            output_ct_label = ct_label
+            output_score = score
+        elif score >= self.ctm.get(ct_label).threshold:
             output_ct_label = ct_label
             output_score = score
         else:
@@ -351,7 +366,7 @@ class Magika():
             elapsed_time = time.time() - start_time
         else:
             raise Exception(f'Dataset format "{dataset_format}" not supported')
-        l.debug(f'DL input prepared in {elapsed_time:.03f} seconds')
+        self.l.debug(f'DL input prepared in {elapsed_time:.03f} seconds')
         return X
 
     def get_raw_predictions(self, X):
@@ -364,11 +379,11 @@ class Magika():
         if samples_num % batch_size != 0:
             batches_num += 1
         for batch_idx in range(batches_num):
-            l.debug(f'Getting raw predictions for batch {batch_idx+1}/{batches_num}')
+            self.l.debug(f'Getting raw predictions for batch {batch_idx+1}/{batches_num}')
             start_idx = batch_idx * batch_size
             end_idx = min((batch_idx + 1) * batch_size, samples_num)
             batch_raw_predictions = self.onnx_session.run(['target_label'], {'bytes': X['bytes'][start_idx:end_idx, :]})[0]
             raw_predictions_list.append(batch_raw_predictions)
         elapsed_time = time.time() - start_time
-        l.debug(f'DL raw prediction in {elapsed_time:.03f} seconds')
+        self.l.debug(f'DL raw prediction in {elapsed_time:.03f} seconds')
         return np.concatenate(raw_predictions_list)

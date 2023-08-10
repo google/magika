@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magika"
-version = "0.2.1"
+version = "0.2.1.1"
 description = "A tool to determine the content type of a file with deep-learning"
 authors = ["Yanick Fratantonio <yanickf@google.com>"]
 readme = "README.md"

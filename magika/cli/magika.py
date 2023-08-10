@@ -14,7 +14,7 @@ from magika import colors
 from magika.logger import Logger
 
 
-VERSION = "0.2.1"
+VERSION = "0.2.1.1"
 
 
 log = None

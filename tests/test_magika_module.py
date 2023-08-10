@@ -2,9 +2,22 @@ from pathlib import Path
 import random
 import tempfile
 
+import pytest
+
 from magika.magika import Magika
 
+from tests import utils
 from tests.utils import get_random_ascii_bytes
+
+
+@pytest.mark.smoketest
+def test_magika_module_basic_tests():
+    test_path = utils.get_one_basic_test_file_path()
+
+    m = Magika()
+
+    _ = m.get_content_type(test_path)
+    _ = m.get_content_types([test_path])
 
 
 def test_extract_features_with_ascii():
@@ -28,24 +41,45 @@ def test_extract_features_with_spaces():
     random.seed(42)
 
     whitespace_sizes = [
-        1, 2, 4, 10, 400, 511, 512, 513, 1023, 1024, 1025, 2000,
+        1,
+        2,
+        4,
+        10,
+        400,
+        511,
+        512,
+        513,
+        1023,
+        1024,
+        1025,
+        2000,
     ]
 
     for whitespace_size in whitespace_sizes:
-        _test_extract_features_with_content((b' ' * whitespace_size) + get_random_ascii_bytes(128))
-        _test_extract_features_with_content(get_random_ascii_bytes(128) + (b' ' * whitespace_size))
-        _test_extract_features_with_content((b' ' * whitespace_size) + get_random_ascii_bytes(128) + (b' ' * whitespace_size))
+        _test_extract_features_with_content(
+            (b" " * whitespace_size) + get_random_ascii_bytes(128)
+        )
+        _test_extract_features_with_content(
+            get_random_ascii_bytes(128) + (b" " * whitespace_size)
+        )
+        _test_extract_features_with_content(
+            (b" " * whitespace_size)
+            + get_random_ascii_bytes(128)
+            + (b" " * whitespace_size)
+        )
 
-    _test_extract_features_with_content(b' ' * 1000)
+    _test_extract_features_with_content(b" " * 1000)
 
 
 def _test_extract_features_with_content(content: bytes):
-    print(f'Testing with content of len {len(content)}: {content[:min(128, len(content))]}...{content[-min(128, len(content)):]}')
+    print(
+        f"Testing with content of len {len(content)}: {content[:min(128, len(content))]!r}...{content[-min(128, len(content)):]!r}"
+    )
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
-        tf_path = td_path / 'file.dat'
+        tf_path = td_path / "file.dat"
 
-        with open(tf_path, 'wb') as f:
+        with open(tf_path, "wb") as f:
             f.write(content)
 
         content_stripped = content.strip()
@@ -72,12 +106,16 @@ def _test_extract_features_with_content(content: bytes):
         ]
 
         for beg_size, mid_size, end_size in test_parts_sizes:
-            print(f'Testing with {beg_size=}, {mid_size=}, {end_size=}, {len(content)=}')
-            features = m.extract_features(tf_path, beg_size=beg_size, mid_size=mid_size, end_size=end_size)
+            print(
+                f"Testing with {beg_size=}, {mid_size=}, {end_size=}, {len(content)=}"
+            )
+            features = m.extract_features(
+                tf_path, beg_size=beg_size, mid_size=mid_size, end_size=end_size
+            )
 
-            beg_ints_out = features['beg']
-            mid_ints_out = features['mid']
-            end_ints_out = features['end']
+            beg_ints_out = features["beg"]
+            mid_ints_out = features["mid"]
+            end_ints_out = features["end"]
 
             beg_out = bytes(beg_ints_out)
             mid_out = bytes(mid_ints_out)
@@ -87,18 +125,24 @@ def _test_extract_features_with_content(content: bytes):
                 if len(content_stripped) >= beg_size:
                     assert beg_out == content_stripped[:beg_size]
                 else:
-                    assert beg_out == content_stripped + (b'\x00' * (beg_size - len(content_stripped)))
+                    assert beg_out == content_stripped + (
+                        b"\x00" * (beg_size - len(content_stripped))
+                    )
             else:
-                assert beg_out == b''
+                assert beg_out == b""
 
             # mid is not supported
             assert mid_size == 0
-            assert mid_out == b''
+            assert mid_out == b""
 
             if end_size > 0:
                 if len(content_stripped) >= end_size:
                     assert end_out == content_stripped[-end_size:]
                 else:
-                    assert end_out == (b'\x00' * (end_size - len(content_stripped))) + content_stripped
+                    assert (
+                        end_out
+                        == (b"\x00" * (end_size - len(content_stripped)))
+                        + content_stripped
+                    )
             else:
-                assert end_out == b''
+                assert end_out == b""

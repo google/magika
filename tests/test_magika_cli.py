@@ -174,9 +174,8 @@ def check_magika_cli_output_matches_expected(
         elif compatibility_mode_flag:
             expected_output = ctm.get_magic(ctm.get_ct_by_ext_or_raise(file_ext).name)
         else:
-            ct_group = ctm.get_group(ctm.get_ct_by_ext_or_raise(file_ext).name)
             ct_label = ctm.get_ct_by_ext_or_raise(file_ext).name
-            expected_output = f"{ct_group}::{ct_label}"
+            expected_output = ct_label
         assert output == expected_output
 
 
@@ -332,17 +331,15 @@ def get_magika_cli_output_from_stdout_stderr(
         # expect json
         entries = json.loads(stdout)
         for entry in entries:
-            ct_group = entry["output"]["group"]
             ct_label = entry["output"]["ct_label"]
-            predicted_cts.append((Path(entry["path"]), f"{ct_group}::{ct_label}"))
+            predicted_cts.append((Path(entry["path"]), ct_label))
     elif jsonl_output_flag:
         # expect jsonl
         lines = utils.get_lines_from_stream(stdout)
         for line in lines:
             entry = json.loads(line)
-            ct_group = entry["output"]["group"]
             ct_label = entry["output"]["ct_label"]
-            predicted_cts.append((Path(entry["path"]), f"{ct_group}::{ct_label}"))
+            predicted_cts.append((Path(entry["path"]), ct_label))
     else:
         # plain output
         lines = utils.get_lines_from_stream(stdout)

@@ -14,7 +14,7 @@ from magika import colors
 from magika.logger import Logger
 
 
-VERSION = "0.2.1.1"
+VERSION = "0.2.2"
 
 
 log = None
@@ -195,7 +195,7 @@ def main(
     end_color = ""
 
     color_by_group = {
-        "doc": colors.LIGHT_PURPLE,
+        "document": colors.LIGHT_PURPLE,
         "executable": colors.LIGHT_GREEN,
         "archive": colors.LIGHT_RED,
         "audio": colors.YELLOW,
@@ -229,7 +229,7 @@ def main(
                 elif compatibility_mode_flag:
                     output = entry["output"]["magic"]
                 else:
-                    output = f"{ct_group}::{ct_label}"
+                    output = ct_label
                 score = int(entry["output"]["score"] * 100)
 
                 if with_colors_flag:

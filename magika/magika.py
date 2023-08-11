@@ -199,7 +199,10 @@ class Magika:
         elif self.output_highest_probability:
             output_ct_label = ct_label
             output_score = score
-        elif score >= self.high_score_threshold or score >= self.ctm.get_or_raise(ct_label).threshold:
+        elif (
+            score >= self.high_score_threshold
+            or score >= self.ctm.get_or_raise(ct_label).threshold
+        ):
             # we consider the predicted ct_label if it's very high or if it's
             # above the per-content-type threshold
             output_ct_label = ct_label

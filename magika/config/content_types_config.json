@@ -12,7 +12,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "aff": {
@@ -30,7 +30,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "ai": {
@@ -39,7 +39,7 @@
             "ai"
         ],
         "mime_type": "application/pdf",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -73,7 +73,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "apk": {
@@ -82,7 +82,7 @@
             "apk"
         ],
         "mime_type": "application/vnd.android.package-archive",
-        "group": "archive",
+        "group": "executable",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -108,7 +108,7 @@
             "plist"
         ],
         "mime_type": "application/x-plist",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": "appleplist",
         "datasets": [
@@ -140,7 +140,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "asm": {
@@ -210,7 +210,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "ax": {
@@ -226,7 +226,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "batch": {
@@ -267,7 +267,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "bib": {
@@ -283,7 +283,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "bmp": {
@@ -326,7 +326,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "bzip": {
@@ -422,7 +422,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "cat": {
@@ -431,7 +431,7 @@
             "cat"
         ],
         "mime_type": "application/octet-stream",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -463,7 +463,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "chm": {
@@ -472,7 +472,7 @@
             "chm"
         ],
         "mime_type": "application/chm",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -503,7 +503,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "coff": {
@@ -542,7 +542,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "cpl": {
@@ -577,7 +577,7 @@
             "crx"
         ],
         "mime_type": "application/x-chrome-extension",
-        "group": "archive",
+        "group": "executable",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -653,7 +653,7 @@
             "csv"
         ],
         "mime_type": "text/csv",
-        "group": "text",
+        "group": "code",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -685,7 +685,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "deb": {
@@ -750,7 +750,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "diff": {
@@ -768,7 +768,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "dll": {
@@ -827,7 +827,7 @@
             "doc"
         ],
         "mime_type": "application/msword",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -861,7 +861,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "docx": {
@@ -871,7 +871,7 @@
             "docm"
         ],
         "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -906,7 +906,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "dylib": {
@@ -967,7 +967,7 @@
             "emf"
         ],
         "mime_type": "application/octet-stream",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -991,7 +991,7 @@
             "eml"
         ],
         "mime_type": "message/rfc822",
-        "group": "misc",
+        "group": "text",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -1015,7 +1015,7 @@
             "epub"
         ],
         "mime_type": "application/epub+zip",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -1048,7 +1048,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "exe": {
@@ -1091,7 +1091,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "flac": {
@@ -1135,7 +1135,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "fpx": {
@@ -1153,7 +1153,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "gif": {
@@ -1221,7 +1221,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "gzip": {
@@ -1267,7 +1267,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "hlp": {
@@ -1276,7 +1276,7 @@
             "hlp"
         ],
         "mime_type": "application/winhlp",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -1309,7 +1309,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "html": {
@@ -1353,7 +1353,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "ico": {
@@ -1395,7 +1395,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "ini": {
@@ -1429,7 +1429,7 @@
             "url"
         ],
         "mime_type": "application/x-mswinurl",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -1460,7 +1460,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "iso": {
@@ -1545,7 +1545,7 @@
             "class"
         ],
         "mime_type": "application/x-java-applet",
-        "group": "code",
+        "group": "executable",
         "magic": null,
         "vt_type": "class",
         "datasets": [
@@ -1622,7 +1622,7 @@
             "json"
         ],
         "mime_type": "application/json",
-        "group": "text",
+        "group": "code",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -1723,7 +1723,7 @@
             "lnk"
         ],
         "mime_type": "application/x-ms-shortcut",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -1748,7 +1748,7 @@
             "m3u"
         ],
         "mime_type": "text/plain",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -1805,7 +1805,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "makefile": {
@@ -1895,7 +1895,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "mov": {
@@ -1911,7 +1911,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "mp3": {
@@ -2026,7 +2026,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "msvisio": {
@@ -2042,7 +2042,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "mui": {
@@ -2051,7 +2051,7 @@
             "mui"
         ],
         "mime_type": "application/x-dosexec",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2077,7 +2077,7 @@
             "mum"
         ],
         "mime_type": "text/xml",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2110,7 +2110,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "nim": {
@@ -2126,7 +2126,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "null": {
@@ -2144,7 +2144,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "object": {
@@ -2162,7 +2162,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "ocx": {
@@ -2224,7 +2224,7 @@
             "odp"
         ],
         "mime_type": "application/vnd.oasis.opendocument.presentation",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2249,7 +2249,7 @@
             "ods"
         ],
         "mime_type": "application/vnd.oasis.opendocument.spreadsheet",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2274,7 +2274,7 @@
             "odt"
         ],
         "mime_type": "application/vnd.oasis.opendocument.text",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2331,7 +2331,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "ooxml": {
@@ -2347,14 +2347,14 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "outlook": {
         "name": "outlook",
         "extensions": [],
         "mime_type": "application/vnd.ms-outlook",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": "outlook",
         "datasets": [
@@ -2386,7 +2386,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "pascal": {
@@ -2404,7 +2404,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "pbm": {
@@ -2420,7 +2420,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "pcap": {
@@ -2430,7 +2430,7 @@
             "pcapng"
         ],
         "mime_type": "application/vnd.tcpdump.pcap",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": "pcap",
         "datasets": [
@@ -2454,7 +2454,7 @@
             "pdf"
         ],
         "mime_type": "application/pdf",
-        "group": "doc",
+        "group": "document",
         "magic": "PDF document",
         "vt_type": null,
         "datasets": [
@@ -2486,7 +2486,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "pem": {
@@ -2495,7 +2495,7 @@
             "pem"
         ],
         "mime_type": "application/x-pem-file",
-        "group": "misc",
+        "group": "application",
         "magic": "PEM certificate",
         "vt_type": null,
         "datasets": [
@@ -2552,7 +2552,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "php": {
@@ -2611,7 +2611,7 @@
             "ps"
         ],
         "mime_type": "application/postscript",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": "postscript",
         "datasets": [
@@ -2662,7 +2662,7 @@
             "ppt"
         ],
         "mime_type": "application/vnd.ms-powerpoint",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2688,7 +2688,7 @@
             "pptm"
         ],
         "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2722,7 +2722,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "pub": {
@@ -2743,7 +2743,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "python": {
@@ -2778,7 +2778,7 @@
             "pyo"
         ],
         "mime_type": "application/x-bytecode.python",
-        "group": "code",
+        "group": "executable",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -2811,7 +2811,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "rar": {
@@ -2878,7 +2878,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "rpm": {
@@ -3020,7 +3020,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "scala": {
@@ -3087,7 +3087,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "sevenzip": {
@@ -3128,7 +3128,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "sh3d": {
@@ -3146,7 +3146,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "shell": {
@@ -3284,7 +3284,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "svg": {
@@ -3339,7 +3339,7 @@
         "name": "symlink",
         "extensions": [],
         "mime_type": "text/plain",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -3475,7 +3475,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "torrent": {
@@ -3484,7 +3484,7 @@
             "torrent"
         ],
         "mime_type": "application/x-bittorrent",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -3515,7 +3515,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "ttf": {
@@ -3524,7 +3524,7 @@
             "ttf"
         ],
         "mime_type": "font/sfnt",
-        "group": "misc",
+        "group": "font",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -3581,7 +3581,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "unixcompress": {
@@ -3599,7 +3599,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "unknown": {
@@ -3662,7 +3662,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "wasm": {
@@ -3680,7 +3680,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "wav": {
@@ -3764,7 +3764,7 @@
             "reg"
         ],
         "mime_type": "text/x-ms-regedit",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -3820,7 +3820,7 @@
         "model_target_label": null,
         "target_label": null,
         "correct_labels": [],
-        "threshold": null,
+        "threshold": 1.0,
         "in_scope": false
     },
     "xar": {
@@ -3854,7 +3854,7 @@
             "xls"
         ],
         "mime_type": "application/vnd.ms-excel",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -3879,7 +3879,7 @@
             "xlsb"
         ],
         "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -3908,7 +3908,7 @@
             "xlsm"
         ],
         "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "group": "doc",
+        "group": "document",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -3936,7 +3936,7 @@
             "xml"
         ],
         "mime_type": "text/xml",
-        "group": "text",
+        "group": "code",
         "magic": null,
         "vt_type": "xml",
         "datasets": [
@@ -4013,7 +4013,7 @@
             "yaml"
         ],
         "mime_type": "application/x-yaml",
-        "group": "text",
+        "group": "code",
         "magic": null,
         "vt_type": null,
         "datasets": [
@@ -4062,7 +4062,7 @@
         "name": "zlibstream",
         "extensions": [],
         "mime_type": "application/zlib",
-        "group": "misc",
+        "group": "application",
         "magic": null,
         "vt_type": "zlib",
         "datasets": [

@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Yanick"
+  given-names: "Fratantonio"
+- family-names: "Bursztein"
+  given-names: "Elie"
+- family-names: "Invernizzi"
+  given-names: "Luca"
+- family-names: "Giancarlo"
+  given-names: "Metitieri"
+- family-names: "Thomas"
+  given-names: "Kurt"
+title: "Magika content-type scanner"
+url: "https://github.com/google/magika"

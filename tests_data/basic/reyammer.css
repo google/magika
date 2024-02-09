@@ -1,0 +1,55 @@
+/* table.mycv-entry { */
+  /* border: 3px; */
+  /* background-color: red; */
+/* } */
+
+table.cv-entry {
+  border: 0px;
+}
+
+.cv-entry tbody tr td,
+tbody tr th {
+  background-color: #ffffff;
+  border: 0px;
+}
+
+div.cv-entry {
+  margin: 0px 10px 10px 10px;
+  text-align: left
+}
+
+span.doctitle {
+  font-weight: bold;
+  display: block;
+  /*color:#dcb975;*/
+  color:#000000;
+  text-align: left
+}
+
+span.docauthors {
+  display: block;
+}
+
+span.docproc {
+  font-style: italic;
+}
+
+span.doclink {
+  display:block;
+}
+
+img.social-icon {
+  display:inline;
+  margin: 0px;
+  vertical-align:middle;
+}
+
+table.contact-info {
+  border: 0px;
+}
+
+.contact-info tbody tr td,
+tbody tr th {
+  background-color: #ffffff;
+  border: 0px;
+}

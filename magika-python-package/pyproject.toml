@@ -22,6 +22,7 @@ magika = "magika.cli.magika:main"
 pytest = "^7.4.0"
 ipython = "^8.10.0"
 ruff = "^0.2.1"
+mypy = "^1.8.0"
 
 [build-system]
 requires = ["poetry-core"]

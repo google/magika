@@ -17,7 +17,6 @@ import sys
 
 from magika import colors
 
-
 _logger = None
 
 

@@ -17,7 +17,7 @@ import json
 import random
 import string
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 from magika.content_types import ContentTypesManager
 

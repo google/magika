@@ -25,7 +25,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import click
+from tabulate import tabulate
+
 from magika import colors
+from magika.content_types import ContentTypesManager
 from magika.logger import get_logger
 from magika.magika import Magika, PredictionMode
 from magika.types import FeedbackReportEntry, MagikaOutput
@@ -386,9 +389,6 @@ def print_feedback_report(model_name: str, report_entries: List[FeedbackReportEn
 
 
 def print_output_content_types_list():
-    from magika.content_types import ContentTypesManager
-    from tabulate import tabulate  # type: ignore
-
     _l = get_logger()
 
     ctm = ContentTypesManager()

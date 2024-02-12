@@ -43,6 +43,10 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
 
 
+# Define type to help with type checking.
+FeedbackReportEntry = Dict
+
+
 @click.command(
     context_settings=CONTEXT_SETTINGS,
     epilog=HELP_EPILOG,
@@ -78,6 +82,7 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 @click.option(
     "-c",
     "--compatibility-mode",
+    "magic_compatibility_mode",
     is_flag=True,
     help="Compatibility mode: output is as close as possible to `file` and colors are disabled.",
 )
@@ -139,7 +144,7 @@ def main(
     jsonl_output: bool,
     mime_output: bool,
     label_output: bool,
-    compatibility_mode: bool,
+    magic_compatibility_mode: bool,
     output_probability: bool,
     prediction_mode: str,
     batch_size: int,
@@ -163,7 +168,7 @@ def main(
     # the argument "file" (which is ugly) and we re-assign it as soon as we can.
     files_paths = file
 
-    if compatibility_mode:
+    if magic_compatibility_mode:
         # In compatibility mode we disable colors.
         with_colors = False
 
@@ -199,7 +204,7 @@ def main(
         _l.error("You should use either --json or --jsonl, not both")
         sys.exit(1)
 
-    if int(mime_output) + int(label_output) + int(compatibility_mode) > 1:
+    if int(mime_output) + int(label_output) + int(magic_compatibility_mode) > 1:
         _l.error("You should use only one of --mime, --label, --compatibility-mode")
         sys.exit(1)
 
@@ -260,7 +265,8 @@ def main(
         batches_num += 1
     all_predictions = []  # updated only when we need to output in JSON format
 
-    report_entries = []
+    # used only when the user decides to generate a feedback report
+    report_entries: List[FeedbackReportEntry] = []
     for batch_idx in range(batches_num):
         files_ = files_paths[batch_idx * batch_size : (batch_idx + 1) * batch_size]
 
@@ -294,7 +300,7 @@ def main(
                     output = entry["output"]["mime_type"]
                 elif label_output:
                     output = entry["output"]["ct_label"]
-                elif compatibility_mode:
+                elif magic_compatibility_mode:
                     output = entry["output"]["magic"]
                 else:  # human-readable description
                     output = f'{entry["output"]["description"]} ({ct_group})'
@@ -314,29 +320,37 @@ def main(
 
         if generate_report_flag:
             for file_path, entry in zip(files_, batch_predictions):
-                # remove information we don't need, e.g., paths
-                entry_copy = entry.copy()
-                entry_copy["path"] = "<REMOVED>"
-                fs = m.extract_features_from_path(file_path)
-                report_entry = {
-                    "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
-                    "features": {
-                        "beg": fs["beg"],
-                        "mid": fs["mid"],
-                        "end": fs["end"],
-                    },
-                    "output": entry_copy,
-                }
-                report_entries.append(report_entry)
+                report_entries.append(
+                    generate_feedback_report_entry(m, file_path, entry)
+                )
 
     if json_output:
         _l.raw_print_to_stdout(json.dumps(all_predictions, indent=4))
 
     if generate_report_flag:
-        print_report(model_name=model_dir.name, report_entries=report_entries)
+        print_feedback_report(model_name=model_dir.name, report_entries=report_entries)
 
 
-def print_report(model_name: str, report_entries: List[Dict]):
+def generate_feedback_report_entry(
+    magika: Magika, file_path: Path, entry: Dict
+) -> FeedbackReportEntry:
+    # remove information we don't need, e.g., paths
+    entry_copy = entry.copy()
+    entry_copy["path"] = "<REMOVED>"
+    fs = magika.extract_features_from_path(file_path)
+    report_entry: FeedbackReportEntry = {
+        "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
+        "features": {
+            "beg": fs["beg"],
+            "mid": fs["mid"],
+            "end": fs["end"],
+        },
+        "output": entry_copy,
+    }
+    return report_entry
+
+
+def print_feedback_report(model_name: str, report_entries: List[FeedbackReportEntry]):
     _l = get_logger()
 
     report = {

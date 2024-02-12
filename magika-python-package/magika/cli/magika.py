@@ -28,6 +28,7 @@ import click
 from magika import colors
 from magika.logger import get_logger
 from magika.magika import Magika, PredictionMode
+from magika.types import FeedbackReportEntry, MagikaOutput
 
 VERSION = "0.4.2-dev"
 
@@ -41,10 +42,6 @@ Model name: "{Magika.DEFAULT_MODEL_NAME}"
 
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
-
-
-# Define type to help with type checking.
-FeedbackReportEntry = Dict
 
 
 @click.command(
@@ -222,11 +219,6 @@ def main(
     _l.info(f"Considering {len(files_paths)} files")
     _l.debug(f"Files: {files_paths}")
 
-    if len(files_paths) == 1 and str(files_paths[0]) == "-":
-        read_from_stdin = True
-    else:
-        read_from_stdin = False
-
     # Select the model using the following priority: CLI option, env variable,
     # default.
     if model_dir is None:
@@ -238,7 +230,7 @@ def main(
                 Path(__file__).parent.parent / "models" / Magika.DEFAULT_MODEL_NAME
             )
 
-    m = Magika(
+    magika = Magika(
         model_dir=model_dir,
         prediction_mode=prediction_mode,
         no_dereference=no_dereference,
@@ -260,28 +252,22 @@ def main(
         "code": colors.LIGHT_BLUE,
     }
 
-    batches_num = len(files_paths) // batch_size
-    if len(files_paths) % batch_size != 0:
-        batches_num += 1
-    all_predictions = []  # updated only when we need to output in JSON format
+    # updated only when we need to output in JSON format
+    all_predictions: List[MagikaOutput] = []
 
     # used only when the user decides to generate a feedback report
     report_entries: List[FeedbackReportEntry] = []
+
+    batches_num = len(files_paths) // batch_size
+    if len(files_paths) % batch_size != 0:
+        batches_num += 1
     for batch_idx in range(batches_num):
         files_ = files_paths[batch_idx * batch_size : (batch_idx + 1) * batch_size]
 
-        if read_from_stdin:
-            # We do stdin processing within the batch logic to avoid code
-            # duplication.
-            with tempfile.NamedTemporaryFile() as tmp_file:
-                tmp_file.write(sys.stdin.buffer.read())
-                tmp_file.flush()
-                entry = m.get_content_type(Path(tmp_file.name))
-                # Patch the path to reflect -
-                entry["path"] = "-"
-                batch_predictions = [entry]
+        if should_read_from_stdin(files_paths):
+            batch_predictions = [get_magika_output_from_stdin(magika)]
         else:
-            batch_predictions = m.get_content_types(files_)
+            batch_predictions = magika.get_magika_outputs(files_)
 
         if json_output:
             # we do not stream the output for JSON output
@@ -321,7 +307,7 @@ def main(
         if generate_report_flag:
             for file_path, entry in zip(files_, batch_predictions):
                 report_entries.append(
-                    generate_feedback_report_entry(m, file_path, entry)
+                    generate_feedback_report_entry(magika, file_path, entry)
                 )
 
     if json_output:
@@ -329,6 +315,20 @@ def main(
 
     if generate_report_flag:
         print_feedback_report(model_name=model_dir.name, report_entries=report_entries)
+
+
+def should_read_from_stdin(files_paths: List[Path]) -> bool:
+    return len(files_paths) == 1 and str(files_paths[0]) == "-"
+
+
+def get_magika_output_from_stdin(magika: Magika) -> MagikaOutput:
+    with tempfile.NamedTemporaryFile() as tmp_file:
+        tmp_file.write(sys.stdin.buffer.read())
+        tmp_file.flush()
+        entry = magika.get_magika_output(Path(tmp_file.name))
+        # Patch the path to reflect -
+        entry["path"] = "-"
+    return entry
 
 
 def generate_feedback_report_entry(

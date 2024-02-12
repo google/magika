@@ -27,11 +27,7 @@ from tqdm.auto import tqdm
 from magika.content_types import ContentType, ContentTypesManager
 from magika.logger import get_logger
 from magika.prediction_mode import PredictionMode
-
-# Define additional types to help with type checking.
-ModelOutput = Tuple[str, float]
-ModelFeatures = Dict[str, List[int]]
-MagikaOutput = Dict
+from magika.types import MagikaOutput, ModelFeatures, ModelOutput
 
 
 class Magika:
@@ -130,7 +126,7 @@ class Magika:
         )
         return onnx_session
 
-    def get_content_types(self, paths: List[Path]) -> List[MagikaOutput]:
+    def get_magika_outputs(self, paths: List[Path]) -> List[MagikaOutput]:
         """Given a list of paths, returns a list of predictions. Each prediction
         is a dict with the relevant information, such as the file path, the
         output of the DL model, the output of the tool, and the associated
@@ -177,8 +173,8 @@ class Magika:
             sorted_outputs.append(all_outputs[str(path)])
         return sorted_outputs
 
-    def get_content_type(self, path: Path) -> MagikaOutput:
-        return self.get_content_types([path])[0]
+    def get_magika_output(self, path: Path) -> MagikaOutput:
+        return self.get_magika_outputs([path])[0]
 
     def extract_features_from_path(
         self,

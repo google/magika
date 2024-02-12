@@ -31,8 +31,8 @@ def test_magika_module_one_basic_test():
 
     m = Magika(model_dir=model_dir)
 
-    _ = m.get_content_type(test_path)
-    _ = m.get_content_types([test_path])
+    _ = m.get_magika_output(test_path)
+    _ = m.get_magika_outputs([test_path])
 
 
 @pytest.mark.smoketest
@@ -41,8 +41,8 @@ def test_magika_module_with_default_model():
 
     m = Magika()
 
-    _ = m.get_content_type(test_path)
-    _ = m.get_content_types([test_path])
+    _ = m.get_magika_output(test_path)
+    _ = m.get_magika_outputs([test_path])
 
 
 def test_magika_module_with_basic_tests():
@@ -51,7 +51,7 @@ def test_magika_module_with_basic_tests():
 
     m = Magika(model_dir=model_dir)
 
-    _ = m.get_content_types(tests_paths)
+    _ = m.get_magika_outputs(tests_paths)
 
 
 def test_magika_module_with_different_prediction_modes():

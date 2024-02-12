@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
-import dotenv
+from typing import Dict, List, Tuple
 
-dotenv.load_dotenv(dotenv.find_dotenv())
+ModelOutput = Tuple[str, float]
+ModelFeatures = Dict[str, List[int]]
+MagikaOutput = Dict
+FeedbackReportEntry = Dict

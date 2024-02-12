@@ -23,6 +23,15 @@ CONTENT_TYPES_CONFIG_PATH = (
 )
 
 
+"""
+This module defines ContentType, an abstraction for a content type and its
+associated metadata, and ContentTypesManager, a class that wraps a number of
+utility functions related to contentt types. Note that the ContentTypesManager
+is extensively used by the training framework, and not just by the magika python
+module.
+"""
+
+
 class ContentType:
     # the tool returned unknown, '',  None, or similar
     UNKNOWN = "unknown"
@@ -59,6 +68,10 @@ class ContentType:
     # Used when a file path exists, but there are permission issues, e.g., can't
     # read file
     PERMISSION_ERROR = "permission_error"
+
+    # more special labels
+    DIRECTORY = "directory"
+    SYMLINK = "symlink"
 
     GENERIC_TEXT = "txt"
 
@@ -277,11 +290,6 @@ class ContentTypesManager:
             raise Exception(f'Could not find ContentType for extension "{ext}"')
         return cts
 
-    def is_valid_ct(self, ct_name: str) -> bool:
-        if ct_name in ContentTypesManager.SPECIAL_CONTENT_TYPES:
-            return True
-        return self.cts.get(ct_name) is not None
-
     def get_valid_tags(self, only_explicit: bool = True) -> List[str]:
         if only_explicit:
             all_tags = sorted(
@@ -296,6 +304,13 @@ class ContentTypesManager:
         else:
             all_tags = sorted(self.tag2cts.keys())
         return all_tags
+
+    def is_valid_ct_label(self, label: str) -> bool:
+        if self.get(label) is not None:
+            return True
+        if label in ContentTypesManager.SPECIAL_CONTENT_TYPES:
+            return True
+        return False
 
     def is_valid_tag(self, tag: str) -> bool:
         return tag in self.tag2cts.keys()
@@ -355,12 +370,12 @@ class ContentTypesManager:
                             ct_names_set.remove(ct.name)
                 elif entry[0] == "-":
                     entry = entry[1:]
-                    assert self.is_valid_ct(entry)
+                    assert self.is_valid_ct_label(entry)
                     # no need to check for must_be_in_scope_for_training when removing
                     if entry in ct_names_set:
                         ct_names_set.remove(entry)
                 else:
-                    assert self.is_valid_ct(entry)
+                    assert self.is_valid_ct_label(entry)
                     # this ct was manually specified, if it does not honor
                     # must_be_in_scope_for_training, that's a problem.
                     if must_be_in_scope_for_training:
@@ -405,16 +420,9 @@ class ContentTypesManager:
         content types."""
         return [ct.name for ct in self.get_output_content_types()]
 
-    def is_valid_label(self, label: str) -> bool:
-        if self.get(label) is not None:
-            return True
-        if label in ContentTypesManager.SPECIAL_CONTENT_TYPES:
-            return True
-        return False
-
     def get_invalid_labels(self, labels: Iterable[str]) -> List[str]:
         not_valid_labels = set()
         for label in set(labels):
-            if not self.is_valid_label(label):
+            if not self.is_valid_ct_label(label):
                 not_valid_labels.add(label)
         return sorted(not_valid_labels)

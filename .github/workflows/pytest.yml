@@ -1,0 +1,27 @@
+name: pytest
+on:
+  push:
+    paths:
+      - '**/*.py'
+      - 'pytest.ini'
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  unittesting:
+    runs-on: ubuntu-22.04
+    steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v4
+          with:
+            python-version: "3.10"
+        - name: Install poetry
+          uses: abatilo/actions-poetry@v2
+          with:
+            poetry-version: "1.7.1"
+        - name: View poetry --help
+          run: poetry --help
+        # - name: Install the project dependencies
+        #   run: poetry install
+        # - name: Run the automated tests (for example)
+        #   run: poetry run pytest -v

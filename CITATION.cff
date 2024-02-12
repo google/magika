@@ -17,6 +17,8 @@ authors:
   given-names: "Francois"
 - family-names: "Petit-Bianco"
   given-names: "Alexandre"
+- family-names: "Farah"
+  given-names: "Loua"
 - family-names: "Albertini"
   given-names: "Ange"
 title: "Magika content-type scanner"

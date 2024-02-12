@@ -1,1 +1,0 @@
-../magika-python-package/tests/test_magika_python_module.py

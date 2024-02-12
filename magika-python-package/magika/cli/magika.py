@@ -31,15 +31,13 @@ from magika.magika import Magika, PredictionMode
 
 VERSION = "0.4.2-dev"
 
-DEFAULT_MODEL_NAME = "dense_v4_top_20230910"
-
 CONTACT_EMAIL = "magika-dev@google.com"
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 HELP_EPILOG = f"""
 Magika version: "{VERSION}"\f
-Model name: "{DEFAULT_MODEL_NAME}"
+Model name: "{Magika.DEFAULT_MODEL_NAME}"
 
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
@@ -178,7 +176,7 @@ def main(
 
     if output_version:
         _l.raw_print_to_stdout(f"Magika version: {VERSION}")
-        _l.raw_print_to_stdout(f"Default model name: {DEFAULT_MODEL_NAME}")
+        _l.raw_print_to_stdout(f"Default model name: {Magika.DEFAULT_MODEL_NAME}")
         sys.exit(0)
 
     # check CLI arguments and options
@@ -231,7 +229,9 @@ def main(
         if model_dir_str is not None and model_dir_str.strip() != "":
             model_dir = Path(model_dir_str)
         else:
-            model_dir = Path(__file__).parent.parent / "models" / DEFAULT_MODEL_NAME
+            model_dir = (
+                Path(__file__).parent.parent / "models" / Magika.DEFAULT_MODEL_NAME
+            )
 
     m = Magika(
         model_dir=model_dir,

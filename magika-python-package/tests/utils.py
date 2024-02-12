@@ -84,9 +84,11 @@ def write_random_file_with_size(sample_path: Path, sample_size: int) -> None:
 
 
 def get_default_model_dir() -> Path:
-    from magika.cli.magika import DEFAULT_MODEL_NAME
+    from magika.magika import Magika
 
-    model_dir = Path(__file__).parent.parent / "magika" / "models" / DEFAULT_MODEL_NAME
+    model_dir = (
+        Path(__file__).parent.parent / "magika" / "models" / Magika.DEFAULT_MODEL_NAME
+    )
     return model_dir
 
 

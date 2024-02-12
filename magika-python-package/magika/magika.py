@@ -35,6 +35,8 @@ MagikaOutput = Dict
 
 
 class Magika:
+    # Default model, used in case not specified via the Magika constructor
+    DEFAULT_MODEL_NAME = "dense_v4_top_20230910"
     # Minimum threshold for "default" prediction mode
     MEDIUM_CONFIDENCE_THRESHOLD = 0.50
     # Minimum file size for using the DL model
@@ -44,14 +46,13 @@ class Magika:
 
     def __init__(
         self,
-        model_dir: Path,
+        model_dir: Optional[Path] = None,
         prediction_mode: str = PredictionMode.HIGH_CONFIDENCE,
         no_dereference: bool = False,
         verbose: bool = False,
         debug: bool = False,
         use_colors: bool = False,
     ) -> None:
-        assert model_dir is not None
         assert prediction_mode in PredictionMode.get_valid_prediction_modes()
 
         self.verbose = verbose
@@ -64,7 +65,14 @@ class Magika:
         if debug:
             self.l.setLevel(logging.DEBUG)
 
-        self.model_dir = model_dir
+        if model_dir is not None:
+            self.model_dir = model_dir
+        else:
+            # use default model
+            self.model_dir = (
+                Path(__file__).parent / "models" / Magika.DEFAULT_MODEL_NAME
+            )
+
         self.model_path = self.model_dir / "model.onnx"
         self.model_config_path = self.model_dir / "model_config.json"
         self.thresholds_path = self.model_dir / "thresholds.json"

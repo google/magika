@@ -25,7 +25,7 @@ from tests.utils import get_random_ascii_bytes
 
 
 @pytest.mark.smoketest
-def test_magika_modele_basic_tests():
+def test_magika_module_one_basic_test():
     model_dir = utils.get_default_model_dir()
     test_path = utils.get_one_basic_test_file_path()
 
@@ -33,6 +33,25 @@ def test_magika_modele_basic_tests():
 
     _ = m.get_content_type(test_path)
     _ = m.get_content_types([test_path])
+
+
+@pytest.mark.smoketest
+def test_magika_module_with_default_model():
+    test_path = utils.get_one_basic_test_file_path()
+
+    m = Magika()
+
+    _ = m.get_content_type(test_path)
+    _ = m.get_content_types([test_path])
+
+
+def test_magika_module_with_basic_tests():
+    model_dir = utils.get_default_model_dir()
+    tests_paths = utils.get_basic_test_files_paths()
+
+    m = Magika(model_dir=model_dir)
+
+    _ = m.get_content_types(tests_paths)
 
 
 def test_magika_module_with_different_prediction_modes():

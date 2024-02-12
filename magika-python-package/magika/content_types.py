@@ -23,6 +23,15 @@ CONTENT_TYPES_CONFIG_PATH = (
 )
 
 
+"""
+This module defines ContentType, an abstraction for a content type and its
+associated metadata, and ContentTypesManager, a class that wraps a number of
+utility functions related to contentt types. Note that the ContentTypesManager
+is extensively used by the training framework, and not just by the magika python
+module.
+"""
+
+
 class ContentType:
     # the tool returned unknown, '',  None, or similar
     UNKNOWN = "unknown"

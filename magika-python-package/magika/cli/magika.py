@@ -22,7 +22,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import click
 from magika import colors
@@ -333,36 +333,42 @@ def main(
         _l.raw_print_to_stdout(json.dumps(all_predictions, indent=4))
 
     if generate_report_flag:
-        report = {
-            "version": VERSION,
-            "model_dir_name": str(model_dir.name),
-            "python_version": sys.version,
-            "entries": base64.b64encode(
-                json.dumps(report_entries).encode("utf-8")
-            ).decode("utf-8"),
-        }
-        report_header = "REPORT"
-        report_header_full_len = 40
-        _l.raw_print("#" * report_header_full_len)
-        _l.raw_print(
-            "###"
-            + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
-            + report_header
-            + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
-            + "###",
-        )
-        _l.raw_print("#" * report_header_full_len)
-        _l.raw_print(json.dumps(report))
-        _l.raw_print("#" * report_header_full_len)
-        _l.raw_print(
-            f"Please copy/paste the above as a description of your issue. Open a GitHub issue or reach out at {CONTACT_EMAIL}.",
-        )
-        _l.raw_print(
-            "Please include as many details as possible, e.g., what was the expected content type.",
-        )
-        _l.raw_print(
-            "IMPORTANT: do NOT submit private information or PII! The extracted features include many bytes of the tested files!",
-        )
+        print_report(model_name=model_dir.name, report_entries=report_entries)
+
+
+def print_report(model_name: str, report_entries: List[Dict]):
+    _l = get_logger()
+
+    report = {
+        "version": VERSION,
+        "model_dir_name": model_name,
+        "python_version": sys.version,
+        "entries": base64.b64encode(json.dumps(report_entries).encode("utf-8")).decode(
+            "utf-8"
+        ),
+    }
+    report_header = "REPORT"
+    report_header_full_len = 40
+    _l.raw_print("#" * report_header_full_len)
+    _l.raw_print(
+        "###"
+        + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
+        + report_header
+        + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
+        + "###",
+    )
+    _l.raw_print("#" * report_header_full_len)
+    _l.raw_print(json.dumps(report))
+    _l.raw_print("#" * report_header_full_len)
+    _l.raw_print(
+        f"Please copy/paste the above as a description of your issue. Open a GitHub issue or reach out at {CONTACT_EMAIL}.",
+    )
+    _l.raw_print(
+        "Please include as many details as possible, e.g., what was the expected content type.",
+    )
+    _l.raw_print(
+        "IMPORTANT: do NOT submit private information or PII! The extracted features include many bytes of the tested files!",
+    )
 
 
 def print_output_content_types_list():

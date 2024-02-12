@@ -25,7 +25,7 @@ import onnxruntime as rt  # type: ignore
 from tqdm.auto import tqdm
 
 from magika.content_types import ContentType, ContentTypesManager
-from magika.logger import SimpleLogger
+from magika.logger import get_logger
 from magika.prediction_mode import PredictionMode
 
 # Define additional types to help with type checking.
@@ -57,7 +57,7 @@ class Magika:
         self.verbose = verbose
         self.debug = debug
 
-        self.l = SimpleLogger(use_colors=use_colors)
+        self.l = get_logger(use_colors=use_colors)
 
         if verbose:
             self.l.setLevel(logging.INFO)

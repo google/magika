@@ -25,9 +25,8 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
-
 from magika import colors
-from magika.logger import SimpleLogger
+from magika.logger import get_logger
 from magika.magika import Magika, PredictionMode
 
 VERSION = "0.4.2-dev"
@@ -44,9 +43,6 @@ Model name: "{DEFAULT_MODEL_NAME}"
 
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
-
-
-log = None
 
 
 @click.command(
@@ -162,7 +158,7 @@ def main(
     Magika - Determine type of FILEs with deep-learning.
     """
 
-    global log
+    global _l
 
     # click uses the name of the variable to determine how it will show up in
     # the --help. Since we don't like to see "file_paths" in the help, we name
@@ -173,40 +169,40 @@ def main(
         # In compatibility mode we disable colors.
         with_colors = False
 
-    log = SimpleLogger(use_colors=with_colors)
+    _l = get_logger(use_colors=with_colors)
 
     if verbose:
-        log.setLevel(logging.INFO)
+        _l.setLevel(logging.INFO)
     if debug:
-        log.setLevel(logging.DEBUG)
+        _l.setLevel(logging.DEBUG)
 
     if output_version:
-        print(f"Magika version: {VERSION}")
-        print(f"Default model name: {DEFAULT_MODEL_NAME}")
+        _l.raw_print_to_stdout(f"Magika version: {VERSION}")
+        _l.raw_print_to_stdout(f"Default model name: {DEFAULT_MODEL_NAME}")
         sys.exit(0)
 
     # check CLI arguments and options
     if list_output_content_types:
         if len(files_paths) > 0:
-            log.error("You cannot pass any path when using the -l / --list option")
+            _l.error("You cannot pass any path when using the -l / --list option")
             sys.exit(1)
         print_output_content_types_list()
         sys.exit(0)
 
     if len(files_paths) == 0:
-        log.error("You need to pass at least one path, or - to read from stdin.")
+        _l.error("You need to pass at least one path, or - to read from stdin.")
         sys.exit(1)
 
     if batch_size <= 0 or batch_size > 512:
-        log.error("Batch size needs to be greater than 0 and less or equal than 512")
+        _l.error("Batch size needs to be greater than 0 and less or equal than 512")
         sys.exit(1)
 
     if json_output and jsonl_output:
-        log.error("You should use either --json or --jsonl, not both")
+        _l.error("You should use either --json or --jsonl, not both")
         sys.exit(1)
 
     if int(mime_output) + int(label_output) + int(compatibility_mode) > 1:
-        log.error("You should use only one of --mime, --label, --compatibility-mode")
+        _l.error("You should use only one of --mime, --label, --compatibility-mode")
         sys.exit(1)
 
     if recursive:
@@ -220,8 +216,8 @@ def main(
         # the resulting list may still include some directories; thus, we filter them out.
         files_paths = list(filter(lambda x: not x.is_dir(), expanded_paths))
 
-    log.info(f"Considering {len(files_paths)} files")
-    log.debug(f"Files: {files_paths}")
+    _l.info(f"Considering {len(files_paths)} files")
+    _l.debug(f"Files: {files_paths}")
 
     if len(files_paths) == 1 and str(files_paths[0]) == "-":
         read_from_stdin = True
@@ -286,7 +282,7 @@ def main(
             all_predictions.extend(batch_predictions)
         elif jsonl_output:
             for entry in batch_predictions:
-                print(json.dumps(entry))
+                _l.raw_print_to_stdout(json.dumps(entry))
         else:
             for entry in batch_predictions:
                 path = entry["path"]
@@ -310,9 +306,11 @@ def main(
                     end_color = colors.RESET
 
                 if output_probability:
-                    print(f"{start_color}{path}: {output} {score}%{end_color}")
+                    _l.raw_print_to_stdout(
+                        f"{start_color}{path}: {output} {score}%{end_color}"
+                    )
                 else:
-                    print(f"{start_color}{path}: {output}{end_color}")
+                    _l.raw_print_to_stdout(f"{start_color}{path}: {output}{end_color}")
 
         if generate_report_flag:
             for file_path, entry in zip(files_, batch_predictions):
@@ -332,7 +330,7 @@ def main(
                 report_entries.append(report_entry)
 
     if json_output:
-        print(json.dumps(all_predictions, indent=4))
+        _l.raw_print_to_stdout(json.dumps(all_predictions, indent=4))
 
     if generate_report_flag:
         report = {
@@ -345,36 +343,33 @@ def main(
         }
         report_header = "REPORT"
         report_header_full_len = 40
-        print("#" * report_header_full_len, file=sys.stderr)
-        print(
+        _l.raw_print("#" * report_header_full_len)
+        _l.raw_print(
             "###"
             + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
             + report_header
             + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
             + "###",
-            file=sys.stderr,
         )
-        print("#" * report_header_full_len, file=sys.stderr)
-        print(json.dumps(report), file=sys.stderr)
-        print("#" * report_header_full_len, file=sys.stderr)
-        print(
+        _l.raw_print("#" * report_header_full_len)
+        _l.raw_print(json.dumps(report))
+        _l.raw_print("#" * report_header_full_len)
+        _l.raw_print(
             f"Please copy/paste the above as a description of your issue. Open a GitHub issue or reach out at {CONTACT_EMAIL}.",
-            file=sys.stderr,
         )
-        print(
+        _l.raw_print(
             "Please include as many details as possible, e.g., what was the expected content type.",
-            file=sys.stderr,
         )
-        print(
+        _l.raw_print(
             "IMPORTANT: do NOT submit private information or PII! The extracted features include many bytes of the tested files!",
-            file=sys.stderr,
         )
 
 
 def print_output_content_types_list():
+    from magika.content_types import ContentTypesManager
     from tabulate import tabulate  # type: ignore
 
-    from magika.content_types import ContentTypesManager
+    _l = get_logger()
 
     ctm = ContentTypesManager()
     content_types = ctm.get_output_content_types()
@@ -389,7 +384,7 @@ def print_output_content_types_list():
             "" if ct.description is None else ct.description,
         ]
         rows.append(row)
-    print(tabulate(rows, headers=headers))
+    _l.raw_print_to_stdout(tabulate(rows, headers=headers))
 
 
 if __name__ == "__main__":

@@ -17,11 +17,17 @@ import sys
 
 from magika import colors
 
-# We implement a simple logger to not rely on additional python packages, e.g.,
-# rich.
+
+_logger = None
 
 
 class SimpleLogger:
+    """
+    We implement a simple logger to not rely on additional python packages,
+    e.g., rich. This is written in way that, by default, log messages (e.g.,
+    debug/info/...) are sent to stderr.
+    """
+
     def __init__(self, use_colors: bool = False):
         self.level = logging.WARNING
         self.use_colors = use_colors
@@ -29,30 +35,42 @@ class SimpleLogger:
     def setLevel(self, level: int) -> None:
         self.level = level
 
-    def _print(self, msg: str) -> None:
-        print(msg, file=sys.stderr)
+    def raw_print_to_stdout(self, msg: str) -> None:
+        self.raw_print(msg, file=sys.stdout)
+
+    def raw_print(self, msg: str, file=sys.stderr) -> None:
+        print(msg, file=file)
 
     def debug(self, msg: str) -> None:
         if logging.DEBUG >= self.level:
             if self.use_colors:
-                self._print(f"{colors.GREEN}DEBUG: {msg}{colors.RESET}")
+                self.raw_print(f"{colors.GREEN}DEBUG: {msg}{colors.RESET}")
             else:
-                self._print(f"DEBUG: {msg}")
+                self.raw_print(f"DEBUG: {msg}")
 
     def info(self, msg: str) -> None:
         if logging.INFO >= self.level:
-            self._print(f"INFO: {msg}")
+            self.raw_print(f"INFO: {msg}")
 
     def warning(self, msg: str) -> None:
         if logging.WARNING >= self.level:
             if self.use_colors:
-                self._print(f"{colors.YELLOW}WARNING: {msg}{colors.RESET}")
+                self.raw_print(f"{colors.YELLOW}WARNING: {msg}{colors.RESET}")
             else:
-                self._print(f"WARNING: {msg}")
+                self.raw_print(f"WARNING: {msg}")
 
     def error(self, msg: str) -> None:
         if logging.ERROR >= self.level:
             if self.use_colors:
-                self._print(f"{colors.RED}ERROR: {msg}{colors.RESET}")
+                self.raw_print(f"{colors.RED}ERROR: {msg}{colors.RESET}")
             else:
-                self._print(f"ERROR: {msg}")
+                self.raw_print(f"ERROR: {msg}")
+
+
+def get_logger(use_colors: bool = False) -> SimpleLogger:
+    global _logger
+
+    if _logger is None:
+        _logger = SimpleLogger(use_colors=use_colors)
+
+    return _logger

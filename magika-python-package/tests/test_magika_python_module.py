@@ -38,37 +38,43 @@ def test_magika_modele_basic_tests():
 def test_magika_module_with_different_prediction_modes():
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)
-    assert m.get_output_ct_label("python", 0.01) == "python"
-    assert m.get_output_ct_label("python", 0.40) == "python"
-    assert m.get_output_ct_label("python", 0.60) == "python"
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.40) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.60) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
     # test that the default is HIGH_CONFIDENCE
     m = Magika(model_dir=model_dir)
-    assert m.get_output_ct_label("python", 0.01) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "txt"
     assert (
-        m.get_output_ct_label("python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01)
+        m.get_output_ct_label_from_dl_result(
+            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01
+        )
         == "txt"
     )
     assert (
-        m.get_output_ct_label("python", Magika.MEDIUM_CONFIDENCE_THRESHOLD + 0.01)
+        m.get_output_ct_label_from_dl_result(
+            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD + 0.01
+        )
         == "txt"
     )
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
-    assert m.get_output_ct_label("python", 0.01) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "txt"
     assert (
-        m.get_output_ct_label("python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01)
+        m.get_output_ct_label_from_dl_result(
+            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01
+        )
         == "txt"
     )
-    assert m.get_output_ct_label("python", 0.60) == "python"
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.60) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.HIGH_CONFIDENCE)
-    assert m.get_output_ct_label("python", 0.01) == "txt"
-    assert m.get_output_ct_label("python", 0.60) == "txt"
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.60) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
 
 def test_extract_features_with_ascii():
@@ -161,7 +167,7 @@ def _test_extract_features_with_content(content: bytes):
             print(
                 f"Testing with {beg_size=}, {mid_size=}, {end_size=}, {len(content)=}"
             )
-            features = m.extract_features(
+            features = m.extract_features_from_path(
                 tf_path, beg_size=beg_size, mid_size=mid_size, end_size=end_size
             )
 

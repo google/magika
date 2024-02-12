@@ -319,7 +319,7 @@ def main(
                 # remove information we don't need, e.g., paths
                 entry_copy = entry.copy()
                 entry_copy["path"] = "<REMOVED>"
-                fs = m.extract_features(file_path)
+                fs = m.extract_features_from_path(file_path)
                 report_entry = {
                     "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
                     "features": {

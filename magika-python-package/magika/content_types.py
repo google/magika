@@ -60,6 +60,10 @@ class ContentType:
     # read file
     PERMISSION_ERROR = "permission_error"
 
+    # more special labels
+    DIRECTORY = "directory"
+    SYMLINK = "symlink"
+
     GENERIC_TEXT = "txt"
 
     def __init__(

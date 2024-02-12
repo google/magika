@@ -155,7 +155,7 @@ class Magika:
             f"Processing input files and extracting features for {len(paths)} samples"
         )
         for path in tqdm(paths, disable=not (self.verbose or self.debug)):
-            output, features = self.get_output_or_features(path)
+            output, features = self._get_output_or_features(path)
             if output is not None:
                 all_outputs[str(path)] = output
             else:
@@ -179,231 +179,6 @@ class Magika:
 
     def get_content_type(self, path: Path) -> MagikaOutput:
         return self.get_content_types([path])[0]
-
-    def get_output_or_features(
-        self, path: Path
-    ) -> Tuple[Optional[MagikaOutput], Optional[ModelFeatures]]:
-        """
-        Given a path, we return either a MagikaOutput or a MagikaFeatures.
-
-        There are some files and corner cases for which we do not need to use
-        deep learning to get the output; in these cases, we already return a
-        MagikaOutput object.
-
-        For some other files, we do need to use deep learning, in which case we
-        return a MagikaFeatures object. Note that for now we just collect the
-        features instead of already performing inference because we want to use
-        batching.
-        """
-
-        if self.no_dereference and path.is_symlink():
-            output = self.get_magika_output_from_labels_and_score(
-                path, dl_ct_label=None, output_ct_label=ContentType.SYMLINK, score=1.0
-            )
-            # The magic and description fields for symlink contain a placeholder
-            # for <path>; let's patch the output to reflect that.
-            output["output"]["magic"] = output["output"]["magic"].replace(
-                "<path>", str(path.resolve())
-            )
-            output["output"]["description"] = output["output"]["description"].replace(
-                "<path>", str(path.resolve())
-            )
-            return output, None
-
-        if not path.exists():
-            output = self.get_magika_output_from_labels_and_score(
-                path,
-                dl_ct_label=None,
-                output_ct_label=ContentType.FILE_DOES_NOT_EXIST,
-                score=1.0,
-            )
-            return output, None
-
-        if path.is_file():
-            if path.stat().st_size == 0:
-                output = self.get_magika_output_from_labels_and_score(
-                    path, dl_ct_label=None, output_ct_label=ContentType.EMPTY, score=1.0
-                )
-                return output, None
-
-            elif not os.access(path, os.R_OK):
-                output = self.get_magika_output_from_labels_and_score(
-                    path,
-                    dl_ct_label=None,
-                    output_ct_label=ContentType.PERMISSION_ERROR,
-                    score=1.0,
-                )
-                return output, None
-
-            elif path.stat().st_size <= Magika.MIN_FILE_SIZE_FOR_DL:
-                output = self.get_content_type_of_small_file(path)
-                return output, None
-
-            else:
-                file_features = self.extract_features_from_path(path)
-                # Check whether we have enough bytes for a meaningful
-                # detection, and not just padding.
-                if (
-                    file_features["beg"][Magika.MIN_FILE_SIZE_FOR_DL - 1]
-                    == Magika.PADDING_TOKEN
-                ):
-                    # If the n-th token is padding, then it means that,
-                    # post-stripping, we do not have enough meaningful
-                    # bytes.
-                    output = self.get_content_type_of_small_file(path)
-                    return output, None
-
-                else:
-                    # We have enough bytes, scheduling this file for model
-                    # prediction.
-                    # features.append((path, file_features))
-                    return None, file_features
-
-        elif path.is_dir():
-            output = self.get_magika_output_from_labels_and_score(
-                path, dl_ct_label=None, output_ct_label=ContentType.DIRECTORY, score=1.0
-            )
-            return output, None
-
-        else:
-            output = self.get_magika_output_from_labels_and_score(
-                path, dl_ct_label=None, output_ct_label=ContentType.UNKNOWN, score=1.0
-            )
-            return output, None
-
-        raise Exception("unreachable")
-
-    def get_model_outputs_from_features(
-        self, all_features: List[Tuple[Path, ModelFeatures]]
-    ) -> List[Tuple[Path, ModelOutput]]:
-        raw_preds = self.get_raw_predictions(all_features)
-        top_preds_idxs = np.argmax(raw_preds, axis=1)
-        preds_content_types_labels = self.target_labels_space_np[top_preds_idxs]
-        scores = np.max(raw_preds, axis=1)
-
-        return [
-            (path, (ct_label, float(score)))
-            for (path, _), ct_label, score in zip(
-                all_features, preds_content_types_labels, scores
-            )
-        ]
-
-    def get_outputs_from_features(
-        self, all_features: List[Tuple[Path, ModelFeatures]]
-    ) -> Dict[str, MagikaOutput]:
-        # We now do inference for those files that need it.
-
-        if len(all_features) == 0:
-            # nothing to be done
-            return {}
-
-        outputs: Dict[str, MagikaOutput] = {}
-
-        for path, (dl_ct_label, score) in self.get_model_outputs_from_features(
-            all_features
-        ):
-            # In additional to the content type label from the DL model, we
-            # also allow for other logic to overwrite such result. For
-            # debugging and information purposes, the JSON output stores
-            # both the raw DL model output and the final output we return to
-            # the user.
-            output_ct_label = self.get_output_ct_label_from_dl_result(
-                dl_ct_label, score
-            )
-
-            outputs[str(path)] = self.get_magika_output_from_labels_and_score(
-                path,
-                dl_ct_label=dl_ct_label,
-                output_ct_label=output_ct_label,
-                score=score,
-            )
-
-        return outputs
-
-    def get_content_type_of_small_file(self, path: Path) -> MagikaOutput:
-        content = path.read_bytes()
-        try:
-            ct_label = ContentType.GENERIC_TEXT
-            _ = content.decode("utf-8")
-        except UnicodeDecodeError:
-            ct_label = ContentType.UNKNOWN
-        return self.get_magika_output_from_labels_and_score(
-            path, dl_ct_label=None, output_ct_label=ct_label, score=1.0
-        )
-
-    def get_magika_output_from_labels_and_score(
-        self, path: Path, dl_ct_label: Optional[str], score: float, output_ct_label: str
-    ) -> MagikaOutput:
-        entry: Dict[str, Any] = {
-            "path": str(path),
-            "dl": {
-                "ct_label": dl_ct_label,
-                "score": score,
-            },
-            "output": {
-                "ct_label": output_ct_label,
-                "score": score,
-            },
-        }
-
-        # add group info
-        entry["dl"]["group"] = (
-            None if dl_ct_label is None else self.ctm.get_group(dl_ct_label)
-        )
-        entry["output"]["group"] = self.ctm.get_group(output_ct_label)
-
-        # add mime type info
-        entry["dl"]["mime_type"] = (
-            None if dl_ct_label is None else self.ctm.get_mime_type(dl_ct_label)
-        )
-        entry["output"]["mime_type"] = self.ctm.get_mime_type(output_ct_label)
-
-        # add magic
-        entry["dl"]["magic"] = (
-            None if dl_ct_label is None else self.ctm.get_magic(dl_ct_label)
-        )
-        entry["output"]["magic"] = self.ctm.get_magic(output_ct_label)
-
-        # add description
-        entry["dl"]["description"] = (
-            None if dl_ct_label is None else self.ctm.get_description(dl_ct_label)
-        )
-        entry["output"]["description"] = self.ctm.get_description(output_ct_label)
-        return entry
-
-    def get_output_ct_label_from_dl_result(self, dl_ct_label: str, score: float) -> str:
-        # overwrite ct_label if specified in the config
-        dl_ct_label = self.model_output_overwrite_map.get(dl_ct_label, dl_ct_label)
-
-        if self.prediction_mode == PredictionMode.BEST_GUESS:
-            # We take the model predictions, no matter what the score is.
-            output_ct_label = dl_ct_label
-        elif (
-            self.prediction_mode == PredictionMode.HIGH_CONFIDENCE
-            and score >= self.thresholds[dl_ct_label]
-        ):
-            # The model score is higher than the per-content-type
-            # high-confidence threshold.
-            output_ct_label = dl_ct_label
-        elif (
-            self.prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
-            and score >= Magika.MEDIUM_CONFIDENCE_THRESHOLD
-        ):
-            # We take the model prediction only if the score is above a given
-            # relatively loose threshold.
-            output_ct_label = dl_ct_label
-        else:
-            # We are not in a condition to trust the model, we opt to return
-            # generic labels. Note that here we use an implicit assumption that
-            # the model has, at the very least, got the binary vs. text category
-            # right. This allows us to pick between unknown and txt without the
-            # need to read or scan the file bytes once again.
-            if "text" in self.ctm.get_or_raise(dl_ct_label).tags:
-                output_ct_label = ContentType.GENERIC_TEXT
-            else:
-                output_ct_label = ContentType.UNKNOWN
-
-        return output_ct_label
 
     def extract_features_from_path(
         self,
@@ -567,7 +342,232 @@ class Magika:
             "end": end_ints,
         }
 
-    def get_raw_predictions(
+    def get_model_outputs_from_features(
+        self, all_features: List[Tuple[Path, ModelFeatures]]
+    ) -> List[Tuple[Path, ModelOutput]]:
+        raw_preds = self._get_raw_predictions(all_features)
+        top_preds_idxs = np.argmax(raw_preds, axis=1)
+        preds_content_types_labels = self.target_labels_space_np[top_preds_idxs]
+        scores = np.max(raw_preds, axis=1)
+
+        return [
+            (path, (ct_label, float(score)))
+            for (path, _), ct_label, score in zip(
+                all_features, preds_content_types_labels, scores
+            )
+        ]
+
+    def get_outputs_from_features(
+        self, all_features: List[Tuple[Path, ModelFeatures]]
+    ) -> Dict[str, MagikaOutput]:
+        # We now do inference for those files that need it.
+
+        if len(all_features) == 0:
+            # nothing to be done
+            return {}
+
+        outputs: Dict[str, MagikaOutput] = {}
+
+        for path, (dl_ct_label, score) in self.get_model_outputs_from_features(
+            all_features
+        ):
+            # In additional to the content type label from the DL model, we
+            # also allow for other logic to overwrite such result. For
+            # debugging and information purposes, the JSON output stores
+            # both the raw DL model output and the final output we return to
+            # the user.
+            output_ct_label = self.get_output_ct_label_from_dl_result(
+                dl_ct_label, score
+            )
+
+            outputs[str(path)] = self.get_magika_output_from_labels_and_score(
+                path,
+                dl_ct_label=dl_ct_label,
+                output_ct_label=output_ct_label,
+                score=score,
+            )
+
+        return outputs
+
+    def get_output_ct_label_from_dl_result(self, dl_ct_label: str, score: float) -> str:
+        # overwrite ct_label if specified in the config
+        dl_ct_label = self.model_output_overwrite_map.get(dl_ct_label, dl_ct_label)
+
+        if self.prediction_mode == PredictionMode.BEST_GUESS:
+            # We take the model predictions, no matter what the score is.
+            output_ct_label = dl_ct_label
+        elif (
+            self.prediction_mode == PredictionMode.HIGH_CONFIDENCE
+            and score >= self.thresholds[dl_ct_label]
+        ):
+            # The model score is higher than the per-content-type
+            # high-confidence threshold.
+            output_ct_label = dl_ct_label
+        elif (
+            self.prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
+            and score >= Magika.MEDIUM_CONFIDENCE_THRESHOLD
+        ):
+            # We take the model prediction only if the score is above a given
+            # relatively loose threshold.
+            output_ct_label = dl_ct_label
+        else:
+            # We are not in a condition to trust the model, we opt to return
+            # generic labels. Note that here we use an implicit assumption that
+            # the model has, at the very least, got the binary vs. text category
+            # right. This allows us to pick between unknown and txt without the
+            # need to read or scan the file bytes once again.
+            if "text" in self.ctm.get_or_raise(dl_ct_label).tags:
+                output_ct_label = ContentType.GENERIC_TEXT
+            else:
+                output_ct_label = ContentType.UNKNOWN
+
+        return output_ct_label
+
+    def get_magika_output_from_labels_and_score(
+        self, path: Path, dl_ct_label: Optional[str], score: float, output_ct_label: str
+    ) -> MagikaOutput:
+        entry: Dict[str, Any] = {
+            "path": str(path),
+            "dl": {
+                "ct_label": dl_ct_label,
+                "score": score,
+            },
+            "output": {
+                "ct_label": output_ct_label,
+                "score": score,
+            },
+        }
+
+        # add group info
+        entry["dl"]["group"] = (
+            None if dl_ct_label is None else self.ctm.get_group(dl_ct_label)
+        )
+        entry["output"]["group"] = self.ctm.get_group(output_ct_label)
+
+        # add mime type info
+        entry["dl"]["mime_type"] = (
+            None if dl_ct_label is None else self.ctm.get_mime_type(dl_ct_label)
+        )
+        entry["output"]["mime_type"] = self.ctm.get_mime_type(output_ct_label)
+
+        # add magic
+        entry["dl"]["magic"] = (
+            None if dl_ct_label is None else self.ctm.get_magic(dl_ct_label)
+        )
+        entry["output"]["magic"] = self.ctm.get_magic(output_ct_label)
+
+        # add description
+        entry["dl"]["description"] = (
+            None if dl_ct_label is None else self.ctm.get_description(dl_ct_label)
+        )
+        entry["output"]["description"] = self.ctm.get_description(output_ct_label)
+        return entry
+
+    def _get_output_or_features(
+        self, path: Path
+    ) -> Tuple[Optional[MagikaOutput], Optional[ModelFeatures]]:
+        """
+        Given a path, we return either a MagikaOutput or a MagikaFeatures.
+
+        There are some files and corner cases for which we do not need to use
+        deep learning to get the output; in these cases, we already return a
+        MagikaOutput object.
+
+        For some other files, we do need to use deep learning, in which case we
+        return a MagikaFeatures object. Note that for now we just collect the
+        features instead of already performing inference because we want to use
+        batching.
+        """
+
+        if self.no_dereference and path.is_symlink():
+            output = self.get_magika_output_from_labels_and_score(
+                path, dl_ct_label=None, output_ct_label=ContentType.SYMLINK, score=1.0
+            )
+            # The magic and description fields for symlink contain a placeholder
+            # for <path>; let's patch the output to reflect that.
+            output["output"]["magic"] = output["output"]["magic"].replace(
+                "<path>", str(path.resolve())
+            )
+            output["output"]["description"] = output["output"]["description"].replace(
+                "<path>", str(path.resolve())
+            )
+            return output, None
+
+        if not path.exists():
+            output = self.get_magika_output_from_labels_and_score(
+                path,
+                dl_ct_label=None,
+                output_ct_label=ContentType.FILE_DOES_NOT_EXIST,
+                score=1.0,
+            )
+            return output, None
+
+        if path.is_file():
+            if path.stat().st_size == 0:
+                output = self.get_magika_output_from_labels_and_score(
+                    path, dl_ct_label=None, output_ct_label=ContentType.EMPTY, score=1.0
+                )
+                return output, None
+
+            elif not os.access(path, os.R_OK):
+                output = self.get_magika_output_from_labels_and_score(
+                    path,
+                    dl_ct_label=None,
+                    output_ct_label=ContentType.PERMISSION_ERROR,
+                    score=1.0,
+                )
+                return output, None
+
+            elif path.stat().st_size <= Magika.MIN_FILE_SIZE_FOR_DL:
+                output = self._get_content_type_of_small_file(path)
+                return output, None
+
+            else:
+                file_features = self.extract_features_from_path(path)
+                # Check whether we have enough bytes for a meaningful
+                # detection, and not just padding.
+                if (
+                    file_features["beg"][Magika.MIN_FILE_SIZE_FOR_DL - 1]
+                    == Magika.PADDING_TOKEN
+                ):
+                    # If the n-th token is padding, then it means that,
+                    # post-stripping, we do not have enough meaningful
+                    # bytes.
+                    output = self._get_content_type_of_small_file(path)
+                    return output, None
+
+                else:
+                    # We have enough bytes, scheduling this file for model
+                    # prediction.
+                    # features.append((path, file_features))
+                    return None, file_features
+
+        elif path.is_dir():
+            output = self.get_magika_output_from_labels_and_score(
+                path, dl_ct_label=None, output_ct_label=ContentType.DIRECTORY, score=1.0
+            )
+            return output, None
+
+        else:
+            output = self.get_magika_output_from_labels_and_score(
+                path, dl_ct_label=None, output_ct_label=ContentType.UNKNOWN, score=1.0
+            )
+            return output, None
+
+        raise Exception("unreachable")
+
+    def _get_content_type_of_small_file(self, path: Path) -> MagikaOutput:
+        content = path.read_bytes()
+        try:
+            ct_label = ContentType.GENERIC_TEXT
+            _ = content.decode("utf-8")
+        except UnicodeDecodeError:
+            ct_label = ContentType.UNKNOWN
+        return self.get_magika_output_from_labels_and_score(
+            path, dl_ct_label=None, output_ct_label=ct_label, score=1.0
+        )
+
+    def _get_raw_predictions(
         self, features: List[Tuple[Path, ModelFeatures]]
     ) -> npt.NDArray:
         """

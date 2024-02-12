@@ -156,7 +156,7 @@ def main(
     output_version: bool,
     list_output_content_types: bool,
     model_dir: Optional[Path],
-):
+) -> None:
     """
     Magika - Determine type of FILEs with deep-learning.
     """
@@ -351,7 +351,9 @@ def generate_feedback_report_entry(
     return report_entry
 
 
-def print_feedback_report(model_name: str, report_entries: List[FeedbackReportEntry]):
+def print_feedback_report(
+    model_name: str, report_entries: List[FeedbackReportEntry]
+) -> None:
     _l = get_logger()
 
     report = {
@@ -386,7 +388,7 @@ def print_feedback_report(model_name: str, report_entries: List[FeedbackReportEn
     )
 
 
-def print_output_content_types_list():
+def print_output_content_types_list() -> None:
     _l = get_logger()
 
     ctm = ContentTypesManager()

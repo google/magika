@@ -1969,13 +1969,13 @@ test = ["coverage", "jupyter-server (>=2.0.0)", "pytest (>=7.0)", "pytest-cov", 
 
 [[package]]
 name = "jupyter-server-ydoc"
-version = "0.6.1"
+version = "0.8.0"
 description = "A Jupyter Server Extension Providing Y Documents."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "jupyter_server_ydoc-0.6.1-py3-none-any.whl", hash = "sha256:18275ff1ce7e93bbda2301ca066273b3951fc50b0d9c8fc33788374134ad7920"},
-    {file = "jupyter_server_ydoc-0.6.1.tar.gz", hash = "sha256:ab10864708c81fa41ab9f2ed3626b54ff6926eaf14545d1d439714978dad6e9f"},
+    {file = "jupyter_server_ydoc-0.8.0-py3-none-any.whl", hash = "sha256:969a3a1a77ed4e99487d60a74048dc9fa7d3b0dcd32e60885d835bbf7ba7be11"},
+    {file = "jupyter_server_ydoc-0.8.0.tar.gz", hash = "sha256:a6fe125091792d16c962cc3720c950c2b87fcc8c3ecf0c54c84e9a20b814526c"},
 ]
 
 [package.dependencies]
@@ -1988,13 +1988,13 @@ test = ["coverage", "jupyter-server[test] (>=2.0.0a0)", "pytest (>=7.0)", "pytes
 
 [[package]]
 name = "jupyter-ydoc"
-version = "0.2.2"
+version = "0.2.4"
 description = "Document structures for collaborative editing using Ypy"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "jupyter_ydoc-0.2.2-py3-none-any.whl", hash = "sha256:596a9ae5986b59f8776c42430b5ad516405963574078ab801781933c9690be93"},
-    {file = "jupyter_ydoc-0.2.2.tar.gz", hash = "sha256:3163bd4745eedd46d4bba6df52ab26be3c5c44c3a8aaf247635062486ea8f84f"},
+    {file = "jupyter_ydoc-0.2.4-py3-none-any.whl", hash = "sha256:d1a51c73ead6f6417bec0450f53c577a66abe8d43e9c2d8a1acaf7a17259f843"},
+    {file = "jupyter_ydoc-0.2.4.tar.gz", hash = "sha256:a3f670a69135e90493ffb91d6788efe2632bf42c6cc42a25f25c2e6eddd55a0e"},
 ]
 
 [package.dependencies]
@@ -2002,17 +2002,18 @@ importlib-metadata = {version = ">=3.6", markers = "python_version < \"3.10\""}
 y-py = ">=0.5.3,<0.6.0"
 
 [package.extras]
+dev = ["click", "jupyter-releaser"]
 test = ["pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)", "ypy-websocket (>=0.3.1,<0.4.0)"]
 
 [[package]]
 name = "jupyterlab"
-version = "3.6.1"
+version = "3.6.7"
 description = "JupyterLab computational environment"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "jupyterlab-3.6.1-py3-none-any.whl", hash = "sha256:ad6707dd0149b629d0ed5b56916cfcdb816b376c6af3190337faba09e27ea29e"},
-    {file = "jupyterlab-3.6.1.tar.gz", hash = "sha256:aee98c174180e98a30470297d10b959e8e64f2288970c0de65f0a6d2b4807034"},
+    {file = "jupyterlab-3.6.7-py3-none-any.whl", hash = "sha256:d92d57d402f53922bca5090654843aa08e511290dff29fdb0809eafbbeb6df98"},
+    {file = "jupyterlab-3.6.7.tar.gz", hash = "sha256:2fadeaec161b0d1aec19f17721d8b803aef1d267f89c8b636b703be14f435c8f"},
 ]
 
 [package.dependencies]
@@ -2020,8 +2021,8 @@ ipython = "*"
 jinja2 = ">=2.1"
 jupyter-core = "*"
 jupyter-server = ">=1.16.0,<3"
-jupyter-server-ydoc = ">=0.6.0,<0.7.0"
-jupyter-ydoc = ">=0.2.2,<0.3.0"
+jupyter-server-ydoc = ">=0.8.0,<0.9.0"
+jupyter-ydoc = ">=0.2.4,<0.3.0"
 jupyterlab-server = ">=2.19,<3.0"
 nbclassic = "*"
 notebook = "<7"
@@ -2030,6 +2031,7 @@ tomli = {version = "*", markers = "python_version < \"3.11\""}
 tornado = ">=6.1.0"
 
 [package.extras]
+docs = ["jsx-lexer", "myst-parser", "pytest", "pytest-check-links", "pytest-tornasync", "sphinx (>=1.8)", "sphinx-copybutton", "sphinx-rtd-theme"]
 test = ["check-manifest", "coverage", "jupyterlab-server[test]", "pre-commit", "pytest (>=6.0)", "pytest-check-links (>=0.5)", "pytest-console-scripts", "pytest-cov", "pytest-jupyter (>=0.5.3)", "requests", "requests-cache", "virtualenv"]
 
 [[package]]
@@ -5511,4 +5513,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<3.12"
-content-hash = "45c5c83907a9606641ac21807f1406f90ddd48a1dea48b5f88d9b96b7da0bd0f"
+content-hash = "030a866f35268a2b85c72795d5ed12eb6338b8d7f2ffac5821f78ddd9dd6ba34"

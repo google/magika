@@ -1,9 +1,8 @@
 name: pytest
 on:
   push:
-    paths:
-      - '**/*.py'
-      - 'pytest.ini'
+    branches:
+      - '**'
   pull_request:
     types: [opened, synchronize, reopened]
 

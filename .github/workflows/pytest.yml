@@ -21,4 +21,4 @@ jobs:
         - name: Install the project dependencies
           run: cd magika-python-package && poetry install
         - name: Run the automated tests
-          run: cd magika-python-package && poetry run pytest tests -m smoketest
+          run: cd magika-python-package && poetry run pytest tests

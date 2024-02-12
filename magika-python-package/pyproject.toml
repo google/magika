@@ -14,7 +14,6 @@ onnxruntime = "^1.15.1"
 numpy = "^1.24.4"
 tabulate = "^0.9.0"
 python-dotenv = "^1.0.1"
-rich = "^13.7.0"
 
 [tool.poetry.scripts]
 magika = "magika.cli.magika:main"
@@ -23,7 +22,15 @@ magika = "magika.cli.magika:main"
 pytest = "^7.4.0"
 ipython = "^8.10.0"
 ruff = "^0.2.1"
+mypy = "^1.8.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["E4", "E7", "E9", "F", "I001"]
+ignore = []

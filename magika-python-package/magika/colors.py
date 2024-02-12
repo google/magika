@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# https://en.wikipedia.org/wiki/ANSI_escape_code
+
+# Taken from https://en.wikipedia.org/wiki/ANSI_escape_code
 
 BLACK = "\033[0;30m"
 RED = "\033[0;31m"

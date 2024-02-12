@@ -22,17 +22,18 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import click
+from tabulate import tabulate
 
 from magika import colors
-from magika.logger import SimpleLogger
+from magika.content_types import ContentTypesManager
+from magika.logger import get_logger
 from magika.magika import Magika, PredictionMode
+from magika.types import FeedbackReportEntry, MagikaOutput
 
 VERSION = "0.4.2-dev"
-
-DEFAULT_MODEL_NAME = "dense_v4_top_20230910"
 
 CONTACT_EMAIL = "magika-dev@google.com"
 
@@ -40,13 +41,10 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 HELP_EPILOG = f"""
 Magika version: "{VERSION}"\f
-Model name: "{DEFAULT_MODEL_NAME}"
+Model name: "{Magika.DEFAULT_MODEL_NAME}"
 
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
-
-
-log = None
 
 
 @click.command(
@@ -84,6 +82,7 @@ log = None
 @click.option(
     "-c",
     "--compatibility-mode",
+    "magic_compatibility_mode",
     is_flag=True,
     help="Compatibility mode: output is as close as possible to `file` and colors are disabled.",
 )
@@ -145,7 +144,7 @@ def main(
     jsonl_output: bool,
     mime_output: bool,
     label_output: bool,
-    compatibility_mode: bool,
+    magic_compatibility_mode: bool,
     output_probability: bool,
     prediction_mode: str,
     batch_size: int,
@@ -157,56 +156,54 @@ def main(
     output_version: bool,
     list_output_content_types: bool,
     model_dir: Optional[Path],
-):
+) -> None:
     """
     Magika - Determine type of FILEs with deep-learning.
     """
-
-    global log
 
     # click uses the name of the variable to determine how it will show up in
     # the --help. Since we don't like to see "file_paths" in the help, we name
     # the argument "file" (which is ugly) and we re-assign it as soon as we can.
     files_paths = file
 
-    if compatibility_mode:
+    if magic_compatibility_mode:
         # In compatibility mode we disable colors.
         with_colors = False
 
-    log = SimpleLogger(use_colors=with_colors)
+    _l = get_logger(use_colors=with_colors)
 
     if verbose:
-        log.setLevel(logging.INFO)
+        _l.setLevel(logging.INFO)
     if debug:
-        log.setLevel(logging.DEBUG)
+        _l.setLevel(logging.DEBUG)
 
     if output_version:
-        print(f"Magika version: {VERSION}")
-        print(f"Default model name: {DEFAULT_MODEL_NAME}")
+        _l.raw_print_to_stdout(f"Magika version: {VERSION}")
+        _l.raw_print_to_stdout(f"Default model name: {Magika.DEFAULT_MODEL_NAME}")
         sys.exit(0)
 
     # check CLI arguments and options
     if list_output_content_types:
         if len(files_paths) > 0:
-            log.error("You cannot pass any path when using the -l / --list option")
+            _l.error("You cannot pass any path when using the -l / --list option")
             sys.exit(1)
         print_output_content_types_list()
         sys.exit(0)
 
     if len(files_paths) == 0:
-        log.error("You need to pass at least one path, or - to read from stdin.")
+        _l.error("You need to pass at least one path, or - to read from stdin.")
         sys.exit(1)
 
     if batch_size <= 0 or batch_size > 512:
-        log.error("Batch size needs to be greater than 0 and less or equal than 512")
+        _l.error("Batch size needs to be greater than 0 and less or equal than 512")
         sys.exit(1)
 
     if json_output and jsonl_output:
-        log.error("You should use either --json or --jsonl, not both")
+        _l.error("You should use either --json or --jsonl, not both")
         sys.exit(1)
 
-    if int(mime_output) + int(label_output) + int(compatibility_mode) > 1:
-        log.error("You should use only one of --mime, --label, --compatibility-mode")
+    if int(mime_output) + int(label_output) + int(magic_compatibility_mode) > 1:
+        _l.error("You should use only one of --mime, --label, --compatibility-mode")
         sys.exit(1)
 
     if recursive:
@@ -220,13 +217,8 @@ def main(
         # the resulting list may still include some directories; thus, we filter them out.
         files_paths = list(filter(lambda x: not x.is_dir(), expanded_paths))
 
-    log.info(f"Considering {len(files_paths)} files")
-    log.debug(f"Files: {files_paths}")
-
-    if len(files_paths) == 1 and str(files_paths[0]) == "-":
-        read_from_stdin = True
-    else:
-        read_from_stdin = False
+    _l.info(f"Considering {len(files_paths)} files")
+    _l.debug(f"Files: {files_paths}")
 
     # Select the model using the following priority: CLI option, env variable,
     # default.
@@ -235,9 +227,11 @@ def main(
         if model_dir_str is not None and model_dir_str.strip() != "":
             model_dir = Path(model_dir_str)
         else:
-            model_dir = Path(__file__).parent.parent / "models" / DEFAULT_MODEL_NAME
+            model_dir = (
+                Path(__file__).parent.parent / "models" / Magika.DEFAULT_MODEL_NAME
+            )
 
-    m = Magika(
+    magika = Magika(
         model_dir=model_dir,
         prediction_mode=prediction_mode,
         no_dereference=no_dereference,
@@ -259,34 +253,29 @@ def main(
         "code": colors.LIGHT_BLUE,
     }
 
+    # updated only when we need to output in JSON format
+    all_predictions: List[MagikaOutput] = []
+
+    # used only when the user decides to generate a feedback report
+    report_entries: List[FeedbackReportEntry] = []
+
     batches_num = len(files_paths) // batch_size
     if len(files_paths) % batch_size != 0:
         batches_num += 1
-    all_predictions = []  # updated only when we need to output in JSON format
-
-    report_entries = []
     for batch_idx in range(batches_num):
         files_ = files_paths[batch_idx * batch_size : (batch_idx + 1) * batch_size]
 
-        if read_from_stdin:
-            # We do stdin processing within the batch logic to avoid code
-            # duplication.
-            with tempfile.NamedTemporaryFile() as tmp_file:
-                tmp_file.write(sys.stdin.buffer.read())
-                tmp_file.flush()
-                entry = m.get_content_type(Path(tmp_file.name))
-                # Patch the path to reflect -
-                entry["path"] = "-"
-                batch_predictions = [entry]
+        if should_read_from_stdin(files_paths):
+            batch_predictions = [get_magika_output_from_stdin(magika)]
         else:
-            batch_predictions = m.get_content_types(files_)
+            batch_predictions = magika.get_magika_outputs(files_)
 
         if json_output:
             # we do not stream the output for JSON output
             all_predictions.extend(batch_predictions)
         elif jsonl_output:
             for entry in batch_predictions:
-                print(json.dumps(entry))
+                _l.raw_print_to_stdout(json.dumps(entry))
         else:
             for entry in batch_predictions:
                 path = entry["path"]
@@ -298,7 +287,7 @@ def main(
                     output = entry["output"]["mime_type"]
                 elif label_output:
                     output = entry["output"]["ct_label"]
-                elif compatibility_mode:
+                elif magic_compatibility_mode:
                     output = entry["output"]["magic"]
                 else:  # human-readable description
                     output = f'{entry["output"]["description"]} ({ct_group})'
@@ -310,71 +299,97 @@ def main(
                     end_color = colors.RESET
 
                 if output_probability:
-                    print(f"{start_color}{path}: {output} {score}%{end_color}")
+                    _l.raw_print_to_stdout(
+                        f"{start_color}{path}: {output} {score}%{end_color}"
+                    )
                 else:
-                    print(f"{start_color}{path}: {output}{end_color}")
+                    _l.raw_print_to_stdout(f"{start_color}{path}: {output}{end_color}")
 
         if generate_report_flag:
             for file_path, entry in zip(files_, batch_predictions):
-                # remove information we don't need, e.g., paths
-                entry_copy = entry.copy()
-                entry_copy["path"] = "<REMOVED>"
-                fs = m.extract_features(file_path)
-                report_entry = {
-                    "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
-                    "features": {
-                        "beg": fs["beg"],
-                        "mid": fs["mid"],
-                        "end": fs["end"],
-                    },
-                    "output": entry_copy,
-                }
-                report_entries.append(report_entry)
+                report_entries.append(
+                    generate_feedback_report_entry(magika, file_path, entry)
+                )
 
     if json_output:
-        print(json.dumps(all_predictions, indent=4))
+        _l.raw_print_to_stdout(json.dumps(all_predictions, indent=4))
 
     if generate_report_flag:
-        report = {
-            "version": VERSION,
-            "model_dir_name": str(model_dir.name),
-            "python_version": sys.version,
-            "entries": base64.b64encode(
-                json.dumps(report_entries).encode("utf-8")
-            ).decode("utf-8"),
-        }
-        report_header = "REPORT"
-        report_header_full_len = 40
-        print("#" * report_header_full_len, file=sys.stderr)
-        print(
-            "###"
-            + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
-            + report_header
-            + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
-            + "###",
-            file=sys.stderr,
-        )
-        print("#" * report_header_full_len, file=sys.stderr)
-        print(json.dumps(report), file=sys.stderr)
-        print("#" * report_header_full_len, file=sys.stderr)
-        print(
-            f"Please copy/paste the above as a description of your issue. Open a GitHub issue or reach out at {CONTACT_EMAIL}.",
-            file=sys.stderr,
-        )
-        print(
-            "Please include as many details as possible, e.g., what was the expected content type.",
-            file=sys.stderr,
-        )
-        print(
-            "IMPORTANT: do NOT submit private information or PII! The extracted features include many bytes of the tested files!",
-            file=sys.stderr,
-        )
+        print_feedback_report(model_name=model_dir.name, report_entries=report_entries)
 
 
-def print_output_content_types_list():
-    from tabulate import tabulate  # type: ignore
+def should_read_from_stdin(files_paths: List[Path]) -> bool:
+    return len(files_paths) == 1 and str(files_paths[0]) == "-"
 
-    from magika.content_types import ContentTypesManager
+
+def get_magika_output_from_stdin(magika: Magika) -> MagikaOutput:
+    with tempfile.NamedTemporaryFile() as tmp_file:
+        tmp_file.write(sys.stdin.buffer.read())
+        tmp_file.flush()
+        entry = magika.get_magika_output(Path(tmp_file.name))
+        # Patch the path to reflect -
+        entry["path"] = "-"
+    return entry
+
+
+def generate_feedback_report_entry(
+    magika: Magika, file_path: Path, entry: Dict
+) -> FeedbackReportEntry:
+    # remove information we don't need, e.g., paths
+    entry_copy = entry.copy()
+    entry_copy["path"] = "<REMOVED>"
+    fs = magika.extract_features_from_path(file_path)
+    report_entry: FeedbackReportEntry = {
+        "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
+        "features": {
+            "beg": fs["beg"],
+            "mid": fs["mid"],
+            "end": fs["end"],
+        },
+        "output": entry_copy,
+    }
+    return report_entry
+
+
+def print_feedback_report(
+    model_name: str, report_entries: List[FeedbackReportEntry]
+) -> None:
+    _l = get_logger()
+
+    report = {
+        "version": VERSION,
+        "model_dir_name": model_name,
+        "python_version": sys.version,
+        "entries": base64.b64encode(json.dumps(report_entries).encode("utf-8")).decode(
+            "utf-8"
+        ),
+    }
+    report_header = "REPORT"
+    report_header_full_len = 40
+    _l.raw_print("#" * report_header_full_len)
+    _l.raw_print(
+        "###"
+        + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
+        + report_header
+        + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
+        + "###",
+    )
+    _l.raw_print("#" * report_header_full_len)
+    _l.raw_print(json.dumps(report))
+    _l.raw_print("#" * report_header_full_len)
+    _l.raw_print(
+        f"Please copy/paste the above as a description of your issue. Open a GitHub issue or reach out at {CONTACT_EMAIL}.",
+    )
+    _l.raw_print(
+        "Please include as many details as possible, e.g., what was the expected content type.",
+    )
+    _l.raw_print(
+        "IMPORTANT: do NOT submit private information or PII! The extracted features include many bytes of the tested files!",
+    )
+
+
+def print_output_content_types_list() -> None:
+    _l = get_logger()
 
     ctm = ContentTypesManager()
     content_types = ctm.get_output_content_types()
@@ -389,7 +404,7 @@ def print_output_content_types_list():
             "" if ct.description is None else ct.description,
         ]
         rows.append(row)
-    print(tabulate(rows, headers=headers))
+    _l.raw_print_to_stdout(tabulate(rows, headers=headers))
 
 
 if __name__ == "__main__":

@@ -25,50 +25,75 @@ from tests.utils import get_random_ascii_bytes
 
 
 @pytest.mark.smoketest
-def test_magika_modele_basic_tests():
+def test_magika_module_one_basic_test():
     model_dir = utils.get_default_model_dir()
     test_path = utils.get_one_basic_test_file_path()
 
     m = Magika(model_dir=model_dir)
 
-    _ = m.get_content_type(test_path)
-    _ = m.get_content_types([test_path])
+    _ = m.get_magika_output(test_path)
+    _ = m.get_magika_outputs([test_path])
+
+
+@pytest.mark.smoketest
+def test_magika_module_with_default_model():
+    test_path = utils.get_one_basic_test_file_path()
+
+    m = Magika()
+
+    _ = m.get_magika_output(test_path)
+    _ = m.get_magika_outputs([test_path])
+
+
+def test_magika_module_with_basic_tests():
+    model_dir = utils.get_default_model_dir()
+    tests_paths = utils.get_basic_test_files_paths()
+
+    m = Magika(model_dir=model_dir)
+
+    _ = m.get_magika_outputs(tests_paths)
 
 
 def test_magika_module_with_different_prediction_modes():
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)
-    assert m.get_output_ct_label("python", 0.01) == "python"
-    assert m.get_output_ct_label("python", 0.40) == "python"
-    assert m.get_output_ct_label("python", 0.60) == "python"
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.40) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.60) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
     # test that the default is HIGH_CONFIDENCE
     m = Magika(model_dir=model_dir)
-    assert m.get_output_ct_label("python", 0.01) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "txt"
     assert (
-        m.get_output_ct_label("python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01)
+        m.get_output_ct_label_from_dl_result(
+            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01
+        )
         == "txt"
     )
     assert (
-        m.get_output_ct_label("python", Magika.MEDIUM_CONFIDENCE_THRESHOLD + 0.01)
+        m.get_output_ct_label_from_dl_result(
+            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD + 0.01
+        )
         == "txt"
     )
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
-    assert m.get_output_ct_label("python", 0.01) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "txt"
     assert (
-        m.get_output_ct_label("python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01)
+        m.get_output_ct_label_from_dl_result(
+            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01
+        )
         == "txt"
     )
-    assert m.get_output_ct_label("python", 0.60) == "python"
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.60) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.HIGH_CONFIDENCE)
-    assert m.get_output_ct_label("python", 0.01) == "txt"
-    assert m.get_output_ct_label("python", 0.60) == "txt"
-    assert m.get_output_ct_label("python", 0.99) == "python"
+    assert m.get_output_ct_label_from_dl_result("python", 0.01) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.60) == "txt"
+    assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
 
 def test_extract_features_with_ascii():
@@ -161,7 +186,7 @@ def _test_extract_features_with_content(content: bytes):
             print(
                 f"Testing with {beg_size=}, {mid_size=}, {end_size=}, {len(content)=}"
             )
-            features = m.extract_features(
+            features = m.extract_features_from_path(
                 tf_path, beg_size=beg_size, mid_size=mid_size, end_size=end_size
             )
 

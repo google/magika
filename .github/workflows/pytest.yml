@@ -18,9 +18,7 @@ jobs:
           uses: abatilo/actions-poetry@v2
           with:
             poetry-version: "1.7.1"
-        - name: View poetry --help
-          run: poetry --help
         - name: Install the project dependencies
-          run: poetry install
+          run: cd magika-python-package && poetry install
         - name: Run the automated tests
           run: pytest magika-python-package/tests -m smoketest

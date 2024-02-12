@@ -17,6 +17,9 @@ import sys
 
 from magika import colors
 
+# We implement a simple logger to not rely on additional python packages, e.g.,
+# rich.
+
 
 class SimpleLogger:
     def __init__(self, use_colors: bool = False):

@@ -12,26 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 
 import dotenv
-from rich.console import Console
-from rich.logging import RichHandler
 
 dotenv.load_dotenv(dotenv.find_dotenv())
-
-
-def get_logger(logger_name="magika"):
-    FORMAT = "%(name)s: %(message)s"
-    logging.basicConfig(
-        level="INFO",
-        format=FORMAT,
-        datefmt="[%x %X]",
-        handlers=[RichHandler(console=Console(stderr=True))],
-    )
-    _l = logging.getLogger(logger_name)
-    return _l
-
-
-# disable annoying logging from google library: https://github.com/googleapis/google-api-python-client/issues/299
-logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)

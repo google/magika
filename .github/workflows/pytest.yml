@@ -19,6 +19,6 @@ jobs:
           with:
             poetry-version: "1.7.1"
         - name: Install the project dependencies
-          run: cd magika-python-package && poetry install
+          run: cd python && poetry install
         - name: Run the automated tests
-          run: cd magika-python-package && poetry run pytest tests
+          run: cd python && poetry run pytest tests

@@ -20,7 +20,6 @@ import json
 import logging
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -267,7 +266,7 @@ def main(
         if should_read_from_stdin(files_paths):
             batch_predictions = [get_magika_output_from_stdin(magika)]
         else:
-            batch_predictions = magika.get_magika_outputs(files_)
+            batch_predictions = magika.identify_paths(files_)
 
         if json_output:
             # we do not stream the output for JSON output
@@ -322,12 +321,8 @@ def should_read_from_stdin(files_paths: List[Path]) -> bool:
 
 
 def get_magika_output_from_stdin(magika: Magika) -> MagikaOutput:
-    with tempfile.NamedTemporaryFile() as tmp_file:
-        tmp_file.write(sys.stdin.buffer.read())
-        tmp_file.flush()
-        entry = magika.get_magika_output(Path(tmp_file.name))
-        # Patch the path to reflect -
-        entry["path"] = "-"
+    content = sys.stdin.buffer.read()
+    entry = magika.identify_bytes(content)
     return entry
 
 
@@ -337,7 +332,7 @@ def generate_feedback_report_entry(
     # remove information we don't need, e.g., paths
     entry_copy = entry.copy()
     entry_copy["path"] = "<REMOVED>"
-    fs = magika.extract_features_from_path(file_path)
+    fs = magika._extract_features_from_path(file_path)
     report_entry: FeedbackReportEntry = {
         "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
         "features": {

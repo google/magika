@@ -40,7 +40,7 @@ def get_basic_tests_files_dir() -> Path:
 
 def get_basic_test_files_paths() -> List[Path]:
     tests_files_dir = get_basic_tests_files_dir()
-    test_files_paths = sorted(tests_files_dir.iterdir())
+    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.iterdir()))
     return test_files_paths
 
 

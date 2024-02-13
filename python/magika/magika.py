@@ -43,14 +43,12 @@ class Magika:
     def __init__(
         self,
         model_dir: Optional[Path] = None,
-        prediction_mode: str = PredictionMode.HIGH_CONFIDENCE,
+        prediction_mode: PredictionMode = PredictionMode.HIGH_CONFIDENCE,
         no_dereference: bool = False,
         verbose: bool = False,
         debug: bool = False,
         use_colors: bool = False,
     ) -> None:
-        assert prediction_mode in PredictionMode.get_valid_prediction_modes()
-
         self.verbose = verbose
         self.debug = debug
 

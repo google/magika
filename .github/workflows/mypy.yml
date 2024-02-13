@@ -25,4 +25,4 @@ jobs:
         - name: Run mpy
           run: |
             cd python
-            mypy magika tests
+            poetry run mypy magika tests

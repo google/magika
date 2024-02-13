@@ -30,7 +30,8 @@ from tabulate import tabulate
 from magika import colors
 from magika.content_types import ContentTypesManager
 from magika.logger import get_logger
-from magika.magika import Magika, PredictionMode
+from magika.magika import Magika
+from magika.prediction_mode import PredictionMode
 from magika.types import FeedbackReportEntry, MagikaOutput
 
 VERSION = "0.4.2-dev"

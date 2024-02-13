@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
-import onnxruntime as rt  # type: ignore
+import onnxruntime as rt
 from tqdm.auto import tqdm
 
 from magika.content_types import ContentType, ContentTypesManager

@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import logging
 import sys
+from typing import Optional, TextIO
 
 from magika import colors
 
-_logger = None
+_logger: Optional[SimpleLogger] = None
 
 
 class SimpleLogger:
@@ -37,7 +40,7 @@ class SimpleLogger:
     def raw_print_to_stdout(self, msg: str) -> None:
         self.raw_print(msg, file=sys.stdout)
 
-    def raw_print(self, msg: str, file=sys.stderr) -> None:
+    def raw_print(self, msg: str, file: TextIO = sys.stderr) -> None:
         print(msg, file=file)
 
     def debug(self, msg: str) -> None:

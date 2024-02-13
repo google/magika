@@ -25,7 +25,7 @@ from tests.utils import get_random_ascii_bytes
 
 
 @pytest.mark.smoketest
-def test_magika_module_one_basic_test():
+def test_magika_module_one_basic_test() -> None:
     model_dir = utils.get_default_model_dir()
     test_path = utils.get_one_basic_test_file_path()
 
@@ -36,7 +36,7 @@ def test_magika_module_one_basic_test():
 
 
 @pytest.mark.smoketest
-def test_magika_module_with_default_model():
+def test_magika_module_with_default_model() -> None:
     test_path = utils.get_one_basic_test_file_path()
 
     m = Magika()
@@ -45,7 +45,7 @@ def test_magika_module_with_default_model():
     _ = m.get_magika_outputs([test_path])
 
 
-def test_magika_module_with_basic_tests():
+def test_magika_module_with_basic_tests() -> None:
     model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_basic_test_files_paths()
 
@@ -54,7 +54,7 @@ def test_magika_module_with_basic_tests():
     _ = m.get_magika_outputs(tests_paths)
 
 
-def test_magika_module_with_different_prediction_modes():
+def test_magika_module_with_different_prediction_modes() -> None:
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)
     assert m.get_output_ct_label_from_dl_result("python", 0.01) == "python"
@@ -96,7 +96,7 @@ def test_magika_module_with_different_prediction_modes():
     assert m.get_output_ct_label_from_dl_result("python", 0.99) == "python"
 
 
-def test_extract_features_with_ascii():
+def test_extract_features_with_ascii() -> None:
     random.seed(42)
 
     _test_extract_features_with_content(get_random_ascii_bytes(0))
@@ -113,7 +113,7 @@ def test_extract_features_with_ascii():
     _test_extract_features_with_content(get_random_ascii_bytes(1_000_000))
 
 
-def test_extract_features_with_spaces():
+def test_extract_features_with_spaces() -> None:
     random.seed(42)
 
     whitespace_sizes = [
@@ -147,7 +147,7 @@ def test_extract_features_with_spaces():
     _test_extract_features_with_content(b" " * 1000)
 
 
-def _test_extract_features_with_content(content: bytes):
+def _test_extract_features_with_content(content: bytes) -> None:
     print(
         f"Testing with content of len {len(content)}: {content[:min(128, len(content))]!r}...{content[-min(128, len(content)):]!r}"
     )

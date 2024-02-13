@@ -18,8 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from magika.magika import Magika
-from magika.prediction_mode import PredictionMode
+from magika import Magika, PredictionMode
 from tests import utils
 from tests.utils import get_random_ascii_bytes
 

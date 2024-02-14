@@ -13,17 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# From https://stackoverflow.com/a/246128
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-PYTHON_ROOT_DIR=$SCRIPT_DIR/..
+# Taken from https://github.com/google/scaaml/blob/main/tools/check_copyright.sh
 
-pushd $PYTHON_ROOT_DIR > /dev/null
 
-echo "Running ruff..."
-ruff check
+errors=0
+e() {
+  echo -e "$(tput bold)$(tput setaf 1)Error:$(tput sgr0) $*"
+  errors=$(( $error + 1 ))
+}
 
-echo "Running mypy..."
-mypy magika tests
+# Files we want to check for copyright
+EXTENSIONS="py\|sh"
 
-popd > /dev/null
+
+for file in $(git ls-files | \
+  grep -e '\.\('"${EXTENSIONS}"'\)$')
+do
+  sed -n 'N;/Copyright/q;q1' $file || e "No copyright notice in $file"
+done
+
+if [ $errors -gt 0 ]
+then
+  exit 1
+fi
+exit 0

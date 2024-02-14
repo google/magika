@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
 import json
 import random
 import string
@@ -20,6 +19,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from magika.content_types import ContentTypesManager
+from magika.types import (
+    MagikaOutputField,
+    MagikaResult,
+    ModelFeatures,
+    ModelOutputField,
+)
 
 
 def get_tests_data_dir() -> Path:
@@ -157,7 +162,7 @@ def get_magika_cli_output_from_stdout_stderr(
 ) -> List[Tuple[Path, Dict[str, Any] | str]]:
     json_output = kwargs.get("json_output", False)
     jsonl_output = kwargs.get("jsonl_output", False)
-    output_probability = kwargs.get("output_probability", False)
+    output_score = kwargs.get("output_score", False)
     generate_report = kwargs.get("generate_report", False)
     cpp_output = kwargs.get("cpp_output", False)
     """
@@ -191,7 +196,7 @@ def get_magika_cli_output_from_stdout_stderr(
         # plain output
         lines = get_lines_from_stream(stdout)
         for line in lines:
-            if output_probability:
+            if output_score:
                 file_path_str, output = line.split(": ", 1)
                 ct_output, score_str = output.rsplit(" ", 1)
                 assert score_str.endswith("%")
@@ -222,13 +227,23 @@ def get_magika_cli_output_from_stdout_stderr(
                     "version",
                     "model_dir_name",
                     "python_version",
-                    "entries",
+                    "reports",
                 }
-                decoded_entries = json.loads(base64.b64decode(report_info["entries"]))
-                assert isinstance(decoded_entries, list)
-                assert decoded_entries[0]["output"]["path"] == "<REMOVED>"
-                assert isinstance(
-                    decoded_entries[0]["output"]["output"]["ct_label"], str
-                )
+                for report in report_info["reports"]:
+                    assert set(report.keys()) == {"hash", "features", "result"}
+                    assert isinstance(report["hash"], str)
+                    # try to parse "features" as ModelFeatures
+                    _ = ModelFeatures(**json.loads(report["features"]))
+                    # try to parse "result" as MagikaResult
+                    result_dict = report["result"]
+                    mr = MagikaResult(
+                        path=result_dict["path"],
+                        dl=ModelOutputField(**result_dict["dl"]),
+                        output=MagikaOutputField(
+                            **result_dict["output"],
+                        ),
+                    )
+                    assert mr.path == "<REMOVED>"
+                    assert isinstance(mr.output.ct_label, str)
 
     return predicted_cts

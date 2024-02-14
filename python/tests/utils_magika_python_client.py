@@ -24,7 +24,7 @@ def run_magika_python_cli(
     mime_output: bool = False,
     label_output: bool = False,
     compatibility_mode: bool = False,
-    output_probability: bool = False,
+    output_score: bool = False,
     batch_size: Optional[int] = None,
     with_colors: bool = False,
     verbose: bool = False,
@@ -51,8 +51,8 @@ def run_magika_python_cli(
         cmd.append("--label")
     if compatibility_mode is True:
         cmd.append("--compatibility-mode")
-    if output_probability is True:
-        cmd.append("--output-probability")
+    if output_score is True:
+        cmd.append("--output-score")
     if batch_size is not None:
         cmd.extend(["--batch-size", str(batch_size)])
     if with_colors:

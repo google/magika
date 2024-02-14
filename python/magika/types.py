@@ -13,9 +13,54 @@
 # limitations under the License.
 
 
-from typing import Dict, List, Tuple
+from __future__ import annotations
 
-ModelOutput = Tuple[str, float]
-ModelFeatures = Dict[str, List[int]]
-MagikaOutput = Dict
-FeedbackReportEntry = Dict
+from dataclasses import dataclass
+from typing import List, Optional
+
+
+@dataclass
+class ModelFeatures:
+    beg: List[int]
+    mid: List[int]
+    end: List[int]
+
+
+@dataclass
+class ModelOutput:
+    ct_label: str
+    score: float
+
+
+@dataclass
+class MagikaResult:
+    path: str
+    dl: ModelOutputField
+    output: MagikaOutputField
+
+
+@dataclass
+class ModelOutputField:
+    ct_label: Optional[str]
+    score: Optional[float]
+    group: Optional[str]
+    mime_type: Optional[str]
+    magic: Optional[str]
+    description: Optional[str]
+
+
+@dataclass
+class MagikaOutputField:
+    ct_label: str
+    score: float
+    group: str
+    mime_type: str
+    magic: str
+    description: str
+
+
+@dataclass
+class FeedbackReport:
+    hash: str
+    features: ModelFeatures
+    result: MagikaResult

@@ -1,0 +1,43 @@
+{
+  "name": "magika-website",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "copy-assets": "cp -r ../README.md assets/README.md;",
+    "predev": "npm run copy-assets",
+    "dev": "vite",
+    "prebuild": "npm run copy-assets",
+    "build": "vite build",
+    "prebuild-github": "npm run copy-assets; rm -Rf dist/",
+    "build-github": "vite build  --base=/magika/; echo 'Done';",
+    "postbuild-github": "cp dist/index.html dist/404.html; mkdir -p dist_tmp; cp -R dist/* dist_tmp;  mv dist_tmp dist/magika; ls dist/; ls dist/magika;",
+    "preview": "vite preview",
+    "lint": "eslint . --fix --ignore-path .gitignore",
+    "code-format": "prettier --write ."
+  },
+  "dependencies": {
+    "@mdi/font": "7.0.96",
+    "@tensorflow/tfjs": "^4.12.0",
+    "core-js": "^3.29.0",
+    "highlight.js": "^11.9.0",
+    "lodash": "^4.17.21",
+    "markdown-it": "^14.0.0",
+    "roboto-fontface": "*",
+    "vue": "^3.2.0",
+    "vue-router": "^4.0.0",
+    "vuetify": "^3.5.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.3",
+    "eslint": "^8.53.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-vue": "^9.18.1",
+    "prettier": "^3.2.5",
+    "sass": "^1.60.0",
+    "unplugin-fonts": "^1.0.3",
+    "vite": "^5.1.1",
+    "vite-plugin-vuetify": "^2.0.1"
+  }
+}

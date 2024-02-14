@@ -1,0 +1,19 @@
+// Sets our fonts throughout the application.
+// Fonts are loaded with ViteFonts() in vite.config.js.
+
+$title-font-family: "Google Sans";
+$font-family: "Google Sans Text";
+$text-color: #212121;
+
+.v-application {
+  [class*="text-normal"] {
+    color: $text-color;
+    font-family: $font-family, sans-serif !important;
+  }
+  [class*="text-h"] {
+    color: $text-color;
+    font-family: $title-font-family, sans-serif !important;
+    font-weight: 600;
+  }
+  font-family: $font-family, sans-serif !important;
+}

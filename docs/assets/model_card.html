@@ -1,0 +1,1351 @@
+<style>
+  .row {
+    display: flex;
+  }
+  .col {
+    flex: 1;
+  }
+  .card {
+    padding: 2em;
+    line-height: 1.4;
+    border: 1px solid #dadce0;
+    margin: 10px;
+  }
+  .img-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    text-align: center;
+  }
+  .img-item {
+    flex: 1;
+  }
+  .center {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  h3 {
+    padding-top: 1rem;
+  }
+  table {
+    margin-bottom: 10px;
+  }
+  table th {
+    background: #eee;
+  }
+  table,
+  th,
+  td {
+    border: 1px solid black;
+    border-collapse: collapse;
+  }
+  th,
+  td {
+    border: 1px solid #ccc;
+    height: 30px;
+    text-align: left;
+    padding: 5px 10px;
+  }
+  caption {
+    font-weight: bold;
+  }
+  li {
+    margin-left: 1rem;
+  }
+</style>
+
+<body>
+  <div class="row">
+    <div class="col card">
+      <h2>Model Details</h2>
+      <h3>Overview</h3>
+      Magika is a content type detection tool powered by deep learning. It is
+      accurate (99%+ average accuracy on our test dataset across 120+ content
+      types), reasonably fast even on a single CPU (inference time of the
+      underlying model: 5/6ms), and reasonably small in size (the core model is
+      ~1MB). It offers a significant accuracy boost with respect to existing
+      tools.
+      <h3>Version</h3>
+
+      <div>name: v1.0</div>
+
+      <div>date: 2024/02/16</div>
+
+      <h3>Owners</h3>
+
+      Magika team, magika-dev@google.com
+
+      <h3>Licenses</h3>
+      <ul>
+        <li>Apache-2.0</li>
+      </ul>
+
+      <h3>References</h3>
+      <ul>
+        <li>
+          <a href="https://arxiv.org/abs/XXX">https://arxiv.org/abs/XXX</a>
+        </li>
+      </ul>
+
+      <h3>Citations</h3>
+      <ul>
+        <li>https://github.com/google/magika</li>
+      </ul>
+    </div>
+
+    <div class="col card">
+      <h2>Considerations</h2>
+
+      <h3>Use Cases</h3>
+
+      <ul>
+        <li>
+          This model classifies files into a predefined sets of content types.
+        </li>
+      </ul>
+
+      <h3>Limitations</h3>
+
+      <ul>
+        <li>
+          This model is trained to output a single content type, so polyglot
+          files will not be mapped to two or more categories.
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col card">
+    <h2>Quantitative Analysis</h2>
+
+    <table class="center">
+      <caption>
+        Performance Metrics
+      </caption>
+      <tr>
+        <th>Name</th>
+        <th>Value</th>
+      </tr>
+
+      <tr>
+        <td>precision, ai</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, apk</td>
+        <td>99.24%</td>
+      </tr>
+
+      <tr>
+        <td>precision, appleplist</td>
+        <td>99.94%</td>
+      </tr>
+
+      <tr>
+        <td>precision, asm</td>
+        <td>99.53%</td>
+      </tr>
+
+      <tr>
+        <td>precision, asp</td>
+        <td>99.45%</td>
+      </tr>
+
+      <tr>
+        <td>precision, batch</td>
+        <td>98.52%</td>
+      </tr>
+
+      <tr>
+        <td>precision, bmp</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>precision, bzip</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, c</td>
+        <td>99.28%</td>
+      </tr>
+
+      <tr>
+        <td>precision, cab</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, cat</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, chm</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, coff</td>
+        <td>99.95%</td>
+      </tr>
+
+      <tr>
+        <td>precision, cpl</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, crx</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>precision, cs</td>
+        <td>99.69%</td>
+      </tr>
+
+      <tr>
+        <td>precision, css</td>
+        <td>99.61%</td>
+      </tr>
+
+      <tr>
+        <td>precision, csv</td>
+        <td>98.94%</td>
+      </tr>
+
+      <tr>
+        <td>precision, deb</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, dex</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, dll</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, dmg</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>precision, doc</td>
+        <td>99.35%</td>
+      </tr>
+
+      <tr>
+        <td>precision, docx</td>
+        <td>99.66%</td>
+      </tr>
+
+      <tr>
+        <td>precision, dylib</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, elf</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, emf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, eml</td>
+        <td>99.84%</td>
+      </tr>
+
+      <tr>
+        <td>precision, epub</td>
+        <td>99.92%</td>
+      </tr>
+
+      <tr>
+        <td>precision, exe</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, flac</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, gif</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, go</td>
+        <td>99.87%</td>
+      </tr>
+
+      <tr>
+        <td>precision, gzip</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, hlp</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, html</td>
+        <td>96.66%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ico</td>
+        <td>99.96%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ini</td>
+        <td>98.81%</td>
+      </tr>
+
+      <tr>
+        <td>precision, internetshortcut</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>precision, iso</td>
+        <td>99.90%</td>
+      </tr>
+
+      <tr>
+        <td>precision, jar</td>
+        <td>98.89%</td>
+      </tr>
+
+      <tr>
+        <td>precision, java</td>
+        <td>99.30%</td>
+      </tr>
+
+      <tr>
+        <td>precision, javabytecode</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, javascript</td>
+        <td>99.03%</td>
+      </tr>
+
+      <tr>
+        <td>precision, jpeg</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, json</td>
+        <td>99.44%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ko</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, latex</td>
+        <td>99.86%</td>
+      </tr>
+
+      <tr>
+        <td>precision, lisp</td>
+        <td>99.90%</td>
+      </tr>
+
+      <tr>
+        <td>precision, lnk</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, m3u</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, macho</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, makefile</td>
+        <td>99.83%</td>
+      </tr>
+
+      <tr>
+        <td>precision, markdown</td>
+        <td>97.12%</td>
+      </tr>
+
+      <tr>
+        <td>precision, mht</td>
+        <td>99.95%</td>
+      </tr>
+
+      <tr>
+        <td>precision, mp3</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>precision, mp4</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, mscompress</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, msi</td>
+        <td>99.88%</td>
+      </tr>
+
+      <tr>
+        <td>precision, mui</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, mum</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ocx</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, odex</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>precision, odp</td>
+        <td>99.94%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ods</td>
+        <td>99.87%</td>
+      </tr>
+
+      <tr>
+        <td>precision, odt</td>
+        <td>99.79%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ogg</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, outlook</td>
+        <td>99.42%</td>
+      </tr>
+
+      <tr>
+        <td>precision, pcap</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>precision, pdf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, pem</td>
+        <td>99.95%</td>
+      </tr>
+
+      <tr>
+        <td>precision, perl</td>
+        <td>99.45%</td>
+      </tr>
+
+      <tr>
+        <td>precision, php</td>
+        <td>98.87%</td>
+      </tr>
+
+      <tr>
+        <td>precision, png</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, postscript</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, powershell</td>
+        <td>99.15%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ppt</td>
+        <td>98.67%</td>
+      </tr>
+
+      <tr>
+        <td>precision, pptx</td>
+        <td>99.04%</td>
+      </tr>
+
+      <tr>
+        <td>precision, python</td>
+        <td>99.16%</td>
+      </tr>
+
+      <tr>
+        <td>precision, pythonbytecode</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, randombytes</td>
+        <td>99.67%</td>
+      </tr>
+
+      <tr>
+        <td>precision, rar</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, rdf</td>
+        <td>99.86%</td>
+      </tr>
+
+      <tr>
+        <td>precision, rpm</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, rst</td>
+        <td>96.70%</td>
+      </tr>
+
+      <tr>
+        <td>precision, rtf</td>
+        <td>99.91%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ruby</td>
+        <td>99.59%</td>
+      </tr>
+
+      <tr>
+        <td>precision, rust</td>
+        <td>99.86%</td>
+      </tr>
+
+      <tr>
+        <td>precision, scala</td>
+        <td>99.85%</td>
+      </tr>
+
+      <tr>
+        <td>precision, scr</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, sevenzip</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, shell</td>
+        <td>97.12%</td>
+      </tr>
+
+      <tr>
+        <td>precision, smali</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, so</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>precision, sql</td>
+        <td>99.52%</td>
+      </tr>
+
+      <tr>
+        <td>precision, squashfs</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, svg</td>
+        <td>99.92%</td>
+      </tr>
+
+      <tr>
+        <td>precision, swf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, symlinktext</td>
+        <td>97.10%</td>
+      </tr>
+
+      <tr>
+        <td>precision, sys</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, tar</td>
+        <td>99.97%</td>
+      </tr>
+
+      <tr>
+        <td>precision, tga</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, tiff</td>
+        <td>99.95%</td>
+      </tr>
+
+      <tr>
+        <td>precision, torrent</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, ttf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, txt</td>
+        <td>94.21%</td>
+      </tr>
+
+      <tr>
+        <td>precision, vba</td>
+        <td>99.69%</td>
+      </tr>
+
+      <tr>
+        <td>precision, wav</td>
+        <td>99.97%</td>
+      </tr>
+
+      <tr>
+        <td>precision, webm</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, webp</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, winregistry</td>
+        <td>99.97%</td>
+      </tr>
+
+      <tr>
+        <td>precision, wmf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, xar</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, xls</td>
+        <td>98.93%</td>
+      </tr>
+
+      <tr>
+        <td>precision, xlsb</td>
+        <td>99.61%</td>
+      </tr>
+
+      <tr>
+        <td>precision, xlsx</td>
+        <td>99.61%</td>
+      </tr>
+
+      <tr>
+        <td>precision, xml</td>
+        <td>98.40%</td>
+      </tr>
+
+      <tr>
+        <td>precision, xpi</td>
+        <td>99.58%</td>
+      </tr>
+
+      <tr>
+        <td>precision, xz</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, yaml</td>
+        <td>99.03%</td>
+      </tr>
+
+      <tr>
+        <td>precision, zip</td>
+        <td>97.00%</td>
+      </tr>
+
+      <tr>
+        <td>precision, zlibstream</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ai</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, apk</td>
+        <td>98.75%</td>
+      </tr>
+
+      <tr>
+        <td>recall, appleplist</td>
+        <td>99.92%</td>
+      </tr>
+
+      <tr>
+        <td>recall, asm</td>
+        <td>99.42%</td>
+      </tr>
+
+      <tr>
+        <td>recall, asp</td>
+        <td>98.75%</td>
+      </tr>
+
+      <tr>
+        <td>recall, batch</td>
+        <td>96.45%</td>
+      </tr>
+
+      <tr>
+        <td>recall, bmp</td>
+        <td>99.98%</td>
+      </tr>
+
+      <tr>
+        <td>recall, bzip</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, c</td>
+        <td>99.29%</td>
+      </tr>
+
+      <tr>
+        <td>recall, cab</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, cat</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, chm</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, coff</td>
+        <td>99.93%</td>
+      </tr>
+
+      <tr>
+        <td>recall, cpl</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, crx</td>
+        <td>99.79%</td>
+      </tr>
+
+      <tr>
+        <td>recall, cs</td>
+        <td>99.65%</td>
+      </tr>
+
+      <tr>
+        <td>recall, css</td>
+        <td>98.85%</td>
+      </tr>
+
+      <tr>
+        <td>recall, csv</td>
+        <td>98.50%</td>
+      </tr>
+
+      <tr>
+        <td>recall, deb</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, dex</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, dll</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, dmg</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, doc</td>
+        <td>98.46%</td>
+      </tr>
+
+      <tr>
+        <td>recall, docx</td>
+        <td>99.40%</td>
+      </tr>
+
+      <tr>
+        <td>recall, dylib</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, elf</td>
+        <td>99.97%</td>
+      </tr>
+
+      <tr>
+        <td>recall, emf</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, eml</td>
+        <td>99.90%</td>
+      </tr>
+
+      <tr>
+        <td>recall, epub</td>
+        <td>99.92%</td>
+      </tr>
+
+      <tr>
+        <td>recall, exe</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, flac</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, gif</td>
+        <td>99.97%</td>
+      </tr>
+
+      <tr>
+        <td>recall, go</td>
+        <td>99.94%</td>
+      </tr>
+
+      <tr>
+        <td>recall, gzip</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, hlp</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, html</td>
+        <td>97.78%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ico</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ini</td>
+        <td>98.16%</td>
+      </tr>
+
+      <tr>
+        <td>recall, internetshortcut</td>
+        <td>99.93%</td>
+      </tr>
+
+      <tr>
+        <td>recall, iso</td>
+        <td>99.49%</td>
+      </tr>
+
+      <tr>
+        <td>recall, jar</td>
+        <td>97.57%</td>
+      </tr>
+
+      <tr>
+        <td>recall, java</td>
+        <td>99.61%</td>
+      </tr>
+
+      <tr>
+        <td>recall, javabytecode</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, javascript</td>
+        <td>99.13%</td>
+      </tr>
+
+      <tr>
+        <td>recall, jpeg</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, json</td>
+        <td>99.74%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ko</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, latex</td>
+        <td>99.21%</td>
+      </tr>
+
+      <tr>
+        <td>recall, lisp</td>
+        <td>99.79%</td>
+      </tr>
+
+      <tr>
+        <td>recall, lnk</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, m3u</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, macho</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, makefile</td>
+        <td>99.83%</td>
+      </tr>
+
+      <tr>
+        <td>recall, markdown</td>
+        <td>93.86%</td>
+      </tr>
+
+      <tr>
+        <td>recall, mht</td>
+        <td>99.86%</td>
+      </tr>
+
+      <tr>
+        <td>recall, mp3</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, mp4</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, mscompress</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, msi</td>
+        <td>99.36%</td>
+      </tr>
+
+      <tr>
+        <td>recall, mui</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, mum</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ocx</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, odex</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, odp</td>
+        <td>99.62%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ods</td>
+        <td>99.68%</td>
+      </tr>
+
+      <tr>
+        <td>recall, odt</td>
+        <td>99.83%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ogg</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, outlook</td>
+        <td>99.83%</td>
+      </tr>
+
+      <tr>
+        <td>recall, pcap</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, pdf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, pem</td>
+        <td>99.71%</td>
+      </tr>
+
+      <tr>
+        <td>recall, perl</td>
+        <td>99.36%</td>
+      </tr>
+
+      <tr>
+        <td>recall, php</td>
+        <td>98.65%</td>
+      </tr>
+
+      <tr>
+        <td>recall, png</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, postscript</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, powershell</td>
+        <td>99.40%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ppt</td>
+        <td>99.32%</td>
+      </tr>
+
+      <tr>
+        <td>recall, pptx</td>
+        <td>99.64%</td>
+      </tr>
+
+      <tr>
+        <td>recall, python</td>
+        <td>99.36%</td>
+      </tr>
+
+      <tr>
+        <td>recall, pythonbytecode</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, randombytes</td>
+        <td>99.63%</td>
+      </tr>
+
+      <tr>
+        <td>recall, rar</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, rdf</td>
+        <td>99.91%</td>
+      </tr>
+
+      <tr>
+        <td>recall, rpm</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, rst</td>
+        <td>97.53%</td>
+      </tr>
+
+      <tr>
+        <td>recall, rtf</td>
+        <td>99.97%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ruby</td>
+        <td>99.61%</td>
+      </tr>
+
+      <tr>
+        <td>recall, rust</td>
+        <td>99.68%</td>
+      </tr>
+
+      <tr>
+        <td>recall, scala</td>
+        <td>99.72%</td>
+      </tr>
+
+      <tr>
+        <td>recall, scr</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, sevenzip</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, shell</td>
+        <td>98.20%</td>
+      </tr>
+
+      <tr>
+        <td>recall, smali</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, so</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, sql</td>
+        <td>99.45%</td>
+      </tr>
+
+      <tr>
+        <td>recall, squashfs</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, svg</td>
+        <td>99.73%</td>
+      </tr>
+
+      <tr>
+        <td>recall, swf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, symlinktext</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, sys</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, tar</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, tga</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, tiff</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, torrent</td>
+        <td>99.99%</td>
+      </tr>
+
+      <tr>
+        <td>recall, ttf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, txt</td>
+        <td>92.12%</td>
+      </tr>
+
+      <tr>
+        <td>recall, vba</td>
+        <td>98.37%</td>
+      </tr>
+
+      <tr>
+        <td>recall, wav</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, webm</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, webp</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, winregistry</td>
+        <td>99.46%</td>
+      </tr>
+
+      <tr>
+        <td>recall, wmf</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, xar</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, xls</td>
+        <td>99.30%</td>
+      </tr>
+
+      <tr>
+        <td>recall, xlsb</td>
+        <td>99.33%</td>
+      </tr>
+
+      <tr>
+        <td>recall, xlsx</td>
+        <td>99.58%</td>
+      </tr>
+
+      <tr>
+        <td>recall, xml</td>
+        <td>99.30%</td>
+      </tr>
+
+      <tr>
+        <td>recall, xpi</td>
+        <td>99.32%</td>
+      </tr>
+
+      <tr>
+        <td>recall, xz</td>
+        <td>100.00%</td>
+      </tr>
+
+      <tr>
+        <td>recall, yaml</td>
+        <td>99.24%</td>
+      </tr>
+
+      <tr>
+        <td>recall, zip</td>
+        <td>99.52%</td>
+      </tr>
+
+      <tr>
+        <td>recall, zlibstream</td>
+        <td>100.00%</td>
+      </tr>
+    </table>
+  </div>
+</body>

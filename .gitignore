@@ -18,3 +18,6 @@ dist/*
 .python-version
 
 scratchpad/
+
+docs/node_modules
+docs/dist

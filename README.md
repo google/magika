@@ -1,4 +1,4 @@
-# Magika
+# Magika (OLD VERSION, will update later on)
 
 A tool to detect content types with deep learning.
 

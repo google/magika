@@ -20,10 +20,10 @@ from typing import Any, Dict, List, Tuple
 
 from magika.content_types import ContentTypesManager
 from magika.types import (
-    MagikaOutputField,
+    MagikaOutputFields,
     MagikaResult,
     ModelFeatures,
-    ModelOutputField,
+    ModelOutputFields,
 )
 
 
@@ -238,8 +238,8 @@ def get_magika_cli_output_from_stdout_stderr(
                     result_dict = report["result"]
                     mr = MagikaResult(
                         path=result_dict["path"],
-                        dl=ModelOutputField(**result_dict["dl"]),
-                        output=MagikaOutputField(
+                        dl=ModelOutputFields(**result_dict["dl"]),
+                        output=MagikaOutputFields(
                             **result_dict["output"],
                         ),
                     )

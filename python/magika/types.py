@@ -35,12 +35,12 @@ class ModelOutput:
 @dataclass
 class MagikaResult:
     path: str
-    dl: ModelOutputField
-    output: MagikaOutputField
+    dl: ModelOutputFields
+    output: MagikaOutputFields
 
 
 @dataclass
-class ModelOutputField:
+class ModelOutputFields:
     ct_label: Optional[str]
     score: Optional[float]
     group: Optional[str]
@@ -50,7 +50,7 @@ class ModelOutputField:
 
 
 @dataclass
-class MagikaOutputField:
+class MagikaOutputFields:
     ct_label: str
     score: float
     group: str

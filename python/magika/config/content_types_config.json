@@ -1885,8 +1885,8 @@
         ],
         "mime_type": "application/javascript",
         "group": "code",
-        "magic": "Node.js script text executable",
-        "description": "Javascript source",
+        "magic": "JavaScript source",
+        "description": "JavaScript source",
         "vt_type": "javascript",
         "datasets": [
             "github",

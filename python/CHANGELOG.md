@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - New public APIs: `identify_paths`, `identify_path`, `identify_bytes`.
-- Updated description for "unknown" to "Unknown binary data"
+- When the model's prediction has low confidence and we return a generic content
+  type, print anyways (with a disclaimer) the model's best guess.
+- Updated description for "unknown" to "Unknown binary data".
 - Magika CLI now defaults to "high-confidence" mode. "default" mode is now called "medium-confidence".
 - Magika CLI `--output-probability` has been renamed to `--output-score`.
 - Default model is now called `standard_v1`.

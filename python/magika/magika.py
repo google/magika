@@ -138,7 +138,7 @@ class Magika:
         print help, etc.) without the need to instantiate a Magika object.
         """
 
-        return Magika._get_magika_config()["default_model_name"]
+        return str(Magika._get_magika_config()["default_model_name"])
 
     def get_model_name(self) -> str:
         return self._model_dir.name
@@ -155,7 +155,7 @@ class Magika:
     @staticmethod
     def _get_magika_config() -> Dict[str, Any]:
         config_path = Path(__file__).parent / "config" / "magika_config.json"
-        return json.loads(config_path.read_text())
+        return json.loads(config_path.read_text())  # type: ignore[no-any-return]
 
     def _get_outputs_from_paths(self, paths: List[Path]) -> List[MagikaOutput]:
         """Given a list of paths, returns a list of predictions. Each prediction

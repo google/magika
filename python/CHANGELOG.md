@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   type, print anyways (with a disclaimer) the model's best guess.
 - Updated description for "unknown" to "Unknown binary data".
 - Magika CLI now defaults to "high-confidence" mode. "default" mode is now called "medium-confidence".
-- Magika CLI `--output-probability` has been renamed to `--output-score`.
+- Magika CLI `-p/--output-probability` has been renamed to `-s/--output-score` for consistency.
 - Default model is now called `standard_v1`.
 - Major refactoring and clean up.
 

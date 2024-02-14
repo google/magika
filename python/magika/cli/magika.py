@@ -85,6 +85,7 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     help="Compatibility mode: output is as close as possible to `file` and colors are disabled.",
 )
 @click.option(
+    "-s",
     "--output-score",
     is_flag=True,
     help="Output the prediction's score in addition to the content type.",

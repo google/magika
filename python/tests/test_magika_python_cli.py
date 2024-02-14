@@ -274,6 +274,13 @@ def test_magika_cli_with_basic_test_files_and_probability() -> None:
         )
 
         stdout, stderr = run_magika_python_cli(
+            test_files_paths[:n], extra_cli_options=["-s"]
+        )
+        utils.check_magika_cli_output_matches_expected_by_ext(
+            test_files_paths[:n], stdout, stderr, output_score=True
+        )
+
+        stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--output-score"]
         )
         utils.check_magika_cli_output_matches_expected_by_ext(

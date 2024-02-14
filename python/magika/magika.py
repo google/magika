@@ -28,11 +28,11 @@ from magika.content_types import ContentType, ContentTypesManager
 from magika.logger import get_logger
 from magika.prediction_mode import PredictionMode
 from magika.types import (
-    MagikaOutputField,
+    MagikaOutputFields,
     MagikaResult,
     ModelFeatures,
     ModelOutput,
-    ModelOutputField,
+    ModelOutputFields,
 )
 
 
@@ -511,7 +511,7 @@ class Magika:
 
         magika_result = MagikaResult(
             path=str(path),
-            dl=ModelOutputField(
+            dl=ModelOutputFields(
                 ct_label=dl_ct_label,
                 score=dl_score,
                 group=dl_group,
@@ -519,7 +519,7 @@ class Magika:
                 magic=dl_magic,
                 description=dl_description,
             ),
-            output=MagikaOutputField(
+            output=MagikaOutputFields(
                 ct_label=output_ct_label,
                 score=output_score,
                 group=output_group,

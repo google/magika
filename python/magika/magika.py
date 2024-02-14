@@ -32,7 +32,7 @@ from magika.types import MagikaOutput, ModelFeatures, ModelOutput
 
 class Magika:
     # Default model, used in case not specified via the Magika constructor
-    DEFAULT_MODEL_NAME = "dense_v4_top_20230910"
+    DEFAULT_MODEL_NAME = "standard_v1"
     # Minimum threshold for "default" prediction mode
     MEDIUM_CONFIDENCE_THRESHOLD = 0.50
     # Minimum file size for using the DL model

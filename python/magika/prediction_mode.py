@@ -17,22 +17,14 @@ from __future__ import annotations
 import enum
 from typing import List
 
-from magika.strenum import StrEnum
+from magika.strenum import LowerCaseStrEnum
 
 
-class PredictionMode(StrEnum):
+class PredictionMode(LowerCaseStrEnum):
     BEST_GUESS = enum.auto()
     MEDIUM_CONFIDENCE = enum.auto()
     HIGH_CONFIDENCE = enum.auto()
 
-    @property
-    def user_string(self) -> str:
-        return str(self).replace("_", "-").lower()
-
     @staticmethod
     def get_valid_prediction_modes() -> List[str]:
-        return [pm.user_string for pm in PredictionMode]
-
-    @staticmethod
-    def user_string_to_enum(user_str: str) -> PredictionMode:
-        return PredictionMode(user_str.replace("-", "_").upper())
+        return [pm for pm in PredictionMode]

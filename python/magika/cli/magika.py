@@ -93,9 +93,9 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 @click.option(
     "-m",
     "--prediction-mode",
-    "prediction_mode_user_str",
+    "prediction_mode_str",
     type=click.Choice(PredictionMode.get_valid_prediction_modes(), case_sensitive=True),
-    default=PredictionMode.HIGH_CONFIDENCE.user_string,
+    default=PredictionMode.HIGH_CONFIDENCE,
 )
 @click.option(
     "--batch-size", default=32, help="How many files to process in one batch."
@@ -145,7 +145,7 @@ def main(
     label_output: bool,
     magic_compatibility_mode: bool,
     output_probability: bool,
-    prediction_mode_user_str: str,
+    prediction_mode_str: str,
     batch_size: int,
     no_dereference: bool,
     with_colors: bool,
@@ -232,7 +232,7 @@ def main(
 
     magika = Magika(
         model_dir=model_dir,
-        prediction_mode=PredictionMode.user_string_to_enum(prediction_mode_user_str),
+        prediction_mode=PredictionMode(prediction_mode_str),
         no_dereference=no_dereference,
         verbose=verbose,
         debug=debug,

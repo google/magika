@@ -41,3 +41,8 @@ class StrEnum(str, enum.Enum):
 
     def _generate_next_value_(name, *_):
         return name
+
+
+class LowerCaseStrEnum(StrEnum):
+    def _generate_next_value_(name, *_):
+        return name.lower().replace("_", "-")

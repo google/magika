@@ -26,7 +26,7 @@ from typing import Dict, List, Optional
 import click
 from tabulate import tabulate
 
-from magika import Magika, PredictionMode, colors
+from magika import Magika, MagikaError, PredictionMode, colors
 from magika.content_types import ContentTypesManager
 from magika.logger import get_logger
 from magika.types import FeedbackReportEntry, MagikaOutput
@@ -225,19 +225,19 @@ def main(
         model_dir_str = os.environ.get("MAGIKA_MODEL_DIR")
         if model_dir_str is not None and model_dir_str.strip() != "":
             model_dir = Path(model_dir_str)
-        else:
-            model_dir = (
-                Path(__file__).parent.parent / "models" / Magika.DEFAULT_MODEL_NAME
-            )
 
-    magika = Magika(
-        model_dir=model_dir,
-        prediction_mode=PredictionMode(prediction_mode_str),
-        no_dereference=no_dereference,
-        verbose=verbose,
-        debug=debug,
-        use_colors=with_colors,
-    )
+    try:
+        magika = Magika(
+            model_dir=model_dir,
+            prediction_mode=PredictionMode(prediction_mode_str),
+            no_dereference=no_dereference,
+            verbose=verbose,
+            debug=debug,
+            use_colors=with_colors,
+        )
+    except MagikaError as mr:
+        _l.error(str(mr))
+        sys.exit(1)
 
     start_color = ""
     end_color = ""

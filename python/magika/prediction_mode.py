@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
+import enum
 from typing import List
 
+from magika.strenum import LowerCaseStrEnum
 
-class PredictionMode:
-    BEST_GUESS = "best-guess"
-    MEDIUM_CONFIDENCE = "medium-confidence"
-    HIGH_CONFIDENCE = "high-confidence"
+
+class PredictionMode(LowerCaseStrEnum):
+    BEST_GUESS = enum.auto()
+    MEDIUM_CONFIDENCE = enum.auto()
+    HIGH_CONFIDENCE = enum.auto()
 
     @staticmethod
     def get_valid_prediction_modes() -> List[str]:
-        return [
-            PredictionMode.BEST_GUESS,
-            PredictionMode.MEDIUM_CONFIDENCE,
-            PredictionMode.HIGH_CONFIDENCE,
-        ]
+        return [pm for pm in PredictionMode]

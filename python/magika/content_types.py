@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import json
 import sys
 from collections import defaultdict
@@ -158,16 +160,16 @@ class ContentType:
         return info
 
     @staticmethod
-    def from_dict(info_d, add_automatic_tags=True):
+    def from_dict(info_d: Dict, add_automatic_tags: bool = True) -> ContentType:
         info_d_copy = dict(info_d)
         info_d_copy.pop("in_scope_for_training")
         ct = ContentType(add_automatic_tags=add_automatic_tags, **info_d_copy)
         return ct
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.name}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
@@ -322,7 +324,7 @@ class ContentTypesManager:
             query=query, must_be_in_scope_for_training=must_be_in_scope_for_training
         )
         # we know these are valid content types
-        return list(map(self.get_or_raise, ct_names))  # type: ignore
+        return list(map(self.get_or_raise, ct_names))
 
     def select_names(
         self, query: Optional[str] = None, must_be_in_scope_for_training: bool = True
@@ -346,7 +348,7 @@ class ContentTypesManager:
                         self.select_names(
                             must_be_in_scope_for_training=must_be_in_scope_for_training
                         )
-                    )  # type: ignore
+                    )
                 elif entry.startswith("tag:"):
                     entry = entry[4:]
                     if not self.is_valid_tag(entry):
@@ -395,7 +397,7 @@ class ContentTypesManager:
         # ContentType
         return sorted(
             set(self.select_names(must_be_in_scope_for_training=False))
-            | set(self.SPECIAL_CONTENT_TYPES)  # type: ignore
+            | set(self.SPECIAL_CONTENT_TYPES)
         )
 
     def get_output_content_types(self) -> List[ContentType]:

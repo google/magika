@@ -15,4 +15,10 @@
 
 import dotenv
 
+from magika import magika, prediction_mode
+
+Magika = magika.Magika
+MagikaError = magika.MagikaError
+PredictionMode = prediction_mode.PredictionMode
+
 dotenv.load_dotenv(dotenv.find_dotenv())

@@ -16,70 +16,69 @@ import signal
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
-from utils import (
-    check_magika_cli_output_matches_expected_by_ext,
-    get_magika_cli_output_from_stdout_stderr,
-)
-from utils_magika_python_client import (
-    run_magika_python_cli,
-)
 
 from magika.content_types import ContentType, ContentTypesManager
 from magika.prediction_mode import PredictionMode
 from tests import utils
+from tests.utils_magika_python_client import (
+    run_magika_python_cli,
+)
 
 
 @pytest.mark.smoketest
-def test_magika_python_cli_with_one_test_file():
+def test_magika_python_cli_with_one_test_file() -> None:
     test_file_path = utils.get_basic_test_files_paths()[0]
 
     stdout, stderr = run_magika_python_cli([test_file_path])
-    check_magika_cli_output_matches_expected_by_ext([test_file_path], stdout, stderr)
+    utils.check_magika_cli_output_matches_expected_by_ext(
+        [test_file_path], stdout, stderr
+    )
 
     stdout, stderr = run_magika_python_cli(
         [test_file_path], extra_cli_options=["--json"]
     )
-    check_magika_cli_output_matches_expected_by_ext(
+    utils.check_magika_cli_output_matches_expected_by_ext(
         [test_file_path], stdout, stderr, json_output=True
     )
 
     stdout, stderr = run_magika_python_cli(
         [test_file_path], extra_cli_options=["--jsonl"]
     )
-    check_magika_cli_output_matches_expected_by_ext(
+    utils.check_magika_cli_output_matches_expected_by_ext(
         [test_file_path], stdout, stderr, jsonl_output=True
     )
 
     stdout, stderr = run_magika_python_cli([test_file_path], extra_cli_options=["-p"])
-    check_magika_cli_output_matches_expected_by_ext(
+    utils.check_magika_cli_output_matches_expected_by_ext(
         [test_file_path], stdout, stderr, output_probability=True
     )
 
     stdout, stderr = run_magika_python_cli(
         [test_file_path], extra_cli_options=["--mime-type"]
     )
-    check_magika_cli_output_matches_expected_by_ext(
+    utils.check_magika_cli_output_matches_expected_by_ext(
         [test_file_path], stdout, stderr, mime_output=True
     )
 
     stdout, stderr = run_magika_python_cli(
         [test_file_path], extra_cli_options=["--label"]
     )
-    check_magika_cli_output_matches_expected_by_ext(
+    utils.check_magika_cli_output_matches_expected_by_ext(
         [test_file_path], stdout, stderr, label_output=True
     )
 
     stdout, stderr = run_magika_python_cli(
         [test_file_path], extra_cli_options=["--compatibility-mode"]
     )
-    check_magika_cli_output_matches_expected_by_ext(
+    utils.check_magika_cli_output_matches_expected_by_ext(
         [test_file_path], stdout, stderr, compatibility_mode=True
     )
 
 
-def test_magika_python_cli_with_very_small_test_files():
+def test_magika_python_cli_with_very_small_test_files() -> None:
     """Magika does not use the DL model for very small files. This test covers
     these scenarios.
     """
@@ -89,7 +88,7 @@ def test_magika_python_cli_with_very_small_test_files():
         text_test_path.write_text("small test")
         stdout, stderr = run_magika_python_cli([text_test_path], label_output=True)
         assert (
-            get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
+            utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
             == ContentType.GENERIC_TEXT
         )
 
@@ -97,12 +96,12 @@ def test_magika_python_cli_with_very_small_test_files():
         binary_test_path.write_bytes(b"\x80\xff")
         stdout, stderr = run_magika_python_cli([binary_test_path], label_output=True)
         assert (
-            get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
+            utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
             == ContentType.UNKNOWN
         )
 
 
-def test_magika_cli_with_small_test_files():
+def test_magika_cli_with_small_test_files() -> None:
     """Magika needs to pad files that are small. This test covers scenarios
     where padding is relevant.
     """
@@ -115,18 +114,18 @@ def test_magika_cli_with_small_test_files():
         # we do not care about the prediction
 
 
-def test_magika_cli_with_empty_file():
+def test_magika_cli_with_empty_file() -> None:
     with tempfile.TemporaryDirectory() as td:
         empty_test_path = Path(td) / "empty.dat"
         empty_test_path.touch()
         stdout, stderr = run_magika_python_cli([empty_test_path], label_output=True)
         assert (
-            get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
+            utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
             == ContentType.EMPTY
         )
 
 
-def test_magika_cli_with_directories():
+def test_magika_cli_with_directories() -> None:
     with tempfile.TemporaryDirectory() as td:
         test_files_num = 3
         for idx in range(test_files_num):
@@ -135,7 +134,7 @@ def test_magika_cli_with_directories():
 
         # run without recursive mode
         stdout, stderr = run_magika_python_cli([Path(td)], label_output=True)
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == 1
         assert predicted_cts[0][1] == "directory"
 
@@ -143,13 +142,13 @@ def test_magika_cli_with_directories():
         stdout, stderr = run_magika_python_cli(
             [Path(td)], label_output=True, extra_cli_options=["--recursive"]
         )
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == test_files_num
         for _, ct in predicted_cts:
             assert ct == ContentType.GENERIC_TEXT
 
 
-def test_magika_cli_with_symlinks():
+def test_magika_cli_with_symlinks() -> None:
     with tempfile.TemporaryDirectory() as td:
         test_path = Path(td) / "test.txt"
         test_path.write_text("test")
@@ -159,7 +158,7 @@ def test_magika_cli_with_symlinks():
 
         # run without --no-dereference mode; symlinks are dereferenced
         stdout, stderr = run_magika_python_cli([symlink_path], label_output=True)
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == 1
         assert predicted_cts[0][1] == ContentType.GENERIC_TEXT
 
@@ -167,7 +166,7 @@ def test_magika_cli_with_symlinks():
         stdout, stderr = run_magika_python_cli(
             [symlink_path], label_output=True, extra_cli_options=["--no-dereference"]
         )
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == 1
         assert predicted_cts[0][1] == "symlink"
 
@@ -175,7 +174,7 @@ def test_magika_cli_with_symlinks():
         stdout, stderr = run_magika_python_cli(
             [symlink_path], extra_cli_options=["--no-dereference"]
         )
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == 1
         assert isinstance(predicted_cts[0][0], Path)
         assert isinstance(predicted_cts[0][1], str)
@@ -183,7 +182,7 @@ def test_magika_cli_with_symlinks():
         assert predicted_cts[0][1].find(str(test_path)) >= 0
 
 
-def test_magika_cli_with_files_with_permission_errors():
+def test_magika_cli_with_files_with_permission_errors() -> None:
     with tempfile.TemporaryDirectory() as td:
         unreadable_test_path = Path(td) / "test1.txt"
         unreadable_test_path.write_text("test")
@@ -194,7 +193,7 @@ def test_magika_cli_with_files_with_permission_errors():
         stdout, stderr = run_magika_python_cli(
             [unreadable_test_path], label_output=True
         )
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == 1
         assert predicted_cts[0][1] == ContentType.PERMISSION_ERROR
 
@@ -204,7 +203,7 @@ def test_magika_cli_with_files_with_permission_errors():
         stdout, stderr = run_magika_python_cli(
             [unreadable_test_path, readable_test_path], label_output=True
         )
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == 2
         assert predicted_cts[0][1] == ContentType.PERMISSION_ERROR
         assert predicted_cts[1][1] == ContentType.GENERIC_TEXT
@@ -213,164 +212,164 @@ def test_magika_cli_with_files_with_permission_errors():
         stdout, stderr = run_magika_python_cli(
             [Path(td)], label_output=True, extra_cli_options=["--recursive"]
         )
-        predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+        predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
         assert len(predicted_cts) == 2
         assert predicted_cts[0][1] == ContentType.PERMISSION_ERROR
         assert predicted_cts[1][1] == ContentType.GENERIC_TEXT
 
 
-def test_magika_cli_with_basic_test_files():
+def test_magika_cli_with_basic_test_files() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, 5, 10, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(test_files_paths[:n])
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr
         )
 
 
-def test_magika_cli_with_basic_test_files_and_json_output():
+def test_magika_cli_with_basic_test_files_and_json_output() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(test_files_paths[:n], json_output=True)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, json_output=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--json"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, json_output=True
         )
 
 
-def test_magika_cli_with_basic_test_files_and_jsonl_output():
+def test_magika_cli_with_basic_test_files_and_jsonl_output() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(test_files_paths[:n], jsonl_output=True)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, jsonl_output=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--jsonl"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, jsonl_output=True
         )
 
 
-def test_magika_cli_with_basic_test_files_and_probability():
+def test_magika_cli_with_basic_test_files_and_probability() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], output_probability=True
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, output_probability=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["-p"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, output_probability=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--output-probability"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, output_probability=True
         )
 
 
-def test_magika_cli_with_basic_test_files_and_mime_output():
+def test_magika_cli_with_basic_test_files_and_mime_output() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(test_files_paths[:n], mime_output=True)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, mime_output=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["-i"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, mime_output=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--mime-type"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, mime_output=True
         )
 
 
-def test_magika_cli_with_basic_test_files_and_label_output():
+def test_magika_cli_with_basic_test_files_and_label_output() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(test_files_paths[:n], label_output=True)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, label_output=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["-l"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, label_output=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--label"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, label_output=True
         )
 
 
-def test_magika_cli_with_basic_test_files_and_compatibility_mode():
+def test_magika_cli_with_basic_test_files_and_compatibility_mode() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], compatibility_mode=True
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, compatibility_mode=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["-c"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, compatibility_mode=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--compatibility-mode"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, compatibility_mode=True
         )
 
 
-def test_magika_cli_with_basic_test_files_and_different_prediction_modes():
+def test_magika_cli_with_basic_test_files_and_different_prediction_modes() -> None:
     # Here we test only the CLI aspect; we test the different behaviors with
     # different prediction modes when we test the Magika module.
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2]:
         stdout, stderr = run_magika_python_cli(test_files_paths[:n])
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr
         )
 
@@ -378,7 +377,7 @@ def test_magika_cli_with_basic_test_files_and_different_prediction_modes():
             test_files_paths[:n],
             extra_cli_options=["--prediction-mode", PredictionMode.MEDIUM_CONFIDENCE],
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr
         )
 
@@ -386,7 +385,7 @@ def test_magika_cli_with_basic_test_files_and_different_prediction_modes():
             test_files_paths[:n],
             extra_cli_options=["--prediction-mode", PredictionMode.BEST_GUESS],
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr
         )
 
@@ -394,7 +393,7 @@ def test_magika_cli_with_basic_test_files_and_different_prediction_modes():
             test_files_paths[:n],
             extra_cli_options=["--prediction-mode", PredictionMode.HIGH_CONFIDENCE],
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr
         )
 
@@ -406,7 +405,7 @@ def test_magika_cli_with_basic_test_files_and_different_prediction_modes():
             )
 
 
-def test_magika_cli_with_python_and_not_python_files():
+def test_magika_cli_with_python_and_not_python_files() -> None:
     with tempfile.TemporaryDirectory() as td:
         # the test needs to be longer than "too small for DL model"
         python_test_path = Path(td) / "real.py"
@@ -418,7 +417,9 @@ def test_magika_cli_with_python_and_not_python_files():
         stdout, stderr = run_magika_python_cli(
             [python_test_path], extra_cli_options=["--label"]
         )
-        predicted_ct = get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
+        predicted_ct = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)[
+            0
+        ][1]
         assert predicted_ct == "python"
 
         # check that a file that is very far from being a python file is
@@ -426,11 +427,13 @@ def test_magika_cli_with_python_and_not_python_files():
         stdout, stderr = run_magika_python_cli(
             [not_python_test_path], extra_cli_options=["--label"]
         )
-        predicted_ct = get_magika_cli_output_from_stdout_stderr(stdout, stderr)[0][1]
+        predicted_ct = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)[
+            0
+        ][1]
         assert predicted_ct == "txt"
 
 
-def test_magika_cli_with_basic_test_files_and_custom_batch_sizes():
+def test_magika_cli_with_basic_test_files_and_custom_batch_sizes() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for batch_size in [1, 2, 3, 16]:
@@ -438,7 +441,7 @@ def test_magika_cli_with_basic_test_files_and_custom_batch_sizes():
             stdout, stderr = run_magika_python_cli(
                 test_files_paths[:n], batch_size=batch_size
             )
-            check_magika_cli_output_matches_expected_by_ext(
+            utils.check_magika_cli_output_matches_expected_by_ext(
                 test_files_paths[:n], stdout, stderr
             )
 
@@ -446,59 +449,59 @@ def test_magika_cli_with_basic_test_files_and_custom_batch_sizes():
                 test_files_paths[:n],
                 extra_cli_options=["--batch-size", str(batch_size)],
             )
-            check_magika_cli_output_matches_expected_by_ext(
+            utils.check_magika_cli_output_matches_expected_by_ext(
                 test_files_paths[:n], stdout, stderr
             )
 
 
-def test_magika_cli_with_multiple_copies_of_the_same_file():
+def test_magika_cli_with_multiple_copies_of_the_same_file() -> None:
     max_repetitions_num = 10
     test_file_path = utils.get_one_basic_test_file_path()
     test_files_paths = [test_file_path] * max_repetitions_num
 
     for n in [2, max_repetitions_num]:
         stdout, stderr = run_magika_python_cli(test_files_paths[:n])
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr
         )
 
         stdout, stderr = run_magika_python_cli(test_files_paths[:n], json_output=True)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, json_output=True
         )
 
         stdout, stderr = run_magika_python_cli(test_files_paths[:n], jsonl_output=True)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, jsonl_output=True
         )
 
 
-def test_magika_cli_with_many_files():
+def test_magika_cli_with_many_files() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 
     for n in [100, 1000]:
         test_files_paths = [test_file_path] * n
         stdout, stderr = run_magika_python_cli(test_files_paths)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths, stdout, stderr
         )
 
 
 @pytest.mark.slow
-def test_magika_cli_with_really_many_files():
+def test_magika_cli_with_really_many_files() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 
     for n in [10000]:
         test_files_paths = [test_file_path] * n
         stdout, stderr = run_magika_python_cli(test_files_paths)
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths, stdout, stderr
         )
 
 
 @pytest.mark.slow
-def test_magika_cli_with_big_file():
-    def signal_handler(signum, frame):
+def test_magika_cli_with_big_file() -> None:
+    def signal_handler(signum: int, frame: Any) -> None:
         raise Exception("Timeout")
 
     signal.signal(signal.SIGALRM, signal_handler)
@@ -518,7 +521,7 @@ def test_magika_cli_with_big_file():
             print("Done running Magika")
 
 
-def test_magika_cli_with_bad_input():
+def test_magika_cli_with_bad_input() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 
     # Test without any argument or option
@@ -529,7 +532,7 @@ def test_magika_cli_with_bad_input():
     stdout, stderr = run_magika_python_cli(
         [Path("/this/does/not/exist")], label_output=True
     )
-    predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr)
+    predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
     assert len(predicted_cts) == 1
     assert predicted_cts[0][1] == ContentType.FILE_DOES_NOT_EXIST
 
@@ -544,7 +547,7 @@ def test_magika_cli_with_bad_input():
         )
 
 
-def test_magika_cli_with_reading_from_stdin():
+def test_magika_cli_with_reading_from_stdin() -> None:
     ctm = ContentTypesManager()
     test_file_path = utils.get_one_basic_test_file_path()
 
@@ -552,7 +555,7 @@ def test_magika_cli_with_reading_from_stdin():
     p = subprocess.run(cmd, capture_output=True, text=True, check=True, shell=True)
     stdout, stderr = p.stdout, p.stderr
 
-    entries = get_magika_cli_output_from_stdout_stderr(
+    entries = utils.get_magika_cli_output_from_stdout_stderr(
         stdout, stderr, jsonl_output=True
     )
     sample_path, entry = entries[0]
@@ -568,7 +571,7 @@ def test_magika_cli_with_reading_from_stdin():
     assert entry["output"]["ct_label"] in true_cts_names
 
 
-def test_magika_cli_with_colors():
+def test_magika_cli_with_colors() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 
     # check that it does not crash when using colors and that we are actually
@@ -585,7 +588,7 @@ def test_magika_cli_with_colors():
     assert stdout.find("\033") >= 0 or stderr.find("\033") >= 0
 
 
-def test_magika_cli_with_no_colors():
+def test_magika_cli_with_no_colors() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 
     # check that we are not using colors when --no-colors is passed
@@ -601,44 +604,55 @@ def test_magika_cli_with_no_colors():
     assert stdout.find("\033") == -1 and stderr.find("\033") == -1
 
 
-def test_magika_cli_generate_report():
+def test_magika_cli_generate_report() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], generate_report=True
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, generate_report=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--generate-report"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, generate_report=True
         )
 
         stdout, stderr = run_magika_python_cli(
             test_files_paths[:n], extra_cli_options=["--mime-type", "--generate-report"]
         )
-        check_magika_cli_output_matches_expected_by_ext(
+        utils.check_magika_cli_output_matches_expected_by_ext(
             test_files_paths[:n], stdout, stderr, mime_output=True, generate_report=True
         )
 
 
-def test_magika_cli_output_version():
+def test_magika_cli_output_version() -> None:
     stdout, stderr = run_magika_python_cli([], extra_cli_options=["--version"])
 
     lines = utils.get_lines_from_stream(stdout)
     assert len(lines) == 2
     assert lines[0].startswith("Magika version")
-    assert lines[1].startswith("Default model name")
+    assert lines[1].startswith("Default model")
 
     assert stderr == ""
 
 
-def test_magika_cli_list_content_types():
+def test_magika_cli_help() -> None:
+    stdout_short, stderr_short = run_magika_python_cli([], extra_cli_options=["-h"])
+    stdout_long, stderr_long = run_magika_python_cli([], extra_cli_options=["--help"])
+
+    for stdout, stderr in zip([stdout_short, stdout_long], [stderr_short, stderr_long]):
+        assert stdout.find("Magika version") >= 0
+        assert stdout.find("Default model") >= 0
+
+        assert stderr == ""
+
+
+def test_magika_cli_list_content_types() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 
     stdout, stderr = run_magika_python_cli([], list_output_content_types=True)

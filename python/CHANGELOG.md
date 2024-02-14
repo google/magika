@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- New public APIs: `identify_paths`, `identify_path`, `identify_bytes`.
 - Updated description for "unknown" to "Unknown binary data"
 - Magika CLI now defaults to "high-confidence" mode. "default" mode is now called "medium-confidence".
+- Default model is now called `standard_v1`.
+- Major refactoring and clean up.
 
 ## [0.4.1] - 2024-02-07
 

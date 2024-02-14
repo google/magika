@@ -1,4 +1,4 @@
-name: pytest
+name: mypy
 on:
   push:
     branches:
@@ -19,6 +19,10 @@ jobs:
           with:
             poetry-version: "1.7.1"
         - name: Install the project dependencies
-          run: cd python && poetry install
-        - name: Run the automated tests
-          run: cd python && poetry run pytest tests
+          run: |
+            cd python
+            poetry install
+        - name: Run mpy
+          run: |
+            cd python
+            poetry run mypy magika tests

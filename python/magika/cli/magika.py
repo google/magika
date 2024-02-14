@@ -20,17 +20,15 @@ import json
 import logging
 import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
 import click
 from tabulate import tabulate
 
-from magika import colors
+from magika import Magika, MagikaError, PredictionMode, colors
 from magika.content_types import ContentTypesManager
 from magika.logger import get_logger
-from magika.magika import Magika, PredictionMode
 from magika.types import FeedbackReportEntry, MagikaOutput
 
 VERSION = "0.4.2-dev"
@@ -41,7 +39,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 HELP_EPILOG = f"""
 Magika version: "{VERSION}"\f
-Model name: "{Magika.DEFAULT_MODEL_NAME}"
+Default model: "{Magika.get_default_model_name()}"
 
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
@@ -95,6 +93,7 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 @click.option(
     "-m",
     "--prediction-mode",
+    "prediction_mode_str",
     type=click.Choice(PredictionMode.get_valid_prediction_modes(), case_sensitive=True),
     default=PredictionMode.HIGH_CONFIDENCE,
 )
@@ -146,7 +145,7 @@ def main(
     label_output: bool,
     magic_compatibility_mode: bool,
     output_probability: bool,
-    prediction_mode: str,
+    prediction_mode_str: str,
     batch_size: int,
     no_dereference: bool,
     with_colors: bool,
@@ -179,7 +178,7 @@ def main(
 
     if output_version:
         _l.raw_print_to_stdout(f"Magika version: {VERSION}")
-        _l.raw_print_to_stdout(f"Default model name: {Magika.DEFAULT_MODEL_NAME}")
+        _l.raw_print_to_stdout(f"Default model: {Magika.get_default_model_name()}")
         sys.exit(0)
 
     # check CLI arguments and options
@@ -220,25 +219,26 @@ def main(
     _l.info(f"Considering {len(files_paths)} files")
     _l.debug(f"Files: {files_paths}")
 
-    # Select the model using the following priority: CLI option, env variable,
-    # default.
+    # Select an alternative model checking: 1) CLI option, 2) env variable.
+    # If none of these is set, model_dir is left to None, and the Magika module
+    # will use the default model.
     if model_dir is None:
         model_dir_str = os.environ.get("MAGIKA_MODEL_DIR")
         if model_dir_str is not None and model_dir_str.strip() != "":
             model_dir = Path(model_dir_str)
-        else:
-            model_dir = (
-                Path(__file__).parent.parent / "models" / Magika.DEFAULT_MODEL_NAME
-            )
 
-    magika = Magika(
-        model_dir=model_dir,
-        prediction_mode=prediction_mode,
-        no_dereference=no_dereference,
-        verbose=verbose,
-        debug=debug,
-        use_colors=with_colors,
-    )
+    try:
+        magika = Magika(
+            model_dir=model_dir,
+            prediction_mode=PredictionMode(prediction_mode_str),
+            no_dereference=no_dereference,
+            verbose=verbose,
+            debug=debug,
+            use_colors=with_colors,
+        )
+    except MagikaError as mr:
+        _l.error(str(mr))
+        sys.exit(1)
 
     start_color = ""
     end_color = ""
@@ -268,7 +268,7 @@ def main(
         if should_read_from_stdin(files_paths):
             batch_predictions = [get_magika_output_from_stdin(magika)]
         else:
-            batch_predictions = magika.get_magika_outputs(files_)
+            batch_predictions = magika.identify_paths(files_)
 
         if json_output:
             # we do not stream the output for JSON output
@@ -315,7 +315,7 @@ def main(
         _l.raw_print_to_stdout(json.dumps(all_predictions, indent=4))
 
     if generate_report_flag:
-        print_feedback_report(model_name=model_dir.name, report_entries=report_entries)
+        print_feedback_report(magika=magika, report_entries=report_entries)
 
 
 def should_read_from_stdin(files_paths: List[Path]) -> bool:
@@ -323,12 +323,8 @@ def should_read_from_stdin(files_paths: List[Path]) -> bool:
 
 
 def get_magika_output_from_stdin(magika: Magika) -> MagikaOutput:
-    with tempfile.NamedTemporaryFile() as tmp_file:
-        tmp_file.write(sys.stdin.buffer.read())
-        tmp_file.flush()
-        entry = magika.get_magika_output(Path(tmp_file.name))
-        # Patch the path to reflect -
-        entry["path"] = "-"
+    content = sys.stdin.buffer.read()
+    entry = magika.identify_bytes(content)
     return entry
 
 
@@ -338,7 +334,7 @@ def generate_feedback_report_entry(
     # remove information we don't need, e.g., paths
     entry_copy = entry.copy()
     entry_copy["path"] = "<REMOVED>"
-    fs = magika.extract_features_from_path(file_path)
+    fs = magika._extract_features_from_path(file_path)
     report_entry: FeedbackReportEntry = {
         "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
         "features": {
@@ -352,13 +348,13 @@ def generate_feedback_report_entry(
 
 
 def print_feedback_report(
-    model_name: str, report_entries: List[FeedbackReportEntry]
+    magika: Magika, report_entries: List[FeedbackReportEntry]
 ) -> None:
     _l = get_logger()
 
     report = {
         "version": VERSION,
-        "model_dir_name": model_name,
+        "model_dir_name": magika.get_model_name(),
         "python_version": sys.version,
         "entries": base64.b64encode(json.dumps(report_entries).encode("utf-8")).decode(
             "utf-8"

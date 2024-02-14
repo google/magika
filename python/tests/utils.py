@@ -17,7 +17,7 @@ import json
 import random
 import string
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from magika.content_types import ContentTypesManager
 
@@ -40,7 +40,7 @@ def get_basic_tests_files_dir() -> Path:
 
 def get_basic_test_files_paths() -> List[Path]:
     tests_files_dir = get_basic_tests_files_dir()
-    test_files_paths = sorted(tests_files_dir.iterdir())
+    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.iterdir()))
     return test_files_paths
 
 
@@ -87,14 +87,17 @@ def get_default_model_dir() -> Path:
     from magika.magika import Magika
 
     model_dir = (
-        Path(__file__).parent.parent / "magika" / "models" / Magika.DEFAULT_MODEL_NAME
+        Path(__file__).parent.parent
+        / "magika"
+        / "models"
+        / Magika.get_default_model_name()
     )
     return model_dir
 
 
 def check_magika_cli_output_matches_expected_by_ext(
-    samples_paths: List[Path], stdout: str, stderr: str, **kwargs
-):
+    samples_paths: List[Path], stdout: str, stderr: str, **kwargs: Any
+) -> None:
     assert len(samples_paths) > 0
     json_output = kwargs.get("json_output", False)
     jsonl_output = kwargs.get("jsonl_output", False)
@@ -124,14 +127,13 @@ def check_magika_cli_output_matches_expected_by_ext(
         if json_output or jsonl_output:
             # check that each JSON entry satisfies the requirements
             assert isinstance(output, dict)
-            dict_output: Dict = output  # type:ignore
+            dict_output: Dict[str, Any] = output
             assert dict_output["output"]["ct_label"] in true_cts_names
         elif cpp_output:
             assert isinstance(output, str)
-            str_output: str = output
-            assert str_output.lower() in true_cts_names
+            assert output.lower() in true_cts_names
         else:
-            str_output: str = output  # type:ignore
+            assert isinstance(output, str)
             expected_outputs = []
             if mime_output:
                 expected_outputs = [ctm.get_mime_type(ct.name) for ct in true_cts]
@@ -144,15 +146,15 @@ def check_magika_cli_output_matches_expected_by_ext(
                     f"{ctm.get_description(ct.name)} ({ctm.get_group(ct.name)})"
                     for ct in true_cts
                 ]
-            assert str_output in expected_outputs
+            assert output in expected_outputs
 
     # Check that all input samples have been scanned
     assert len(remaining_samples_paths) == 0
 
 
 def get_magika_cli_output_from_stdout_stderr(
-    stdout: str, stderr: str, **kwargs
-) -> List[Tuple[Path, Dict | str]]:
+    stdout: str, stderr: str, **kwargs: Any
+) -> List[Tuple[Path, Dict[str, Any] | str]]:
     json_output = kwargs.get("json_output", False)
     jsonl_output = kwargs.get("jsonl_output", False)
     output_probability = kwargs.get("output_probability", False)

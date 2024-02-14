@@ -1,0 +1,29 @@
+{
+  "name": "Magika",
+  "version": "0.1.0",
+  "description": "A tool to detect content types with deep learning.",
+  "main": "magika.js",
+  "type": "module",
+  "repository": "https://github.com/google/magika",
+  "author": "Luca Invernizzi <invernizzi@google.com>, Yanick Fratantonio <yanickf@google.com>",
+  "license": "MIT",
+  "keywords": [
+    "content type",
+    "file type",
+    "magic"
+  ],
+  "scripts": {
+    "bin": "TF_CPP_MIN_LOG_LEVEL=1 node index.js"
+  },
+  "bin": {
+    "magika-js": "index.js"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.17.0"
+  },
+  "optionalDependecies": {
+    "@tensorflow/tfjs-node": "^4.17.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0"
+  }
+}

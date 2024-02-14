@@ -157,7 +157,7 @@ def get_magika_cli_output_from_stdout_stderr(
 ) -> List[Tuple[Path, Dict[str, Any] | str]]:
     json_output = kwargs.get("json_output", False)
     jsonl_output = kwargs.get("jsonl_output", False)
-    output_probability = kwargs.get("output_probability", False)
+    output_score = kwargs.get("output_score", False)
     generate_report = kwargs.get("generate_report", False)
     cpp_output = kwargs.get("cpp_output", False)
     """
@@ -191,7 +191,7 @@ def get_magika_cli_output_from_stdout_stderr(
         # plain output
         lines = get_lines_from_stream(stdout)
         for line in lines:
-            if output_probability:
+            if output_score:
                 file_path_str, output = line.split(": ", 1)
                 ct_output, score_str = output.rsplit(" ", 1)
                 assert score_str.endswith("%")

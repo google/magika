@@ -85,10 +85,9 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     help="Compatibility mode: output is as close as possible to `file` and colors are disabled.",
 )
 @click.option(
-    "-p",
-    "--output-probability",
+    "--output-score",
     is_flag=True,
-    help="Output the probability in addition to the content type.",
+    help="Output the prediction's score in addition to the content type.",
 )
 @click.option(
     "-m",
@@ -144,7 +143,7 @@ def main(
     mime_output: bool,
     label_output: bool,
     magic_compatibility_mode: bool,
-    output_probability: bool,
+    output_score: bool,
     prediction_mode_str: str,
     batch_size: int,
     no_dereference: bool,
@@ -309,7 +308,7 @@ def main(
                     start_color = color_by_group.get(output_ct_group, colors.WHITE)
                     end_color = colors.RESET
 
-                if output_probability:
+                if output_score:
                     score = int(entry["output"]["score"] * 100)
                     _l.raw_print_to_stdout(
                         f"{start_color}{path}: {output} {score}%{end_color}"

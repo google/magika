@@ -51,9 +51,11 @@ def test_magika_python_cli_with_one_test_file() -> None:
         [test_file_path], stdout, stderr, jsonl_output=True
     )
 
-    stdout, stderr = run_magika_python_cli([test_file_path], extra_cli_options=["-p"])
+    stdout, stderr = run_magika_python_cli(
+        [test_file_path], extra_cli_options=["--output-score"]
+    )
     utils.check_magika_cli_output_matches_expected_by_ext(
-        [test_file_path], stdout, stderr, output_probability=True
+        [test_file_path], stdout, stderr, output_score=True
     )
 
     stdout, stderr = run_magika_python_cli(
@@ -266,25 +268,16 @@ def test_magika_cli_with_basic_test_files_and_probability() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 
     for n in [1, 2, len(test_files_paths)]:
-        stdout, stderr = run_magika_python_cli(
-            test_files_paths[:n], output_probability=True
-        )
+        stdout, stderr = run_magika_python_cli(test_files_paths[:n], output_score=True)
         utils.check_magika_cli_output_matches_expected_by_ext(
-            test_files_paths[:n], stdout, stderr, output_probability=True
+            test_files_paths[:n], stdout, stderr, output_score=True
         )
 
         stdout, stderr = run_magika_python_cli(
-            test_files_paths[:n], extra_cli_options=["-p"]
+            test_files_paths[:n], extra_cli_options=["--output-score"]
         )
         utils.check_magika_cli_output_matches_expected_by_ext(
-            test_files_paths[:n], stdout, stderr, output_probability=True
-        )
-
-        stdout, stderr = run_magika_python_cli(
-            test_files_paths[:n], extra_cli_options=["--output-probability"]
-        )
-        utils.check_magika_cli_output_matches_expected_by_ext(
-            test_files_paths[:n], stdout, stderr, output_probability=True
+            test_files_paths[:n], stdout, stderr, output_score=True
         )
 
 

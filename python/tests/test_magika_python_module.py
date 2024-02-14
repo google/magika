@@ -59,8 +59,8 @@ def test_magika_module_with_basic_tests_by_paths() -> None:
         true_cts = ctm.get_cts_by_ext(file_ext)
         assert len(true_cts) > 0
         true_cts_labels = [ct.name for ct in true_cts]
-        assert result["path"] == str(test_path)
-        assert result["output"]["ct_label"] in true_cts_labels
+        assert result.path == str(test_path)
+        assert result.output.ct_label in true_cts_labels
 
 
 def test_magika_module_with_basic_tests_by_path() -> None:
@@ -76,8 +76,8 @@ def test_magika_module_with_basic_tests_by_path() -> None:
         true_cts = ctm.get_cts_by_ext(file_ext)
         assert len(true_cts) > 0
         true_cts_labels = [ct.name for ct in true_cts]
-        assert result["path"] == str(test_path)
-        assert result["output"]["ct_label"] in true_cts_labels
+        assert result.path == str(test_path)
+        assert result.output.ct_label in true_cts_labels
 
 
 def test_magika_module_with_basic_tests_by_bytes() -> None:
@@ -94,8 +94,8 @@ def test_magika_module_with_basic_tests_by_bytes() -> None:
         true_cts = ctm.get_cts_by_ext(file_ext)
         assert len(true_cts) > 0
         true_cts_labels = [ct.name for ct in true_cts]
-        assert result["path"] == "-"
-        assert result["output"]["ct_label"] in true_cts_labels
+        assert result.path == "-"
+        assert result.output.ct_label in true_cts_labels
 
 
 def test_magika_module_with_empty_content() -> None:
@@ -104,18 +104,18 @@ def test_magika_module_with_empty_content() -> None:
     empty_content = b""
 
     res = m.identify_bytes(empty_content)
-    assert res["path"] == "-"
-    assert res["dl"]["ct_label"] is None
-    assert res["output"]["ct_label"] == ContentType.EMPTY
-    assert res["output"]["score"] == 1.0
+    assert res.path == "-"
+    assert res.dl.ct_label is None
+    assert res.output.ct_label == ContentType.EMPTY
+    assert res.output.score == 1.0
 
     with tempfile.TemporaryDirectory() as td:
         tf_path = Path(td) / "empty.dat"
         tf_path.write_bytes(empty_content)
         res = m.identify_path(tf_path)
-        assert res["path"] == str(tf_path)
-        assert res["dl"]["ct_label"] is None
-        assert res["output"]["score"] == 1.0
+        assert res.path == str(tf_path)
+        assert res.dl.ct_label is None
+        assert res.output.score == 1.0
 
 
 def test_magika_module_with_short_content() -> None:
@@ -125,16 +125,16 @@ def test_magika_module_with_short_content() -> None:
     binary_content = b"\x80\x80\x80"
 
     res = m.identify_bytes(text_content)
-    assert res["path"] == "-"
-    assert res["dl"]["ct_label"] is None
-    assert res["output"]["ct_label"] == ContentType.GENERIC_TEXT
-    assert res["output"]["score"] == 1.0
+    assert res.path == "-"
+    assert res.dl.ct_label is None
+    assert res.output.ct_label == ContentType.GENERIC_TEXT
+    assert res.output.score == 1.0
 
     res = m.identify_bytes(binary_content)
-    assert res["path"] == "-"
-    assert res["dl"]["ct_label"] is None
-    assert res["output"]["ct_label"] == ContentType.UNKNOWN
-    assert res["output"]["score"] == 1.0
+    assert res.path == "-"
+    assert res.dl.ct_label is None
+    assert res.output.ct_label == ContentType.UNKNOWN
+    assert res.output.score == 1.0
 
     for content, expected_ct_label in zip(
         [text_content, binary_content], [ContentType.GENERIC_TEXT, ContentType.UNKNOWN]
@@ -143,10 +143,10 @@ def test_magika_module_with_short_content() -> None:
             tf_path = Path(td) / "file.txt"
             tf_path.write_bytes(content)
             res = m.identify_path(tf_path)
-            assert res["path"] == str(tf_path)
-            assert res["dl"]["ct_label"] is None
-            assert res["output"]["ct_label"] == expected_ct_label
-            assert res["output"]["score"] == 1.0
+            assert res.path == str(tf_path)
+            assert res.dl.ct_label is None
+            assert res.output.ct_label == expected_ct_label
+            assert res.output.score == 1.0
 
 
 def test_magika_module_with_different_prediction_modes() -> None:
@@ -286,9 +286,9 @@ def _test_extract_features_with_content(content: bytes) -> None:
                 tf_path, beg_size=beg_size, mid_size=mid_size, end_size=end_size
             )
 
-            beg_ints_out = features["beg"]
-            mid_ints_out = features["mid"]
-            end_ints_out = features["end"]
+            beg_ints_out = features.beg
+            mid_ints_out = features.mid
+            end_ints_out = features.end
 
             assert len(beg_ints_out) == beg_size
             assert len(mid_ints_out) == mid_size

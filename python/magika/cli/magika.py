@@ -14,14 +14,15 @@
 # limitations under the License.
 
 
-import base64
+import copy
+import dataclasses
 import hashlib
 import json
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import click
 from tabulate import tabulate
@@ -29,7 +30,7 @@ from tabulate import tabulate
 from magika import Magika, MagikaError, PredictionMode, colors
 from magika.content_types import ContentTypesManager
 from magika.logger import get_logger
-from magika.types import FeedbackReportEntry, MagikaOutput
+from magika.types import FeedbackReport, MagikaResult
 
 VERSION = "0.4.2-dev"
 
@@ -254,10 +255,10 @@ def main(
     }
 
     # updated only when we need to output in JSON format
-    all_predictions: List[MagikaOutput] = []
+    all_predictions: List[MagikaResult] = []
 
     # used only when the user decides to generate a feedback report
-    report_entries: List[FeedbackReportEntry] = []
+    report_entries: List[FeedbackReport] = []
 
     batches_num = len(files_paths) // batch_size
     if len(files_paths) % batch_size != 0:
@@ -266,7 +267,7 @@ def main(
         files_ = files_paths[batch_idx * batch_size : (batch_idx + 1) * batch_size]
 
         if should_read_from_stdin(files_paths):
-            batch_predictions = [get_magika_output_from_stdin(magika)]
+            batch_predictions = [get_magika_result_from_stdin(magika)]
         else:
             batch_predictions = magika.identify_paths(files_)
 
@@ -274,25 +275,25 @@ def main(
             # we do not stream the output for JSON output
             all_predictions.extend(batch_predictions)
         elif jsonl_output:
-            for entry in batch_predictions:
-                _l.raw_print_to_stdout(json.dumps(entry))
+            for magika_result in batch_predictions:
+                _l.raw_print_to_stdout(json.dumps(dataclasses.asdict(magika_result)))
         else:
-            for entry in batch_predictions:
-                path = entry["path"]
-                output_ct_label = entry["output"]["ct_label"]
-                output_ct_description = entry["output"]["description"]
-                output_ct_group = entry["output"]["group"]
+            for magika_result in batch_predictions:
+                path = magika_result.path
+                output_ct_label = magika_result.output.ct_label
+                output_ct_description = magika_result.output.description
+                output_ct_group = magika_result.output.group
 
                 if mime_output:
                     # If the user requested the MIME type, we use the mime type
                     # regardless of the compatibility mode.
-                    output = entry["output"]["mime_type"]
+                    output = magika_result.output.mime_type
                 elif label_output:
-                    output = entry["output"]["ct_label"]
+                    output = magika_result.output.ct_label
                 elif magic_compatibility_mode:
-                    output = entry["output"]["magic"]
+                    output = magika_result.output.magic
                 else:  # human-readable description
-                    dl_ct_label = entry["dl"]["ct_label"]
+                    dl_ct_label = magika_result.dl.ct_label
 
                     output = f"{output_ct_description} ({output_ct_group})"
 
@@ -300,9 +301,10 @@ def main(
                         # it seems that we had a too-low confidence prediciton
                         # from the model. Let's warn the user about our best
                         # bet.
-                        dl_description = entry["dl"]["description"]
-                        dl_group = entry["dl"]["group"]
-                        dl_score = int(entry["dl"]["score"] * 100)
+                        assert magika_result.dl.score is not None
+                        dl_description = magika_result.dl.description
+                        dl_group = magika_result.dl.group
+                        dl_score = int(magika_result.dl.score * 100)
                         output += f" [Low-confidence model best-guess: {dl_description} ({dl_group}), score={dl_score}]"
 
                 if with_colors:
@@ -310,7 +312,7 @@ def main(
                     end_color = colors.RESET
 
                 if output_score:
-                    score = int(entry["output"]["score"] * 100)
+                    score = int(magika_result.output.score * 100)
                     _l.raw_print_to_stdout(
                         f"{start_color}{path}: {output} {score}%{end_color}"
                     )
@@ -318,59 +320,62 @@ def main(
                     _l.raw_print_to_stdout(f"{start_color}{path}: {output}{end_color}")
 
         if generate_report_flag:
-            for file_path, entry in zip(files_, batch_predictions):
+            for file_path, magika_result in zip(files_, batch_predictions):
                 report_entries.append(
-                    generate_feedback_report_entry(magika, file_path, entry)
+                    generate_feedback_report(magika, file_path, magika_result)
                 )
 
     if json_output:
-        _l.raw_print_to_stdout(json.dumps(all_predictions, indent=4))
+        _l.raw_print_to_stdout(
+            json.dumps([dataclasses.asdict(res) for res in all_predictions], indent=4)
+        )
 
     if generate_report_flag:
-        print_feedback_report(magika=magika, report_entries=report_entries)
+        print_feedback_report(magika=magika, reports=report_entries)
 
 
 def should_read_from_stdin(files_paths: List[Path]) -> bool:
     return len(files_paths) == 1 and str(files_paths[0]) == "-"
 
 
-def get_magika_output_from_stdin(magika: Magika) -> MagikaOutput:
+def get_magika_result_from_stdin(magika: Magika) -> MagikaResult:
     content = sys.stdin.buffer.read()
-    entry = magika.identify_bytes(content)
-    return entry
+    result = magika.identify_bytes(content)
+    return result
 
 
-def generate_feedback_report_entry(
-    magika: Magika, file_path: Path, entry: Dict
-) -> FeedbackReportEntry:
-    # remove information we don't need, e.g., paths
-    entry_copy = entry.copy()
-    entry_copy["path"] = "<REMOVED>"
-    fs = magika._extract_features_from_path(file_path)
-    report_entry: FeedbackReportEntry = {
-        "hash": hashlib.sha256(file_path.read_bytes()).hexdigest(),
-        "features": {
-            "beg": fs["beg"],
-            "mid": fs["mid"],
-            "end": fs["end"],
-        },
-        "output": entry_copy,
-    }
-    return report_entry
+def generate_feedback_report(
+    magika: Magika, file_path: Path, magika_result: MagikaResult
+) -> FeedbackReport:
+    magika_result_copy = copy.copy(magika_result)
+    magika_result_copy.path = "<REMOVED>"  # avoid PII
+    features = magika._extract_features_from_path(file_path)
+    return FeedbackReport(
+        hash=hashlib.sha256(file_path.read_bytes()).hexdigest(),
+        features=features,
+        result=magika_result_copy,
+    )
 
 
-def print_feedback_report(
-    magika: Magika, report_entries: List[FeedbackReportEntry]
-) -> None:
+def print_feedback_report(magika: Magika, reports: List[FeedbackReport]) -> None:
     _l = get_logger()
 
-    report = {
+    processed_reports = [
+        {
+            "hash": report.hash,
+            "features": json.dumps(dataclasses.asdict(report.features)).replace(
+                " ", ""
+            ),
+            "result": dataclasses.asdict(report.result),
+        }
+        for report in reports
+    ]
+
+    full_report = {
         "version": VERSION,
         "model_dir_name": magika.get_model_name(),
         "python_version": sys.version,
-        "entries": base64.b64encode(json.dumps(report_entries).encode("utf-8")).decode(
-            "utf-8"
-        ),
+        "reports": processed_reports,
     }
     report_header = "REPORT"
     report_header_full_len = 40
@@ -383,7 +388,7 @@ def print_feedback_report(
         + "###",
     )
     _l.raw_print("#" * report_header_full_len)
-    _l.raw_print(json.dumps(report))
+    _l.raw_print(json.dumps(full_report))
     _l.raw_print("#" * report_header_full_len)
     _l.raw_print(
         f"Please copy/paste the above as a description of your issue. Open a GitHub issue or reach out at {CONTACT_EMAIL}.",

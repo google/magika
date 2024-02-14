@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - New public APIs: `identify_paths`, `identify_path`, `identify_bytes`.
+- The APIs now return a `MagikaResult` object.
 - When the model's prediction has low confidence and we return a generic content
   type, print anyways (with a disclaimer) the model's best guess.
 - Updated description for "unknown" to "Unknown binary data".

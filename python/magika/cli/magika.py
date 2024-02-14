@@ -279,8 +279,10 @@ def main(
         else:
             for entry in batch_predictions:
                 path = entry["path"]
+                output_ct_label = entry["output"]["ct_label"]
+                output_ct_description = entry["output"]["description"]
+                output_ct_group = entry["output"]["group"]
 
-                ct_group = entry["output"]["group"]
                 if mime_output:
                     # If the user requested the MIME type, we use the mime type
                     # regardless of the compatibility mode.
@@ -290,15 +292,25 @@ def main(
                 elif magic_compatibility_mode:
                     output = entry["output"]["magic"]
                 else:  # human-readable description
-                    output = f'{entry["output"]["description"]} ({ct_group})'
+                    dl_ct_label = entry["dl"]["ct_label"]
 
-                score = int(entry["output"]["score"] * 100)
+                    output = f"{output_ct_description} ({output_ct_group})"
+
+                    if dl_ct_label is not None and dl_ct_label != output_ct_label:
+                        # it seems that we had a too-low confidence prediciton
+                        # from the model. Let's warn the user about our best
+                        # bet.
+                        dl_description = entry["dl"]["description"]
+                        dl_group = entry["dl"]["group"]
+                        dl_score = int(entry["dl"]["score"] * 100)
+                        output += f" [Low-confidence model best-guess: {dl_description} ({dl_group}), score={dl_score}]"
 
                 if with_colors:
-                    start_color = color_by_group.get(ct_group, colors.WHITE)
+                    start_color = color_by_group.get(output_ct_group, colors.WHITE)
                     end_color = colors.RESET
 
                 if output_probability:
+                    score = int(entry["output"]["score"] * 100)
                     _l.raw_print_to_stdout(
                         f"{start_color}{path}: {output} {score}%{end_color}"
                     )

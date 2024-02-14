@@ -362,6 +362,50 @@ def test_magika_cli_with_basic_test_files_and_compatibility_mode() -> None:
         )
 
 
+def test_magika_cli_output_with_low_confidence_prediction() -> None:
+    # This is something that looks like MarkDown, such that the model's best
+    # guess will be MarkDown, but not high enought to be trusted. Here we check
+    # that what we print is reasonable.
+    low_confidence_test_content = "# This is a very simple text"
+    # This is a short textual string, which will not even hit the DL model.
+    high_confidence_test_content = "Test"
+
+    ctm = ContentTypesManager()
+    txt_ct = ctm.get_or_raise(ContentType.GENERIC_TEXT)
+    txt_description = txt_ct.description
+    txt_group = txt_ct.group
+    md_ct = ctm.get_or_raise("markdown")
+    md_description = md_ct.description
+    md_group = md_ct.group
+
+    with tempfile.TemporaryDirectory() as td:
+        # test the low confidence prediction
+        low_confidence_tf_path = Path(td) / "low_confidence_test.txt"
+        low_confidence_tf_path.write_text(low_confidence_test_content)
+        stdout, stderr = run_magika_python_cli(
+            [low_confidence_tf_path],
+        )
+
+        low_confidence_expected_stdout_prefix = f"{str(low_confidence_tf_path)}: {txt_description} ({txt_group}) [Low-confidence model best-guess: {md_description} ({md_group}), score="
+
+        assert stdout.startswith(low_confidence_expected_stdout_prefix)
+        assert stderr == ""
+
+        # test the high confidence prediction
+        high_confidence_tf_path = Path(td) / "high_confidence_test.txt"
+        high_confidence_tf_path.write_text(high_confidence_test_content)
+        stdout, stderr = run_magika_python_cli(
+            [high_confidence_tf_path],
+        )
+
+        high_confidence_expected_stdout = (
+            f"{str(high_confidence_tf_path)}: {txt_description} ({txt_group})"
+        )
+
+        assert stdout.strip() == high_confidence_expected_stdout
+        assert stderr == ""
+
+
 def test_magika_cli_with_basic_test_files_and_different_prediction_modes() -> None:
     # Here we test only the CLI aspect; we test the different behaviors with
     # different prediction modes when we test the Magika module.

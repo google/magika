@@ -1,0 +1,6 @@
+{
+    "default_model_name": "standard_v1",
+    "medium_confidence_threshold": 0.5,
+    "min_file_size_for_dl": 16,
+    "padding_token": 256
+}

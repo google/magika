@@ -87,7 +87,10 @@ def get_default_model_dir() -> Path:
     from magika.magika import Magika
 
     model_dir = (
-        Path(__file__).parent.parent / "magika" / "models" / Magika.DEFAULT_MODEL_NAME
+        Path(__file__).parent.parent
+        / "magika"
+        / "models"
+        / Magika.get_default_model_name()
     )
     return model_dir
 

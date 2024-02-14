@@ -31,15 +31,6 @@ from magika.types import MagikaOutput, ModelFeatures, ModelOutput
 
 
 class Magika:
-    # Default model, used in case not specified via the Magika constructor
-    DEFAULT_MODEL_NAME = "standard_v1"
-    # Minimum threshold for "default" prediction mode
-    MEDIUM_CONFIDENCE_THRESHOLD = 0.50
-    # Minimum file size for using the DL model
-    MIN_FILE_SIZE_FOR_DL = 16
-    # Which integer we use to indicate padding
-    PADDING_TOKEN = 256
-
     def __init__(
         self,
         model_dir: Optional[Path] = None,
@@ -49,71 +40,86 @@ class Magika:
         debug: bool = False,
         use_colors: bool = False,
     ) -> None:
-        self.verbose = verbose
-        self.debug = debug
+        self._log = get_logger(use_colors=use_colors)
 
-        self.l = get_logger(use_colors=use_colors)
+        self._disable_progress_bar = True
+
+        self._magika_config = Magika._get_magika_config()
+
+        # Default model, used in case not specified via the Magika constructor
+        self._default_model_name = self._magika_config["default_model_name"]
+        # Minimum threshold for "default" prediction mode
+        self._medium_confidence_threshold = self._magika_config[
+            "medium_confidence_threshold"
+        ]
+        # Minimum file size for using the DL model
+        self._min_file_size_for_dl = self._magika_config["min_file_size_for_dl"]
+        # Which integer we use to indicate padding
+        self._padding_token = self._magika_config["padding_token"]
 
         if verbose:
-            self.l.setLevel(logging.INFO)
+            self._log.setLevel(logging.INFO)
+            self._disable_progress_bar = False
+
         if debug:
-            self.l.setLevel(logging.DEBUG)
+            self._log.setLevel(logging.DEBUG)
+            self._disable_progress_bar = False
 
         if model_dir is not None:
-            self.model_dir = model_dir
+            self._model_dir = model_dir
         else:
             # use default model
-            self.model_dir = (
-                Path(__file__).parent / "models" / Magika.DEFAULT_MODEL_NAME
+            self._model_dir = (
+                Path(__file__).parent / "models" / self._default_model_name
             )
 
-        self.model_path = self.model_dir / "model.onnx"
-        self.model_config_path = self.model_dir / "model_config.json"
-        self.thresholds_path = self.model_dir / "thresholds.json"
-        self.model_output_overwrite_map_path = (
-            self.model_dir / "model_output_overwrite_map.json"
+        self._model_path = self._model_dir / "model.onnx"
+        self._model_config_path = self._model_dir / "model_config.json"
+        self._thresholds_path = self._model_dir / "thresholds.json"
+        self._model_output_overwrite_map_path = (
+            self._model_dir / "model_output_overwrite_map.json"
         )
 
-        if not self.model_dir.is_dir():
-            raise MagikaError(f"model dir not found at {str(self.model_dir)}")
-        if not self.model_path.is_file():
-            raise MagikaError(f"model not found at {str(self.model_path)}")
-        if not self.model_config_path.is_file():
+        if not self._model_dir.is_dir():
+            raise MagikaError(f"model dir not found at {str(self._model_dir)}")
+        if not self._model_path.is_file():
+            raise MagikaError(f"model not found at {str(self._model_path)}")
+        if not self._model_config_path.is_file():
             raise MagikaError(
-                f"model config not found at {str(self.model_config_path)}"
+                f"model config not found at {str(self._model_config_path)}"
             )
-        if not self.thresholds_path.is_file():
-            raise MagikaError(f"thresholds not found at {str(self.thresholds_path)}")
-        if not self.model_output_overwrite_map_path.is_file():
+        if not self._thresholds_path.is_file():
+            raise MagikaError(f"thresholds not found at {str(self._thresholds_path)}")
+        if not self._model_output_overwrite_map_path.is_file():
             raise MagikaError(
-                f"thresholds not found at {str(self.model_output_overwrite_map_path)}"
+                f"thresholds not found at {str(self._model_output_overwrite_map_path)}"
             )
 
-        self.model_config = json.loads(self.model_config_path.read_text())
+        self._model_config = json.loads(self._model_config_path.read_text())
 
-        self.thresholds = json.loads(self.thresholds_path.read_text())["thresholds"]
+        self._thresholds = json.loads(self._thresholds_path.read_text())["thresholds"]
 
-        self.model_output_overwrite_map: Dict[str, str] = json.loads(
-            self.model_output_overwrite_map_path.read_text()
+        self._model_output_overwrite_map: Dict[str, str] = json.loads(
+            self._model_output_overwrite_map_path.read_text()
         )
 
-        self.input_sizes: Dict[str, int] = {
-            "beg": self.model_config["cfg"]["input_sizes"]["beg"],
-            "mid": self.model_config["cfg"]["input_sizes"]["mid"],
-            "end": self.model_config["cfg"]["input_sizes"]["end"],
+        self._input_sizes: Dict[str, int] = {
+            "beg": self._model_config["cfg"]["input_sizes"]["beg"],
+            "mid": self._model_config["cfg"]["input_sizes"]["mid"],
+            "end": self._model_config["cfg"]["input_sizes"]["end"],
         }
-        self.target_labels_space_np = np.array(
-            self.model_config["train_dataset_info"]["target_labels_info"][
+        self._target_labels_space_np = np.array(
+            self._model_config["train_dataset_info"]["target_labels_info"][
                 "target_labels_space"
             ]
         )
 
-        self.prediction_mode = prediction_mode
+        self._prediction_mode = prediction_mode
 
-        self.no_dereference = no_dereference
+        self._no_dereference = no_dereference
 
-        self.ctm = ContentTypesManager()
-        self.onnx_session = self._init_onnx_session()
+        self._ctm = ContentTypesManager()
+        self._onnx_session = self._init_onnx_session()
 
     def identify_path(self, path: Path) -> MagikaOutput:
         return self._get_output_from_path(path)
@@ -124,14 +130,32 @@ class Magika:
     def identify_bytes(self, content: bytes) -> MagikaOutput:
         return self._get_output_from_bytes(content)
 
+    @staticmethod
+    def get_default_model_name() -> str:
+        """This returns the default model name.
+
+        We make this method static so that it can be used by the client (to
+        print help, etc.) without the need to instantiate a Magika object.
+        """
+
+        return Magika._get_magika_config()["default_model_name"]
+
+    def get_model_name(self) -> str:
+        return self._model_dir.name
+
     def _init_onnx_session(self) -> rt.InferenceSession:
         start_time = time.time()
-        onnx_session = rt.InferenceSession(self.model_path)
+        onnx_session = rt.InferenceSession(self._model_path)
         elapsed_time = time.time() - start_time
-        self.l.debug(
-            f'ONNX DL model "{self.model_path}" loaded in {elapsed_time:.03f} seconds'
+        self._log.debug(
+            f'ONNX DL model "{self._model_path}" loaded in {elapsed_time:.03f} seconds'
         )
         return onnx_session
+
+    @staticmethod
+    def _get_magika_config() -> Dict[str, Any]:
+        config_path = Path(__file__).parent / "config" / "magika_config.json"
+        return json.loads(config_path.read_text())
 
     def _get_outputs_from_paths(self, paths: List[Path]) -> List[MagikaOutput]:
         """Given a list of paths, returns a list of predictions. Each prediction
@@ -154,10 +178,10 @@ class Magika:
         # for inference.
         all_features: List[Tuple[Path, ModelFeatures]] = []
 
-        self.l.debug(
+        self._log.debug(
             f"Processing input files and extracting features for {len(paths)} samples"
         )
-        for path in tqdm(paths, disable=not (self.verbose or self.debug)):
+        for path in tqdm(paths, disable=self._disable_progress_bar):
             output, features = self._get_output_or_features_from_path(path)
             if output is not None:
                 all_outputs[str(path)] = output
@@ -165,7 +189,7 @@ class Magika:
                 assert features is not None
                 all_features.append((path, features))
         elapsed_time = time.time() - start_time
-        self.l.debug(
+        self._log.debug(
             f"First pass and features extracted in {elapsed_time:.03f} seconds"
         )
 
@@ -196,6 +220,7 @@ class Magika:
         beg_size: Optional[int] = None,
         mid_size: Optional[int] = None,
         end_size: Optional[int] = None,
+        padding_token: Optional[int] = None,
     ) -> ModelFeatures:
         # Note: it is critical that this reflects exactly how we are extracting
         # features for training.
@@ -217,11 +242,13 @@ class Magika:
         # clone of what we do for features extraction, even if not ideal.
 
         if beg_size is None:
-            beg_size = self.input_sizes["beg"]
+            beg_size = self._input_sizes["beg"]
         if mid_size is None:
-            mid_size = self.input_sizes["mid"]
+            mid_size = self._input_sizes["mid"]
         if end_size is None:
-            end_size = self.input_sizes["end"]
+            end_size = self._input_sizes["end"]
+        if padding_token is None:
+            padding_token = self._padding_token
 
         assert beg_size <= 512
         assert mid_size <= 512
@@ -236,7 +263,7 @@ class Magika:
             with open(file_path, "rb") as f:
                 content = f.read()
             return self._extract_features_from_bytes(
-                content, beg_size, mid_size, end_size
+                content, beg_size, mid_size, end_size, padding_token
             )
         else:
             # avoid reading the entire file
@@ -301,13 +328,16 @@ class Magika:
         beg_size: Optional[int] = None,
         mid_size: Optional[int] = None,
         end_size: Optional[int] = None,
+        padding_token: Optional[int] = None,
     ) -> ModelFeatures:
         if beg_size is None:
-            beg_size = self.input_sizes["beg"]
+            beg_size = self._input_sizes["beg"]
         if mid_size is None:
-            mid_size = self.input_sizes["mid"]
+            mid_size = self._input_sizes["mid"]
         if end_size is None:
-            end_size = self.input_sizes["end"]
+            end_size = self._input_sizes["end"]
+        if padding_token is None:
+            padding_token = self._padding_token
 
         assert beg_size <= 512
         assert mid_size <= 512
@@ -321,9 +351,7 @@ class Magika:
                 beg_ints = list(map(int, content[:beg_size]))
             else:
                 padding_size = beg_size - len(content)
-                beg_ints = list(map(int, content)) + (
-                    [Magika.PADDING_TOKEN] * padding_size
-                )
+                beg_ints = list(map(int, content)) + ([padding_token] * padding_size)
         else:
             beg_ints = []
 
@@ -343,9 +371,9 @@ class Magika:
                     right_padding_size += 1
 
                 mid_ints = (
-                    ([Magika.PADDING_TOKEN] * left_padding_size)
+                    ([padding_token] * left_padding_size)
                     + list(map(int, content))
-                    + ([Magika.PADDING_TOKEN] * right_padding_size)
+                    + ([padding_token] * right_padding_size)
                 )
         else:
             mid_ints = []
@@ -355,9 +383,7 @@ class Magika:
                 end_ints = list(map(int, content[-end_size:]))
             else:
                 padding_size = end_size - len(content)
-                end_ints = ([Magika.PADDING_TOKEN] * padding_size) + list(
-                    map(int, content)
-                )
+                end_ints = ([padding_token] * padding_size) + list(map(int, content))
         else:
             end_ints = []
 
@@ -372,7 +398,7 @@ class Magika:
     ) -> List[Tuple[Path, ModelOutput]]:
         raw_preds = self._get_raw_predictions(all_features)
         top_preds_idxs = np.argmax(raw_preds, axis=1)
-        preds_content_types_labels = self.target_labels_space_np[top_preds_idxs]
+        preds_content_types_labels = self._target_labels_space_np[top_preds_idxs]
         scores = np.max(raw_preds, axis=1)
 
         return [
@@ -428,21 +454,21 @@ class Magika:
         self, dl_ct_label: str, score: float
     ) -> str:
         # overwrite ct_label if specified in the config
-        dl_ct_label = self.model_output_overwrite_map.get(dl_ct_label, dl_ct_label)
+        dl_ct_label = self._model_output_overwrite_map.get(dl_ct_label, dl_ct_label)
 
-        if self.prediction_mode == PredictionMode.BEST_GUESS:
+        if self._prediction_mode == PredictionMode.BEST_GUESS:
             # We take the model predictions, no matter what the score is.
             output_ct_label = dl_ct_label
         elif (
-            self.prediction_mode == PredictionMode.HIGH_CONFIDENCE
-            and score >= self.thresholds[dl_ct_label]
+            self._prediction_mode == PredictionMode.HIGH_CONFIDENCE
+            and score >= self._thresholds[dl_ct_label]
         ):
             # The model score is higher than the per-content-type
             # high-confidence threshold.
             output_ct_label = dl_ct_label
         elif (
-            self.prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
-            and score >= Magika.MEDIUM_CONFIDENCE_THRESHOLD
+            self._prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
+            and score >= self._medium_confidence_threshold
         ):
             # We take the model prediction only if the score is above a given
             # relatively loose threshold.
@@ -453,7 +479,7 @@ class Magika:
             # the model has, at the very least, got the binary vs. text category
             # right. This allows us to pick between unknown and txt without the
             # need to read or scan the file bytes once again.
-            if "text" in self.ctm.get_or_raise(dl_ct_label).tags:
+            if self._ctm.get_or_raise(dl_ct_label).is_text:
                 output_ct_label = ContentType.GENERIC_TEXT
             else:
                 output_ct_label = ContentType.UNKNOWN
@@ -477,27 +503,27 @@ class Magika:
 
         # add group info
         entry["dl"]["group"] = (
-            None if dl_ct_label is None else self.ctm.get_group(dl_ct_label)
+            None if dl_ct_label is None else self._ctm.get_group(dl_ct_label)
         )
-        entry["output"]["group"] = self.ctm.get_group(output_ct_label)
+        entry["output"]["group"] = self._ctm.get_group(output_ct_label)
 
         # add mime type info
         entry["dl"]["mime_type"] = (
-            None if dl_ct_label is None else self.ctm.get_mime_type(dl_ct_label)
+            None if dl_ct_label is None else self._ctm.get_mime_type(dl_ct_label)
         )
-        entry["output"]["mime_type"] = self.ctm.get_mime_type(output_ct_label)
+        entry["output"]["mime_type"] = self._ctm.get_mime_type(output_ct_label)
 
         # add magic
         entry["dl"]["magic"] = (
-            None if dl_ct_label is None else self.ctm.get_magic(dl_ct_label)
+            None if dl_ct_label is None else self._ctm.get_magic(dl_ct_label)
         )
-        entry["output"]["magic"] = self.ctm.get_magic(output_ct_label)
+        entry["output"]["magic"] = self._ctm.get_magic(output_ct_label)
 
         # add description
         entry["dl"]["description"] = (
-            None if dl_ct_label is None else self.ctm.get_description(dl_ct_label)
+            None if dl_ct_label is None else self._ctm.get_description(dl_ct_label)
         )
-        entry["output"]["description"] = self.ctm.get_description(output_ct_label)
+        entry["output"]["description"] = self._ctm.get_description(output_ct_label)
         return entry
 
     def _get_output_or_features_from_path(
@@ -516,7 +542,7 @@ class Magika:
         batching.
         """
 
-        if self.no_dereference and path.is_symlink():
+        if self._no_dereference and path.is_symlink():
             output = self._get_output_from_labels_and_score(
                 path, dl_ct_label=None, output_ct_label=ContentType.SYMLINK, score=1.0
             )
@@ -555,7 +581,7 @@ class Magika:
                 )
                 return output, None
 
-            elif path.stat().st_size <= Magika.MIN_FILE_SIZE_FOR_DL:
+            elif path.stat().st_size <= self._min_file_size_for_dl:
                 output = self._get_output_of_small_file(path)
                 return output, None
 
@@ -564,8 +590,8 @@ class Magika:
                 # Check whether we have enough bytes for a meaningful
                 # detection, and not just padding.
                 if (
-                    file_features["beg"][Magika.MIN_FILE_SIZE_FOR_DL - 1]
-                    == Magika.PADDING_TOKEN
+                    file_features["beg"][self._min_file_size_for_dl - 1]
+                    == self._padding_token
                 ):
                     # If the n-th token is padding, then it means that,
                     # post-stripping, we do not have enough meaningful
@@ -605,7 +631,7 @@ class Magika:
             )
             return output, None
 
-        elif len(content) <= Magika.MIN_FILE_SIZE_FOR_DL:
+        elif len(content) <= self._min_file_size_for_dl:
             output = self._get_output_of_few_bytes(content)
             return output, None
 
@@ -614,8 +640,8 @@ class Magika:
             # Check whether we have enough bytes for a meaningful
             # detection, and not just padding.
             if (
-                file_features["beg"][Magika.MIN_FILE_SIZE_FOR_DL - 1]
-                == Magika.PADDING_TOKEN
+                file_features["beg"][self._min_file_size_for_dl - 1]
+                == self._padding_token
             ):
                 # If the n-th token is padding, then it means that,
                 # post-stripping, we do not have enough meaningful
@@ -659,22 +685,22 @@ class Magika:
         matrix encoding the predictions.
         """
 
-        dataset_format = self.model_config["train_dataset_info"]["dataset_format"]
+        dataset_format = self._model_config["train_dataset_info"]["dataset_format"]
         assert dataset_format == "int-concat/one-hot"
         start_time = time.time()
         X_bytes = []
         for _, fs in features:
             sample_bytes = []
-            if self.input_sizes["beg"] > 0:
-                sample_bytes.extend(fs["beg"][: self.input_sizes["beg"]])
-            if self.input_sizes["mid"] > 0:
-                sample_bytes.extend(fs["mid"][: self.input_sizes["mid"]])
-            if self.input_sizes["end"] > 0:
-                sample_bytes.extend(fs["end"][-self.input_sizes["end"] :])
+            if self._input_sizes["beg"] > 0:
+                sample_bytes.extend(fs["beg"][: self._input_sizes["beg"]])
+            if self._input_sizes["mid"] > 0:
+                sample_bytes.extend(fs["mid"][: self._input_sizes["mid"]])
+            if self._input_sizes["end"] > 0:
+                sample_bytes.extend(fs["end"][-self._input_sizes["end"] :])
             X_bytes.append(sample_bytes)
         X = np.array(X_bytes).astype(np.float32)
         elapsed_time = time.time() - start_time
-        self.l.debug(f"DL input prepared in {elapsed_time:.03f} seconds")
+        self._log.debug(f"DL input prepared in {elapsed_time:.03f} seconds")
 
         start_time = time.time()
         raw_predictions_list = []
@@ -686,17 +712,17 @@ class Magika:
             batches_num += 1
 
         for batch_idx in range(batches_num):
-            self.l.debug(
+            self._log.debug(
                 f"Getting raw predictions for (internal) batch {batch_idx+1}/{batches_num}"
             )
             start_idx = batch_idx * max_internal_batch_size
             end_idx = min((batch_idx + 1) * max_internal_batch_size, samples_num)
-            batch_raw_predictions = self.onnx_session.run(
+            batch_raw_predictions = self._onnx_session.run(
                 ["target_label"], {"bytes": X[start_idx:end_idx, :]}
             )[0]
             raw_predictions_list.append(batch_raw_predictions)
         elapsed_time = time.time() - start_time
-        self.l.debug(f"DL raw prediction in {elapsed_time:.03f} seconds")
+        self._log.debug(f"DL raw prediction in {elapsed_time:.03f} seconds")
         return np.concatenate(raw_predictions_list)
 
 

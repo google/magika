@@ -636,9 +636,20 @@ def test_magika_cli_output_version() -> None:
     lines = utils.get_lines_from_stream(stdout)
     assert len(lines) == 2
     assert lines[0].startswith("Magika version")
-    assert lines[1].startswith("Default model name")
+    assert lines[1].startswith("Default model")
 
     assert stderr == ""
+
+
+def test_magika_cli_help() -> None:
+    stdout_short, stderr_short = run_magika_python_cli([], extra_cli_options=["-h"])
+    stdout_long, stderr_long = run_magika_python_cli([], extra_cli_options=["--help"])
+
+    for stdout, stderr in zip([stdout_short, stdout_long], [stderr_short, stderr_long]):
+        assert stdout.find("Magika version") >= 0
+        assert stdout.find("Default model") >= 0
+
+        assert stderr == ""
 
 
 def test_magika_cli_list_content_types() -> None:

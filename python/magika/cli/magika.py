@@ -39,7 +39,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 HELP_EPILOG = f"""
 Magika version: "{VERSION}"\f
-Model name: "{Magika.DEFAULT_MODEL_NAME}"
+Default model: "{Magika.get_default_model_name()}"
 
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
@@ -178,7 +178,7 @@ def main(
 
     if output_version:
         _l.raw_print_to_stdout(f"Magika version: {VERSION}")
-        _l.raw_print_to_stdout(f"Default model name: {Magika.DEFAULT_MODEL_NAME}")
+        _l.raw_print_to_stdout(f"Default model: {Magika.get_default_model_name()}")
         sys.exit(0)
 
     # check CLI arguments and options
@@ -219,8 +219,9 @@ def main(
     _l.info(f"Considering {len(files_paths)} files")
     _l.debug(f"Files: {files_paths}")
 
-    # Select the model using the following priority: CLI option, env variable,
-    # default.
+    # Select an alternative model checking: 1) CLI option, 2) env variable.
+    # If none of these is set, model_dir is left to None, and the Magika module
+    # will use the default model.
     if model_dir is None:
         model_dir_str = os.environ.get("MAGIKA_MODEL_DIR")
         if model_dir_str is not None and model_dir_str.strip() != "":
@@ -314,7 +315,7 @@ def main(
         _l.raw_print_to_stdout(json.dumps(all_predictions, indent=4))
 
     if generate_report_flag:
-        print_feedback_report(model_name=model_dir.name, report_entries=report_entries)
+        print_feedback_report(magika=magika, report_entries=report_entries)
 
 
 def should_read_from_stdin(files_paths: List[Path]) -> bool:
@@ -347,13 +348,13 @@ def generate_feedback_report_entry(
 
 
 def print_feedback_report(
-    model_name: str, report_entries: List[FeedbackReportEntry]
+    magika: Magika, report_entries: List[FeedbackReportEntry]
 ) -> None:
     _l = get_logger()
 
     report = {
         "version": VERSION,
-        "model_dir_name": model_name,
+        "model_dir_name": magika.get_model_name(),
         "python_version": sys.version,
         "entries": base64.b64encode(json.dumps(report_entries).encode("utf-8")).decode(
             "utf-8"

@@ -162,13 +162,13 @@ def test_magika_module_with_different_prediction_modes() -> None:
     assert m._get_output_ct_label_from_dl_result("python", 0.01) == "txt"
     assert (
         m._get_output_ct_label_from_dl_result(
-            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01
+            "python", m._medium_confidence_threshold - 0.01
         )
         == "txt"
     )
     assert (
         m._get_output_ct_label_from_dl_result(
-            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD + 0.01
+            "python", m._medium_confidence_threshold + 0.01
         )
         == "txt"
     )
@@ -178,7 +178,7 @@ def test_magika_module_with_different_prediction_modes() -> None:
     assert m._get_output_ct_label_from_dl_result("python", 0.01) == "txt"
     assert (
         m._get_output_ct_label_from_dl_result(
-            "python", Magika.MEDIUM_CONFIDENCE_THRESHOLD - 0.01
+            "python", m._medium_confidence_threshold - 0.01
         )
         == "txt"
     )
@@ -246,6 +246,7 @@ def _test_extract_features_with_content(content: bytes) -> None:
     print(
         f"Testing with content of len {len(content)}: {content[:min(128, len(content))]!r}...{content[-min(128, len(content)):]!r}"
     )
+
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
         tf_path = td_path / "file.dat"
@@ -303,7 +304,7 @@ def _test_extract_features_with_content(content: bytes) -> None:
                         == content_stripped
                     )
                     assert beg_ints_out[len(content_stripped) : beg_size] == [
-                        Magika.PADDING_TOKEN
+                        m._padding_token
                     ] * (beg_size - len(content_stripped))
 
             # mid is not supported
@@ -315,7 +316,7 @@ def _test_extract_features_with_content(content: bytes) -> None:
                 else:
                     # there is some padding at the beginning
                     assert end_ints_out[0 : end_size - len(content_stripped)] == [
-                        Magika.PADDING_TOKEN
+                        m._padding_token
                     ] * (end_size - len(content_stripped))
                     assert (
                         bytes(end_ints_out[end_size - len(content_stripped) : end_size])

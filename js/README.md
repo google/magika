@@ -36,7 +36,7 @@ Read more about that in the main [README](../README.md).
 This one, is useful to load the TensorflowJS model and see that it works as expected.
 
 Install it with `npm install -g magika`. You can then run it by executing `magika-js <some files>`
-```
+```help
 Magika JS - file type detection with ML. https://google.github.io/magika
 
 Arguments:
@@ -48,6 +48,19 @@ Options:
   --config-url <config-url>  Config  URL (default: "https://google.github.io/magika/model/config.json")
   -h, --help                 display help for command
 
+```
+
+# Reporting false positives
+Please open an issue on Github.
+
+# Citation
+If you use this software for your research, please cite it as:
+```bibtex
+@software{magika,
+author = {Fratantonio, Yanick and Bursztein, Elie and Invernizzi, Luca and Zhang, Marina and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois and Petit-Bianco, Alexandre and Farah, Loua and Albertini, Ange},
+title = {{Magika content-type scanner}},
+url = {https://github.com/google/magika}
+}
 ```
 
 # Development
@@ -63,5 +76,3 @@ yarn install
 (cd ../docs; yarn install; yarn run dev) &
  yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json test_data/*
 ```
-
-

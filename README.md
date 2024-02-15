@@ -13,7 +13,7 @@ Try Magika today with our [web demo](https://google.github.io/magika/)!
 
 ## Highlights
 
-- Trained on a dataset of over 26M files.
+- Trained on a dataset of over 26M files, evaluated on an holdout dataset of more than 1M files across more than 100 content types.
 - Available as a python command line, a python API, and an experimental TFJS version.
 - More than 100 content types (see full list here). TODO: add link.
 - After the model is loaded, inference time of about 5ms per file.

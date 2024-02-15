@@ -12,7 +12,6 @@ const prediction = await magika.identifyBytes(data);
 console.log(prediction);
 ```
 
-
 Simple usage in the browser:
 ```js
 import { Magika } from "magika";
@@ -23,13 +22,12 @@ await magika.load();
 const prediction = await magika.identifyBytes(await someFile.text());
 console.log(prediction);
 ```
+For more, see our [documentation](./DOCS.md).
 
-For more, see our [documentation](js/DOCS.md).
-
-
-# Commmand line tool
+# Commmand-line tool
 Please use the official CLI (with `pip install magika`) as it's considerably faster than this one.
-This is useful to load the TensorflowJS model and see that it works as expected.
+Read more about that in the main [README](../README.md).
+This one, is useful to load the TensorflowJS model and see that it works as expected.
 ```
 Magika JS - file type detection with ML. https://google.github.io/magika
 
@@ -45,13 +43,13 @@ Options:
 ```
 
 # Development
-Using the model hosted On Github
+Using the model hosted On Github:
 ```bash
 yarn install
 yarn run bin -- README.md
 ```
 
-Using the local model
+Using the local model:
 ```bash
 yarn install
 (cd ../docs; yarn install; yarn run dev) &

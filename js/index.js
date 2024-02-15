@@ -48,8 +48,7 @@ await Promise.all(
         chalk.blue(path),
         chalk.green(
           prediction?.["label"],
-          chalk.white(prediction?.["score"]),
-          JSON.stringify(prediction),
+          chalk.white(prediction?.["score"])
         ),
       );
     }

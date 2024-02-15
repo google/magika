@@ -1,6 +1,12 @@
 # Magika JavaScript library
 Use Magika in the browser or in Node!
 
+# Installing MagikaJS
+```bash
+npm install magika
+```
+
+# Using MagikaJS
 Simple usage in Node:
 ```js
 import { readFile } from "fs/promises";
@@ -28,6 +34,8 @@ For more, see our [documentation](./DOCS.md).
 Please use the official CLI (with `pip install magika`) as it's considerably faster than this one.
 Read more about that in the main [README](../README.md).
 This one, is useful to load the TensorflowJS model and see that it works as expected.
+
+Install it with `npm install -g magika`. You can then run it by executing `magika-js <some files>`
 ```
 Magika JS - file type detection with ML. https://google.github.io/magika
 

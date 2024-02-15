@@ -18,10 +18,9 @@
   },
   "dependencies": {
     "@mdi/font": "7.0.96",
-    "@tensorflow/tfjs": "^4.12.0",
-    "core-js": "^3.29.0",
     "highlight.js": "^11.9.0",
     "lodash": "^4.17.21",
+    "magika": "link:./../js/",
     "markdown-it": "^14.0.0",
     "roboto-fontface": "*",
     "vue": "^3.2.0",

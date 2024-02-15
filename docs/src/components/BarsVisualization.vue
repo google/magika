@@ -4,6 +4,7 @@
     <v-card-subtitle v-if="labels">
       Detected as <v-chip rounded color="primary">{{ labels["label"] }}</v-chip>
     </v-card-subtitle>
+
     <v-card-subtitle v-else> Classifying...</v-card-subtitle>
     <v-card-text>
       <v-data-table
@@ -51,10 +52,10 @@ const headers = [
   { title: "Probability", sortable: true, key: "probability" },
 ];
 const items = computed(() =>
-  (props.labels?.["labels"] || []).map((label, index) => {
+  Object.entries(props.labels?.["labels"] || {}).map(([label, probability]) => {
     return {
       name: label,
-      probability: props.labels["probabilities"][index],
+      probability,
     };
   }),
 );

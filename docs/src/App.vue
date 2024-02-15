@@ -1,7 +1,7 @@
 <template>
   <v-app app>
     <v-main>
-      <v-container class=" px-6" fluid>
+      <v-container class="px-6" fluid>
         <router-view></router-view>
       </v-container>
     </v-main>
@@ -27,12 +27,12 @@ $title-font: "Google Sans";
 pre {
   background-color: #f5eaff;
   border-radius: 10px;
-  padding: 1rem .5rem;
-  margin: .5rem .5rem;
+  padding: 1rem 0.5rem;
+  margin: 0.5rem 0.5rem;
 }
 code {
   background-color: #f5eaff;
   border-radius: 5px;
-  padding: .2rem .5rem;
+  padding: 0.2rem 0.5rem;
 }
 </style>

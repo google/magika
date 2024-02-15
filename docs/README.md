@@ -8,6 +8,6 @@ To start the website locally, you'll need Node installed. Then, execute:
 
 ```bash
 cd docs
-npm install
-npm run dev
+yarn install
+yarn run dev
 ```

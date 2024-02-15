@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "assets-generation"
+version = "0.1.0"
+description = ""
+authors = ["Luca Invernizzi <invernizzi@google.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+tensorflowjs = "^4.17.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+generate = "assets_generation.main:main"

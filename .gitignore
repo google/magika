@@ -5,7 +5,6 @@ venv/
 tmp/
 .env
 *.swp
-*.h5
 *.egg-info
 dist/*
 *.pickle
@@ -20,4 +19,5 @@ dist/*
 scratchpad/
 
 docs/node_modules
+js/node_modules
 docs/dist

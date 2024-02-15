@@ -1,5 +1,5 @@
 {
-  "name": "Magika",
+  "name": "magika",
   "version": "0.1.0",
   "description": "A tool to detect content types with deep learning.",
   "main": "magika.js",
@@ -13,7 +13,8 @@
     "magic"
   ],
   "scripts": {
-    "bin": "TF_CPP_MIN_LOG_LEVEL=1 node index.js"
+    "bin": "TF_CPP_MIN_LOG_LEVEL=1 node index.js",
+    "make-docs": " documentation build magika.js -f md --github -o DOCS.md"
   },
   "bin": {
     "magika-js": "index.js"
@@ -21,9 +22,12 @@
   "dependencies": {
     "@tensorflow/tfjs": "^4.17.0"
   },
-  "optionalDependecies": {
+  "optionalDependencies": {
     "@tensorflow/tfjs-node": "^4.17.0",
     "chalk": "^5.3.0",
     "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "documentation": "^14.0.3"
   }
 }

@@ -29,27 +29,21 @@ const md = new MarkdownIt({
 const content = computed(() => md.render(props.text));
 </script>
 
-<style scoped >
-
+<style scoped>
 @import "highlight.js/styles/github.css";
 .container {
   overflow-wrap: break-word;
   word-break: break-all;
   line-height: 1.5;
-
-  
 }
 .container :deep(h1) {
   display: none;
 }
 .container :deep(p) {
-  padding-bottom: .5rem;
+  padding-bottom: 0.5rem;
 }
 .container :deep(h2) {
-  padding-top: .5rem;
-  padding-bottom: .5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
-
-
 </style>
-

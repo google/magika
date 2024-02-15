@@ -151,7 +151,7 @@ See [`./python/DOCS.md`](./python/DOCS.md) for detailed documentation.
 
 ## Development Setup
 
-We use poetry for development and packaging:
+We use [poetry](https://python-poetry.org/) for development and packaging:
 
 ```shell
 $ git clone https://github.com/google/magika

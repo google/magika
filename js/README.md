@@ -88,5 +88,5 @@ Using the local model:
 ```bash
 yarn install
 (cd ../website; yarn install; yarn run dev) &
- yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json ../tests_data/mitra/*
+yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json ../tests_data/mitra/*
 ```

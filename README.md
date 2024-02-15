@@ -157,7 +157,7 @@ We use [poetry](https://python-poetry.org/) for development and packaging:
 $ git clone https://github.com/google/magika
 $ cd magika/python
 $ poetry shell && poetry install
-$ magika ../tests_data
+$ magika -r ../tests_data
 ```
 
 To run the tests:

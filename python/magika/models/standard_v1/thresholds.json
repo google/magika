@@ -35,7 +35,7 @@
         "go": 0.95,
         "gzip": 0.95,
         "hlp": 0.95,
-        "html": 0.93,
+        "html": 0.75,
         "ico": 0.95,
         "ini": 0.55,
         "internetshortcut": 0.95,

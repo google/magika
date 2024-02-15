@@ -1795,9 +1795,16 @@ magic-string@^0.30.6:
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.4.15"
 
-"magika@link:../js":
-  version "0.0.0"
-  uid ""
+magika@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/magika/-/magika-0.1.0.tgz#1ff1b66be4e058b24056a08d87c32dc79920c101"
+  integrity sha512-j8XCshqxtXJKohlTgN//uspSkOsD8LoIiWl2jm0RS3bSd/GKHlYvd2g8lFCAbGSno5EQ1j3jlA21YZmPhqOjsg==
+  dependencies:
+    "@tensorflow/tfjs" "^4.17.0"
+  optionalDependencies:
+    "@tensorflow/tfjs-node" "^4.17.0"
+    chalk "^5.3.0"
+    commander "^12.0.0"
 
 make-dir@^3.1.0:
   version "3.1.0"

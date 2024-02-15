@@ -13,7 +13,7 @@
     </div>
   </header>
 
-  <div class="text-normal pt-6 pb-3 pr-3 pl-3">
+  <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3">
     <p>
       Magika leverages the power of cutting-edge deep learning to enhance the
       world of file type detection. It provides increased accuracy and support
@@ -26,29 +26,69 @@
     </p>
   </div>
 
-  <div class="pl-3 pr-3">
     <div class="text-h3 pt-6 pb-3">Demo</div>
     <FileClassifierDemo cols="6" />
 
-    <div class="text-h3 pt-6 mt-6 pb-3">Paper</div>
-    <div class="text-normal pb-6">
+    <div class="text-h3 pt-6 mt-6 pb-3">Get Magika in your command line</div>
+    <div class="text-normal pt-3 pr-3 pl-3">
+      You can start using Magika by installing it as a Python package:
+      <code>pip install magika</code>
+    </div>
+    <div class="text-normal pt-3 pb-3 pr-3 pl-3">
+      Then, you can run it by executing <code>magika</code> like so:
+    </div>
+    <pre>
+  $ magika examples/*
+
+  code.asm: Assembly (code)
+  code.py: Python source (code)
+  doc.docx: Microsoft Word 2007+ document (document)
+  doc.ini: INI configuration file (text)
+  elf64.elf: ELF executable (executable)
+  flac.flac: FLAC audio bitstream data (audio)
+  image.bmp: BMP image data (image)
+  java.class: Java compiled bytecode (executable)
+  jpg.jpg: JPEG image data (image)
+  pdf.pdf: PDF document (document)
+  pe32.exe: PE executable (executable)
+  png.png: PNG image data (image)
+  README.md: Markdown document (text)
+  tar.tar: POSIX tar archive (archive)
+  webm.webm: WebM data (video)
+  </pre
+    >
+
+    <div class="text-h3 pt-6 mt-6 ">Libraries!</div>
+    <div class="text-normal pt-3 pb-3 pr-3 pl-3">
+      You can use Magika in you
+      <a href="https://github.com/google/magika/tree/main/python">Python</a>
+      code, or your
+      <a href="https://github.com/google/magika/tree/main/js">JavaScript</a> (in
+      Node or client side). In fact, this page is using Magika's JavaScript library!
+    </div>
+
+
+    <div class="text-h3 pt-6 pb-3">Paper</div>
+    <div class="text-normal pb-6 pl-3">
       We are releasing a paper later this year detailing how the Magika model
       was trained and its performance on large datasets.
     </div>
     <v-img src="@/../assets/paper.png" class="paper pt-3 pb-3" />
 
-    <div class="text-normal pt-6 pb-3">
+    <div class="text-normal pt-6 pb-3 pl-3">
       If you use Magika, please cite it like this:
     </div>
     <pre>
-    @software{magika,
-      author = {Fratantonio, Yanick and Bursztein, Elie and Invernizzi, Luca and Zhang, Marina
-                and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois 
-                and Petit-Bianco, Alexandre and Albertini, Ange},
-      title = {Magika content-type scanner},
-      url = {https://github.com/google/magika}
-    }
+  @software{magika,
+    author = {Fratantonio, Yanick and Bursztein, Elie and Invernizzi, Luca and Zhang, Marina
+              and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois 
+              and Petit-Bianco, Alexandre and Albertini, Ange},
+    title = {Magika content-type scanner},
+    url = {https://github.com/google/magika}
+  }
     </pre>
+    
+    <div class="text-h3 pt-6 mt-6 pb-3">Need more info? See our <a class='text-primary' href='https://github.com/google/magika/'>README</a> on GitHub!</div>
 
     <div class="text-h3 pt-12 mt-6 pb-3 model-card">Model card</div>
     <v-card>
@@ -57,20 +97,14 @@
       </v-card-text>
     </v-card>
 
-    <div class="text-h3 pt-6 mt-6 pb-3">Full Readme</div>
-    <v-card>
-      <v-card-text>
-        <Markdown class="mt-1" :text="Readme" />
-      </v-card-text>
-    </v-card>
-  </div>
+
+   
 </template>
 
 <script setup>
 import FileClassifierDemo from "@/components/FileClassifierDemo.vue";
-import Markdown from "@/components/Markdown.vue";
 
-import Readme from "@/../assets/README.md?raw";
+
 import ModelCard from "@/../assets/model_card.html?raw";
 </script>
 
@@ -112,5 +146,6 @@ header {
 
 .paper {
   max-height: 30rem;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1), 80%, rgba(0,0,0,0))
 }
 </style>

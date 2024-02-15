@@ -4,12 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "copy-assets": "cp -r ../README.md assets/README.md;",
-    "predev": "npm run copy-assets",
     "dev": "vite",
-    "prebuild": "npm run copy-assets",
     "build": "vite build",
-    "prebuild-github": "npm run copy-assets; rm -Rf dist/",
+    "prebuild-github": "rm -Rf dist/",
     "build-github": "vite build  --base=/magika/; echo 'Done';",
     "postbuild-github": "cp dist/index.html dist/404.html; mkdir -p dist_tmp; cp -R dist/* dist_tmp;  mv dist_tmp dist/magika; ls dist/; ls dist/magika;",
     "preview": "vite preview",

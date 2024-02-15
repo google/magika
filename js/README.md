@@ -24,7 +24,7 @@ const prediction = await magika.identifyBytes(await someFile.text());
 console.log(prediction);
 ```
 
-See our [[js/DOCS.md|documentation]].
+For more, see our [documentation](js/DOCS.md).
 
 
 # Commmand line tool

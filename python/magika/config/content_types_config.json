@@ -127,6 +127,7 @@
     "appleplist": {
         "name": "appleplist",
         "extensions": [
+            "bplist",
             "plist"
         ],
         "mime_type": "application/x-plist",
@@ -2342,6 +2343,7 @@
     "mp4": {
         "name": "mp4",
         "extensions": [
+            "mov",
             "mp4"
         ],
         "mime_type": "video/mp4",
@@ -4490,7 +4492,8 @@
     "xar": {
         "name": "xar",
         "extensions": [
-            "pkg"
+            "pkg",
+            "xar"
         ],
         "mime_type": "application/x-xar",
         "group": "archive",

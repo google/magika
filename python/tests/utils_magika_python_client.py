@@ -17,6 +17,12 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 
+class MagikaClientError(Exception):
+    def __init__(self, stdout: str, stderr: str):
+        self.stdout = stdout
+        self.stderr = stderr
+
+
 def run_magika_python_cli(
     samples_paths: List[Path],
     json_output: bool = False,
@@ -72,5 +78,9 @@ def run_magika_python_cli(
     if extra_cli_options is not None:
         cmd.extend(extra_cli_options)
 
-    p = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return p.stdout, p.stderr
+    p = subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+    if p.returncode == 0:
+        return p.stdout, p.stderr
+    else:
+        raise MagikaClientError(stdout=p.stdout, stderr=p.stderr)

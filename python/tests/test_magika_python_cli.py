@@ -23,9 +23,7 @@ import pytest
 from magika.content_types import ContentType, ContentTypesManager
 from magika.prediction_mode import PredictionMode
 from tests import utils
-from tests.utils_magika_python_client import (
-    run_magika_python_cli,
-)
+from tests.utils_magika_python_client import MagikaClientError, run_magika_python_cli
 
 
 @pytest.mark.smoketest
@@ -451,7 +449,7 @@ def test_magika_cli_with_basic_test_files_and_different_prediction_modes() -> No
         )
 
         # Test with invalid prediction mode
-        with pytest.raises(subprocess.CalledProcessError):
+        with pytest.raises(MagikaClientError):
             _ = run_magika_python_cli(
                 test_files_paths[:n],
                 extra_cli_options=["--prediction-mode", "non-existing-mode"],
@@ -578,26 +576,43 @@ def test_magika_cli_with_bad_input() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 
     # Test without any argument or option
-    with pytest.raises(subprocess.CalledProcessError):
-        run_magika_python_cli([])
+    with pytest.raises(MagikaClientError) as e_info:
+        p = Path("/this/does/not/exist")
+        _ = run_magika_python_cli([])
+    assert e_info.value.stdout == ""
+    assert (
+        e_info.value.stderr
+        == "ERROR: You need to pass at least one path, or - to read from stdin.\n"
+    )
 
     # Test with file that does not exist
-    stdout, stderr = run_magika_python_cli(
-        [Path("/this/does/not/exist")], label_output=True
+    with pytest.raises(MagikaClientError) as e_info:
+        p = Path("/this/does/not/exist")
+        _ = run_magika_python_cli([p], label_output=True)
+    assert e_info.value.stdout == ""
+    assert (
+        e_info.value.stderr == f'ERROR: File or directory "{str(p)}" does not exist.\n'
     )
-    predicted_cts = utils.get_magika_cli_output_from_stdout_stderr(stdout, stderr)
-    assert len(predicted_cts) == 1
-    assert predicted_cts[0][1] == ContentType.FILE_DOES_NOT_EXIST
 
     # Test with incompatible list of options
-    with pytest.raises(subprocess.CalledProcessError):
-        run_magika_python_cli([test_file_path], json_output=True, jsonl_output=True)
+    with pytest.raises(MagikaClientError) as e_info:
+        _ = run_magika_python_cli([test_file_path], json_output=True, jsonl_output=True)
+    assert e_info.value.stdout == ""
+    assert (
+        e_info.value.stderr
+        == "ERROR: You should use either --json or --jsonl, not both.\n"
+    )
 
     # Test with an option does not exist
-    with pytest.raises(subprocess.CalledProcessError):
-        run_magika_python_cli(
+    with pytest.raises(MagikaClientError) as e_info:
+        _ = run_magika_python_cli(
             [test_file_path], extra_cli_options=["--non-existing-option"]
         )
+    assert e_info.value.stdout == ""
+    error_lines = e_info.value.stderr.split("\n")
+    assert error_lines[0].startswith("Usage: magika [OPTIONS] [FILE]...")
+    assert error_lines[-2].startswith("Error: No such option:")
+    assert error_lines[-1] == ""
 
 
 def test_magika_cli_with_reading_from_stdin() -> None:
@@ -622,6 +637,21 @@ def test_magika_cli_with_reading_from_stdin() -> None:
     assert str(sample_path) == "-"
     assert str(entry["path"]) == "-"
     assert entry["output"]["ct_label"] in true_cts_names
+
+    # test with some bad input
+    cmd = f"cat {str(test_file_path)} | magika - {str(test_file_path)}"
+    p = subprocess.run(cmd, capture_output=True, text=True, check=False, shell=True)
+    assert p.returncode == 1
+    assert p.stdout == ""
+    assert p.stderr.find('ERROR: If you pass "-", you cannot pass anything else.') >= 0
+
+    cmd = f"cat {str(test_file_path)} | magika - -r"
+    p = subprocess.run(cmd, capture_output=True, text=True, check=False, shell=True)
+    assert p.returncode == 1
+    assert p.stdout == ""
+    assert (
+        p.stderr.find('ERROR: If you pass "-", recursive scan is not meaningful.') >= 0
+    )
 
 
 def test_magika_cli_with_colors() -> None:
@@ -717,5 +747,5 @@ def test_magika_cli_list_content_types() -> None:
     assert header.find("Description") >= 0
     assert stderr == ""
 
-    with pytest.raises(subprocess.CalledProcessError):
-        run_magika_python_cli([test_file_path], list_output_content_types=True)
+    with pytest.raises(MagikaClientError):
+        _ = run_magika_python_cli([test_file_path], list_output_content_types=True)

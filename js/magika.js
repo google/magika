@@ -85,7 +85,6 @@ export class Magika {
    * @returns A dictionary containing the top label and its score,
    */
   async identifyBytes(fileBytes) {
-    console.log(fileBytes)
     return this._identifyBytes(fileBytes, (args) => this._generateResult(args));
   }
 

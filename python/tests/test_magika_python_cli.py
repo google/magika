@@ -230,6 +230,15 @@ def test_magika_cli_with_basic_test_files() -> None:
         )
 
 
+def test_magika_cli_with_mitra_test_files() -> None:
+    test_files_paths = utils.get_mitra_test_files_paths()
+
+    stdout, stderr = run_magika_python_cli(test_files_paths)
+    utils.check_magika_cli_output_matches_expected_by_ext(
+        test_files_paths, stdout, stderr
+    )
+
+
 def test_magika_cli_with_basic_test_files_and_json_output() -> None:
     test_files_paths = utils.get_basic_test_files_paths()
 

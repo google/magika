@@ -2,19 +2,8 @@
 
 A tool to detect content types with deep learning.
 
+This is a stab, real README coming soon.
 
-## Setup
-
-```bash
-$ poetry shell
-$ poetry install
-```
-
-## Usage
-
-Help: `magika --help`
-
-Example: `magika tests_data/basic/ -r --jsonl`
 
 ## Contributing
 

@@ -13,16 +13,14 @@ Try Magika today with our [web demo](https://google.github.io/magika/), which ru
 
 ## Highlights
 
-- Trained on a dataset of over 26M files, evaluated on an holdout dataset of more than 1M files across more than 100 content types.
-- Available as a python command line, a python API, and an experimental TFJS version.
+- Available as a python command line, a python API, and an experimental TFJS version (which powers our web demo).
+- Trained on a dataset of over 25M files across more than 100 content types.
+- On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
 - More than 100 content types (see full list here). TODO: add link.
-- After the model is loaded, inference time of about 5ms per file.
-- The current Python-based command line takes a few hundreds ms, but most of the overhead comes from the Python interpreter / loading libraries, etc. The internal version we use in production, written in C++, is ~8x/10x faster.
+- After the model is loaded (this is a one-off overhead), the inference time is about 5ms per file.
 - Batching: You can pass to the command line and API multiple files at the same time, and Magika will use batching to speed up the inference time. You can invoke Magika with even thousands of files at the same time.
 - Magika uses a per-content-type threshold system that determines whether to "trust" the prediction for the model, or whether to return a generic label, such as "Generic text document" or "Unknown binary data".
-- Support three different prediction modes: `high-confidence`, `medium-confidence`, and `best-guess`.
-- Differently than existing models, Magika was specifically trained to detect `plaintext` content type (instead of returning `plaintext` only for low-confidence predictions).
-
+- Support three different prediction modes, which controls the tolerance to errors: `high-confidence`, `medium-confidence`, and `best-guess`.
 
 See the documentation for more details.
 

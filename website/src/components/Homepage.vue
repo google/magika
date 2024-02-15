@@ -131,7 +131,7 @@ header {
 
   & div.v-img {
     width: 100%;
-    min-width: 7rem;
+    min-width: clamp(2rem, 10vw, 7rem);
     height: 100%;
   }
 
@@ -144,6 +144,7 @@ header {
   }
 }
 
+
 .paper {
   max-height: 30rem;
   mask-image: linear-gradient(
@@ -152,5 +153,9 @@ header {
     80%,
     rgba(0, 0, 0, 0)
   );
+}
+
+pre {
+  white-space: pre-line;
 }
 </style>

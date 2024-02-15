@@ -13,7 +13,7 @@ MAGIKA_REPO_ROOT_DIR = MAGIKA_AG_ROOT_DIR.parent
 # Location of Magika JS.
 MAGIKA_JS_ROOT_DIR = MAGIKA_REPO_ROOT_DIR / "js"
 # Location of Magika website.
-MAGIKA_WEB_ROOT_DIR = MAGIKA_REPO_ROOT_DIR / "docs"
+MAGIKA_WEB_ROOT_DIR = MAGIKA_REPO_ROOT_DIR / "website"
 # Location of the Magika models directory.
 MODELS_ROOT_DIR = MAGIKA_AG_ROOT_DIR / "models"
 # Current model directory.

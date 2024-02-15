@@ -73,6 +73,6 @@ yarn run bin -- README.md
 Using the local model:
 ```bash
 yarn install
-(cd ../docs; yarn install; yarn run dev) &
+(cd ../website; yarn install; yarn run dev) &
  yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json test_data/*
 ```

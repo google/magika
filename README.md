@@ -22,7 +22,7 @@ Try Magika today with our [web demo](https://google.github.io/magika/), which ru
 - Support three different prediction modes, which controls the tolerance to errors: `high-confidence`, `medium-confidence`, and `best-guess`.
 - It's open source!
 
-For more details, see the documentation for the [python package](./python/DOCS.md) and for the [js package](./js/DOCS.md).
+For more details, see the documentation for the [python package](./python/README.md) (dev [docs](./python/DOCS.md)) and for the [js package](./js/README.md) (dev [docs](./js/DOCS.md)).
 
 
 ## Getting Started

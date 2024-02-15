@@ -18,11 +18,13 @@ The Magika object.
 
 Example usage:
 
-      const data = await readFile('some file');
-      const magika = new Magika();
-      await magika.load();
-      const prediction = await magika.identifyBytes(data);
-      console.log(prediction);
+```js
+  const data = await readFile('some file');
+  const magika = new Magika();
+  await magika.load();
+  const prediction = await magika.identifyBytes(data);
+  console.log(prediction);
+```
 
 For a Node implementation, see `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
 
@@ -40,8 +42,8 @@ Loads the Magika model and config from URLs.
 
     *   `$0.modelURL` &#x20;
     *   `$0.configURL` &#x20;
-*   `modelURL` **[number][11]** The URL where the model is stored.
-*   `configURL` **[number][11]** The URL where the config is stored.Both parameters are optional. If not provided, the model will be loaded from Github.
+*   `modelURL` **[string][11]** The URL where the model is stored.
+*   `configURL` **[string][11]** The URL where the config is stored.Both parameters are optional. If not provided, the model will be loaded from Github.
 
 ### identifyBytes
 
@@ -81,14 +83,14 @@ Returns **any** A dictionary containing the top label, its score, and a list of 
 
 [7]: #parameters-2
 
-[8]: https://github.com/google/magika/blob/f68341eb2e94b56e05be200a18ed4bddcfe34426/js/magika.js#L64-L201 "Source code on GitHub"
+[8]: https://github.com/google/magika/blob/cadb473c4dbc44f9c820f78aafd246d81a5e914f/js/magika.js#L64-L201 "Source code on GitHub"
 
-[9]: https://github.com/google/magika/blob/f68341eb2e94b56e05be200a18ed4bddcfe34426/js/magika.js#L74-L80 "Source code on GitHub"
+[9]: https://github.com/google/magika/blob/cadb473c4dbc44f9c820f78aafd246d81a5e914f/js/magika.js#L74-L80 "Source code on GitHub"
 
 [10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
-[11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+[11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[12]: https://github.com/google/magika/blob/f68341eb2e94b56e05be200a18ed4bddcfe34426/js/magika.js#L87-L90 "Source code on GitHub"
+[12]: https://github.com/google/magika/blob/cadb473c4dbc44f9c820f78aafd246d81a5e914f/js/magika.js#L87-L90 "Source code on GitHub"
 
-[13]: https://github.com/google/magika/blob/f68341eb2e94b56e05be200a18ed4bddcfe34426/js/magika.js#L97-L101 "Source code on GitHub"
+[13]: https://github.com/google/magika/blob/cadb473c4dbc44f9c820f78aafd246d81a5e914f/js/magika.js#L97-L101 "Source code on GitHub"

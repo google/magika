@@ -18,11 +18,12 @@ Try Magika today with our [web demo](https://google.github.io/magika/), which ru
 - On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
 - More than 100 content types (see full list here). TODO: add link.
 - After the model is loaded (this is a one-off overhead), the inference time is about 5ms per file.
-- Batching: You can pass to the command line and API multiple files at the same time, and Magika will use batching to speed up the inference time. You can invoke Magika with even thousands of files at the same time.
+- Batching: You can pass to the command line and API multiple files at the same time, and Magika will use batching to speed up the inference time. You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.
 - Magika uses a per-content-type threshold system that determines whether to "trust" the prediction for the model, or whether to return a generic label, such as "Generic text document" or "Unknown binary data".
 - Support three different prediction modes, which controls the tolerance to errors: `high-confidence`, `medium-confidence`, and `best-guess`.
+- It's open source (and we will release more components later this year)!
 
-See the documentation for more details.
+For more details, see the documentation for the [python package](./python/DOCS.md) and for the [js package](./js/DOCS.md).
 
 
 ## Getting Started
@@ -85,7 +86,6 @@ $ magika code.py --json
     }
 ]
 ```
-
 
 ```shell
 $ magika -h

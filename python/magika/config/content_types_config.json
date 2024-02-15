@@ -127,12 +127,13 @@
     "appleplist": {
         "name": "appleplist",
         "extensions": [
+            "bplist",
             "plist"
         ],
         "mime_type": "application/x-plist",
         "group": "application",
         "magic": "Apple binary property list",
-        "description": "Android property list",
+        "description": "Apple property list",
         "vt_type": "appleplist",
         "datasets": [
             "vt-ext"
@@ -2342,12 +2343,13 @@
     "mp4": {
         "name": "mp4",
         "extensions": [
+            "mov",
             "mp4"
         ],
         "mime_type": "video/mp4",
         "group": "video",
         "magic": "ISO Media",
-        "description": "MP4 medial",
+        "description": "MP4 media file",
         "vt_type": null,
         "datasets": [
             "vt-ext"
@@ -4490,7 +4492,8 @@
     "xar": {
         "name": "xar",
         "extensions": [
-            "pkg"
+            "pkg",
+            "xar"
         ],
         "mime_type": "application/x-xar",
         "group": "archive",

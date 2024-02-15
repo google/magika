@@ -12,7 +12,7 @@
 
 ## Magika
 
-[js/magika.js:65-198][8]
+[js/magika.js:64-197][8]
 
 The Magika object.
 
@@ -32,7 +32,7 @@ For a web version, see `<MAGIKA_REPO>/docs/src/components/FileClassifierDemo.vue
 
 ### load
 
-[js/magika.js:74-80][9]
+[js/magika.js:73-79][9]
 
 Loads the Magika model and config from URLs.
 
@@ -47,7 +47,7 @@ Loads the Magika model and config from URLs.
 
 ### identifyBytes
 
-[js/magika.js:87-89][12]
+[js/magika.js:86-88][12]
 
 Identifies the content type of a byte stream.
 
@@ -59,7 +59,7 @@ Returns **any** A dictionary containing the top label and its score,
 
 ### identifyBytesFull
 
-[js/magika.js:96-100][13]
+[js/magika.js:95-99][13]
 
 Identifies the content type of a byte stream, returning all probabilities instead of just the top one.
 
@@ -83,14 +83,14 @@ Returns **any** A dictionary containing the top label, its score, and a list of 
 
 [7]: #parameters-2
 
-[8]: https://github.com/google/magika/blob/123e54c57cc22395949ad9954ca567abf8ec0bde/js/magika.js#L65-L198 "Source code on GitHub"
+[8]: https://github.com/google/magika/blob/a7cbb62696f12a65d4159811754ef4df85ecde38/js/magika.js#L64-L197 "Source code on GitHub"
 
-[9]: https://github.com/google/magika/blob/123e54c57cc22395949ad9954ca567abf8ec0bde/js/magika.js#L74-L80 "Source code on GitHub"
+[9]: https://github.com/google/magika/blob/a7cbb62696f12a65d4159811754ef4df85ecde38/js/magika.js#L73-L79 "Source code on GitHub"
 
 [10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
 [11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[12]: https://github.com/google/magika/blob/123e54c57cc22395949ad9954ca567abf8ec0bde/js/magika.js#L87-L89 "Source code on GitHub"
+[12]: https://github.com/google/magika/blob/a7cbb62696f12a65d4159811754ef4df85ecde38/js/magika.js#L86-L88 "Source code on GitHub"
 
-[13]: https://github.com/google/magika/blob/123e54c57cc22395949ad9954ca567abf8ec0bde/js/magika.js#L96-L100 "Source code on GitHub"
+[13]: https://github.com/google/magika/blob/a7cbb62696f12a65d4159811754ef4df85ecde38/js/magika.js#L95-L99 "Source code on GitHub"

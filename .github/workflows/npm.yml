@@ -1,5 +1,6 @@
 name: Publish Magika to npm
 on:
+  workflow_dispatch:
   release:
     types: [published]
 jobs:

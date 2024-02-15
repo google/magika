@@ -123,6 +123,6 @@ The `Magika` object exposes three methods:
 - `identify_path(Path("test.txt"))`: takes as input one `Path` object and predicts its content type.
 - `identify_paths([Path("test.txt"), Path("test2.txt")])`: takes as input a list of `Path` objects and returns the predicted type for each of them.
 
-If you are dealing with big files, the `identify_path` and `identify_paths` variants are generally better: their implementation `seek()` around the file to extracted the needed features, without loading the entire content in memory.
+If you are dealing with big files, the `identify_path` and `identify_paths` variants are generally better: their implementation `seek()` around the file to extract the needed features, without loading the entire content in memory.
 
 These API returns an object of type [`MagikaResult`](./magika/types.py), which exposes the same information discussed above in the "Detailed output format" section.

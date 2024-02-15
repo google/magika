@@ -2,7 +2,7 @@
 
 Use Magika as a command line client or in your Python code!
 
-\[Please check the full [README and documentation](../README.md)
+Please check the full [README and documentation](../README.md)
 
 ## Installing Magika
 ```bash

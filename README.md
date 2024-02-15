@@ -199,6 +199,10 @@ We would also love to hear from the community about encountered problems, misdet
 
 Check our open GitHub issues to see what is on our roadmap and please report misdetections or feature requests by either opening GitHub issues (preferred) or by emailing us at magika-dev@google.com.
 
+When reporting misdetections, you may want to use `$ magika --generate-report <path>` to generate a report with debug information, which you can include in your github issue.
+
+**NOTE: Do NOT send reports about files that may contain PII, the report contains (a small) part of the file content!**
+
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 

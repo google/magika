@@ -132,7 +132,7 @@
         "mime_type": "application/x-plist",
         "group": "application",
         "magic": "Apple binary property list",
-        "description": "Android property list",
+        "description": "Apple property list",
         "vt_type": "appleplist",
         "datasets": [
             "vt-ext"

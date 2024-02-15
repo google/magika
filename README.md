@@ -172,11 +172,10 @@ $ pytest tests/
 
 ## Known Limitations & Contributing
 
-Magika improves over the state of the art, but it can be improved on a number of aspects: detection accuracy, support for additional content types, bindings for more languages, etc.
+Magika significantly improves over the state of the art, but there's always room for improvement! More work can be done to better detection accuracy, support for additional content types, bindings for more languages, etc.
 
-Moreover, this first release does not support polyglots, and it was not specifically trained or evaluated against adversarial samples.
-
-We would love to hear from the community and get help. We are particularly interested to hear about encountered problems, misdetections, features requests, need for support for additional content types, etc.
+This initial release is not targeting polyglot detection, and we're looking forward to seeing adversarial examples from the community.
+We would also love to hear from the community about encountered problems, misdetections, features requests, need for support for additional content types, etc.
 
 Check our open GitHub issues to see what is on our roadmap and please report misdetections or feature requests by either opening GitHub issues (preferred) or by emailing us at magika-dev@google.com.
 

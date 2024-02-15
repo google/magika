@@ -2,7 +2,7 @@
 
 ## Installation
 
-Magika is available as `magika` on PyPI:
+Magika is available as `magika` on [PyPI](https://pypi.org/project/magika):
 
 ```shell
 $ pip install magika

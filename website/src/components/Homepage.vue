@@ -22,7 +22,7 @@
     </p>
     <p>
       Designed for efficiency, Magika runs quickly even on a single CPU. A
-      similar mode currently scans millions of files per second at Google.
+      similar mode currently scans millions of files per second at Google (see <a href='https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html' class='text-primary'>blog post</a>).
     </p>
   </div>
 

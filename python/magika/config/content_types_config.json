@@ -2347,7 +2347,7 @@
         "mime_type": "video/mp4",
         "group": "video",
         "magic": "ISO Media",
-        "description": "MP4 medial",
+        "description": "MP4 media file",
         "vt_type": null,
         "datasets": [
             "vt-ext"

@@ -130,14 +130,15 @@ def check_magika_cli_output_matches_expected_by_ext(
     for file_path, output in predicted_cts:
         remaining_samples_paths.remove(file_path)
         file_ext = file_path.suffix.lstrip(".")
-        true_cts = ctm.get_cts_by_ext(file_ext)
-        if len(true_cts) == 0:
-            # We could not find the content type from the extension.  In this
-            # case, we assume this is a test file path with the
-            # <dataset>/<content type>/<hash> pattern
+        if file_ext != "":
+            true_cts = ctm.get_cts_by_ext(file_ext)
+        else:
+            # The test file does not have any extension. In this case, we assume
+            # this is a test file path with the <dataset>/<content type>/<hash>
+            # pattern.
             true_ct_name = file_path.parent.name
             true_cts = [ctm.get_or_raise(true_ct_name)]
-        assert len(true_cts) > 0
+        assert len(true_cts) > 0, f'File extension: "{file_ext}"'
 
         true_cts_names = [ct.name for ct in true_cts]
 
@@ -163,7 +164,9 @@ def check_magika_cli_output_matches_expected_by_ext(
                     f"{ctm.get_description(ct.name)} ({ctm.get_group(ct.name)})"
                     for ct in true_cts
                 ]
-            assert output in expected_outputs
+            assert (
+                output in expected_outputs
+            ), f'Output: "{output}", expected output: "{expected_outputs}"'
 
     # Check that all input samples have been scanned
     assert len(remaining_samples_paths) == 0

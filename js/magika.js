@@ -1,4 +1,5 @@
-import * as tf from "@tensorflow/tfjs";
+//import * as tf from "@tensorflow/tfjs";
+import * as tf from "@tensorflow/tfjs-node";
 
 // Default content types that aren't emitted by the model directly.
 const ContentType = Object.freeze({
@@ -58,29 +59,28 @@ class Model {
  *   console.log(prediction);
  * ```
  * For a Node implementation, see `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
- * 
+ *
  * For a web version, see `<MAGIKA_REPO>/docs/src/components/FileClassifierDemo.vue`,
  */
 export class Magika {
-
   /** Loads the Magika model and config from URLs.
-   * 
-  * @param {string} modelURL The URL where the model is stored. 
-  * @param {string} configURL The URL where the config is stored.
-  * 
-  * Both parameters are optional. If not provided, the model will be loaded from Github. 
-  * 
+   *
+   * @param {string} modelURL The URL where the model is stored.
+   * @param {string} configURL The URL where the config is stored.
+   *
+   * Both parameters are optional. If not provided, the model will be loaded from Github.
+   *
    */
   async load({ modelURL, configURL }) {
-    modelURL = modelURL || "https://google.github.io/magika/model/model.json"
-    configURL = configURL || "https://google.github.io/magika/model/model.json"
+    modelURL = modelURL || "https://google.github.io/magika/model/model.json";
+    configURL = configURL || "https://google.github.io/magika/model/model.json";
     this.config = new Config();
     this.model = new Model();
     await Promise.all([this.config.load(configURL), this.model.load(modelURL)]);
   }
 
   /** Identifies the content type of a byte stream.
-   * 
+   *
    * @param {*} fileBytes  a Buffer object (a fixed-length sequence of bytes)
    * @returns A dictionary containing the top label and its score,
    */
@@ -88,8 +88,8 @@ export class Magika {
     return this._identifyBytes(fileBytes, (args) => this._generateResult(args));
   }
 
-    /** Identifies the content type of a byte stream, returning all probabilities instead of just the top one.
-   * 
+  /** Identifies the content type of a byte stream, returning all probabilities instead of just the top one.
+   *
    * @param {*} fileBytes  a Buffer object (a fixed-length sequence of bytes)
    * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
    */
@@ -160,41 +160,39 @@ export class Magika {
   }
 
   async _extractFeaturesFromBytes(fileBytes, generateResult) {
-    const fileArray = fileBytes.toString().trim().split("");
+    const fileArray = new Uint16Array(fileBytes);
     if (fileArray.length <= this.config.minFileSizeForDl)
       return [this._getResultForAFewBytes(fileBytes, generateResult), null];
-    let beg, mid, end;
-    if (fileArray.length > this.config.extractSize) {
-      beg = fileArray
-        .slice(0, this.config.begBytes)
-        .map((char) => parseFloat(char.charCodeAt(0)));
-      mid = fileArray
-        .slice(
-          fileArray.length / 2 - this.config.midBytes / 2,
-          fileArray.length / 2 + this.config.midBytes / 2,
-        )
-        .map((char) => parseFloat(char.charCodeAt(0)));
-      end = fileArray
-        .slice(fileArray.length - this.config.endBytes, fileArray.length)
-        .map((char) => parseFloat(char.charCodeAt(0)));
-    } else {
-      const mappedData = fileArray.map((char) =>
-        parseFloat(char.charCodeAt(0)),
-      );
-      const paddingCount = this.config.extractSize - fileArray.length;
-      beg = mappedData.concat(
-        new Array(paddingCount).fill(this.config.paddingToken),
-      );
-      mid = mappedData.concat(
-        new Array(parseInt(paddingCount / 2)).fill(this.config.paddingToken),
-      );
-      mid = new Array(this.config.extractSize - mid.length)
-        .fill(paddingCount)
-        .concat(mid);
-      end = new Array(paddingCount)
-        .fill(this.config.paddingToken)
-        .concat(mappedData);
-    }
-    return [null, beg.concat(mid).concat(end)];
+
+    let beg = new Uint16Array(this.config.begBytes).fill(
+      this.config.paddingToken,
+    );
+    let mid = new Uint16Array(this.config.midBytes).fill(
+      this.config.paddingToken,
+    );
+    let end = new Uint16Array(this.config.endBytes).fill(
+      this.config.paddingToken,
+    );
+    
+    // Beginning chunk. It should start with the file, and padding at the end.
+    beg.set(fileArray.slice(0, this.config.begBytes), 0);
+
+    // Middle chunk. Padding on either side.
+    const halfpoint = 2 * Math.round(fileArray.length / 2);
+    const startHalf = Math.max(0, halfpoint - this.config.midBytes / 2);
+    const halfChunk = fileArray.slice(
+      startHalf,
+      startHalf + this.config.midBytes,
+    );
+    mid.set(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2);
+
+    // End chunk. It should end with the file, and padding at the beginning.
+    const endChunk = fileArray.slice(
+      Math.max(0, fileArray.length - this.config.endBytes),
+    );
+    const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
+    end.set(endChunk, endOffset);
+
+    return [null, [...beg, ...mid, ...end]];
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "magika",
-  "version": "0.1.2",
+  "version": "0.2.1",
   "description": "A tool to detect content types with deep learning.",
   "main": "magika.js",
   "type": "module",

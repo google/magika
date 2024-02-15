@@ -46,10 +46,7 @@ await Promise.all(
     } else {
       console.log(
         chalk.blue(path),
-        chalk.green(
-          prediction?.["label"],
-          chalk.white(prediction?.["score"])
-        ),
+        chalk.green(prediction?.["label"], chalk.white(prediction?.["score"])),
       );
     }
   }),

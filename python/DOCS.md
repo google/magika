@@ -12,7 +12,7 @@ $ pip install magika
 
 Magika takes one or more files as arguments, and a number of CLI options.
 
-```shell
+```help
 $ magika -h
 Usage: magika [OPTIONS] [FILE]...
 

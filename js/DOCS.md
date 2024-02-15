@@ -12,7 +12,7 @@
 
 ## Magika
 
-[js/magika.js:64-201][8]
+[js/magika.js:64-200][8]
 
 The Magika object.
 
@@ -47,7 +47,7 @@ Loads the Magika model and config from URLs.
 
 ### identifyBytes
 
-[js/magika.js:87-90][12]
+[js/magika.js:87-89][12]
 
 Identifies the content type of a byte stream.
 
@@ -59,7 +59,7 @@ Returns **any** A dictionary containing the top label and its score,
 
 ### identifyBytesFull
 
-[js/magika.js:97-101][13]
+[js/magika.js:96-100][13]
 
 Identifies the content type of a byte stream, returning all probabilities instead of just the top one.
 
@@ -83,14 +83,14 @@ Returns **any** A dictionary containing the top label, its score, and a list of 
 
 [7]: #parameters-2
 
-[8]: https://github.com/google/magika/blob/4dd952ff5543315815064f07fccdedc79057f232/js/magika.js#L64-L201 "Source code on GitHub"
+[8]: https://github.com/google/magika/blob/c5692f53f9a9e99e9d2508cafba8857af4d1771b/js/magika.js#L64-L200 "Source code on GitHub"
 
-[9]: https://github.com/google/magika/blob/4dd952ff5543315815064f07fccdedc79057f232/js/magika.js#L74-L80 "Source code on GitHub"
+[9]: https://github.com/google/magika/blob/c5692f53f9a9e99e9d2508cafba8857af4d1771b/js/magika.js#L74-L80 "Source code on GitHub"
 
 [10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
 [11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[12]: https://github.com/google/magika/blob/4dd952ff5543315815064f07fccdedc79057f232/js/magika.js#L87-L90 "Source code on GitHub"
+[12]: https://github.com/google/magika/blob/c5692f53f9a9e99e9d2508cafba8857af4d1771b/js/magika.js#L87-L89 "Source code on GitHub"
 
-[13]: https://github.com/google/magika/blob/4dd952ff5543315815064f07fccdedc79057f232/js/magika.js#L97-L101 "Source code on GitHub"
+[13]: https://github.com/google/magika/blob/c5692f53f9a9e99e9d2508cafba8857af4d1771b/js/magika.js#L96-L100 "Source code on GitHub"

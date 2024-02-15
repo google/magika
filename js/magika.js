@@ -1,5 +1,4 @@
-//import * as tf from "@tensorflow/tfjs";
-import * as tf from "@tensorflow/tfjs-node";
+import * as tf from "@tensorflow/tfjs";
 
 // Default content types that aren't emitted by the model directly.
 const ContentType = Object.freeze({
@@ -173,7 +172,7 @@ export class Magika {
     let end = new Uint16Array(this.config.endBytes).fill(
       this.config.paddingToken,
     );
-    
+
     // Beginning chunk. It should start with the file, and padding at the end.
     beg.set(fileArray.slice(0, this.config.begBytes), 0);
 

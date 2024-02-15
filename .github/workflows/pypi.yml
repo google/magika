@@ -1,8 +1,8 @@
 name: Publish Magika to pypi
 
 on:
-  push:
-    workflow_dispatch:
+  workflow_dispatch:
+  push: 
     tags:
     - 'v[0-9]+.[0-9]+.[0-9]'
 

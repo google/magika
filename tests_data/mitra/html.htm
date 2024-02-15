@@ -1,0 +1,16 @@
+-->
+<div id='mypage'>
+
+<h1>HTML page</h1>
+
+<script language=javascript type="text/javascript"> 
+// necessary to clean up the elements of the outer file
+document.documentElement.innerHTML = document.getElementById('mypage').innerHTML;
+document.title = 'HTML title';
+
+alert("JavaScript payload");
+console.log("JavaScript payload");
+</script>
+
+</div>
+<!--

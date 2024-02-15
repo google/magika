@@ -185,7 +185,7 @@ def main(
     # check CLI arguments and options
     if list_output_content_types:
         if len(files_paths) > 0:
-            _l.error("You cannot pass any path when using the -l / --list option")
+            _l.error("You cannot pass any path when using the -l / --list option.")
             sys.exit(1)
         print_output_content_types_list()
         sys.exit(0)
@@ -194,26 +194,48 @@ def main(
         _l.error("You need to pass at least one path, or - to read from stdin.")
         sys.exit(1)
 
+    read_from_stdin = False
+    for p in files_paths:
+        if str(p) == "-":
+            read_from_stdin = True
+        elif not p.exists():
+            _l.error(f'File or directory "{str(p)}" does not exist.')
+            sys.exit(1)
+    if read_from_stdin:
+        if len(files_paths) > 1:
+            _l.error('If you pass "-", you cannot pass anything else.')
+            sys.exit(1)
+        if recursive:
+            _l.error('If you pass "-", recursive scan is not meaningful.')
+            sys.exit(1)
+
     if batch_size <= 0 or batch_size > 512:
-        _l.error("Batch size needs to be greater than 0 and less or equal than 512")
+        _l.error("Batch size needs to be greater than 0 and less or equal than 512.")
         sys.exit(1)
 
     if json_output and jsonl_output:
-        _l.error("You should use either --json or --jsonl, not both")
+        _l.error("You should use either --json or --jsonl, not both.")
         sys.exit(1)
 
     if int(mime_output) + int(label_output) + int(magic_compatibility_mode) > 1:
-        _l.error("You should use only one of --mime, --label, --compatibility-mode")
+        _l.error("You should use only one of --mime, --label, --compatibility-mode.")
         sys.exit(1)
 
     if recursive:
         # recursively enumerate files within directories
         expanded_paths = []
         for p in files_paths:
-            if p.is_file():
-                expanded_paths.append(p)
-            elif p.is_dir():
-                expanded_paths.extend(sorted(p.rglob("*")))
+            if p.exists():
+                if p.is_file():
+                    expanded_paths.append(p)
+                elif p.is_dir():
+                    expanded_paths.extend(sorted(p.rglob("*")))
+            elif str(p) == "-":
+                # this is "read from stdin", that's OK
+                pass
+            else:
+                _l.error(f'File or directory "{str(p)}" does not exist.')
+                sys.exit(1)
         # the resulting list may still include some directories; thus, we filter them out.
         files_paths = list(filter(lambda x: not x.is_dir(), expanded_paths))
 

@@ -25,6 +25,22 @@ Try Magika today with our [web demo](https://google.github.io/magika/), which ru
 For more details, see the documentation for the [python package](./python/README.md) (dev [docs](./python/DOCS.md)) and for the [js package](./js/README.md) (dev [docs](./js/DOCS.md)).
 
 
+## Table of Contents
+
+1. [Getting Started](#getting-started)
+    1. [Installation](#installation)
+    1. [Usage](#usage)
+        1. [Python command line](#python-command-line)
+        1. [Python API](#python-api)
+        1. [Experimental TFJS model & npm package](#experimental-tfjs-model--npm-package)
+1. [Development Setup](#development-setup)
+1. [Known Limitations & Contributing](#known-limitations--contributing)
+1. [Additional Resources](#additional-resources)
+1. [Citation](#citation)
+1. [License](#license)
+1. [Disclaimer](#disclaimer)
+
+
 ## Getting Started
 
 ### Installation

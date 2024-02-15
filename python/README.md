@@ -9,7 +9,7 @@ Use Magika as a command line client or in your Python code!
 $ pip install magika
 ```
 
-## Using Magika as a command-line tool.
+## Using Magika as a command-line tool
 
 ```bash
 $ magika examples/*
@@ -33,7 +33,7 @@ webm.webm: WebM data (video)
 Run `$ magika --help` for details about the command line interface.
 
 
-## Using Magika in Python
+## Using Magika as a Python module
 
 ```python
 from magika import Magika

@@ -1,7 +1,8 @@
-name: Upload Python Package
+name: Publish Magika to pypi
 
 on:
   push:
+    workflow_dispatch:
     tags:
     - 'v[0-9]+.[0-9]+.[0-9]'
 
@@ -29,6 +30,7 @@ jobs:
 
       - name: Update version (kept at 0.0.0) in pyproject.toml and build
         run: |
+          cd python
           poetry version ${{ github.ref_name }}
           poetry build
 
@@ -38,4 +40,5 @@ jobs:
 
       - name: Publish the package with poetry
         run: |
+          cd python
           poetry publish -u __token__ -p '${{ steps.mint.outputs.api-token }}'

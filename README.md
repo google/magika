@@ -20,7 +20,7 @@ Try Magika today with our [web demo](https://google.github.io/magika/), which ru
 - Near-constant inference time independently from the file size; Magika onlys use a limited subset of the file's bytes.
 - Magika uses a per-content-type threshold system that determines whether to "trust" the prediction for the model, or whether to return a generic label, such as "Generic text document" or "Unknown binary data".
 - Support three different prediction modes, which tweak the tolerance to errors: `high-confidence`, `medium-confidence`, and `best-guess`.
-- It's open source!
+- It's open source! (And more is yet to come.)
 
 For more details, see the documentation for the [python package](./python/README.md) (dev [docs](./python/DOCS.md)) and for the [js package](./js/README.md) (dev [docs](./js/DOCS.md)).
 
@@ -100,6 +100,11 @@ $ magika code.py --json
         }
     }
 ]
+```
+
+```bash
+$ cat doc.ini | magika -
+-: INI configuration file (text)
 ```
 
 ```help

@@ -14,7 +14,7 @@ Try Magika today with our [web demo](https://google.github.io/magika/), which ru
 - Available as a Python command line, a Python API, and an experimental TFJS version (which powers our web demo).
 - Trained on a dataset of over 25M files across more than 100 content types.
 - On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
-- More than 100 content types (see full list). 
+- More than 100 content types (see [full list](./docs/supported-content-types-list.md)).
 - After the model is loaded (this is a one-off overhead), the inference time is about 5ms per file.
 - Batching: You can pass to the command line and API multiple files at the same time, and Magika will use batching to speed up the inference time. You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.
 - Near-constant inference time independently from the file size; Magika only use a limited subset of the file's bytes.

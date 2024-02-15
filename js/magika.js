@@ -50,7 +50,7 @@ class Model {
  * The Magika object.
  *
  * Example usage:
- * ```
+ * ```js
  *   const data = await readFile('some file');
  *   const magika = new Magika();
  *   await magika.load();
@@ -65,8 +65,8 @@ export class Magika {
 
   /** Loads the Magika model and config from URLs.
    * 
-  * @param {number} modelURL The URL where the model is stored. 
-  * @param {number} configURL The URL where the config is stored.
+  * @param {string} modelURL The URL where the model is stored. 
+  * @param {string} configURL The URL where the config is stored.
   * 
   * Both parameters are optional. If not provided, the model will be loaded from Github. 
   * 

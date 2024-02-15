@@ -89,7 +89,7 @@ def generate_tfjs_config():
 
 def main():
     print_environment()
-    #convert_to_tfjs_model()
+    convert_to_tfjs_model()
     generate_tfjs_config()
 
 

@@ -83,14 +83,14 @@ Returns **any** A dictionary containing the top label, its score, and a list of 
 
 [7]: #parameters-2
 
-[8]: https://github.com/google/magika/blob/bfdcf6ab5691282d0517725f15388b5b0bb3a0e5/js/magika.js#L64-L197 "Source code on GitHub"
+[8]: https://github.com/google/magika/blob/a083eb0fdac26113ee0dd22e61be1bdcc73446a7/js/magika.js#L64-L197 "Source code on GitHub"
 
-[9]: https://github.com/google/magika/blob/bfdcf6ab5691282d0517725f15388b5b0bb3a0e5/js/magika.js#L73-L79 "Source code on GitHub"
+[9]: https://github.com/google/magika/blob/a083eb0fdac26113ee0dd22e61be1bdcc73446a7/js/magika.js#L73-L79 "Source code on GitHub"
 
 [10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
 [11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[12]: https://github.com/google/magika/blob/bfdcf6ab5691282d0517725f15388b5b0bb3a0e5/js/magika.js#L86-L88 "Source code on GitHub"
+[12]: https://github.com/google/magika/blob/a083eb0fdac26113ee0dd22e61be1bdcc73446a7/js/magika.js#L86-L88 "Source code on GitHub"
 
-[13]: https://github.com/google/magika/blob/bfdcf6ab5691282d0517725f15388b5b0bb3a0e5/js/magika.js#L95-L99 "Source code on GitHub"
+[13]: https://github.com/google/magika/blob/a083eb0fdac26113ee0dd22e61be1bdcc73446a7/js/magika.js#L95-L99 "Source code on GitHub"

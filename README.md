@@ -2,9 +2,6 @@
 
 Magika is a new content type detection tool based on deep learning. Under the hood, Magika employs a custom, highly optimized deep-learning model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU. In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Internally, Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
 
-We release as open source a Python library, a client, and an experimental TensorflowJS model.
-
-
 Try Magika today with our [web demo](https://google.github.io/magika/), which runs locally in your browser!
 
 <p align="center">
@@ -14,18 +11,18 @@ Try Magika today with our [web demo](https://google.github.io/magika/), which ru
 
 ## Highlights
 
-- Available as a python command line, a python API, and an experimental TFJS version (which powers our web demo).
+- Available as a Python command line, a Python API, and an experimental TFJS version (which powers our web demo).
 - Trained on a dataset of over 25M files across more than 100 content types.
 - On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
-- More than 100 content types (see full list here). TODO: add link.
+- More than 100 content types (see [full list](./docs/supported-content-types-list.md)).
 - After the model is loaded (this is a one-off overhead), the inference time is about 5ms per file.
 - Batching: You can pass to the command line and API multiple files at the same time, and Magika will use batching to speed up the inference time. You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.
-- Near-constant inference time independently from the file size; magika only use a limited subset of the file's bytes.
+- Near-constant inference time independently from the file size; Magika only use a limited subset of the file's bytes.
 - Magika uses a per-content-type threshold system that determines whether to "trust" the prediction for the model, or whether to return a generic label, such as "Generic text document" or "Unknown binary data".
 - Support three different prediction modes, which controls the tolerance to errors: `high-confidence`, `medium-confidence`, and `best-guess`.
-- It's open source (and we will release more components later this year)!
+- It's open source!
 
-For more details, see the documentation for the [python package](./python/DOCS.md) and for the [js package](./js/DOCS.md).
+For more details, see the documentation for the [python package](./python/README.md) (dev [docs](./python/DOCS.md)) and for the [js package](./js/README.md) (dev [docs](./js/DOCS.md)).
 
 
 ## Getting Started
@@ -89,7 +86,7 @@ $ magika code.py --json
 ]
 ```
 
-```shell
+```help
 $ magika -h
 Usage: magika [OPTIONS] [FILE]...
 
@@ -154,7 +151,7 @@ See [`./python/DOCS.md`](./python/DOCS.md) for detailed documentation.
 
 ## Development Setup
 
-We use poetry for development and packaging:
+We use [poetry](https://python-poetry.org/) for development and packaging:
 
 ```shell
 $ git clone https://github.com/google/magika
@@ -175,11 +172,10 @@ $ pytest tests/
 
 ## Known Limitations & Contributing
 
-Magika improves over the state of the art, but it can be improved on a number of aspects: detection accuracy, support for additional content types, bindings for more languages, etc.
+Magika significantly improves over the state of the art, but there's always room for improvement! More work can be done to better detection accuracy, support for additional content types, bindings for more languages, etc.
 
-Moreover, this first release does not support polyglots, and it was not specifically trained or evaluated against adversarial samples.
-
-We would love to hear from the community and get help. We are particularly interested to hear about encountered problems, misdetections, features requests, need for support for additional content types, etc.
+This initial release is not targeting polyglot detection, and we're looking forward to seeing adversarial examples from the community.
+We would also love to hear from the community about encountered problems, misdetections, features requests, need for support for additional content types, etc.
 
 Check our open GitHub issues to see what is on our roadmap and please report misdetections or feature requests by either opening GitHub issues (preferred) or by emailing us at magika-dev@google.com.
 

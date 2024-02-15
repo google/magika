@@ -1,4 +1,4 @@
-name: Deploy website to Github Pages.
+name: Deploy website to Github Pages
 
 on:
   # Runs on pushes targeting the default branch

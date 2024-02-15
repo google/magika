@@ -32,7 +32,7 @@ from magika.content_types import ContentTypesManager
 from magika.logger import get_logger
 from magika.types import FeedbackReport, MagikaResult
 
-VERSION = "0.4.2-dev"
+VERSION = "0.5.1-dev"
 
 CONTACT_EMAIL = "magika-dev@google.com"
 

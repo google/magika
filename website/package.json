@@ -17,7 +17,7 @@
     "@mdi/font": "7.0.96",
     "highlight.js": "^11.9.0",
     "lodash": "^4.17.21",
-    "magika": "^0.1.0",
+    "magika": "^0.2.1",
     "markdown-it": "^14.0.0",
     "roboto-fontface": "*",
     "vue": "^3.2.0",

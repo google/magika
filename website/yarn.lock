@@ -1795,10 +1795,10 @@ magic-string@^0.30.6:
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.4.15"
 
-magika@^0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/magika/-/magika-0.1.0.tgz#1ff1b66be4e058b24056a08d87c32dc79920c101"
-  integrity sha512-j8XCshqxtXJKohlTgN//uspSkOsD8LoIiWl2jm0RS3bSd/GKHlYvd2g8lFCAbGSno5EQ1j3jlA21YZmPhqOjsg==
+magika@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/magika/-/magika-0.2.1.tgz#944b0f7b88629f19522ebb03e763162454a0eddd"
+  integrity sha512-j0oEh++Xxe7kGcZj3h0BTkT28wI56Ab/kQNIAcWOjco0g+zMOaNNhFlcstsPbD1lnKcSPXiDLr1MUeHHSZwG3A==
   dependencies:
     "@tensorflow/tfjs" "^4.17.0"
   optionalDependencies:

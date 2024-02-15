@@ -59,7 +59,7 @@ watch(files, async () => {
   labels.value = new Array(files.value.length);
   for (const fileIndex in files.value) {
     const file = files.value[fileIndex];
-    const content = await file.text();
+    const content = new Uint8Array(await file.arrayBuffer());
     labels.value[fileIndex] = await magika.identifyBytesFull(content);
   }
 });

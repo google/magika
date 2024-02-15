@@ -17,7 +17,6 @@
     "@mdi/font": "7.0.96",
     "highlight.js": "^11.9.0",
     "lodash": "^4.17.21",
-    "magika": "^0.2.1",
     "markdown-it": "^14.0.0",
     "roboto-fontface": "*",
     "vue": "^3.2.0",
@@ -30,10 +29,11 @@
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-vue": "^9.18.1",
+    "magika": "^0.2.4",
     "prettier": "^3.2.5",
     "sass": "^1.60.0",
     "unplugin-fonts": "^1.0.3",
-    "vite": "^5.1.1",
+    "vite": "^5.1.3",
     "vite-plugin-vuetify": "^2.0.1"
   }
 }

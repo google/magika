@@ -15,6 +15,7 @@ Simple usage in Node:
 ```js
 import { readFile } from "fs/promises";
 import { Magika } from "magika";
+
 const data = await readFile("some file");
 const magika = new Magika();
 await magika.load();
@@ -28,9 +29,10 @@ Simple usage in the browser:
 import { Magika } from "magika";
 
 const someFile = new File(["# Hello I am a markdown file"], "hello.md");
+const fileBytes = new Uint8Array(await file.arrayBuffer());
 const magika = new Magika();
 await magika.load();
-const prediction = await magika.identifyBytes(await someFile.text());
+const prediction = await magika.identifyBytes(fileBytes);
 console.log(prediction);
 ```
 

@@ -1,17 +1,23 @@
 # Magika
 
-Magika is a new content type detection tool based on deep learning. Under the hood, Magika employs a custom, highly optimized deep-learning model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU. In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Internally, Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
+Magika is a novel AI powered file type detection tool that rely on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU. 
 
-Try Magika today with our [web demo](https://google.github.io/magika/), which runs locally in your browser!
+In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
 
+
+You can try Magika without anything by using our [web demo](https://google.github.io/magika/), which runs locally in your browser!
+
+Here is an example of what Magika command line output look like:
 <p align="center">
     <img src="./assets/magika-screenshot.png" width="600">
 </p>
 
+For more context you can read our initial [announcment post on Google'S OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html)
+
 
 ## Highlights
 
-- Available as a Python command line, a Python API, and an experimental TFJS version (which powers our web demo).
+- Available as a Python command line, a Python API, and an experimental TFJS version (which powers our [web demo](https://google.github.io/magika/)).
 - Trained on a dataset of over 25M files across more than 100 content types.
 - On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
 - More than 100 content types (see [full list](./docs/supported-content-types-list.md)).
@@ -35,6 +41,7 @@ For more details, see the documentation for the [python package](./python/README
         1. [Experimental TFJS model & npm package](#experimental-tfjs-model--npm-package)
 1. [Development Setup](#development-setup)
 1. [Known Limitations & Contributing](#known-limitations--contributing)
+1. [Frequently Asked Questions](#frequently-asked-questions)
 1. [Additional Resources](#additional-resources)
 1. [Citation](#citation)
 1. [License](#license)
@@ -172,6 +179,9 @@ See [`./python/DOCS.md`](./python/DOCS.md) for detailed documentation.
 
 #### Experimental TFJS model & npm package
 
+We also provide Magika as an experimental package for people interested in using in a web app. 
+Note that Magika JS implementation performance is significantly slower and you should expect to spend 100ms+ per file.
+
 See [js documentation](./js/DOCS.md) for the details.
 
 
@@ -209,6 +219,37 @@ When reporting misdetections, you may want to use `$ magika --generate-report <p
 **NOTE: Do NOT send reports about files that may contain PII, the report contains (a small) part of the file content!**
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
+
+
+## Frequently Asked Questions
+
+### Q: Why does Magika support "only" ~100 content types and not many more?
+
+Because we needed to start from somewhere. Magika is based on a new approach, and at first we did not know whether it would work not. It was prohibitively complex to aim to support all content types from the very beginning, and we aimed at selecting at least 100 content types (we settled with 110+). Which ones? The ones that seemed most relevant for most use cases (but, still, we miss many more!). Now that we know this approach works, we will be looking at improving content types coverage for the next iterations.
+
+
+### Q: Why does not Magika support content type X or Y?
+
+See previous question.
+
+But please open GitHub issues on what you want! Getting this sort of feedback was one main reason to open source an early version.
+
+
+### Q: What is the use case for the javascript package?
+
+The main client we expect people to use for this release is the Python client and Python API. The javascript package, based on a TFJS version of the same model, was developed for our [web demo](https://google.github.io/magika/), which allows users to test Magika and report feedback without installing anything. The demo also showcases on-device capabilities. The javascript package could also be useful for integrations that require javascript bindings. For now it is not envisioned to be used as a standalone command line (the model loading phase is quite slow), but it could be useful for those deployments where you can load the model once, and keep using it for many inferences.
+
+
+### Q: Where can I find more details about all this?
+
+We are releasing a paper later this year detailing how the Magika model was trained and the specifics about the model itself. We will also open source other components of this project (e.g., the keras model Python code). Stay tuned!
+
+
+### Q: The inference time is ~5ms but the Python CLI takes a few hundreds ms to bootstrap?
+
+Yes, but this is because the Python CLI needs to load the Python interpreter and various libraries, plus the model. For the future, we are considering other options (e.g., a Rust client).
+
+In the meantime, we believe the current release is already good enough for many use cases, including scanning thousands of files: you can pass them all as arguments in one single invocation, and the Python client (and API) will internally load the model only once and use batching to achieve fast inference speeds.
 
 
 ## Additional Resources

@@ -70,7 +70,7 @@ export class Magika {
    * Both parameters are optional. If not provided, the model will be loaded from Github.
    *
    */
-  async load({ modelURL, configURL }) {
+  async load({ modelURL, configURL } = {}) {
     modelURL = modelURL || "https://google.github.io/magika/model/model.json";
     configURL = configURL || "https://google.github.io/magika/model/config.json";
     this.config = new Config();

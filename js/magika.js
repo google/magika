@@ -3,7 +3,7 @@ import * as tf from "@tensorflow/tfjs";
 // Default content types that aren't emitted by the model directly.
 const ContentType = Object.freeze({
   EMPTY: "empty",
-  GENERIC_TEXT: "generic_text",
+  GENERIC_TEXT: "txt",
   UNKNOWN: "unknown",
 });
 

@@ -247,7 +247,7 @@ We are releasing a paper later this year detailing how the Magika model was trai
 
 ### Q: The inference time is ~5ms but the Python CLI takes a few hundreds ms to bootstrap?
 
-Yes, that's not ideal. Most of the overhead is actually due to the Python interpreter itself and loading the various libraries. For the future, we are considering other options (e.g., a Rust client).
+Yes, but this is because the Python CLI needs to load the Python interpreter and various libraries, plus the model. For the future, we are considering other options (e.g., a Rust client).
 
 In the meantime, we believe the current release is already good enough for many use cases, including scanning thousands of files: you can pass them all as arguments in one single invocation, and the Python client (and API) will internally load the model only once and use batching to achieve fast inference speeds.
 

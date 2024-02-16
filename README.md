@@ -1,14 +1,18 @@
 # Magika
 
-Magika is a new content type detection tool based on deep learning. Under the hood, Magika employs a custom, highly optimized deep-learning model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU. In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Internally, Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
+Magika is a novel AI powered file type detection tool that rely on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU. 
 
-See the accompanying [announcment post on Google'S OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html) for more context.
+In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
 
-Try Magika today with our [web demo](https://google.github.io/magika/), which runs locally in your browser!
 
+You can try Magika without anything by using our [web demo](https://google.github.io/magika/), which runs locally in your browser!
+
+Here is an example of what Magika command line output look like:
 <p align="center">
     <img src="./assets/magika-screenshot.png" width="600">
 </p>
+
+For more context you can read our initial [announcment post on Google'S OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html)
 
 
 ## Highlights
@@ -174,6 +178,9 @@ See [`./python/DOCS.md`](./python/DOCS.md) for detailed documentation.
 
 
 #### Experimental TFJS model & npm package
+
+We also provide Magika as an experimental package for people interested in using in a web app. 
+Note that Magika JS implementation performance is significantly slower and you should expect to spend 100ms+ per file.
 
 See [js documentation](./js/DOCS.md) for the details.
 

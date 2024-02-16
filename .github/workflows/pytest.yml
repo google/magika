@@ -5,6 +5,7 @@ on:
       - '**'
   pull_request:
     types: [opened, synchronize, reopened]
+    paths: [python]
 
 jobs:
   unittesting:

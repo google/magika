@@ -72,7 +72,7 @@ export class Magika {
    */
   async load({ modelURL, configURL }) {
     modelURL = modelURL || "https://google.github.io/magika/model/model.json";
-    configURL = configURL || "https://google.github.io/magika/model/model.json";
+    configURL = configURL || "https://google.github.io/magika/model/config.json";
     this.config = new Config();
     this.model = new Model();
     await Promise.all([this.config.load(configURL), this.model.load(modelURL)]);

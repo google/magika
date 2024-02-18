@@ -12,5 +12,5 @@ Ex. "HTML pages are being mistaken for generic XML files.", "C# code misdetected
 **Please  link or attatch the misdetected file below**
 Placeholder.zip
 
-**Anything else you want us to know?**
-Nope.
+**Additional context**
+Add any other context or screenshots about the feature request here.

@@ -33,6 +33,7 @@ Examples:
  - "https://blendermarket.com/categories/models, https://www.turbosquid.com/Search/3D-Models/marketplace/blend, https://sketchfab.com/store/3d-models/blend?ref=store-home"
  - "Any RPGMaker 2000/2003 game."
  - "[Unreal Marketplace](https://www.unrealengine.com/marketplace/en-US/store)"
+ - "placeholder.zip"
 
 **If possible, please provide a specification for this file type.**
 Examples:

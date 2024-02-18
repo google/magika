@@ -8,7 +8,6 @@ assignees: ''
 ---
 
 **What type of file would you like magika to detect?**
-
 Examples:
  - "Nintendo Binary Revolution RESource (.brres)"
  - "Valve Map Format file (.vmf)"
@@ -18,7 +17,6 @@ Examples:
  - "Unreal Engine Asset (.uasset)"
 
 **What software can create/open these files?**
-
 Examples:
  - "[BrawlCrate](https://github.com/soopercool101/BrawlCrate)"
  - "Valve Hammer Editor, included with any Source Engine game on Steam."
@@ -29,7 +27,6 @@ Examples:
  - "Any text editor."
 
 **Where can these files be found?**
-
 Examples:
  - "Dump the ISO of any of [these Wii games](https://wiki.vg-resource.com/BRRES#List_of_games_using_the_format)"
  - "Use [Crowbar](https://github.com/ZeqMacaw/Crowbar) to decompile the BSP files of any Source Engine game. Maybe use [GCFScape](https://nemstools.github.io/pages/GCFScape-Download.html) to extract even more BSPs from 'dir.vpk' files. Make your own in Hammer."
@@ -38,7 +35,6 @@ Examples:
  - "[Unreal Marketplace](https://www.unrealengine.com/marketplace/en-US/store)"
 
 **If possible, please provide a specification for this file type.**
-
 Examples:
  - "https://wiki.tockdom.com/wiki/BRRES_(File_Format), https://horizon.miraheze.org/wiki/.brres"
  - "https://developer.valvesoftware.com/wiki/VMF_(Valve_Map_Format)"

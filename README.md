@@ -12,7 +12,7 @@ Here is an example of what Magika command line output look like:
     <img src="./assets/magika-screenshot.png" width="600">
 </p>
 
-For more context you can read our initial [announcment post on Google'S OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html)
+For more context you can read our initial [announcement post on Google'S OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html)
 
 
 ## Highlights

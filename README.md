@@ -225,7 +225,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 ### Q: Why does Magika support "only" ~100 content types and not many more?
 
-Because we needed to start from somewhere. Magika is based on a new approach, and at first we did not know whether it would work not. It was prohibitively complex to aim to support all content types from the very beginning, and we aimed at selecting at least 100 content types (we settled with 110+). Which ones? The ones that seemed most relevant for most use cases (but, still, we miss many more!). Now that we know this approach works, we will be looking at improving content types coverage for the next iterations.
+Because we needed to start from somewhere. Magika is based on a new approach, and at first we did not know whether it would work or not. It was prohibitively complex to aim to support all content types from the very beginning, and we aimed at selecting at least 100 content types (we settled with 110+). Which ones? The ones that seemed most relevant for most use cases (but, still, we miss many more!). Now that we know this approach works, we will be looking at improving content types coverage for the next iterations.
 
 
 ### Q: Why does not Magika support content type X or Y?

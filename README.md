@@ -58,6 +58,16 @@ Magika is available as `magika` on PyPI:
 $ pip install magika
 ```
 
+### Running on Docker
+
+```
+git clone https://github.com/google/magika
+cd python
+docker build -t magika .
+docker run -it -v $path:/magika magika -r /magika
+
+Replace `$path` with target path
+```
 
 ### Usage
 

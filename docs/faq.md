@@ -64,7 +64,7 @@ We believe simple textual labels are better for automated workflows.
 [Do you disagree? Please open a GitHub issue and let's discuss! We are happy to hear feedback.]
 
 
-## Q: Does Magika returns additional metadata other than a content type label?
+## Q: Does Magika return additional metadata other than a content type label?
 
 Not at the moment.
 

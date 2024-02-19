@@ -1,8 +1,8 @@
 ---
-name: New file type request
-about: Suggest a new file type for Magika to detect
-title: "[NEW FILE TYPE REQUEST]"
-labels: 'Type: Enhancement'
+name: New content type request
+about: Suggest a new content type for Magika to detect
+title: "[NEW CONTENT TYPE REQUEST]"
+labels: 'missing content type'
 assignees: ''
 
 ---

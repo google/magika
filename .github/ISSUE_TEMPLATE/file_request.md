@@ -1,6 +1,6 @@
 ---
 name: New file type request
-description: Suggest a new file type for Magika to detect
+about: Suggest a new file type for Magika to detect
 title: "[NEW FILE TYPE REQUEST]"
 labels: 'Type: Enhancement'
 assignees: ''

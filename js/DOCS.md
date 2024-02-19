@@ -38,7 +38,7 @@ Loads the Magika model and config from URLs.
 
 #### Parameters
 
-*   `$0` **[Object][10]**&#x20;
+*   `$0` **[Object][10]**  (optional, default `{}`)
 
     *   `$0.modelURL` &#x20;
     *   `$0.configURL` &#x20;
@@ -83,14 +83,14 @@ Returns **any** A dictionary containing the top label, its score, and a list of 
 
 [7]: #parameters-2
 
-[8]: https://github.com/google/magika/blob/9c455d0700877410d1e77b3f3fa2450b95dff169/js/magika.js#L64-L197 "Source code on GitHub"
+[8]: https://github.com/google/magika/blob/b864ef667d34747b636f2db3b61ee31225275e81/js/magika.js#L64-L197 "Source code on GitHub"
 
-[9]: https://github.com/google/magika/blob/9c455d0700877410d1e77b3f3fa2450b95dff169/js/magika.js#L73-L79 "Source code on GitHub"
+[9]: https://github.com/google/magika/blob/b864ef667d34747b636f2db3b61ee31225275e81/js/magika.js#L73-L79 "Source code on GitHub"
 
 [10]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
 
 [11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
-[12]: https://github.com/google/magika/blob/9c455d0700877410d1e77b3f3fa2450b95dff169/js/magika.js#L86-L88 "Source code on GitHub"
+[12]: https://github.com/google/magika/blob/b864ef667d34747b636f2db3b61ee31225275e81/js/magika.js#L86-L88 "Source code on GitHub"
 
-[13]: https://github.com/google/magika/blob/9c455d0700877410d1e77b3f3fa2450b95dff169/js/magika.js#L95-L99 "Source code on GitHub"
+[13]: https://github.com/google/magika/blob/b864ef667d34747b636f2db3b61ee31225275e81/js/magika.js#L95-L99 "Source code on GitHub"

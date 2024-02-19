@@ -28,7 +28,7 @@ Simple usage in the browser:
 ```js
 import { Magika } from "magika";
 
-const someFile = new File(["# Hello I am a markdown file"], "hello.md");
+const file = new File(["# Hello I am a markdown file"], "hello.md");
 const fileBytes = new Uint8Array(await file.arrayBuffer());
 const magika = new Magika();
 await magika.load();

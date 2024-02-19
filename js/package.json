@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "bin": "TF_CPP_MIN_LOG_LEVEL=1 node index.js",
-    "make-docs": " documentation build magika.js -f md --github -o DOCS.md"
+    "make-docs": " documentation build magika.js -f md --github -o ../docs/js.md"
   },
   "bin": {
     "magika-js": "index.js"

@@ -55,7 +55,7 @@ We found that the same given content type can be associated to multiple MIME typ
 
 Another problem relates to content types that were initially not officially registered and that they were registered only later on. For example, Markdown was initially associated to `text/x-markdown` (the `x-` prefix is used for unofficial MIME types), but, later on, Markdown was registered and associated to `text/markdown`. The problem is that, when (and if) existing tools update their MIME types database, existing automated workflows would break.
 
-One last example that may unexpectedly break backward compatiblity is that tools such as `file` may change the outputted MIME type even for very popular content types. For example, recent versions of `file` started to output `application/vnd.microsoft.portable-executable` as MIME type for Windows PE executable files; previous versions were outputting `application/x-dosexec` or similar variations.
+One last example that may unexpectedly break backward compatibility is that tools such as `file` may change the outputted MIME type even for very popular content types. For example, recent versions of `file` started to output `application/vnd.microsoft.portable-executable` as MIME type for Windows PE executable files; previous versions were outputting `application/x-dosexec` or similar variations.
 
 The changing nature of MIME types and the relatively slow process of registration of new ones make MIME types challenging to be used for automated workflows.
 

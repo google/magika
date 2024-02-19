@@ -59,7 +59,7 @@
 
   <div class="text-h3 pt-6 mt-6">Libraries!</div>
   <div class="text-normal pt-3 pb-3 pr-3 pl-3">
-    You can use Magika in you
+    You can use Magika in your
     <a href="https://github.com/google/magika/tree/main/python">Python</a>
     code, or your
     <a href="https://github.com/google/magika/tree/main/js">JavaScript</a> (in

@@ -1,6 +1,6 @@
 # Magika
 
-Magika is a novel AI powered file type detection tool that rely on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU. 
+Magika is a novel AI powered file type detection tool that rely on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU.
 
 In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
 
@@ -28,7 +28,7 @@ For more context you can read our initial [announcement post on Google's OSS blo
 - Support three different prediction modes, which tweak the tolerance to errors: `high-confidence`, `medium-confidence`, and `best-guess`.
 - It's open source! (And more is yet to come.)
 
-For more details, see the documentation for the [python package](./python/README.md) (dev [docs](./python/DOCS.md)) and for the [js package](./js/README.md) (dev [docs](./js/DOCS.md)).
+For more details, see the documentation for the [python package](./docs/python.md) and for the [js package](./js/README.md) (dev [docs](./docs/js.md)).
 
 
 ## Table of Contents
@@ -109,7 +109,7 @@ $ magika code.py --json
 ]
 ```
 
-```bash
+```shell
 $ cat doc.ini | magika -
 -: INI configuration file (text)
 ```
@@ -158,7 +158,7 @@ Options:
   Send any feedback to magika-dev@google.com or via GitHub issues.
 ```
 
-See [`./python/DOCS.md`](./python/DOCS.md) for detailed documentation.
+See [python documentation](./docs/python.md) for detailed documentation.
 
 
 #### Python API
@@ -174,15 +174,15 @@ markdown
 ```
 
 
-See [`./python/DOCS.md`](./python/DOCS.md) for detailed documentation.
+See [python documentation](./docs/python.md) for detailed documentation.
 
 
 #### Experimental TFJS model & npm package
 
-We also provide Magika as an experimental package for people interested in using in a web app. 
+We also provide Magika as an experimental package for people interested in using in a web app.
 Note that Magika JS implementation performance is significantly slower and you should expect to spend 100ms+ per file.
 
-See [js documentation](./js/DOCS.md) for the details.
+See [js documentation](./docs/js.md) for the details.
 
 
 ## Development Setup
@@ -223,33 +223,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 ## Frequently Asked Questions
 
-### Q: Why does Magika support "only" ~100 content types and not many more?
-
-Because we needed to start from somewhere. Magika is based on a new approach, and at first we did not know whether it would work or not. It was prohibitively complex to aim to support all content types from the very beginning, and we aimed at selecting at least 100 content types (we settled with 110+). Which ones? The ones that seemed most relevant for most use cases (but, still, we miss many more!). Now that we know this approach works, we will be looking at improving content types coverage for the next iterations.
-
-
-### Q: Why does not Magika support content type X or Y?
-
-See previous question.
-
-But please open GitHub issues on what you want! Getting this sort of feedback was one main reason to open source an early version.
-
-
-### Q: What is the use case for the javascript package?
-
-The main client we expect people to use for this release is the Python client and Python API. The javascript package, based on a TFJS version of the same model, was developed for our [web demo](https://google.github.io/magika/), which allows users to test Magika and report feedback without installing anything. The demo also showcases on-device capabilities. The javascript package could also be useful for integrations that require javascript bindings. For now it is not envisioned to be used as a standalone command line (the model loading phase is quite slow), but it could be useful for those deployments where you can load the model once, and keep using it for many inferences.
-
-
-### Q: Where can I find more details about all this?
-
-We are releasing a paper later this year detailing how the Magika model was trained and the specifics about the model itself. We will also open source other components of this project (e.g., the keras model Python code). Stay tuned!
-
-
-### Q: The inference time is ~5ms but the Python CLI takes a few hundred ms to bootstrap?
-
-Yes, but this is because the Python CLI needs to load the Python interpreter and various libraries, plus the model. For the future, we are considering other options (e.g., a Rust client).
-
-In the meantime, we believe the current release is already good enough for many use cases, including scanning thousands of files: you can pass them all as arguments in one single invocation, and the Python client (and API) will internally load the model only once and use batching to achieve fast inference speeds.
+We have collected a number of FAQs [here](./docs/faq.md).
 
 
 ## Additional Resources

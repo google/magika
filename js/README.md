@@ -36,13 +36,13 @@ const prediction = await magika.identifyBytes(fileBytes);
 console.log(prediction);
 ```
 
-For more, see our [documentation](./DOCS.md).
+For more, see our [documentation](../docs/js.md).
 
 # Commmand-line tool
 
 Please use the official CLI (with `pip install magika`) as it's considerably faster than this one.
 Read more about that in the main [README](../README.md).
-This one, is useful to load the TensorflowJS model and see that it works as expected.
+This one is useful to load the TensorflowJS model and see that it works as expected.
 
 Install it with `npm install -g magika`. You can then run it by executing `magika-js <some files>`
 

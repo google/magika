@@ -27,3 +27,49 @@ We are releasing a paper later this year detailing how the Magika model was trai
 Yes, but this is because the Python CLI needs to load the Python interpreter and various libraries, plus the model. For the future, we are considering other options (e.g., a Rust client).
 
 In the meantime, we believe the current release is already good enough for many use cases, including scanning thousands of files: you can pass them all as arguments in one single invocation, and the Python client (and API) will internally load the model only once and use batching to achieve fast inference speeds.
+
+
+## Q: Magika returns the content type in a number of formats, which one should I use?
+
+If Magika's output is for human consumption, then the default verbose textual description should be fine (but, if you want, you can change the output format with CLI options, e.g., `--label`, `--jsonl`, ...).
+
+However, if you are using Magika for automated pipelines, we strongly suggest to use the simple textual label,`ct_label` (either by using `--label`, or by using `--jsonl` and parse out the `ct_label` field). Other verbose output (e.g., `file`'s magic) or MIME types have proved to be very painful to work with. See the following Q/A for more context.
+
+
+## Q: What is the problem with relying on type detectors' verbose textual description for automated workflows?
+
+Content type detectors' textual descriptions often change without considerations for backward compatibility issues.
+
+See for example [this commit](https://github.com/file/file/commit/a2756aa50fdf7d87ebb14002ffd7609373ea6839) from `file`, in which the textual output for `javascript` was slightly changed (from `Node.js script text executable` to `Node.js script executable`).
+
+These textual representations could also slightly differ even for the same content type, thus making the normalization process rather tedious and error-prone. For example, these are different variations on how an XML file can be recognized by `file`: `XML document`, `XML 1.0 document`, or `XML 1.0 document text`.
+
+Thus, this type of output is useful for human consumption, but it does not appear suitable for automated workflows.
+
+
+## Q: What is the problem with relying on MIME types for automated workflows?
+
+Despite the popularity of using MIME types to label content types, we have run into problems when performing our evaluation of existing tools.
+
+We found that the same given content type can be associated to multiple MIME types (e.g., `application/xml`, `text/xml`). The full mapping is often not available, and can change with time. This makes the mapping task tedious and error-prone.
+
+Another problem relates to content types that were initially not officially registered and that they were registered only later on. For example, Markdown was initially associated to `text/x-markdown` (the `x-` prefix is used for unofficial MIME types), but, later on, Markdown was registered and associated to `text/markdown`. The problem is that, when (and if) existing tools update their MIME types database, existing automated workflows would break.
+
+One last example that may unexpectedly break backward compatiblity is that tools such as `file` may change the outputted MIME type even for very popular content types. For example, recent versions of `file` started to output `application/vnd.microsoft.portable-executable` as MIME type for Windows PE executable files; previous versions were outputting `application/x-dosexec` or similar variations.
+
+The changing nature of MIME types and the relatively slow process of registration of new ones make MIME types challenging to be used for automated workflows.
+
+We believe simple textual labels are better for automated workflows.
+
+[Do you disagree? Please open a GitHub issue and let's discuss! We are happy to hear feedback.]
+
+
+## Q: Does Magika returns additional metadata other than a content type label?
+
+Not at the moment.
+
+For example, Magika classifies an ELF binary as `elf` and a Windows PE file as `pebin`, but it does not go into details about what specific kind of ELF it is dealing with (e.g., statically vs. dynamically linked).
+
+This version of Magika was developed as a filter for automated pipelines, and the high-level content type label is usually what is needed.
+
+We have plans to expore whether our approach can be extended to return finer-grained information, but this is currently not supported.

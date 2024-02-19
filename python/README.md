@@ -8,9 +8,13 @@ Please check out Magika on GitHub for more information and documentation: [https
 
 
 ## Installing Magika
+
 ```shell
 $ pip install magika
 ```
+
+If you intend to use Magika only as a command line, you may want to use `$ pipx install magika` instead.
+
 
 ## Using Magika as a command-line tool
 

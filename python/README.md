@@ -5,8 +5,14 @@ Use Magika as a command line client or in your Python code!
 Please check the full [README and documentation](../README.md)
 
 ## Installing Magika
+As a library:
 ```bash
 $ pip install magika
+```
+
+As a [command-line tool](#using-magika-as-a-command-line-tool) only:
+```bash
+$ pipx install magika
 ```
 
 ## Using Magika as a command-line tool

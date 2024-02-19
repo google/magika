@@ -86,6 +86,13 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     help="Compatibility mode: output is as close as possible to `file` and colors are disabled.",
 )
 @click.option(
+    "-e",
+    "--expected-exts",
+    "expected_extensions",
+    is_flag=True,
+    help="Output the expected file extension(s), in case the input extension is missing or incorrect.",
+)
+@click.option(
     "-s",
     "--output-score",
     is_flag=True,
@@ -145,6 +152,7 @@ def main(
     mime_output: bool,
     label_output: bool,
     magic_compatibility_mode: bool,
+    expected_extensions:bool,
     output_score: bool,
     prediction_mode_str: str,
     batch_size: int,
@@ -217,8 +225,8 @@ def main(
         _l.error("You should use either --json or --jsonl, not both.")
         sys.exit(1)
 
-    if int(mime_output) + int(label_output) + int(magic_compatibility_mode) > 1:
-        _l.error("You should use only one of --mime, --label, --compatibility-mode.")
+    if int(mime_output) + int(label_output) + int(magic_compatibility_mode) + int(expected_extensions) > 1:
+        _l.error("You should use only one of --mime, --label, --compatibility-mode, --expected-exts.")
         sys.exit(1)
 
     if recursive:
@@ -312,6 +320,8 @@ def main(
                     output = magika_result.output.mime_type
                 elif label_output:
                     output = magika_result.output.ct_label
+                elif expected_extensions:
+                    output = magika_result.output.expected_exts
                 elif magic_compatibility_mode:
                     output = magika_result.output.magic
                 else:  # human-readable description

@@ -509,6 +509,8 @@ class Magika:
         )
         output_description = self._ctm.get_description(output_ct_label)
 
+        expected_exts = self._ctm.get_exts(output_ct_label)
+
         magika_result = MagikaResult(
             path=str(path),
             dl=ModelOutputFields(
@@ -526,6 +528,7 @@ class Magika:
                 mime_type=output_mime_type,
                 magic=output_magic,
                 description=output_description,
+                expected_exts = expected_exts
             ),
         )
 

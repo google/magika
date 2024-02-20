@@ -429,7 +429,7 @@ def print_output_content_types_list() -> None:
     ctm = ContentTypesManager()
     content_types = ctm.get_output_content_types()
 
-    headers = ["#", "Content Type Label", "MIME Type", "Description"]
+    headers = ["#", "Content Type Label", "Description"]
     rows = []
     for ct_idx, ct in enumerate(content_types):
         row = [

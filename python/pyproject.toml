@@ -10,7 +10,10 @@ packages = [{include = "magika"}]
 python = "^3.8,<=3.12"
 click = "^8.1.3"
 tqdm = "^4.64.1"
-onnxruntime = "^1.15.1"
+onnxruntime = [
+    {version = "~1.15.1", python = ">=3.8,<3.12"},
+    {version = "^1.17.0", python = ">=3.12"}
+]
 numpy = [
     {version = "~1.24.4", python = ">=3.8,<3.12"},
     {version = "^1.26.0", python = ">=3.12"}

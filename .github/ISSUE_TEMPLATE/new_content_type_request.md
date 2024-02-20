@@ -22,7 +22,7 @@ Examples:
  - "Valve Hammer Editor, included with any Source Engine game on Steam."
  - "[Blender](https://www.blender.org/download/)"
  - "[RPG Maker 2003](https://www.rpgmakerweb.com/products/rpg-maker-2003), [easyRPG](https://easyrpg.org/), Wolf RPG Editor"
- - "Many 3D modleing softwares."
+ - "Many 3D modeling softwares."
  - "[Unreal Engine](https://www.unrealengine.com/en-US)"
  - "Any text editor."
 

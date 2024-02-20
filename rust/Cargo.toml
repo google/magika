@@ -1,0 +1,14 @@
+[package]
+name = "magika"
+version = "0.0.0"
+authors = [
+  "Yanick Fratantonio <yanickf@google.com>",
+  "Julien Cretin <cretin@google.com>",
+]
+license = "Apache-2.0"
+edition = "2021"
+description = "A tool to determine the content type of a file with deep-learning"
+repository = "https://github.com/google/magika"
+homepage = "https://google.github.io/magika/"
+keywords = ["cli", "file", "magic"]
+categories = ["command-line-utilities", "filesystem", "parser-implementations"]

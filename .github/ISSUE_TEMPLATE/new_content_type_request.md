@@ -2,7 +2,7 @@
 name: New content type request
 about: Suggest a new content type for Magika to detect
 title: "[NEW CONTENT TYPE REQUEST]"
-labels: 'missing content type'
+labels: missing content type, needs triage
 assignees: ''
 
 ---

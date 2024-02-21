@@ -151,7 +151,7 @@ class Magika:
 
     def _init_onnx_session(self) -> rt.InferenceSession:
         start_time = time.time()
-        onnx_session = rt.InferenceSession(self._model_path, providers=['AzureExecutionProvider', 'CPUExecutionProvider'])
+        onnx_session = rt.InferenceSession(self._model_path, providers=['CPUExecutionProvider'])
         elapsed_time = time.time() - start_time
         self._log.debug(
             f'ONNX DL model "{self._model_path}" loaded in {elapsed_time:.03f} seconds'

@@ -20,7 +20,7 @@ For more context you can read our initial [announcement post on Google's OSS blo
 - Available as a Python command line, a Python API, and an experimental TFJS version (which powers our [web demo](https://google.github.io/magika/)).
 - Trained on a dataset of over 25M files across more than 100 content types.
 - On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
-- More than 100 content types (see [full list](./docs/supported-content-types-list.md)).
+- More than 100 content types (see [full list](./docs/supported_content_types_list.md)).
 - After the model is loaded (this is a one-off overhead), the inference time is about 5ms per file.
 - Batching: You can pass to the command line and API multiple files at the same time, and Magika will use batching to speed up the inference time. You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.
 - Near-constant inference time independently from the file size; Magika only uses a limited subset of the file's bytes.
@@ -40,6 +40,7 @@ For more details, see the documentation for the [python package](./docs/python.m
         1. [Python API](#python-api)
         1. [Experimental TFJS model & npm package](#experimental-tfjs-model--npm-package)
 1. [Development Setup](#development-setup)
+1. [Important Documentation](#important-documentation)
 1. [Known Limitations & Contributing](#known-limitations--contributing)
 1. [Frequently Asked Questions](#frequently-asked-questions)
 1. [Additional Resources](#additional-resources)
@@ -203,6 +204,15 @@ $ cd magika/python
 $ poetry shell
 $ pytest tests/
 ```
+
+
+## Important Documentation
+
+- [Documentation about the CLI](./docs/command_line_interface.md)
+- [Documentation about the bindings for different languages](./docs/bindings.md)
+- [List of supported content types (for v1, more to come).](./docs/supported_content_types_list.md)
+- [Documentation on how to interpret Magika's output.](./docs/magika_output.md)
+- [Frequently Asked Questions](./docs/faq.md)
 
 
 ## Known Limitations & Contributing

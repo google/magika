@@ -29,4 +29,4 @@ The `Magika` object exposes three methods:
 
 If you are dealing with big files, the `identify_path` and `identify_paths` variants are generally better: their implementation `seek()` around the file to extract the needed features, without loading the entire content in memory.
 
-These API returns an object of type [`MagikaResult`](./magika/types.py), which exposes the same information discussed above in the "Detailed output format" section.
+These API returns an object of type [`MagikaResult`](./magika/types.py), which exposes the same information discussed in the [Magika's output documentation](./magika_output.md).

@@ -16,7 +16,7 @@ import json
 import random
 import string
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 from magika.content_types import ContentTypesManager
 from magika.types import (
@@ -174,7 +174,7 @@ def check_magika_cli_output_matches_expected_by_ext(
 
 def get_magika_cli_output_from_stdout_stderr(
     stdout: str, stderr: str, **kwargs: Any
-) -> List[Tuple[Path, Dict[str, Any] | str]]:
+) -> List[Tuple[Path, Union[Dict[str, Any], str]]]:
     json_output = kwargs.get("json_output", False)
     jsonl_output = kwargs.get("jsonl_output", False)
     output_score = kwargs.get("output_score", False)

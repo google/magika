@@ -72,4 +72,4 @@ For example, Magika classifies an ELF binary as `elf` and a Windows PE file as `
 
 This version of Magika was developed as a filter for automated pipelines, and the high-level content type label is usually what is needed.
 
-We have plans to expore whether our approach can be extended to return finer-grained information, but this is currently not supported.
+We have plans to explore whether our approach can be extended to return finer-grained information, but this is currently not supported.

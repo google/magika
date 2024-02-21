@@ -1,6 +1,8 @@
 # How to Contribute
 
-We would love to accept your patches and contributions to this project.
+We would love to accept your patches and contributions to this project!
+
+Check [open issues labeled as "help wanted"](https://github.com/google/magika/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) as a starting point.
 
 ## Before you begin
 

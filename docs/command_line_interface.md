@@ -1,6 +1,8 @@
-## Command Line Documentation
+# Command Line Interface Documentation
 
-Magika takes one or more files as arguments, and a number of CLI options.
+Magika ships with a CLI (currently written in Python), but we do have bindings/libraries/APIs for automated workflows. See [here](./bindings.md) for the full list.
+
+Magika CLI takes one or more files as arguments, and a number of options.
 
 ```help
 $ magika -h
@@ -55,3 +57,59 @@ Here are more details for some of the non-trivial options:
 - `-s, --output-score`: output a string that resembles what `file` would output (best-effort).
 - `-m, --prediction-mode`: Magika uses the deep learning model to perform content type inference, and it then determines whether the prediction should be considered as valid. This option tweaks the required confidence to output a prediction: `high-confidence` (the default), uses per-content-type thresholds that aim for high precision; `medium-confidence` uses a much lower number as the required confidence; `best-guess` outputs whatever content type has the highest score. You may want to use one or another mode depending on your deployment scenario.
 - `--generate-report`: if you have a misdetection and would like to report it (Thank you!), you can use this option to generate a report that you can include in the github issue. **Do NOT send reports that may contain PII, the report contains (a small) part of the file!**
+
+
+## Examples
+
+```shell
+$ magika -r tests_data/
+tests_data/README.md: Markdown document (text)
+tests_data/basic/code.asm: Assembly (code)
+tests_data/basic/code.c: C source (code)
+tests_data/basic/code.css: CSS source (code)
+tests_data/basic/code.js: JavaScript source (code)
+tests_data/basic/code.py: Python source (code)
+tests_data/basic/code.rs: Rust source (code)
+...
+tests_data/mitra/7-zip.7z: 7-zip archive data (archive)
+tests_data/mitra/bmp.bmp: BMP image data (image)
+tests_data/mitra/bzip2.bz2: bzip2 compressed data (archive)
+tests_data/mitra/cab.cab: Microsoft Cabinet archive data (archive)
+tests_data/mitra/elf.elf: ELF executable (executable)
+tests_data/mitra/flac.flac: FLAC audio bitstream data (audio)
+...
+```
+
+```shell
+$ cat doc.ini | magika -
+-: INI configuration file (text)
+```
+
+```shell
+$ magika code.py --json
+[
+    {
+        "path": "code.py",
+        "dl": {
+            "ct_label": "python",
+            "score": 0.9940916895866394,
+            "group": "code",
+            "mime_type": "text/x-python",
+            "magic": "Python script",
+            "description": "Python source"
+        },
+        "output": {
+            "ct_label": "python",
+            "score": 0.9940916895866394,
+            "group": "code",
+            "mime_type": "text/x-python",
+            "magic": "Python script",
+            "description": "Python source"
+        }
+    }
+]
+```
+
+## Magika Output Documentation
+
+See the [Magika output documentation](./magika_output.md) on how to interpret and use the output.

@@ -1,6 +1,8 @@
 [package]
 name = "magika"
-version = "0.0.0"
+# TODO(release): Remove -dev to release. But don't release before addressing all TODO(release) in
+# the rust directory: `git grep 'TODO(release)' -- rust` to get a list from the root.
+version = "0.1.0-dev"
 authors = [
   "Yanick Fratantonio <yanickf@google.com>",
   "Julien Cretin <cretin@google.com>",
@@ -12,3 +14,20 @@ repository = "https://github.com/google/magika"
 homepage = "https://google.github.io/magika/"
 keywords = ["cli", "file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
+
+[[bin]]
+name = "magika"
+required-features = ["bin-dependencies"]
+
+[dependencies]
+anyhow = { version = "1.0.80", optional = true }
+clap = { version = "4.5.1", features = ["derive"], optional = true }
+ndarray = "0.15.1"
+onnxruntime = "0.0.14"
+sealed = "0.5.0"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+thiserror = "1.0.57"
+
+[features]
+bin-dependencies = ["dep:anyhow", "dep:clap"]

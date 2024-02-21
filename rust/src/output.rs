@@ -12,23 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! A tool to determine the content type of a file with deep-learning.
-//!
-//! TODO(release): Add some description and possibly disclaimer about readiness.
+/// The result of a file type identification.
+pub struct MagikaOutput {
+    pub(crate) label: String,
+    pub(crate) score: f32,
+}
 
-#![forbid(unsafe_code)]
-#![warn(missing_docs, unreachable_pub, unused)]
+impl MagikaOutput {
+    /// Returns the most probable label.
+    pub fn label(&self) -> &str {
+        &self.label
+    }
 
-pub use crate::builder::MagikaBuilder;
-use crate::config::MagikaConfig;
-pub use crate::error::{MagikaError, MagikaResult};
-pub use crate::input::MagikaInput;
-pub use crate::output::MagikaOutput;
-pub use crate::session::MagikaSession;
-
-mod builder;
-mod config;
-mod error;
-mod input;
-mod output;
-mod session;
+    /// Returns the score, between 0 and 1, of most probable label.
+    pub fn score(&self) -> f32 {
+        self.score
+    }
+}

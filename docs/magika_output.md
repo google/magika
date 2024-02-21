@@ -1,4 +1,4 @@
-# Magika's Output Documentation
+# Magika Output Documentation
 
 When using `--json` or `--jsonl`, Magika returns the following information:
 ```shell

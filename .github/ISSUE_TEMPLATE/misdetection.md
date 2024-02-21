@@ -1,8 +1,10 @@
 ---
 name: Misdetection
-about: Report a file, or files, that have been misdetected as something that they aren't.
+about: Report a file, or files, that have been misdetected as something that they
+  aren't.
 title: "[Misdetection] <file> file misdetected as <file type>"
-labels: 'misdetection'
+labels: misdetection, needs triage
+assignees: ''
 
 ---
 

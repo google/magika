@@ -2,7 +2,7 @@
 name: New content type request
 about: Suggest a new content type for Magika to detect
 title: "[NEW CONTENT TYPE REQUEST]"
-labels: 'missing content type'
+labels: missing content type, needs triage
 assignees: ''
 
 ---
@@ -22,14 +22,14 @@ Examples:
  - "Valve Hammer Editor, included with any Source Engine game on Steam."
  - "[Blender](https://www.blender.org/download/)"
  - "[RPG Maker 2003](https://www.rpgmakerweb.com/products/rpg-maker-2003), [easyRPG](https://easyrpg.org/), Wolf RPG Editor"
- - "Many 3D modleing softwares."
+ - "Many 3D modeling softwares."
  - "[Unreal Engine](https://www.unrealengine.com/en-US)"
  - "Any text editor."
 
 **Where can these files be found?**
 Examples:
  - "Dump the ISO of any of [these Wii games](https://wiki.vg-resource.com/BRRES#List_of_games_using_the_format)"
- - "Use [Crowbar](https://github.com/ZeqMacaw/Crowbar) to decompile the BSP files of any Source Engine game. Maybe use [GCFScape](https://nemstools.github.io/pages/GCFScape-Download.html) to extract even more BSPs from 'dir.vpk' files. Make your own in Hammer."
+ - "Use [bspsrc](https://github.com/ata4/bspsrc) to decompile the BSP files of any Source Engine game. Use [GCFScape](https://nemstools.github.io/pages/GCFScape-Download.html) to extract even more BSPs from 'dir.vpk' files. Make your own with Hammer."
  - "https://blendermarket.com/categories/models, https://www.turbosquid.com/Search/3D-Models/marketplace/blend, https://sketchfab.com/store/3d-models/blend?ref=store-home"
  - "Any RPGMaker 2000/2003 game."
  - "[Unreal Marketplace](https://www.unrealengine.com/marketplace/en-US/store)"
@@ -43,7 +43,7 @@ Examples:
  - "https://gota7.github.io/NitroStudio2/specs/sequenceArchive.html"
  - "http://www.amnoid.de/gc/Rarc.txt, https://kuribo64.net/wiki/?page=RARC, https://wiki.tockdom.com/wiki/RARC_(File_Format)"
  - "https://www.3dbrew.org/wiki/CGFX, https://mk3ds.com/index.php?title=CGFX_(File_Format)"
- - "https://mk8.tockdom.com/wiki/BFRES_(File_Format)", https://wiki.vg-resource.com/BFRES, https://wiki.oatmealdome.me/BFRES_(File_Format)"
+ - "https://mk8.tockdom.com/wiki/BFRES_(File_Format), https://wiki.vg-resource.com/BFRES, https://wiki.oatmealdome.me/BFRES_(File_Format)"
  
 **Additional context**
 Add any other context or screenshots about the feature request here.

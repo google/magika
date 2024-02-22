@@ -10,6 +10,7 @@ https://github.com/irgeek/StrEnum/blob/master/strenum/__init__.py#L21
 from __future__ import annotations
 
 import enum
+from typing import Union
 
 
 class StrEnum(str, enum.Enum):
@@ -29,7 +30,7 @@ class StrEnum(str, enum.Enum):
         assert Example.MixedCase == "MixedCase"
     """
 
-    def __new__(cls, value: str | StrEnum, *args, **kwargs):
+    def __new__(cls, value: Union[str, StrEnum], *args, **kwargs):
         if not isinstance(value, (str, enum.auto)):
             raise TypeError(
                 f"Values of StrEnums must be strings: {value!r} is a {type(value)}"

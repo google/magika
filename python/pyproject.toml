@@ -9,11 +9,11 @@ packages = [{include = "magika"}]
 [tool.poetry.dependencies]
 python = "^3.8,<3.13"
 click = "^8.1.3"
-tqdm = "^4.64.1"
+tqdm = "^4.66.2"
 onnxruntime = "^1.17.0"
 numpy = [
     {version = "^1.24", python = ">=3.8,<3.9"},
-    {version = "^1.26", python = ">=3.9"}
+    {version = "^1.26", python = ">=3.9,<3.13"}
 ]
 tabulate = "^0.9.0"
 python-dotenv = "^1.0.1"
@@ -22,8 +22,12 @@ python-dotenv = "^1.0.1"
 magika = "magika.cli.magika:main"
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=7.4,<9.0"
-ipython = "^8.10.0"
+pytest = "^8.0.1"
+ipython = [
+    {version = "^8.12.3", python = ">=3.8,<3.9"},
+    {version = "^8.18.1", python = ">=3.9,<3.10"},
+    {version = "^8.21.0", python = ">=3.10,<3.12"}
+]
 ruff = "^0.2.1"
 mypy = "^1.8.0"
 

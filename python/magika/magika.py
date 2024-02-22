@@ -31,6 +31,7 @@ from magika.types import (
     MagikaOutputFields,
     MagikaResult,
     ModelFeatures,
+    ModelFeaturesV2,
     ModelOutput,
     ModelOutputFields,
 )
@@ -152,7 +153,9 @@ class Magika:
 
     def _init_onnx_session(self) -> rt.InferenceSession:
         start_time = time.time()
-        onnx_session = rt.InferenceSession(self._model_path, providers=['CPUExecutionProvider'])
+        onnx_session = rt.InferenceSession(
+            self._model_path, providers=["CPUExecutionProvider"]
+        )
         elapsed_time = time.time() - start_time
         self._log.debug(
             f'ONNX DL model "{self._model_path}" loaded in {elapsed_time:.03f} seconds'
@@ -419,6 +422,98 @@ class Magika:
             )
 
         return ModelFeatures(beg=beg_ints, mid=mid_ints, end=end_ints)
+
+    def _extract_features_from_path_v2(
+        self,
+        file_path: Path,
+        beg_size: Optional[int] = None,
+        mid_size: Optional[int] = None,
+        end_size: Optional[int] = None,
+        padding_token: Optional[int] = None,
+        block_size: Optional[int] = None,
+    ) -> ModelFeaturesV2:
+        beg_size = beg_size if beg_size is not None else self._input_sizes["beg"]
+        mid_size = mid_size if mid_size is not None else self._input_sizes["mid"]
+        end_size = end_size if end_size is not None else self._input_sizes["end"]
+        padding_token = (
+            padding_token if padding_token is not None else self._padding_token
+        )
+        block_size = block_size if block_size is not None else self._block_size
+
+        mf = self._extract_features_from_path(
+            file_path=file_path,
+            beg_size=beg_size,
+            mid_size=mid_size,
+            end_size=end_size,
+            padding_token=padding_token,
+            block_size=block_size,
+        )
+
+        file_size = file_path.stat().st_size
+        with open(file_path, "rb") as f:
+            if file_size < 0x8008:
+                offset_0x8000_0x8007 = [padding_token] * 8
+                offset_0x9800_0x9807 = [padding_token] * 8
+            elif 0x8008 <= file_size < 0x9808:
+                f.seek(0x8000)
+                offset_0x8000_0x8007 = list(map(int, f.read(8)))
+                offset_0x9800_0x9807 = [padding_token] * 8
+            else:  # file_size >= 0x9808
+                f.seek(0x8000)
+                offset_0x8000_0x8007 = list(map(int, f.read(8)))
+                f.seek(0x9800)
+                offset_0x9800_0x9807 = list(map(int, f.read(8)))
+
+        return ModelFeaturesV2(
+            beg=mf.beg,
+            mid=mf.mid,
+            end=mf.end,
+            offset_0x8000_0x8007=offset_0x8000_0x8007,
+            offset_0x9800_0x9807=offset_0x9800_0x9807,
+        )
+
+    def _extract_features_from_bytes_v2(
+        self,
+        content: bytes,
+        beg_size: Optional[int] = None,
+        mid_size: Optional[int] = None,
+        end_size: Optional[int] = None,
+        padding_token: Optional[int] = None,
+        block_size: Optional[int] = None,
+    ) -> ModelFeaturesV2:
+        beg_size = beg_size if beg_size is not None else self._input_sizes["beg"]
+        mid_size = mid_size if mid_size is not None else self._input_sizes["mid"]
+        end_size = end_size if end_size is not None else self._input_sizes["end"]
+        padding_token = (
+            padding_token if padding_token is not None else self._padding_token
+        )
+        block_size = block_size if block_size is not None else self._block_size
+
+        mf = self._extract_features_from_bytes(
+            content=content,
+            beg_size=beg_size,
+            mid_size=mid_size,
+            end_size=end_size,
+            padding_token=padding_token,
+            block_size=block_size,
+        )
+        if len(content) < 0x8008:
+            offset_0x8000_0x8007 = [padding_token] * 8
+            offset_0x9800_0x9807 = [padding_token] * 8
+        elif 0x8008 <= len(content) < 0x9808:
+            offset_0x8000_0x8007 = list(map(int, content[0x8000:0x8008]))
+            offset_0x9800_0x9807 = [padding_token] * 8
+        else:  # len(content) >= 0x9808
+            offset_0x8000_0x8007 = list(map(int, content[0x8000:0x8008]))
+            offset_0x9800_0x9807 = list(map(int, content[0x9800:0x9808]))
+
+        return ModelFeaturesV2(
+            beg=mf.beg,
+            mid=mf.mid,
+            end=mf.end,
+            offset_0x8000_0x8007=offset_0x8000_0x8007,
+            offset_0x9800_0x9807=offset_0x9800_0x9807,
+        )
 
     @staticmethod
     def _get_beg_ints_with_padding(

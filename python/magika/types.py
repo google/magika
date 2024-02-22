@@ -27,6 +27,17 @@ class ModelFeatures:
 
 
 @dataclass
+class ModelFeaturesV2:
+    beg: List[int]
+    mid: List[int]
+    end: List[int]
+    # for ISO
+    offset_0x8000_0x8007: List[int]
+    # for UDF
+    offset_0x9800_0x9807: List[int]
+
+
+@dataclass
 class ModelOutput:
     ct_label: str
     score: float

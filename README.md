@@ -35,6 +35,7 @@ For more details, see the documentation for the [python package](./docs/python.m
 
 1. [Getting Started](#getting-started)
     1. [Installation](#installation)
+    1. [Running on Docker](#running-in-docker)
     1. [Usage](#usage)
         1. [Python command line](#python-command-line)
         1. [Python API](#python-api)
@@ -59,15 +60,13 @@ Magika is available as `magika` on PyPI:
 $ pip install magika
 ```
 
-### Running on Docker
+### Running in Docker
 
 ```
 git clone https://github.com/google/magika
-cd python
+cd magika/
 docker build -t magika .
-docker run -it -v $path:/magika magika -r /magika
-
-Replace `$path` with target path
+docker run -it --rm -v $(pwd):/magika magika -r /magika/tests_data
 ```
 
 ### Usage

@@ -5,7 +5,10 @@ FROM python:${PYTHON_VERSION}-slim as base
 
 WORKDIR /magika
 
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install magika
+# This requires buildx
+# RUN --mount=type=cache,target=/root/.cache/pip \
+#     pip install magika
+
+RUN pip install magika
 
 ENTRYPOINT ["magika"]

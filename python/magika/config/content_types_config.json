@@ -2950,7 +2950,7 @@
         "parent": null,
         "tags": [],
         "model_target_label": null,
-        "target_label": null,
+        "target_label": "pebin",
         "correct_labels": [],
         "in_scope_for_output_content_type": true,
         "in_scope_for_training": false

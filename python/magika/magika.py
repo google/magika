@@ -62,6 +62,7 @@ class Magika:
         self._min_file_size_for_dl = self._magika_config["min_file_size_for_dl"]
         # Which integer we use to indicate padding
         self._padding_token = self._magika_config["padding_token"]
+        self._block_size = self._magika_config["block_size"]
 
         if verbose:
             self._log.setLevel(logging.INFO)
@@ -227,25 +228,16 @@ class Magika:
         mid_size: Optional[int] = None,
         end_size: Optional[int] = None,
         padding_token: Optional[int] = None,
+        block_size: Optional[int] = None,
     ) -> ModelFeatures:
-        # Note: it is critical that this reflects exactly how we are extracting
-        # features for training.
+        """Note: the way we extract features is somehow convoluted, the reason
+        being that we need to reflect how we extracted features for training
+        (during which we did not consider efficiency aspects).
 
-        # Ideally, we should seek around the file instead of reading the full
-        # content. In practice, however, this is not trivial as we need to strip
-        # whitespace-like characters first. Now, it's possible to code something
-        # like this in a simple way, but it turns out it's challenging to write
-        # a seek-only algorithm that is 100% the same as how we extracted
-        # features during training. For example, consider a 129-byte file with
-        # 128 ASCII letters + a space, and beg feature size of 512. Let's say
-        # you read the first 129 characters, the question is: what should you do
-        # with the trailing space? We know we should strip it, but that's the
-        # case only because it's the end of the file and there are no other
-        # non-whitespace characters left. In the general case, this means we
-        # would need to read more bytes (more than 129) to determine what to do
-        # with the trailing space (whether to keep it or to strip + consider it
-        # as padding).  For all these reasons, for now we implement the exact
-        # clone of what we do for features extraction, even if not ideal.
+        If it is the first time you look at this code, you may first want to
+        read the code and comment of "_extract_features_from_bytes()", which is
+        an alternative (but in essence equivalent) implementation.
+        """
 
         if beg_size is None:
             beg_size = self._input_sizes["beg"]
@@ -255,72 +247,67 @@ class Magika:
             end_size = self._input_sizes["end"]
         if padding_token is None:
             padding_token = self._padding_token
+        if block_size is None:
+            block_size = self._block_size
 
         assert beg_size <= 512
         assert mid_size <= 512
         assert end_size <= 512
 
-        block_size = 4096
-
         file_size = file_path.stat().st_size
 
-        if file_size < 2 * block_size:
+        if file_size < (2 * block_size + mid_size):
             # fast path for small files
             with open(file_path, "rb") as f:
                 content = f.read()
             return self._extract_features_from_bytes(
-                content, beg_size, mid_size, end_size, padding_token
+                content, beg_size, mid_size, end_size, padding_token, block_size
             )
         else:
             # avoid reading the entire file
             with open(file_path, "rb") as f:
                 if beg_size > 0:
-                    beg_full = f.read(block_size)
-                    beg_full_orig_size = len(beg_full)
-                    beg_full = beg_full.lstrip()
-                    beg_trimmed_size = beg_full_orig_size - len(beg_full)
-                    if len(beg_full) < beg_size:
-                        # Note that this is an approximation with respect what we do
-                        # at feature extraction. What we do is different if, for
-                        # example, the first two blocks of content are whitespaces:
-                        # for feature extraction, we would keep reading content,
-                        # while here we stop after two blocks.
-                        beg_full += f.read(block_size)
-                    beg = beg_full[:beg_size]
+                    beg_content = f.read(block_size)
+                    beg_content = beg_content.lstrip()
+                    beg_trimmed_size = block_size - len(beg_content)
+                    if len(beg_content) < beg_size:
+                        # We need more bytes, let's read more
+                        beg_content += f.read(block_size)
                 else:
-                    beg = b""
+                    beg_content = b""
                     beg_trimmed_size = 0
 
                 if end_size > 0:
                     f.seek(-block_size, 2)  # whence = 2: end of the file
-                    end_full = f.read(block_size)
-                    end_full_orig_size = len(end_full)
-                    end_full = end_full.rstrip()
-                    end_trimmed_size = end_full_orig_size - len(end_full)
-                    if len(end_full) < end_size:
+                    end_content = f.read(block_size)
+                    end_content = end_content.rstrip()
+                    end_trimmed_size = block_size - len(end_content)
+                    if len(end_content) < end_size:
                         # Same as above
                         f.seek(-2 * block_size, 2)  # whence = 2: end of the file
-                        end_full = f.read(block_size) + end_full
-                    end = end_full[-end_size:]
+                        end_content = f.read(block_size) + end_content
                 else:
-                    end = b""
+                    end_content = b""
                     end_trimmed_size = 0
 
                 if mid_size > 0:
-                    mid_idx = (file_size - beg_trimmed_size - end_trimmed_size) // 2
+                    trimmed_file_size = file_size - beg_trimmed_size - end_trimmed_size
+                    mid_idx = beg_trimmed_size + trimmed_file_size // 2
                     mid_left_idx = mid_idx - mid_size // 2
                     f.seek(mid_left_idx, 0)  # whence = 0: start of the file
-                    mid = f.read(mid_size)
+                    mid_full = f.read(mid_size)
                 else:
-                    mid = b""
+                    mid_full = b""
 
-            beg_ints = list(map(int, beg))
-            mid_ints = list(map(int, mid))
-            end_ints = list(map(int, end))
-
-        assert len(beg_ints) == beg_size
-        assert len(mid_ints) == mid_size
-        assert len(end_ints) == end_size
+            beg_ints = Magika._get_beg_ints_with_padding(
+                beg_content, beg_size, padding_token
+            )
+            mid_ints = Magika._get_mid_ints_with_padding(
+                mid_full, mid_size, padding_token
+            )
+            end_ints = Magika._get_end_ints_with_padding(
+                end_content, end_size, padding_token
+            )
 
         return ModelFeatures(beg=beg_ints, mid=mid_ints, end=end_ints)
 
@@ -331,7 +318,32 @@ class Magika:
         mid_size: Optional[int] = None,
         end_size: Optional[int] = None,
         padding_token: Optional[int] = None,
+        block_size: Optional[int] = None,
     ) -> ModelFeatures:
+        """This implements the features extraction. The "from bytes" (this one)
+        and the "from paths" are alternative, but equivalent implementations.
+        Both these implementations aim at having a bounded time for features
+        extraction, regardless of the size of the input content.
+
+        Intuitively, the algorithm works as follows:
+        - for "beg bytes": consider "content", strip at most "block_size"
+        from the beginning, and take beg_size bytes. If you don't have enough
+        remaining bytes, then suffix the existing bytes with padding.
+        - for "end bytes": consider "content", strip at most "block_size"
+        from the end, and take end_size bytes. If you don't have enough remaining
+        bytes, then prefix the existing bytes with padding.
+        - for "mid bytes": we want to extract features from the middle part of the
+        content, centered in a way that we consider how many bytes we trimmed from
+        the beginning and from the end. Again, if we don't have enough bytes, we use
+        padding, this time on the left and the right of the bytes we have.
+
+        The implementation for beg and end is quite simple, but the one for middle
+        could be made easier. At the moment we leave it as is because we need to
+        live with "how we extracted the features during training"... which was very
+        easy to code, but did not consider "can we implement this
+        in an efficient way for inference?" So for now we stick to it.
+        """
+
         if beg_size is None:
             beg_size = self._input_sizes["beg"]
         if mid_size is None:
@@ -340,56 +352,144 @@ class Magika:
             end_size = self._input_sizes["end"]
         if padding_token is None:
             padding_token = self._padding_token
+        if block_size is None:
+            block_size = self._block_size
 
         assert beg_size <= 512
         assert mid_size <= 512
         assert end_size <= 512
 
-        content = content.strip()
+        assert beg_size == mid_size
+        assert beg_size == end_size
 
-        if beg_size > 0:
-            if beg_size < len(content):
-                # we have enough bytes, no need for padding
-                beg_ints = list(map(int, content[:beg_size]))
-            else:
-                padding_size = beg_size - len(content)
-                beg_ints = list(map(int, content)) + ([padding_token] * padding_size)
+        # If the content is big enough, the implementation of the above becomes
+        # much simpler. Here, we check that we can safely strip a full
+        # "block_size" from the beginning AND the end, and still have enough
+        # bytes to extract a middle portion without checking for too many corner
+        # cases.
+        if len(content) >= (2 * block_size + mid_size):
+            # extract beg features
+            trimmed_first_block = content[0:block_size].lstrip()
+            second_block = content[block_size : 2 * block_size]
+            beg_content = trimmed_first_block + second_block
+            beg_ints = Magika._get_beg_ints_with_padding(
+                beg_content, beg_size, padding_token
+            )
+
+            # extract end features
+            trimmed_last_block = content[
+                len(content) - block_size : len(content)
+            ].rstrip()
+            second_to_last_block = content[
+                len(content) - 2 * block_size : len(content) - block_size
+            ]
+            end_content = second_to_last_block + trimmed_last_block
+            end_ints = Magika._get_end_ints_with_padding(
+                end_content, end_size, padding_token
+            )
+
+            # extract mid features
+            # we calculate mid_idx as the middle of the content we have not trimmed
+            trimmed_beg_bytes_num = block_size - len(trimmed_first_block)
+            trimmed_end_bytes_num = block_size - len(trimmed_last_block)
+            mid_idx = (
+                trimmed_beg_bytes_num
+                + (len(content) - trimmed_beg_bytes_num - trimmed_end_bytes_num) // 2
+            )
+            mid_left_idx = mid_idx - (mid_size // 2)
+            mid_right_idx = mid_left_idx + mid_size
+            assert mid_left_idx >= 0 and mid_right_idx < len(content)
+            mid_content = content[mid_left_idx:mid_right_idx]
+            mid_ints = Magika._get_mid_ints_with_padding(
+                mid_content, mid_size, padding_token
+            )
+
         else:
-            beg_ints = []
-
-        if mid_size > 0:
-            mid_idx = len(content) // 2
-            if mid_size < len(content):
-                left_idx = mid_idx - mid_size // 2
-                right_idx = mid_idx + mid_size // 2
-                if mid_size % 2 != 0:
-                    right_idx += 1
-                mid_ints = list(map(int, content[left_idx:right_idx]))
-            else:
-                padding_size = mid_size - len(content)
-                left_padding_size = padding_size // 2
-                right_padding_size = padding_size // 2
-                if padding_size % 2 != 0:
-                    right_padding_size += 1
-
-                mid_ints = (
-                    ([padding_token] * left_padding_size)
-                    + list(map(int, content))
-                    + ([padding_token] * right_padding_size)
-                )
-        else:
-            mid_ints = []
-
-        if end_size > 0:
-            if len(content) > end_size:
-                end_ints = list(map(int, content[-end_size:]))
-            else:
-                padding_size = end_size - len(content)
-                end_ints = ([padding_token] * padding_size) + list(map(int, content))
-        else:
-            end_ints = []
+            # If the content is very small, we take this shortcut to avoid
+            # checking for too many corner cases.
+            content = content.strip()
+            beg_ints = Magika._get_beg_ints_with_padding(
+                content, beg_size, padding_token
+            )
+            mid_ints = Magika._get_mid_ints_with_padding(
+                content, mid_size, padding_token
+            )
+            end_ints = Magika._get_end_ints_with_padding(
+                content, end_size, padding_token
+            )
 
         return ModelFeatures(beg=beg_ints, mid=mid_ints, end=end_ints)
+
+    @staticmethod
+    def _get_beg_ints_with_padding(
+        beg_content: bytes, beg_size: int, padding_token: int
+    ) -> List[int]:
+        # we make sure to skip leading whitespaces as "beg" features
+        beg_content = beg_content.lstrip()
+
+        if beg_size <= len(beg_content):
+            # we don't need so many bytes
+            beg_content = beg_content[0:beg_size]
+
+        beg_ints = list(map(int, beg_content))
+
+        if len(beg_ints) < beg_size:
+            # we don't have enough ints, add padding
+            beg_ints = beg_ints + ([padding_token] * (beg_size - len(beg_ints)))
+
+        assert len(beg_ints) == beg_size
+
+        return beg_ints
+
+    @staticmethod
+    def _get_mid_ints_with_padding(
+        mid_content: bytes, mid_size: int, padding_token: int
+    ) -> List[int]:
+        if mid_size <= len(mid_content):
+            mid_idx = len(mid_content) // 2
+            mid_left_idx = mid_idx - mid_size // 2
+            mid_right_idx = mid_left_idx + mid_size
+            mid_content = mid_content[mid_left_idx:mid_right_idx]
+
+        mid_ints = list(map(int, mid_content))
+
+        if len(mid_ints) < mid_size:
+            # we don't have enough ints, add padding
+            padding_size = mid_size - len(mid_ints)
+            padding_size_left = padding_size // 2
+            padding_size_right = padding_size // 2
+            if padding_size % 2 != 0:
+                padding_size_right += 1
+            mid_ints = (
+                ([padding_token] * padding_size_left)
+                + mid_ints
+                + ([padding_token] * padding_size_right)
+            )
+
+        assert len(mid_ints) == mid_size
+
+        return mid_ints
+
+    @staticmethod
+    def _get_end_ints_with_padding(
+        end_content: bytes, end_size: int, padding_token: int
+    ) -> List[int]:
+        # we make sure to skip trailing whitespaces as "end" features
+        end_content = end_content.rstrip()
+
+        if end_size <= len(end_content):
+            # we don't need so many bytes
+            end_content = end_content[len(end_content) - end_size : len(end_content)]
+
+        end_ints = list(map(int, end_content))
+
+        if len(end_ints) < end_size:
+            # we don't have enough ints, add padding
+            end_ints = ([padding_token] * (end_size - len(end_ints))) + end_ints
+
+        assert len(end_ints) == end_size
+
+        return end_ints
 
     def _get_model_outputs_from_features(
         self, all_features: List[Tuple[Path, ModelFeatures]]
@@ -587,7 +687,7 @@ class Magika:
                 return result, None
 
             elif path.stat().st_size <= self._min_file_size_for_dl:
-                result = self._get_result_of_small_file(path)
+                result = self._get_result_from_first_block_of_file(path)
                 return result, None
 
             else:
@@ -601,7 +701,7 @@ class Magika:
                     # If the n-th token is padding, then it means that,
                     # post-stripping, we do not have enough meaningful
                     # bytes.
-                    result = self._get_result_of_small_file(path)
+                    result = self._get_result_from_first_block_of_file(path)
                     return result, None
 
                 else:
@@ -659,13 +759,16 @@ class Magika:
 
         raise Exception("unreachable")
 
-    def _get_result_of_small_file(self, path: Path) -> MagikaResult:
-        content = path.read_bytes()
+    def _get_result_from_first_block_of_file(self, path: Path) -> MagikaResult:
+        # We read at most "block_size" bytes
+        with open(path, "rb") as f:
+            content = f.read(self._block_size)
         return self._get_result_of_few_bytes(content, path)
 
     def _get_result_of_few_bytes(
         self, content: bytes, path: Path = Path("-")
     ) -> MagikaResult:
+        assert len(content) <= 4 * self._block_size
         ct_label = self._get_ct_label_of_few_bytes(content)
         return self._get_result_from_labels_and_score(
             path, dl_ct_label=None, output_ct_label=ct_label, score=1.0

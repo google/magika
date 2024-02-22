@@ -127,8 +127,8 @@ def get_features_extraction_test_suite(
                             end_with_null_byte=False,
                         )
 
-                    content = _generate_content(test_info)
-                    test_suite.append((test_info, content))
+                        content = _generate_content(test_info)
+                        test_suite.append((test_info, content))
 
     # add another tests manually
     test_info = TestInfo(
@@ -193,4 +193,7 @@ def _generate_pattern(size: int) -> bytearray:
 
 
 if __name__ == "__main__":
+    import IPython
+
+    IPython.embed(colors="neutral")
     test_features_extraction(debug=False)

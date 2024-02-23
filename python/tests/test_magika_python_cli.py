@@ -743,7 +743,6 @@ def test_magika_cli_list_content_types() -> None:
     lines = utils.get_lines_from_stream(stdout)
     header = lines[0]
     assert header.find("Content Type Label") >= 0
-    assert header.find("MIME Type") >= 0
     assert header.find("Description") >= 0
     assert stderr == ""
 

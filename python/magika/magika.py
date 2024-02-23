@@ -260,51 +260,57 @@ class Magika:
 
         file_size = file_path.stat().st_size
 
+        # fast path for small files
         if file_size < (2 * block_size + mid_size):
-            # fast path for small files
             with open(file_path, "rb") as f:
                 content = f.read()
             return self._extract_features_from_bytes(
                 content, beg_size, mid_size, end_size, padding_token, block_size
             )
-        else:
-            # avoid reading the entire file
-            with open(file_path, "rb") as f:
-                if beg_size > 0:
-                    beg_content = f.read(block_size)
-                    beg_content = beg_content.lstrip()
-                    beg_trimmed_size = block_size - len(beg_content)
-                else:
-                    beg_content = b""
-                    beg_trimmed_size = 0
 
-                if end_size > 0:
-                    f.seek(-block_size, 2)  # whence = 2: end of the file
-                    end_content = f.read(block_size)
-                    end_content = end_content.rstrip()
-                    end_trimmed_size = block_size - len(end_content)
-                else:
-                    end_content = b""
-                    end_trimmed_size = 0
+        # After this point we know that we can strip "block_size" bytes from
+        # both the beginning and the end, and we still have at least mid_size
+        # bytes left.
 
-                if mid_size > 0:
-                    trimmed_file_size = file_size - beg_trimmed_size - end_trimmed_size
-                    mid_idx = beg_trimmed_size + trimmed_file_size // 2
-                    mid_left_idx = mid_idx - mid_size // 2
-                    f.seek(mid_left_idx, 0)  # whence = 0: start of the file
-                    mid_content = f.read(mid_size)
-                else:
-                    mid_content = b""
+        # we seek() around to avoid reading the entire file in memory
+        with open(file_path, "rb") as f:
+            if beg_size > 0:
+                beg_content = f.read(block_size)
+                beg_content = beg_content.lstrip()
+                beg_trimmed_size = block_size - len(beg_content)
+            else:
+                beg_content = b""
+                beg_trimmed_size = 0
 
-            beg_ints = Magika._get_beg_ints_with_padding(
-                beg_content, beg_size, padding_token
-            )
-            mid_ints = Magika._get_mid_ints_with_padding(
-                mid_content, mid_size, padding_token
-            )
-            end_ints = Magika._get_end_ints_with_padding(
-                end_content, end_size, padding_token
-            )
+            if end_size > 0:
+                f.seek(-block_size, 2)  # whence = 2: end of the file
+                end_content = f.read(block_size)
+                end_content = end_content.rstrip()
+                end_trimmed_size = block_size - len(end_content)
+            else:
+                end_content = b""
+                end_trimmed_size = 0
+
+            if mid_size > 0:
+                trimmed_file_size = file_size - beg_trimmed_size - end_trimmed_size
+                mid_idx = beg_trimmed_size + trimmed_file_size // 2
+                mid_left_idx = mid_idx - mid_size // 2
+                # We know we have enough bytes given the previous check
+                assert 0 <= mid_left_idx < file_size - mid_size
+                f.seek(mid_left_idx, 0)  # whence = 0: start of the file
+                mid_content = f.read(mid_size)
+            else:
+                mid_content = b""
+
+        beg_ints = Magika._get_beg_ints_with_padding(
+            beg_content, beg_size, padding_token
+        )
+        mid_ints = Magika._get_mid_ints_with_padding(
+            mid_content, mid_size, padding_token
+        )
+        end_ints = Magika._get_end_ints_with_padding(
+            end_content, end_size, padding_token
+        )
 
         return ModelFeatures(beg=beg_ints, mid=mid_ints, end=end_ints)
 

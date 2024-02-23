@@ -17,18 +17,17 @@ from pathlib import Path
 
 
 class Seekable(abc.ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self._size = -1
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self._size
 
     @abc.abstractmethod
     def read_at(self, offset: int, size: int) -> bytes:
         pass
 
-    @abc.abstractmethod
     def close(self) -> None:
         pass
 
@@ -47,7 +46,7 @@ class File(Seekable):
         self._f.seek(offset, 0)  # whence = 0: start of the file
         return self._f.read(size)
 
-    def close(self):
+    def close(self) -> None:
         self._f.close()
 
 
@@ -62,6 +61,3 @@ class Buffer(Seekable):
 
         assert offset + size <= self.size
         return self._buffer[offset : offset + size]
-
-    def close(self):
-        pass

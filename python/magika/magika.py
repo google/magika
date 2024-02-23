@@ -293,11 +293,11 @@ class Magika:
 
             if mid_size > 0:
                 trimmed_file_size = file_size - beg_trimmed_size - end_trimmed_size
-                mid_idx = beg_trimmed_size + trimmed_file_size // 2
-                mid_left_idx = mid_idx - mid_size // 2
+                # mid_idx points to the first byte of mid
+                mid_idx = beg_trimmed_size + (trimmed_file_size - mid_size) // 2
                 # We know we have enough bytes given the previous check
-                assert 0 <= mid_left_idx < file_size - mid_size
-                f.seek(mid_left_idx, 0)  # whence = 0: start of the file
+                assert 0 <= mid_idx < file_size - mid_size
+                f.seek(mid_idx, 0)  # whence = 0: start of the file
                 mid_content = f.read(mid_size)
             else:
                 mid_content = b""
@@ -358,26 +358,25 @@ class Magika:
             # enough data for mid_size.
 
             beg_content = content[0:block_size].lstrip()
-            beg_ints = Magika._get_beg_ints_with_padding(
-                beg_content, beg_size, padding_token
-            )
 
             end_content = content[len(content) - block_size : len(content)].rstrip()
-            end_ints = Magika._get_end_ints_with_padding(
-                end_content, end_size, padding_token
-            )
 
-            # we calculate mid_idx as the middle of the content we have not trimmed
+            # we extract "mid" from the middle of the content that we have not
+            # trimmed
             trimmed_beg_bytes_num = block_size - len(beg_content)
             trimmed_end_bytes_num = block_size - len(end_content)
+            # mid_idx points to the first byte of the middle block
             mid_idx = (
                 trimmed_beg_bytes_num
-                + (len(content) - trimmed_beg_bytes_num - trimmed_end_bytes_num) // 2
+                + (
+                    len(content)
+                    - trimmed_beg_bytes_num
+                    - trimmed_end_bytes_num
+                    - mid_size
+                )
+                // 2
             )
-            mid_left_idx = mid_idx - (mid_size // 2)
-            mid_right_idx = mid_left_idx + mid_size
-            assert mid_left_idx >= 0 and mid_right_idx < len(content)
-            mid_content = content[mid_left_idx:mid_right_idx]
+            mid_content = content[mid_idx : mid_idx + mid_size]
 
         beg_ints = Magika._get_beg_ints_with_padding(
             beg_content, beg_size, padding_token
@@ -515,10 +514,8 @@ class Magika:
         """
 
         if mid_size <= len(mid_content):
-            mid_idx = len(mid_content) // 2
-            mid_left_idx = mid_idx - mid_size // 2
-            mid_right_idx = mid_left_idx + mid_size
-            mid_content = mid_content[mid_left_idx:mid_right_idx]
+            mid_idx = (len(mid_content) - mid_size) // 2
+            mid_content = mid_content[mid_idx : mid_idx + mid_size]
 
         mid_ints = list(map(int, mid_content))
 
@@ -526,9 +523,7 @@ class Magika:
             # we don't have enough ints, add padding
             padding_size = mid_size - len(mid_ints)
             padding_size_left = padding_size // 2
-            padding_size_right = padding_size // 2
-            if padding_size % 2 != 0:
-                padding_size_right += 1
+            padding_size_right = padding_size - padding_size_left
             mid_ints = (
                 ([padding_token] * padding_size_left)
                 + mid_ints

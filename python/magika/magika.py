@@ -27,10 +27,12 @@ from tqdm.auto import tqdm
 from magika.content_types import ContentType, ContentTypesManager
 from magika.logger import get_logger
 from magika.prediction_mode import PredictionMode
+from magika.seekable import Buffer, File, Seekable
 from magika.types import (
     MagikaOutputFields,
     MagikaResult,
     ModelFeatures,
+    ModelFeaturesV2,
     ModelOutput,
     ModelOutputFields,
 )
@@ -152,7 +154,9 @@ class Magika:
 
     def _init_onnx_session(self) -> rt.InferenceSession:
         start_time = time.time()
-        onnx_session = rt.InferenceSession(self._model_path, providers=['CPUExecutionProvider'])
+        onnx_session = rt.InferenceSession(
+            self._model_path, providers=["CPUExecutionProvider"]
+        )
         elapsed_time = time.time() - start_time
         self._log.debug(
             f'ONNX DL model "{self._model_path}" loaded in {elapsed_time:.03f} seconds'
@@ -221,211 +225,196 @@ class Magika:
         assert features is not None
         return self._get_result_from_features(features)
 
+    @staticmethod
     def _extract_features_from_path(
-        self,
         file_path: Path,
-        beg_size: Optional[int] = None,
-        mid_size: Optional[int] = None,
-        end_size: Optional[int] = None,
-        padding_token: Optional[int] = None,
-        block_size: Optional[int] = None,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
     ) -> ModelFeatures:
-        """Note: the way we extract features is somehow convoluted, the reason
-        being that we need to reflect how we extracted features for training
-        (during which we did not consider efficiency aspects).
+        # TODO: reimplement this using a context manager
+        seekable = File(file_path)
+        mf = Magika._extract_features_from_seekable(
+            seekable, beg_size, mid_size, end_size, padding_token, block_size
+        )
+        seekable.close()
+        return mf
 
-        If it is the first time you look at this code, you may first want to
-        read the code and comment of "_extract_features_from_bytes()", which is
-        an alternative (but in essence equivalent) implementation.
-        """
-
-        if beg_size is None:
-            beg_size = self._input_sizes["beg"]
-        if mid_size is None:
-            mid_size = self._input_sizes["mid"]
-        if end_size is None:
-            end_size = self._input_sizes["end"]
-        if padding_token is None:
-            padding_token = self._padding_token
-        if block_size is None:
-            block_size = self._block_size
-
-        assert beg_size <= 512
-        assert mid_size <= 512
-        assert end_size <= 512
-
-        file_size = file_path.stat().st_size
-
-        if file_size < (2 * block_size + mid_size):
-            # fast path for small files
-            with open(file_path, "rb") as f:
-                content = f.read()
-            return self._extract_features_from_bytes(
-                content, beg_size, mid_size, end_size, padding_token, block_size
-            )
-        else:
-            # avoid reading the entire file
-            with open(file_path, "rb") as f:
-                if beg_size > 0:
-                    beg_content = f.read(block_size)
-                    beg_content = beg_content.lstrip()
-                    beg_trimmed_size = block_size - len(beg_content)
-                    if len(beg_content) < beg_size:
-                        # We need more bytes, let's read more
-                        beg_content += f.read(block_size)
-                else:
-                    beg_content = b""
-                    beg_trimmed_size = 0
-
-                if end_size > 0:
-                    f.seek(-block_size, 2)  # whence = 2: end of the file
-                    end_content = f.read(block_size)
-                    end_content = end_content.rstrip()
-                    end_trimmed_size = block_size - len(end_content)
-                    if len(end_content) < end_size:
-                        # Same as above
-                        f.seek(-2 * block_size, 2)  # whence = 2: end of the file
-                        end_content = f.read(block_size) + end_content
-                else:
-                    end_content = b""
-                    end_trimmed_size = 0
-
-                if mid_size > 0:
-                    trimmed_file_size = file_size - beg_trimmed_size - end_trimmed_size
-                    mid_idx = beg_trimmed_size + trimmed_file_size // 2
-                    mid_left_idx = mid_idx - mid_size // 2
-                    f.seek(mid_left_idx, 0)  # whence = 0: start of the file
-                    mid_full = f.read(mid_size)
-                else:
-                    mid_full = b""
-
-            beg_ints = Magika._get_beg_ints_with_padding(
-                beg_content, beg_size, padding_token
-            )
-            mid_ints = Magika._get_mid_ints_with_padding(
-                mid_full, mid_size, padding_token
-            )
-            end_ints = Magika._get_end_ints_with_padding(
-                end_content, end_size, padding_token
-            )
-
-        return ModelFeatures(beg=beg_ints, mid=mid_ints, end=end_ints)
-
+    @staticmethod
     def _extract_features_from_bytes(
-        self,
         content: bytes,
-        beg_size: Optional[int] = None,
-        mid_size: Optional[int] = None,
-        end_size: Optional[int] = None,
-        padding_token: Optional[int] = None,
-        block_size: Optional[int] = None,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
     ) -> ModelFeatures:
-        """This implements the features extraction. The "from bytes" (this one)
-        and the "from paths" are alternative, but equivalent implementations.
-        Both these implementations aim at having a bounded time for features
-        extraction, regardless of the size of the input content.
+        buffer = Buffer(content)
+        return Magika._extract_features_from_seekable(
+            buffer, beg_size, mid_size, end_size, padding_token, block_size
+        )
 
-        Intuitively, the algorithm works as follows:
-        - for "beg bytes": consider "content", strip at most "block_size"
-        from the beginning, and take beg_size bytes. If you don't have enough
-        remaining bytes, then suffix the existing bytes with padding.
-        - for "end bytes": consider "content", strip at most "block_size"
-        from the end, and take end_size bytes. If you don't have enough remaining
-        bytes, then prefix the existing bytes with padding.
-        - for "mid bytes": we want to extract features from the middle part of the
-        content, centered in a way that we consider how many bytes we trimmed from
-        the beginning and from the end. Again, if we don't have enough bytes, we use
-        padding, this time on the left and the right of the bytes we have.
+    @staticmethod
+    def _extract_features_from_seekable(
+        seekable: Seekable,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
+    ) -> ModelFeatures:
+        """This implement features extraction from a seekable, which is an
+        abstraction about anything that can be "read_at" a specific offset, such
+        as a file or buffer. This is implemented so that we do not need to load
+        the entire content of the file in memory, and we do not need to scan the
+        entire buffer.
 
-        The implementation for beg and end is quite simple, but the one for middle
-        could be made easier. At the moment we leave it as is because we need to
-        live with "how we extracted the features during training"... which was very
-        easy to code, but did not consider "can we implement this
-        in an efficient way for inference?" So for now we stick to it.
+        High-level overview on what we do:
+        - beg: we read the first block in memory, we lstrip() it, and we use this as
+        the basis to extract beg_size integers (we either truncate to beg_size
+        or we add padding as suffix up to beg_size).
+        - end: same as "beg", but we read the last block in memory, and the padding
+        is prefixed (and not suffixed).
+        - mid: we consider the remaining content (after stripping whitespace),
+        and we take the mid_size bytes in the middle. If needed, we add padding
+        to the left and to the right.
         """
 
-        if beg_size is None:
-            beg_size = self._input_sizes["beg"]
-        if mid_size is None:
-            mid_size = self._input_sizes["mid"]
-        if end_size is None:
-            end_size = self._input_sizes["end"]
-        if padding_token is None:
-            padding_token = self._padding_token
-        if block_size is None:
-            block_size = self._block_size
+        if seekable.size < (2 * block_size + mid_size):
+            # If the content is small, we take this shortcut to avoid
+            # checking for too many corner cases.
+            content = seekable.read_at(0, seekable.size)
+            content = content.strip()
+            beg_content = content
+            mid_content = content
+            end_content = content
 
-        assert beg_size <= 512
-        assert mid_size <= 512
-        assert end_size <= 512
+        else:  # seekable.size >= (2 * block_size + mid_size)
+            # If the content is big enough, the implementation becomes much
+            # simpler. In this path of the code, we know we have enough content
+            # to strip up to "block_size" bytes from both sides, and still have
+            # enough data for mid_size.
 
-        assert beg_size == mid_size
-        assert beg_size == end_size
+            beg_content = seekable.read_at(0, block_size).lstrip()
 
-        # If the content is big enough, the implementation of the above becomes
-        # much simpler. Here, we check that we can safely strip a full
-        # "block_size" from the beginning AND the end, and still have enough
-        # bytes to extract a middle portion without checking for too many corner
-        # cases.
-        if len(content) >= (2 * block_size + mid_size):
-            # extract beg features
-            trimmed_first_block = content[0:block_size].lstrip()
-            second_block = content[block_size : 2 * block_size]
-            beg_content = trimmed_first_block + second_block
-            beg_ints = Magika._get_beg_ints_with_padding(
-                beg_content, beg_size, padding_token
-            )
+            end_content = seekable.read_at(
+                seekable.size - block_size, block_size
+            ).rstrip()
 
-            # extract end features
-            trimmed_last_block = content[
-                len(content) - block_size : len(content)
-            ].rstrip()
-            second_to_last_block = content[
-                len(content) - 2 * block_size : len(content) - block_size
-            ]
-            end_content = second_to_last_block + trimmed_last_block
-            end_ints = Magika._get_end_ints_with_padding(
-                end_content, end_size, padding_token
-            )
-
-            # extract mid features
-            # we calculate mid_idx as the middle of the content we have not trimmed
-            trimmed_beg_bytes_num = block_size - len(trimmed_first_block)
-            trimmed_end_bytes_num = block_size - len(trimmed_last_block)
+            # we extract "mid" from the middle of the content that we have not
+            # trimmed
+            trimmed_beg_bytes_num = block_size - len(beg_content)
+            trimmed_end_bytes_num = block_size - len(end_content)
+            # mid_idx points to the first byte of the middle block
             mid_idx = (
                 trimmed_beg_bytes_num
-                + (len(content) - trimmed_beg_bytes_num - trimmed_end_bytes_num) // 2
+                + (
+                    seekable.size
+                    - trimmed_beg_bytes_num
+                    - trimmed_end_bytes_num
+                    - mid_size
+                )
+                // 2
             )
-            mid_left_idx = mid_idx - (mid_size // 2)
-            mid_right_idx = mid_left_idx + mid_size
-            assert mid_left_idx >= 0 and mid_right_idx < len(content)
-            mid_content = content[mid_left_idx:mid_right_idx]
-            mid_ints = Magika._get_mid_ints_with_padding(
-                mid_content, mid_size, padding_token
-            )
+            mid_content = seekable.read_at(mid_idx, mid_size)
 
-        else:
-            # If the content is very small, we take this shortcut to avoid
-            # checking for too many corner cases.
-            content = content.strip()
-            beg_ints = Magika._get_beg_ints_with_padding(
-                content, beg_size, padding_token
-            )
-            mid_ints = Magika._get_mid_ints_with_padding(
-                content, mid_size, padding_token
-            )
-            end_ints = Magika._get_end_ints_with_padding(
-                content, end_size, padding_token
-            )
+        beg_ints = Magika._get_beg_ints_with_padding(
+            beg_content, beg_size, padding_token
+        )
+        mid_ints = Magika._get_mid_ints_with_padding(
+            mid_content, mid_size, padding_token
+        )
+        end_ints = Magika._get_end_ints_with_padding(
+            end_content, end_size, padding_token
+        )
 
         return ModelFeatures(beg=beg_ints, mid=mid_ints, end=end_ints)
+
+    @staticmethod
+    def _extract_features_from_path_v2(
+        file_path: Path,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
+    ) -> ModelFeaturesV2:
+        mf = Magika._extract_features_from_path(
+            file_path=file_path,
+            beg_size=beg_size,
+            mid_size=mid_size,
+            end_size=end_size,
+            padding_token=padding_token,
+            block_size=block_size,
+        )
+
+        file_size = file_path.stat().st_size
+        with open(file_path, "rb") as f:
+            if file_size < 0x8008:
+                offset_0x8000_0x8007 = [padding_token] * 8
+                offset_0x9800_0x9807 = [padding_token] * 8
+            elif 0x8008 <= file_size < 0x9808:
+                f.seek(0x8000)
+                offset_0x8000_0x8007 = list(map(int, f.read(8)))
+                offset_0x9800_0x9807 = [padding_token] * 8
+            else:  # file_size >= 0x9808
+                f.seek(0x8000)
+                offset_0x8000_0x8007 = list(map(int, f.read(8)))
+                f.seek(0x9800)
+                offset_0x9800_0x9807 = list(map(int, f.read(8)))
+
+        return ModelFeaturesV2(
+            beg=mf.beg,
+            mid=mf.mid,
+            end=mf.end,
+            offset_0x8000_0x8007=offset_0x8000_0x8007,
+            offset_0x9800_0x9807=offset_0x9800_0x9807,
+        )
+
+    @staticmethod
+    def _extract_features_from_bytes_v2(
+        content: bytes,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
+    ) -> ModelFeaturesV2:
+        mf = Magika._extract_features_from_bytes(
+            content=content,
+            beg_size=beg_size,
+            mid_size=mid_size,
+            end_size=end_size,
+            padding_token=padding_token,
+            block_size=block_size,
+        )
+        if len(content) < 0x8008:
+            offset_0x8000_0x8007 = [padding_token] * 8
+            offset_0x9800_0x9807 = [padding_token] * 8
+        elif 0x8008 <= len(content) < 0x9808:
+            offset_0x8000_0x8007 = list(map(int, content[0x8000:0x8008]))
+            offset_0x9800_0x9807 = [padding_token] * 8
+        else:  # len(content) >= 0x9808
+            offset_0x8000_0x8007 = list(map(int, content[0x8000:0x8008]))
+            offset_0x9800_0x9807 = list(map(int, content[0x9800:0x9808]))
+
+        return ModelFeaturesV2(
+            beg=mf.beg,
+            mid=mf.mid,
+            end=mf.end,
+            offset_0x8000_0x8007=offset_0x8000_0x8007,
+            offset_0x9800_0x9807=offset_0x9800_0x9807,
+        )
 
     @staticmethod
     def _get_beg_ints_with_padding(
         beg_content: bytes, beg_size: int, padding_token: int
     ) -> List[int]:
-        # we make sure to skip leading whitespaces as "beg" features
-        beg_content = beg_content.lstrip()
+        """Take an (already-stripped) buffer as input and extract beg ints. If
+        the buffer is bigger than required, take only the initial portion. If
+        the buffer is shorter, add padding at the end."""
 
         if beg_size <= len(beg_content):
             # we don't need so many bytes
@@ -445,11 +434,14 @@ class Magika:
     def _get_mid_ints_with_padding(
         mid_content: bytes, mid_size: int, padding_token: int
     ) -> List[int]:
+        """Take an (already-stripped) buffer as input and extract mid ints. If
+        the buffer is bigger than required, take only its middle part. If the
+        buffer is shorter, add padding at its left and right.
+        """
+
         if mid_size <= len(mid_content):
-            mid_idx = len(mid_content) // 2
-            mid_left_idx = mid_idx - mid_size // 2
-            mid_right_idx = mid_left_idx + mid_size
-            mid_content = mid_content[mid_left_idx:mid_right_idx]
+            mid_idx = (len(mid_content) - mid_size) // 2
+            mid_content = mid_content[mid_idx : mid_idx + mid_size]
 
         mid_ints = list(map(int, mid_content))
 
@@ -457,9 +449,7 @@ class Magika:
             # we don't have enough ints, add padding
             padding_size = mid_size - len(mid_ints)
             padding_size_left = padding_size // 2
-            padding_size_right = padding_size // 2
-            if padding_size % 2 != 0:
-                padding_size_right += 1
+            padding_size_right = padding_size - padding_size_left
             mid_ints = (
                 ([padding_token] * padding_size_left)
                 + mid_ints
@@ -474,8 +464,10 @@ class Magika:
     def _get_end_ints_with_padding(
         end_content: bytes, end_size: int, padding_token: int
     ) -> List[int]:
-        # we make sure to skip trailing whitespaces as "end" features
-        end_content = end_content.rstrip()
+        """Take an (already-stripped) buffer as input and extract end ints. If
+        the buffer is bigger than required, take only the last portion. If the
+        buffer is shorter, add padding at the beginning.
+        """
 
         if end_size <= len(end_content):
             # we don't need so many bytes
@@ -691,7 +683,14 @@ class Magika:
                 return result, None
 
             else:
-                file_features = self._extract_features_from_path(path)
+                file_features = Magika._extract_features_from_path(
+                    path,
+                    self._input_sizes["beg"],
+                    self._input_sizes["mid"],
+                    self._input_sizes["end"],
+                    self._padding_token,
+                    self._block_size,
+                )
                 # Check whether we have enough bytes for a meaningful
                 # detection, and not just padding.
                 if (
@@ -741,7 +740,14 @@ class Magika:
             return output, None
 
         else:
-            file_features = self._extract_features_from_bytes(content)
+            file_features = Magika._extract_features_from_bytes(
+                content,
+                self._input_sizes["beg"],
+                self._input_sizes["mid"],
+                self._input_sizes["end"],
+                self._padding_token,
+                self._block_size,
+            )
             # Check whether we have enough bytes for a meaningful
             # detection, and not just padding.
             if file_features.beg[self._min_file_size_for_dl - 1] == self._padding_token:

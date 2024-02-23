@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import random
 import tempfile
 from pathlib import Path
 
@@ -21,7 +20,6 @@ import pytest
 from magika import Magika, PredictionMode
 from magika.content_types import ContentType, ContentTypesManager
 from tests import utils
-from tests.utils import get_random_ascii_bytes
 
 
 @pytest.mark.smoketest

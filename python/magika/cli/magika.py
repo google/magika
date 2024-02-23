@@ -371,7 +371,14 @@ def generate_feedback_report(
 ) -> FeedbackReport:
     magika_result_copy = copy.copy(magika_result)
     magika_result_copy.path = "<REMOVED>"  # avoid PII
-    features = magika._extract_features_from_path(file_path)
+    features = Magika._extract_features_from_path(
+        file_path,
+        beg_size=magika._input_sizes["beg"],
+        mid_size=magika._input_sizes["mid"],
+        end_size=magika._input_sizes["end"],
+        padding_token=magika._padding_token,
+        block_size=magika._block_size,
+    )
     return FeedbackReport(
         hash=hashlib.sha256(file_path.read_bytes()).hexdigest(),
         features=features,

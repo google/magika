@@ -44,12 +44,11 @@ def test_features_extraction(debug: bool = False) -> None:
     trivial implementaion matches the python module one, which is the reference
     code."""
 
-    m = Magika()
-
-    beg_size = m._input_sizes["beg"]
-    mid_size = m._input_sizes["mid"]
-    end_size = m._input_sizes["end"]
-    block_size = m._block_size
+    beg_size = 512
+    mid_size = 512
+    end_size = 512
+    padding_token = 256
+    block_size = 4096
 
     features_size = beg_size
     assert mid_size == features_size
@@ -61,13 +60,15 @@ def test_features_extraction(debug: bool = False) -> None:
         if debug:
             print(f"Test details: {test_info} =>")
 
-        features_from_bytes = m._extract_features_from_bytes(test_content)
-
+        features_from_bytes = Magika._extract_features_from_bytes(
+            test_content, beg_size, mid_size, end_size, padding_token, block_size
+        )
         with tempfile.TemporaryDirectory() as td:
             tf_path = Path(td) / "test.dat"
             tf_path.write_bytes(test_content)
-
-            features_from_path = m._extract_features_from_path(tf_path)
+            features_from_path = Magika._extract_features_from_path(
+                tf_path, beg_size, mid_size, end_size, padding_token, block_size
+            )
 
         comparison = {}
         comparison["beg"] = features_from_bytes.beg == features_from_path.beg

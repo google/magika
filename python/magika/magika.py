@@ -225,45 +225,45 @@ class Magika:
         assert features is not None
         return self._get_result_from_features(features)
 
+    @staticmethod
     def _extract_features_from_path(
-        self,
         file_path: Path,
-        beg_size: Optional[int] = None,
-        mid_size: Optional[int] = None,
-        end_size: Optional[int] = None,
-        padding_token: Optional[int] = None,
-        block_size: Optional[int] = None,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
     ) -> ModelFeatures:
         # TODO: reimplement this using a context manager
         seekable = File(file_path)
-        mf = self._extract_features_from_seekable(
+        mf = Magika._extract_features_from_seekable(
             seekable, beg_size, mid_size, end_size, padding_token, block_size
         )
         seekable.close()
         return mf
 
+    @staticmethod
     def _extract_features_from_bytes(
-        self,
         content: bytes,
-        beg_size: Optional[int] = None,
-        mid_size: Optional[int] = None,
-        end_size: Optional[int] = None,
-        padding_token: Optional[int] = None,
-        block_size: Optional[int] = None,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
     ) -> ModelFeatures:
         buffer = Buffer(content)
-        return self._extract_features_from_seekable(
+        return Magika._extract_features_from_seekable(
             buffer, beg_size, mid_size, end_size, padding_token, block_size
         )
 
+    @staticmethod
     def _extract_features_from_seekable(
-        self,
         seekable: Seekable,
-        beg_size: Optional[int] = None,
-        mid_size: Optional[int] = None,
-        end_size: Optional[int] = None,
-        padding_token: Optional[int] = None,
-        block_size: Optional[int] = None,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
     ) -> ModelFeatures:
         """This implement features extraction from a seekable, which is an
         abstraction about anything that can be "read_at" a specific offset, such
@@ -281,17 +281,6 @@ class Magika:
         and we take the mid_size bytes in the middle. If needed, we add padding
         to the left and to the right.
         """
-
-        if beg_size is None:
-            beg_size = self._input_sizes["beg"]
-        if mid_size is None:
-            mid_size = self._input_sizes["mid"]
-        if end_size is None:
-            end_size = self._input_sizes["end"]
-        if padding_token is None:
-            padding_token = self._padding_token
-        if block_size is None:
-            block_size = self._block_size
 
         if seekable.size < (2 * block_size + mid_size):
             # If the content is small, we take this shortcut to avoid
@@ -343,24 +332,16 @@ class Magika:
 
         return ModelFeatures(beg=beg_ints, mid=mid_ints, end=end_ints)
 
+    @staticmethod
     def _extract_features_from_path_v2(
-        self,
         file_path: Path,
-        beg_size: Optional[int] = None,
-        mid_size: Optional[int] = None,
-        end_size: Optional[int] = None,
-        padding_token: Optional[int] = None,
-        block_size: Optional[int] = None,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
     ) -> ModelFeaturesV2:
-        beg_size = beg_size if beg_size is not None else self._input_sizes["beg"]
-        mid_size = mid_size if mid_size is not None else self._input_sizes["mid"]
-        end_size = end_size if end_size is not None else self._input_sizes["end"]
-        padding_token = (
-            padding_token if padding_token is not None else self._padding_token
-        )
-        block_size = block_size if block_size is not None else self._block_size
-
-        mf = self._extract_features_from_path(
+        mf = Magika._extract_features_from_path(
             file_path=file_path,
             beg_size=beg_size,
             mid_size=mid_size,
@@ -392,24 +373,16 @@ class Magika:
             offset_0x9800_0x9807=offset_0x9800_0x9807,
         )
 
+    @staticmethod
     def _extract_features_from_bytes_v2(
-        self,
         content: bytes,
-        beg_size: Optional[int] = None,
-        mid_size: Optional[int] = None,
-        end_size: Optional[int] = None,
-        padding_token: Optional[int] = None,
-        block_size: Optional[int] = None,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
     ) -> ModelFeaturesV2:
-        beg_size = beg_size if beg_size is not None else self._input_sizes["beg"]
-        mid_size = mid_size if mid_size is not None else self._input_sizes["mid"]
-        end_size = end_size if end_size is not None else self._input_sizes["end"]
-        padding_token = (
-            padding_token if padding_token is not None else self._padding_token
-        )
-        block_size = block_size if block_size is not None else self._block_size
-
-        mf = self._extract_features_from_bytes(
+        mf = Magika._extract_features_from_bytes(
             content=content,
             beg_size=beg_size,
             mid_size=mid_size,
@@ -710,7 +683,14 @@ class Magika:
                 return result, None
 
             else:
-                file_features = self._extract_features_from_path(path)
+                file_features = Magika._extract_features_from_path(
+                    path,
+                    self._input_sizes["beg"],
+                    self._input_sizes["mid"],
+                    self._input_sizes["end"],
+                    self._padding_token,
+                    self._block_size,
+                )
                 # Check whether we have enough bytes for a meaningful
                 # detection, and not just padding.
                 if (
@@ -760,7 +740,14 @@ class Magika:
             return output, None
 
         else:
-            file_features = self._extract_features_from_bytes(content)
+            file_features = Magika._extract_features_from_bytes(
+                content,
+                self._input_sizes["beg"],
+                self._input_sizes["mid"],
+                self._input_sizes["end"],
+                self._padding_token,
+                self._block_size,
+            )
             # Check whether we have enough bytes for a meaningful
             # detection, and not just padding.
             if file_features.beg[self._min_file_size_for_dl - 1] == self._padding_token:

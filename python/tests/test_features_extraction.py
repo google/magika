@@ -193,7 +193,4 @@ def _generate_pattern(size: int) -> bytearray:
 
 
 if __name__ == "__main__":
-    import IPython
-
-    IPython.embed(colors="neutral")
     test_features_extraction(debug=False)

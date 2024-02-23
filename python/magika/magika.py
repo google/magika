@@ -233,15 +233,18 @@ class Magika:
         padding_token: Optional[int] = None,
         block_size: Optional[int] = None,
     ) -> ModelFeatures:
-        """TODO: update comments.
+        """This implement features extraction from a path. This is implemented
+        so that we do not need to load the entire content of the file in memory.
 
-        Note: the way we extract features is somehow convoluted, the reason
-        being that we need to reflect how we extracted features for training
-        (during which we did not consider efficiency aspects).
-
-        If it is the first time you look at this code, you may first want to
-        read the code and comment of "_extract_features_from_bytes()", which is
-        an alternative (but in essence equivalent) implementation.
+        High-level overview on what we do:
+        - beg: we read the first block in memory, we lstrip() it, and we use this as
+        the basis to extract beg_size integers (we either truncate to beg_size
+        or we add padding as suffix up to beg_size).
+        - end: same as "beg", but we read the last block in memory, and the padding
+        is prefixed (and not suffixed).
+        - mid: we consider the remaining content (after stripping whitespace),
+        and we take the mid_size bytes in the middle. If needed, we add padding
+        to the left and to the right.
         """
 
         if beg_size is None:
@@ -314,30 +317,13 @@ class Magika:
         padding_token: Optional[int] = None,
         block_size: Optional[int] = None,
     ) -> ModelFeatures:
-        """TODO: update comments.
+        """This implement features extraction from the content bytes. Note that
+        even if we have all content in memory, we do not process it entirely to
+        make sure the features extraction's time is bounded.
 
-        This implements the features extraction. The "from bytes" (this one)
-        and the "from paths" are alternative, but equivalent implementations.
-        Both these implementations aim at having a bounded time for features
-        extraction, regardless of the size of the input content.
-
-        Intuitively, the algorithm works as follows:
-        - for "beg bytes": consider "content", strip at most "block_size"
-        from the beginning, and take beg_size bytes. If you don't have enough
-        remaining bytes, then suffix the existing bytes with padding.
-        - for "end bytes": consider "content", strip at most "block_size"
-        from the end, and take end_size bytes. If you don't have enough remaining
-        bytes, then prefix the existing bytes with padding.
-        - for "mid bytes": we want to extract features from the middle part of the
-        content, centered in a way that we consider how many bytes we trimmed from
-        the beginning and from the end. Again, if we don't have enough bytes, we use
-        padding, this time on the left and the right of the bytes we have.
-
-        The implementation for beg and end is quite simple, but the one for middle
-        could be made easier. At the moment we leave it as is because we need to
-        live with "how we extracted the features during training"... which was very
-        easy to code, but did not consider "can we implement this
-        in an efficient way for inference?" So for now we stick to it.
+        This is an alternative (but equivalent) implementation of
+        _extract_features_from_path(). See the documentation above for the
+        details on what we do here.
         """
 
         if beg_size is None:
@@ -359,7 +345,7 @@ class Magika:
             mid_content = content
             end_content = content
 
-        else:  # len(content) >= (2 * block_size + mid_size):
+        else:  # len(content) >= (2 * block_size + mid_size)
             # If the content is big enough, the implementation becomes much
             # simpler. In this path of the code, we know we have enough content
             # to strip up to "block_size" bytes from both sides, and still have

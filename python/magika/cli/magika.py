@@ -442,7 +442,6 @@ def print_output_content_types_list() -> None:
         row = [
             ct_idx + 1,
             ct.name,
-            "" if ct.mime_type is None else ct.mime_type,
             "" if ct.description is None else ct.description,
         ]
         rows.append(row)

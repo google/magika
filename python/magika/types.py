@@ -33,6 +33,8 @@ class ModelFeaturesV2:
     end: List[int]
     # for ISO
     offset_0x8000_0x8007: List[int]
+    offset_0x8800_0x8807: List[int]
+    offset_0x9000_0x9007: List[int]
     # for UDF
     offset_0x9800_0x9807: List[int]
 

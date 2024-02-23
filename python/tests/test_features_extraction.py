@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from magika import Magika
+from magika.seekable import Buffer
 
 random.seed(42)
 
@@ -77,6 +78,42 @@ def test_features_extraction(debug: bool = False) -> None:
 
         if comparison["all"] is False:
             raise
+
+
+def test_features_extraction_v2(debug: bool = False) -> None:
+    features_size = 256
+    padding_token = 256
+    block_size = 4096
+
+    s = Buffer(b"test")
+    f = Magika._extract_features_from_seekable_v2(
+        s, features_size, features_size, features_size, padding_token, block_size
+    )
+    assert f.offset_0x8000_0x8007 == [padding_token] * 8
+    assert f.offset_0x8800_0x8807 == [padding_token] * 8
+    assert f.offset_0x9000_0x9007 == [padding_token] * 8
+    assert f.offset_0x9800_0x9807 == [padding_token] * 8
+
+    s = Buffer(b"x" * 0x8007)
+    f = Magika._extract_features_from_seekable_v2(s, 512, 512, 512, 256, 4096)
+    assert f.offset_0x8000_0x8007 == [padding_token] * 8
+    assert f.offset_0x8800_0x8807 == [padding_token] * 8
+    assert f.offset_0x9000_0x9007 == [padding_token] * 8
+    assert f.offset_0x9800_0x9807 == [padding_token] * 8
+
+    s = Buffer(b"x" * 0x8008)
+    f = Magika._extract_features_from_seekable_v2(s, 512, 512, 512, 256, 4096)
+    assert f.offset_0x8000_0x8007 == [ord("x")] * 8
+    assert f.offset_0x8800_0x8807 == [padding_token] * 8
+    assert f.offset_0x9000_0x9007 == [padding_token] * 8
+    assert f.offset_0x9800_0x9807 == [padding_token] * 8
+
+    s = Buffer(b"x" * 0x10000)
+    f = Magika._extract_features_from_seekable_v2(s, 512, 512, 512, 256, 4096)
+    assert f.offset_0x8000_0x8007 == [ord("x")] * 8
+    assert f.offset_0x8800_0x8807 == [ord("x")] * 8
+    assert f.offset_0x9000_0x9007 == [ord("x")] * 8
+    assert f.offset_0x9800_0x9807 == [ord("x")] * 8
 
 
 def get_features_extraction_test_suite(

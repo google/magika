@@ -36,11 +36,11 @@ jobs:
 
       - name: Run ruff check
         working-directory: python
-        run: poetry run ruff check --verbose"
+        run: poetry run ruff check --verbose
 
       - name: Run ruff format check
         working-directory: python
-        run: poetry run ruff format --check --verbose"
+        run: poetry run ruff format --check --verbose
 
       - name: Run mypy
         working-directory: python

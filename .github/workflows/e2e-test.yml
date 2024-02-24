@@ -44,4 +44,4 @@ jobs:
         run: pip install dist/magika-*.whl
 
       - name: Run magika with tests_data
-        run: magika -r tests_data/
+        run: magika -r tests_data/ || exit 1

@@ -3,7 +3,7 @@ name: Python
 on:
   push:
     branches:
-      - '**'
+      - 'main'
     paths:
       - 'python/**'
       - '.github/workflows/**'

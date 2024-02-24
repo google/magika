@@ -1,4 +1,4 @@
-name: E2E Testing
+name: Python
 on:
     push:
       branches:
@@ -37,7 +37,7 @@ jobs:
 
       - name: List wheels
         working-directory: python
-        run: ls -la python/dist
+        run: ls -la dist/
 
       - name: Install magika
         working-directory: python

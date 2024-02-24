@@ -1,0 +1,45 @@
+name: E2E Testing
+on:
+    push:
+      branches:
+        - '**'
+      paths:
+        - 'python/**'
+    pull_request:
+      paths:
+        - 'python/**'
+
+jobs:
+  e2e-testing:
+    strategy:
+      matrix:
+        python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]
+        os: ["ubuntu-latest", "macos-latest"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.7.1"
+
+      - name: Install the project dependencies
+        working-directory: python
+        run: poetry build
+
+      - name: List wheels
+        working-directory: python
+        run: ls -la python/dist
+
+      - name: Install magika
+        working-directory: python
+        run: pip install dist/magika-*.whl
+
+      - name: Run magika with tests_data
+        run: magika -r tests_data/

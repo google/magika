@@ -1,13 +1,15 @@
-name: E2E Test
+name: E2E Testing
 on:
     push:
       branches:
         - '**'
       paths:
         - 'python/**'
+        - '.github/workflows/**'
     pull_request:
       paths:
         - 'python/**'
+        - '.github/workflows/**'
 
 jobs:
   e2e-testing:

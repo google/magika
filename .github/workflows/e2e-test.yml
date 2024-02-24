@@ -1,4 +1,4 @@
-name: E2E Testing
+name: E2E Test
 on:
     push:
       branches:

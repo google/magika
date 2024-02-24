@@ -1,4 +1,4 @@
-name: pytest
+name: Python
 
 on:
   push:
@@ -6,12 +6,14 @@ on:
       - '**'
     paths:
       - 'python/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'python/**'
+      - '.github/workflows/**'
 
 jobs:
-  unittesting:
+  unit-testing:
     strategy:
       matrix:
         python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]

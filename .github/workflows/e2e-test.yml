@@ -35,10 +35,6 @@ jobs:
         working-directory: python
         run: poetry build
 
-      - name: List wheels
-        working-directory: python
-        run: ls -la dist/
-
       - name: Install magika
         working-directory: python
         run: pip install dist/magika-*.whl

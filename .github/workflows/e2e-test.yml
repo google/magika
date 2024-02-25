@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]
-        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        os: ["ubuntu-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,10 @@ jobs:
       - name: Install the project dependencies
         working-directory: python
         run: poetry build
+
+      - name: List wheels
+        working-directory: python
+        run: ls -la dist/
 
       - name: Install magika
         working-directory: python

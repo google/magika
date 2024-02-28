@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"module": "NodeNext",
+		"declaration": true,
+		"target": "ESNext",
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"sourceMap": true,
+		"moduleResolution": "NodeNext",
+		"esModuleInterop": true,
+		"lib": [
+			"es6",
+			"es2017",
+			"dom"
+		],
+		"outDir": "./dist",
+	    "baseUrl": "./"
+	},
+	"include": [
+		"./src/*",
+		"./magika.ts",
+	]
+}

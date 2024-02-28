@@ -78,6 +78,12 @@ export class Magika {
     await Promise.all([this.config.load(configURL), this.model.load(modelURL)]);
   }
 
+  static async create(options = {}) {
+    const magika = new Magika();
+    await magika.load(options);
+    return magika;
+  }
+
   /** Identifies the content type of a byte stream.
    *
    * @param {*} fileBytes  a Buffer object (a fixed-length sequence of bytes)

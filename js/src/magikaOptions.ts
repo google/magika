@@ -5,4 +5,5 @@ export interface MagikaOptions {
     modelPath?: string;
     configURL?: string;
     configPath?: string;
+
 }

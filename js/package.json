@@ -2,9 +2,9 @@
     "name": "magika",
     "version": "0.2.5",
     "description": "A tool to detect content types with deep learning.",
-    "main": "dist/cjs/magika.js",
-    "module": "dist/mjs/magika.js",
-    "type": "module",
+    "main": "./dist/cjs/magika.js",
+    "types": "./dist/cjs/magika.d.ts",
+    "module": "./dist/mjs/magika.js",
     "exports": {
         ".": {
             "import": "./dist/mjs/magika.js",
@@ -22,11 +22,11 @@
     "scripts": {
         "bin": "TF_CPP_MIN_LOG_LEVEL=1 node ./dist/mjs/index.js",
         "make-docs": "documentation build magika.js -f md --github -o ../docs/js.md",
-        "test": "TF_CPP_MIN_LOG_LEVEL=1 node --experimental-vm-modules node_modules/jest/bin/jest.js",
+        "test": "TF_CPP_MIN_LOG_LEVEL=1 node node_modules/jest/bin/jest.js",
         "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json"
     },
     "bin": {
-        "magika-js": "./dist/mjs/index.js"
+        "magika-js": "./dist/cjs/index.js"
     },
     "dependencies": {
         "@tensorflow/tfjs": "^4.17.0"
@@ -46,9 +46,8 @@
         ],
         "rootDir": "./",
         "testRegex": ".test.ts$",
-        "extensionsToTreatAsEsm": [".ts"],
         "transform": {
-            "^.+\\.ts$": ["ts-jest", {"useESM": true, "tsconfig": "./tsconfig.esm.json"}]
+            "^.+\\.ts$": ["ts-jest", {"tsconfig": "./tsconfig.cjs.json"}]
         },
         "moduleNameMapper": {
             "(.+)\\.js": "$1"

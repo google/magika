@@ -1,59 +1,66 @@
 {
-  "name": "magika",
-  "version": "0.2.6",
-  "description": "A tool to detect content types with deep learning.",
-  "main": "magika.js",
-  "type": "module",
-  "repository": "https://github.com/google/magika",
-  "author": "Luca Invernizzi <invernizzi@google.com>, Yanick Fratantonio <yanickf@google.com>",
-  "license": "Apache 2.0",
-  "keywords": [
-    "content type",
-    "file type",
-    "magic"
-  ],
-  "scripts": {
-    "bin": "TF_CPP_MIN_LOG_LEVEL=1 node index.js",
-    "make-docs": " documentation build magika.js -f md --github -o ../docs/js.md",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
-  },
-  "bin": {
-    "magika-js": "index.js"
-  },
-  "dependencies": {
-    "@tensorflow/tfjs": "^4.17.0"
-  },
-  "optionalDependencies": {
-    "@tensorflow/tfjs-node": "^4.17.0",
-    "chalk": "^5.3.0",
-    "commander": "^12.0.0"
-  },
-	"jest": {
-		"moduleFileExtensions": [
-			"js",
-			"json",
-			"ts"
-		],
-		"transformIgnorePatterns": [
-			"/node_modules/"
-		],
-		"testPathIgnorePatterns": [
-			"/node_modules/"
-		],
-		"rootDir": "./",
-		"testRegex": ".test.ts$",
-		"transform": {
-			"^.+\\.ts$": ["ts-jest", {"useESM": true}]
-		},
-		"testEnvironment": "node",
-		"collectCoverage": false
-	},
-  "devDependencies": {
-    "documentation": "^14.0.3",
-    "@types/node": "^16.18.19",
-		"@types/jest": "^29.5.0",
-		"jest": "^29.5.0",
-		"ts-jest": "^29.0.5",
-		"typescript": "^5.0.2"
-  }
+    "name": "magika",
+    "version": "0.2.6",
+    "description": "A tool to detect content types with deep learning.",
+    "main": "./dist/cjs/magika.js",
+    "types": "./dist/cjs/magika.d.ts",
+    "module": "./dist/mjs/magika.js",
+    "exports": {
+        ".": {
+            "import": "./dist/mjs/magika.js",
+            "require": "./dist/cjs/magika.js"
+        }
+    },
+    "repository": "https://github.com/google/magika",
+    "author": "Luca Invernizzi <invernizzi@google.com>, Yanick Fratantonio <yanickf@google.com>",
+    "license": "Apache 2.0",
+    "keywords": [
+        "content type",
+        "file type",
+        "magic"
+    ],
+    "scripts": {
+        "bin": "TF_CPP_MIN_LOG_LEVEL=1 node ./dist/mjs/index.js",
+        "make-docs": "documentation build magika.js -f md --github -o ../docs/js.md",
+        "test": "TF_CPP_MIN_LOG_LEVEL=1 node node_modules/jest/bin/jest.js",
+        "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json"
+    },
+    "bin": {
+        "magika-js": "./dist/cjs/index.js"
+    },
+    "dependencies": {
+        "@tensorflow/tfjs": "^4.17.0"
+    },
+    "optionalDependencies": {
+        "@tensorflow/tfjs-node": "^4.17.0",
+        "chalk": "^5.3.0",
+        "commander": "^12.0.0"
+    },
+    "jest": {
+        "moduleFileExtensions": ["js", "json", "ts"],
+        "transformIgnorePatterns": [
+            "/node_modules/"
+        ],
+        "testPathIgnorePatterns": [
+            "/node_modules/"
+        ],
+        "rootDir": "./",
+        "testRegex": ".test.ts$",
+        "transform": {
+            "^.+\\.ts$": ["ts-jest", {"tsconfig": "./tsconfig.cjs.json"}]
+        },
+        "moduleNameMapper": {
+            "(.+)\\.js": "$1"
+        },
+        "testEnvironment": "node",
+        "collectCoverage": false
+    },
+    "devDependencies": {
+        "documentation": "^14.0.3",
+        "@types/node": "^20.11.22",
+        "@types/jest": "^29.5.0",
+        "jest": "^29.5.0",
+        "ts-jest": "^29.0.5",
+        "typescript": "^5.0.2"
+    }
 }

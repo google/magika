@@ -1,29 +1,30 @@
 import * as tf from '@tensorflow/tfjs';
+import * as tfn from '@tensorflow/tfjs-node';
 import {GraphModel, DataTypeMap, NumericDataType} from '@tensorflow/tfjs';
-import {Config} from './config';
-import {ContentType} from './contentType';
+import {Config} from './config.js';
+import {ContentType} from './contentType.js';
 
-export class ModelProdiction {
+export interface ModelProdiction {
 
     index: number;
     scores: DataTypeMap[NumericDataType];
 
 }
 
-export class ModelResult {
+export interface ModelResult {
 
     score: number;
     label: ContentType;
 
 }
 
-export class ModelResultScores extends ModelResult {
+export interface ModelResultScores extends ModelResult {
 
     scores: DataTypeMap[NumericDataType];
 
 }
 
-export class ModelResultLabels extends ModelResult {
+export interface ModelResultLabels extends ModelResult {
 
     lables: Record<string, number>;
 
@@ -32,17 +33,27 @@ export class ModelResultLabels extends ModelResult {
 
 export class Model {
 
-    model: GraphModel;
+    model?: GraphModel;
 
     constructor(public config: Config) {}
 
-    async load(modelURL: string): Promise<void> {
+    async loadUrl(modelURL: string): Promise<void> {
         if (this.model == null) {
             this.model = await tf.loadGraphModel(modelURL);
-        };
+        }
     }
 
-    predict(features): ModelProdiction {
+    async loadFile(modelPath: string): Promise<void> {
+        if (this.model == null) {
+            const handler = tfn.io.fileSystem(modelPath);
+            this.model = await tf.loadGraphModel(handler);
+        }
+    }
+
+    predict(features: number[]): ModelProdiction {
+        if (this.model == null) {
+            throw new Error('model has not been loaded');
+        }
         const modelInput = tf.tensor([features]);
         const modelOutput = tf.squeeze(this.model.predict(modelInput) as any);
         const maxProbability = tf.argMax(modelOutput);

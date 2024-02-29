@@ -1,15 +1,11 @@
-import {ContentType} from './src/contentType';
-import {Config} from './src/config';
-import {Model} from './src/model';
-import {ModelFeatures} from './src/moduleFeatures';
-import {ModelResult, ModelResultLabels, ModelResultScores} from './src/model';
-
-class MagikaOptions {
-
-    modelURL?: string;
-    configURL?: string
-
-}
+import {ReadStream} from 'fs';
+import {ContentType} from './src/contentType.js';
+import {Config} from './src/config.js';
+import {Model} from './src/model.js';
+import {ModelFeatures} from './src/moduleFeatures.js';
+import {ModelResult, ModelResultLabels, ModelResultScores} from './src/model.js';
+import {finished} from 'stream/promises';
+import {MagikaOptions} from './src/magikaOptions.js';
 
 /**
  * The Magika object.
@@ -31,6 +27,14 @@ export class Magika {
     config: Config;
     model: Model;
 
+    constructor() {
+        this.config = new Config();
+        this.model = new Model(this.config);
+    }
+
+    static CONFIG_URL = 'https://google.github.io/magika/model/config.json';
+    static MODEL_URL = 'https://google.github.io/magika/model/model.json';
+
     static async create(options?: MagikaOptions): Promise<Magika> {
         const magika = new Magika();
         await magika.load(options);
@@ -46,67 +50,59 @@ export class Magika {
      *
      */
     async load(options?: MagikaOptions): Promise<void> {
-        this.config = new Config();
-        this.model = new Model(this.config);
-        await Promise.all([
-            this.config.load(options?.configURL || 'https://google.github.io/magika/model/config.json'),
-            this.model.load(options?.modelURL || 'https://google.github.io/magika/model/model.json')
-        ]);
+        const p: Promise<void>[] = [];
+        if (options?.configPath != null) {
+            p.push(this.config.loadFile(options?.configPath));
+        } else {
+            p.push(this.config.loadUrl(options?.configURL || Magika.CONFIG_URL));
+        }
+        if (options?.modelPath != null) {
+            p.push(this.model.loadFile(options?.modelPath));
+        } else {
+            p.push(this.model.loadUrl(options?.modelURL || Magika.MODEL_URL));
+        }
+        await Promise.all(p);
     }
 
-    async identifyStream(stream, length: number): Promise<ModelResultScores> {
-        const features = new ModelFeatures(this.config);
-
-        const halfMid = Math.round(this.config.midBytes / 2);
-        const halfpoint = Math.round(length / 2) - halfMid;
-        let lastChunk = null;
-        stream.on('data', (data) => {
-            if ((stream.bytesRead - data.length) == 0) {
-                features.withStart(data.slice(0, this.config.begBytes), 0);
-            }
-
-            const start = stream.bytesRead - (data.length + (lastChunk?.length || 0));
-            if (stream.bytesRead > (halfpoint + this.config.midBytes) && start < (halfpoint - halfMid)) {
-                const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
-                const halfStart = Math.max(0, halfpoint - start);
-                const halfChunk = chunk.slice(halfStart, halfStart + this.config.midBytes);
-                features.withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2);
-            }
-            
-            if (stream.bytesRead == length) {
-                const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
-                const endChunk = chunk.slice(Math.max(0, chunk.length - this.config.endBytes));
-                const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
-                features.withEnd(endChunk, endOffset);
-            }
-            lastChunk = data;
-        });
-        await new Promise<void>((resolve) => stream.on('end', resolve));
-        return this.model.generateResultFromPrediction(this.model.predict(features.toArray()));
+    /** Identifies the content type from a read stream
+     * 
+     * @param stream A read stream
+     * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
+     * @returns A dictionary containing the top label and its score,
+     */
+    async identifyStream(stream: ReadStream, length: number): Promise<ModelResult> {
+        const result = await this.identifyFromStream(stream, length);
+        return {label: result.label, score: result.score};
     }
 
-    async identifyStreamFull(stream, length: number): Promise<ModelResultLabels> {
-        const result = await this.identifyStream(stream, length);
+    /** Identifies the content type from a read stream
+     * 
+     * @param stream A read stream
+     * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
+     * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
+     */
+    async identifyStreamFull(stream: ReadStream, length: number): Promise<ModelResultLabels> {
+        const result = await this.identifyFromStream(stream, length);
         return this.getLabelsResult(result);
     }
 
-    /** Identifies the content type of a byte stream, returning all probabilities instead of just the top one.
+    /** Identifies the content type of a byte array, returning all probabilities instead of just the top one.
      *
-     * @param {*} fileBytes  a Buffer object (a fixed-length sequence of bytes)
+     * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
      * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
      */
     async identifyBytesFull(fileBytes: Uint16Array | Buffer): Promise<ModelResultLabels> {
-        const result = await this.identifyWithBytes(fileBytes);
+        const result = await this.identifyFromBytes(fileBytes);
         return this.getLabelsResult(result);
     }
 
-    /** Identifies the content type of a byte stream.
+    /** Identifies the content type of a byte array.
      *
-     * @param {*} fileBytes  a Buffer object (a fixed-length sequence of bytes)
-     * @returns A dictionary containing the top label and its score,
+     * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
+     * @returns A dictionary containing the top label and its score
      */
     async identifyBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResult> {
-        const result = await this.identifyWithBytes(fileBytes);
+        const result = await this.identifyFromBytes(fileBytes);
         return {label: result.label, score: result.score};
     }
 
@@ -131,7 +127,39 @@ export class Magika {
         }
     }
 
-    async identifyWithBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResultScores> {
+    async identifyFromStream(stream: ReadStream, length: number): Promise<ModelResultScores> {
+        const features = new ModelFeatures(this.config);
+
+        const halfpoint = Math.max(0, Math.round(length / 2) - Math.round(this.config.midBytes / 2));
+        const halfpointCap = Math.min(length, (halfpoint + this.config.midBytes));
+        let lastChunk: Buffer | null = null;
+        stream.on('data', (data: Buffer) => {
+            if ((stream.bytesRead - data.length) == 0) {
+                features.withStart(data.slice(0, this.config.begBytes), 0);
+            }
+
+            const start = stream.bytesRead - (data.length + (lastChunk?.length || 0));
+            if (stream.bytesRead >= halfpointCap && start <= halfpoint) {
+                const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
+                const halfStart = Math.max(0, halfpoint - start);
+                const halfChunk = chunk.slice(halfStart, halfStart + this.config.midBytes);
+                features.withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2);
+            }
+            
+            if (stream.bytesRead == length) {
+                const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
+                const endChunk = chunk.slice(Math.max(0, chunk.length - this.config.endBytes));
+                const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
+                features.withEnd(endChunk, endOffset);
+            }
+            lastChunk = data;
+        });
+        await finished(stream);
+        // await new Promise<void>((resolve) => stream.on('end', resolve));
+        return this.model.generateResultFromPrediction(this.model.predict(features.toArray()));
+    }
+
+    async identifyFromBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResultScores> {
         if (fileBytes.length <= this.config.minFileSizeForDl) {
             return this.getResultForAFewBytes(fileBytes);
         }

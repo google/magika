@@ -13,13 +13,7 @@ jobs:
         with:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
-      - run: |
-        cd js
-        npm ci
-        npm run test
-        npm run build
-      - run: |
-          cd js
-          npm publish
+      - run: cd js && yarn install --frozen-lockfile
+      - run: cd js && yarn publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

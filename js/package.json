@@ -2,6 +2,7 @@
     "name": "magika",
     "version": "0.2.5",
     "description": "A tool to detect content types with deep learning.",
+    "type": "module",
     "main": "./dist/cjs/magika.js",
     "types": "./dist/cjs/magika.d.ts",
     "module": "./dist/mjs/magika.js",
@@ -23,7 +24,7 @@
         "bin": "TF_CPP_MIN_LOG_LEVEL=1 node ./dist/mjs/index.js",
         "make-docs": "documentation build magika.js -f md --github -o ../docs/js.md",
         "test": "TF_CPP_MIN_LOG_LEVEL=1 node node_modules/jest/bin/jest.js",
-        "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json"
+        "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node postBuild.js"
     },
     "bin": {
         "magika-js": "./dist/cjs/index.js"

@@ -255,7 +255,7 @@ We have collected a number of FAQs [here](./docs/faq.md).
 If you use this software for your research, please cite it as:
 ```bibtex
 @software{magika,
-author = {Fratantonio, Yanick and Bursztein, Elie and Invernizzi, Luca and Zhang, Marina and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois and Petit-Bianco, Alexandre and Farah, Loua and Albertini, Ange},
+author = {Fratantonio, Yanick and Invernizzi, Luca and Zhang, Marina and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois and Petit-Bianco, Alexandre and Farah, Loua and Albertini, Ange and Bursztein, Elie},
 title = {{Magika content-type scanner}},
 url = {https://github.com/google/magika}
 }

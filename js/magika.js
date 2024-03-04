@@ -183,7 +183,7 @@ export class Magika {
     beg.set(fileArray.slice(0, this.config.begBytes), 0);
 
     // Middle chunk. Padding on either side.
-    const halfpoint = 2 * Math.round(fileArray.length / 2);
+    const halfpoint = Math.round(fileArray.length / 2);
     const startHalf = Math.max(0, halfpoint - this.config.midBytes / 2);
     const halfChunk = fileArray.slice(
       startHalf,

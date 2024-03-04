@@ -1795,10 +1795,10 @@ magic-string@^0.30.6:
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.4.15"
 
-magika@^0.2.1:
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/magika/-/magika-0.2.1.tgz#944b0f7b88629f19522ebb03e763162454a0eddd"
-  integrity sha512-j0oEh++Xxe7kGcZj3h0BTkT28wI56Ab/kQNIAcWOjco0g+zMOaNNhFlcstsPbD1lnKcSPXiDLr1MUeHHSZwG3A==
+magika@^0.2.6:
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/magika/-/magika-0.2.6.tgz#92a4f718354f4620a56ce3f82d7178f54aef9c12"
+  integrity sha512-rb9ARB1U6UXYroWw8W3sO0lUy64xYOtvW3ItVK5waZjWYmoD4fm512gCWgRzQKNmcXk9qOsQF8gCjmpQ9Z6xSw==
   dependencies:
     "@tensorflow/tfjs" "^4.17.0"
   optionalDependencies:
@@ -2612,10 +2612,10 @@ vite-plugin-vuetify@^2.0.1:
     debug "^4.3.3"
     upath "^2.0.1"
 
-vite@^5.1.1:
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/vite/-/vite-5.1.2.tgz#34e04d38db27ceebe6f0c9d053ea14d6496753d1"
-  integrity sha512-uwiFebQbTWRIGbCaTEBVAfKqgqKNKMJ2uPXsXeLIZxM8MVMjoS3j0cG8NrPxdDIadaWnPSjrkLWffLSC+uiP3Q==
+vite@^5.1.3:
+  version "5.1.4"
+  resolved "https://registry.yarnpkg.com/vite/-/vite-5.1.4.tgz#14e9d3e7a6e488f36284ef13cebe149f060bcfb6"
+  integrity sha512-n+MPqzq+d9nMVTKyewqw6kSt+R3CkvF9QAKY8obiQn8g1fwTscKxyfaYnC632HtBXAQGc1Yjomphwn1dtwGAHg==
   dependencies:
     esbuild "^0.19.3"
     postcss "^8.4.35"

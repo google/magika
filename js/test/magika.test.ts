@@ -1,4 +1,5 @@
 import {jest} from '@jest/globals';
+import {TfnMock} from './tfnHook';
 import * as fs from 'fs';
 import * as path from 'path';
 import {mkdtemp, rm, readFile} from 'fs/promises';
@@ -43,6 +44,10 @@ describe('Magika class', () => {
         }));
     });
 
+    beforeEach(async () => {
+        TfnMock.reset();
+    });
+
     afterAll(async () => {
         if (workdir.root) {
             await rm(workdir.root, {recursive: true, force: true});
@@ -54,6 +59,8 @@ describe('Magika class', () => {
         await magika.load();
         expect(magika.model.model).toBeDefined();
         expect(magika.config.labels.length).toBeGreaterThan(0);
+        expect(TfnMock.accessed.io).not.toBeDefined();
+        expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(0);
     });
     
 	it('should load model from file path', async () => {
@@ -61,6 +68,8 @@ describe('Magika class', () => {
         await magika.load({configPath: workdir.config, modelPath: workdir.model});
         expect(magika.model.model).toBeDefined();
         expect(magika.config.labels.length).toBeGreaterThan(0);
+        expect(TfnMock.accessed.io).toBe(1);
+        expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
     it('features should result in known value', async () => {
@@ -132,6 +141,8 @@ describe('Magika class', () => {
            100, 111, 119,  41,  59,  10
         ];
         expect(featuresMock.mock.calls[0][0]).toStrictEqual(featuresChunk);
+        expect(TfnMock.accessed.io).toBe(1);
+        expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
     const extMap: Record<string, string> = {
@@ -183,6 +194,8 @@ describe('Magika class', () => {
         expect(featuresMock.mock.calls[0][0]).toStrictEqual(featuresMock.mock.calls[1][0]);
         const ext = name.split('.')[1];
         expect(streamResult.label).toBe(extMap[ext] || ext);
+        expect(TfnMock.accessed.io).toBe(1);
+        expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
 });

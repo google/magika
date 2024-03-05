@@ -1,5 +1,5 @@
 
-// format sub package.json for duel cjs and esm support
+// format sub package.json for dual cjs and esm support
 import fs from 'fs';
 
 const formatPackage = (source, output, type) => {

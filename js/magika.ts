@@ -142,13 +142,13 @@ export class Magika {
             if (stream.bytesRead >= halfpointCap && start <= halfpoint) {
                 const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
                 const halfStart = Math.max(0, halfpoint - start);
-                const halfChunk = chunk.slice(halfStart, halfStart + this.config.midBytes);
+                const halfChunk = chunk.subarray(halfStart, halfStart + this.config.midBytes);
                 features.withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2);
             }
             
             if (stream.bytesRead == length) {
                 const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
-                const endChunk = chunk.slice(Math.max(0, chunk.length - this.config.endBytes));
+                const endChunk = chunk.subarray(Math.max(0, chunk.length - this.config.endBytes));
                 const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
                 features.withEnd(endChunk, endOffset);
             }

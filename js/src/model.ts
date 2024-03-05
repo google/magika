@@ -1,5 +1,4 @@
 import * as tf from '@tensorflow/tfjs';
-import * as tfn from '@tensorflow/tfjs-node';
 import {GraphModel, DataTypeMap, NumericDataType} from '@tensorflow/tfjs';
 import {Config} from './config.js';
 import {ContentType} from './contentType.js';
@@ -45,6 +44,7 @@ export class Model {
 
     async loadFile(modelPath: string): Promise<void> {
         if (this.model == null) {
+            const tfn = await import('@tensorflow/tfjs-node');
             const handler = tfn.io.fileSystem(modelPath);
             this.model = await tf.loadGraphModel(handler);
         }

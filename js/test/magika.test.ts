@@ -7,7 +7,7 @@ import * as os from 'os';
 import {Readable} from 'stream';
 import {finished} from 'stream/promises';
 import {ReadableStream} from 'stream/web';
-import {Magika} from '../magika';
+import {MagikaNode as Magika} from '../magika_node';
 
 describe('Magika class', () => {
 
@@ -59,7 +59,6 @@ describe('Magika class', () => {
         await magika.load();
         expect(magika.model.model).toBeDefined();
         expect(magika.config.labels.length).toBeGreaterThan(0);
-        expect(TfnMock.accessed.io).not.toBeDefined();
         expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(0);
     });
     

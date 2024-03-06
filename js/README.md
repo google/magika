@@ -14,7 +14,7 @@ Simple usage in Node:
 
 ```js
 import { readFile } from "fs/promises";
-import { Magika } from "magika";
+import { MagikaNode as Magika } from "magika";
 
 const data = await readFile("some file");
 const magika = new Magika();
@@ -40,7 +40,7 @@ For more, see our [documentation](../docs/js.md).
 
 # Commmand-line tool
 
-Please use the official CLI (with `pip install magika`) as it's considerably faster than this one.
+Please use the official CLI (with `pip install magika`) as it can perform batch processing and search for files recursivelyw.
 Read more about that in the main [README](../README.md).
 This one is useful to load the TensorflowJS model and see that it works as expected.
 

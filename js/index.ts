@@ -1,13 +1,12 @@
 #! /usr/bin/env node
-// Command line tool to test MagikaJs. Please use the proper command line
-// tool (`pip install magika`) for any real use.
+// Command line tool to test MagikaJs. Please use the official command line
+// tool (`pip install magika`) for normal use.
 
 // To run this, you need to install the optional dependencies too.
-// Load the node version of tensorflow, since we're running in the command line.
 import {program} from 'commander';
 import {readFile} from 'fs/promises';
 import chalk from 'chalk';
-import {Magika} from './magika.js';
+import {MagikaNode as Magika} from './magika_node.js';
 
 program
     .description('Magika JS - file type detection with ML. https://google.github.io/magika')

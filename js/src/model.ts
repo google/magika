@@ -25,7 +25,7 @@ export interface ModelResultScores extends ModelResult {
 
 export interface ModelResultLabels extends ModelResult {
 
-    lables: Record<string, number>;
+    labels: Record<string, number>;
 
 }
 
@@ -39,14 +39,6 @@ export class Model {
     async loadUrl(modelURL: string): Promise<void> {
         if (this.model == null) {
             this.model = await tf.loadGraphModel(modelURL);
-        }
-    }
-
-    async loadFile(modelPath: string): Promise<void> {
-        if (this.model == null) {
-            const tfn = await import(this.model? '' : '@tensorflow/tfjs-node');
-            const handler = tfn.io.fileSystem(modelPath);
-            this.model = await tf.loadGraphModel(handler);
         }
     }
 

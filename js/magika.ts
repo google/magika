@@ -1,26 +1,28 @@
-import {ReadStream} from 'fs';
+
 import {ContentType} from './src/contentType.js';
 import {Config} from './src/config.js';
 import {Model} from './src/model.js';
 import {ModelFeatures} from './src/moduleFeatures.js';
 import {ModelResult, ModelResultLabels, ModelResultScores} from './src/model.js';
-import {finished} from 'stream/promises';
 import {MagikaOptions} from './src/magikaOptions.js';
 
 /**
- * The Magika object.
+ * The main Magika object for client-side use.
  *
  * Example usage:
  * ```js
- *   const data = await readFile('some file');
- *   const magika = new Magika();
- *   await magika.load();
- *   const prediction = await magika.identifyBytes(data);
- *   console.log(prediction);
+ * const file = new File(["# Hello I am a markdown file"], "hello.md");
+ * const fileBytes = new Uint8Array(await file.arrayBuffer());
+ * const magika = new Magika();
+ * await magika.load();
+ * const prediction = await magika.identifyBytes(fileBytes);
+ * console.log(prediction);
  * ```
- * For a Node implementation, see `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
- *
- * For a web version, see `<MAGIKA_REPO>/docs/src/components/FileClassifierDemo.vue`,
+ * For a Node implementation, please import `MagikaNode` instead. 
+ * 
+ * Demos:
+ * - Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
+ * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
  */
 export class Magika {
 
@@ -43,46 +45,15 @@ export class Magika {
 
     /** Loads the Magika model and config from URLs.
      *
-     * @param {MagikaOptions} options The urls or file paths where the model and its config are stored.
+     * @param {MagikaOptions} options The urls where the model and its config are stored.
      *
      * Parameters are optional. If not provided, the model will be loaded from GitHub.
-     *
      */
     async load(options?: MagikaOptions): Promise<void> {
-        const p: Promise<void>[] = [];
-        if (options?.configPath != null) {
-            p.push(this.config.loadFile(options?.configPath));
-        } else {
-            p.push(this.config.loadUrl(options?.configURL || Magika.CONFIG_URL));
-        }
-        if (options?.modelPath != null) {
-            p.push(this.model.loadFile(options?.modelPath));
-        } else {
-            p.push(this.model.loadUrl(options?.modelURL || Magika.MODEL_URL));
-        }
-        await Promise.all(p);
-    }
-
-    /** Identifies the content type from a read stream
-     * 
-     * @param stream A read stream
-     * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
-     * @returns A dictionary containing the top label and its score,
-     */
-    async identifyStream(stream: ReadStream, length: number): Promise<ModelResult> {
-        const result = await this.identifyFromStream(stream, length);
-        return {label: result.label, score: result.score};
-    }
-
-    /** Identifies the content type from a read stream
-     * 
-     * @param stream A read stream
-     * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
-     * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
-     */
-    async identifyStreamFull(stream: ReadStream, length: number): Promise<ModelResultLabels> {
-        const result = await this.identifyFromStream(stream, length);
-        return this.getLabelsResult(result);
+        await Promise.all([
+            (this.config.loadUrl(options?.configURL || Magika.CONFIG_URL)),
+            (this.model.loadUrl(options?.modelURL || Magika.MODEL_URL))
+        ]);
     }
 
     /** Identifies the content type of a byte array, returning all probabilities instead of just the top one.
@@ -91,8 +62,8 @@ export class Magika {
      * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
      */
     async identifyBytesFull(fileBytes: Uint16Array | Buffer): Promise<ModelResultLabels> {
-        const result = await this.identifyFromBytes(fileBytes);
-        return this.getLabelsResult(result);
+        const result = await this._identifyFromBytes(fileBytes);
+        return this._getLabelsResult(result);
     }
 
     /** Identifies the content type of a byte array.
@@ -101,19 +72,19 @@ export class Magika {
      * @returns A dictionary containing the top label and its score
      */
     async identifyBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResult> {
-        const result = await this.identifyFromBytes(fileBytes);
+        const result = await this._identifyFromBytes(fileBytes);
         return {label: result.label, score: result.score};
     }
 
-    getLabelsResult(result: ModelResultScores): ModelResultLabels {
+    _getLabelsResult(result: ModelResultScores): ModelResultLabels {
         const labels = [
             ...Object.values(this.config.labels).map((label) => label.name),
             ...Object.values(ContentType),
         ].map((label, i) => [label, (label == result.label) ? result.score : (result.scores[i] || 0)]);
-        return {label: result.label, score: result.score, lables: Object.fromEntries(labels)};
+        return {label: result.label, score: result.score, labels: Object.fromEntries(labels)};
     }
 
-    getResultForAFewBytes(fileBytes: Uint16Array | Buffer): ModelResultScores {
+    _getResultForAFewBytes(fileBytes: Uint16Array | Buffer): ModelResultScores {
         if (fileBytes.length === 0) {
             return {score: 1.0, label: ContentType.EMPTY, scores: new Uint8Array()};
         }
@@ -126,41 +97,9 @@ export class Magika {
         }
     }
 
-    async identifyFromStream(stream: ReadStream, length: number): Promise<ModelResultScores> {
-        const features = new ModelFeatures(this.config);
-
-        const halfpoint = Math.max(0, Math.round(length / 2) - Math.round(this.config.midBytes / 2));
-        const halfpointCap = Math.min(length, (halfpoint + this.config.midBytes));
-        let lastChunk: Buffer | null = null;
-        stream.on('data', (data: Buffer) => {
-            if ((stream.bytesRead - data.length) == 0) {
-                features.withStart(data.slice(0, this.config.begBytes), 0);
-            }
-
-            const start = stream.bytesRead - (data.length + (lastChunk?.length || 0));
-            if (stream.bytesRead >= halfpointCap && start <= halfpoint) {
-                const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
-                const halfStart = Math.max(0, halfpoint - start);
-                const halfChunk = chunk.subarray(halfStart, halfStart + this.config.midBytes);
-                features.withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2);
-            }
-            
-            if (stream.bytesRead == length) {
-                const chunk = (lastChunk != null) ? Buffer.concat([lastChunk, data]) : data;
-                const endChunk = chunk.subarray(Math.max(0, chunk.length - this.config.endBytes));
-                const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
-                features.withEnd(endChunk, endOffset);
-            }
-            lastChunk = data;
-        });
-        await finished(stream);
-        // await new Promise<void>((resolve) => stream.on('end', resolve));
-        return this.model.generateResultFromPrediction(this.model.predict(features.toArray()));
-    }
-
-    async identifyFromBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResultScores> {
+    async _identifyFromBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResultScores> {
         if (fileBytes.length <= this.config.minFileSizeForDl) {
-            return this.getResultForAFewBytes(fileBytes);
+            return this._getResultForAFewBytes(fileBytes);
         }
         const fileArray = new Uint16Array(fileBytes);
 

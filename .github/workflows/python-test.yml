@@ -7,10 +7,12 @@ on:
       - 'main'
     paths:
       - 'python/**'
+      - 'tests_data/**'
       - '.github/workflows/**'
   pull_request:
     paths:
       - 'python/**'
+      - 'tests_data/**'
       - '.github/workflows/**'
 
 jobs:

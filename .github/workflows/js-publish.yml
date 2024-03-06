@@ -16,9 +16,9 @@ jobs:
       - name: Build
         working-directory: js
         run: |
-        yarn
-        yarn run build
-        yarn run test
+          yarn
+          yarn run build
+          yarn run test
       - name: Publish
         working-directory: js
         run: yarn publish

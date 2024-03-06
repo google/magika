@@ -1,14 +1,14 @@
 name: JS - publish
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+  push: 
+    tags:
+    - 'js-v[0-9]+.[0-9]+.[0-9]'
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Setup .npmrc file to publish to npm
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'

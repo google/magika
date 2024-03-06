@@ -23,7 +23,7 @@ jobs:
         with:
           ref: main
       - name: Generate docs
-        run: cd js && yarn install && yarn run make-docs
+        run: cd js && yarn install && yarn run build && yarn run make-docs
       - name: Commit
         run: |
           git config --local user.email "invernizzi.l@gmail.com"

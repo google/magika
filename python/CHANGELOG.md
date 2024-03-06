@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add support for python 3.12. Magika now supports python >=3.8 and <3.13.
+- Fix bugs for features extraction to cover more corner cases.
+- Remove MIME types from table of supported content types (Relevant for `--list-output-content-types`; see FAQs for context).
+- Refactor features extraction around a Seekable abstraction; we now have only one reference implementation.
+- Start groundwork for v2 of features extraction.
+- Various clean ups and internal refactors.
+
 
 ## [0.5.0] - 2024-02-15
 

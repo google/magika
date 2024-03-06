@@ -44,7 +44,7 @@ export class Model {
 
     async loadFile(modelPath: string): Promise<void> {
         if (this.model == null) {
-            const tfn = await import('@tensorflow/tfjs-node');
+            const tfn = await import(this.model? '' : '@tensorflow/tfjs-node');
             const handler = tfn.io.fileSystem(modelPath);
             this.model = await tf.loadGraphModel(handler);
         }

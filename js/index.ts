@@ -4,7 +4,6 @@
 
 // To run this, you need to install the optional dependencies too.
 // Load the node version of tensorflow, since we're running in the command line.
-import '@tensorflow/tfjs-node';
 import {program} from 'commander';
 import {readFile} from 'fs/promises';
 import chalk from 'chalk';

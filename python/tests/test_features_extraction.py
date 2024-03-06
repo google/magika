@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import gzip
 import json
 import math
 import random
 import string
 import tempfile
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Tuple
 
 from magika import Magika
 from magika.seekable import Buffer
+from tests.utils import get_tests_data_dir
 
 random.seed(42)
 
@@ -196,5 +199,40 @@ def _generate_pattern(size: int) -> bytearray:
     return pattern
 
 
+def generate_reference_features_extraction():
+    features_size = 512
+    padding_token = 256
+    block_size = 1024
+
+    test_suite = get_features_extraction_test_suite(features_size, block_size)
+
+    ref_features_extraction_tests = []
+
+    for test_info, test_content in test_suite:
+        s = Buffer(test_content)
+        features_v1 = Magika._extract_features_from_seekable(
+            s, features_size, features_size, features_size, padding_token, block_size
+        )
+        features_v2 = Magika._extract_features_from_seekable_v2(
+            s, features_size, features_size, features_size, padding_token, block_size
+        )
+
+        test_case = {
+            "test_info": asdict(test_info),
+            "content": base64.b64encode(test_content).decode("ascii"),
+            "features_v1": asdict(features_v1),
+            "features_v2": asdict(features_v2),
+        }
+        ref_features_extraction_tests.append(test_case)
+
+    ref_features_extraction_tests_path = (
+        get_tests_data_dir() / "features_extraction" / "reference.json.gz"
+    )
+    ref_features_extraction_tests_path.parent.mkdir(parents=True, exist_ok=True)
+    ref_features_extraction_tests_path.write_bytes(
+        gzip.compress(json.dumps(ref_features_extraction_tests).encode("ascii"))
+    )
+
+
 if __name__ == "__main__":
-    test_features_extraction(debug=False)
+    generate_reference_features_extraction()

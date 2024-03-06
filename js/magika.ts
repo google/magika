@@ -43,10 +43,9 @@ export class Magika {
 
     /** Loads the Magika model and config from URLs.
      *
-     * @param {string} modelURL The URL where the model is stored.
-     * @param {string} configURL The URL where the config is stored.
+     * @param {MagikaOptions} options The urls or file paths where the model and its config are stored.
      *
-     * Both parameters are optional. If not provided, the model will be loaded from Github.
+     * Parameters are optional. If not provided, the model will be loaded from GitHub.
      *
      */
     async load(options?: MagikaOptions): Promise<void> {

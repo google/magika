@@ -1,4 +1,4 @@
-# Magika JavaScript library
+# Magika TypeScript/JavaScript library
 
 Use Magika in the browser or in Node!
 
@@ -82,6 +82,7 @@ Using the model hosted On Github:
 
 ```bash
 yarn install
+yarn run build
 yarn run bin -- README.md
 ```
 
@@ -89,6 +90,7 @@ Using the local model:
 
 ```bash
 yarn install
+yarn run build
 (cd ../website; yarn install; yarn run dev) &
 yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json ../tests_data/mitra/*
 ```

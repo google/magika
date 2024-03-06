@@ -1,6 +1,6 @@
 {
     "name": "magika",
-    "version": "0.2.6",
+    "version": "0.2.7",
     "description": "A tool to detect content types with deep learning.",
     "type": "module",
     "main": "./dist/cjs/magika.js",
@@ -14,7 +14,7 @@
     },
     "repository": "https://github.com/google/magika",
     "author": "Luca Invernizzi <invernizzi@google.com>, Yanick Fratantonio <yanickf@google.com>",
-    "license": "Apache 2.0",
+    "license": "Apache-2.0",
     "keywords": [
         "content type",
         "file type",

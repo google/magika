@@ -32,6 +32,11 @@ random.seed(42)
 
 @dataclass
 class TestInfo:
+    beg_size: int
+    mid_size: int
+    end_size: int
+    block_size: int
+    padding_token: int
     core_content_size: int
     left_ws_num: int
     right_ws_num: int
@@ -47,14 +52,20 @@ def test_features_extraction(debug: bool = False) -> None:
     beg_size = 512
     mid_size = 512
     end_size = 512
-    padding_token = 256
     block_size = 4096
+    padding_token = 256
 
     features_size = beg_size
     assert mid_size == features_size
     assert end_size == features_size
 
-    test_suite = get_features_extraction_test_suite(features_size, block_size)
+    test_suite = get_features_extraction_test_suite(
+        beg_size=beg_size,
+        mid_size=mid_size,
+        end_size=end_size,
+        block_size=block_size,
+        padding_token=padding_token,
+    )
 
     for test_info, test_content in test_suite:
         if debug:
@@ -120,8 +131,13 @@ def test_features_extraction_v2(debug: bool = False) -> None:
 
 
 def get_features_extraction_test_suite(
-    features_size: int, block_size: int
+    beg_size: int, mid_size: int, end_size: int, block_size: int, padding_token: int
 ) -> List[Tuple[TestInfo, bytes]]:
+    # for now we only support tests with beg_size == mid_size == end_size
+    features_size = beg_size
+    assert mid_size == features_size
+    assert end_size == features_size
+
     ws_num_options = [
         0,
         1,
@@ -148,6 +164,11 @@ def get_features_extraction_test_suite(
         for left_ws_num in ws_num_options:
             for right_ws_num in ws_num_options:
                 test_info = TestInfo(
+                    beg_size=beg_size,
+                    mid_size=mid_size,
+                    end_size=end_size,
+                    block_size=block_size,
+                    padding_token=padding_token,
                     core_content_size=core_content_size,
                     left_ws_num=left_ws_num,
                     right_ws_num=right_ws_num,
@@ -200,21 +221,29 @@ def _generate_pattern(size: int) -> bytearray:
 
 
 def generate_reference_features_extraction():
-    features_size = 512
-    padding_token = 256
+    beg_size = 512
+    mid_size = 512
+    end_size = 512
     block_size = 1024
+    padding_token = 256
 
-    test_suite = get_features_extraction_test_suite(features_size, block_size)
+    test_suite = get_features_extraction_test_suite(
+        beg_size=beg_size,
+        mid_size=mid_size,
+        end_size=end_size,
+        block_size=block_size,
+        padding_token=padding_token,
+    )
 
     ref_features_extraction_tests = []
 
     for test_info, test_content in test_suite:
         s = Buffer(test_content)
         features_v1 = Magika._extract_features_from_seekable(
-            s, features_size, features_size, features_size, padding_token, block_size
+            s, beg_size, mid_size, end_size, padding_token, block_size
         )
         features_v2 = Magika._extract_features_from_seekable_v2(
-            s, features_size, features_size, features_size, padding_token, block_size
+            s, beg_size, mid_size, end_size, padding_token, block_size
         )
 
         test_case = {

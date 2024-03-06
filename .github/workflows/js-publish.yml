@@ -13,8 +13,6 @@ jobs:
         with:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'yarn'
-          cache-dependency-path: '**/yarn.lock'
       - name: Build
         working-directory: js
         run: |

@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased]
+## [0.5.1] - 2024-03-06
 
 - Add support for python 3.12. Magika now supports python >=3.8 and <3.13.
 - Fix bugs for features extraction to cover more corner cases.

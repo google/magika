@@ -394,9 +394,9 @@
     form-data "^4.0.0"
 
 "@types/node@*":
-  version "20.11.18"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.11.18.tgz#06912d152e47c2ac0a393c62141e623ca6005d46"
-  integrity sha512-ABT5VWnnYneSBcNWYSCuR05M826RoMyMSGiFivXGx6ZUIsXb9vn4643IEwkg2zbEOSgAiSogtapN2fgc4mAPlw==
+  version "20.11.25"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.11.25.tgz#0f50d62f274e54dd7a49f7704cc16bfbcccaf49f"
+  integrity sha512-TBHyJxk2b7HceLVGFcpAUjsa5zIdsPWlR6XHfyGzd0SFu+/NFgQgMAl96MSDZgQDvJAvV6BKsFOrt6zIL09JDw==
   dependencies:
     undici-types "~5.26.4"
 
@@ -1795,10 +1795,10 @@ magic-string@^0.30.6:
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.4.15"
 
-magika@^0.2.6:
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/magika/-/magika-0.2.6.tgz#92a4f718354f4620a56ce3f82d7178f54aef9c12"
-  integrity sha512-rb9ARB1U6UXYroWw8W3sO0lUy64xYOtvW3ItVK5waZjWYmoD4fm512gCWgRzQKNmcXk9qOsQF8gCjmpQ9Z6xSw==
+magika@^0.2.10:
+  version "0.2.10"
+  resolved "https://registry.yarnpkg.com/magika/-/magika-0.2.10.tgz#d1b8a61c2755e9ca0f64993454073659683e56c1"
+  integrity sha512-T2pyP0Pyl+ADt0sJFDIv88FhOyajGeNn/7vPZR8IXuzWIOu4Uco3eEfdQr73NJ4cCmpHVzNggMVSzYuO3ZkaQQ==
   dependencies:
     "@tensorflow/tfjs" "^4.17.0"
   optionalDependencies:

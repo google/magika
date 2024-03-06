@@ -29,7 +29,7 @@
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-vue": "^9.18.1",
-    "magika": "^0.2.6",
+    "magika": "^0.2.10",
     "prettier": "^3.2.5",
     "sass": "^1.60.0",
     "unplugin-fonts": "^1.0.3",

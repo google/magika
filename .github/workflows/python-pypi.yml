@@ -1,4 +1,4 @@
-name: Publish Magika to pypi
+name: Python - publish 
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: Publish Magika to npm
+name: JS - publish
 on:
   workflow_dispatch:
   release:

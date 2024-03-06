@@ -1,4 +1,4 @@
-name: Python
+name: Python - integration tests
 on:
     push:
       branches:

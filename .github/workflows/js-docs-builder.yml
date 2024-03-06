@@ -1,4 +1,4 @@
-name: Generate JS docs
+name: JS - generate docs
 
 on:
   # Runs on pushes targeting the default branch

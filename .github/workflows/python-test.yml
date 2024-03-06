@@ -1,4 +1,4 @@
-name: Python
+name: Python - test
 
 on:
   workflow_dispatch:

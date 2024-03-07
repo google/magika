@@ -25,6 +25,7 @@ from typing import List, Tuple
 
 from magika import Magika
 from magika.seekable import Buffer
+from magika.types import ModelFeatures, ModelFeaturesV2
 from tests.utils import get_tests_data_dir
 
 random.seed(42)
@@ -32,6 +33,11 @@ random.seed(42)
 
 @dataclass
 class TestInfo:
+    beg_size: int
+    mid_size: int
+    end_size: int
+    block_size: int
+    padding_token: int
     core_content_size: int
     left_ws_num: int
     right_ws_num: int
@@ -44,19 +50,19 @@ def test_features_extraction(debug: bool = False) -> None:
     trivial implementaion matches the python module one, which is the reference
     code."""
 
-    beg_size = 512
-    mid_size = 512
-    end_size = 512
-    padding_token = 256
-    block_size = 4096
+    tests_cases = _get_tests_cases_from_reference()
 
-    features_size = beg_size
-    assert mid_size == features_size
-    assert end_size == features_size
+    for test_case in tests_cases:
+        test_info = TestInfo(**test_case["test_info"])
+        test_content = base64.b64decode(test_case["content"])
+        expected_features = ModelFeatures(**test_case["features_v1"])
 
-    test_suite = get_features_extraction_test_suite(features_size, block_size)
+        beg_size = test_info.beg_size
+        mid_size = test_info.mid_size
+        end_size = test_info.end_size
+        block_size = test_info.block_size
+        padding_token = test_info.padding_token
 
-    for test_info, test_content in test_suite:
         if debug:
             print(f"Test details: {test_info} =>")
 
@@ -70,93 +76,66 @@ def test_features_extraction(debug: bool = False) -> None:
                 tf_path, beg_size, mid_size, end_size, padding_token, block_size
             )
 
-        comparison = {}
-        comparison["beg"] = features_from_bytes.beg == features_from_path.beg
-        comparison["mid"] = features_from_bytes.mid == features_from_path.mid
-        comparison["end"] = features_from_bytes.end == features_from_path.end
-        comparison["all"] = set(comparison.values()) == set([True])
+        comparison_by_bytes = {}
+        comparison_by_bytes["beg"] = features_from_bytes.beg == expected_features.beg
+        comparison_by_bytes["mid"] = features_from_bytes.mid == expected_features.mid
+        comparison_by_bytes["end"] = features_from_bytes.end == expected_features.end
+        comparison_by_bytes["all"] = set(comparison_by_bytes.values()) == set([True])
+
+        comparison_by_path = {}
+        comparison_by_path["beg"] = features_from_path.beg == expected_features.beg
+        comparison_by_path["mid"] = features_from_path.mid == expected_features.mid
+        comparison_by_path["end"] = features_from_path.end == expected_features.end
+        comparison_by_path["all"] = set(comparison_by_path.values()) == set([True])
 
         if debug:
-            print("comparison: " + json.dumps(comparison))
+            print("comparison_by_bytes: " + json.dumps(comparison_by_bytes))
 
-        if comparison["all"] is False:
-            raise
+        if not comparison_by_bytes["all"] or not comparison_by_path["all"]:
+            raise Exception
 
 
 def test_features_extraction_v2(debug: bool = False) -> None:
-    features_size = 256
-    padding_token = 256
-    block_size = 4096
+    tests_cases = _get_tests_cases_from_reference()
 
-    s = Buffer(b"test")
-    f = Magika._extract_features_from_seekable_v2(
-        s, features_size, features_size, features_size, padding_token, block_size
-    )
-    assert f.offset_0x8000_0x8007 == [padding_token] * 8
-    assert f.offset_0x8800_0x8807 == [padding_token] * 8
-    assert f.offset_0x9000_0x9007 == [padding_token] * 8
-    assert f.offset_0x9800_0x9807 == [padding_token] * 8
+    for test_case in tests_cases:
+        test_info = TestInfo(**test_case["test_info"])
+        test_content = base64.b64decode(test_case["content"])
+        expected_features = ModelFeaturesV2(**test_case["features_v2"])
 
-    s = Buffer(b"x" * 0x8007)
-    f = Magika._extract_features_from_seekable_v2(s, 512, 512, 512, 256, 4096)
-    assert f.offset_0x8000_0x8007 == [padding_token] * 8
-    assert f.offset_0x8800_0x8807 == [padding_token] * 8
-    assert f.offset_0x9000_0x9007 == [padding_token] * 8
-    assert f.offset_0x9800_0x9807 == [padding_token] * 8
+        beg_size = test_info.beg_size
+        mid_size = test_info.mid_size
+        end_size = test_info.end_size
+        block_size = test_info.block_size
+        padding_token = test_info.padding_token
 
-    s = Buffer(b"x" * 0x8008)
-    f = Magika._extract_features_from_seekable_v2(s, 512, 512, 512, 256, 4096)
-    assert f.offset_0x8000_0x8007 == [ord("x")] * 8
-    assert f.offset_0x8800_0x8807 == [padding_token] * 8
-    assert f.offset_0x9000_0x9007 == [padding_token] * 8
-    assert f.offset_0x9800_0x9807 == [padding_token] * 8
+        s = Buffer(test_content)
+        features = Magika._extract_features_from_seekable_v2(
+            s, beg_size, mid_size, end_size, padding_token, block_size
+        )
 
-    s = Buffer(b"x" * 0x10000)
-    f = Magika._extract_features_from_seekable_v2(s, 512, 512, 512, 256, 4096)
-    assert f.offset_0x8000_0x8007 == [ord("x")] * 8
-    assert f.offset_0x8800_0x8807 == [ord("x")] * 8
-    assert f.offset_0x9000_0x9007 == [ord("x")] * 8
-    assert f.offset_0x9800_0x9807 == [ord("x")] * 8
+        with_error = False
+        if features.beg != expected_features.beg:
+            with_error = True
+            if debug:
+                print("beg does not match")
+        if features.mid != expected_features.mid:
+            with_error = True
+            if debug:
+                print("mid does not match")
+        if features.end != expected_features.end:
+            with_error = True
+            if debug:
+                print("end does not match")
+        try:
+            assert expected_features == features
+        except AssertionError:
+            with_error = True
+            if debug:
+                print("other fields do not match")
 
-
-def get_features_extraction_test_suite(
-    features_size: int, block_size: int
-) -> List[Tuple[TestInfo, bytes]]:
-    ws_num_options = [
-        0,
-        1,
-        10,
-        features_size - 1,
-        features_size,
-        features_size + 1,
-        block_size - 1,
-        block_size,
-        block_size + 1,
-        2 * block_size - 1,
-        2 * block_size,
-        2 * block_size + 1,
-        2 * block_size + features_size - 1,
-        2 * block_size + features_size,
-        2 * block_size + features_size + 1,
-    ]
-
-    content_size_options = list(ws_num_options)
-    content_size_options.extend([10_000, 100_000])
-
-    test_suite = []
-    for core_content_size in content_size_options:
-        for left_ws_num in ws_num_options:
-            for right_ws_num in ws_num_options:
-                test_info = TestInfo(
-                    core_content_size=core_content_size,
-                    left_ws_num=left_ws_num,
-                    right_ws_num=right_ws_num,
-                )
-
-                content = _generate_content(test_info)
-                test_suite.append((test_info, content))
-
-    return test_suite
+        if with_error:
+            raise Exception
 
 
 def _generate_content(test_info: TestInfo) -> bytes:
@@ -199,22 +178,30 @@ def _generate_pattern(size: int) -> bytearray:
     return pattern
 
 
-def generate_reference_features_extraction():
-    features_size = 512
-    padding_token = 256
+def generate_features_extraction_reference():
+    beg_size = 512
+    mid_size = 512
+    end_size = 512
     block_size = 1024
+    padding_token = 256
 
-    test_suite = get_features_extraction_test_suite(features_size, block_size)
+    test_suite = _get_features_extraction_test_suite(
+        beg_size=beg_size,
+        mid_size=mid_size,
+        end_size=end_size,
+        block_size=block_size,
+        padding_token=padding_token,
+    )
 
     ref_features_extraction_tests = []
 
     for test_info, test_content in test_suite:
         s = Buffer(test_content)
         features_v1 = Magika._extract_features_from_seekable(
-            s, features_size, features_size, features_size, padding_token, block_size
+            s, beg_size, mid_size, end_size, padding_token, block_size
         )
         features_v2 = Magika._extract_features_from_seekable_v2(
-            s, features_size, features_size, features_size, padding_token, block_size
+            s, beg_size, mid_size, end_size, padding_token, block_size
         )
 
         test_case = {
@@ -225,14 +212,109 @@ def generate_reference_features_extraction():
         }
         ref_features_extraction_tests.append(test_case)
 
-    ref_features_extraction_tests_path = (
-        get_tests_data_dir() / "features_extraction" / "reference.json.gz"
-    )
+    ref_features_extraction_tests_path = _get_features_extration_tests_path()
     ref_features_extraction_tests_path.parent.mkdir(parents=True, exist_ok=True)
     ref_features_extraction_tests_path.write_bytes(
         gzip.compress(json.dumps(ref_features_extraction_tests).encode("ascii"))
     )
 
 
+def _get_tests_cases_from_reference() -> List:
+    ref_features_extraction_tests_path = _get_features_extration_tests_path()
+
+    tests_cases = json.loads(
+        gzip.decompress(ref_features_extraction_tests_path.read_bytes())
+    )
+    return tests_cases  # type: ignore[no-any-return]
+
+
+def _get_features_extraction_test_suite(
+    beg_size: int, mid_size: int, end_size: int, block_size: int, padding_token: int
+) -> List[Tuple[TestInfo, bytes]]:
+    # for now we only support tests with beg_size == mid_size == end_size
+    features_size = beg_size
+    assert mid_size == features_size
+    assert end_size == features_size
+
+    ws_num_options = [
+        0,
+        1,
+        10,
+        features_size - 1,
+        features_size,
+        features_size + 1,
+        block_size - 1,
+        block_size,
+        block_size + 1,
+        2 * block_size - 1,
+        2 * block_size,
+        2 * block_size + 1,
+        2 * block_size + features_size - 1,
+        2 * block_size + features_size,
+        2 * block_size + features_size + 1,
+    ]
+
+    content_size_options = list(ws_num_options)
+    content_size_options.extend([10_000, 100_000])
+
+    test_suite = []
+    for core_content_size in content_size_options:
+        for left_ws_num in ws_num_options:
+            for right_ws_num in ws_num_options:
+                test_info = TestInfo(
+                    beg_size=beg_size,
+                    mid_size=mid_size,
+                    end_size=end_size,
+                    block_size=block_size,
+                    padding_token=padding_token,
+                    core_content_size=core_content_size,
+                    left_ws_num=left_ws_num,
+                    right_ws_num=right_ws_num,
+                )
+
+                content = _generate_content(test_info)
+                test_suite.append((test_info, content))
+
+    def _gen_test_info_and_content(
+        core_content_size: int, left_ws_num: int, right_ws_num: int
+    ) -> Tuple[TestInfo, bytes]:
+        test_info = TestInfo(
+            beg_size=512,
+            mid_size=512,
+            end_size=512,
+            block_size=4096,
+            padding_token=256,
+            core_content_size=core_content_size,
+            left_ws_num=left_ws_num,
+            right_ws_num=right_ws_num,
+        )
+
+        content = (
+            b" " * left_ws_num
+            + _generate_pattern(core_content_size)
+            + b" " * right_ws_num
+        )
+
+        return test_info, content
+
+    # add tests about 0xXXXX_0xYYYY features
+    for offset_to_test in [0, 0x8000, 0x8800, 0x9000, 0x9800, 0x9900]:
+        for extra_len in [0, 1, 7, 8, 9]:
+            for left_ws_num in [0, 1]:
+                test_info, content = _gen_test_info_and_content(
+                    core_content_size=offset_to_test + extra_len,
+                    left_ws_num=left_ws_num,
+                    right_ws_num=0,
+                )
+                test_suite.append((test_info, content))
+
+    return test_suite
+
+
+def _get_features_extration_tests_path() -> Path:
+    return get_tests_data_dir() / "features_extraction" / "reference.json.gz"
+
+
 if __name__ == "__main__":
-    generate_reference_features_extraction()
+    test_features_extraction(debug=True)
+    test_features_extraction_v2(debug=True)

@@ -344,8 +344,7 @@ class Magika:
         """This implement v2 of the features extraction v2 from a seekable,
         which is an abstraction about anything that can be "read_at" a specific
         offset, such as a file or buffer. This is implemented so that we do not
-        need to load the entire content of the file in memory, and we do not
-        need to scan the entire buffer.
+        need to load the entire file in memory, or scan the entire buffer.
 
         High-level overview on what we do:
         - We extract blocks of bytes from the beginning ("beg"), the middle

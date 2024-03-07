@@ -220,7 +220,7 @@ def _generate_pattern(size: int) -> bytearray:
     return pattern
 
 
-def generate_reference_features_extraction():
+def generate_features_extraction_reference():
     beg_size = 512
     mid_size = 512
     end_size = 512
@@ -264,4 +264,5 @@ def generate_reference_features_extraction():
 
 
 if __name__ == "__main__":
-    generate_reference_features_extraction()
+    test_features_extraction()
+    test_features_extraction_v2()

@@ -369,31 +369,20 @@ class Magika:
         assert mid_size < block_size
         assert end_size < block_size
 
-        if seekable.size < 2 * block_size:
-            # If the content is small, we take this shortcut to avoid
-            # checking for too many corner cases.
-            content = seekable.read_at(0, seekable.size)
-            content = content.strip()
-            beg_content = content
-            mid_content = content
-            end_content = content
+        # we read at most block_size bytes
+        bytes_num_to_read = min(block_size, seekable.size)
 
-        else:  # seekable.size >= 2 * block_size
-            # If the content is big enough, the implementation becomes much
-            # simpler. In this path of the code, we know we have enough content
-            # to strip up to "block_size" bytes from both sides.
+        beg_content = seekable.read_at(0, bytes_num_to_read).lstrip()
 
-            beg_content = seekable.read_at(0, block_size).lstrip()
+        end_content = seekable.read_at(
+            seekable.size - bytes_num_to_read, bytes_num_to_read
+        ).rstrip()
 
-            end_content = seekable.read_at(
-                seekable.size - block_size, block_size
-            ).rstrip()
-
-            # we extract "mid" from the middle of the content
-            # mid_idx points to the first byte of the middle block
-            # == seekable.size//2 - mid_size//2
-            mid_idx = (seekable.size - mid_size) // 2
-            mid_content = seekable.read_at(mid_idx, mid_size)
+        # mid_idx points to the left-most offset to read for the middle block
+        # Approximate formula: mid_idx ~= seekable.size/2 - mid_size/2
+        mid_idx = max(0, (seekable.size - mid_size) // 2)
+        mid_bytes_num_to_read = min(seekable.size, mid_size)
+        mid_content = seekable.read_at(mid_idx, mid_bytes_num_to_read)
 
         beg_ints = Magika._get_beg_ints_with_padding(
             beg_content, beg_size, padding_token

@@ -76,6 +76,41 @@ url = {https://github.com/google/magika}
 }
 ```
 
+# Loading the model and configuration
+
+MagikaJS is designed flexible in how you provide the model and configuration file to it.
+
+Both the Node and browser versions accept URLs to asyncronously load these two assets.
+```js
+await magika.load({
+        modelURL: "https://...",
+        configURL: "https://...",
+    });
+```
+
+The Node version also allows to load local files.
+```js
+await magika.load({
+        modelPath: './assets/...',
+        configPath: './assets/...'
+    });
+```
+
+If you already have the model & config JSON files available, you can pass them to Magika as dataurls
+```js
+// Getting the JSONs.
+const configJSON = await (await fetch("https://google.github.io/magika/model/config.json")).text();
+const modelJSON = await (await fetch("https://google.github.io/magika/model/config.json")).text();
+// Converting them to dataURLs.
+const configDataURL = 'data:application/json;base64,' + btoa(configJSON);
+const configDataURL = 'data:application/json;base64,' + btoa(modelJSON);
+// Loading Magika!
+await magika.load({
+    modelURL: modelDataURL,
+    configURL: configDataURL,
+    });
+```
+
 # Development
 
 Using the model hosted On Github:

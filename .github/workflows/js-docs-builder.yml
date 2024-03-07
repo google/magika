@@ -24,7 +24,7 @@ jobs:
           ref: main
       - name: Generate docs
         working-directory: js
-          run: |
+        run: |
             yarn
             yarn run build
             yarn run make-docs

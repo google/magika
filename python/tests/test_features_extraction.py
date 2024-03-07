@@ -25,6 +25,7 @@ from typing import List, Tuple
 
 from magika import Magika
 from magika.seekable import Buffer
+from magika.types import ModelFeatures, ModelFeaturesV2
 from tests.utils import get_tests_data_dir
 
 random.seed(42)
@@ -44,30 +45,35 @@ class TestInfo:
     __test__ = False
 
 
+def get_tests_cases_from_reference() -> List:
+    ref_features_extraction_tests_path = (
+        get_tests_data_dir() / "features_extraction" / "reference.json.gz"
+    )
+
+    tests_cases = json.loads(
+        gzip.decompress(ref_features_extraction_tests_path.read_bytes())
+    )
+    return tests_cases
+
+
 def test_features_extraction(debug: bool = False) -> None:
     """This iterates over the content in the test suite and checks whether the
     trivial implementaion matches the python module one, which is the reference
     code."""
 
-    beg_size = 512
-    mid_size = 512
-    end_size = 512
-    block_size = 4096
-    padding_token = 256
+    tests_cases = get_tests_cases_from_reference()
 
-    features_size = beg_size
-    assert mid_size == features_size
-    assert end_size == features_size
+    for test_case in tests_cases:
+        test_info = TestInfo(**test_case["test_info"])
+        test_content = base64.b64decode(test_case["content"])
+        expected_features = ModelFeatures(**test_case["features_v1"])
 
-    test_suite = get_features_extraction_test_suite(
-        beg_size=beg_size,
-        mid_size=mid_size,
-        end_size=end_size,
-        block_size=block_size,
-        padding_token=padding_token,
-    )
+        beg_size = test_info.beg_size
+        mid_size = test_info.mid_size
+        end_size = test_info.end_size
+        block_size = test_info.block_size
+        padding_token = test_info.padding_token
 
-    for test_info, test_content in test_suite:
         if debug:
             print(f"Test details: {test_info} =>")
 
@@ -81,20 +87,68 @@ def test_features_extraction(debug: bool = False) -> None:
                 tf_path, beg_size, mid_size, end_size, padding_token, block_size
             )
 
-        comparison = {}
-        comparison["beg"] = features_from_bytes.beg == features_from_path.beg
-        comparison["mid"] = features_from_bytes.mid == features_from_path.mid
-        comparison["end"] = features_from_bytes.end == features_from_path.end
-        comparison["all"] = set(comparison.values()) == set([True])
+        comparison_by_bytes = {}
+        comparison_by_bytes["beg"] = features_from_bytes.beg == expected_features.beg
+        comparison_by_bytes["mid"] = features_from_bytes.mid == expected_features.mid
+        comparison_by_bytes["end"] = features_from_bytes.end == expected_features.end
+        comparison_by_bytes["all"] = set(comparison_by_bytes.values()) == set([True])
+
+        comparison_by_path = {}
+        comparison_by_path["beg"] = features_from_path.beg == expected_features.beg
+        comparison_by_path["mid"] = features_from_path.mid == expected_features.mid
+        comparison_by_path["end"] = features_from_path.end == expected_features.end
+        comparison_by_path["all"] = set(comparison_by_path.values()) == set([True])
 
         if debug:
-            print("comparison: " + json.dumps(comparison))
+            print("comparison_by_bytes: " + json.dumps(comparison_by_bytes))
 
-        if comparison["all"] is False:
-            raise
+        if not comparison_by_bytes["all"] or not comparison_by_path["all"]:
+            raise Exception
 
 
 def test_features_extraction_v2(debug: bool = False) -> None:
+    tests_cases = get_tests_cases_from_reference()
+
+    for test_case in tests_cases:
+        test_info = TestInfo(**test_case["test_info"])
+        test_content = base64.b64decode(test_case["content"])
+        expected_features = ModelFeaturesV2(**test_case["features_v2"])
+
+        beg_size = test_info.beg_size
+        mid_size = test_info.mid_size
+        end_size = test_info.end_size
+        block_size = test_info.block_size
+        padding_token = test_info.padding_token
+
+        s = Buffer(test_content)
+        features = Magika._extract_features_from_seekable_v2(
+            s, beg_size, mid_size, end_size, padding_token, block_size
+        )
+
+        with_error = False
+        if features.beg != expected_features.beg:
+            with_error = True
+            if debug:
+                print("beg does not match")
+        if features.mid != expected_features.mid:
+            with_error = True
+            if debug:
+                print("mid does not match")
+        if features.end != expected_features.end:
+            with_error = True
+            if debug:
+                print("end does not match")
+        try:
+            assert expected_features == features
+        except AssertionError:
+            with_error = True
+            if debug:
+                print("other fields do not match")
+
+        if with_error:
+            raise Exception
+
+    # Old tests for v2
     features_size = 256
     padding_token = 256
     block_size = 4096
@@ -264,5 +318,5 @@ def generate_features_extraction_reference():
 
 
 if __name__ == "__main__":
-    test_features_extraction()
-    test_features_extraction_v2()
+    # test_features_extraction(debug=True)
+    test_features_extraction_v2(debug=True)

@@ -341,28 +341,38 @@ class Magika:
         padding_token: int,
         block_size: int,
     ) -> ModelFeaturesV2:
-        """This implement v2 of the features extraction v2 from a seekable, which is an
-        abstraction about anything that can be "read_at" a specific offset, such
-        as a file or buffer. This is implemented so that we do not need to load
-        the entire content of the file in memory, and we do not need to scan the
-        entire buffer.
-
-        This v2 is similar to v1; the main difference is that whether we strip
-        some bytes from beg and end does not influence which bytes we pick for
-        the middle part. This makes the implementation of v2 much simpler. And
-        it makes it possible for a client to just read a block at the beginning,
-        middle, and end, and send it to our backend for features extraction --
-        no need for additional check on the client side.
+        """This implement v2 of the features extraction v2 from a seekable,
+        which is an abstraction about anything that can be "read_at" a specific
+        offset, such as a file or buffer. This is implemented so that we do not
+        need to load the entire content of the file in memory, and we do not
+        need to scan the entire buffer.
 
         High-level overview on what we do:
-        - beg: we read the first block in memory, we lstrip() it, and we use this as
-        the basis to extract beg_size integers (we either truncate to beg_size
-        or we add padding as suffix up to beg_size).
-        - end: same as "beg", but we read the last block in memory, and the padding
-        is prefixed (and not suffixed).
-        - mid: we consider the entire content (note: for this v2, we do not care
-        about whitespace stripping), and we take the mid_size bytes in the
-        middle. If needed, we add padding to the left and to the right.
+        - We extract blocks of bytes from the beginning ("beg"), the middle
+        ("mid"), and at the end ("end").
+        - We then truncate or add padding to these blocks, depending on whether
+        we have too many or too few.
+
+        Blocks extraction and padding:
+        - beg: we read the first block in memory, we lstrip() it, and we use
+        this as the basis to extract beg_size integers. If we have too many
+        bytes, we only consider the first beg_size ones. If we do not have
+        enough, we add padding as suffix (up to beg_size integers).
+        - mid: we determine "where the middle is" by using the entire content's
+        size, and we take the mid_size bytes in the middle. If we do not have
+        enough bytes, we add padding to the left and to the right. In case we
+        need to add an odd number of padding integers, we add an extra one to
+        the right.
+        - end: same as "beg", but we read the last block in memory, we rstrip()
+        (instead of lstrip()), and, if needed, we add padding as a prefix (and
+        not as a suffix like we do with "beg").
+
+        Notes about similarities and differences with v1: the main difference is
+        that whether we strip some bytes from beg and end does not influence
+        which bytes we pick for the middle part. This makes the implementation
+        of v2 much simpler. And it makes it possible for a client to just read a
+        block at the beginning, middle, and end, and send it to our backend for
+        features extraction -- no need for additional check on the client side.
         """
 
         assert beg_size < block_size

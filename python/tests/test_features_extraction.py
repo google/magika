@@ -225,7 +225,7 @@ def _get_tests_cases_from_reference() -> List:
     tests_cases = json.loads(
         gzip.decompress(ref_features_extraction_tests_path.read_bytes())
     )
-    return tests_cases
+    return tests_cases  # type: ignore[no-any-return]
 
 
 def _get_features_extraction_test_suite(

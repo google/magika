@@ -382,25 +382,24 @@ class Magika:
         bytes_num_to_read = min(block_size, seekable.size)
 
         beg_content = seekable.read_at(0, bytes_num_to_read).lstrip()
+        beg_ints = Magika._get_beg_ints_with_padding(
+            beg_content, beg_size, padding_token
+        )
 
         end_content = seekable.read_at(
             seekable.size - bytes_num_to_read, bytes_num_to_read
         ).rstrip()
-
-        # mid_idx points to the left-most offset to read for the middle block
-        # Approximate formula: mid_idx ~= seekable.size/2 - mid_size/2
-        mid_idx = max(0, (seekable.size - mid_size) // 2)
-        mid_bytes_num_to_read = min(seekable.size, mid_size)
-        mid_content = seekable.read_at(mid_idx, mid_bytes_num_to_read)
-
-        beg_ints = Magika._get_beg_ints_with_padding(
-            beg_content, beg_size, padding_token
-        )
-        mid_ints = Magika._get_mid_ints_with_padding(
-            mid_content, mid_size, padding_token
-        )
         end_ints = Magika._get_end_ints_with_padding(
             end_content, end_size, padding_token
+        )
+
+        # mid_idx points to the left-most offset to read for the "mid" component
+        # of the features.
+        mid_bytes_num_to_read = min(seekable.size, mid_size)
+        mid_idx = (seekable.size - mid_bytes_num_to_read) // 2
+        mid_content = seekable.read_at(mid_idx, mid_bytes_num_to_read)
+        mid_ints = Magika._get_mid_ints_with_padding(
+            mid_content, mid_size, padding_token
         )
 
         offset_0x8000_0x8007 = Magika._get_ints_at_offset_or_padding(
@@ -434,7 +433,7 @@ class Magika:
         the buffer is bigger than required, take only the initial portion. If
         the buffer is shorter, add padding at the end."""
 
-        if beg_size <= len(beg_content):
+        if beg_size < len(beg_content):
             # we don't need so many bytes
             beg_content = beg_content[0:beg_size]
 
@@ -452,12 +451,13 @@ class Magika:
     def _get_mid_ints_with_padding(
         mid_content: bytes, mid_size: int, padding_token: int
     ) -> List[int]:
-        """Take an (already-stripped) buffer as input and extract mid ints. If
-        the buffer is bigger than required, take only its middle part. If the
-        buffer is shorter, add padding at its left and right.
+        """Take a buffer as input and extract mid ints. If the buffer is bigger
+        than required, take only its middle part. If the buffer is shorter, add
+        padding to its left and right. If we need to add an odd number of
+        padding integers, add an extra one to the right.
         """
 
-        if mid_size <= len(mid_content):
+        if mid_size < len(mid_content):
             mid_idx = (len(mid_content) - mid_size) // 2
             mid_content = mid_content[mid_idx : mid_idx + mid_size]
 
@@ -487,7 +487,7 @@ class Magika:
         buffer is shorter, add padding at the beginning.
         """
 
-        if end_size <= len(end_content):
+        if end_size < len(end_content):
             # we don't need so many bytes
             end_content = end_content[len(end_content) - end_size : len(end_content)]
 

@@ -79,6 +79,27 @@ export class MagikaNode extends Magika {
         return this._getLabelsResult(result);
     }
 
+    /** Identifies the content type of a byte array, returning all probabilities instead of just the top one.
+     *
+     * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
+     * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
+     */
+    async identifyBytesFull(fileBytes: Uint16Array | Uint8Array | Buffer): Promise<ModelResultLabels> {
+
+        const result = await this._identifyFromBytes(new Uint16Array(fileBytes));
+        return this._getLabelsResult(result);
+    }
+
+    /** Identifies the content type of a byte array.
+     *
+     * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
+     * @returns A dictionary containing the top label and its score
+     */
+    async identifyBytes(fileBytes: Uint16Array | Uint8Array | Buffer): Promise<ModelResult> {
+        const result = await this._identifyFromBytes(new Uint16Array(fileBytes));
+        return { label: result.label, score: result.score };
+    }
+
     async _identifyFromStream(stream: ReadStream, length: number): Promise<ModelResultScores> {
         const features = new ModelFeatures(this.config);
 

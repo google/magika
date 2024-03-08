@@ -197,4 +197,32 @@ describe('Magika class', () => {
         expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
+
+    it.each([
+        ...fs.readdirSync('../tests_data/basic').map((file) => {
+            return {
+                name: file,
+                filePath: path.join('../tests_data/basic', file)
+            };
+        }),
+        ...fs.readdirSync('../tests_data/mitra').map((file) => {
+            return {
+                name: file,
+                filePath: path.join('../tests_data/mitra', file)
+            };
+        })
+    ])('Magika is agnostic to the format of the input bytes for "$name"', async ({name, filePath}) => {
+            const magika = new Magika();
+            await magika.load({configPath: workdir.config, modelPath: workdir.model});
+            const featuresMock = jest.spyOn(magika.model, 'predict');
+    
+            const inputBuffer = await fs.promises.readFile(filePath);
+            const inputUint8 = new Uint8Array(inputBuffer);
+            const inputUint16 = new Uint16Array(inputBuffer);
+            const resultFromBuffer = await magika.identifyBytes(inputBuffer);
+            const resultFromUint8 = await magika.identifyBytes(inputUint8);
+            const resultFromUint16 = await magika.identifyBytes(inputUint16);
+            expect(resultFromBuffer.label).toBe(resultFromUint8.label);
+            expect(resultFromBuffer.label).toBe(resultFromUint16.label);
+        });
 });

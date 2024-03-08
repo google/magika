@@ -38,7 +38,11 @@
         "commander": "^12.0.0"
     },
     "jest": {
-        "moduleFileExtensions": ["js", "json", "ts"],
+        "moduleFileExtensions": [
+            "js",
+            "json",
+            "ts"
+        ],
         "transformIgnorePatterns": [
             "/node_modules/"
         ],
@@ -48,7 +52,12 @@
         "rootDir": "./",
         "testRegex": ".test.ts$",
         "transform": {
-            "^.+\\.ts$": ["ts-jest", {"tsconfig": "./tsconfig.cjs.json"}]
+            "^.+\\.ts$": [
+                "ts-jest",
+                {
+                    "tsconfig": "./tsconfig.cjs.json"
+                }
+            ]
         },
         "moduleNameMapper": {
             "(.+)\\.js": "$1"
@@ -57,9 +66,9 @@
         "collectCoverage": false
     },
     "devDependencies": {
+        "@types/jest": "^29.5.12",
+        "@types/node": "^20.11.25",
         "documentation": "^14.0.3",
-        "@types/node": "^20.11.22",
-        "@types/jest": "^29.5.0",
         "jest": "^29.5.0",
         "ts-jest": "^29.0.5",
         "typescript": "^5.0.2"

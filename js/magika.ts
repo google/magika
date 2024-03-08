@@ -61,7 +61,7 @@ export class Magika {
      * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
      * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
      */
-    async identifyBytesFull(fileBytes: Uint16Array | Buffer): Promise<ModelResultLabels> {
+    async identifyBytesFull(fileBytes: Uint16Array | Uint8Array): Promise<ModelResultLabels> {
         const result = await this._identifyFromBytes(fileBytes);
         return this._getLabelsResult(result);
     }
@@ -71,7 +71,7 @@ export class Magika {
      * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
      * @returns A dictionary containing the top label and its score
      */
-    async identifyBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResult> {
+    async identifyBytes(fileBytes: Uint16Array | Uint8Array): Promise<ModelResult> {
         const result = await this._identifyFromBytes(fileBytes);
         return {label: result.label, score: result.score};
     }
@@ -84,7 +84,7 @@ export class Magika {
         return {label: result.label, score: result.score, labels: Object.fromEntries(labels)};
     }
 
-    _getResultForAFewBytes(fileBytes: Uint16Array | Buffer): ModelResultScores {
+    _getResultForAFewBytes(fileBytes: Uint16Array | Uint8Array): ModelResultScores {
         if (fileBytes.length === 0) {
             return {score: 1.0, label: ContentType.EMPTY, scores: new Uint8Array()};
         }
@@ -97,7 +97,7 @@ export class Magika {
         }
     }
 
-    async _identifyFromBytes(fileBytes: Uint16Array | Buffer): Promise<ModelResultScores> {
+    async _identifyFromBytes(fileBytes: Uint16Array | Uint8Array): Promise<ModelResultScores> {
         if (fileBytes.length <= this.config.minFileSizeForDl) {
             return this._getResultForAFewBytes(fileBytes);
         }

@@ -242,7 +242,15 @@ class ContentTypesManager:
         if ct.mime_type is None:
             return default
         return ct.mime_type
-
+    
+    def get_exts(self, content_type_name:str , default:str = "") -> str:
+        ct = self.get(content_type_name)
+        if ct is None:
+            return default
+        if ct.extensions is None:
+            return default
+        return ",".join(ct.extensions)
+    
     def get_group(
         self,
         content_type_name: str,

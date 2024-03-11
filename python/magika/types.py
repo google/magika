@@ -70,6 +70,8 @@ class MagikaOutputFields:
     mime_type: str
     magic: str
     description: str
+    expected_exts: Optional[str]
+
 
 
 @dataclass

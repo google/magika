@@ -92,6 +92,12 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     help="Output the prediction's score in addition to the content type.",
 )
 @click.option(
+    "--check-text",
+    "check_text",
+    is_flag=True,
+    help="Return if the file is text format or binary format",
+)
+@click.option(
     "-m",
     "--prediction-mode",
     "prediction_mode_str",
@@ -151,6 +157,7 @@ def main(
     no_dereference: bool,
     with_colors: bool,
     verbose: bool,
+    check_text:bool,
     debug: bool,
     generate_report_flag: bool,
     output_version: bool,
@@ -332,7 +339,8 @@ def main(
                 if with_colors:
                     start_color = color_by_group.get(output_ct_group, colors.WHITE)
                     end_color = colors.RESET
-
+                if check_text:
+                    output += f" ({'text' if magika_result.output.is_text else 'binary'})"
                 if output_score:
                     score = int(magika_result.output.score * 100)
                     _l.raw_print_to_stdout(

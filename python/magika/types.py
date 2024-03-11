@@ -57,6 +57,7 @@ class MagikaOutputFields:
     mime_type: str
     magic: str
     description: str
+    is_text: bool
 
 
 @dataclass

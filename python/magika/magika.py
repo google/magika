@@ -508,7 +508,7 @@ class Magika:
             None if dl_ct_label is None else self._ctm.get_description(dl_ct_label)
         )
         output_description = self._ctm.get_description(output_ct_label)
-
+        is_text  = self._ctm.get_or_raise(dl_ct_label).is_text
         magika_result = MagikaResult(
             path=str(path),
             dl=ModelOutputFields(
@@ -526,6 +526,7 @@ class Magika:
                 mime_type=output_mime_type,
                 magic=output_magic,
                 description=output_description,
+                is_text=is_text
             ),
         )
 

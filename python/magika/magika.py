@@ -175,8 +175,6 @@ class Magika:
         metadata. The order of the predictions matches the order of the input
         paths."""
 
-        start_time = time.time()
-
         # We do a first pass on all files: we collect features for the files
         # that need to be analyzed with the DL model, and we already determine
         # the output for the remaining ones.
@@ -192,6 +190,7 @@ class Magika:
         self._log.debug(
             f"Processing input files and extracting features for {len(paths)} samples"
         )
+        start_time = time.time()
         for path in tqdm(paths, disable=self._disable_progress_bar):
             output, features = self._get_result_or_features_from_path(path)
             if output is not None:
@@ -199,10 +198,8 @@ class Magika:
             else:
                 assert features is not None
                 all_features.append((path, features))
-        elapsed_time = time.time() - start_time
-        self._log.debug(
-            f"First pass and features extracted in {elapsed_time:.03f} seconds"
-        )
+        elapsed_time = 1000 * (time.time() - start_time)
+        self._log.debug(f"First pass and features extracted in {elapsed_time:.03f} ms")
 
         # Get the outputs via DL for the files that need it.
         outputs_with_dl = self._get_results_from_features(all_features)
@@ -842,10 +839,9 @@ class Magika:
                 sample_bytes.extend(fs.end[-self._input_sizes["end"] :])
             X_bytes.append(sample_bytes)
         X = np.array(X_bytes).astype(np.float32)
-        elapsed_time = time.time() - start_time
-        self._log.debug(f"DL input prepared in {elapsed_time:.03f} seconds")
+        elapsed_time = 1000 * (time.time() - start_time)
+        self._log.debug(f"DL input prepared in {elapsed_time:.03f} ms")
 
-        start_time = time.time()
         raw_predictions_list = []
         samples_num = X.shape[0]
 
@@ -860,12 +856,15 @@ class Magika:
             )
             start_idx = batch_idx * max_internal_batch_size
             end_idx = min((batch_idx + 1) * max_internal_batch_size, samples_num)
+
+            start_time = time.time()
             batch_raw_predictions = self._onnx_session.run(
                 ["target_label"], {"bytes": X[start_idx:end_idx, :]}
             )[0]
+            elapsed_time = 1000 * (time.time() - start_time)
+            self._log.debug(f"DL raw prediction in {elapsed_time:.03f} ms")
+
             raw_predictions_list.append(batch_raw_predictions)
-        elapsed_time = time.time() - start_time
-        self._log.debug(f"DL raw prediction in {elapsed_time:.03f} seconds")
         return np.concatenate(raw_predictions_list)
 
 

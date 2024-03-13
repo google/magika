@@ -882,7 +882,7 @@ class Magika:
             raw_predictions_list.append(batch_raw_predictions)
         return np.concatenate(raw_predictions_list)
 
-    def dump_performance_stats(self):
+    def dump_performance_stats(self) -> None:
         self._log.raw_print("PERFORMANCE STATISTICS REPORT")
         printed_at_least_one = False
         for key, stats in self._perf_stats.items():

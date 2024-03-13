@@ -157,7 +157,7 @@ class Magika:
         rt.disable_telemetry_events()
         options = rt.SessionOptions()
         options.inter_op_num_threads = 1
-        options.intra_op_num_threads = 16
+        options.intra_op_num_threads = os.cpu_count()
         options.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
         options.enable_mem_pattern = True
         options.enable_cpu_mem_arena = True

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+- Magika output JSON now includes `is_text`, which indicates whether the detected content type is of textual nature.
+
+
 ## [0.5.1] - 2024-03-06
 
 - Add support for python 3.12. Magika now supports python >=3.8 and <3.13.

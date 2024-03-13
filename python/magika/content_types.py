@@ -283,6 +283,17 @@ class ContentTypesManager:
                 return default
         return ct.description
 
+    def get_is_text(
+        self,
+        content_type_name: str,
+        default: bool = False,
+    ) -> bool:
+        ct = self.get(content_type_name)
+        if ct is None:
+            return default
+        else:
+            return ct.is_text
+
     def get_cts_by_ext(self, ext: str) -> List[ContentType]:
         return self.ext2cts.get(ext, list())
 

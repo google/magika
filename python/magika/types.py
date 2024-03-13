@@ -60,6 +60,7 @@ class ModelOutputFields:
     mime_type: Optional[str]
     magic: Optional[str]
     description: Optional[str]
+    is_text: Optional[bool]
 
 
 @dataclass
@@ -70,6 +71,7 @@ class MagikaOutputFields:
     mime_type: str
     magic: str
     description: str
+    is_text: bool
 
 
 @dataclass

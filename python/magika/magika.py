@@ -627,6 +627,10 @@ class Magika:
         )
         output_description = self._ctm.get_description(output_ct_label)
 
+        # add is_text
+        dl_is_text = None if dl_ct_label is None else self._ctm.get_is_text(dl_ct_label)
+        output_is_text = self._ctm.get_is_text(output_ct_label)
+
         magika_result = MagikaResult(
             path=str(path),
             dl=ModelOutputFields(
@@ -636,6 +640,7 @@ class Magika:
                 mime_type=dl_mime_type,
                 magic=dl_magic,
                 description=dl_description,
+                is_text=dl_is_text,
             ),
             output=MagikaOutputFields(
                 ct_label=output_ct_label,
@@ -644,6 +649,7 @@ class Magika:
                 mime_type=output_mime_type,
                 magic=output_magic,
                 description=output_description,
+                is_text=output_is_text,
             ),
         )
 

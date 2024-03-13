@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Mutex;
+
+use ndarray::Array2;
 use onnxruntime::session::Session;
 
-use crate::{MagikaBuilder, MagikaConfig, MagikaInput, MagikaOutput, MagikaResult};
+use crate::config::FEATURE_SIZE;
+use crate::{MagikaBuilder, MagikaConfig, MagikaFeatures, MagikaInput, MagikaOutput, MagikaResult};
 
 /// A Magika session to identify files.
 #[derive(Debug)]
 pub struct MagikaSession {
-    pub(crate) session: Session<'static>,
+    pub(crate) session: Mutex<Session<'static>>,
     pub(crate) config: MagikaConfig,
 }
 
@@ -29,28 +33,33 @@ impl MagikaSession {
         MagikaBuilder::new()
     }
 
-    /// Identifies a single file.
-    pub fn identify(&mut self, file: impl MagikaInput) -> MagikaResult<MagikaOutput> {
-        let results = self.identify_many(std::iter::once(file))?;
+    /// Extracts the features from the file content for inference.
+    ///
+    /// This function can be parallelized. It doesn't take a lock.
+    pub async fn extract(&self, file: impl MagikaInput) -> MagikaResult<MagikaFeatures> {
+        self.config.extract_features(file).await
+    }
+
+    /// Identifies a single file from its features.
+    pub fn identify(&self, features: &MagikaFeatures) -> MagikaResult<MagikaOutput> {
+        let results = self.identify_batch(std::slice::from_ref(features))?;
         let [result] = results.try_into().ok().unwrap();
         Ok(result)
     }
 
-    /// Identifies multiple files in parallel.
-    pub fn identify_many(
-        &mut self,
-        files: impl Iterator<Item = impl MagikaInput>,
-    ) -> MagikaResult<Vec<MagikaOutput>> {
-        let input = files
-            .map(|x| self.config.convert_input(x))
-            .collect::<MagikaResult<Vec<_>>>()?;
-        let len = input.len();
-        assert_eq!(len, 1, "only 1 file in parallel is supported at this time");
-        let output = self.session.run::<f32, f32, _>(input)?;
-        assert_eq!(output.len(), len);
-        Ok(output
-            .into_iter()
-            .map(|x| self.config.convert_output(x))
-            .collect())
+    /// Identifies multiple files in parallel from their features.
+    pub fn identify_batch(&self, features: &[MagikaFeatures]) -> MagikaResult<Vec<MagikaOutput>> {
+        if features.len() == 0 {
+            return Ok(Vec::new());
+        }
+        let input = Array2::from_shape_vec(
+            [features.len(), 3 * FEATURE_SIZE],
+            features.iter().map(|x| &x.0).flatten().cloned().collect(),
+        )?;
+        let mut session = self.session.lock()?;
+        let input = vec![input];
+        let mut output = session.run::<f32, f32, _>(input)?;
+        assert_eq!(output.len(), 1);
+        Ok(self.config.convert_output(output.pop().unwrap()))
     }
 }

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 /// The result of a file type identification.
+#[derive(Clone)]
 pub struct MagikaOutput {
     pub(crate) label: String,
     pub(crate) score: f32,

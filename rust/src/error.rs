@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::PoisonError;
+
 use onnxruntime::OrtError;
 use thiserror::Error;
 
@@ -29,6 +31,10 @@ pub enum MagikaError {
     #[error("ONNX Runtime error")]
     OrtError(#[from] OrtError),
 
+    /// Errors taking a lock on a mutex.
+    #[error("Mutex lock error")]
+    LockError,
+
     /// Errors reported by the JSON parser.
     #[error("JSON error")]
     JsonError(#[from] serde_json::Error),
@@ -36,4 +42,10 @@ pub enum MagikaError {
     /// Shape errors reported by the ndarray library.
     #[error("ndarray shape error")]
     ShapeError(#[from] ndarray::ShapeError),
+}
+
+impl<T> From<PoisonError<T>> for MagikaError {
+    fn from(_: PoisonError<T>) -> Self {
+        MagikaError::LockError
+    }
 }

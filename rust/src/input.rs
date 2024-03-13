@@ -12,42 +12,64 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::fs::File;
-use std::os::unix::fs::FileExt;
+use std::future::Future;
+use std::io::SeekFrom;
+use std::os::unix::fs::FileExt as _;
 
-use sealed::sealed;
+use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
 
 use crate::MagikaResult;
 
+/// Processed file content, ready for inference.
+pub struct MagikaFeatures(pub(crate) Vec<f32>);
+
 /// Abstraction over file content.
-#[sealed]
-pub trait MagikaInput: Copy {
+pub trait MagikaInput: MagikaInputApi {}
+
+pub trait MagikaInputApi {
     /// Returns the size of the input.
-    fn len(self) -> MagikaResult<usize>;
+    fn length(&mut self) -> impl Future<Output = MagikaResult<usize>>;
 
     /// Reads from the input at the given offset to fill the buffer.
-    fn read_at(self, buffer: &mut [u8], offset: usize) -> MagikaResult<()>;
+    fn read_at(
+        &mut self,
+        buffer: &mut [u8],
+        offset: usize,
+    ) -> impl Future<Output = MagikaResult<()>>;
 }
 
-#[sealed]
-impl MagikaInput for &[u8] {
-    fn len(self) -> MagikaResult<usize> {
+impl MagikaInput for [u8] {}
+impl MagikaInputApi for [u8] {
+    async fn length(&mut self) -> MagikaResult<usize> {
         Ok(self.len())
     }
 
-    fn read_at(self, buffer: &mut [u8], offset: usize) -> MagikaResult<()> {
+    async fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> MagikaResult<()> {
         buffer.copy_from_slice(&self[offset..][..buffer.len()]);
         Ok(())
     }
 }
 
-#[sealed]
-impl MagikaInput for &File {
-    fn len(self) -> MagikaResult<usize> {
+impl MagikaInput for std::fs::File {}
+impl MagikaInputApi for std::fs::File {
+    async fn length(&mut self) -> MagikaResult<usize> {
         Ok(self.metadata()?.len() as usize)
     }
 
-    fn read_at(self, buffer: &mut [u8], offset: usize) -> MagikaResult<()> {
+    async fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> MagikaResult<()> {
         Ok(self.read_exact_at(buffer, offset as u64)?)
+    }
+}
+
+impl MagikaInput for tokio::fs::File {}
+impl MagikaInputApi for tokio::fs::File {
+    async fn length(&mut self) -> MagikaResult<usize> {
+        Ok(self.metadata().await?.len() as usize)
+    }
+
+    async fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> MagikaResult<()> {
+        self.seek(SeekFrom::Start(offset as u64)).await?;
+        self.read_exact(buffer).await?;
+        Ok(())
     }
 }

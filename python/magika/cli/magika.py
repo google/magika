@@ -122,6 +122,12 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     help="Generate report useful when reporting feedback.",
 )
 @click.option(
+    "--dump-performance-stats",
+    "dump_performance_stats_flag",
+    is_flag=True,
+    help="Dump statistics about performance.",
+)
+@click.option(
     "--version", "output_version", is_flag=True, help="Print the version and exit."
 )
 @click.option(
@@ -153,6 +159,7 @@ def main(
     verbose: bool,
     debug: bool,
     generate_report_flag: bool,
+    dump_performance_stats_flag: bool,
     output_version: bool,
     list_output_content_types: bool,
     model_dir: Optional[Path],
@@ -354,6 +361,9 @@ def main(
 
     if generate_report_flag:
         print_feedback_report(magika=magika, reports=report_entries)
+
+    if dump_performance_stats_flag:
+        magika.dump_performance_stats()
 
 
 def should_read_from_stdin(files_paths: List[Path]) -> bool:

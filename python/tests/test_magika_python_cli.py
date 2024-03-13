@@ -748,3 +748,32 @@ def test_magika_cli_list_content_types() -> None:
 
     with pytest.raises(MagikaClientError):
         _ = run_magika_python_cli([test_file_path], list_output_content_types=True)
+
+
+def test_magika_cli_performance_statistics_report() -> None:
+    test_files_paths = utils.get_basic_test_files_paths()
+
+    _, stderr = run_magika_python_cli([test_files_paths[0]])
+    assert stderr == ""
+
+    _, stderr = run_magika_python_cli(test_files_paths)
+    assert stderr == ""
+
+    _, stderr = run_magika_python_cli(
+        test_files_paths[:10],
+        batch_size=10,
+        extra_cli_options=["--dump-performance-stats"],
+    )
+    stderr_lines = stderr.split("\n")
+    assert stderr_lines[0].startswith("PERFORMANCE STATISTICS REPORT")
+    assert stderr_lines[1].startswith("Not enough data")
+
+    _, stderr = run_magika_python_cli(
+        test_files_paths[:10],
+        batch_size=1,
+        extra_cli_options=["--dump-performance-stats"],
+    )
+    stderr_lines = stderr.split("\n")
+    assert stderr_lines[0].startswith("PERFORMANCE STATISTICS REPORT")
+    assert stderr_lines[1].startswith("KEY")
+    assert stderr_lines[2].startswith("mean")

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Magika output JSON now includes `is_text`, which indicates whether the detected content type is of textual nature.
+- Add `--dump-performance-stats` CLI option to help debugging the performance of the deep learning inference.
 
 
 ## [0.5.1] - 2024-03-06

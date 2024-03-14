@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import io
 import json
 import logging
 import os
@@ -20,13 +20,13 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-import subprocess
 import platform
 import sys
 
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
+from onnxruntime.tools.convert_onnx_models_to_ort import convert_onnx_models_to_ort, OptimizationStyle
 from tqdm.auto import tqdm
 
 from magika.content_types import ContentType, ContentTypesManager
@@ -87,20 +87,32 @@ class Magika:
                 Path(__file__).parent / "models" / self._default_model_name
             )
 
-        self._model_path = self._model_dir / "model.onnx"
-        platform_string = platform.machine()
-        if not os.path.isfile(self._model_dir / "model.ort"):
-            if platform_string == "AMD64" or platform_string == "x86_64" or "arm" in platform_string.lower():
-                target_platform = "arm" if "arm" in platform_string.lower() else "amd64"
-                exit_code = subprocess.run([sys.executable, "-m", "onnxruntime.tools.convert_onnx_models_to_ort", "--optimization_style=Fixed",
-                                f"--target_platform={target_platform}", self._model_dir / "model.onnx"])
-                if exit_code.returncode == 0:
-                    self._log.debug(f"ONNX ORT model generated for {target_platform}")
-                    self._model_path = self._model_dir / "model.ort"
-                else:
-                    self._log.debug(f"Failed generating ONNX ORT model for {target_platform}")
-        else:
+        if Path(self._model_dir / "model.ort").exists() and Path(self._model_dir / "model.ort").is_file():
             self._model_path = self._model_dir / "model.ort"
+        elif Path(self._model_dir / "model.onnx").exists() and Path(self._model_dir / "model.onnx").is_file():
+            self._model_path = self._model_dir / "model.onnx"
+        else:
+            raise MagikaError(f"model not found in directory {str(self._model_dir)}")
+
+        if model_dir is None and str(self._model_path).endswith(".onnx"):
+            home_dir = os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"]
+            ort_cache_dir = Path(f"{home_dir}/.cache/magika/model/{self._default_model_name}/ort/")
+            if not Path(ort_cache_dir / "model.ort").exists():
+                platform_type = platform.machine()
+                if platform_type == "AMD64" or platform_type == "x86_64" or "arm" in platform_type.lower():
+                    target_platform = "arm" if "arm" in platform_type.lower() else "amd64"
+                    try:
+                        # Suppress the print statements made within the convert_onnx_models_to_ort function
+                        original_stdout = sys.stdout
+                        sys.stdout = io.StringIO()
+                        convert_onnx_models_to_ort(self._model_dir / "model.onnx", ort_cache_dir,
+                                                   [OptimizationStyle.Fixed], target_platform=target_platform)
+                        sys.stdout = original_stdout
+                        self._model_path = ort_cache_dir / "model.ort"
+                    except:
+                        raise MagikaError(f"Failed generating ONNX ORT model for {target_platform}")
+            else:
+                self._model_path = ort_cache_dir / "model.ort"
 
         self._model_config_path = self._model_dir / "model_config.json"
         self._thresholds_path = self._model_dir / "thresholds.json"
@@ -110,8 +122,6 @@ class Magika:
 
         if not self._model_dir.is_dir():
             raise MagikaError(f"model dir not found at {str(self._model_dir)}")
-        if not self._model_path.is_file():
-            raise MagikaError(f"model not found at {str(self._model_path)}")
         if not self._model_config_path.is_file():
             raise MagikaError(
                 f"model config not found at {str(self._model_config_path)}"

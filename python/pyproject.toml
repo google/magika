@@ -17,6 +17,7 @@ numpy = [
 ]
 tabulate = "^0.9.0"
 python-dotenv = "^1.0.1"
+onnx = "1.15.0"
 
 [tool.poetry.scripts]
 magika = "magika.cli.magika:main"

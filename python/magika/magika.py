@@ -20,6 +20,8 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+import subprocess
+import platform
 
 import numpy as np
 import numpy.typing as npt
@@ -85,6 +87,20 @@ class Magika:
             )
 
         self._model_path = self._model_dir / "model.onnx"
+        platform_string = platform.machine()
+        if not os.path.isfile(self._model_dir / "model.ort"):
+            if platform_string == "AMD64" or platform_string == "x86_64" or "arm" in platform_string.lower():
+                target_platform = "arm" if "arm" in platform_string.lower() else "amd4"
+                exit_code = subprocess.run(["python", "-m", "onnxruntime.tools.convert_onnx_models_to_ort", "--optimization_style=Fixed",
+                                f"--target_platform={target_platform}", self._model_dir / "model.onnx"], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                if exit_code.returncode == 0:
+                    self._log.debug(f"ONNX ORT model generated for {target_platform}")
+                    self._model_path = self._model_dir / "model.ort"
+                else:
+                    self._log.debug(f"Failed generating ONNX ORT model for {target_platform}")
+        else:
+            self._model_path = self._model_dir / "model.ort"
+
         self._model_config_path = self._model_dir / "model_config.json"
         self._thresholds_path = self._model_dir / "thresholds.json"
         self._model_output_overwrite_map_path = (

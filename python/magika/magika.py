@@ -159,17 +159,10 @@ class Magika:
     def _init_onnx_session(self) -> rt.InferenceSession:
         start_time = time.time()
         rt.disable_telemetry_events()
-        options = rt.SessionOptions()
-        options.inter_op_num_threads = 1
-        options.intra_op_num_threads = os.cpu_count()
-        options.graph_optimization_level = rt.GraphOptimizationLevel.ORT_ENABLE_ALL
-        options.enable_mem_pattern = True
-        options.enable_cpu_mem_arena = True
-        options.execution_mode = rt.ExecutionMode.ORT_PARALLEL
-        options.add_session_config_entry("session.intra_op.allow_spinning", "1")
 
         onnx_session = rt.InferenceSession(
-            self._model_path, providers=["CPUExecutionProvider"]
+            self._model_path,
+            providers=["CPUExecutionProvider"],
         )
         elapsed_time = 1000 * (time.time() - start_time)
         self._log.debug(

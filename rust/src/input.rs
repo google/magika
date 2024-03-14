@@ -28,7 +28,7 @@ pub trait MagikaInput: MagikaInputApi {}
 
 pub trait MagikaInputApi {
     /// Returns the size of the input.
-    fn length(&mut self) -> impl Future<Output = MagikaResult<usize>>;
+    fn length(&self) -> impl Future<Output = MagikaResult<usize>>;
 
     /// Reads from the input at the given offset to fill the buffer.
     fn read_at(
@@ -40,7 +40,7 @@ pub trait MagikaInputApi {
 
 impl MagikaInput for [u8] {}
 impl MagikaInputApi for [u8] {
-    async fn length(&mut self) -> MagikaResult<usize> {
+    async fn length(&self) -> MagikaResult<usize> {
         Ok(self.len())
     }
 
@@ -52,7 +52,7 @@ impl MagikaInputApi for [u8] {
 
 impl MagikaInput for std::fs::File {}
 impl MagikaInputApi for std::fs::File {
-    async fn length(&mut self) -> MagikaResult<usize> {
+    async fn length(&self) -> MagikaResult<usize> {
         Ok(self.metadata()?.len() as usize)
     }
 
@@ -63,7 +63,7 @@ impl MagikaInputApi for std::fs::File {
 
 impl MagikaInput for tokio::fs::File {}
 impl MagikaInputApi for tokio::fs::File {
-    async fn length(&mut self) -> MagikaResult<usize> {
+    async fn length(&self) -> MagikaResult<usize> {
         Ok(self.metadata().await?.len() as usize)
     }
 

@@ -16,13 +16,13 @@
 //!
 //! TODO(release): Add some description and possibly disclaimer about readiness.
 
-#![forbid(unsafe_code)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![warn(missing_docs, unreachable_pub, unused)]
 
 pub use crate::builder::MagikaBuilder;
 use crate::config::MagikaConfig;
 pub use crate::error::{MagikaError, MagikaResult};
-pub use crate::input::{MagikaFeatures, MagikaInput};
+pub use crate::input::{MagikaAsyncInput, MagikaFeatures, MagikaSyncInput};
 pub use crate::output::MagikaOutput;
 pub use crate::session::MagikaSession;
 

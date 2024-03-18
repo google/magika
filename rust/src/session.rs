@@ -18,7 +18,10 @@ use ndarray::Array2;
 use onnxruntime::session::Session;
 
 use crate::config::FEATURE_SIZE;
-use crate::{MagikaBuilder, MagikaConfig, MagikaFeatures, MagikaInput, MagikaOutput, MagikaResult};
+use crate::{
+    MagikaAsyncInput, MagikaBuilder, MagikaConfig, MagikaFeatures, MagikaOutput, MagikaResult,
+    MagikaSyncInput,
+};
 
 /// A Magika session to identify files.
 #[derive(Debug)]
@@ -36,8 +39,15 @@ impl MagikaSession {
     /// Extracts the features from the file content for inference.
     ///
     /// This function can be parallelized. It doesn't take a lock.
-    pub async fn extract(&self, file: impl MagikaInput) -> MagikaResult<MagikaFeatures> {
-        self.config.extract_features(file).await
+    pub fn extract_sync(&self, file: impl MagikaSyncInput) -> MagikaResult<MagikaFeatures> {
+        self.config.extract_features_sync(file)
+    }
+
+    /// Extracts the features from the file content for inference.
+    ///
+    /// This function can be parallelized. It doesn't take a lock.
+    pub async fn extract_async(&self, file: impl MagikaAsyncInput) -> MagikaResult<MagikaFeatures> {
+        self.config.extract_features_async(file).await
     }
 
     /// Identifies a single file from its features.

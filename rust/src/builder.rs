@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use onnxruntime::environment::Environment;
 use onnxruntime::{GraphOptimizationLevel, LoggingLevel};
@@ -93,6 +93,7 @@ impl MagikaBuilder {
             .with_number_threads(self.number_threads)?
             .with_optimization_level(self.optimization_level)?
             .with_model_from_file(model_dir.join("model.onnx"))?;
+        let session = Mutex::new(session);
         let config = MagikaConfig::parse(model_dir.join("model_config.json"))?;
         Ok(MagikaSession { session, config })
     }

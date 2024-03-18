@@ -22,7 +22,7 @@
 pub use crate::builder::MagikaBuilder;
 use crate::config::MagikaConfig;
 pub use crate::error::{MagikaError, MagikaResult};
-pub use crate::input::MagikaInput;
+pub use crate::input::{MagikaFeatures, MagikaInput};
 pub use crate::output::MagikaOutput;
 pub use crate::session::MagikaSession;
 

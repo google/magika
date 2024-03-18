@@ -15,11 +15,11 @@
 use std::fs::File;
 use std::path::Path;
 
-use ndarray::{Array2, IxDyn};
+use ndarray::IxDyn;
 use onnxruntime::tensor::OrtOwnedTensor;
 use serde::Deserialize;
 
-use crate::{MagikaInput, MagikaOutput, MagikaResult};
+use crate::{MagikaFeatures, MagikaInput, MagikaOutput, MagikaResult};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct MagikaConfig {
@@ -48,41 +48,47 @@ impl MagikaConfig {
             .target_labels_space[index]
     }
 
-    pub(crate) fn convert_input(&self, file: impl MagikaInput) -> MagikaResult<Array2<f32>> {
-        let features = extract_features(file)?;
-        Ok(Array2::from_shape_vec([1, 3 * FEATURE_SIZE], features)?)
+    pub(crate) async fn extract_features(
+        &self,
+        file: impl MagikaInput,
+    ) -> MagikaResult<MagikaFeatures> {
+        Ok(MagikaFeatures(extract_features(file).await?))
     }
 
-    pub(crate) fn convert_output(&self, tensor: OrtOwnedTensor<f32, IxDyn>) -> MagikaOutput {
-        let scores = tensor.to_slice().unwrap();
-        let mut best = 0;
-        for (i, &x) in scores.iter().enumerate() {
-            if scores[best].max(x) == x {
-                best = i;
+    pub(crate) fn convert_output(&self, tensor: OrtOwnedTensor<f32, IxDyn>) -> Vec<MagikaOutput> {
+        let mut results = Vec::new();
+        for view in tensor.axis_iter(ndarray::Axis(0)) {
+            let scores = view.to_slice().unwrap();
+            let mut best = 0;
+            for (i, &x) in scores.iter().enumerate() {
+                if scores[best].max(x) == x {
+                    best = i;
+                }
             }
+            let label = self.target_label(best).to_string();
+            let score = scores[best];
+            results.push(MagikaOutput { label, score });
         }
-        let label = self.target_label(best).to_string();
-        let score = scores[best];
-        MagikaOutput { label, score }
+        results
     }
 }
 
 // TODO: Read those constants from the config file.
-const FEATURE_SIZE: usize = 512;
+pub(crate) const FEATURE_SIZE: usize = 512;
 const FEATURE_PADDING: f32 = 256f32;
 
-fn extract_features(file: impl MagikaInput) -> MagikaResult<Vec<f32>> {
+async fn extract_features(mut file: impl MagikaInput) -> MagikaResult<Vec<f32>> {
     let mut features = vec![FEATURE_PADDING; 3 * FEATURE_SIZE];
     const BUFFER_SIZE: usize = 2 * 4096;
     let mut buffer = [0; BUFFER_SIZE];
-    let file_len = file.len()?;
+    let file_len = file.length().await?;
     // We truncate the buffer to the file length because we use exact reads.
     let buffer = &mut buffer[..std::cmp::min(BUFFER_SIZE, file_len)];
     // Deal with the beginning of the file.
-    file.read_at(buffer, 0)?;
+    file.read_at(buffer, 0).await?;
     let beg_trim = copy_features(buffer.iter(), features[..FEATURE_SIZE].iter_mut());
     // Deal with the end of the file.
-    file.read_at(buffer, file_len - buffer.len())?;
+    file.read_at(buffer, file_len - buffer.len()).await?;
     let end_trim = copy_features(
         buffer.iter().rev(),
         features[2 * FEATURE_SIZE..].iter_mut().rev(),
@@ -99,7 +105,7 @@ fn extract_features(file: impl MagikaInput) -> MagikaResult<Vec<f32>> {
         // file order instead of reverse order.
         file_mid -= extra;
     }
-    file.read_at(buffer, file_mid)?;
+    file.read_at(buffer, file_mid).await?;
     // We don't use copy_features because we don't want to ignore whitespace.
     let mid_features = &mut features[FEATURE_SIZE..2 * FEATURE_SIZE];
     for (x, y) in buffer.iter().zip(mid_features.iter_mut()) {

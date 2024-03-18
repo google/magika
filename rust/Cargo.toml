@@ -22,12 +22,13 @@ required-features = ["bin-dependencies"]
 [dependencies]
 anyhow = { version = "1.0.80", optional = true }
 clap = { version = "4.5.1", features = ["derive"], optional = true }
+futures = "0.3.30"
 ndarray = "0.15.1"
 onnxruntime = "0.0.14"
-sealed = "0.5.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.57"
+tokio = { version = "1.36.0", features = ["fs", "io-util"] }
 
 [features]
-bin-dependencies = ["dep:anyhow", "dep:clap"]
+bin-dependencies = ["dep:anyhow", "dep:clap", "tokio/full"]

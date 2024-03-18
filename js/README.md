@@ -96,21 +96,6 @@ await magika.load({
     });
 ```
 
-If you already have the model & config JSON files available, you can pass them to Magika as dataurls
-```js
-// Getting the JSONs.
-const configJSON = await (await fetch("https://google.github.io/magika/model/config.json")).text();
-const modelJSON = await (await fetch("https://google.github.io/magika/model/config.json")).text();
-// Converting them to dataURLs.
-const configDataURL = 'data:application/json;base64,' + btoa(configJSON);
-const configDataURL = 'data:application/json;base64,' + btoa(modelJSON);
-// Loading Magika!
-await magika.load({
-    modelURL: modelDataURL,
-    configURL: configDataURL,
-    });
-```
-
 # Development
 
 Using the model hosted On Github:
@@ -128,4 +113,13 @@ yarn install
 yarn run build
 (cd ../website; yarn install; yarn run dev) &
 yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json ../tests_data/mitra/*
+```
+
+## Testing
+
+Execute:
+```bash
+yarn install
+yarn run build
+yarn run test
 ```

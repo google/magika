@@ -18,8 +18,6 @@ export class Config {
     begBytes: number = 0;
     midBytes: number = 0;
     endBytes: number = 0;
-    extractSize: number = 0;
-
     async loadUrl(configURL: string): Promise<void> {
         if (this.loaded) {
             return;
@@ -45,13 +43,6 @@ export class Config {
         this.begBytes = config.input_size_beg;
         this.midBytes = config.input_size_beg;
         this.endBytes = config.input_size_beg;
-        if (this.begBytes > 0) {
-            this.extractSize = this.begBytes
-        } else if (this.begBytes > 0) {
-            this.extractSize = this.midBytes
-        } else {
-            this.extractSize = this.endBytes;
-        }
     }
 
 }

@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
         let magika = &magika;
         features.push(async move {
             let file = File::open(path).await?;
-            let features = magika.extract(file).await?;
+            let features = magika.extract_async(file).await?;
             Ok::<_, MagikaError>((index, features))
         });
     }

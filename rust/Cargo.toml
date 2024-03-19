@@ -15,6 +15,10 @@ homepage = "https://google.github.io/magika/"
 keywords = ["cli", "file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
 
+[package.metadata.docs.rs]
+features = ["tokio"]
+rustdoc-args = ["--cfg=docsrs"]
+
 [[bin]]
 name = "magika"
 required-features = ["bin-dependencies"]
@@ -28,7 +32,8 @@ onnxruntime = "0.0.14"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.57"
-tokio = { version = "1.36.0", features = ["fs", "io-util"] }
+tokio = { version = "1.36.0", features = ["fs", "io-util"], optional = true }
 
 [features]
-bin-dependencies = ["dep:anyhow", "dep:clap", "tokio/full"]
+tokio = ["dep:tokio"]
+bin-dependencies = ["dep:anyhow", "dep:clap", "tokio", "tokio/full"]

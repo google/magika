@@ -14,12 +14,16 @@
 
 use std::fs::File;
 use std::path::Path;
+use std::pin::Pin;
+use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
+use futures::Future;
 use ndarray::IxDyn;
 use onnxruntime::tensor::OrtOwnedTensor;
 use serde::Deserialize;
 
-use crate::{MagikaFeatures, MagikaInput, MagikaOutput, MagikaResult};
+use crate::input::{MagikaAsyncInputApi, MagikaSyncInputApi};
+use crate::{MagikaFeatures, MagikaOutput, MagikaResult};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct MagikaConfig {
@@ -48,11 +52,18 @@ impl MagikaConfig {
             .target_labels_space[index]
     }
 
-    pub(crate) async fn extract_features(
+    pub(crate) fn extract_features_sync(
         &self,
-        file: impl MagikaInput,
+        file: impl MagikaSyncInputApi,
     ) -> MagikaResult<MagikaFeatures> {
-        Ok(MagikaFeatures(extract_features(file).await?))
+        Ok(MagikaFeatures(extract_features_sync(file)?))
+    }
+
+    pub(crate) async fn extract_features_async(
+        &self,
+        file: impl MagikaAsyncInputApi,
+    ) -> MagikaResult<MagikaFeatures> {
+        Ok(MagikaFeatures(extract_features_async(file).await?))
     }
 
     pub(crate) fn convert_output(&self, tensor: OrtOwnedTensor<f32, IxDyn>) -> Vec<MagikaOutput> {
@@ -76,61 +87,89 @@ impl MagikaConfig {
 // TODO: Read those constants from the config file.
 pub(crate) const FEATURE_SIZE: usize = 512;
 const FEATURE_PADDING: f32 = 256f32;
+const BUFFER_SIZE: usize = 2 * 4096;
 
-async fn extract_features(mut file: impl MagikaInput) -> MagikaResult<Vec<f32>> {
-    let mut features = vec![FEATURE_PADDING; 3 * FEATURE_SIZE];
-    const BUFFER_SIZE: usize = 2 * 4096;
-    let mut buffer = [0; BUFFER_SIZE];
+fn extract_features_sync(file: impl MagikaSyncInputApi) -> MagikaResult<Vec<f32>> {
+    let mut future = extract_features_async(file);
+    let future = unsafe { Pin::new_unchecked(&mut future) };
+    let waker = panic_waker();
+    let mut context = Context::from_waker(&waker);
+    match future.poll(&mut context) {
+        Poll::Ready(x) => x,
+        Poll::Pending => unreachable!(),
+    }
+}
+
+async fn extract_features_async(mut file: impl MagikaAsyncInputApi) -> MagikaResult<Vec<f32>> {
     let file_len = file.length().await?;
-    // We truncate the buffer to the file length because we use exact reads.
-    let buffer = &mut buffer[..std::cmp::min(BUFFER_SIZE, file_len)];
-    // Deal with the beginning of the file.
-    file.read_at(buffer, 0).await?;
-    let beg_trim = copy_features(buffer.iter(), features[..FEATURE_SIZE].iter_mut());
-    // Deal with the end of the file.
-    file.read_at(buffer, file_len - buffer.len()).await?;
-    let end_trim = copy_features(
-        buffer.iter().rev(),
-        features[2 * FEATURE_SIZE..].iter_mut().rev(),
-    );
-    // Deal with the middle of the file.
-    if file_len < beg_trim + end_trim {
-        // The file is made of whitespace only. We don't even compute middle features.
-        return Ok(features);
+    if file_len < 2 * BUFFER_SIZE + FEATURE_SIZE {
+        let mut content = vec![0; file_len];
+        file.read_at(&mut content, 0).await?;
+        let content = strip_prefix(strip_suffix(&content));
+        extract_features(&content, &content, &content)
+    } else {
+        let mut beg = [0; BUFFER_SIZE];
+        file.read_at(&mut beg, 0).await?;
+        let beg = strip_prefix(&beg);
+        let mut end = [0; BUFFER_SIZE];
+        file.read_at(&mut end, file_len - BUFFER_SIZE).await?;
+        let end = strip_suffix(&end);
+        let trimmed_beg = BUFFER_SIZE - beg.len();
+        let trimmed_end = BUFFER_SIZE - end.len();
+        let mid_offset = trimmed_beg + (file_len - trimmed_beg - trimmed_end - FEATURE_SIZE) / 2;
+        let mut mid = [0; BUFFER_SIZE];
+        file.read_at(&mut mid, mid_offset).await?;
+        extract_features(&beg, &mid, &end)
     }
-    let mut file_mid = beg_trim + (file_len - beg_trim - end_trim) / 2;
-    file_mid = file_mid.saturating_sub(FEATURE_SIZE / 2);
-    if let Some(extra) = (file_mid + buffer.len()).checked_sub(file_len) {
-        // The file is too short. We just use the same data as the end of the file, but read it in
-        // file order instead of reverse order.
-        file_mid -= extra;
-    }
-    file.read_at(buffer, file_mid).await?;
-    // We don't use copy_features because we don't want to ignore whitespace.
-    let mid_features = &mut features[FEATURE_SIZE..2 * FEATURE_SIZE];
-    for (x, y) in buffer.iter().zip(mid_features.iter_mut()) {
-        *y = *x as f32;
-    }
+}
+
+fn extract_features(beg: &[u8], mid: &[u8], end: &[u8]) -> MagikaResult<Vec<f32>> {
+    let mut features = vec![FEATURE_PADDING; 3 * FEATURE_SIZE];
+    copy_features(&mut features[..FEATURE_SIZE], beg, 0);
+    copy_features(&mut features[FEATURE_SIZE..2 * FEATURE_SIZE], mid, 1);
+    copy_features(&mut features[2 * FEATURE_SIZE..], end, 2);
     Ok(features)
 }
 
-/// Copies from `xs` to `ys` ignoring leading whitespace in `xs`.
-///
-/// Also converts from bytes to floats and returns how many bytes where ignored.
-fn copy_features<'a>(
-    xs: impl Iterator<Item = &'a u8>,
-    ys: impl Iterator<Item = &'a mut f32>,
-) -> usize {
-    let mut ignored = 0;
-    for (x, y) in xs
-        .skip_while(|x| {
-            let r = x.is_ascii_whitespace();
-            ignored += r as usize;
-            r
-        })
-        .zip(ys)
-    {
-        *y = *x as f32;
+fn copy_features(dst: &mut [f32], src: &[u8], align: usize) {
+    let len = std::cmp::min(dst.len(), src.len());
+    let dst_len = dst.len(); // borrowing issue: cannot inline below
+    let dst = &mut dst[(dst_len - len) * align / 2..][..len];
+    let src = &src[(src.len() - len) * align / 2..][..len];
+    for (dst, src) in dst.iter_mut().zip(src.iter()) {
+        *dst = *src as f32;
     }
-    ignored
+}
+
+fn strip_prefix(mut xs: &[u8]) -> &[u8] {
+    while let Some(x) = xs.first() {
+        if !x.is_ascii_whitespace() {
+            break;
+        }
+        xs = &xs[1..];
+    }
+    xs
+}
+
+fn strip_suffix(mut xs: &[u8]) -> &[u8] {
+    while let Some(x) = xs.last() {
+        if !x.is_ascii_whitespace() {
+            break;
+        }
+        xs = &xs[..xs.len() - 1];
+    }
+    xs
+}
+
+fn panic_waker() -> Waker {
+    const PANIC_WAKER: RawWakerVTable = RawWakerVTable::new(clone, wake, wake, drop);
+    fn clone(p: *const ()) -> RawWaker {
+        RawWaker::new(p, &PANIC_WAKER)
+    }
+    fn wake(_: *const ()) {
+        unreachable!()
+    }
+    fn drop(_: *const ()) {}
+    let raw = clone(std::ptr::null());
+    unsafe { Waker::from_raw(raw) }
 }

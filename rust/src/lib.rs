@@ -20,7 +20,7 @@
 #![warn(missing_docs, unreachable_pub, unused)]
 
 pub use crate::builder::MagikaBuilder;
-use crate::config::MagikaConfig;
+pub use crate::config::MagikaConfig;
 pub use crate::error::{MagikaError, MagikaResult};
 pub use crate::input::{MagikaAsyncInput, MagikaFeatures, MagikaSyncInput};
 pub use crate::output::MagikaOutput;

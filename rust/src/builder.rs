@@ -18,21 +18,23 @@ use std::sync::{Mutex, OnceLock};
 use onnxruntime::environment::Environment;
 use onnxruntime::{GraphOptimizationLevel, LoggingLevel};
 
-use crate::{MagikaConfig, MagikaResult, MagikaSession};
+use crate::{MagikaResult, MagikaSession};
 
 /// Configures and creates a Magika session.
 #[derive(Debug)]
-pub struct MagikaBuilder {
+pub struct MagikaBuilder<Config> {
+    config: Config,
     name: String,
     logging_level: LoggingLevel,
     optimization_level: GraphOptimizationLevel,
     number_threads: i16,
 }
 
-impl MagikaBuilder {
+impl<Config> MagikaBuilder<Config> {
     /// Initializes a new Magika session builder with default values.
-    pub fn new() -> Self {
+    pub fn new(config: Config) -> Self {
         MagikaBuilder {
+            config,
             name: "default".to_string(),
             logging_level: LoggingLevel::Warning,
             optimization_level: GraphOptimizationLevel::Basic,
@@ -73,7 +75,7 @@ impl MagikaBuilder {
     }
 
     /// Consumes the builder to create a Magika session.
-    pub fn build(self, model_dir: impl AsRef<Path>) -> MagikaResult<MagikaSession> {
+    pub fn build(self, model_dir: impl AsRef<Path>) -> MagikaResult<MagikaSession<Config>> {
         // The onnxruntime crate mentions that only one ONNX environment can be created per process,
         // but doesn't provide a way to access their singleton. We hold our own singleton to their
         // singleton. This simplifies lifetime issues by using `'static` everywhere.
@@ -94,7 +96,7 @@ impl MagikaBuilder {
             .with_optimization_level(self.optimization_level)?
             .with_model_from_file(model_dir.join("model.onnx"))?;
         let session = Mutex::new(session);
-        let config = MagikaConfig::parse(model_dir.join("model_config.json"))?;
+        let config = self.config;
         Ok(MagikaSession { session, config })
     }
 }

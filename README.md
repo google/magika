@@ -2,22 +2,22 @@
 
 Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU.
 
-In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
+In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale within a large email provider and file hosting service.
 
 
-You can try Magika without anything by using our [web demo](https://google.github.io/magika/), which runs locally in your browser!
+You can try Magika without anything by using our [web demo](https://xxxxxxxxxxxxxxxxxx), which runs locally in your browser!
 
 Here is an example of what Magika command line output look like:
 <p align="center">
     <img src="./assets/magika-screenshot.png" width="600">
 </p>
 
-For more context you can read our initial [announcement post on Google's OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html)
+For more context you can read our initial [announcement post](https://xxxxxxxxxxxxxxxxx).
 
 
 ## Highlights
 
-- Available as a Python command line, a Python API, and an experimental TFJS version (which powers our [web demo](https://google.github.io/magika/)).
+- Available as a Python command line, a Python API, and an experimental TFJS version (which powers our [web demo](https://xxxxxxxxxxxx)).
 - Trained on a dataset of over 25M files across more than 100 content types.
 - On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
 - More than 100 content types (see [full list](./docs/supported_content_types_list.md)).
@@ -245,21 +245,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 We have collected a number of FAQs [here](./docs/faq.md).
 
 
-## Additional Resources
-
-- [Google's OSS blog post](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html) about Magika announcement.
-- Web demo: [web demo](https://google.github.io/magika/).
-
-
-## Citation
-If you use this software for your research, please cite it as:
-```bibtex
-@software{magika,
-author = {Fratantonio, Yanick and Invernizzi, Luca and Zhang, Marina and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois and Petit-Bianco, Alexandre and Farah, Loua and Albertini, Ange and Bursztein, Elie},
-title = {{Magika content-type scanner}},
-url = {https://github.com/google/magika}
-}
-```
 
 ## License
 

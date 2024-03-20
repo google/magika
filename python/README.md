@@ -90,14 +90,3 @@ magika = Magika()
 result = magika.identify_bytes(b"# Example\nThis is an example of markdown!")
 print(result.output.ct_label)  # Output: "markdown"
 ```
-
-
-## Citation
-If you use this software for your research, please cite it as:
-```bibtex
-@software{magika,
-author = {Fratantonio, Yanick and Bursztein, Elie and Invernizzi, Luca and Zhang, Marina and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois and Petit-Bianco, Alexandre and Farah, Loua and Albertini, Ange},
-title = {{Magika content-type scanner}},
-url = {https://github.com/google/magika}
-}
-```

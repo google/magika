@@ -15,7 +15,7 @@
 | 11 | cat | Windows Catalog file |
 | 12 | chm | MS Windows HtmlHelp Data |
 | 13 | coff | Intel 80386 COFF |
-| 14 | crx | Google Chrome extension |
+| 14 | crx | Chrome extension |
 | 15 | cs | C# source |
 | 16 | css | CSS source |
 | 17 | csv | CSV document |

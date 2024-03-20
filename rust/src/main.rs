@@ -13,8 +13,7 @@
 // limitations under the License.
 
 use std::path::PathBuf;
-use std::sync::{Arc, OnceLock};
-use std::time::Instant;
+use std::sync::Arc;
 
 use anyhow::{ensure, Result};
 use clap::{Parser, ValueEnum};
@@ -41,11 +40,9 @@ async fn main() -> Result<()> {
         let config = config.clone();
         let result_sender = result_sender.clone();
         async move {
-            println!("{} start extract_features", now());
             if let Err(e) = extract_features(&flags, &config, &batch_sender).await {
                 result_sender.send(Err(e)).await.unwrap();
             }
-            println!("{} done extract_features", now());
         }
     });
     for _ in 0..flags.num_sessions {
@@ -55,11 +52,9 @@ async fn main() -> Result<()> {
             let batch_receiver = batch_receiver.clone();
             let result_sender = result_sender.clone();
             move || {
-                println!("{} start infer_batch", now());
                 if let Err(e) = infer_batch(&flags, &config, &batch_receiver, &result_sender) {
                     result_sender.blocking_send(Err(e)).unwrap();
                 }
-                println!("{} done infer_batch", now());
             }
         });
     }
@@ -73,7 +68,6 @@ async fn main() -> Result<()> {
             results[index] = Some(result);
         }
     }
-    println!("{} printing results", now());
     // Print results.
     for (path, result) in flags.path.iter().zip(results.into_iter()) {
         let result = result.unwrap();
@@ -220,9 +214,4 @@ struct BatchRequest {
 struct BatchResponse {
     batch: Vec<MagikaOutput>,
     mapping: Vec<usize>,
-}
-
-fn now() -> f64 {
-    static INIT: OnceLock<Instant> = OnceLock::new();
-    INIT.get_or_init(|| Instant::now()).elapsed().as_millis() as f64 / 1000.
 }

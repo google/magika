@@ -23,10 +23,11 @@ use onnxruntime::tensor::OrtOwnedTensor;
 use serde::Deserialize;
 
 use crate::input::{MagikaAsyncInputApi, MagikaSyncInputApi};
-use crate::{MagikaFeatures, MagikaOutput, MagikaResult};
+use crate::{MagikaAsyncInput, MagikaFeatures, MagikaOutput, MagikaResult, MagikaSyncInput};
 
+/// Magika configuration.
 #[derive(Debug, Deserialize)]
-pub(crate) struct MagikaConfig {
+pub struct MagikaConfig {
     train_dataset_info: TrainDatasetInfo,
 }
 
@@ -41,6 +42,11 @@ struct TargetLabelsInfo {
 }
 
 impl MagikaConfig {
+    /// Parses a config file from a model directory.
+    pub fn new(model_dir: impl AsRef<Path>) -> MagikaResult<Self> {
+        MagikaConfig::parse(model_dir.as_ref().join("model_config.json"))
+    }
+
     pub(crate) fn parse(path: impl AsRef<Path>) -> MagikaResult<Self> {
         Ok(serde_json::from_reader(File::open(path)?)?)
     }
@@ -52,16 +58,18 @@ impl MagikaConfig {
             .target_labels_space[index]
     }
 
-    pub(crate) fn extract_features_sync(
+    /// Extracts the features from a file (synchronously).
+    pub fn extract_features_sync(
         &self,
-        file: impl MagikaSyncInputApi,
+        file: impl MagikaSyncInput,
     ) -> MagikaResult<MagikaFeatures> {
         Ok(MagikaFeatures(extract_features_sync(file)?))
     }
 
-    pub(crate) async fn extract_features_async(
+    /// Extracts the features from a file (asynchronously).
+    pub async fn extract_features_async(
         &self,
-        file: impl MagikaAsyncInputApi,
+        file: impl MagikaAsyncInput,
     ) -> MagikaResult<MagikaFeatures> {
         Ok(MagikaFeatures(extract_features_async(file).await?))
     }

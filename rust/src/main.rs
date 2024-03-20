@@ -13,41 +13,87 @@
 // limitations under the License.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{ensure, Result};
 use clap::{Parser, ValueEnum};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt as _;
-use magika::{MagikaError, MagikaSession};
+use magika::{MagikaConfig, MagikaError, MagikaFeatures, MagikaOutput, MagikaSession};
 use onnxruntime::{GraphOptimizationLevel, LoggingLevel};
 use tokio::fs::File;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // TODO(release): Maybe print some warning or disclaimer about the tool readiness.
-    let flags = Flags::parse();
+    let flags = Arc::new(Flags::parse());
     ensure!(
         !flags.path.is_empty(),
         "At least one path must be provided."
     );
-    let magika = MagikaSession::build()
-        .with_name("magika")
-        .with_logging_level(flags.logging_level.into())
-        .with_number_threads(1)
-        .with_optimization_level(flags.optimization_level.into())
-        .build(flags.model_dir)?;
+    let (result_sender, mut result_receiver) =
+        tokio::sync::mpsc::channel::<Result<BatchResponse>>(flags.num_sessions);
+    let (batch_sender, batch_receiver) = async_channel::bounded::<BatchRequest>(flags.num_sessions);
+    let config = Arc::new(MagikaConfig::new(&flags.model_dir)?);
+    tokio::spawn({
+        let flags = flags.clone();
+        let config = config.clone();
+        let result_sender = result_sender.clone();
+        async move {
+            if let Err(e) = extract_features(&flags, &config, &batch_sender).await {
+                result_sender.send(Err(e)).await.unwrap();
+            }
+        }
+    });
+    for _ in 0..flags.num_sessions {
+        std::thread::spawn({
+            let flags = flags.clone();
+            let config = config.clone();
+            let batch_receiver = batch_receiver.clone();
+            let result_sender = result_sender.clone();
+            move || {
+                if let Err(e) = infer_batch(&flags, &config, &batch_receiver, &result_sender) {
+                    result_sender.blocking_send(Err(e)).unwrap();
+                }
+            }
+        });
+    }
+    // Update results.
+    let mut results = vec![None; flags.path.len()];
+    drop(result_sender);
+    while let Some(batch) = result_receiver.recv().await {
+        let batch = batch?;
+        assert_eq!(batch.batch.len(), batch.mapping.len());
+        for (result, index) in batch.batch.into_iter().zip(batch.mapping.into_iter()) {
+            results[index] = Some(result);
+        }
+    }
+    // Print results.
+    for (path, result) in flags.path.iter().zip(results.into_iter()) {
+        let result = result.unwrap();
+        let path = path.display();
+        let label = result.label();
+        let score = result.score();
+        println!("{path} is {label} with score {score}");
+    }
+    Ok(())
+}
+
+async fn extract_features(
+    flags: &Flags,
+    config: &MagikaConfig,
+    sender: &async_channel::Sender<BatchRequest>,
+) -> Result<()> {
     // Extract features concurrently.
     let mut features = FuturesUnordered::new();
     for (index, path) in flags.path.iter().enumerate() {
-        let magika = &magika;
         features.push(async move {
             let file = File::open(path).await?;
-            let features = magika.extract_async(file).await?;
+            let features = config.extract_features_async(file).await?;
             Ok::<_, MagikaError>((index, features))
         });
     }
-    // Infer by batch.
-    let mut results = vec![None; flags.path.len()];
+    // Send features by batch.
     loop {
         let mut batch = Vec::new();
         let mut mapping = Vec::new();
@@ -59,21 +105,30 @@ async fn main() -> Result<()> {
                 break;
             }
         }
-        let batch = magika.identify_batch(&batch)?;
-        for (i, result) in batch.into_iter().enumerate() {
-            results[mapping[i]] = Some(result);
-        }
-        if flags.batch_size == 0 || mapping.len() < flags.batch_size {
-            break;
+        let batch_size = mapping.len();
+        sender.send(BatchRequest { batch, mapping }).await?;
+        if flags.batch_size == 0 || batch_size < flags.batch_size {
+            break Ok(());
         }
     }
-    // Print results.
-    for (path, result) in flags.path.iter().zip(results.into_iter()) {
-        let result = result.unwrap();
-        let path = path.display();
-        let label = result.label();
-        let score = result.score();
-        println!("{path} is {label} with score {score}");
+}
+
+fn infer_batch(
+    flags: &Flags,
+    config: &MagikaConfig,
+    receiver: &async_channel::Receiver<BatchRequest>,
+    sender: &tokio::sync::mpsc::Sender<Result<BatchResponse>>,
+) -> Result<()> {
+    let magika = MagikaSession::builder(config)
+        .with_name("magika")
+        .with_logging_level(flags.logging_level.into())
+        .with_number_threads(flags.threads_per_session)
+        .with_optimization_level(flags.optimization_level.into())
+        .build(&flags.model_dir)?;
+    // Infer by batch.
+    while let Ok(BatchRequest { batch, mapping }) = receiver.recv_blocking() {
+        let batch = magika.identify_batch(&batch)?;
+        sender.blocking_send(Ok(BatchResponse { batch, mapping }))?;
     }
     Ok(())
 }
@@ -88,9 +143,17 @@ pub struct Flags {
     /// List of paths to the files to analyze.
     pub path: Vec<PathBuf>,
 
-    /// Batch size of inference.
+    /// Number of files to identify in a single inference.
     #[arg(long, default_value = "1")]
     pub batch_size: usize,
+
+    /// Number of threads per inference session (ONNX Runtime configuration).
+    #[arg(long, default_value = "1")]
+    pub threads_per_session: i16,
+
+    /// Number of inference sessions to process batches (each session has a dedicated thread).
+    #[arg(long, default_value = "1")]
+    pub num_sessions: usize,
 
     /// Onnx environment logging level.
     #[arg(long, value_enum, default_value_t)]
@@ -141,4 +204,14 @@ impl From<OnnxOptimizationLevel> for GraphOptimizationLevel {
             OnnxOptimizationLevel::All => GraphOptimizationLevel::All,
         }
     }
+}
+
+struct BatchRequest {
+    batch: Vec<MagikaFeatures>,
+    mapping: Vec<usize>,
+}
+
+struct BatchResponse {
+    batch: Vec<MagikaOutput>,
+    mapping: Vec<usize>,
 }

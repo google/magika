@@ -25,6 +25,7 @@ required-features = ["bin-dependencies"]
 
 [dependencies]
 anyhow = { version = "1.0.80", optional = true }
+async-channel = "2.2.0"
 clap = { version = "4.5.1", features = ["derive"], optional = true }
 futures = "0.3.30"
 ndarray = "0.15.1"

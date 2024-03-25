@@ -206,26 +206,26 @@ Returns **[Promise][21]\<ModelResult>** A dictionary containing the top label an
 
 [18]: #parameters-7
 
-[19]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika_node.ts#L29-L134 "Source code on GitHub"
+[19]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika_node.ts#L29-L134 "Source code on GitHub"
 
-[20]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika_node.ts#L45-L58 "Source code on GitHub"
+[20]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika_node.ts#L45-L58 "Source code on GitHub"
 
 [21]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
 
-[22]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika_node.ts#L66-L69 "Source code on GitHub"
+[22]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika_node.ts#L66-L69 "Source code on GitHub"
 
 [23]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
 
-[24]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika_node.ts#L77-L80 "Source code on GitHub"
+[24]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika_node.ts#L77-L80 "Source code on GitHub"
 
-[25]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika_node.ts#L87-L91 "Source code on GitHub"
+[25]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika_node.ts#L87-L91 "Source code on GitHub"
 
-[26]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika_node.ts#L98-L101 "Source code on GitHub"
+[26]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika_node.ts#L98-L101 "Source code on GitHub"
 
-[27]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika.ts#L27-L123 "Source code on GitHub"
+[27]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika.ts#L27-L123 "Source code on GitHub"
 
-[28]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika.ts#L52-L57 "Source code on GitHub"
+[28]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika.ts#L52-L57 "Source code on GitHub"
 
-[29]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika.ts#L64-L67 "Source code on GitHub"
+[29]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika.ts#L64-L67 "Source code on GitHub"
 
-[30]: https://github.com/google/magika/blob/a41c61bba427fdc3b3612506f48279ae7f0bba70/js/magika.ts#L74-L77 "Source code on GitHub"
+[30]: https://github.com/google/magika/blob/25f074418a3ca9e52b63f0b41f8d3de69dc9ac18/js/magika.ts#L74-L77 "Source code on GitHub"

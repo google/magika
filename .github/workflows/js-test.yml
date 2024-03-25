@@ -12,7 +12,8 @@ on:
     paths:
       - 'js/**'
       - '.github/workflows/**'
-
+permissions:
+  contents: read
 jobs:
   unit-testing:
     strategy:

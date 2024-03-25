@@ -19,19 +19,19 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]
-        os: ["ubuntu-latest", "macos-latest"]
+        python-version: [ "3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x" ]
+        os: [ "ubuntu-latest", "macos-latest" ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # pin@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # pin@v5
         with:
           python-version: '${{ matrix.python-version }}'
 
       - name: Install poetry
-        uses: abatilo/actions-poetry@v3
+        uses: abatilo/actions-poetry@7b6d33e44b4f08d7021a1dee3c044e9c253d6439 # pin@v3
         with:
           poetry-version: "1.7.1"
 

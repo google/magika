@@ -3,7 +3,7 @@ name: JS - generate docs
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
+    branches: [ "main" ]
     paths:
       - 'js/**'
       - '.github/workflows/**'
@@ -11,7 +11,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN
+    # Sets permissions of the GITHUB_TOKEN
 permissions:
   contents: write
   id-token: write
@@ -21,15 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # pin@v4
         with:
           ref: main
       - name: Generate docs
         working-directory: js
         run: |
-            yarn
-            yarn run build
-            yarn run make-docs
+          yarn
+          yarn run build
+          yarn run make-docs
       - name: Commit
         run: |
           git config --local user.email "invernizzi.l@gmail.com"

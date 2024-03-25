@@ -2,7 +2,7 @@ name: New issue labeler
 on:
   # Runs on newly opened issues 
   issues:
-    types: [opened]
+    types: [ opened ]
 
 # Sets permissions of the GITHUB_TOKEN
 permissions:
@@ -13,8 +13,8 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-    - uses: github/issue-labeler@v3.4
-      with:
-        configuration-path: .github/labeler.yml
-        enable-versioned-regex: 0
-        repo-token: "${{secrets.GITHUB_TOKEN}}"
+      - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # pin@v3.4
+        with:
+          configuration-path: .github/labeler.yml
+          enable-versioned-regex: 0
+          repo-token: "${{secrets.GITHUB_TOKEN}}"

@@ -3,13 +3,13 @@ name: Pages - deploy
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
-    paths: [website]
+    branches: [ "main" ]
+    paths: [ website ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+    # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -28,14 +28,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./website   
+        working-directory: ./website
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # pin@v4
         with:
           ref: main
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # pin@v4
         with:
           node-version: 18.x
       - name: Install dependencies
@@ -43,11 +43,11 @@ jobs:
       - name: Build
         run: npm run build-github
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@1f0c5cde4bc74cd7e1254d0cb4de8d49e9068c7d # pin@v4
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # pin@v3
         with:
           path: './website/dist'
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # pin@v4

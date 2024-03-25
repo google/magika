@@ -11,13 +11,15 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-    # Sets permissions of the GITHUB_TOKEN
 permissions:
-  contents: write
-  id-token: write
-
+  contents: read
+  
 jobs:
+
   makeDocs:
+    permissions:
+      contents: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,6 +32,7 @@ jobs:
           yarn
           yarn run build
           yarn run make-docs
+  
       - name: Commit
         run: |
           git config --local user.email "invernizzi.l@gmail.com"

@@ -263,6 +263,8 @@ title = {{Magika content-type scanner}},
 url = {https://github.com/google/magika}
 }
 ```
+## Security vulnerabilities
+Please contact us directly at magika-dev@google.com 
 
 ## License
 

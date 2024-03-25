@@ -8,6 +8,9 @@ import {Readable} from 'stream';
 import {finished} from 'stream/promises';
 import {ReadableStream} from 'stream/web';
 import {MagikaNode as Magika} from '../magika_node';
+import * as fc from 'fast-check';
+
+
 
 describe('Magika class', () => {
 
@@ -71,6 +74,24 @@ describe('Magika class', () => {
         expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
+
+    it('scores should be in the expected range', async () => {
+        const magika = new Magika();
+        await magika.load();
+        fc.assert(
+          fc.asyncProperty(
+            fc.array(
+              fc.integer({min:0, max:255}),
+              {minLength:0, maxLength:10})
+            ,
+            async (bytesContent) => {
+                const output = await magika.identifyBytes(Uint8Array.from(bytesContent));
+                expect(output.score).toBeGreaterThanOrEqual(0);
+                expect(output.score).toBeLessThanOrEqual(1);
+          }
+          ))
+      });
+
     it('features should result in known value', async () => {
         const magika = new Magika();
         await magika.load({configPath: workdir.config, modelPath: workdir.model});
@@ -94,7 +115,7 @@ describe('Magika class', () => {
            110,  59,  97,  91,  48,  93, 105, 110,  32,  99, 124, 124,  34, 117, 110, 100, 101, 102, 105, 110, 101, 100,  34,  61,  61, 116, 121, 112, 101, 111,
            102,  32,  99,  46, 101, 120, 101,  99,  83,  99, 114, 105, 112, 116, 124, 124,  99,  46, 101, 120, 101,  99,  83,  99, 114, 105, 112, 116,  40,  34,
            118,  97, 114,  32,  34,  43,  97,  91,  48,  93,  41,  59, 102, 111, 114,  40, 118,  97, 114,  32, 100,  59,  97,  46, 108, 101, 110, 103, 116, 104,
-            38,  38,  40, 100,  61,  97,  46, 115, 104, 105, 102, 116,  40,  41,  41,  59,  41,  97,  46, 108, 101, 110, 103, 116, 104, 124, 124, 118, 111, 105,
+           38,  38,  40, 100,  61,  97,  46, 115, 104, 105, 102, 116,  40,  41,  41,  59,  41,  97,  46, 108, 101, 110, 103, 116, 104, 124, 124, 118, 111, 105,
            100,  32,  48,  61,  61,  61,  98,  63,  99,  61,  99,  91, 100,  93,  38,  38,  99,  91, 100,  93,  33,  61,  61,  79,  98, 106, 101,  99, 116,  46,
            112, 114, 111, 116, 111, 116, 121, 112, 101,  91, 100,  93,  63,  99,  91, 100,  93,  58,  99,  91, 100,  93,  61, 123, 125,  58,  99,  91, 100,  93,
             61,  98, 125,  59, 102, 117, 110,  99, 116, 105, 111, 110,  32, 113,  40,  41, 123, 102, 111, 114,  40, 118,  97, 114,  32,  97,  61, 114,  44,  98,

@@ -11,6 +11,9 @@ on:
       - 'python/**'
       - '.github/workflows/**'
 
+permissions:
+  contents: read
+
 jobs:
   e2e-testing:
     strategy:

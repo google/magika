@@ -15,6 +15,9 @@ on:
       - 'tests_data/**'
       - '.github/workflows/**'
 
+permissions:
+  contents: read
+
 jobs:
   unit-testing:
     strategy:

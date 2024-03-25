@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: 18.x
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build-github
       - name: Setup Pages

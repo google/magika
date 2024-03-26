@@ -7,7 +7,11 @@
     "types": "./dist/cjs/magika.d.ts",
     "module": "./dist/mjs/magika.js",
     "exports": {
-        ".": {
+        "node": {
+            "import": "./dist/mjs/magika_node.js",
+            "require": "./dist/cjs/magika_node.js"
+        },
+        "default": {
             "import": "./dist/mjs/magika.js",
             "require": "./dist/cjs/magika.js"
         }

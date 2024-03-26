@@ -16,7 +16,7 @@ use std::borrow::Borrow;
 use std::sync::Mutex;
 
 use ndarray::Array2;
-use onnxruntime::session::Session;
+use ort::Session;
 
 use crate::config::FEATURE_SIZE;
 use crate::{
@@ -27,7 +27,7 @@ use crate::{
 /// A Magika session to identify files.
 #[derive(Debug)]
 pub struct MagikaSession<Config> {
-    pub(crate) session: Mutex<Session<'static>>,
+    pub(crate) session: Mutex<Session>,
     pub(crate) config: Config,
 }
 
@@ -60,17 +60,17 @@ impl<Config: Borrow<MagikaConfig>> MagikaSession<Config> {
 
     /// Identifies multiple files in parallel from their features.
     pub fn identify_batch(&self, features: &[MagikaFeatures]) -> MagikaResult<Vec<MagikaOutput>> {
-        if features.len() == 0 {
+        if features.is_empty() {
             return Ok(Vec::new());
         }
         let input = Array2::from_shape_vec(
             [features.len(), 3 * FEATURE_SIZE],
-            features.iter().map(|x| &x.0).flatten().cloned().collect(),
+            features.iter().flat_map(|x| &x.0).cloned().collect(),
         )?;
-        let mut session = self.session.lock()?;
-        let input = vec![input];
-        let mut output = session.run::<f32, f32, _>(input)?;
-        assert_eq!(output.len(), 1);
-        Ok(self.config.borrow().convert_output(output.pop().unwrap()))
+        let session = self.session.lock()?;
+        let mut output = session.run(ort::inputs!("bytes" => input)?)?;
+        let output = output.remove("target_label").unwrap();
+        let output = output.extract_tensor()?;
+        Ok(self.config.borrow().convert_output(output))
     }
 }

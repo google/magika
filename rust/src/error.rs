@@ -14,7 +14,6 @@
 
 use std::sync::PoisonError;
 
-use onnxruntime::OrtError;
 use thiserror::Error;
 
 /// Result type of Magika functions.
@@ -29,7 +28,7 @@ pub enum MagikaError {
 
     /// Errors reported by the ONNX Runtime.
     #[error("ONNX Runtime error")]
-    OrtError(#[from] OrtError),
+    OrtError(#[from] ort::Error),
 
     /// Errors taking a lock on a mutex.
     #[error("Mutex lock error")]

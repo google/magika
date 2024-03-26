@@ -18,8 +18,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 use futures::Future;
-use ndarray::IxDyn;
-use onnxruntime::tensor::OrtOwnedTensor;
+use ort::Tensor;
 use serde::Deserialize;
 
 use crate::input::{MagikaAsyncInputApi, MagikaSyncInputApi};
@@ -74,9 +73,9 @@ impl MagikaConfig {
         Ok(MagikaFeatures(extract_features_async(file).await?))
     }
 
-    pub(crate) fn convert_output(&self, tensor: OrtOwnedTensor<f32, IxDyn>) -> Vec<MagikaOutput> {
+    pub(crate) fn convert_output(&self, tensor: Tensor<f32>) -> Vec<MagikaOutput> {
         let mut results = Vec::new();
-        for view in tensor.axis_iter(ndarray::Axis(0)) {
+        for view in tensor.view().axis_iter(ndarray::Axis(0)) {
             let scores = view.to_slice().unwrap();
             let mut best = 0;
             for (i, &x) in scores.iter().enumerate() {
@@ -114,7 +113,7 @@ async fn extract_features_async(mut file: impl MagikaAsyncInputApi) -> MagikaRes
         let mut content = vec![0; file_len];
         file.read_at(&mut content, 0).await?;
         let content = strip_prefix(strip_suffix(&content));
-        extract_features(&content, &content, &content)
+        extract_features(content, content, content)
     } else {
         let mut beg = [0; BUFFER_SIZE];
         file.read_at(&mut beg, 0).await?;
@@ -127,7 +126,7 @@ async fn extract_features_async(mut file: impl MagikaAsyncInputApi) -> MagikaRes
         let mid_offset = trimmed_beg + (file_len - trimmed_beg - trimmed_end - FEATURE_SIZE) / 2;
         let mut mid = [0; BUFFER_SIZE];
         file.read_at(&mut mid, mid_offset).await?;
-        extract_features(&beg, &mid, &end)
+        extract_features(beg, &mid, end)
     }
 }
 

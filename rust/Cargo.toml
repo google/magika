@@ -21,7 +21,7 @@ rustdoc-args = ["--cfg=docsrs"]
 
 [[bin]]
 name = "magika"
-required-features = ["bin-dependencies"]
+required-features = ["bin"]
 
 [dependencies]
 anyhow = { version = "1.0.80", optional = true }
@@ -29,12 +29,16 @@ async-channel = "2.2.0"
 clap = { version = "4.5.1", features = ["derive"], optional = true }
 futures = "0.3.30"
 ndarray = "0.15.1"
-onnxruntime = "0.0.14"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["fs", "io-util"], optional = true }
 
+[dependencies.ort]
+version = "2.0.0-rc.0"
+default-features = false
+features = ["ndarray"]
+
 [features]
 tokio = ["dep:tokio"]
-bin-dependencies = ["dep:anyhow", "dep:clap", "tokio", "tokio/full"]
+bin = ["dep:anyhow", "dep:clap", "tokio", "tokio/full", "ort/download-binaries"]

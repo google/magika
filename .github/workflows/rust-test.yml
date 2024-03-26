@@ -1,0 +1,25 @@
+name: Rust - test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'rust/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'rust/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  unit-testing:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # pin@v4
+      - run: ./test.sh
+        working-directory: rust

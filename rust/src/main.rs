@@ -15,12 +15,12 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{ensure, Result};
-use clap::{Parser, ValueEnum};
+use anyhow::{bail, ensure, Result};
+use clap::Parser;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt as _;
 use magika::{MagikaConfig, MagikaError, MagikaFeatures, MagikaOutput, MagikaSession};
-use onnxruntime::{GraphOptimizationLevel, LoggingLevel};
+use ort::GraphOptimizationLevel;
 use tokio::fs::File;
 
 #[tokio::main]
@@ -119,12 +119,27 @@ fn infer_batch(
     receiver: &async_channel::Receiver<BatchRequest>,
     sender: &tokio::sync::mpsc::Sender<Result<BatchResponse>>,
 ) -> Result<()> {
-    let magika = MagikaSession::builder(config)
-        .with_name("magika")
-        .with_logging_level(flags.logging_level.into())
-        .with_number_threads(flags.threads_per_session)
-        .with_optimization_level(flags.optimization_level.into())
-        .build(&flags.model_dir)?;
+    let mut magika = MagikaSession::builder(config);
+    if let Some(inter_threads) = flags.inter_threads {
+        magika = magika.with_inter_threads(inter_threads);
+    }
+    if let Some(intra_threads) = flags.intra_threads {
+        magika = magika.with_intra_threads(intra_threads);
+    }
+    if let Some(opt_level) = flags.optimization_level {
+        let opt_level = match opt_level {
+            0 => GraphOptimizationLevel::Disable,
+            1 => GraphOptimizationLevel::Level1,
+            2 => GraphOptimizationLevel::Level2,
+            3 => GraphOptimizationLevel::Level3,
+            _ => bail!("--optimization-level must be 0, 1, 2, or 3"),
+        };
+        magika = magika.with_optimization_level(opt_level);
+    }
+    if let Some(parallel_execution) = flags.parallel_execution {
+        magika = magika.with_parallel_execution(parallel_execution);
+    }
+    let magika = magika.build(&flags.model_dir)?;
     // Infer by batch.
     while let Ok(BatchRequest { batch, mapping }) = receiver.recv_blocking() {
         let batch = magika.identify_batch(&batch)?;
@@ -147,63 +162,25 @@ pub struct Flags {
     #[arg(long, default_value = "1")]
     pub batch_size: usize,
 
-    /// Number of threads per inference session (ONNX Runtime configuration).
-    #[arg(long, default_value = "1")]
-    pub threads_per_session: i16,
-
-    /// Number of inference sessions to process batches (each session has a dedicated thread).
+    /// Number of inference sessions (each session has a dedicated thread).
     #[arg(long, default_value = "1")]
     pub num_sessions: usize,
 
-    /// Onnx environment logging level.
-    #[arg(long, value_enum, default_value_t)]
-    pub logging_level: OnnxLoggingLevel,
+    /// Number of threads per inference session (ONNX Runtime configuration).
+    #[arg(long)]
+    pub inter_threads: Option<i16>,
 
-    /// Onnx session optimization level.
-    #[arg(long, value_enum, default_value_t)]
-    pub optimization_level: OnnxOptimizationLevel,
-}
+    /// Number of threads per node execution (ONNX Runtime configuration).
+    #[arg(long)]
+    pub intra_threads: Option<i16>,
 
-#[derive(Default, Copy, Clone, ValueEnum)]
-pub enum OnnxLoggingLevel {
-    Verbose,
-    #[default]
-    Info,
-    Warning,
-    Error,
-    Fatal,
-}
+    /// Graph optimization level, from 0 to 3 (ONNX Runtime configuration).
+    #[arg(long)]
+    pub optimization_level: Option<i32>,
 
-#[derive(Default, Copy, Clone, ValueEnum)]
-pub enum OnnxOptimizationLevel {
-    DisableAll,
-    #[default]
-    Basic,
-    Extended,
-    All,
-}
-
-impl From<OnnxLoggingLevel> for LoggingLevel {
-    fn from(value: OnnxLoggingLevel) -> Self {
-        match value {
-            OnnxLoggingLevel::Verbose => LoggingLevel::Verbose,
-            OnnxLoggingLevel::Info => LoggingLevel::Info,
-            OnnxLoggingLevel::Warning => LoggingLevel::Warning,
-            OnnxLoggingLevel::Error => LoggingLevel::Error,
-            OnnxLoggingLevel::Fatal => LoggingLevel::Fatal,
-        }
-    }
-}
-
-impl From<OnnxOptimizationLevel> for GraphOptimizationLevel {
-    fn from(value: OnnxOptimizationLevel) -> Self {
-        match value {
-            OnnxOptimizationLevel::DisableAll => GraphOptimizationLevel::DisableAll,
-            OnnxOptimizationLevel::Basic => GraphOptimizationLevel::Basic,
-            OnnxOptimizationLevel::Extended => GraphOptimizationLevel::Extended,
-            OnnxOptimizationLevel::All => GraphOptimizationLevel::All,
-        }
-    }
+    /// Whether to enable parallel execution (ONNX Runtime configuration).
+    #[arg(long)]
+    pub parallel_execution: Option<bool>,
 }
 
 struct BatchRequest {

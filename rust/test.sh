@@ -16,7 +16,7 @@
 set -ex
 
 cargo check
-cargo build --release --features=bin-dependencies
-cargo test --features=bin-dependencies
+cargo build --release --features=bin
+cargo test --features=bin
 cargo fmt -- --check
 cargo clippy -- --deny=warnings

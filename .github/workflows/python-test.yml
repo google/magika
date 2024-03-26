@@ -79,14 +79,14 @@ jobs:
 
           thresholds: '60 80'
 
-    - name: Add Coverage PR Comment
+      - name: Add Coverage PR Comment
 
-      uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v2
 
-      if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
 
-      with:
+        with:
 
-        recreate: true
+          recreate: true
 
-        path: code-coverage-results.md
+          path: code-coverage-results.md

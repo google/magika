@@ -47,7 +47,7 @@ class TestInfo:
 
 def test_features_extraction(debug: bool = False) -> None:
     """This iterates over the content in the test suite and checks whether the
-    trivial implementaion matches the python module one, which is the reference
+    trivial implementation matches the python module one, which is the reference
     code."""
 
     tests_cases = _get_tests_cases_from_reference()

@@ -38,7 +38,7 @@ console.log(prediction);
 
 For more, see our [documentation](../docs/js.md).
 
-# Commmand-line tool
+# Command-line tool
 
 Please use the official CLI (with `pip install magika`) as it can perform batch processing and search for files recursivelyw.
 Read more about that in the main [README](../README.md).

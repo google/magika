@@ -327,7 +327,7 @@ def main(
                     output = f"{output_ct_description} ({output_ct_group})"
 
                     if dl_ct_label is not None and dl_ct_label != output_ct_label:
-                        # it seems that we had a too-low confidence prediciton
+                        # it seems that we had a too-low confidence prediction
                         # from the model. Let's warn the user about our best
                         # bet.
                         assert magika_result.dl.score is not None

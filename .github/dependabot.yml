@@ -16,4 +16,8 @@ updates:
   - package-ecosystem: "yarn"
     directory: "/js"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+  - package-ecosystem: "cargo"
+    directory: "/rust"
+    schedule:
+      interval: "weekly"

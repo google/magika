@@ -24,7 +24,7 @@ name = "magika"
 required-features = ["bin"]
 
 [dependencies]
-anyhow = { version = "1.0.80", optional = true }
+anyhow = { version = "1.0.81", optional = true }
 async-channel = "2.2.0"
 clap = { version = "4.5.1", features = ["derive"], optional = true }
 futures = "0.3.30"

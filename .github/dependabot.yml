@@ -13,7 +13,7 @@ updates:
     directory: "/python"
     schedule:
       interval: "daily"
-  - package-ecosystem: "yarn"
+  - package-ecosystem: "npm"
     directory: "/js"
     schedule:
       interval: "weekly"

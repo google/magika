@@ -32,7 +32,6 @@ Examples:
 - If there are more than one software to open the file type, list them:
   - "[RPG Maker 2003](https://www.rpgmakerweb.com/products/rpg-maker-2003), [easyRPG](https://easyrpg.org/), Wolf RPG Editor"
 
-
 **Where can these files be found?**
 Examples:
 - Simply state where the files can be obtained:
@@ -47,7 +46,7 @@ Examples:
    - "placeholder.zip" as attachment.
 
 **If possible, please provide a specification for this file type.**
-Link to a recource that explanes how the file works.
+Link to a resource that explains how the file works.
 Examples:
 - A wiki page:
   - "https://developer.valvesoftware.com/wiki/VMF_(Valve_Map_Format)"

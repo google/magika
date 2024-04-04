@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **What type of file would you like magika to detect?**
-Write the full name of the file format, followed by the file extention in parenthacies.
+Write the full name of the file format, followed by the file extention in parenthesis.
 Examples:
  - "Nintendo Binary Revolution RESource (.brres)"
  - "Valve Map Format file (.vmf)"

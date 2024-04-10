@@ -14,14 +14,12 @@
 
 use std::sync::PoisonError;
 
-use thiserror::Error;
-
 /// Result type of Magika functions.
-pub type MagikaResult<T> = Result<T, MagikaError>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 /// Errors returned by Magika functions.
-#[derive(Debug, Error)]
-pub enum MagikaError {
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
     /// Input/output errors reported by the standard library.
     #[error("I/O error")]
     IOError(#[from] std::io::Error),
@@ -34,17 +32,13 @@ pub enum MagikaError {
     #[error("Mutex lock error")]
     LockError,
 
-    /// Errors reported by the JSON parser.
-    #[error("JSON error")]
-    JsonError(#[from] serde_json::Error),
-
     /// Shape errors reported by the ndarray library.
     #[error("ndarray shape error")]
     ShapeError(#[from] ndarray::ShapeError),
 }
 
-impl<T> From<PoisonError<T>> for MagikaError {
+impl<T> From<PoisonError<T>> for Error {
     fn from(_: PoisonError<T>) -> Self {
-        MagikaError::LockError
+        Error::LockError
     }
 }

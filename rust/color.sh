@@ -1,4 +1,3 @@
-#!/bin/sh
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-source ./color.sh
-
-for dir in gen lib cli; do
-  info "Running $dir/test.sh"
-  ( cd $dir && ./test.sh; )
-done
+color() { echo "[$1m$2:[m $3"; }
+info() { color '1;36' Info "$*"; }
+todo() { color '1;33' Todo "$*"; }
+error() { color '1;31' Error "$*"; exit 1; }

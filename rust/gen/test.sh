@@ -13,10 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-source ./color.sh
+set -ex
 
-for dir in gen lib cli; do
-  info "Running $dir/test.sh"
-  ( cd $dir && ./test.sh; )
-done
+cargo check
+cargo fmt -- --check
+cargo clippy -- --deny=warnings

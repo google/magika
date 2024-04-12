@@ -20,4 +20,6 @@ cargo check --features=tokio
 cargo test --features=ort/download-binaries
 cargo fmt -- --check
 cargo clippy -- --deny=warnings
-RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
+if cargo --version | grep -q nightly; then
+  RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
+fi

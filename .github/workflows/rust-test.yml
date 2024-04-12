@@ -19,8 +19,13 @@ permissions:
 jobs:
   unit-testing:
     runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        toolchain: ["stable", "nightly"]
     steps:
       - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # pin@v4
+      - run: rustup default ${{ matrix.toolchain }}
+      - run: rustup component add rustfmt clippy
       - run: ./test.sh
         working-directory: rust
       - run: ./sync.sh --check

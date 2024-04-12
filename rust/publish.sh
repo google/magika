@@ -14,7 +14,7 @@
 # limitations under the License.
 
 set -e
-source ./color.sh
+. ./color.sh
 
 # This script removes all -dev suffixes and creates a commit. It also makes sure that no TODOs for
 # the release are left.

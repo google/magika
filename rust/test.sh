@@ -14,7 +14,7 @@
 # limitations under the License.
 
 set -e
-source ./color.sh
+. ./color.sh
 
 for dir in gen lib cli; do
   info "Running $dir/test.sh"

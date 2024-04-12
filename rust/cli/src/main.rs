@@ -47,15 +47,17 @@ struct Flags {
     #[arg(long, default_value = "1")]
     batch_size: usize,
 
-    /// Number of inference sessions (each session has a dedicated thread).
+    /// Number of tasks for batch parallelism.
     #[arg(long, default_value = "1")]
-    num_sessions: usize,
+    num_tasks: usize,
 
-    /// Number of threads per inference session (ONNX Runtime configuration).
+    /// Number of threads for graph parallelism (ONNX Runtime configuration).
+    ///
+    /// This has no effect if --parallel-execution is false or unset.
     #[arg(long)]
     inter_threads: Option<usize>,
 
-    /// Number of threads per node execution (ONNX Runtime configuration).
+    /// Number of threads for node parallelism (ONNX Runtime configuration).
     #[arg(long)]
     intra_threads: Option<usize>,
 
@@ -72,10 +74,10 @@ struct Flags {
 async fn main() -> Result<()> {
     let flags = Arc::new(Flags::parse());
     ensure!(0 < flags.batch_size, "--batch-size cannot be zero");
-    ensure!(0 < flags.num_sessions, "--num-sessions cannot be zero");
+    ensure!(0 < flags.num_tasks, "--num-tasks cannot be zero");
     let (result_sender, mut result_receiver) =
-        tokio::sync::mpsc::channel::<Result<Response>>(flags.num_sessions * flags.batch_size);
-    let (batch_sender, batch_receiver) = async_channel::bounded::<Batch>(flags.num_sessions);
+        tokio::sync::mpsc::channel::<Result<Response>>(flags.num_tasks * flags.batch_size);
+    let (batch_sender, batch_receiver) = async_channel::bounded::<Batch>(flags.num_tasks);
     tokio::spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
@@ -86,7 +88,7 @@ async fn main() -> Result<()> {
         }
     });
     let magika = Arc::new(build_session(&flags)?);
-    for _ in 0..flags.num_sessions {
+    for _ in 0..flags.num_tasks {
         tokio::spawn({
             let flags = flags.clone();
             let magika = magika.clone();

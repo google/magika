@@ -15,7 +15,7 @@
 
 set -e
 
-( set -x; cargo run -p gen; )
+( set -x; cd gen; cargo run; )
 if [ "$1" = --check ]; then
   if ! git diff --exit-code; then
     echo 'The library is not in sync with the model.'

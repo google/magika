@@ -1,7 +1,7 @@
 This directory contains the Rust crates and their tools. It has the following structure:
 - The `cli` directory contains the Magika Rust CLI. It is published on crates.io as `magika-cli`. It
-  can be compiled from this directory with `cargo build --release -p magika-cli`. The output binary
-  will be `target/release/magika`.
+  can be compiled with `cargo build --release` from the `cli` directory. The output binary will be
+  `target/release/magika`.
 - The `lib` directory contains the Magika Rust library. It is published on crates.io as `magika`.
 - The `gen` directory is for maintainers when a new model is available.
 - The `test.sh` script tests the crates listed above. It runs as part of the Github continuous

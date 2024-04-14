@@ -21,7 +21,7 @@ use serde::Deserialize;
 
 fn main() -> Result<()> {
     let configs: BTreeMap<String, Config> =
-        serde_json::from_reader(File::open("gen/data/config.json")?)?;
+        serde_json::from_reader(File::open("data/config.json")?)?;
     let mut labels = BTreeMap::<String, Vec<Label>>::new();
     for (short, config) in configs {
         if !config.in_scope_for_output_content_type {
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
         labels.entry(target).or_default().push(Label { short, long, magic, group, mime, text });
     }
     let labels = labels;
-    let mut output = File::create("lib/src/label.rs")?;
+    let mut output = File::create("../lib/src/label.rs")?;
     let header = std::fs::read_to_string(file!())?;
     let header = header.split("\n\n").next().context("main.rs does not contain an empty line")?;
     writeln!(output, "{header}\n")?;

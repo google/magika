@@ -109,41 +109,43 @@ impl AsyncInputApi for tokio::fs::File {
 impl Features {
     /// Extracts the features from a file (synchronously).
     pub fn extract_sync(file: impl SyncInput) -> Result<Self> {
-        Ok(Features(extract_features_sync(file)?))
+        Ok(Features(extract_features_sync(BUFFER_SIZE, file)?))
     }
 
     /// Extracts the features from a file (asynchronously).
     pub async fn extract_async(file: impl AsyncInput) -> Result<Self> {
-        Ok(Features(extract_features_async(file).await?))
+        Ok(Features(extract_features_async(BUFFER_SIZE, file).await?))
     }
 }
 
 pub(crate) const FEATURE_SIZE: usize = 512;
 const FEATURE_PADDING: f32 = 256f32;
-const BUFFER_SIZE: usize = 2 * 4096;
+const BUFFER_SIZE: usize = 8192;
 
-fn extract_features_sync(file: impl SyncInputApi) -> Result<Vec<f32>> {
-    crate::future::exec(extract_features_async(file))
+fn extract_features_sync(buffer_size: usize, file: impl SyncInputApi) -> Result<Vec<f32>> {
+    crate::future::exec(extract_features_async(buffer_size, file))
 }
 
-async fn extract_features_async(mut file: impl AsyncInputApi) -> Result<Vec<f32>> {
+async fn extract_features_async(
+    buffer_size: usize, mut file: impl AsyncInputApi,
+) -> Result<Vec<f32>> {
     let file_len = file.length().await?;
-    if file_len < 2 * BUFFER_SIZE + FEATURE_SIZE {
+    if file_len < 2 * buffer_size + FEATURE_SIZE {
         let mut content = vec![0; file_len];
         file.read_at(&mut content, 0).await?;
         let content = strip_prefix(strip_suffix(&content));
         extract_features(content, content, content)
     } else {
-        let mut beg = [0; BUFFER_SIZE];
+        let mut beg = vec![0; buffer_size];
         file.read_at(&mut beg, 0).await?;
         let beg = strip_prefix(&beg);
-        let mut end = [0; BUFFER_SIZE];
-        file.read_at(&mut end, file_len - BUFFER_SIZE).await?;
+        let mut end = vec![0; buffer_size];
+        file.read_at(&mut end, file_len - buffer_size).await?;
         let end = strip_suffix(&end);
-        let trimmed_beg = BUFFER_SIZE - beg.len();
-        let trimmed_end = BUFFER_SIZE - end.len();
+        let trimmed_beg = buffer_size - beg.len();
+        let trimmed_end = buffer_size - end.len();
         let mid_offset = trimmed_beg + (file_len - trimmed_beg - trimmed_end - FEATURE_SIZE) / 2;
-        let mut mid = [0; BUFFER_SIZE];
+        let mut mid = vec![0; FEATURE_SIZE];
         file.read_at(&mut mid, mid_offset).await?;
         extract_features(beg, &mid, end)
     }
@@ -167,22 +169,94 @@ fn copy_features(dst: &mut [f32], src: &[u8], align: usize) {
     }
 }
 
-fn strip_prefix(mut xs: &[u8]) -> &[u8] {
-    while let Some(x) = xs.first() {
-        if !x.is_ascii_whitespace() {
+fn strip_prefix(xs: &[u8]) -> &[u8] {
+    strip(xs, |xs| xs.split_first())
+}
+
+fn strip_suffix(xs: &[u8]) -> &[u8] {
+    strip(xs, |xs| xs.split_last())
+}
+
+fn strip(mut xs: &[u8], mut split: impl FnMut(&[u8]) -> Option<(&u8, &[u8])>) -> &[u8] {
+    while let Some((&x, ys)) = split(xs) {
+        if !is_whitespace(x) {
             break;
         }
-        xs = &xs[1..];
+        xs = ys;
     }
     xs
 }
 
-fn strip_suffix(mut xs: &[u8]) -> &[u8] {
-    while let Some(x) = xs.last() {
-        if !x.is_ascii_whitespace() {
-            break;
+fn is_whitespace(x: u8) -> bool {
+    x.is_ascii_whitespace() || x == 0x0b
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+    use std::io::Read;
+
+    use data_encoding::BASE64;
+    use flate2::read::GzDecoder;
+    use serde::Deserialize;
+
+    use super::*;
+
+    #[test]
+    fn features_extraction_reference() {
+        // We deny unknown fields to be sure we don't pass the tests by accident when the JSON
+        // format is modified. Fields that are not used are simply marked as dead-code.
+        #[derive(Debug, Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Info {
+            beg_size: usize,
+            mid_size: usize,
+            end_size: usize,
+            block_size: usize,
+            padding_token: usize,
+            #[allow(dead_code)] // debugging only
+            core_content_size: usize,
+            #[allow(dead_code)] // debugging only
+            left_ws_num: usize,
+            #[allow(dead_code)] // debugging only
+            right_ws_num: usize,
         }
-        xs = &xs[..xs.len() - 1];
+        #[derive(Debug, Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct FeaturesV1 {
+            beg: Vec<usize>,
+            mid: Vec<usize>,
+            end: Vec<usize>,
+        }
+        #[derive(Debug, Deserialize)]
+        struct FeaturesV2 {}
+        #[derive(Debug, Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Test {
+            test_info: Info,
+            content: String,
+            features_v1: FeaturesV1,
+            #[allow(dead_code)] // we only implement v1 at this time
+            features_v2: FeaturesV2,
+        }
+        const PATH: &str = "../../tests_data/features_extraction/reference.json.gz";
+        let mut tests = String::new();
+        GzDecoder::new(File::open(PATH).unwrap()).read_to_string(&mut tests).unwrap();
+        let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
+        for test in tests {
+            assert_eq!(test.test_info.beg_size, FEATURE_SIZE);
+            assert_eq!(test.test_info.mid_size, FEATURE_SIZE);
+            assert_eq!(test.test_info.end_size, FEATURE_SIZE);
+            assert_eq!(test.test_info.padding_token, FEATURE_PADDING as usize);
+            let block_size = test.test_info.block_size;
+            let mut expected = Vec::new();
+            expected.extend_from_slice(&test.features_v1.beg);
+            expected.extend_from_slice(&test.features_v1.mid);
+            expected.extend_from_slice(&test.features_v1.end);
+            let content = BASE64.decode(test.content.as_bytes()).unwrap();
+            let actual = extract_features_sync(block_size, content.as_slice()).unwrap();
+            let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();
+            assert_eq!(actual, expected);
+        }
     }
-    xs
 }

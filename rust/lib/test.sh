@@ -17,7 +17,7 @@ set -ex
 
 cargo check
 cargo check --features=tokio
-cargo test --features=ort/download-binaries
+cargo test --features=_test
 cargo fmt -- --check
 cargo clippy -- --deny=warnings
 if cargo --version | grep -q nightly; then

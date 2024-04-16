@@ -6,12 +6,18 @@ on:
     branches:
       - 'main'
     paths:
-      - 'rust/**'
       - '.github/workflows/**'
+      - 'python/magika/config/content_types_config.json'
+      - 'python/magika/models/standard_v1/model.onnx'
+      - 'rust/**'
+      - 'tests_data/features_extraction/reference.json.gz'
   pull_request:
     paths:
-      - 'rust/**'
       - '.github/workflows/**'
+      - 'python/magika/config/content_types_config.json'
+      - 'python/magika/models/standard_v1/model.onnx'
+      - 'rust/**'
+      - 'tests_data/features_extraction/reference.json.gz'
 
 permissions:
   contents: read

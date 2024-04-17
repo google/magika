@@ -38,6 +38,7 @@ struct Flags {
     ///   %g  The group of the content type
     ///   %m  The magic of the content type
     ///   %M  The MIME type of the content type
+    ///   %e  The file extensions of the content type
     ///   %s  The score of the content type for the file
     ///   %%  A literal %
     #[arg(long, default_value = "%D (confidence: %s)", verbatim_doc_comment)]
@@ -199,15 +200,17 @@ async fn infer_batch(
 fn format(flags: &Flags, output: magika::Output) -> String {
     let mut result = String::new();
     let mut format = flags.format.chars();
+    let label = output.label();
     loop {
         match format.next() {
             Some('%') => match format.next() {
-                Some('c') => write!(&mut result, "{}", output.label().code()).unwrap(),
-                Some('d') => write!(&mut result, "{}", output.label().short_desc()).unwrap(),
-                Some('D') => write!(&mut result, "{}", output.label().long_desc()).unwrap(),
-                Some('g') => write!(&mut result, "{}", output.label().group()).unwrap(),
-                Some('m') => write!(&mut result, "{}", output.label().magic()).unwrap(),
-                Some('M') => write!(&mut result, "{}", output.label().mime()).unwrap(),
+                Some('c') => write!(&mut result, "{}", label.code()).unwrap(),
+                Some('d') => write!(&mut result, "{}", label.short_desc().join(" | ")).unwrap(),
+                Some('D') => write!(&mut result, "{}", label.long_desc().join(" | ")).unwrap(),
+                Some('g') => write!(&mut result, "{}", label.group().join(" | ")).unwrap(),
+                Some('m') => write!(&mut result, "{}", label.magic().join(" | ")).unwrap(),
+                Some('M') => write!(&mut result, "{}", label.mime().join(" | ")).unwrap(),
+                Some('e') => write!(&mut result, "{}", label.extension().join(" | ")).unwrap(),
                 Some('s') => write!(&mut result, "{:.2}", output.score()).unwrap(),
                 Some(c) => result.push(c),
                 None => break,

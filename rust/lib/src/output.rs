@@ -45,44 +45,50 @@ impl Label {
     }
 
     /// Returns a short description of the content type.
-    pub fn short_desc(self) -> &'static str {
-        METADATA[self as usize].short
+    pub fn short_desc(self) -> &'static [&'static str] {
+        METADATA[self as usize].short_desc
     }
 
     /// Returns a long description of the content type.
-    pub fn long_desc(self) -> &'static str {
-        METADATA[self as usize].long
+    pub fn long_desc(self) -> &'static [&'static str] {
+        METADATA[self as usize].long_desc
     }
 
     /// Returns the magic of the content type.
-    pub fn magic(self) -> &'static str {
+    pub fn magic(self) -> &'static [&'static str] {
         METADATA[self as usize].magic
     }
 
     /// Returns the group of the content type.
-    pub fn group(self) -> &'static str {
+    pub fn group(self) -> &'static [&'static str] {
         METADATA[self as usize].group
     }
 
     /// Returns the MIME type of the content type.
-    pub fn mime(self) -> &'static str {
+    pub fn mime(self) -> &'static [&'static str] {
         METADATA[self as usize].mime
+    }
+
+    /// Returns the file extensions of the content type.
+    pub fn extension(self) -> &'static [&'static str] {
+        METADATA[self as usize].extension
     }
 
     /// Returns whether the content type is text.
     pub fn is_text(self) -> bool {
-        METADATA[self as usize].text
+        METADATA[self as usize].is_text
     }
 }
 
 pub(crate) struct Metadata {
     pub(crate) code: &'static str,
-    pub(crate) short: &'static str,
-    pub(crate) long: &'static str,
-    pub(crate) magic: &'static str,
-    pub(crate) group: &'static str,
-    pub(crate) mime: &'static str,
-    pub(crate) text: bool,
+    pub(crate) short_desc: &'static [&'static str],
+    pub(crate) long_desc: &'static [&'static str],
+    pub(crate) magic: &'static [&'static str],
+    pub(crate) group: &'static [&'static str],
+    pub(crate) mime: &'static [&'static str],
+    pub(crate) extension: &'static [&'static str],
+    pub(crate) is_text: bool,
 }
 
 impl Display for Label {

@@ -1,2 +1,4 @@
+fn_params_layout = "Compressed"
 group_imports = "StdExternalCrate"
 imports_granularity = "Module"
+use_small_heuristics = "Max"

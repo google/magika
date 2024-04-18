@@ -6,12 +6,18 @@ on:
     branches:
       - 'main'
     paths:
-      - 'rust/**'
       - '.github/workflows/**'
+      - 'python/magika/config/content_types_config.json'
+      - 'python/magika/models/standard_v1/model.onnx'
+      - 'rust/**'
+      - 'tests_data/features_extraction/reference.json.gz'
   pull_request:
     paths:
-      - 'rust/**'
       - '.github/workflows/**'
+      - 'python/magika/config/content_types_config.json'
+      - 'python/magika/models/standard_v1/model.onnx'
+      - 'rust/**'
+      - 'tests_data/features_extraction/reference.json.gz'
 
 permissions:
   contents: read
@@ -19,7 +25,14 @@ permissions:
 jobs:
   unit-testing:
     runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        toolchain: ["stable", "nightly"]
     steps:
       - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # pin@v4
+      - run: rustup default ${{ matrix.toolchain }}
+      - run: rustup component add rustfmt clippy
       - run: ./test.sh
+        working-directory: rust
+      - run: ./sync.sh --check
         working-directory: rust

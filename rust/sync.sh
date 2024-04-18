@@ -14,9 +14,13 @@
 # limitations under the License.
 
 set -e
-. ./color.sh
 
-for dir in gen lib cli; do
-  info "Running $dir/test.sh"
-  ( cd $dir && ./test.sh; )
-done
+( set -x; cd gen; cargo run; )
+if [ "$1" = --check ]; then
+  if ! git diff --exit-code; then
+    echo 'The library is not in sync with the model.'
+    echo 'Execute ./sync.sh from the rust directory to update the library.'
+    exit 1
+  fi
+fi
+exit 0

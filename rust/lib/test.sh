@@ -13,10 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-. ./color.sh
+set -ex
 
-for dir in gen lib cli; do
-  info "Running $dir/test.sh"
-  ( cd $dir && ./test.sh; )
-done
+cargo check
+cargo check --features=tokio
+cargo test --features=_test
+cargo fmt -- --check
+cargo clippy -- --deny=warnings
+if cargo --version | grep -q nightly; then
+  RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
+fi

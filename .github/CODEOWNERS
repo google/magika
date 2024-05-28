@@ -1,0 +1,19 @@
+#  Default owners (lowest precedence).
+* @reyammer @invernizzi @ia0
+
+
+# Julien owns the Rust code
+rust/* @ia0
+
+# Yanick owns the Python code, docs, and test data
+python/* @reyammer
+*.md @reyammer
+docs/*.md @reyammer
+tests_data/* @reyammer
+
+# Luca owns the JS code and 
+js/* @invernizzi
+website/* @invernizzi
+docs/js.md @invernizzi
+
+

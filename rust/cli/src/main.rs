@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::fmt::Write;
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -26,6 +27,8 @@ use tokio::fs::File;
 #[command(version, arg_required_else_help = true)]
 struct Flags {
     /// List of paths to the files to analyze.
+    ///
+    /// Use a dash (-) to read from standard input (can only be used once).
     path: Vec<PathBuf>,
 
     /// Format string (use --help for details).
@@ -76,6 +79,10 @@ async fn main() -> Result<()> {
     let flags = Arc::new(Flags::parse());
     ensure!(0 < flags.batch_size, "--batch-size cannot be zero");
     ensure!(0 < flags.num_tasks, "--num-tasks cannot be zero");
+    ensure!(
+        flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
+        "only one path can be the standard input"
+    );
     let (result_sender, mut result_receiver) =
         tokio::sync::mpsc::channel::<Result<Response>>(flags.num_tasks * flags.batch_size);
     let (batch_sender, batch_receiver) = async_channel::bounded::<Batch>(flags.num_tasks);
@@ -124,28 +131,41 @@ async fn extract_features(
     let mut indices = Vec::new();
     let mut features = Vec::new();
     for (index, path) in flags.path.iter().enumerate() {
-        let mut result = None;
-        match tokio::fs::symlink_metadata(path).await {
-            Ok(metadata) => {
-                if metadata.is_dir() {
-                    result = Some("directory".to_string());
-                } else if metadata.is_symlink() {
-                    result = Some("symbolic link".to_string());
-                } else if !metadata.is_file() {
-                    result = Some("unknown".to_string());
-                } else if metadata.len() == 0 {
-                    result = Some("empty".to_string());
+        let features_or_output: magika::FeaturesOrOutput = if path.to_str() == Some("-") {
+            let mut stdin = Vec::new();
+            std::io::stdin().read_to_end(&mut stdin)?;
+            magika::FeaturesOrOutput::extract_sync(&stdin[..])?
+        } else {
+            let mut result = None;
+            match tokio::fs::symlink_metadata(path).await {
+                Ok(metadata) => {
+                    if metadata.is_dir() {
+                        result = Some("directory".to_string());
+                    } else if metadata.is_symlink() {
+                        result = Some("symbolic link".to_string());
+                    } else if !metadata.is_file() {
+                        result = Some("unknown".to_string());
+                    } else if metadata.len() == 0 {
+                        result = Some("empty".to_string());
+                    }
                 }
+                Err(error) => result = Some(format!("{error}")),
             }
-            Err(error) => result = Some(format!("{error}")),
+            if let Some(result) = result {
+                result_sender.send(Ok(Response { index, result })).await?;
+                continue;
+            }
+            magika::FeaturesOrOutput::extract_async(File::open(path).await?).await?
+        };
+        match features_or_output {
+            magika::FeaturesOrOutput::Output(output) => {
+                let result = format(flags, output);
+                result_sender.send(Ok(Response { index, result })).await?;
+                continue;
+            }
+            magika::FeaturesOrOutput::Features(x) => features.push(x),
         }
-        if let Some(result) = result {
-            result_sender.send(Ok(Response { index, result })).await?;
-            continue;
-        }
-        let file = File::open(path).await?;
         indices.push(index);
-        features.push(magika::Features::extract_async(file).await?);
         if features.len() == flags.batch_size {
             batch_sender.send(Batch { indices, features }).await?;
             indices = Vec::new();

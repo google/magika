@@ -20,7 +20,16 @@ use std::os::unix::fs::FileExt as _;
 #[cfg(feature = "tokio")]
 use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
 
-use crate::Result;
+use crate::{Label, Output, Result};
+
+/// Result of features extraction.
+pub enum FeaturesOrOutput {
+    /// The input is not suited for deep learning.
+    Output(Output),
+
+    /// Features extracted from the input for deep learning.
+    Features(Features),
+}
 
 /// Processed file content, ready for inference.
 pub struct Features(pub(crate) Vec<f32>);
@@ -106,39 +115,63 @@ impl AsyncInputApi for tokio::fs::File {
     }
 }
 
-impl Features {
+impl FeaturesOrOutput {
     /// Extracts the features from a file (synchronously).
     pub fn extract_sync(file: impl SyncInput) -> Result<Self> {
-        Ok(Features(extract_features_sync(BUFFER_SIZE, file)?))
+        extract_features_or_label_sync(BUFFER_SIZE, file)
     }
 
     /// Extracts the features from a file (asynchronously).
     pub async fn extract_async(file: impl AsyncInput) -> Result<Self> {
-        Ok(Features(extract_features_async(BUFFER_SIZE, file).await?))
+        extract_features_or_label_async(BUFFER_SIZE, file).await
     }
 }
 
 pub(crate) const FEATURE_SIZE: usize = 512;
 const FEATURE_PADDING: f32 = 256f32;
 const BUFFER_SIZE: usize = 8192;
+const MIN_SIZE_FOR_FEATURES: usize = 16;
 
+fn extract_features_or_label_sync(
+    buffer_size: usize, file: impl SyncInputApi,
+) -> Result<FeaturesOrOutput> {
+    crate::future::exec(extract_features_or_label_async(buffer_size, file))
+}
+
+async fn extract_features_or_label_async(
+    buffer_size: usize, file: impl AsyncInputApi,
+) -> Result<FeaturesOrOutput> {
+    let (mut content, features) = extract_features_async(buffer_size, file).await?;
+    if features[MIN_SIZE_FOR_FEATURES - 1] != FEATURE_PADDING {
+        return Ok(FeaturesOrOutput::Features(Features(features)));
+    }
+    content.truncate(buffer_size);
+    let label = match std::str::from_utf8(&content) {
+        Ok(_) => Label::Txt,
+        Err(_) => Label::Unknown,
+    };
+    Ok(FeaturesOrOutput::Output(Output { label, score: 1. }))
+}
+
+#[cfg(test)]
 fn extract_features_sync(buffer_size: usize, file: impl SyncInputApi) -> Result<Vec<f32>> {
-    crate::future::exec(extract_features_async(buffer_size, file))
+    Ok(crate::future::exec(extract_features_async(buffer_size, file))?.1)
 }
 
 async fn extract_features_async(
     buffer_size: usize, mut file: impl AsyncInputApi,
-) -> Result<Vec<f32>> {
+) -> Result<(Vec<u8>, Vec<f32>)> {
     let file_len = file.length().await?;
-    if file_len < 2 * buffer_size + FEATURE_SIZE {
-        let mut content = vec![0; file_len];
-        file.read_at(&mut content, 0).await?;
-        let content = strip_prefix(strip_suffix(&content));
-        extract_features(content, content, content)
+    Ok(if file_len < 2 * buffer_size + FEATURE_SIZE {
+        let mut content_beg = vec![0; file_len];
+        file.read_at(&mut content_beg, 0).await?;
+        let content = strip_prefix(strip_suffix(&content_beg));
+        let features = extract_features(content, content, content)?;
+        (content_beg, features)
     } else {
-        let mut beg = vec![0; buffer_size];
-        file.read_at(&mut beg, 0).await?;
-        let beg = strip_prefix(&beg);
+        let mut content_beg = vec![0; buffer_size];
+        file.read_at(&mut content_beg, 0).await?;
+        let beg = strip_prefix(&content_beg);
         let mut end = vec![0; buffer_size];
         file.read_at(&mut end, file_len - buffer_size).await?;
         let end = strip_suffix(&end);
@@ -147,8 +180,9 @@ async fn extract_features_async(
         let mid_offset = trimmed_beg + (file_len - trimmed_beg - trimmed_end - FEATURE_SIZE) / 2;
         let mut mid = vec![0; FEATURE_SIZE];
         file.read_at(&mut mid, mid_offset).await?;
-        extract_features(beg, &mid, end)
-    }
+        let features = extract_features(beg, &mid, end)?;
+        (content_beg, features)
+    })
 }
 
 fn extract_features(beg: &[u8], mid: &[u8], end: &[u8]) -> Result<Vec<f32>> {

@@ -117,13 +117,17 @@ impl AsyncInputApi for tokio::fs::File {
 
 impl FeaturesOrOutput {
     /// Extracts the features from a file (synchronously).
+    ///
+    /// Returns the output directly if the file is not suited for deep learning.
     pub fn extract_sync(file: impl SyncInput) -> Result<Self> {
-        extract_features_or_label_sync(BUFFER_SIZE, file)
+        extract_features_or_output_sync(BUFFER_SIZE, file)
     }
 
     /// Extracts the features from a file (asynchronously).
+    ///
+    /// Returns the output directly if the file is not suited for deep learning.
     pub async fn extract_async(file: impl AsyncInput) -> Result<Self> {
-        extract_features_or_label_async(BUFFER_SIZE, file).await
+        extract_features_or_output_async(BUFFER_SIZE, file).await
     }
 }
 
@@ -132,13 +136,13 @@ const FEATURE_PADDING: f32 = 256f32;
 const BUFFER_SIZE: usize = 8192;
 const MIN_SIZE_FOR_FEATURES: usize = 16;
 
-fn extract_features_or_label_sync(
+fn extract_features_or_output_sync(
     buffer_size: usize, file: impl SyncInputApi,
 ) -> Result<FeaturesOrOutput> {
-    crate::future::exec(extract_features_or_label_async(buffer_size, file))
+    crate::future::exec(extract_features_or_output_async(buffer_size, file))
 }
 
-async fn extract_features_or_label_async(
+async fn extract_features_or_output_async(
     buffer_size: usize, file: impl AsyncInputApi,
 ) -> Result<FeaturesOrOutput> {
     let (mut content, features) = extract_features_async(buffer_size, file).await?;

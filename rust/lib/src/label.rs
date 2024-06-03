@@ -14,6 +14,9 @@
 
 use crate::output::Metadata;
 
+// DO NOT EDIT, see link below for more information:
+// https://github.com/google/magika/tree/main/rust/gen
+
 /// Content type of a file.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]

@@ -49,6 +49,8 @@ fn main() -> Result<()> {
     let header = header.split("\n\n").next().context("main.rs does not contain an empty line")?;
     writeln!(output, "{header}\n")?;
     writeln!(output, "use crate::output::Metadata;\n")?;
+    writeln!(output, "// DO NOT EDIT, see link below for more information:")?;
+    writeln!(output, "// https://github.com/google/magika/tree/main/rust/gen\n")?;
     writeln!(output, "/// Content type of a file.")?;
     writeln!(output, "#[derive(Debug, Copy, Clone, PartialEq, Eq)]\n#[repr(u32)]")?;
     writeln!(output, "pub enum Label {{")?;

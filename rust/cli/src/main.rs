@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use std::fmt::Write;
-use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -21,6 +20,7 @@ use anyhow::{bail, ensure, Result};
 use clap::Parser;
 use ort::GraphOptimizationLevel;
 use tokio::fs::File;
+use tokio::io::AsyncReadExt;
 
 /// Determines the content type of files with deep-learning.
 #[derive(Parser)]
@@ -133,7 +133,7 @@ async fn extract_features(
     for (index, path) in flags.path.iter().enumerate() {
         let features_or_output: magika::FeaturesOrOutput = if path.to_str() == Some("-") {
             let mut stdin = Vec::new();
-            std::io::stdin().read_to_end(&mut stdin)?;
+            tokio::io::stdin().read_to_end(&mut stdin).await?;
             magika::FeaturesOrOutput::extract_sync(&stdin[..])?
         } else {
             let mut result = None;

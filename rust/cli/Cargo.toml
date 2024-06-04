@@ -18,6 +18,7 @@ path = "src/main.rs"
 anyhow = "1.0.82"
 async-channel = "2.2.0"
 clap = { version = "4.5.1", features = ["derive"] }
+colored = "2.1.0"
 magika = { version = "0.1.0-dev", path = "../lib", features = ["tokio"] }
 ort = "2.0.0-rc.1"
 tokio = { version = "1.37.0", features = ["full"] }

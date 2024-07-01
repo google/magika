@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::borrow::Cow;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -105,8 +106,7 @@ struct Format {
     ///
     ///   %p  The file path
     ///   %c  A short code describing the content type
-    ///   %d  A short description of the content type
-    ///   %D  A long description of the content type
+    ///   %d  The description of the content type
     ///   %g  The group of the content type
     ///   %m  The magic of the content type
     ///   %M  The MIME type of the content type
@@ -431,7 +431,7 @@ impl Response {
                 format.push_str(match () {
                     () if flags.modifiers.mime_type => "%M",
                     () if flags.modifiers.label => "%c",
-                    () => "%D (%g)",
+                    () => "%d (%g)",
                 });
                 format.push_str(if flags.modifiers.output_score { " %S" } else { "" });
                 format
@@ -443,12 +443,11 @@ impl Response {
                 Some('%') => match format.next() {
                     Some('p') => write!(&mut result, "{}", self.path.display())?,
                     Some('c') => write!(&mut result, "{}", self.code())?,
-                    Some('d') => write!(&mut result, "{}", self.short_desc()?)?,
-                    Some('D') => write!(&mut result, "{}", self.long_desc()?)?,
+                    Some('d') => write!(&mut result, "{}", self.desc()?)?,
                     Some('g') => write!(&mut result, "{}", self.group())?,
                     Some('m') => write!(&mut result, "{}", self.magic())?,
                     Some('M') => write!(&mut result, "{}", self.mime())?,
-                    Some('e') => write!(&mut result, "{}", self.extension())?,
+                    Some('e') => write!(&mut result, "{}", join(self.extension()))?,
                     Some('s') => write!(&mut result, "{:.2}", self.score())?,
                     Some('S') => write!(&mut result, "{}%", (100. * self.score()).trunc())?,
                     Some(c) => result.push(c),
@@ -469,10 +468,10 @@ impl Response {
         let output = JsonResult {
             ct_label: Some(self.code().to_string()),
             score: Some(self.score()),
-            group: Some(self.group()),
+            group: Some(self.group().to_string()),
             mime_type: Some(self.mime().to_string()),
             magic: Some(self.magic().to_string()),
-            description: Some(self.long_desc()?.to_string()),
+            description: Some(self.desc()?.to_string()),
         };
         let dl = if self.is_dl { output.clone() } else { JsonResult::default() };
         Ok(Json { path: self.path.to_path_buf(), dl, output })
@@ -489,68 +488,60 @@ impl Response {
         }
     }
 
-    fn short_desc(&self) -> Result<String> {
+    fn desc(&self) -> Result<Cow<str>> {
         Ok(match &self.output {
-            CliOutput::Empty => "Empty file".to_string(),
+            CliOutput::Empty => "Empty file".into(),
             CliOutput::Symlink => {
-                format!("Symbolic link to {}", std::fs::read_link(&self.path)?.display())
+                format!("Symbolic link to {}", std::fs::read_link(&self.path)?.display()).into()
             }
-            CliOutput::Directory => "A directory".to_string(),
-            CliOutput::Error(e) => e.clone(),
-            CliOutput::Label(x) => join(x.short_desc()),
-            CliOutput::Output(x) => join(x.label().short_desc()),
+            CliOutput::Directory => "A directory".into(),
+            CliOutput::Error(e) => e.into(),
+            CliOutput::Label(x) => x.desc().into(),
+            CliOutput::Output(x) => x.label().desc().into(),
         })
     }
 
-    fn long_desc(&self) -> Result<String> {
-        Ok(match &self.output {
-            CliOutput::Label(x) => join(x.long_desc()),
-            CliOutput::Output(x) => join(x.label().long_desc()),
-            _ => return self.short_desc(),
-        })
-    }
-
-    fn group(&self) -> String {
+    fn group(&self) -> &str {
         match &self.output {
-            CliOutput::Empty => "inode".to_string(),
-            CliOutput::Symlink => "inode".to_string(),
-            CliOutput::Directory => "inode".to_string(),
-            CliOutput::Error(_) => "error".to_string(),
-            CliOutput::Label(x) => join(x.group()),
-            CliOutput::Output(x) => join(x.label().group()),
+            CliOutput::Empty => "inode",
+            CliOutput::Symlink => "inode",
+            CliOutput::Directory => "inode",
+            CliOutput::Error(_) => "error",
+            CliOutput::Label(x) => x.group(),
+            CliOutput::Output(x) => x.label().group(),
         }
     }
 
-    fn magic(&self) -> String {
+    fn magic(&self) -> Cow<str> {
         match &self.output {
-            CliOutput::Empty => self.code().to_string(),
-            CliOutput::Symlink => format!("symlink link to {}", self.path.display()),
-            CliOutput::Directory => self.code().to_string(),
-            CliOutput::Error(_) => self.code().to_string(),
-            CliOutput::Label(x) => join(x.magic()),
-            CliOutput::Output(x) => join(x.label().magic()),
+            CliOutput::Empty => self.code().into(),
+            CliOutput::Symlink => format!("symlink link to {}", self.path.display()).into(),
+            CliOutput::Directory => self.code().into(),
+            CliOutput::Error(_) => self.code().into(),
+            CliOutput::Label(x) => x.magic().into(),
+            CliOutput::Output(x) => x.label().magic().into(),
         }
     }
 
-    fn mime(&self) -> String {
+    fn mime(&self) -> &str {
         match &self.output {
-            CliOutput::Empty => "inode/x-empty".to_string(),
-            CliOutput::Symlink => "inode/symlink".to_string(),
-            CliOutput::Directory => "inode/directory".to_string(),
-            CliOutput::Error(_) => "error".to_string(),
-            CliOutput::Label(x) => join(x.mime()),
-            CliOutput::Output(x) => join(x.label().mime()),
+            CliOutput::Empty => "inode/x-empty",
+            CliOutput::Symlink => "inode/symlink",
+            CliOutput::Directory => "inode/directory",
+            CliOutput::Error(_) => "error",
+            CliOutput::Label(x) => x.mime(),
+            CliOutput::Output(x) => x.label().mime(),
         }
     }
 
-    fn extension(&self) -> String {
+    fn extension(&self) -> &[&str] {
         match &self.output {
-            CliOutput::Empty => String::new(),
-            CliOutput::Symlink => String::new(),
-            CliOutput::Directory => String::new(),
-            CliOutput::Error(_) => String::new(),
-            CliOutput::Label(x) => join(x.extension()),
-            CliOutput::Output(x) => join(x.label().extension()),
+            CliOutput::Empty => &[],
+            CliOutput::Symlink => &[],
+            CliOutput::Directory => &[],
+            CliOutput::Error(_) => &[],
+            CliOutput::Label(x) => x.extension(),
+            CliOutput::Output(x) => x.label().extension(),
         }
     }
 
@@ -566,13 +557,13 @@ impl Response {
     }
 
     fn color(&self) -> Option<Color> {
-        let groups = match &self.output {
+        let group = match &self.output {
             CliOutput::Error(_) => return Some(Color::Red),
-            CliOutput::Label(x) => x.group(),
-            CliOutput::Output(x) => x.label().group(),
-            _ => &[],
+            CliOutput::Label(x) => Some(x.group()),
+            CliOutput::Output(x) => Some(x.label().group()),
+            _ => None,
         };
-        groups.iter().find_map(|x| group_color(x))
+        group.iter().find_map(|x| group_color(x))
     }
 }
 
@@ -591,12 +582,14 @@ fn group_color(group: &str) -> Option<Color> {
 
 fn join<T: AsRef<str>>(xs: impl IntoIterator<Item = T>) -> String {
     let mut result = String::new();
+    result.push('[');
     for (i, x) in xs.into_iter().enumerate() {
         if i != 0 {
-            result.push_str(" | ");
+            result.push('|');
         }
         result.push_str(x.as_ref());
     }
+    result.push(']');
     result
 }
 

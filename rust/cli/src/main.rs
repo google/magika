@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -190,14 +191,23 @@ async fn main() -> Result<()> {
         });
     }
     drop(result_sender);
-    let mut responses = Vec::new();
+    let mut responses = (flags.generate_report || flags.format.json).then(Vec::new);
+    let mut reorder = Reorder::default();
     while let Some(response) = result_receiver.recv().await {
-        responses.push(response?);
+        reorder.push(response?);
+        while let Some(response) = reorder.pop() {
+            if let Some(responses) = &mut responses {
+                responses.push(response.clone());
+            }
+            if !flags.format.json {
+                println!("{}", response.format(&flags)?);
+            }
+        }
     }
-    responses.sort_by_key(|x| x.order);
+    debug_assert!(reorder.is_empty());
     let mut reports = Vec::new();
     if flags.generate_report {
-        for response in &responses {
+        for response in responses.as_ref().unwrap() {
             let hash = sha256_hex(&response.path).await.ok();
             let features = serde_json::to_string(&JsonFeatures::new(&response.path).await?)?;
             let mut result = response.clone().json()?;
@@ -206,12 +216,10 @@ async fn main() -> Result<()> {
         }
     }
     if flags.format.json {
-        let json: Vec<Json> = responses.into_iter().map(Response::json).collect::<Result<_>>()?;
+        let json: Vec<Json> =
+            responses.unwrap().into_iter().map(Response::json).collect::<Result<_>>()?;
         serde_json::to_writer_pretty(std::io::stdout(), &json)?;
-    } else {
-        for response in responses {
-            println!("{}", response.format(&flags)?);
-        }
+        println!();
     }
     if flags.generate_report {
         let version = Flags::command().get_version().map(|x| x.to_string());
@@ -245,7 +253,6 @@ async fn extract_features(
     flags_paths.reverse();
     let mut order = 0;
     while let Some(path) = flags_paths.pop() {
-        order += 1;
         let features_or_output: magika::FeaturesOrOutput = if path.to_str() == Some("-") {
             let mut stdin = Vec::new();
             tokio::io::stdin().read_to_end(&mut stdin).await?;
@@ -293,6 +300,7 @@ async fn extract_features(
             }
             if let Some(output) = result {
                 result_sender.send(Ok(Response { order, path, is_dl: false, output })).await?;
+                order += 1;
                 continue;
             }
             magika::FeaturesOrOutput::extract_async(file.unwrap()).await?
@@ -301,11 +309,13 @@ async fn extract_features(
             magika::FeaturesOrOutput::Output(output) => {
                 let output = CliOutput::Output(output);
                 result_sender.send(Ok(Response { order, path, is_dl: false, output })).await?;
+                order += 1;
                 continue;
             }
             magika::FeaturesOrOutput::Features(x) => features.push(x),
         }
         paths.push((order, path));
+        order += 1;
         if features.len() == flags.experimental.batch_size {
             batch_sender.send(Batch { paths, features }).await?;
             paths = Vec::new();
@@ -357,12 +367,36 @@ async fn infer_batch(
     Ok(())
 }
 
+#[derive(Debug, Default)]
+struct Reorder {
+    next: usize,
+    todo: HashMap<usize, Response>,
+}
+
+impl Reorder {
+    fn is_empty(&self) -> bool {
+        self.todo.is_empty()
+    }
+
+    fn push(&mut self, response: Response) {
+        debug_assert!(self.next <= response.order);
+        let prev = self.todo.insert(response.order, response);
+        debug_assert!(prev.is_none());
+    }
+
+    fn pop(&mut self) -> Option<Response> {
+        let result = self.todo.remove(&self.next)?;
+        self.next += 1;
+        Some(result)
+    }
+}
+
 struct Batch {
     paths: Vec<(usize, PathBuf)>,
     features: Vec<magika::Features>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Response {
     order: usize,
     path: PathBuf,
@@ -370,7 +404,7 @@ struct Response {
     output: CliOutput,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum CliOutput {
     Empty,
     Symlink,

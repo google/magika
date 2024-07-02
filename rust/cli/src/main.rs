@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use anyhow::{bail, ensure, Result};
 use clap::{Args, CommandFactory, Parser};
-use colored::{Color, ColoredString, Colorize};
+use colored::{ColoredString, Colorize};
 use data_encoding::HEXLOWER;
 use ort::GraphOptimizationLevel;
 use serde::Serialize;
@@ -85,7 +85,7 @@ struct Modifiers {
     #[arg(short = 'i', long)]
     mime_type: bool,
 
-    /// Prints a simple label intead of the content type description.
+    /// Prints a simple label instead of the content type description.
     #[arg(short, long, conflicts_with = "mime_type")]
     label: bool,
 }
@@ -224,13 +224,13 @@ async fn main() -> Result<()> {
     if flags.generate_report {
         let version = Flags::command().get_version().map(|x| x.to_string());
         let report = JsonReport { version, reports };
-        println!(
+        eprintln!(
             "########################################\n\
              ###              REPORT              ###\n\
              ########################################"
         );
-        serde_json::to_writer(std::io::stdout(), &report)?;
-        println!(
+        serde_json::to_writer(std::io::stderr(), &report)?;
+        eprintln!(
             "########################################\n\
              Please copy/paste the above as a description of your issue. \
              Open a GitHub issue or reach out at magika-dev@google.com.\n\
@@ -491,17 +491,13 @@ impl Response {
                 None => break,
             }
         }
-        let result = result.bold();
-        Ok(match self.color() {
-            Some(color) => result.color(color),
-            None => result,
-        })
+        Ok(self.color(result.into()))
     }
 
     fn json(self) -> Result<Json> {
         let output = JsonResult {
             ct_label: Some(self.code().to_string()),
-            score: Some(self.score()),
+            score: Some((self.score() * 1000.).trunc() / 1000.),
             group: Some(self.group().to_string()),
             mime_type: Some(self.mime().to_string()),
             magic: Some(self.magic().to_string()),
@@ -590,28 +586,28 @@ impl Response {
         }
     }
 
-    fn color(&self) -> Option<Color> {
+    fn color(&self, result: ColoredString) -> ColoredString {
         let group = match &self.output {
-            CliOutput::Error(_) => return Some(Color::Red),
-            CliOutput::Label(x) => Some(x.group()),
-            CliOutput::Output(x) => Some(x.label().group()),
-            _ => None,
+            CliOutput::Error(_) => return result.bold().red(),
+            CliOutput::Label(x) => x.group(),
+            CliOutput::Output(x) => x.label().group(),
+            _ => return result.bold(),
         };
-        group.iter().find_map(|x| group_color(x))
+        group_color(group, result)
     }
 }
 
-fn group_color(group: &str) -> Option<Color> {
-    Some(match group {
-        "document" => Color::BrightMagenta,
-        "executable" => Color::BrightGreen,
-        "archive" => Color::BrightRed,
-        "audio" => Color::Yellow,
-        "image" => Color::Yellow,
-        "video" => Color::Yellow,
-        "code" => Color::BrightBlue,
-        _ => return None,
-    })
+fn group_color(group: &str, result: ColoredString) -> ColoredString {
+    match group {
+        "document" => result.bold().magenta(),
+        "executable" => result.bold().green(),
+        "archive" => result.bold().red(),
+        "audio" => result.yellow(),
+        "image" => result.yellow(),
+        "video" => result.yellow(),
+        "code" => result.bold().blue(),
+        _ => result.bold(),
+    }
 }
 
 fn join<T: AsRef<str>>(xs: impl IntoIterator<Item = T>) -> String {

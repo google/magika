@@ -17,7 +17,7 @@ use std::future::Future;
 use ndarray::Array2;
 
 use crate::input::FEATURE_SIZE;
-use crate::{Builder, Features, Output, Result};
+use crate::{AsyncInput, Builder, Features, FeaturesOrOutput, Output, Result, SyncInput};
 
 /// A Magika session to identify files.
 #[derive(Debug)]
@@ -34,6 +34,26 @@ impl Session {
     /// Initializes a new Magika session builder with default values.
     pub fn builder() -> Builder {
         Builder::default()
+    }
+
+    /// Identifies a single file (synchronously).
+    ///
+    /// If the file is not suited for deep learning, a simple heuristic is used.
+    pub fn identify_sync(&self, file: impl SyncInput) -> Result<Output> {
+        match FeaturesOrOutput::extract_sync(file)? {
+            FeaturesOrOutput::Output(output) => Ok(output),
+            FeaturesOrOutput::Features(features) => self.identify_one_sync(&features),
+        }
+    }
+
+    /// Identifies a single file (asynchronously).
+    ///
+    /// If the file is not suited for deep learning, a simple heuristic is used.
+    pub async fn identify_async(&self, file: impl AsyncInput) -> Result<Output> {
+        match FeaturesOrOutput::extract_async(file).await? {
+            FeaturesOrOutput::Output(output) => Ok(output),
+            FeaturesOrOutput::Features(features) => self.identify_one_async(&features).await,
+        }
     }
 
     /// Identifies a single file from its features (synchronously).

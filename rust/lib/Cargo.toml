@@ -16,6 +16,7 @@ features = ["_doc"]
 [features]
 tokio = ["dep:tokio"]
 # Internal features.
+_cli = []
 _doc = ["tokio"]
 _test = ["ort/download-binaries"]
 

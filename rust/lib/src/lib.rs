@@ -21,8 +21,7 @@
 //!
 //! # fn main() -> magika::Result<()> {
 //! let magika = Session::new()?;
-//! let features = Features::extract_sync(&b"#!/bin/sh\necho hello"[..])?;
-//! let result = magika.identify_one_sync(&features)?;
+//! let result = magika.identify_sync(&b"#!/bin/sh\necho hello"[..])?;
 //! assert_eq!(result.label(), Label::Shell);
 //! # Ok(())
 //! # }
@@ -32,7 +31,7 @@
 
 pub use crate::builder::Builder;
 pub use crate::error::{Error, Result};
-pub use crate::input::{AsyncInput, Features, SyncInput};
+pub use crate::input::{AsyncInput, Features, FeaturesOrOutput, SyncInput};
 pub use crate::label::Label;
 pub use crate::output::Output;
 pub use crate::session::Session;

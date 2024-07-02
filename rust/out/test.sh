@@ -14,9 +14,31 @@
 # limitations under the License.
 
 set -e
-. ./color.sh
+. ../color.sh
 
-for dir in gen lib cli out; do
-  info "Running $dir/test.sh"
-  ( cd $dir && ./test.sh; )
-done
+info "Build CLI"
+cd ../cli
+cargo build --release
+
+cd ../..
+run() {
+  info "Run with $*"
+  local file
+  local arg
+  for arg in "$@"; do
+    [ -z "$file" ] || file="$file"_
+    file="$file${arg#--}"
+  done
+  file=rust/out/"$file"
+  local paths='tests_data/basic tests_data/mitra'
+  rust/target/release/magika --recursive $paths "$@" > "$file".out 2> "$file".err
+  [ -n "$(cat "$file".err)" ] || rm "$file".err
+}
+
+run --colors
+run --json
+run --jsonl
+run --generate-report
+run --label
+run --mime-type --output-score
+git diff --exit-code || error "Difference in CLI output"

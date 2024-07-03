@@ -18,6 +18,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional
 
+from magika.content_types import ContentType
+from magika.strenum import StrEnum
+
 
 @dataclass
 class ModelFeatures:
@@ -41,41 +44,53 @@ class ModelFeaturesV2:
 
 @dataclass
 class ModelOutput:
-    ct_label: str
+    ct_label: ContentType
     score: float
 
 
-@dataclass
+@dataclass(kw_only=True)
 class MagikaResult:
     path: str
-    dl: ModelOutputFields
-    output: MagikaOutputFields
-
-
-@dataclass
-class ModelOutputFields:
-    ct_label: Optional[str]
-    score: Optional[float]
-    group: Optional[str]
-    mime_type: Optional[str]
-    magic: Optional[str]
-    description: Optional[str]
-    is_text: Optional[bool]
-
-
-@dataclass
-class MagikaOutputFields:
-    ct_label: str
+    dl: Optional[ContentTypeInfo]
+    output: Optional[ContentTypeInfo]
     score: float
-    group: str
+    error: Optional[MagikaResultError] = None
+
+
+@dataclass(kw_only=True)
+class ContentTypeInfo:
+    name: ContentType
     mime_type: str
-    magic: str
+    group: str
     description: str
     is_text: bool
+
+
+@dataclass(kw_only=True)
+class ModelConfig:
+    beg_size: int
+    mid_size: int
+    end_size: int
+    use_inputs_at_offsets: bool
+    medium_confidence_threshold: float
+    min_file_size_for_dl: int
+    padding_token: int
+    block_size: int
+    target_labels_space: list[ContentType]
+    thresholds: dict[ContentType, float]
+    overwrite_map: dict[ContentType, ContentType]
+
+
+class MagikaResultError(StrEnum):
+    # Used when a file path does not exist
+    FILE_DOES_NOT_EXIST = "file_does_not_exist"
+
+    # Used when a file path exists, but there are permission issues, e.g., can't read file
+    PERMISSION_ERROR = "permission_error"
 
 
 @dataclass
 class FeedbackReport:
     hash: str
-    features: ModelFeatures
+    features: ModelFeaturesV2
     result: MagikaResult

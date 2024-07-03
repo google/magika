@@ -17,6 +17,7 @@
 import copy
 import dataclasses
 import hashlib
+import importlib.metadata
 import json
 import logging
 import os
@@ -28,11 +29,11 @@ import click
 from tabulate import tabulate
 
 from magika import Magika, MagikaError, PredictionMode, colors
-from magika.content_types import ContentTypesManager
 from magika.logger import get_logger
 from magika.types import FeedbackReport, MagikaResult
 
-VERSION = "0.5.2-dev"
+# TODO: the version should be migrated to the magika module, or somewhere else in python/
+VERSION = importlib.metadata.version("magika")
 
 CONTACT_EMAIL = "magika-dev@google.com"
 
@@ -131,12 +132,6 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     "--version", "output_version", is_flag=True, help="Print the version and exit."
 )
 @click.option(
-    "--list-output-content-types",
-    "list_output_content_types",
-    is_flag=True,
-    help="Show a list of supported content types.",
-)
-@click.option(
     "--model-dir",
     type=click.Path(
         exists=True, file_okay=False, dir_okay=True, resolve_path=True, path_type=Path
@@ -161,7 +156,6 @@ def main(
     generate_report_flag: bool,
     dump_performance_stats_flag: bool,
     output_version: bool,
-    list_output_content_types: bool,
     model_dir: Optional[Path],
 ) -> None:
     """
@@ -187,14 +181,6 @@ def main(
     if output_version:
         _l.raw_print_to_stdout(f"Magika version: {VERSION}")
         _l.raw_print_to_stdout(f"Default model: {Magika.get_default_model_name()}")
-        sys.exit(0)
-
-    # check CLI arguments and options
-    if list_output_content_types:
-        if len(files_paths) > 0:
-            _l.error("You cannot pass any path when using the -l / --list option.")
-            sys.exit(1)
-        print_output_content_types_list()
         sys.exit(0)
 
     if len(files_paths) == 0:
@@ -308,45 +294,53 @@ def main(
                 _l.raw_print_to_stdout(json.dumps(dataclasses.asdict(magika_result)))
         else:
             for magika_result in batch_predictions:
-                path = magika_result.path
-                output_ct_label = magika_result.output.ct_label
-                output_ct_description = magika_result.output.description
-                output_ct_group = magika_result.output.group
+                if magika_result.error is None:
+                    assert magika_result.output is not None
 
-                if mime_output:
-                    # If the user requested the MIME type, we use the mime type
-                    # regardless of the compatibility mode.
-                    output = magika_result.output.mime_type
-                elif label_output:
-                    output = magika_result.output.ct_label
-                elif magic_compatibility_mode:
-                    output = magika_result.output.magic
-                else:  # human-readable description
-                    dl_ct_label = magika_result.dl.ct_label
+                    if mime_output:
+                        # If the user requested the MIME type, we use the mime type
+                        # regardless of the compatibility mode.
+                        output = magika_result.output.mime_type
+                    elif label_output:
+                        output = str(magika_result.output.name)
+                    else:  # human-readable description
+                        output = f"{magika_result.output.description} ({magika_result.output.group})"
 
-                    output = f"{output_ct_description} ({output_ct_group})"
-
-                    if dl_ct_label is not None and dl_ct_label != output_ct_label:
-                        # it seems that we had a too-low confidence prediction
-                        # from the model. Let's warn the user about our best
-                        # bet.
-                        assert magika_result.dl.score is not None
-                        dl_description = magika_result.dl.description
-                        dl_group = magika_result.dl.group
-                        dl_score = int(magika_result.dl.score * 100)
-                        output += f" [Low-confidence model best-guess: {dl_description} ({dl_group}), score={dl_score}]"
+                        if (
+                            magika_result.dl is not None
+                            and magika_result.dl.name != magika_result.output.name
+                        ):
+                            # it seems that we had a too-low confidence prediction
+                            # from the model. Let's warn the user about our best
+                            # bet.
+                            output += (
+                                " [Low-confidence model best-guess: "
+                                f"{magika_result.dl.description} ({magika_result.dl.group}), "
+                                f"score={magika_result.score}]"
+                            )
+                else:
+                    output = magika_result.error
 
                 if with_colors:
-                    start_color = color_by_group.get(output_ct_group, colors.WHITE)
-                    end_color = colors.RESET
+                    if magika_result.error is None:
+                        assert magika_result.output is not None
+                        start_color = color_by_group.get(
+                            magika_result.output.group, colors.WHITE
+                        )
+                        end_color = colors.RESET
+                    else:
+                        start_color = ""
+                        end_color = ""
 
-                if output_score:
-                    score = int(magika_result.output.score * 100)
+                if output_score and magika_result.error is None:
+                    score = int(magika_result.score * 100)
                     _l.raw_print_to_stdout(
-                        f"{start_color}{path}: {output} {score}%{end_color}"
+                        f"{start_color}{magika_result.path}: {output} {score}%{end_color}"
                     )
                 else:
-                    _l.raw_print_to_stdout(f"{start_color}{path}: {output}{end_color}")
+                    _l.raw_print_to_stdout(
+                        f"{start_color}{magika_result.path}: {output}{end_color}"
+                    )
 
         if generate_report_flag:
             for file_path, magika_result in zip(files_, batch_predictions):
@@ -383,11 +377,11 @@ def generate_feedback_report(
     magika_result_copy.path = "<REMOVED>"  # avoid PII
     features = Magika._extract_features_from_path(
         file_path,
-        beg_size=magika._input_sizes["beg"],
-        mid_size=magika._input_sizes["mid"],
-        end_size=magika._input_sizes["end"],
-        padding_token=magika._padding_token,
-        block_size=magika._block_size,
+        beg_size=magika._model_config.beg_size,
+        mid_size=magika._model_config.mid_size,
+        end_size=magika._model_config.end_size,
+        padding_token=magika._model_config.padding_token,
+        block_size=magika._model_config.block_size,
     )
     return FeedbackReport(
         hash=hashlib.sha256(file_path.read_bytes()).hexdigest(),
@@ -412,7 +406,7 @@ def print_feedback_report(magika: Magika, reports: List[FeedbackReport]) -> None
 
     full_report = {
         "version": VERSION,
-        "model_dir_name": magika.get_model_name(),
+        "model_dir_name": magika.get_model_dir_name(),
         "python_version": sys.version,
         "reports": processed_reports,
     }
@@ -438,24 +432,6 @@ def print_feedback_report(magika: Magika, reports: List[FeedbackReport]) -> None
     _l.raw_print(
         "IMPORTANT: do NOT submit private information or PII! The extracted features include many bytes of the tested files!",
     )
-
-
-def print_output_content_types_list() -> None:
-    _l = get_logger()
-
-    ctm = ContentTypesManager()
-    content_types = ctm.get_output_content_types()
-
-    headers = ["#", "Content Type Label", "Description"]
-    rows = []
-    for ct_idx, ct in enumerate(content_types):
-        row = [
-            ct_idx + 1,
-            ct.name,
-            "" if ct.description is None else ct.description,
-        ]
-        rows.append(row)
-    _l.raw_print_to_stdout(tabulate(rows, headers=headers))
 
 
 if __name__ == "__main__":

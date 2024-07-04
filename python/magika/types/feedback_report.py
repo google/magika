@@ -12,19 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import annotations
+from dataclasses import dataclass
 
-import enum
-from typing import List
-
-from magika.strenum import LowerCaseStrEnum
+from magika.types.magika_result import MagikaResult
+from magika.types.model import ModelFeaturesV2
 
 
-class PredictionMode(LowerCaseStrEnum):
-    BEST_GUESS = enum.auto()
-    MEDIUM_CONFIDENCE = enum.auto()
-    HIGH_CONFIDENCE = enum.auto()
-
-    @staticmethod
-    def get_valid_prediction_modes() -> List[str]:
-        return [pm for pm in PredictionMode]
+@dataclass
+class FeedbackReport:
+    hash: str
+    features: ModelFeaturesV2
+    result: MagikaResult

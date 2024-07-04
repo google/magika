@@ -13,13 +13,16 @@
 # limitations under the License.
 
 
-import dotenv
+from __future__ import annotations
 
-from magika import magika
-from magika.types import prediction_mode
-
-Magika = magika.Magika
-MagikaError = magika.MagikaError
-PredictionMode = prediction_mode.PredictionMode
-
-dotenv.load_dotenv(dotenv.find_dotenv())
+from magika.types.content_type_info import ContentTypeInfo  # noqa: F401
+from magika.types.content_type_label import ContentTypeLabel  # noqa: F401
+from magika.types.feedback_report import FeedbackReport  # noqa: F401
+from magika.types.magika_result import MagikaResult, MagikaResultError  # noqa: F401
+from magika.types.model import (  # noqa: F401
+    ModelConfig,
+    ModelFeatures,
+    ModelFeaturesV2,
+    ModelOutput,
+)
+from magika.types.prediction_mode import PredictionMode  # noqa: F401

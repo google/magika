@@ -25,17 +25,17 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
-from magika.content_types import ContentType
 from magika.logger import get_logger
-from magika.prediction_mode import PredictionMode
 from magika.seekable import Buffer, File, Seekable
 from magika.types import (
     ContentTypeInfo,
+    ContentTypeLabel,
     MagikaResult,
     MagikaResultError,
     ModelConfig,
     ModelFeaturesV2,
     ModelOutput,
+    PredictionMode,
 )
 
 DEFAULT_MODEL_NAME = "standard_v2"
@@ -131,7 +131,7 @@ class Magika:
     @staticmethod
     def _load_content_types_kb(
         content_types_kb_json_path: Path,
-    ) -> dict[ContentType, ContentTypeInfo]:
+    ) -> dict[ContentTypeLabel, ContentTypeInfo]:
         TXT_MIME_TYPE = "text/plain"
         UNKNOWN_MIME_TYPE = "application/octet-stream"
         UNKNOWN_GROUP = "unknown"
@@ -149,8 +149,8 @@ class Magika:
             description = (
                 ct_name if ct_info["description"] is None else ct_info["description"]
             )
-            out[ContentType(ct_name)] = ContentTypeInfo(
-                name=ContentType(ct_name),
+            out[ContentTypeLabel(ct_name)] = ContentTypeInfo(
+                name=ContentTypeLabel(ct_name),
                 mime_type=mime_type,
                 group=group,
                 description=description,
@@ -177,7 +177,7 @@ class Magika:
         )
         return onnx_session
 
-    def _get_ct_info(self, content_type: ContentType) -> ContentTypeInfo:
+    def _get_ct_info(self, content_type: ContentTypeLabel) -> ContentTypeInfo:
         return self._cts_infos[content_type]
 
     def _get_results_from_paths(self, paths: List[Path]) -> List[MagikaResult]:
@@ -451,7 +451,7 @@ class Magika:
         scores = np.max(raw_preds, axis=1)
 
         return [
-            (path, ModelOutput(ct_label=ContentType(ct_label), score=float(score)))
+            (path, ModelOutput(ct_label=ContentTypeLabel(ct_label), score=float(score)))
             for (path, _), ct_label, score in zip(
                 all_features, preds_content_types_labels, scores
             )
@@ -499,8 +499,8 @@ class Magika:
         return result_with_dl
 
     def _get_output_ct_label_from_dl_result(
-        self, dl_ct_label: ContentType, score: float
-    ) -> ContentType:
+        self, dl_ct_label: ContentTypeLabel, score: float
+    ) -> ContentTypeLabel:
         # overwrite ct_label if specified in the config
         dl_ct_label = self._model_config.overwrite_map.get(dl_ct_label, dl_ct_label)
 
@@ -531,18 +531,18 @@ class Magika:
             # right. This allows us to pick between unknown and txt without the
             # need to read or scan the file bytes once again.
             if self._get_ct_info(dl_ct_label).is_text:
-                output_ct_label = ContentType.TXT
+                output_ct_label = ContentTypeLabel.TXT
             else:
-                output_ct_label = ContentType.UNKNOWN
+                output_ct_label = ContentTypeLabel.UNKNOWN
 
         return output_ct_label
 
     def _get_result_from_labels_and_score(
         self,
         path: Path,
-        dl_ct_label: Optional[ContentType],
+        dl_ct_label: Optional[ContentTypeLabel],
         score: float,
-        output_ct_label: Optional[ContentType],
+        output_ct_label: Optional[ContentTypeLabel],
         error: Optional[MagikaResultError] = None,
     ) -> MagikaResult:
         return MagikaResult(
@@ -573,7 +573,10 @@ class Magika:
 
         if self._no_dereference and path.is_symlink():
             result = self._get_result_from_labels_and_score(
-                path, dl_ct_label=None, output_ct_label=ContentType.SYMLINK, score=1.0
+                path,
+                dl_ct_label=None,
+                output_ct_label=ContentTypeLabel.SYMLINK,
+                score=1.0,
             )
             # The magic and description fields for symlink contain a placeholder
             # for <path>; let's patch the output to reflect that.
@@ -596,7 +599,10 @@ class Magika:
         if path.is_file():
             if path.stat().st_size == 0:
                 result = self._get_result_from_labels_and_score(
-                    path, dl_ct_label=None, output_ct_label=ContentType.EMPTY, score=1.0
+                    path,
+                    dl_ct_label=None,
+                    output_ct_label=ContentTypeLabel.EMPTY,
+                    score=1.0,
                 )
                 return result, None
 
@@ -643,13 +649,19 @@ class Magika:
 
         elif path.is_dir():
             result = self._get_result_from_labels_and_score(
-                path, dl_ct_label=None, output_ct_label=ContentType.DIRECTORY, score=1.0
+                path,
+                dl_ct_label=None,
+                output_ct_label=ContentTypeLabel.DIRECTORY,
+                score=1.0,
             )
             return result, None
 
         else:
             result = self._get_result_from_labels_and_score(
-                path, dl_ct_label=None, output_ct_label=ContentType.UNKNOWN, score=1.0
+                path,
+                dl_ct_label=None,
+                output_ct_label=ContentTypeLabel.UNKNOWN,
+                score=1.0,
             )
             return result, None
 
@@ -662,7 +674,7 @@ class Magika:
             output = self._get_result_from_labels_and_score(
                 Path("-"),
                 dl_ct_label=None,
-                output_ct_label=ContentType.EMPTY,
+                output_ct_label=ContentTypeLabel.EMPTY,
                 score=1.0,
             )
             return output, None
@@ -714,12 +726,12 @@ class Magika:
             path, dl_ct_label=None, output_ct_label=ct_label, score=1.0
         )
 
-    def _get_ct_label_from_few_bytes(self, content: bytes) -> ContentType:
+    def _get_ct_label_from_few_bytes(self, content: bytes) -> ContentTypeLabel:
         try:
-            ct_label = ContentType.TXT
+            ct_label = ContentTypeLabel.TXT
             _ = content.decode("utf-8")
         except UnicodeDecodeError:
-            ct_label = ContentType.UNKNOWN
+            ct_label = ContentTypeLabel.UNKNOWN
         return ct_label
 
     def _get_raw_predictions(

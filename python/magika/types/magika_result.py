@@ -12,66 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from __future__ import annotations
 
 import dataclasses
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
-from magika.content_types import ContentType
-from magika.strenum import StrEnum
-
-
-@dataclass
-class ModelFeatures:
-    beg: List[int]
-    mid: List[int]
-    end: List[int]
-
-
-@dataclass
-class ModelFeaturesV2:
-    beg: List[int]
-    mid: List[int]
-    end: List[int]
-    # for ISO
-    offset_0x8000_0x8007: List[int]
-    offset_0x8800_0x8807: List[int]
-    offset_0x9000_0x9007: List[int]
-    # for UDF
-    offset_0x9800_0x9807: List[int]
-
-
-@dataclass
-class ModelOutput:
-    ct_label: ContentType
-    score: float
-
-
-@dataclass(kw_only=True)
-class ContentTypeInfo:
-    name: ContentType
-    mime_type: str
-    group: str
-    description: str
-    is_text: bool
-
-
-@dataclass(kw_only=True)
-class ModelConfig:
-    beg_size: int
-    mid_size: int
-    end_size: int
-    use_inputs_at_offsets: bool
-    medium_confidence_threshold: float
-    min_file_size_for_dl: int
-    padding_token: int
-    block_size: int
-    target_labels_space: list[ContentType]
-    thresholds: dict[ContentType, float]
-    overwrite_map: dict[ContentType, ContentType]
+from magika.types.content_type_info import ContentTypeInfo
+from magika.types.strenum import StrEnum
 
 
 class MagikaResult:
@@ -166,10 +114,3 @@ class MagikaResultError(StrEnum):
     # Used when a file path exists, but there are permission issues, e.g., can't
     # read file
     PERMISSION_ERROR = "permission_error"
-
-
-@dataclass
-class FeedbackReport:
-    hash: str
-    features: ModelFeaturesV2
-    result: MagikaResult

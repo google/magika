@@ -290,67 +290,62 @@ def main(
             # we do not stream the output for JSON output
             all_predictions.extend(batch_predictions)
         elif jsonl_output:
-            for magika_result in batch_predictions:
-                _l.raw_print_to_stdout(json.dumps(dataclasses.asdict(magika_result)))
+            for result in batch_predictions:
+                _l.raw_print_to_stdout(json.dumps(result.asdict()))
         else:
-            for magika_result in batch_predictions:
-                if magika_result.error is None:
-                    assert magika_result.output is not None
-
+            for result in batch_predictions:
+                if result.success:
                     if mime_output:
                         # If the user requested the MIME type, we use the mime type
                         # regardless of the compatibility mode.
-                        output = magika_result.output.mime_type
+                        output = result.output.mime_type
                     elif label_output:
-                        output = str(magika_result.output.name)
+                        output = str(result.output.name)
                     else:  # human-readable description
-                        output = f"{magika_result.output.description} ({magika_result.output.group})"
+                        output = f"{result.output.description} ({result.output.group})"
 
                         if (
-                            magika_result.dl is not None
-                            and magika_result.dl.name != magika_result.output.name
+                            result.dl is not None
+                            and result.dl.name != result.output.name
                         ):
                             # it seems that we had a too-low confidence prediction
                             # from the model. Let's warn the user about our best
                             # bet.
                             output += (
                                 " [Low-confidence model best-guess: "
-                                f"{magika_result.dl.description} ({magika_result.dl.group}), "
-                                f"score={magika_result.score}]"
+                                f"{result.dl.description} ({result.dl.group}), "
+                                f"score={result.score}]"
                             )
-                else:
-                    output = magika_result.error
 
-                if with_colors:
-                    if magika_result.error is None:
-                        assert magika_result.output is not None
+                    if with_colors:
                         start_color = color_by_group.get(
-                            magika_result.output.group, colors.WHITE
+                            result.output.group, colors.WHITE
                         )
                         end_color = colors.RESET
-                    else:
-                        start_color = ""
-                        end_color = ""
+                else:
+                    output = result.error
+                    start_color = ""
+                    end_color = ""
 
-                if output_score and magika_result.error is None:
-                    score = int(magika_result.score * 100)
+                if output_score and result.success:
+                    score = int(result.score * 100)
                     _l.raw_print_to_stdout(
-                        f"{start_color}{magika_result.path}: {output} {score}%{end_color}"
+                        f"{start_color}{result.path}: {output} {score}%{end_color}"
                     )
                 else:
                     _l.raw_print_to_stdout(
-                        f"{start_color}{magika_result.path}: {output}{end_color}"
+                        f"{start_color}{result.path}: {output}{end_color}"
                     )
 
         if generate_report_flag:
-            for file_path, magika_result in zip(files_, batch_predictions):
+            for file_path, result in zip(files_, batch_predictions):
                 report_entries.append(
-                    generate_feedback_report(magika, file_path, magika_result)
+                    generate_feedback_report(magika, file_path, result)
                 )
 
     if json_output:
         _l.raw_print_to_stdout(
-            json.dumps([dataclasses.asdict(res) for res in all_predictions], indent=4)
+            json.dumps([res.asdict() for res in all_predictions], indent=4)
         )
 
     if generate_report_flag:
@@ -374,7 +369,7 @@ def generate_feedback_report(
     magika: Magika, file_path: Path, magika_result: MagikaResult
 ) -> FeedbackReport:
     magika_result_copy = copy.copy(magika_result)
-    magika_result_copy.path = "<REMOVED>"  # avoid PII
+    magika_result_copy.path = Path("REMOVED")  # avoid PII
     features = Magika._extract_features_from_path(
         file_path,
         beg_size=magika._model_config.beg_size,
@@ -399,7 +394,7 @@ def print_feedback_report(magika: Magika, reports: List[FeedbackReport]) -> None
             "features": json.dumps(dataclasses.asdict(report.features)).replace(
                 " ", ""
             ),
-            "result": dataclasses.asdict(report.result),
+            "result": report.result.asdict(),
         }
         for report in reports
     ]

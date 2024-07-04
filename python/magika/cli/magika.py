@@ -30,7 +30,7 @@ from tabulate import tabulate
 
 from magika import Magika, MagikaError, PredictionMode, colors
 from magika.logger import get_logger
-from magika.types import FeedbackReport, MagikaResult
+from magika.types import ContentTypeLabel, FeedbackReport, MagikaResult
 
 # TODO: the version should be migrated to the magika module, or somewhere else in python/
 VERSION = importlib.metadata.version("magika")
@@ -305,7 +305,7 @@ def main(
                         output = f"{result.output.description} ({result.output.group})"
 
                         if (
-                            result.dl is not None
+                            result.dl.name != ContentTypeLabel.UNDEFINED
                             and result.dl.name != result.output.name
                         ):
                             # it seems that we had a too-low confidence prediction

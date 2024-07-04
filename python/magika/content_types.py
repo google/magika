@@ -329,6 +329,7 @@ class ContentType(StrEnum):
     TXTUTF8 = "txtutf8"
     TYPESCRIPT = "typescript"
     UDF = "udf"
+    UNDEFINED = "undefined"
     UNIXCOMPRESS = "unixcompress"
     UNKNOWN = "unknown"
     VBA = "vba"

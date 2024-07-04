@@ -149,11 +149,13 @@ class Magika:
             description = (
                 ct_name if ct_info["description"] is None else ct_info["description"]
             )
+            extensions = ct_info["extensions"]
             out[ContentTypeLabel(ct_name)] = ContentTypeInfo(
                 name=ContentTypeLabel(ct_name),
                 mime_type=mime_type,
                 group=group,
                 description=description,
+                extensions=extensions,
                 is_text=is_text,
             )
         return out

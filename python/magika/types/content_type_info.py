@@ -6,7 +6,7 @@ from magika.types.content_type_label import ContentTypeLabel
 
 @dataclass(kw_only=True)
 class ContentTypeInfo:
-    name: ContentTypeLabel
+    label: ContentTypeLabel
     mime_type: str
     group: str
     description: str

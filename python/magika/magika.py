@@ -151,7 +151,7 @@ class Magika:
             )
             extensions = ct_info["extensions"]
             out[ContentTypeLabel(ct_name)] = ContentTypeInfo(
-                name=ContentTypeLabel(ct_name),
+                label=ContentTypeLabel(ct_name),
                 mime_type=mime_type,
                 group=group,
                 description=description,

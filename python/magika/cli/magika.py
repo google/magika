@@ -300,13 +300,13 @@ def main(
                         # regardless of the compatibility mode.
                         output = result.output.mime_type
                     elif label_output:
-                        output = str(result.output.name)
+                        output = str(result.output.label)
                     else:  # human-readable description
                         output = f"{result.output.description} ({result.output.group})"
 
                         if (
-                            result.dl.name != ContentTypeLabel.UNDEFINED
-                            and result.dl.name != result.output.name
+                            result.dl.label != ContentTypeLabel.UNDEFINED
+                            and result.dl.label != result.output.label
                         ):
                             # it seems that we had a too-low confidence prediction
                             # from the model. Let's warn the user about our best

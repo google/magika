@@ -540,18 +540,24 @@ class Magika:
     def _get_result_from_labels_and_score(
         self,
         path: Path,
-        dl_ct_label: Optional[ContentTypeLabel],
+        dl_ct_label: ContentTypeLabel,
+        output_ct_label: ContentTypeLabel,
         score: float,
-        output_ct_label: Optional[ContentTypeLabel],
-        error: Optional[MagikaResultError] = None,
     ) -> MagikaResult:
-        return MagikaResult(
-            path=str(path),
-            dl=None if dl_ct_label is None else self._get_ct_info(dl_ct_label),
-            output=None
-            if output_ct_label is None
-            else self._get_ct_info(output_ct_label),
+        return MagikaResult.from_cts_info_and_score(
+            path=path,
+            dl=self._get_ct_info(dl_ct_label),
+            output=self._get_ct_info(output_ct_label),
             score=score,
+        )
+
+    def _get_result_from_error(
+        self,
+        path: Path,
+        error: MagikaResultError,
+    ) -> MagikaResult:
+        return MagikaResult.from_error(
+            path=path,
             error=error,
         )
 
@@ -573,25 +579,21 @@ class Magika:
 
         if self._no_dereference and path.is_symlink():
             result = self._get_result_from_labels_and_score(
-                path,
-                dl_ct_label=None,
+                path=path,
+                dl_ct_label=ContentTypeLabel.UNDEFINED,
                 output_ct_label=ContentTypeLabel.SYMLINK,
                 score=1.0,
             )
             # The magic and description fields for symlink contain a placeholder
             # for <path>; let's patch the output to reflect that.
-            if result.output:
-                result.output.description = result.output.description.replace(
-                    "<path>", str(path.resolve())
-                )
+            result.output.description = result.output.description.replace(
+                "<path>", str(path.resolve())
+            )
             return result, None
 
         if not path.exists():
-            result = self._get_result_from_labels_and_score(
+            result = self._get_result_from_error(
                 path,
-                dl_ct_label=None,
-                output_ct_label=None,
-                score=1.0,
                 error=MagikaResultError.FILE_DOES_NOT_EXIST,
             )
             return result, None
@@ -600,18 +602,15 @@ class Magika:
             if path.stat().st_size == 0:
                 result = self._get_result_from_labels_and_score(
                     path,
-                    dl_ct_label=None,
+                    dl_ct_label=ContentTypeLabel.UNDEFINED,
                     output_ct_label=ContentTypeLabel.EMPTY,
                     score=1.0,
                 )
                 return result, None
 
             elif not os.access(path, os.R_OK):
-                result = self._get_result_from_labels_and_score(
+                result = self._get_result_from_error(
                     path,
-                    dl_ct_label=None,
-                    output_ct_label=None,
-                    score=1.0,
                     error=MagikaResultError.PERMISSION_ERROR,
                 )
                 return result, None
@@ -650,7 +649,7 @@ class Magika:
         elif path.is_dir():
             result = self._get_result_from_labels_and_score(
                 path,
-                dl_ct_label=None,
+                dl_ct_label=ContentTypeLabel.UNDEFINED,
                 output_ct_label=ContentTypeLabel.DIRECTORY,
                 score=1.0,
             )
@@ -659,7 +658,7 @@ class Magika:
         else:
             result = self._get_result_from_labels_and_score(
                 path,
-                dl_ct_label=None,
+                dl_ct_label=ContentTypeLabel.UNDEFINED,
                 output_ct_label=ContentTypeLabel.UNKNOWN,
                 score=1.0,
             )
@@ -673,7 +672,7 @@ class Magika:
         if len(content) == 0:
             output = self._get_result_from_labels_and_score(
                 Path("-"),
-                dl_ct_label=None,
+                dl_ct_label=ContentTypeLabel.UNDEFINED,
                 output_ct_label=ContentTypeLabel.EMPTY,
                 score=1.0,
             )
@@ -723,7 +722,10 @@ class Magika:
         assert len(content) <= 4 * self._model_config.block_size
         ct_label = self._get_ct_label_from_few_bytes(content)
         return self._get_result_from_labels_and_score(
-            path, dl_ct_label=None, output_ct_label=ct_label, score=1.0
+            path,
+            dl_ct_label=ContentTypeLabel.UNDEFINED,
+            output_ct_label=ct_label,
+            score=1.0,
         )
 
     def _get_ct_label_from_few_bytes(self, content: bytes) -> ContentTypeLabel:

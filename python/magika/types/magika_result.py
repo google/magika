@@ -55,6 +55,16 @@ class MagikaResult:
             assert self._score is None
             assert self._error is not None
 
+    @staticmethod
+    def from_cts_info_and_score(
+        path: Path, dl: ContentTypeInfo, output: ContentTypeInfo, score: float
+    ) -> MagikaResult:
+        return MagikaResult(path=path, dl=dl, output=output, score=score, error=None)
+
+    @staticmethod
+    def from_error(path: Path, error: MagikaResultError) -> MagikaResult:
+        return MagikaResult(path=path, dl=None, output=None, score=None, error=error)
+
     @property
     def success(self) -> bool:
         return self._success

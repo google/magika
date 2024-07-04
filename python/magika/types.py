@@ -15,7 +15,9 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 from magika.content_types import ContentType
@@ -161,7 +163,8 @@ class MagikaResultError(StrEnum):
     # Used when a file path does not exist
     FILE_DOES_NOT_EXIST = "file_does_not_exist"
 
-    # Used when a file path exists, but there are permission issues, e.g., can't read file
+    # Used when a file path exists, but there are permission issues, e.g., can't
+    # read file
     PERMISSION_ERROR = "permission_error"
 
 

@@ -106,40 +106,6 @@ class Magika:
 
         self._perf_stats: Dict[str, List[float]] = defaultdict(list)
 
-    def get_ct_info(self, content_type: ContentType) -> ContentTypeInfo:
-        return self._cts_infos[content_type]
-
-    @staticmethod
-    def _load_content_types_kb(
-        content_types_kb_json_path: Path,
-    ) -> dict[ContentType, ContentTypeInfo]:
-        out = {}
-        for ct_name, ct_info in json.loads(
-            content_types_kb_json_path.read_text()
-        ).items():
-            is_text = ct_info["is_text"]
-            if is_text:
-                mime_type = "text/plain"
-            else:
-                mime_type = "application/octet-stream"
-            group = "unknown" if ct_info["group"] is None else ct_info["group"]
-            description = (
-                ct_name if ct_info["description"] is None else ct_info["description"]
-            )
-            out[ContentType(ct_name)] = ContentTypeInfo(
-                name=ContentType(ct_name),
-                mime_type=mime_type,
-                group=group,
-                description=description,
-                is_text=is_text,
-            )
-        return out
-
-    @staticmethod
-    def _load_model_config(model_config_path: Path) -> ModelConfig:
-        config = json.loads(model_config_path.read_text())
-        return ModelConfig(**config)
-
     def identify_path(self, path: Path) -> MagikaResult:
         return self._get_result_from_path(path)
 
@@ -162,6 +128,41 @@ class Magika:
     def get_model_dir_name(self) -> str:
         return self._model_dir.name
 
+    @staticmethod
+    def _load_content_types_kb(
+        content_types_kb_json_path: Path,
+    ) -> dict[ContentType, ContentTypeInfo]:
+        TXT_MIME_TYPE = "text/plain"
+        UNKNOWN_MIME_TYPE = "application/octet-stream"
+        UNKNOWN_GROUP = "unknown"
+
+        out = {}
+        for ct_name, ct_info in json.loads(
+            content_types_kb_json_path.read_text()
+        ).items():
+            is_text = ct_info["is_text"]
+            if is_text:
+                mime_type = TXT_MIME_TYPE
+            else:
+                mime_type = UNKNOWN_MIME_TYPE
+            group = UNKNOWN_GROUP if ct_info["group"] is None else ct_info["group"]
+            description = (
+                ct_name if ct_info["description"] is None else ct_info["description"]
+            )
+            out[ContentType(ct_name)] = ContentTypeInfo(
+                name=ContentType(ct_name),
+                mime_type=mime_type,
+                group=group,
+                description=description,
+                is_text=is_text,
+            )
+        return out
+
+    @staticmethod
+    def _load_model_config(model_config_path: Path) -> ModelConfig:
+        config = json.loads(model_config_path.read_text())
+        return ModelConfig(**config)
+
     def _init_onnx_session(self) -> rt.InferenceSession:
         start_time = time.time()
         rt.disable_telemetry_events()
@@ -175,6 +176,9 @@ class Magika:
             f'ONNX DL model "{self._model_path}" loaded in {elapsed_time:.03f} ms'
         )
         return onnx_session
+
+    def _get_ct_info(self, content_type: ContentType) -> ContentTypeInfo:
+        return self._cts_infos[content_type]
 
     def _get_results_from_paths(self, paths: List[Path]) -> List[MagikaResult]:
         """Given a list of paths, returns a list of predictions. Each prediction
@@ -526,7 +530,7 @@ class Magika:
             # the model has, at the very least, got the binary vs. text category
             # right. This allows us to pick between unknown and txt without the
             # need to read or scan the file bytes once again.
-            if self.get_ct_info(dl_ct_label).is_text:
+            if self._get_ct_info(dl_ct_label).is_text:
                 output_ct_label = ContentType.TXT
             else:
                 output_ct_label = ContentType.UNKNOWN
@@ -543,10 +547,10 @@ class Magika:
     ) -> MagikaResult:
         return MagikaResult(
             path=str(path),
-            dl=None if dl_ct_label is None else self.get_ct_info(dl_ct_label),
+            dl=None if dl_ct_label is None else self._get_ct_info(dl_ct_label),
             output=None
             if output_ct_label is None
-            else self.get_ct_info(output_ct_label),
+            else self._get_ct_info(output_ct_label),
             score=score,
             error=error,
         )
@@ -664,7 +668,7 @@ class Magika:
             return output, None
 
         elif len(content) <= self._model_config.min_file_size_for_dl:
-            output = self._get_result_of_few_bytes(content)
+            output = self._get_result_from_few_bytes(content)
             return output, None
 
         else:
@@ -685,13 +689,12 @@ class Magika:
                 # If the n-th token is padding, then it means that,
                 # post-stripping, we do not have enough meaningful
                 # bytes.
-                output = self._get_result_of_few_bytes(content)
+                output = self._get_result_from_few_bytes(content)
                 return output, None
 
             else:
                 # We have enough bytes, scheduling this file for model
                 # prediction.
-                # features.append((path, file_features))
                 return None, file_features
 
         raise Exception("unreachable")
@@ -700,18 +703,18 @@ class Magika:
         # We read at most "block_size" bytes
         with open(path, "rb") as f:
             content = f.read(self._model_config.block_size)
-        return self._get_result_of_few_bytes(content, path)
+        return self._get_result_from_few_bytes(content, path)
 
-    def _get_result_of_few_bytes(
+    def _get_result_from_few_bytes(
         self, content: bytes, path: Path = Path("-")
     ) -> MagikaResult:
         assert len(content) <= 4 * self._model_config.block_size
-        ct_label = self._get_ct_label_of_few_bytes(content)
+        ct_label = self._get_ct_label_from_few_bytes(content)
         return self._get_result_from_labels_and_score(
             path, dl_ct_label=None, output_ct_label=ct_label, score=1.0
         )
 
-    def _get_ct_label_of_few_bytes(self, content: bytes) -> ContentType:
+    def _get_ct_label_from_few_bytes(self, content: bytes) -> ContentType:
         try:
             ct_label = ContentType.TXT
             _ = content.decode("utf-8")

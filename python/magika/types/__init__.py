@@ -19,7 +19,6 @@ from magika.types.magika_result import MagikaResult  # noqa: F401
 from magika.types.model import (  # noqa: F401
     ModelConfig,
     ModelFeatures,
-    ModelFeaturesV2,
     ModelOutput,
 )
 from magika.types.prediction_mode import PredictionMode  # noqa: F401

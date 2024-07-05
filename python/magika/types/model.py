@@ -24,13 +24,6 @@ class ModelFeatures:
     beg: List[int]
     mid: List[int]
     end: List[int]
-
-
-@dataclass
-class ModelFeaturesV2:
-    beg: List[int]
-    mid: List[int]
-    end: List[int]
     # for ISO
     offset_0x8000_0x8007: List[int]
     offset_0x8800_0x8807: List[int]

@@ -30,9 +30,9 @@ pub(crate) struct ModelConfig {
 }
 
 pub(crate) struct SplitFeatures<'a> {
-    pub(crate) beg: &'a mut [f32], // beg_size
-    pub(crate) mid: &'a mut [f32], // mid_size
-    pub(crate) end: &'a mut [f32], // end_size
+    pub(crate) beg: &'a mut [f32],
+    pub(crate) mid: &'a mut [f32],
+    pub(crate) end: &'a mut [f32],
     pub(crate) off: Vec<(usize, &'a mut [f32])>,
 }
 

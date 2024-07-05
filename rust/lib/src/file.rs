@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::path::PathBuf;
-
 use ndarray::ArrayViewD;
 
 use crate::model::Label;
@@ -29,7 +27,7 @@ pub enum FileType {
     Directory,
 
     /// The file is a symbolic link.
-    Symlink(PathBuf),
+    Symlink,
 
     /// The file is a regular file and was identified with deep-learning.
     Inferred(InferredType),
@@ -94,7 +92,7 @@ impl FileType {
     pub fn info(&self) -> &'static TypeInfo {
         match self {
             FileType::Directory => &crate::content::DIRECTORY,
-            FileType::Symlink(_) => &crate::content::SYMLINK,
+            FileType::Symlink => &crate::content::SYMLINK,
             FileType::Inferred(x) => x.content_type.info(),
             FileType::Ruled(x) => x.content_type.info(),
         }

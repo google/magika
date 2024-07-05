@@ -52,7 +52,7 @@ impl Session {
         if metadata.is_dir() {
             Ok(FileType::Directory)
         } else if metadata.is_symlink() {
-            Ok(FileType::Symlink(E::read_link(file).await?))
+            Ok(FileType::Symlink)
         } else {
             debug_assert!(metadata.is_file());
             self.identify_content::<E>(E::open(file).await?).await

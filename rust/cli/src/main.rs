@@ -295,8 +295,7 @@ async fn process_path(
         });
     }
     if metadata.is_symlink() {
-        let path = tokio::fs::read_link(&path).await?;
-        return Ok(ProcessPath::Ruled(FileType::Symlink(path)));
+        return Ok(ProcessPath::Ruled(FileType::Symlink));
     }
     let file = File::open(&path).await?;
     Ok(FeaturesOrRuled::extract_async(file).await?.into())

@@ -14,7 +14,7 @@
 
 use std::fs::Metadata;
 use std::future::Future;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
@@ -36,7 +36,6 @@ pub(crate) fn exec<T>(mut future: impl Future<Output = T>) -> T {
 pub(crate) trait Env {
     type File: AsyncInputApi;
     async fn symlink_metadata(path: &Path) -> Result<Metadata>;
-    async fn read_link(path: &Path) -> Result<PathBuf>;
     async fn open(path: &Path) -> Result<Self::File>;
     async fn ort_session_run(
         session: &ort::Session, input: Array2<f32>,
@@ -49,10 +48,6 @@ impl Env for SyncEnv {
 
     async fn symlink_metadata(path: &Path) -> Result<Metadata> {
         Ok(std::fs::symlink_metadata(path)?)
-    }
-
-    async fn read_link(path: &Path) -> Result<PathBuf> {
-        Ok(std::fs::read_link(path)?)
     }
 
     async fn open(path: &Path) -> Result<Self::File> {
@@ -72,10 +67,6 @@ impl Env for AsyncEnv {
 
     async fn symlink_metadata(path: &Path) -> Result<Metadata> {
         Ok(tokio::fs::symlink_metadata(path).await?)
-    }
-
-    async fn read_link(path: &Path) -> Result<PathBuf> {
-        Ok(tokio::fs::read_link(path).await?)
     }
 
     async fn open(path: &Path) -> Result<Self::File> {

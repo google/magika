@@ -24,3 +24,6 @@ class Status(StrEnum):
     # Used when a file path exists, but there are permission issues, e.g., can't
     # read file
     PERMISSION_ERROR = "permission_error"
+
+    # Represents a generic error-like unknown status.
+    UKNOWN = "unknown"

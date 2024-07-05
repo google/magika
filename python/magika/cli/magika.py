@@ -23,14 +23,14 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import click
 from tabulate import tabulate
 
 from magika import Magika, MagikaError, PredictionMode, colors
 from magika.logger import get_logger
-from magika.types import ContentTypeLabel, MagikaResult
+from magika.types import ContentTypeLabel, MagikaResult, Status, StatusOr
 
 # TODO: the version should be migrated to the magika module, or somewhere else in python/
 VERSION = importlib.metadata.version("magika")
@@ -223,7 +223,7 @@ def main(
                 _l.error(f'File or directory "{str(p)}" does not exist.')
                 sys.exit(1)
         # the resulting list may still include some directories; thus, we filter them out.
-        files_paths = list(filter(lambda x: not x.is_dir(), expanded_paths))
+        files_paths: List[Path] = list(filter(lambda x: not x.is_dir(), expanded_paths))  # type: ignore
 
     _l.info(f"Considering {len(files_paths)} files")
     _l.debug(f"Files: {files_paths}")
@@ -263,73 +263,83 @@ def main(
     }
 
     # updated only when we need to output in JSON format
-    all_predictions: List[MagikaResult] = []
+    all_predictions: List[Tuple[Path, StatusOr[MagikaResult]]] = []
 
     batches_num = len(files_paths) // batch_size
     if len(files_paths) % batch_size != 0:
         batches_num += 1
     for batch_idx in range(batches_num):
-        files_ = files_paths[batch_idx * batch_size : (batch_idx + 1) * batch_size]
+        batch_files_paths = files_paths[
+            batch_idx * batch_size : (batch_idx + 1) * batch_size
+        ]
 
         if should_read_from_stdin(files_paths):
             batch_predictions = [get_magika_result_from_stdin(magika)]
         else:
-            batch_predictions = magika.identify_paths(files_)
+            batch_predictions = magika.identify_paths(batch_files_paths)
 
         if json_output:
             # we do not stream the output for JSON output
-            all_predictions.extend(batch_predictions)
+            all_predictions.extend(zip(batch_files_paths, batch_predictions))
         elif jsonl_output:
-            for result in batch_predictions:
-                _l.raw_print_to_stdout(json.dumps(result.asdict()))
+            for file_path, result in zip(batch_files_paths, batch_predictions):
+                _l.raw_print_to_stdout(
+                    json.dumps(path_and_result_to_dict(file_path, result))
+                )
         else:
-            for result in batch_predictions:
-                if result.success:
+            for file_path, result in zip(batch_files_paths, batch_predictions):
+                if result.ok:
                     if mime_output:
                         # If the user requested the MIME type, we use the mime type
                         # regardless of the compatibility mode.
-                        output = result.output.mime_type
+                        output = result.value.output.mime_type
                     elif label_output:
-                        output = str(result.output.label)
+                        output = str(result.value.output.label)
                     else:  # human-readable description
-                        output = f"{result.output.description} ({result.output.group})"
+                        output = f"{result.value.output.description} ({result.value.output.group})"
 
                         if (
-                            result.dl.label != ContentTypeLabel.UNDEFINED
-                            and result.dl.label != result.output.label
+                            result.value.dl.label != ContentTypeLabel.UNDEFINED
+                            and result.value.dl.label != result.value.output.label
                         ):
                             # it seems that we had a too-low confidence prediction
                             # from the model. Let's warn the user about our best
                             # bet.
                             output += (
                                 " [Low-confidence model best-guess: "
-                                f"{result.dl.description} ({result.dl.group}), "
-                                f"score={result.score}]"
+                                f"{result.value.dl.description} ({result.value.dl.group}), "
+                                f"score={result.value.score}]"
                             )
 
                     if with_colors:
                         start_color = color_by_group.get(
-                            result.output.group, colors.WHITE
+                            result.value.output.group, colors.WHITE
                         )
                         end_color = colors.RESET
                 else:
-                    output = result.error
+                    output = result.status
                     start_color = ""
                     end_color = ""
 
-                if output_score and result.success:
-                    score = int(result.score * 100)
+                if output_score and result.ok:
+                    score = int(result.value.score * 100)
                     _l.raw_print_to_stdout(
-                        f"{start_color}{result.path}: {output} {score}%{end_color}"
+                        f"{start_color}{file_path}: {output} {score}%{end_color}"
                     )
                 else:
                     _l.raw_print_to_stdout(
-                        f"{start_color}{result.path}: {output}{end_color}"
+                        f"{start_color}{file_path}: {output}{end_color}"
                     )
 
     if json_output:
         _l.raw_print_to_stdout(
-            json.dumps([res.asdict() for res in all_predictions], indent=4)
+            json.dumps(
+                [
+                    path_and_result_to_dict(file_path, result)
+                    for file_path, result in all_predictions
+                ],
+                indent=4,
+            )
         )
 
     if dump_performance_stats_flag:
@@ -340,10 +350,21 @@ def should_read_from_stdin(files_paths: List[Path]) -> bool:
     return len(files_paths) == 1 and str(files_paths[0]) == "-"
 
 
-def get_magika_result_from_stdin(magika: Magika) -> MagikaResult:
+def get_magika_result_from_stdin(magika: Magika) -> StatusOr[MagikaResult]:
     content = sys.stdin.buffer.read()
     result = magika.identify_bytes(content)
     return result
+
+
+def path_and_result_to_dict(file_path: Path, result: StatusOr[MagikaResult]) -> dict:
+    if result.ok:
+        out = {
+            "path": str(file_path),
+            "result": {"status": Status.OK, "value": dataclasses.asdict(result.value)},
+        }
+    else:
+        out = {"path": str(file_path), "result": {"status": result.status}}
+    return out
 
 
 if __name__ == "__main__":

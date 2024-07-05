@@ -151,18 +151,16 @@ impl FileType {
                 }
             }
             assert!(best < crate::model::NUM_LABELS);
-            // SAFETY: Content types are consecutive u32 and map one-to-one with METADATA.
+            // SAFETY: Labels are u32 smaller than NUM_LABELS.
             let label = unsafe { std::mem::transmute::<u32, Label>(best as u32) };
-            let content_type = label.content_type();
-            let score = scores[best];
-            let inferred = InferredType { content_type, score };
+            let inferred = InferredType { content_type: label.content_type(), score: scores[best] };
             let config = &crate::model::CONFIG;
-            let mut overwrite = config.overwrite_map[content_type as usize];
-            if score < config.thresholds[overwrite as usize] {
+            let mut overwrite = config.overwrite_map[inferred.content_type as usize];
+            if inferred.score < config.thresholds[overwrite as usize] {
                 overwrite =
                     if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
             }
-            let file_type = if overwrite == content_type {
+            let file_type = if overwrite == inferred.content_type {
                 inferred.into()
             } else {
                 inferred.overrule_with(overwrite).into()

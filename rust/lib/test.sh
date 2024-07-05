@@ -16,6 +16,7 @@
 set -ex
 
 cargo check
+cargo check --features=serde
 cargo test --features=_test
 cargo fmt -- --check
 cargo clippy -- --deny=warnings

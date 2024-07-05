@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Determines the content type of a file with deep-learning.
+//! Determines the type of a file with deep-learning.
 //!
 //! # Examples
 //!
 //! ```rust
-//! use magika::{FileType, Features, Session};
-//!
 //! # fn main() -> magika::Result<()> {
-//! let magika = Session::new()?;
+//! // A Magika session can be used multiple times across multiple threads.
+//! let magika = magika::Session::new()?;
+//!
+//! // Files can be identified from their path.
+//! assert_eq!(magika.identify_file_sync("src/lib.rs")?.info().label, "rust");
+//!
+//! // Contents can also be identified directly from memory.
 //! let result = magika.identify_content_sync(&b"#!/bin/sh\necho hello"[..])?;
 //! assert_eq!(result.info().label, "shell");
 //! # Ok(())

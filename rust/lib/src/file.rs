@@ -88,6 +88,16 @@ impl From<ContentType> for RuledType {
 }
 
 impl FileType {
+    /// Returns the content type for regular files.
+    pub fn content_type(&self) -> Option<ContentType> {
+        match self {
+            FileType::Directory => None,
+            FileType::Symlink => None,
+            FileType::Inferred(x) => Some(x.content_type),
+            FileType::Ruled(x) => Some(x.content_type),
+        }
+    }
+
     /// Returns the file type information.
     pub fn info(&self) -> &'static TypeInfo {
         match self {

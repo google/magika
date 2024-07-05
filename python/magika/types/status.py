@@ -26,4 +26,4 @@ class Status(StrEnum):
     PERMISSION_ERROR = "permission_error"
 
     # Represents a generic error-like unknown status.
-    UKNOWN = "unknown"
+    UNKNOWN = "unknown"

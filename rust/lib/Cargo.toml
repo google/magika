@@ -16,7 +16,7 @@ features = ["_doc"]
 [features]
 serde = ["dep:serde"]
 # Internal features.
-_doc = []
+_doc = ["serde"]
 _test = ["ort/download-binaries"]
 
 [dependencies]

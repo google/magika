@@ -39,13 +39,13 @@ class ModelFeaturesV2:
     offset_0x9800_0x9807: List[int]
 
 
-@dataclass
+@dataclass(frozen=True, kw_only=True, slots=True)
 class ModelOutput:
     ct_label: ContentTypeLabel
     score: float
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True, slots=True)
 class ModelConfig:
     beg_size: int
     mid_size: int

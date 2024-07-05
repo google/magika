@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-from __future__ import annotations
-
 from magika.types.content_type_info import ContentTypeInfo  # noqa: F401
 from magika.types.content_type_label import ContentTypeLabel  # noqa: F401
 from magika.types.magika_result import MagikaResult  # noqa: F401
@@ -25,3 +23,5 @@ from magika.types.model import (  # noqa: F401
     ModelOutput,
 )
 from magika.types.prediction_mode import PredictionMode  # noqa: F401
+from magika.types.status import Status  # noqa: F401
+from magika.types.statusor import StatusOr  # noqa: F401

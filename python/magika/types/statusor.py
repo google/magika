@@ -42,7 +42,7 @@ class StatusOr(Generic[T]):
 
     @property
     def value(self) -> T:
-        if self.ok():
+        if self.ok:
             assert self._value is not None
             return self._value
         raise ValueError("value is not set when status != OK")

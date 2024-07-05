@@ -12,9 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fs::Metadata;
 use std::future::Future;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+
+use ndarray::Array2;
+
+use crate::input::AsyncInputApi;
+use crate::Result;
 
 pub(crate) fn exec<T>(mut future: impl Future<Output = T>) -> T {
     let future = unsafe { Pin::new_unchecked(&mut future) };
@@ -23,6 +30,62 @@ pub(crate) fn exec<T>(mut future: impl Future<Output = T>) -> T {
     match future.poll(&mut context) {
         Poll::Ready(x) => x,
         Poll::Pending => unreachable!(),
+    }
+}
+
+pub(crate) trait Env {
+    type File: AsyncInputApi;
+    async fn symlink_metadata(path: &Path) -> Result<Metadata>;
+    async fn read_link(path: &Path) -> Result<PathBuf>;
+    async fn open(path: &Path) -> Result<Self::File>;
+    async fn ort_session_run(
+        session: &ort::Session, input: Array2<f32>,
+    ) -> Result<ort::SessionOutputs>;
+}
+
+pub(crate) enum SyncEnv {}
+impl Env for SyncEnv {
+    type File = std::fs::File;
+
+    async fn symlink_metadata(path: &Path) -> Result<Metadata> {
+        Ok(std::fs::symlink_metadata(path)?)
+    }
+
+    async fn read_link(path: &Path) -> Result<PathBuf> {
+        Ok(std::fs::read_link(path)?)
+    }
+
+    async fn open(path: &Path) -> Result<Self::File> {
+        Ok(std::fs::File::open(path)?)
+    }
+
+    async fn ort_session_run(
+        session: &ort::Session, input: Array2<f32>,
+    ) -> Result<ort::SessionOutputs> {
+        Ok(session.run(ort::inputs!("bytes" => input)?)?)
+    }
+}
+
+pub(crate) enum AsyncEnv {}
+impl Env for AsyncEnv {
+    type File = tokio::fs::File;
+
+    async fn symlink_metadata(path: &Path) -> Result<Metadata> {
+        Ok(tokio::fs::symlink_metadata(path).await?)
+    }
+
+    async fn read_link(path: &Path) -> Result<PathBuf> {
+        Ok(tokio::fs::read_link(path).await?)
+    }
+
+    async fn open(path: &Path) -> Result<Self::File> {
+        Ok(tokio::fs::File::open(path).await?)
+    }
+
+    async fn ort_session_run(
+        session: &ort::Session, input: Array2<f32>,
+    ) -> Result<ort::SessionOutputs> {
+        Ok(session.run_async(ort::inputs!("bytes" => input)?)?.await?)
     }
 }
 

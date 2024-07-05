@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::future::Future;
+use std::path::Path;
 
 use ndarray::Array2;
 
-use crate::input::FEATURE_SIZE;
-use crate::{Builder, Features, Output, Result};
+use crate::future::{exec, AsyncEnv, Env, SyncEnv};
+use crate::input::AsyncInputApi;
+use crate::{AsyncInput, Builder, Features, FeaturesOrRuled, FileType, Result, SyncInput};
 
 /// A Magika session to identify files.
 #[derive(Debug)]
@@ -36,51 +37,87 @@ impl Session {
         Builder::default()
     }
 
+    /// Identifies a single file (synchronously).
+    pub fn identify_file_sync(&self, file: impl AsRef<Path>) -> Result<FileType> {
+        exec(self.identify_file::<SyncEnv>(file.as_ref()))
+    }
+
+    /// Identifies a single file (asynchronously).
+    pub async fn identify_file_async(&self, file: impl AsRef<Path>) -> Result<FileType> {
+        self.identify_file::<AsyncEnv>(file.as_ref()).await
+    }
+
+    async fn identify_file<E: Env>(&self, file: &Path) -> Result<FileType> {
+        let metadata = E::symlink_metadata(file).await?;
+        if metadata.is_dir() {
+            Ok(FileType::Directory)
+        } else if metadata.is_symlink() {
+            Ok(FileType::Symlink(E::read_link(file).await?))
+        } else {
+            debug_assert!(metadata.is_file());
+            self.identify_content::<E>(E::open(file).await?).await
+        }
+    }
+
+    /// Identifies a single file from its content (synchronously).
+    pub fn identify_content_sync(&self, file: impl SyncInput) -> Result<FileType> {
+        exec(self.identify_content::<SyncEnv>(file))
+    }
+
+    /// Identifies a single file from its content (asynchronously).
+    pub async fn identify_content_async(&self, file: impl AsyncInput) -> Result<FileType> {
+        self.identify_content::<AsyncEnv>(file).await
+    }
+
+    async fn identify_content<E: Env>(&self, file: impl AsyncInputApi) -> Result<FileType> {
+        match FeaturesOrRuled::extract(file).await? {
+            FeaturesOrRuled::Ruled(content_type) => Ok(content_type.into()),
+            FeaturesOrRuled::Features(features) => self.identify_features::<E>(&features).await,
+        }
+    }
+
     /// Identifies a single file from its features (synchronously).
-    pub fn identify_one_sync(&self, features: &Features) -> Result<Output> {
-        let results = self.identify_many_sync(std::slice::from_ref(features))?;
-        let [result] = results.try_into().ok().unwrap();
-        Ok(result)
+    pub fn identify_features_sync(&self, features: &Features) -> Result<FileType> {
+        exec(self.identify_features::<SyncEnv>(features))
     }
 
     /// Identifies a single file from its features (asynchronously).
-    pub async fn identify_one_async(&self, features: &Features) -> Result<Output> {
-        let results = self.identify_many_async(std::slice::from_ref(features)).await?;
+    pub async fn identify_features_async(&self, features: &Features) -> Result<FileType> {
+        self.identify_features::<AsyncEnv>(features).await
+    }
+
+    async fn identify_features<E: Env>(&self, features: &Features) -> Result<FileType> {
+        let results = self.identify_features_batch::<E>(std::slice::from_ref(features)).await?;
         let [result] = results.try_into().ok().unwrap();
         Ok(result)
     }
 
     /// Identifies multiple files in parallel from their features (synchronously).
-    pub fn identify_many_sync(&self, features: &[Features]) -> Result<Vec<Output>> {
-        let run_async = |input| {
-            Ok(std::future::ready(Ok(self.session.run(ort::inputs!("bytes" => input)?)?)))
-        };
-        crate::future::exec(identify_async(run_async, features))
+    pub fn identify_features_batch_sync(&self, features: &[Features]) -> Result<Vec<FileType>> {
+        exec(self.identify_features_batch::<SyncEnv>(features))
     }
 
     /// Identifies multiple files in parallel from their features (asynchronously).
-    pub async fn identify_many_async(&self, features: &[Features]) -> Result<Vec<Output>> {
-        let run_async = |input| {
-            Ok(async { Ok(self.session.run_async(ort::inputs!("bytes" => input)?)?.await?) })
-        };
-        identify_async(run_async, features).await
+    pub async fn identify_features_batch_async(
+        &self, features: &[Features],
+    ) -> Result<Vec<FileType>> {
+        self.identify_features_batch::<AsyncEnv>(features).await
     }
-}
 
-async fn identify_async<'a, F, Fut>(run_async: F, features: &[Features]) -> Result<Vec<Output>>
-where
-    F: FnOnce(Array2<f32>) -> Result<Fut>,
-    Fut: Future<Output = Result<ort::SessionOutputs<'a>>>,
-{
-    if features.is_empty() {
-        return Ok(Vec::new());
+    async fn identify_features_batch<E: Env>(
+        &self, features: &[Features],
+    ) -> Result<Vec<FileType>> {
+        if features.is_empty() {
+            return Ok(Vec::new());
+        }
+        let features_size = crate::model::CONFIG.features_size();
+        let input = Array2::from_shape_vec(
+            [features.len(), features_size],
+            features.iter().flat_map(|x| &x.0).cloned().collect(),
+        )?;
+        let mut output = E::ort_session_run(&self.session, input).await?;
+        let output = output.remove("target_label").unwrap();
+        let output = output.try_extract_tensor()?;
+        Ok(FileType::convert(output))
     }
-    let input = Array2::from_shape_vec(
-        [features.len(), 3 * FEATURE_SIZE],
-        features.iter().flat_map(|x| &x.0).cloned().collect(),
-    )?;
-    let mut output = run_async(input)?.await?;
-    let output = output.remove("target_label").unwrap();
-    let output = output.try_extract_tensor()?;
-    Ok(Output::convert(output))
 }

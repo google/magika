@@ -1,0 +1,95 @@
+[1;34mtests_data/basic/code.asm: Assembly (code)[0m
+[1;34mtests_data/basic/code.c: C source (code)[0m
+[1;34mtests_data/basic/code.css: CSS source (code)[0m
+[1;34mtests_data/basic/code.js: JavaScript source (code)[0m
+[1mtests_data/basic/code.py: Generic text document (text) [Low-confidence model best-guess: Jinja Template (unknown), score=0.498][0m
+[1;34mtests_data/basic/code.rs: Rust source (code)[0m
+[1;34mtests_data/basic/code.smali: Smali source (code)[0m
+[1;35mtests_data/basic/doc.docx: Microsoft Word 2007+ document (document)[0m
+[1;35mtests_data/basic/doc.epub: EPUB document (document)[0m
+[1;34mtests_data/basic/doc.html: HTML document (code)[0m
+[1mtests_data/basic/doc.ini: INI configuration file (text)[0m
+[1;34mtests_data/basic/doc.json: JSON document (code)[0m
+[1;35mtests_data/basic/doc.odt: OpenDocument Text (document)[0m
+[1mtests_data/basic/doc.pem: PEM certificate (application)[0m
+[1mtests_data/basic/doc.pub: PEM certificate (application)[0m
+[1mtests_data/basic/doc.rtf: Rich Text Format document (text)[0m
+[1mtests_data/basic/text.txt: Generic text document (text) [Low-confidence model best-guess: ReStructuredText document (text), score=0.293][0m
+[1;31mtests_data/mitra/7-zip.7z: 7-zip archive data (archive)[0m
+[1;31mtests_data/mitra/NT.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/NTFS.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/PPMd.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/aes.zip: Zip archive data (archive)[0m
+[33mtests_data/mitra/bmp.bmp: BMP image data (image)[0m
+[1;31mtests_data/mitra/bz2.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/bzip2.bz2: bzip2 compressed data (archive)[0m
+[1;31mtests_data/mitra/cab.cab: Microsoft Cabinet archive data (archive)[0m
+[33mtests_data/mitra/cgbi.png: PNG image (image)[0m
+[1;31mtests_data/mitra/deflate64.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/directory.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/drive.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/dual.zip: Zip archive data (archive)[0m
+[1;32mtests_data/mitra/elf.elf: ELF executable (executable)[0m
+[1;32mtests_data/mitra/elf64.elf: ELF executable (executable)[0m
+[1;31mtests_data/mitra/filecomment.zip: Zip archive data (archive)[0m
+[33mtests_data/mitra/flac.flac: FLAC audio bitstream data (audio)[0m
+[33mtests_data/mitra/footer.tga: Targa image data (image)[0m
+[33mtests_data/mitra/gif87.gif: GIF image data (image)[0m
+[33mtests_data/mitra/gif89.gif: GIF image data (image)[0m
+[1;31mtests_data/mitra/gzip.gz: gzip compressed data (archive)[0m
+[1;31mtests_data/mitra/hello-gnu.tar: POSIX tar archive (archive)[0m
+[1;31mtests_data/mitra/hello-pax.tar: POSIX tar archive (archive)[0m
+[1;31mtests_data/mitra/hello-ustar.tar: POSIX tar archive (archive)[0m
+[1;31mtests_data/mitra/hello-world.xar: XAR archive compressed data (archive)[0m
+[1mtests_data/mitra/html.htm: Generic text document (text) [Low-confidence model best-guess: JavaScript source (code), score=0.209][0m
+[33mtests_data/mitra/id3v1.mp3: MP3 media file (audio)[0m
+[33mtests_data/mitra/id3v2.mp3: MP3 media file (audio)[0m
+[1;31mtests_data/mitra/implode.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/implodeV3.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/iso.iso: ISO 9660 CD-ROM filesystem data (archive)[0m
+[1;32mtests_data/mitra/java.class: Java compiled bytecode (executable)[0m
+[1;31mtests_data/mitra/jpeg.zip: Zip archive data (archive)[0m
+[33mtests_data/mitra/jpg.jpg: JPEG image data (image)[0m
+[1;31mtests_data/mitra/lzma.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/mini.xar: XAR archive compressed data (archive)[0m
+[1;31mtests_data/mitra/mini.zip: Zip archive data (archive)[0m
+[33mtests_data/mitra/mp4.mp4: MP4 media file (video)[0m
+[1mtests_data/mitra/pcap.pcap: pcap capture file (application)[0m
+[1mtests_data/mitra/pcapng.pcapng: Unknown binary data (unknown) [Low-confidence model best-guess: pcap capture file (application), score=0.484][0m
+[1;35mtests_data/mitra/pdf.pdf: PDF document (document)[0m
+[1;32mtests_data/mitra/pe32.exe: PE Windows executable (executable)[0m
+[1;32mtests_data/mitra/pe64.exe: PE Windows executable (executable)[0m
+[1;34mtests_data/mitra/php.php: PHP source (code)[0m
+[33mtests_data/mitra/png.png: PNG image (image)[0m
+[1;31mtests_data/mitra/rar4.rar: RAR archive data (archive)[0m
+[1;31mtests_data/mitra/rar5.rar: RAR archive data (archive)[0m
+[1;31mtests_data/mitra/reduced1.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/reduced2.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/reduced3.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/reduced4.zip: Zip archive data (archive)[0m
+[1mtests_data/mitra/rich.rtf: Rich Text Format document (text)[0m
+[33mtests_data/mitra/riff.wav: Waveform Audio file (WAV) (audio)[0m
+[33mtests_data/mitra/rifx.wav: Waveform Audio file (WAV) (audio)[0m
+[1;31mtests_data/mitra/shrunk.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/simple.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/store.zip: Zip archive data (archive)[0m
+[33mtests_data/mitra/svg.svg: SVG Scalable Vector Graphics image data (image)[0m
+[1;31mtests_data/mitra/tar.tar: POSIX tar archive (archive)[0m
+[33mtests_data/mitra/tiff-be.tif: TIFF image data (image)[0m
+[33mtests_data/mitra/tiff-le.tif: TIFF image data (image)[0m
+[33mtests_data/mitra/tiny.flac: FLAC audio bitstream data (audio)[0m
+[1;31mtests_data/mitra/unicode.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/unicode2.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/unix.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/unixdesc.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/volumecomment.zip: Zip archive data (archive)[0m
+[33mtests_data/mitra/vorbis.ogg: Ogg data (audio)[0m
+[1;31mtests_data/mitra/wavpack.zip: Zip archive data (archive)[0m
+[33mtests_data/mitra/webm.webm: WebM (video)[0m
+[33mtests_data/mitra/webp.webp: WebP (image)[0m
+[33mtests_data/mitra/webpl.webp: WebP (image)[0m
+[1;31mtests_data/mitra/xz.xz: XZ compressed data (archive)[0m
+[1;31mtests_data/mitra/zip.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/zip64.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/zipcrypto.zip: Zip archive data (archive)[0m
+[1;31mtests_data/mitra/zopfli.zip: Zip archive data (archive)[0m

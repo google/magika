@@ -13,12 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
+. ../color.sh
 
-cargo check
-cargo test --features=_test
-cargo fmt -- --check
-cargo clippy -- --deny=warnings
-if cargo --version | grep -q nightly; then
-  RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
-fi
+info "Build CLI"
+cd ../cli
+cargo build --release
+
+cd ../..
+run() {
+  info "Run with $*"
+  local file
+  local arg
+  for arg in "$@"; do
+    [ -z "$file" ] || file="$file"_
+    file="$file${arg#--}"
+  done
+  file=rust/out/"$file"
+  local paths='tests_data/basic tests_data/mitra'
+  rust/target/release/magika --recursive $paths "$@" > "$file".out 2> "$file".err
+  [ -n "$(cat "$file".err)" ] || rm "$file".err
+}
+
+run --colors
+run --json
+run --jsonl
+run --label
+run --mime-type --output-score
+git diff --exit-code || error "Difference in CLI output"

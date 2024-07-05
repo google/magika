@@ -14,18 +14,19 @@ categories = ["command-line-utilities", "filesystem", "parser-implementations"]
 features = ["_doc"]
 
 [features]
-tokio = ["dep:tokio"]
+serde = ["dep:serde"]
 # Internal features.
-_doc = ["tokio"]
+_doc = []
 _test = ["ort/download-binaries"]
 
 [dependencies]
 ndarray = "0.15.1"
+serde = { version = "1.0.197", features = ["derive"], optional = true }
 thiserror = "1.0.57"
-tokio = { version = "1.37.0", features = ["fs", "io-util"], optional = true }
+tokio = { version = "1.37.0", features = ["fs", "io-util"] }
 
 [dependencies.ort]
-version = "2.0.0-rc.1"
+version = "2.0.0-rc.2"
 default-features = false
 features = ["ndarray"]
 

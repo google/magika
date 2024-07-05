@@ -17,13 +17,12 @@
 //! # Examples
 //!
 //! ```rust
-//! use magika::{Features, Label, Session};
+//! use magika::{FileType, Features, Session};
 //!
 //! # fn main() -> magika::Result<()> {
 //! let magika = Session::new()?;
-//! let features = Features::extract_sync(&b"#!/bin/sh\necho hello"[..])?;
-//! let result = magika.identify_one_sync(&features)?;
-//! assert_eq!(result.label(), Label::Shell);
+//! let result = magika.identify_content_sync(&b"#!/bin/sh\necho hello"[..])?;
+//! assert_eq!(result.info().label, "shell");
 //! # Ok(())
 //! # }
 //! ```
@@ -31,16 +30,18 @@
 #![cfg_attr(feature = "_doc", feature(doc_auto_cfg))]
 
 pub use crate::builder::Builder;
+pub use crate::content::ContentType;
 pub use crate::error::{Error, Result};
-pub use crate::input::{AsyncInput, Features, SyncInput};
-pub use crate::label::Label;
-pub use crate::output::Output;
+pub use crate::file::{FileType, InferredType, RuledType, TypeInfo};
+pub use crate::input::{AsyncInput, Features, FeaturesOrRuled, SyncInput};
 pub use crate::session::Session;
 
 mod builder;
+mod config;
+mod content;
 mod error;
+mod file;
 mod future;
 mod input;
-mod label;
-mod output;
+mod model;
 mod session;

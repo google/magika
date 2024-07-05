@@ -1,0 +1,2810 @@
+[
+  {
+    "path": "tests_data/basic/code.asm",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Assembly",
+          "extensions": [
+            "s",
+            "S",
+            "asm"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "asm",
+          "mime_type": "text/x-asm"
+        },
+        "output": {
+          "description": "Assembly",
+          "extensions": [
+            "s",
+            "S",
+            "asm"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "asm",
+          "mime_type": "text/x-asm"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/code.c",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "C source",
+          "extensions": [
+            "c"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "c",
+          "mime_type": "text/x-c"
+        },
+        "output": {
+          "description": "C source",
+          "extensions": [
+            "c"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "c",
+          "mime_type": "text/x-c"
+        },
+        "score": 0.8700000047683716
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/code.css",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "CSS source",
+          "extensions": [
+            "css"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "css",
+          "mime_type": "text/css"
+        },
+        "output": {
+          "description": "CSS source",
+          "extensions": [
+            "css"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "css",
+          "mime_type": "text/css"
+        },
+        "score": 0.9810000061988831
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/code.js",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "JavaScript source",
+          "extensions": [
+            "js",
+            "mjs",
+            "cjs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "javascript",
+          "mime_type": "application/javascript"
+        },
+        "output": {
+          "description": "JavaScript source",
+          "extensions": [
+            "js",
+            "mjs",
+            "cjs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "javascript",
+          "mime_type": "application/javascript"
+        },
+        "score": 0.9819999933242798
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/code.py",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Jinja Template",
+          "extensions": [
+            "jinja",
+            "jinja2",
+            "j2"
+          ],
+          "group": "unknown",
+          "is_text": true,
+          "label": "jinja",
+          "mime_type": "text/plain"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/code.rs",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "output": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "score": 0.9789999723434448
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/code.smali",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Smali source",
+          "extensions": [
+            "smali"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "smali",
+          "mime_type": "application/x-smali"
+        },
+        "output": {
+          "description": "Smali source",
+          "extensions": [
+            "smali"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "smali",
+          "mime_type": "application/x-smali"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.docx",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Microsoft Word 2007+ document",
+          "extensions": [
+            "docx",
+            "docm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "docx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "output": {
+          "description": "Microsoft Word 2007+ document",
+          "extensions": [
+            "docx",
+            "docm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "docx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.epub",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "EPUB document",
+          "extensions": [
+            "epub"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "epub",
+          "mime_type": "application/epub+zip"
+        },
+        "output": {
+          "description": "EPUB document",
+          "extensions": [
+            "epub"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "epub",
+          "mime_type": "application/epub+zip"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.html",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "HTML document",
+          "extensions": [
+            "html",
+            "htm",
+            "xhtml",
+            "xht"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "html",
+          "mime_type": "text/html"
+        },
+        "output": {
+          "description": "HTML document",
+          "extensions": [
+            "html",
+            "htm",
+            "xhtml",
+            "xht"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "html",
+          "mime_type": "text/html"
+        },
+        "score": 0.9100000262260437
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.ini",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "INI configuration file",
+          "extensions": [
+            "ini"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "ini",
+          "mime_type": "text/plain"
+        },
+        "output": {
+          "description": "INI configuration file",
+          "extensions": [
+            "ini"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "ini",
+          "mime_type": "text/plain"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.json",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "JSON document",
+          "extensions": [
+            "json"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "json",
+          "mime_type": "application/json"
+        },
+        "output": {
+          "description": "JSON document",
+          "extensions": [
+            "json"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "json",
+          "mime_type": "application/json"
+        },
+        "score": 0.7829999923706055
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.odt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "OpenDocument Text",
+          "extensions": [
+            "odt"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odt",
+          "mime_type": "application/vnd.oasis.opendocument.text"
+        },
+        "output": {
+          "description": "OpenDocument Text",
+          "extensions": [
+            "odt"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odt",
+          "mime_type": "application/vnd.oasis.opendocument.text"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.pem",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "output": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.pub",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "output": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/doc.rtf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "output": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/text.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "ReStructuredText document",
+          "extensions": [
+            "rst"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rst",
+          "mime_type": "text/x-rst"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/7-zip.7z",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "7-zip archive data",
+          "extensions": [
+            "7z"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "sevenzip",
+          "mime_type": "application/x-7z-compressed"
+        },
+        "output": {
+          "description": "7-zip archive data",
+          "extensions": [
+            "7z"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "sevenzip",
+          "mime_type": "application/x-7z-compressed"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/NT.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9929999709129333
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/NTFS.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9829999804496765
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/PPMd.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9459999799728394
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/aes.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9819999933242798
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/bmp.bmp",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "BMP image data",
+          "extensions": [
+            "bmp"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "bmp",
+          "mime_type": "image/bmp"
+        },
+        "output": {
+          "description": "BMP image data",
+          "extensions": [
+            "bmp"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "bmp",
+          "mime_type": "image/bmp"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/bz2.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9959999918937683
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/bzip2.bz2",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "bzip2 compressed data",
+          "extensions": [
+            "bz2",
+            "tbz2",
+            "tar.bz2"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "bzip",
+          "mime_type": "application/x-bzip2"
+        },
+        "output": {
+          "description": "bzip2 compressed data",
+          "extensions": [
+            "bz2",
+            "tbz2",
+            "tar.bz2"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "bzip",
+          "mime_type": "application/x-bzip2"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/cab.cab",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Microsoft Cabinet archive data",
+          "extensions": [
+            "cab"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "cab",
+          "mime_type": "application/vnd.ms-cab-compressed"
+        },
+        "output": {
+          "description": "Microsoft Cabinet archive data",
+          "extensions": [
+            "cab"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "cab",
+          "mime_type": "application/vnd.ms-cab-compressed"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/cgbi.png",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PNG image",
+          "extensions": [
+            "png"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "png",
+          "mime_type": "image/png"
+        },
+        "output": {
+          "description": "PNG image",
+          "extensions": [
+            "png"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "png",
+          "mime_type": "image/png"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/deflate64.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9959999918937683
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/directory.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9950000047683716
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/drive.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9290000200271606
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/dual.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9929999709129333
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/elf.elf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "ELF executable",
+          "extensions": [
+            "elf"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "elf",
+          "mime_type": "application/x-executable-elf"
+        },
+        "output": {
+          "description": "ELF executable",
+          "extensions": [
+            "elf"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "elf",
+          "mime_type": "application/x-executable-elf"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/elf64.elf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "ELF executable",
+          "extensions": [
+            "elf"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "elf",
+          "mime_type": "application/x-executable-elf"
+        },
+        "output": {
+          "description": "ELF executable",
+          "extensions": [
+            "elf"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "elf",
+          "mime_type": "application/x-executable-elf"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/filecomment.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9879999756813049
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/flac.flac",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "FLAC audio bitstream data",
+          "extensions": [
+            "flac"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "flac",
+          "mime_type": "audio/flac"
+        },
+        "output": {
+          "description": "FLAC audio bitstream data",
+          "extensions": [
+            "flac"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "flac",
+          "mime_type": "audio/flac"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/footer.tga",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Targa image data",
+          "extensions": [
+            "tga"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "tga",
+          "mime_type": "image/x-tga"
+        },
+        "output": {
+          "description": "Targa image data",
+          "extensions": [
+            "tga"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "tga",
+          "mime_type": "image/x-tga"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/gif87.gif",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "GIF image data",
+          "extensions": [
+            "gif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "gif",
+          "mime_type": "image/gif"
+        },
+        "output": {
+          "description": "GIF image data",
+          "extensions": [
+            "gif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "gif",
+          "mime_type": "image/gif"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/gif89.gif",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "GIF image data",
+          "extensions": [
+            "gif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "gif",
+          "mime_type": "image/gif"
+        },
+        "output": {
+          "description": "GIF image data",
+          "extensions": [
+            "gif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "gif",
+          "mime_type": "image/gif"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/gzip.gz",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "gzip compressed data",
+          "extensions": [
+            "gz",
+            "gzip",
+            "tgz",
+            "tar.gz"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "gzip",
+          "mime_type": "application/gzip"
+        },
+        "output": {
+          "description": "gzip compressed data",
+          "extensions": [
+            "gz",
+            "gzip",
+            "tgz",
+            "tar.gz"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "gzip",
+          "mime_type": "application/gzip"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/hello-gnu.tar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "output": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/hello-pax.tar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "output": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/hello-ustar.tar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "output": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/hello-world.xar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "XAR archive compressed data",
+          "extensions": [
+            "pkg",
+            "xar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "xar",
+          "mime_type": "application/x-xar"
+        },
+        "output": {
+          "description": "XAR archive compressed data",
+          "extensions": [
+            "pkg",
+            "xar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "xar",
+          "mime_type": "application/x-xar"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/html.htm",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "JavaScript source",
+          "extensions": [
+            "js",
+            "mjs",
+            "cjs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "javascript",
+          "mime_type": "application/javascript"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/id3v1.mp3",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "MP3 media file",
+          "extensions": [
+            "mp3"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "mp3",
+          "mime_type": "audio/mpeg"
+        },
+        "output": {
+          "description": "MP3 media file",
+          "extensions": [
+            "mp3"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "mp3",
+          "mime_type": "audio/mpeg"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/id3v2.mp3",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "MP3 media file",
+          "extensions": [
+            "mp3"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "mp3",
+          "mime_type": "audio/mpeg"
+        },
+        "output": {
+          "description": "MP3 media file",
+          "extensions": [
+            "mp3"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "mp3",
+          "mime_type": "audio/mpeg"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/implode.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/implodeV3.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9929999709129333
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/iso.iso",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "ISO 9660 CD-ROM filesystem data",
+          "extensions": [
+            "iso"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "iso",
+          "mime_type": "application/x-iso9660-image"
+        },
+        "output": {
+          "description": "ISO 9660 CD-ROM filesystem data",
+          "extensions": [
+            "iso"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "iso",
+          "mime_type": "application/x-iso9660-image"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/java.class",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Java compiled bytecode",
+          "extensions": [
+            "class"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "javabytecode",
+          "mime_type": "application/x-java-applet"
+        },
+        "output": {
+          "description": "Java compiled bytecode",
+          "extensions": [
+            "class"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "javabytecode",
+          "mime_type": "application/x-java-applet"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/jpeg.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9670000076293945
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/jpg.jpg",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "JPEG image data",
+          "extensions": [
+            "jpg",
+            "jpeg"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "jpeg",
+          "mime_type": "image/jpeg"
+        },
+        "output": {
+          "description": "JPEG image data",
+          "extensions": [
+            "jpg",
+            "jpeg"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "jpeg",
+          "mime_type": "image/jpeg"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/lzma.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9929999709129333
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/mini.xar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "XAR archive compressed data",
+          "extensions": [
+            "pkg",
+            "xar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "xar",
+          "mime_type": "application/x-xar"
+        },
+        "output": {
+          "description": "XAR archive compressed data",
+          "extensions": [
+            "pkg",
+            "xar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "xar",
+          "mime_type": "application/x-xar"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/mini.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9300000071525574
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/mp4.mp4",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "MP4 media file",
+          "extensions": [
+            "mp4"
+          ],
+          "group": "video",
+          "is_text": false,
+          "label": "mp4",
+          "mime_type": "video/mp4"
+        },
+        "output": {
+          "description": "MP4 media file",
+          "extensions": [
+            "mp4"
+          ],
+          "group": "video",
+          "is_text": false,
+          "label": "mp4",
+          "mime_type": "video/mp4"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/pcap.pcap",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "pcap capture file",
+          "extensions": [
+            "pcap",
+            "pcapng"
+          ],
+          "group": "application",
+          "is_text": false,
+          "label": "pcap",
+          "mime_type": "application/vnd.tcpdump.pcap"
+        },
+        "output": {
+          "description": "pcap capture file",
+          "extensions": [
+            "pcap",
+            "pcapng"
+          ],
+          "group": "application",
+          "is_text": false,
+          "label": "pcap",
+          "mime_type": "application/vnd.tcpdump.pcap"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/pcapng.pcapng",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "pcap capture file",
+          "extensions": [
+            "pcap",
+            "pcapng"
+          ],
+          "group": "application",
+          "is_text": false,
+          "label": "pcap",
+          "mime_type": "application/vnd.tcpdump.pcap"
+        },
+        "output": {
+          "description": "Unknown binary data",
+          "extensions": [],
+          "group": "unknown",
+          "is_text": false,
+          "label": "unknown",
+          "mime_type": "application/octet-stream"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/pdf.pdf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "output": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/pe32.exe",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PE Windows executable",
+          "extensions": [
+            "exe",
+            "dll"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "pebin",
+          "mime_type": "application/x-dosexec"
+        },
+        "output": {
+          "description": "PE Windows executable",
+          "extensions": [
+            "exe",
+            "dll"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "pebin",
+          "mime_type": "application/x-dosexec"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/pe64.exe",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PE Windows executable",
+          "extensions": [
+            "exe",
+            "dll"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "pebin",
+          "mime_type": "application/x-dosexec"
+        },
+        "output": {
+          "description": "PE Windows executable",
+          "extensions": [
+            "exe",
+            "dll"
+          ],
+          "group": "executable",
+          "is_text": false,
+          "label": "pebin",
+          "mime_type": "application/x-dosexec"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/php.php",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PHP source",
+          "extensions": [
+            "php"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "php",
+          "mime_type": "text/x-php"
+        },
+        "output": {
+          "description": "PHP source",
+          "extensions": [
+            "php"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "php",
+          "mime_type": "text/x-php"
+        },
+        "score": 0.9959999918937683
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/png.png",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PNG image",
+          "extensions": [
+            "png"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "png",
+          "mime_type": "image/png"
+        },
+        "output": {
+          "description": "PNG image",
+          "extensions": [
+            "png"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "png",
+          "mime_type": "image/png"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/rar4.rar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "RAR archive data",
+          "extensions": [
+            "rar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "rar",
+          "mime_type": "application/x-rar"
+        },
+        "output": {
+          "description": "RAR archive data",
+          "extensions": [
+            "rar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "rar",
+          "mime_type": "application/x-rar"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/rar5.rar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "RAR archive data",
+          "extensions": [
+            "rar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "rar",
+          "mime_type": "application/x-rar"
+        },
+        "output": {
+          "description": "RAR archive data",
+          "extensions": [
+            "rar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "rar",
+          "mime_type": "application/x-rar"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/reduced1.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.5609999895095825
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/reduced2.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9309999942779541
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/reduced3.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.8299999833106995
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/reduced4.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.8550000190734863
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/rich.rtf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "output": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/riff.wav",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Waveform Audio file (WAV)",
+          "extensions": [
+            "wav"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "wav",
+          "mime_type": "audio/x-wav"
+        },
+        "output": {
+          "description": "Waveform Audio file (WAV)",
+          "extensions": [
+            "wav"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "wav",
+          "mime_type": "audio/x-wav"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/rifx.wav",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Waveform Audio file (WAV)",
+          "extensions": [
+            "wav"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "wav",
+          "mime_type": "audio/x-wav"
+        },
+        "output": {
+          "description": "Waveform Audio file (WAV)",
+          "extensions": [
+            "wav"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "wav",
+          "mime_type": "audio/x-wav"
+        },
+        "score": 0.9950000047683716
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/shrunk.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9520000219345093
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/simple.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.996999979019165
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/store.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9900000095367432
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/svg.svg",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "SVG Scalable Vector Graphics image data",
+          "extensions": [
+            "svg"
+          ],
+          "group": "image",
+          "is_text": true,
+          "label": "svg",
+          "mime_type": "image/svg+xml"
+        },
+        "output": {
+          "description": "SVG Scalable Vector Graphics image data",
+          "extensions": [
+            "svg"
+          ],
+          "group": "image",
+          "is_text": true,
+          "label": "svg",
+          "mime_type": "image/svg+xml"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/tar.tar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "output": {
+          "description": "POSIX tar archive",
+          "extensions": [
+            "tar"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "tar",
+          "mime_type": "application/x-tar"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/tiff-be.tif",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "TIFF image data",
+          "extensions": [
+            "tiff",
+            "tif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "tiff",
+          "mime_type": "image/tiff"
+        },
+        "output": {
+          "description": "TIFF image data",
+          "extensions": [
+            "tiff",
+            "tif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "tiff",
+          "mime_type": "image/tiff"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/tiff-le.tif",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "TIFF image data",
+          "extensions": [
+            "tiff",
+            "tif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "tiff",
+          "mime_type": "image/tiff"
+        },
+        "output": {
+          "description": "TIFF image data",
+          "extensions": [
+            "tiff",
+            "tif"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "tiff",
+          "mime_type": "image/tiff"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/tiny.flac",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "FLAC audio bitstream data",
+          "extensions": [
+            "flac"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "flac",
+          "mime_type": "audio/flac"
+        },
+        "output": {
+          "description": "FLAC audio bitstream data",
+          "extensions": [
+            "flac"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "flac",
+          "mime_type": "audio/flac"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/unicode.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.8640000224113464
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/unicode2.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9940000176429749
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/unix.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9869999885559082
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/unixdesc.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.7620000243186951
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/volumecomment.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9190000295639038
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/vorbis.ogg",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Ogg data",
+          "extensions": [
+            "ogg"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "ogg",
+          "mime_type": "audio/ogg"
+        },
+        "output": {
+          "description": "Ogg data",
+          "extensions": [
+            "ogg"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "ogg",
+          "mime_type": "audio/ogg"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/wavpack.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.984000027179718
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/webm.webm",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "WebM",
+          "extensions": [
+            "webm"
+          ],
+          "group": "video",
+          "is_text": false,
+          "label": "webm",
+          "mime_type": "video/webm"
+        },
+        "output": {
+          "description": "WebM",
+          "extensions": [
+            "webm"
+          ],
+          "group": "video",
+          "is_text": false,
+          "label": "webm",
+          "mime_type": "video/webm"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/webp.webp",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "WebP",
+          "extensions": [
+            "webp"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "webp",
+          "mime_type": "image/webp"
+        },
+        "output": {
+          "description": "WebP",
+          "extensions": [
+            "webp"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "webp",
+          "mime_type": "image/webp"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/webpl.webp",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "WebP",
+          "extensions": [
+            "webp"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "webp",
+          "mime_type": "image/webp"
+        },
+        "output": {
+          "description": "WebP",
+          "extensions": [
+            "webp"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "webp",
+          "mime_type": "image/webp"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/xz.xz",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "XZ compressed data",
+          "extensions": [
+            "xz"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "xz",
+          "mime_type": "application/x-xz"
+        },
+        "output": {
+          "description": "XZ compressed data",
+          "extensions": [
+            "xz"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "xz",
+          "mime_type": "application/x-xz"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/zip.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9900000095367432
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/zip64.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9959999918937683
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/zipcrypto.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9959999918937683
+      }
+    }
+  },
+  {
+    "path": "tests_data/mitra/zopfli.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9860000014305115
+      }
+    }
+  }
+]

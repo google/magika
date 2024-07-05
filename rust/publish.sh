@@ -16,11 +16,9 @@
 set -e
 . ./color.sh
 
-# This script removes all -dev suffixes and creates a commit. It also makes sure that no TODOs for
-# the release are left.
+# This script removes all -dev suffixes and creates a commit.
 
 [ -z "$(git status -s)" ] || error "Repository is not clean"
-git grep 'TODO(release)' ':!publish.sh' && error "Fix the TODOs listed above"
 
 info "Removing all -dev suffixes (if any)"
 sed -i 's/-dev//' $(git ls-files '*/'{Cargo.{toml,lock},CHANGELOG.md})
@@ -29,5 +27,5 @@ if [ -n "$(git status -s)" ]; then
   git commit -aqm'Release Rust crates'
   todo "Create a PR with this commit, merge it, and publish from the PR commit"
 else
-  color '1;32' Done 'No change since last release'
+  success 'No change since last release'
 fi

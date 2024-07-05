@@ -16,7 +16,7 @@
 set -e
 . ./color.sh
 
-for dir in gen lib cli; do
+for dir in gen lib cli out; do
   info "Running $dir/test.sh"
   ( cd $dir && ./test.sh; )
 done

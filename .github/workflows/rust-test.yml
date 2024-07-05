@@ -5,19 +5,13 @@ on:
   push:
     branches:
       - 'main'
-    paths:
-      - '.github/workflows/**'
-      - 'python/magika/config/content_types_config.json'
-      - 'python/magika/models/standard_v1/model.onnx'
-      - 'rust/**'
-      - 'tests_data/features_extraction/reference.json.gz'
   pull_request:
     paths:
       - '.github/workflows/**'
-      - 'python/magika/config/content_types_config.json'
-      - 'python/magika/models/standard_v1/model.onnx'
+      - 'python/magika/config/**'
+      - 'python/magika/models/**'
       - 'rust/**'
-      - 'tests_data/features_extraction/reference.json.gz'
+      - 'tests_data/**'
 
 permissions:
   contents: read

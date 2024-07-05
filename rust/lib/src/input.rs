@@ -13,8 +13,7 @@
 // limitations under the License.
 
 use std::future::Future;
-use std::io::SeekFrom;
-use std::os::unix::fs::FileExt as _;
+use std::io::{Read, Seek, SeekFrom};
 
 use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
 
@@ -66,7 +65,8 @@ impl SyncInputApi for std::fs::File {
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
-        Ok(self.read_exact_at(buffer, offset as u64)?)
+        self.seek(SeekFrom::Start(offset as u64))?;
+        Ok(self.read_exact(buffer)?)
     }
 }
 

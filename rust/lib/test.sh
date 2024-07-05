@@ -23,3 +23,13 @@ cargo clippy -- --deny=warnings
 if cargo --version | grep -q nightly; then
   RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
 fi
+
+# Make sure we can build for the targets we care about.
+TARGETS='
+x86_64-unknown-linux-gnu
+x86_64-apple-darwin
+x86_64-pc-windows-msvc
+'
+for target in $TARGETS; do
+  cargo build --release --target=$target
+done

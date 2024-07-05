@@ -30,7 +30,7 @@ from tabulate import tabulate
 
 from magika import Magika, MagikaError, PredictionMode, colors
 from magika.logger import get_logger
-from magika.types import ContentTypeLabel, FeedbackReport, MagikaResult
+from magika.types import ContentTypeLabel, MagikaResult
 
 # TODO: the version should be migrated to the magika module, or somewhere else in python/
 VERSION = importlib.metadata.version("magika")
@@ -117,12 +117,6 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 @click.option("-v", "--verbose", is_flag=True, help="Enable more verbose output.")
 @click.option("-vv", "--debug", is_flag=True, help="Enable debug logging.")
 @click.option(
-    "--generate-report",
-    "generate_report_flag",
-    is_flag=True,
-    help="Generate report useful when reporting feedback.",
-)
-@click.option(
     "--dump-performance-stats",
     "dump_performance_stats_flag",
     is_flag=True,
@@ -153,7 +147,6 @@ def main(
     with_colors: bool,
     verbose: bool,
     debug: bool,
-    generate_report_flag: bool,
     dump_performance_stats_flag: bool,
     output_version: bool,
     model_dir: Optional[Path],
@@ -272,9 +265,6 @@ def main(
     # updated only when we need to output in JSON format
     all_predictions: List[MagikaResult] = []
 
-    # used only when the user decides to generate a feedback report
-    report_entries: List[FeedbackReport] = []
-
     batches_num = len(files_paths) // batch_size
     if len(files_paths) % batch_size != 0:
         batches_num += 1
@@ -337,19 +327,10 @@ def main(
                         f"{start_color}{result.path}: {output}{end_color}"
                     )
 
-        if generate_report_flag:
-            for file_path, result in zip(files_, batch_predictions):
-                report_entries.append(
-                    generate_feedback_report(magika, file_path, result)
-                )
-
     if json_output:
         _l.raw_print_to_stdout(
             json.dumps([res.asdict() for res in all_predictions], indent=4)
         )
-
-    if generate_report_flag:
-        print_feedback_report(magika=magika, reports=report_entries)
 
     if dump_performance_stats_flag:
         magika.dump_performance_stats()
@@ -363,70 +344,6 @@ def get_magika_result_from_stdin(magika: Magika) -> MagikaResult:
     content = sys.stdin.buffer.read()
     result = magika.identify_bytes(content)
     return result
-
-
-def generate_feedback_report(
-    magika: Magika, file_path: Path, magika_result: MagikaResult
-) -> FeedbackReport:
-    magika_result_copy = copy.copy(magika_result)
-    magika_result_copy.path = Path("REMOVED")  # avoid PII
-    features = Magika._extract_features_from_path(
-        file_path,
-        beg_size=magika._model_config.beg_size,
-        mid_size=magika._model_config.mid_size,
-        end_size=magika._model_config.end_size,
-        padding_token=magika._model_config.padding_token,
-        block_size=magika._model_config.block_size,
-    )
-    return FeedbackReport(
-        hash=hashlib.sha256(file_path.read_bytes()).hexdigest(),
-        features=features,
-        result=magika_result_copy,
-    )
-
-
-def print_feedback_report(magika: Magika, reports: List[FeedbackReport]) -> None:
-    _l = get_logger()
-
-    processed_reports = [
-        {
-            "hash": report.hash,
-            "features": json.dumps(dataclasses.asdict(report.features)).replace(
-                " ", ""
-            ),
-            "result": report.result.asdict(),
-        }
-        for report in reports
-    ]
-
-    full_report = {
-        "version": VERSION,
-        "model_dir_name": magika.get_model_dir_name(),
-        "python_version": sys.version,
-        "reports": processed_reports,
-    }
-    report_header = "REPORT"
-    report_header_full_len = 40
-    _l.raw_print("#" * report_header_full_len)
-    _l.raw_print(
-        "###"
-        + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
-        + report_header
-        + (" " * ((report_header_full_len - 6 - len(report_header)) // 2))
-        + "###",
-    )
-    _l.raw_print("#" * report_header_full_len)
-    _l.raw_print(json.dumps(full_report))
-    _l.raw_print("#" * report_header_full_len)
-    _l.raw_print(
-        f"Please copy/paste the above as a description of your issue. Open a GitHub issue or reach out at {CONTACT_EMAIL}.",
-    )
-    _l.raw_print(
-        "Please include as many details as possible, e.g., what was the expected content type.",
-    )
-    _l.raw_print(
-        "IMPORTANT: do NOT submit private information or PII! The extracted features include many bytes of the tested files!",
-    )
 
 
 if __name__ == "__main__":

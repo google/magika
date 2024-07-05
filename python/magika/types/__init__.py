@@ -17,8 +17,7 @@ from __future__ import annotations
 
 from magika.types.content_type_info import ContentTypeInfo  # noqa: F401
 from magika.types.content_type_label import ContentTypeLabel  # noqa: F401
-from magika.types.feedback_report import FeedbackReport  # noqa: F401
-from magika.types.magika_result import MagikaResult, MagikaResultError  # noqa: F401
+from magika.types.magika_result import MagikaResult  # noqa: F401
 from magika.types.model import (  # noqa: F401
     ModelConfig,
     ModelFeatures,

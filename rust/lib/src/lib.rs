@@ -34,7 +34,7 @@
 #![cfg_attr(feature = "_doc", feature(doc_auto_cfg))]
 
 pub use crate::builder::Builder;
-pub use crate::content::ContentType;
+pub use crate::content::{ContentType, MODEL_NAME};
 pub use crate::error::{Error, Result};
 pub use crate::file::{FileType, InferredType, RuledType, TypeInfo};
 pub use crate::input::{AsyncInput, Features, FeaturesOrRuled, SyncInput};

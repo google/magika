@@ -17,6 +17,9 @@
 
 use crate::file::TypeInfo;
 
+/// Model name (only comparable with equality).
+pub const MODEL_NAME: &str = "draft_v2";
+
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",
     mime_type: "application/octet-stream",

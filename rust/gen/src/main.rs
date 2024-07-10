@@ -24,14 +24,22 @@ fn main() -> Result<()> {
     let content_types: BTreeMap<String, ContentType> = serde_json::from_reader(File::open(
         "../../python/magika/config/content_types_kb.min.json",
     )?)?;
+    let model_name = std::fs::read_link("model")?;
+    let model_name = model_name
+        .components()
+        .last()
+        .context("model link")?
+        .as_os_str()
+        .to_str()
+        .context("model name")?;
     let model_config = serde_json::from_reader(File::open("model/config.min.json")?)?;
-    let content_types = generate_content_types(content_types, &model_config)?;
+    let content_types = generate_content_types(content_types, model_name, &model_config)?;
     generate_model_config(&content_types, model_config)?;
     Ok(())
 }
 
 fn generate_content_types(
-    mut content_types: BTreeMap<String, ContentType>, model_config: &ModelConfig,
+    mut content_types: BTreeMap<String, ContentType>, model_name: &str, model_config: &ModelConfig,
 ) -> Result<Vec<String>> {
     // We only want to generate file types that are model labels (including from older versions of
     // the library) or special labels (including from older versions).
@@ -44,6 +52,8 @@ fn generate_content_types(
     content_types.retain(|x, _| labels.contains(x.as_str()));
     let mut output = create_generated_file("../lib/src/content.rs")?;
     writeln!(output, "use crate::file::TypeInfo;\n")?;
+    writeln!(output, "/// Model name (only comparable with equality).")?;
+    writeln!(output, "pub const MODEL_NAME: &str = {model_name:?};\n")?;
     struct Variant {
         label: String,
         doc: String,

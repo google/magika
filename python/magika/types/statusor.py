@@ -46,3 +46,9 @@ class StatusOr(Generic[T]):
             assert self._value is not None
             return self._value
         raise ValueError("value is not set when status != OK")
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __str__(self) -> str:
+        return f"StatusOr(status={self.status}, value={self.value})"

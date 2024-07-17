@@ -18,12 +18,9 @@ import string
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
-from magika.content_types import ContentTypesManager
 from magika.types import (
-    MagikaOutputFields,
     MagikaResult,
     ModelFeatures,
-    ModelOutputFields,
 )
 
 

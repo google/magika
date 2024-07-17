@@ -55,10 +55,10 @@ def test_magika_module_with_basic_tests_by_paths() -> None:
 
     for test_path, result in zip(tests_paths, results):
         assert result.ok
-        file_ext = test_path.suffix.lstrip(".")
-        true_cts_labels = get_content_types_from_ext(m, file_ext)
-        assert len(true_cts_labels) > 0
-        assert result.value.output.label in true_cts_labels
+        expected_ct_label = get_expected_content_type_label_from_test_file_path(
+            test_path
+        )
+        assert result.value.output.label == expected_ct_label
 
 
 def test_magika_module_with_basic_tests_by_path() -> None:
@@ -70,10 +70,10 @@ def test_magika_module_with_basic_tests_by_path() -> None:
     for test_path in tests_paths:
         result = m.identify_path(test_path)
         assert result.ok
-        file_ext = test_path.suffix.lstrip(".")
-        true_cts_labels = get_content_types_from_ext(m, file_ext)
-        assert len(true_cts_labels) > 0
-        assert result.value.output.label in true_cts_labels
+        expected_ct_label = get_expected_content_type_label_from_test_file_path(
+            test_path
+        )
+        assert result.value.output.label == expected_ct_label
 
 
 def test_magika_module_with_basic_tests_by_bytes() -> None:
@@ -86,10 +86,10 @@ def test_magika_module_with_basic_tests_by_bytes() -> None:
         content = test_path.read_bytes()
         result = m.identify_bytes(content)
         assert result.ok
-        file_ext = test_path.suffix.lstrip(".")
-        true_cts_labels = get_content_types_from_ext(m, file_ext)
-        assert len(true_cts_labels) > 0
-        assert result.value.output.label in true_cts_labels
+        expected_ct_label = get_expected_content_type_label_from_test_file_path(
+            test_path
+        )
+        assert result.value.output.label == expected_ct_label
 
 
 def test_magika_module_with_mitra_tests_by_paths() -> None:
@@ -103,10 +103,10 @@ def test_magika_module_with_mitra_tests_by_paths() -> None:
     for test_path, result in zip(tests_paths, results):
         print(f"Test: {test_path}")
         assert result.ok
-        file_ext = test_path.suffix.lstrip(".")
-        true_cts_labels = get_content_types_from_ext(m, file_ext)
-        assert len(true_cts_labels) > 0
-        assert result.value.output.label in true_cts_labels
+        expected_ct_label = get_expected_content_type_label_from_test_file_path(
+            test_path
+        )
+        assert result.value.output.label == expected_ct_label
 
 
 def test_magika_module_with_empty_content() -> None:
@@ -397,10 +397,7 @@ def test_magika_module_with_big_file() -> None:
             print("Done running Magika")
 
 
-def get_content_types_from_ext(magika: Magika, ext: str) -> List[ContentTypeLabel]:
-    labels = []
-    for ct_label, ct_info in magika._cts_infos.items():
-        ct_info = magika._get_ct_info(ct_label)
-        if ext in ct_info.extensions:
-            labels.append(ct_label)
-    return labels
+def get_expected_content_type_label_from_test_file_path(
+    test_path: Path,
+) -> ContentTypeLabel:
+    return ContentTypeLabel(test_path.parent.name)

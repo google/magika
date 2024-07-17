@@ -90,6 +90,23 @@ def test_magika_module_with_basic_tests_by_bytes() -> None:
         assert result.value.output.label in true_cts_labels
 
 
+def test_magika_module_with_mitra_tests_by_paths() -> None:
+    model_dir = utils.get_default_model_dir()
+    tests_paths = utils.get_mitra_test_files_paths()
+
+    m = Magika(model_dir=model_dir)
+
+    results = m.identify_paths(tests_paths)
+
+    for test_path, result in zip(tests_paths, results):
+        print(f"Test: {test_path}")
+        assert result.ok
+        file_ext = test_path.suffix.lstrip(".")
+        true_cts_labels = get_content_types_from_ext(m, file_ext)
+        assert len(true_cts_labels) > 0
+        assert result.value.output.label in true_cts_labels
+
+
 def test_magika_module_with_empty_content() -> None:
     m = Magika()
 

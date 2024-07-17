@@ -15,7 +15,7 @@
 import signal
 import tempfile
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import pytest
 

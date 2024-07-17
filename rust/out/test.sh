@@ -36,8 +36,9 @@ run() {
 }
 
 run --colors
+run --output-score
 run --json
 run --jsonl
 run --label
-run --mime-type --output-score
+run --mime-type
 git diff --exit-code || error "Difference in CLI output"

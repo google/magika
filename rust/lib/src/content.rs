@@ -18,11 +18,11 @@
 use crate::file::TypeInfo;
 
 /// Model name (only comparable with equality).
-pub const MODEL_NAME: &str = "draft_v2";
+pub const MODEL_NAME: &str = "draft_standard_v2";
 
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",
-    mime_type: "application/octet-stream",
+    mime_type: "video/3gpp",
     group: "video",
     description: "3gp",
     extensions: &["3gp"],
@@ -839,15 +839,6 @@ pub(crate) static JSONL: TypeInfo = TypeInfo {
     is_text: true,
 };
 
-pub(crate) static JSX: TypeInfo = TypeInfo {
-    label: "jsx",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "jsx",
-    extensions: &["jsx", "mjsx", "cjsx"],
-    is_text: true,
-};
-
 pub(crate) static JULIA: TypeInfo = TypeInfo {
     label: "julia",
     mime_type: "text/x-julia",
@@ -873,6 +864,15 @@ pub(crate) static LATEX: TypeInfo = TypeInfo {
     description: "LaTeX document",
     extensions: &["tex", "sty"],
     is_text: true,
+};
+
+pub(crate) static LHA: TypeInfo = TypeInfo {
+    label: "lha",
+    mime_type: "application/x-lha",
+    group: "unknown",
+    description: "LHarc",
+    extensions: &["lha", "lzh"],
+    is_text: false,
 };
 
 pub(crate) static LISP: TypeInfo = TypeInfo {
@@ -1676,15 +1676,6 @@ pub(crate) static TSV: TypeInfo = TypeInfo {
     is_text: true,
 };
 
-pub(crate) static TSX: TypeInfo = TypeInfo {
-    label: "tsx",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "tsx",
-    extensions: &["tsx", "mtsx", "ctsx"],
-    is_text: true,
-};
-
 pub(crate) static TTF: TypeInfo = TypeInfo {
     label: "ttf",
     mime_type: "font/sfnt",
@@ -2157,14 +2148,14 @@ pub enum ContentType {
     Json,
     /// jsonl
     Jsonl,
-    /// jsx
-    Jsx,
     /// Julia
     Julia,
     /// Kotlin
     Kotlin,
     /// LaTeX document
     Latex,
+    /// LHarc
+    Lha,
     /// Lisp source
     Lisp,
     /// MS Windows shortcut
@@ -2341,8 +2332,6 @@ pub enum ContentType {
     Torrent,
     /// TSV document
     Tsv,
-    /// tsx
-    Tsx,
     /// TrueType Font data
     Ttf,
     /// twig
@@ -2410,7 +2399,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 215;
+    pub(crate) const SIZE: usize = 214;
 
     /// Returns the content type information.
     pub fn info(self) -> &'static TypeInfo {
@@ -2505,10 +2494,10 @@ impl ContentType {
             ContentType::Jpeg => &JPEG,
             ContentType::Json => &JSON,
             ContentType::Jsonl => &JSONL,
-            ContentType::Jsx => &JSX,
             ContentType::Julia => &JULIA,
             ContentType::Kotlin => &KOTLIN,
             ContentType::Latex => &LATEX,
+            ContentType::Lha => &LHA,
             ContentType::Lisp => &LISP,
             ContentType::Lnk => &LNK,
             ContentType::Lua => &LUA,
@@ -2597,7 +2586,6 @@ impl ContentType {
             ContentType::Toml => &TOML,
             ContentType::Torrent => &TORRENT,
             ContentType::Tsv => &TSV,
-            ContentType::Tsx => &TSX,
             ContentType::Ttf => &TTF,
             ContentType::Twig => &TWIG,
             ContentType::Txt => &TXT,

@@ -33,7 +33,7 @@ pub(crate) const CONFIG: ModelConfig = ModelConfig {
 };
 
 #[rustfmt::skip]
-const THRESHOLDS: [f32; ContentType::SIZE] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+const THRESHOLDS: [f32; ContentType::SIZE] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
 const OVERWRITE_MAP: [ContentType; ContentType::SIZE] = [
     ContentType::_3gp,
     ContentType::Ace,
@@ -125,10 +125,10 @@ const OVERWRITE_MAP: [ContentType; ContentType::SIZE] = [
     ContentType::Jpeg,
     ContentType::Json,
     ContentType::Jsonl,
-    ContentType::Jsx,
     ContentType::Julia,
     ContentType::Kotlin,
     ContentType::Latex,
+    ContentType::Lha,
     ContentType::Lisp,
     ContentType::Lnk,
     ContentType::Lua,
@@ -217,7 +217,6 @@ const OVERWRITE_MAP: [ContentType; ContentType::SIZE] = [
     ContentType::Toml,
     ContentType::Torrent,
     ContentType::Tsv,
-    ContentType::Tsx,
     ContentType::Ttf,
     ContentType::Twig,
     ContentType::Txt,
@@ -345,10 +344,10 @@ pub(crate) enum Label {
     Jpeg,
     Json,
     Jsonl,
-    Jsx,
     Julia,
     Kotlin,
     Latex,
+    Lha,
     Lisp,
     Lnk,
     Lua,
@@ -437,7 +436,6 @@ pub(crate) enum Label {
     Toml,
     Torrent,
     Tsv,
-    Tsx,
     Ttf,
     Twig,
     Txt,
@@ -471,7 +469,7 @@ pub(crate) enum Label {
     Zlibstream,
 }
 
-pub(crate) const NUM_LABELS: usize = 213;
+pub(crate) const NUM_LABELS: usize = 212;
 impl Label {
     pub(crate) fn content_type(self) -> ContentType {
         match self {
@@ -564,10 +562,10 @@ impl Label {
             Label::Jpeg => ContentType::Jpeg,
             Label::Json => ContentType::Json,
             Label::Jsonl => ContentType::Jsonl,
-            Label::Jsx => ContentType::Jsx,
             Label::Julia => ContentType::Julia,
             Label::Kotlin => ContentType::Kotlin,
             Label::Latex => ContentType::Latex,
+            Label::Lha => ContentType::Lha,
             Label::Lisp => ContentType::Lisp,
             Label::Lnk => ContentType::Lnk,
             Label::Lua => ContentType::Lua,
@@ -656,7 +654,6 @@ impl Label {
             Label::Toml => ContentType::Toml,
             Label::Torrent => ContentType::Torrent,
             Label::Tsv => ContentType::Tsv,
-            Label::Tsx => ContentType::Tsx,
             Label::Ttf => ContentType::Ttf,
             Label::Twig => ContentType::Twig,
             Label::Txt => ContentType::Txt,

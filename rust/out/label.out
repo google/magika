@@ -2,7 +2,7 @@ tests_data/basic/code.asm: asm
 tests_data/basic/code.c: c
 tests_data/basic/code.css: css
 tests_data/basic/code.js: javascript
-tests_data/basic/code.py: txt [Low-confidence model best-guess: Jinja Template (unknown), score=0.498]
+tests_data/basic/code.py: python
 tests_data/basic/code.rs: rust
 tests_data/basic/code.smali: smali
 tests_data/basic/doc.docx: docx
@@ -14,7 +14,7 @@ tests_data/basic/doc.odt: odt
 tests_data/basic/doc.pem: pem
 tests_data/basic/doc.pub: pem
 tests_data/basic/doc.rtf: rtf
-tests_data/basic/text.txt: txt [Low-confidence model best-guess: ReStructuredText document (text), score=0.293]
+tests_data/basic/text.txt: txt
 tests_data/mitra/7-zip.7z: sevenzip
 tests_data/mitra/NT.zip: zip
 tests_data/mitra/NTFS.zip: zip
@@ -41,7 +41,7 @@ tests_data/mitra/hello-gnu.tar: tar
 tests_data/mitra/hello-pax.tar: tar
 tests_data/mitra/hello-ustar.tar: tar
 tests_data/mitra/hello-world.xar: xar
-tests_data/mitra/html.htm: txt [Low-confidence model best-guess: JavaScript source (code), score=0.209]
+tests_data/mitra/html.htm: txt [Low-confidence model best-guess: handlebars (unknown), score=0.412]
 tests_data/mitra/id3v1.mp3: mp3
 tests_data/mitra/id3v2.mp3: mp3
 tests_data/mitra/implode.zip: zip
@@ -55,7 +55,7 @@ tests_data/mitra/mini.xar: xar
 tests_data/mitra/mini.zip: zip
 tests_data/mitra/mp4.mp4: mp4
 tests_data/mitra/pcap.pcap: pcap
-tests_data/mitra/pcapng.pcapng: unknown [Low-confidence model best-guess: pcap capture file (application), score=0.484]
+tests_data/mitra/pcapng.pcapng: unknown [Low-confidence model best-guess: Stereolithography CAD (binary) (image), score=0.196]
 tests_data/mitra/pdf.pdf: pdf
 tests_data/mitra/pe32.exe: pebin
 tests_data/mitra/pe64.exe: pebin

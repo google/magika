@@ -57,7 +57,7 @@
           "label": "c",
           "mime_type": "text/x-c"
         },
-        "score": 0.8700000047683716
+        "score": 0.9919999837875366
       }
     }
   },
@@ -86,7 +86,7 @@
           "label": "css",
           "mime_type": "text/css"
         },
-        "score": 0.9810000061988831
+        "score": 0.9829999804496765
       }
     }
   },
@@ -119,7 +119,7 @@
           "label": "javascript",
           "mime_type": "application/javascript"
         },
-        "score": 0.9819999933242798
+        "score": 0.9710000157356262
       }
     }
   },
@@ -129,28 +129,28 @@
       "status": "ok",
       "value": {
         "dl": {
-          "description": "Jinja Template",
+          "description": "Python source",
           "extensions": [
-            "jinja",
-            "jinja2",
-            "j2"
+            "py",
+            "pyi"
           ],
-          "group": "unknown",
+          "group": "code",
           "is_text": true,
-          "label": "jinja",
-          "mime_type": "text/plain"
+          "label": "python",
+          "mime_type": "text/x-python"
         },
         "output": {
-          "description": "Generic text document",
+          "description": "Python source",
           "extensions": [
-            "txt"
+            "py",
+            "pyi"
           ],
-          "group": "text",
+          "group": "code",
           "is_text": true,
-          "label": "txt",
-          "mime_type": "text/plain"
+          "label": "python",
+          "mime_type": "text/x-python"
         },
-        "score": 1.0
+        "score": 0.9589999914169312
       }
     }
   },
@@ -179,7 +179,7 @@
           "label": "rust",
           "mime_type": "application/x-rust"
         },
-        "score": 0.9789999723434448
+        "score": 0.8949999809265137
       }
     }
   },
@@ -208,7 +208,7 @@
           "label": "smali",
           "mime_type": "application/x-smali"
         },
-        "score": 0.9990000128746033
+        "score": 1.0
       }
     }
   },
@@ -268,7 +268,7 @@
           "label": "epub",
           "mime_type": "application/epub+zip"
         },
-        "score": 0.9990000128746033
+        "score": 1.0
       }
     }
   },
@@ -303,7 +303,7 @@
           "label": "html",
           "mime_type": "text/html"
         },
-        "score": 0.9100000262260437
+        "score": 0.9789999723434448
       }
     }
   },
@@ -361,7 +361,7 @@
           "label": "json",
           "mime_type": "application/json"
         },
-        "score": 0.7829999923706055
+        "score": 0.6179999709129333
       }
     }
   },
@@ -485,7 +485,7 @@
           "label": "rtf",
           "mime_type": "text/rtf"
         },
-        "score": 0.9990000128746033
+        "score": 1.0
       }
     }
   },
@@ -495,14 +495,14 @@
       "status": "ok",
       "value": {
         "dl": {
-          "description": "ReStructuredText document",
+          "description": "Generic text document",
           "extensions": [
-            "rst"
+            "txt"
           ],
           "group": "text",
           "is_text": true,
-          "label": "rst",
-          "mime_type": "text/x-rst"
+          "label": "txt",
+          "mime_type": "text/plain"
         },
         "output": {
           "description": "Generic text document",
@@ -514,7 +514,7 @@
           "label": "txt",
           "mime_type": "text/plain"
         },
-        "score": 1.0
+        "score": 0.5960000157356262
       }
     }
   },
@@ -572,7 +572,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9929999709129333
+        "score": 0.9990000128746033
       }
     }
   },
@@ -601,7 +601,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9829999804496765
+        "score": 0.9909999966621399
       }
     }
   },
@@ -630,7 +630,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9459999799728394
+        "score": 0.9940000176429749
       }
     }
   },
@@ -659,7 +659,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9819999933242798
+        "score": 0.9810000061988831
       }
     }
   },
@@ -717,7 +717,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9959999918937683
+        "score": 0.9980000257492065
       }
     }
   },
@@ -837,7 +837,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9959999918937683
+        "score": 0.9980000257492065
       }
     }
   },
@@ -866,7 +866,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9950000047683716
+        "score": 0.9900000095367432
       }
     }
   },
@@ -895,7 +895,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9290000200271606
+        "score": 0.9940000176429749
       }
     }
   },
@@ -924,7 +924,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9929999709129333
+        "score": 0.9980000257492065
       }
     }
   },
@@ -1011,7 +1011,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9879999756813049
+        "score": 0.9470000267028809
       }
     }
   },
@@ -1162,7 +1162,7 @@
           "label": "gzip",
           "mime_type": "application/gzip"
         },
-        "score": 0.9990000128746033
+        "score": 1.0
       }
     }
   },
@@ -1280,7 +1280,7 @@
           "label": "xar",
           "mime_type": "application/x-xar"
         },
-        "score": 0.9990000128746033
+        "score": 1.0
       }
     }
   },
@@ -1290,16 +1290,15 @@
       "status": "ok",
       "value": {
         "dl": {
-          "description": "JavaScript source",
+          "description": "handlebars",
           "extensions": [
-            "js",
-            "mjs",
-            "cjs"
+            "hbs",
+            "handlebars"
           ],
-          "group": "code",
+          "group": "unknown",
           "is_text": true,
-          "label": "javascript",
-          "mime_type": "application/javascript"
+          "label": "handlebars",
+          "mime_type": "text/plain"
         },
         "output": {
           "description": "Generic text document",
@@ -1427,7 +1426,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9929999709129333
+        "score": 0.9879999756813049
       }
     }
   },
@@ -1514,7 +1513,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9670000076293945
+        "score": 0.996999979019165
       }
     }
   },
@@ -1545,7 +1544,7 @@
           "label": "jpeg",
           "mime_type": "image/jpeg"
         },
-        "score": 1.0
+        "score": 0.9990000128746033
       }
     }
   },
@@ -1574,7 +1573,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9929999709129333
+        "score": 0.9959999918937683
       }
     }
   },
@@ -1634,7 +1633,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9300000071525574
+        "score": 0.9789999723434448
       }
     }
   },
@@ -1704,15 +1703,14 @@
       "status": "ok",
       "value": {
         "dl": {
-          "description": "pcap capture file",
+          "description": "Stereolithography CAD (binary)",
           "extensions": [
-            "pcap",
-            "pcapng"
+            "stl"
           ],
-          "group": "application",
+          "group": "image",
           "is_text": false,
-          "label": "pcap",
-          "mime_type": "application/vnd.tcpdump.pcap"
+          "label": "stlbinary",
+          "mime_type": "application/sla"
         },
         "output": {
           "description": "Unknown binary data",
@@ -1782,7 +1780,7 @@
           "label": "pebin",
           "mime_type": "application/x-dosexec"
         },
-        "score": 1.0
+        "score": 0.9990000128746033
       }
     }
   },
@@ -1842,7 +1840,7 @@
           "label": "php",
           "mime_type": "text/x-php"
         },
-        "score": 0.9959999918937683
+        "score": 0.8309999704360962
       }
     }
   },
@@ -1871,7 +1869,7 @@
           "label": "png",
           "mime_type": "image/png"
         },
-        "score": 0.9990000128746033
+        "score": 1.0
       }
     }
   },
@@ -1958,7 +1956,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.5609999895095825
+        "score": 0.9929999709129333
       }
     }
   },
@@ -1987,7 +1985,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9309999942779541
+        "score": 0.9879999756813049
       }
     }
   },
@@ -2016,7 +2014,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.8299999833106995
+        "score": 0.9890000224113464
       }
     }
   },
@@ -2045,7 +2043,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.8550000190734863
+        "score": 0.9909999966621399
       }
     }
   },
@@ -2132,7 +2130,7 @@
           "label": "wav",
           "mime_type": "audio/x-wav"
         },
-        "score": 0.9950000047683716
+        "score": 0.8849999904632568
       }
     }
   },
@@ -2161,7 +2159,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9520000219345093
+        "score": 0.9760000109672546
       }
     }
   },
@@ -2190,7 +2188,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.996999979019165
+        "score": 0.9980000257492065
       }
     }
   },
@@ -2219,7 +2217,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9900000095367432
+        "score": 0.9980000257492065
       }
     }
   },
@@ -2248,7 +2246,7 @@
           "label": "svg",
           "mime_type": "image/svg+xml"
         },
-        "score": 0.9990000128746033
+        "score": 0.9980000257492065
       }
     }
   },
@@ -2397,7 +2395,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.8640000224113464
+        "score": 0.8730000257492065
       }
     }
   },
@@ -2426,7 +2424,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9940000176429749
+        "score": 0.9409999847412109
       }
     }
   },
@@ -2455,7 +2453,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9869999885559082
+        "score": 0.9980000257492065
       }
     }
   },
@@ -2484,7 +2482,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.7620000243186951
+        "score": 0.9980000257492065
       }
     }
   },
@@ -2513,7 +2511,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9190000295639038
+        "score": 0.9909999966621399
       }
     }
   },
@@ -2571,7 +2569,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.984000027179718
+        "score": 0.9940000176429749
       }
     }
   },
@@ -2716,7 +2714,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9900000095367432
+        "score": 0.9860000014305115
       }
     }
   },
@@ -2745,7 +2743,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9959999918937683
+        "score": 0.9990000128746033
       }
     }
   },
@@ -2774,7 +2772,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9959999918937683
+        "score": 0.9990000128746033
       }
     }
   },
@@ -2803,7 +2801,7 @@
           "label": "zip",
           "mime_type": "application/zip"
         },
-        "score": 0.9860000014305115
+        "score": 0.9950000047683716
       }
     }
   }

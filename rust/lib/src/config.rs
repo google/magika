@@ -23,17 +23,17 @@ pub(crate) struct ModelConfig {
     pub(crate) end_size: usize,
     pub(crate) use_inputs_at_offsets: bool,
     pub(crate) min_file_size_for_dl: usize,
-    pub(crate) padding_token: usize,
+    pub(crate) padding_token: i32,
     pub(crate) block_size: usize,
     pub(crate) thresholds: Cow<'static, [f32; ContentType::SIZE]>,
     pub(crate) overwrite_map: Cow<'static, [ContentType; ContentType::SIZE]>,
 }
 
 pub(crate) struct SplitFeatures<'a> {
-    pub(crate) beg: &'a mut [f32],
-    pub(crate) mid: &'a mut [f32],
-    pub(crate) end: &'a mut [f32],
-    pub(crate) off: Vec<(usize, &'a mut [f32])>,
+    pub(crate) beg: &'a mut [i32],
+    pub(crate) mid: &'a mut [i32],
+    pub(crate) end: &'a mut [i32],
+    pub(crate) off: Vec<(usize, &'a mut [i32])>,
 }
 
 impl ModelConfig {
@@ -42,7 +42,7 @@ impl ModelConfig {
         self.beg_size + self.mid_size + self.end_size + offsets_size
     }
 
-    pub(crate) fn split_features<'a>(&self, features: &'a mut [f32]) -> SplitFeatures<'a> {
+    pub(crate) fn split_features<'a>(&self, features: &'a mut [i32]) -> SplitFeatures<'a> {
         let (beg, features) = features.split_at_mut(self.beg_size);
         let (mid, features) = features.split_at_mut(self.mid_size);
         let (end, mut features) = features.split_at_mut(self.end_size);

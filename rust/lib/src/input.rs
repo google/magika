@@ -22,7 +22,7 @@ use crate::future::exec;
 use crate::{ContentType, Result};
 
 /// Features to identify a file with deep-learning.
-pub struct Features(pub(crate) Vec<f32>);
+pub struct Features(pub(crate) Vec<i32>);
 
 /// Synchronous abstraction over file content.
 pub trait SyncInput: SyncInputApi {}
@@ -135,7 +135,7 @@ impl FeaturesOrRuled {
             return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
         }
         let (first_block, features) = extract_features_async(config, file, file_len).await?;
-        if features[config.min_file_size_for_dl - 1] != config.padding_token as f32 {
+        if features[config.min_file_size_for_dl - 1] != config.padding_token {
             return Ok(FeaturesOrRuled::Features(Features(features)));
         }
         debug_assert!(first_block.len() <= config.block_size);
@@ -149,7 +149,7 @@ impl FeaturesOrRuled {
 
 async fn extract_features_async(
     config: &ModelConfig, mut file: impl AsyncInputApi, file_len: usize,
-) -> Result<(Vec<u8>, Vec<f32>)> {
+) -> Result<(Vec<u8>, Vec<i32>)> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.mid_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
@@ -164,7 +164,7 @@ async fn extract_features_async(
     let mid_off = (file_len - mid_len) / 2;
     let mut mid = vec![0; mid_len];
     file.read_at(&mut mid, mid_off).await?;
-    let mut features = vec![config.padding_token as f32; config.features_size()];
+    let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
     copy_features(split_features.mid, &mid, 1);
@@ -180,13 +180,13 @@ async fn extract_features_async(
     Ok((content_beg, features))
 }
 
-fn copy_features(dst: &mut [f32], src: &[u8], align: usize) {
+fn copy_features(dst: &mut [i32], src: &[u8], align: usize) {
     let len = std::cmp::min(dst.len(), src.len());
     let dst_len = dst.len(); // borrowing issue: cannot inline below
     let dst = &mut dst[(dst_len - len) * align / 2..][..len];
     let src = &src[(src.len() - len) * align / 2..][..len];
     for (dst, src) in dst.iter_mut().zip(src.iter()) {
-        *dst = *src as f32;
+        *dst = *src as i32;
     }
 }
 
@@ -235,7 +235,7 @@ mod tests {
             mid_size: usize,
             end_size: usize,
             block_size: usize,
-            padding_token: usize,
+            padding_token: i32,
             #[allow(dead_code)] // debugging only
             core_content_size: usize,
             #[allow(dead_code)] // debugging only

@@ -2,7 +2,7 @@
 [1;34mtests_data/basic/code.c: C source (code)[0m
 [1;34mtests_data/basic/code.css: CSS source (code)[0m
 [1;34mtests_data/basic/code.js: JavaScript source (code)[0m
-[1mtests_data/basic/code.py: Generic text document (text) [Low-confidence model best-guess: Jinja Template (unknown), score=0.498][0m
+[1;34mtests_data/basic/code.py: Python source (code)[0m
 [1;34mtests_data/basic/code.rs: Rust source (code)[0m
 [1;34mtests_data/basic/code.smali: Smali source (code)[0m
 [1;35mtests_data/basic/doc.docx: Microsoft Word 2007+ document (document)[0m
@@ -14,7 +14,7 @@
 [1mtests_data/basic/doc.pem: PEM certificate (application)[0m
 [1mtests_data/basic/doc.pub: PEM certificate (application)[0m
 [1mtests_data/basic/doc.rtf: Rich Text Format document (text)[0m
-[1mtests_data/basic/text.txt: Generic text document (text) [Low-confidence model best-guess: ReStructuredText document (text), score=0.293][0m
+[1mtests_data/basic/text.txt: Generic text document (text)[0m
 [1;31mtests_data/mitra/7-zip.7z: 7-zip archive data (archive)[0m
 [1;31mtests_data/mitra/NT.zip: Zip archive data (archive)[0m
 [1;31mtests_data/mitra/NTFS.zip: Zip archive data (archive)[0m
@@ -41,7 +41,7 @@
 [1;31mtests_data/mitra/hello-pax.tar: POSIX tar archive (archive)[0m
 [1;31mtests_data/mitra/hello-ustar.tar: POSIX tar archive (archive)[0m
 [1;31mtests_data/mitra/hello-world.xar: XAR archive compressed data (archive)[0m
-[1mtests_data/mitra/html.htm: Generic text document (text) [Low-confidence model best-guess: JavaScript source (code), score=0.209][0m
+[1mtests_data/mitra/html.htm: Generic text document (text) [Low-confidence model best-guess: handlebars (unknown), score=0.412][0m
 [33mtests_data/mitra/id3v1.mp3: MP3 media file (audio)[0m
 [33mtests_data/mitra/id3v2.mp3: MP3 media file (audio)[0m
 [1;31mtests_data/mitra/implode.zip: Zip archive data (archive)[0m
@@ -55,7 +55,7 @@
 [1;31mtests_data/mitra/mini.zip: Zip archive data (archive)[0m
 [33mtests_data/mitra/mp4.mp4: MP4 media file (video)[0m
 [1mtests_data/mitra/pcap.pcap: pcap capture file (application)[0m
-[1mtests_data/mitra/pcapng.pcapng: Unknown binary data (unknown) [Low-confidence model best-guess: pcap capture file (application), score=0.484][0m
+[1mtests_data/mitra/pcapng.pcapng: Unknown binary data (unknown) [Low-confidence model best-guess: Stereolithography CAD (binary) (image), score=0.196][0m
 [1;35mtests_data/mitra/pdf.pdf: PDF document (document)[0m
 [1;32mtests_data/mitra/pe32.exe: PE Windows executable (executable)[0m
 [1;32mtests_data/mitra/pe64.exe: PE Windows executable (executable)[0m

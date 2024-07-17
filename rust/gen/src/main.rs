@@ -202,7 +202,7 @@ struct ModelConfig {
     use_inputs_at_offsets: bool,
     medium_confidence_threshold: f32,
     min_file_size_for_dl: usize,
-    padding_token: usize,
+    padding_token: i32,
     block_size: usize,
     target_labels_space: Vec<String>,
     thresholds: BTreeMap<String, f32>,

@@ -14,9 +14,7 @@
 # limitations under the License.
 
 
-import copy
 import dataclasses
-import hashlib
 import importlib.metadata
 import json
 import logging
@@ -26,7 +24,6 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import click
-from tabulate import tabulate
 
 from magika import Magika, MagikaError, PredictionMode, colors
 from magika.logger import get_logger

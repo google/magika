@@ -19,7 +19,7 @@ from typing import List
 from magika.types.content_type_label import ContentTypeLabel
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelFeatures:
     beg: List[int]
     mid: List[int]
@@ -32,13 +32,13 @@ class ModelFeatures:
     offset_0x9800_0x9807: List[int]
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
+@dataclass(frozen=True)
 class ModelOutput:
     ct_label: ContentTypeLabel
     score: float
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
+@dataclass(frozen=True)
 class ModelConfig:
     beg_size: int
     mid_size: int

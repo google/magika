@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from magika.types.content_type_info import ContentTypeInfo
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
+@dataclass(frozen=True)
 class MagikaResult:
     dl: ContentTypeInfo
     output: ContentTypeInfo

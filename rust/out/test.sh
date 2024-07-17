@@ -20,25 +20,21 @@ info "Build CLI"
 cd ../cli
 cargo build --release
 
-cd ../..
-run() {
-  info "Run with $*"
-  local file
-  local arg
-  for arg in "$@"; do
-    [ -z "$file" ] || file="$file"_
-    file="$file${arg#--}"
-  done
-  file=rust/out/"$file"
-  local paths='tests_data/basic tests_data/mitra'
-  rust/target/release/magika --recursive $paths "$@" > "$file".out 2> "$file".err
-  [ -n "$(cat "$file".err)" ] || rm "$file".err
-}
+info "Generate labels"
+cd ../../tests_data
+../rust/target/release/magika --format='%p: %l' --recursive basic mitra > ../rust/out/labels
 
-run --colors
-run --output-score
-run --json
-run --jsonl
-run --label
-run --mime-type
+info "Generate flags"
+cd ../rust/out
+( set -x
+  ../target/release/magika test.sh
+  ../target/release/magika test.sh --colors
+  ../target/release/magika test.sh --output-score
+  ../target/release/magika test.sh --json
+  ../target/release/magika test.sh README.md --json
+  ../target/release/magika test.sh --jsonl
+  ../target/release/magika test.sh README.md --jsonl
+  ../target/release/magika test.sh --mime-type
+) > flags 2>&1
+
 git diff --exit-code || error "Difference in CLI output"

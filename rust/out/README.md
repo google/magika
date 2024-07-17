@@ -1,7 +1,10 @@
 # Expected output of the CLI
 
-Each `.out` file (resp. `.err` for non-empty files) records the expected output (resp. error output)
-of the CLI on the `basic` and `mitra` test directories. The file name describes which flags are
-used.
+The `labels` file contains the labels of the `basic` and `mitra` test directories as returned by the
+CLI. The goal is to ultimately check that the labels are expected (in which case only the unexpected
+ones can be stored).
+
+The `flags` file contains the concatenated output of the CLI with different set of files and
+different set of flags. The goal is to check the CLI output format.
 
 You can run the tests with the `./test.sh` script.

@@ -40,7 +40,7 @@ from magika.types import (
     StatusOr,
 )
 
-DEFAULT_MODEL_NAME = "draft_v2"
+DEFAULT_MODEL_NAME = "draft_standard_v2"
 
 
 class Magika:
@@ -757,7 +757,7 @@ class Magika:
             if self._model_config.end_size > 0:
                 sample_bytes.extend(fs.end[-self._model_config.end_size :])
             X_bytes.append(sample_bytes)
-        X = np.array(X_bytes).astype(np.float32)
+        X = np.array(X_bytes, dtype=np.int32)
         elapsed_time = 1000 * (time.time() - start_time)
         self._log.debug(f"DL input prepared in {elapsed_time:.03f} ms")
 

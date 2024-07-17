@@ -7,4 +7,4 @@ ones can be stored).
 The `flags` file contains the concatenated output of the CLI with different set of files and
 different set of flags. The goal is to check the CLI output format.
 
-You can run the tests with the `./test.sh` script.
+You can update the files with the `./run.sh` script.

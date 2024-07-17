@@ -16,7 +16,10 @@
 set -e
 . ./color.sh
 
-for dir in gen lib cli out; do
-  info "Running $dir/test.sh"
+for dir in gen lib cli; do
+  info "Running tests from $dir"
   ( cd $dir && ./test.sh; )
 done
+
+info "Testing generated files are synced"
+./sync.sh --check

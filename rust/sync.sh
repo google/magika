@@ -14,13 +14,17 @@
 # limitations under the License.
 
 set -e
+. ./color.sh
 
-( set -x; cd gen; cargo run; )
+info "Generating files from gen"
+( cd gen; cargo run; )
+info "Generating files from out"
+( cd out; ./run.sh; )
+
 if [ "$1" = --check ]; then
   if ! git diff --exit-code; then
-    echo 'The library is not in sync with the model.'
-    echo 'Execute ./sync.sh from the rust directory to update the library.'
-    exit 1
+    [ -n "$CI" ] && todo 'Execute ./sync.sh from the rust directory'
+    error 'Generated files are not in sync'
   fi
 fi
-exit 0
+success "Generated files are synced"

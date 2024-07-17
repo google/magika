@@ -41,7 +41,6 @@ mitra/hello-gnu.tar: tar
 mitra/hello-pax.tar: tar
 mitra/hello-ustar.tar: tar
 mitra/hello-world.xar: xar
-mitra/html.htm: txt
 mitra/id3v1.mp3: mp3
 mitra/id3v2.mp3: mp3
 mitra/implode.zip: zip
@@ -55,7 +54,6 @@ mitra/mini.xar: xar
 mitra/mini.zip: zip
 mitra/mp4.mp4: mp4
 mitra/pcap.pcap: pcap
-mitra/pcapng.pcapng: unknown
 mitra/pdf.pdf: pdf
 mitra/pe32.exe: pebin
 mitra/pe64.exe: pebin

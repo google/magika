@@ -27,14 +27,12 @@ cd ../../tests_data
 info "Generate flags"
 cd ../rust/out
 ( set -x
-  ../target/release/magika test.sh
-  ../target/release/magika test.sh --colors
-  ../target/release/magika test.sh --output-score
-  ../target/release/magika test.sh --json
-  ../target/release/magika test.sh README.md --json
-  ../target/release/magika test.sh --jsonl
-  ../target/release/magika test.sh README.md --jsonl
-  ../target/release/magika test.sh --mime-type
+  ../target/release/magika run.sh
+  ../target/release/magika run.sh --colors
+  ../target/release/magika run.sh --output-score
+  ../target/release/magika run.sh --json
+  ../target/release/magika run.sh README.md --json
+  ../target/release/magika run.sh --jsonl
+  ../target/release/magika run.sh README.md --jsonl
+  ../target/release/magika run.sh --mime-type
 ) > flags 2>&1
-
-git diff --exit-code || error "Difference in CLI output"

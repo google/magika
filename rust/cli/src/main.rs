@@ -420,8 +420,8 @@ impl Response {
                     () if flags.modifiers.label => "%l",
                     () => "%d (%g)",
                 });
-                format.push_str(if flags.modifiers.output_score { " %S" } else { "" });
                 format.push_str("%b");
+                format.push_str(if flags.modifiers.output_score { " %S" } else { "" });
                 format
             }
         };

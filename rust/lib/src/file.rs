@@ -109,10 +109,15 @@ impl FileType {
     }
 
     /// Returns the score of the identification, between 0 and 1.
+    ///
+    /// If the model was run, this is the model score. Otherwise this is 1.
     pub fn score(&self) -> f32 {
         match self {
+            FileType::Directory => 1.0,
+            FileType::Symlink => 1.0,
             FileType::Inferred(x) => x.score,
-            _ => 1.0,
+            FileType::Ruled(RuledType { overruled: None, .. }) => 1.0,
+            FileType::Ruled(RuledType { overruled: Some(x), .. }) => x.score,
         }
     }
 }

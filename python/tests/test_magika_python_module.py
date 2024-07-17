@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import signal
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -353,6 +355,46 @@ def test_magika_module_with_permission_error() -> None:
         res = m.identify_path(unreadable_test_path)
         assert not res.ok
         assert res.status == Status.PERMISSION_ERROR
+
+
+@pytest.mark.skip
+def test_magika_module_with_really_many_files() -> None:
+    test_file_path = utils.get_one_basic_test_file_path()
+
+    m = Magika()
+
+    for n in [10000]:
+        test_files_paths = [test_file_path] * n
+
+        results = m.identify_paths(test_files_paths)
+        for result in results:
+            assert result.ok
+            # TODO: add more checks
+
+
+@pytest.mark.slow
+def test_magika_module_with_big_file() -> None:
+    def signal_handler(signum: int, frame: Any) -> None:
+        raise Exception("Timeout")
+
+    signal.signal(signal.SIGALRM, signal_handler)
+
+    # It should take much less than this, but pytest weird scheduling sometimes
+    # creates unexpected slow downs.
+    timeout = 2
+
+    m = Magika()
+
+    for sample_size in [1000, 10000, 1_000_000, 1_000_000_000, 10_000_000_000]:
+        with tempfile.TemporaryDirectory() as td:
+            sample_path = Path(td) / "sample.dat"
+            utils.write_random_file_with_size(sample_path, sample_size)
+            print(f"Starting running Magika with a timeout of {timeout}")
+            signal.alarm(timeout)
+            res = m.identify_path(sample_path)
+            assert res.ok
+            signal.alarm(0)
+            print("Done running Magika")
 
 
 def get_content_types_from_ext(magika: Magika, ext: str) -> list[ContentTypeLabel]:

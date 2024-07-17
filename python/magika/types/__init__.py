@@ -24,3 +24,15 @@ from magika.types.model import (  # noqa: F401
 from magika.types.prediction_mode import PredictionMode  # noqa: F401
 from magika.types.status import Status  # noqa: F401
 from magika.types.statusor import StatusOr  # noqa: F401
+
+__all__ = [
+    "ContentTypeInfo",
+    "ContentTypeLabel",
+    "MagikaResult",
+    "ModelConfig",
+    "ModelFeatures",
+    "ModelOutput",
+    "PredictionMode",
+    "Status",
+    "StatusOr",
+]

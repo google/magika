@@ -33,7 +33,7 @@ class StatusOr(Generic[T]):
                 raise ValueError("value cannot be set when status != OK")
 
     @property
-    def ok(self):
+    def ok(self) -> bool:
         return self._status == Status.OK
 
     @property

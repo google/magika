@@ -226,7 +226,7 @@ def main(
                 _l.error(f'File or directory "{str(p)}" does not exist.')
                 sys.exit(1)
         # the resulting list may still include some directories; thus, we filter them out.
-        files_paths: List[Path] = list(filter(lambda x: not x.is_dir(), expanded_paths))  # type: ignore
+        files_paths: List[Path] = list(filter(lambda x: not x.is_dir(), expanded_paths))  # type: ignore[no-redef]
 
     _l.info(f"Considering {len(files_paths)} files")
     _l.debug(f"Files: {files_paths}")

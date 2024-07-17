@@ -371,5 +371,5 @@ class ContentTypeLabel(StrEnum):
     ZLIBSTREAM = "zlibstream"
     ZST = "zst"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)

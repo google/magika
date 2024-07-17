@@ -139,9 +139,14 @@ class Magika:
         ).items():
             is_text = ct_info["is_text"]
             if is_text:
-                mime_type = TXT_MIME_TYPE
+                default_mime_type = TXT_MIME_TYPE
             else:
-                mime_type = UNKNOWN_MIME_TYPE
+                default_mime_type = UNKNOWN_MIME_TYPE
+            mime_type = (
+                default_mime_type
+                if ct_info["mime_type"] is None
+                else ct_info["mime_type"]
+            )
             group = UNKNOWN_GROUP if ct_info["group"] is None else ct_info["group"]
             description = (
                 ct_name if ct_info["description"] is None else ct_info["description"]
@@ -603,7 +608,7 @@ class Magika:
             return result, None
 
         if not path.exists():
-            return StatusOr(status=Status.FILE_DOES_NOT_EXIST), None
+            return StatusOr(status=Status.FILE_NOT_FOUND_ERROR), None
 
         if path.is_file():
             if path.stat().st_size == 0:

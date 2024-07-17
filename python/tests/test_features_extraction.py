@@ -18,7 +18,6 @@ import json
 import math
 import random
 import string
-import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Tuple
@@ -147,17 +146,19 @@ def generate_features_extraction_reference():
 
     for test_info, test_content in test_suite:
         s = Buffer(test_content)
-        features_v1 = Magika._extract_features_from_seekable(
-            s, beg_size, mid_size, end_size, padding_token, block_size
-        )
         features_v2 = Magika._extract_features_from_seekable(
-            s, beg_size, mid_size, end_size, padding_token, block_size
+            s,
+            beg_size,
+            mid_size,
+            end_size,
+            padding_token,
+            block_size,
+            use_inputs_at_offsets=True,
         )
 
         test_case = {
             "test_info": asdict(test_info),
             "content": base64.b64encode(test_content).decode("ascii"),
-            "features_v1": asdict(features_v1),
             "features_v2": asdict(features_v2),
         }
         ref_features_extraction_tests.append(test_case)

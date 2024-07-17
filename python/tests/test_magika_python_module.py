@@ -15,7 +15,7 @@
 import signal
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 import pytest
 
@@ -397,7 +397,7 @@ def test_magika_module_with_big_file() -> None:
             print("Done running Magika")
 
 
-def get_content_types_from_ext(magika: Magika, ext: str) -> list[ContentTypeLabel]:
+def get_content_types_from_ext(magika: Magika, ext: str) -> List[ContentTypeLabel]:
     labels = []
     for ct_label, ct_info in magika._cts_infos.items():
         ct_info = magika._get_ct_info(ct_label)

@@ -14,7 +14,7 @@
 
 
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List
 
 from magika.types.content_type_label import ContentTypeLabel
 
@@ -48,6 +48,6 @@ class ModelConfig:
     min_file_size_for_dl: int
     padding_token: int
     block_size: int
-    target_labels_space: list[ContentTypeLabel]
-    thresholds: dict[ContentTypeLabel, float]
-    overwrite_map: dict[ContentTypeLabel, ContentTypeLabel]
+    target_labels_space: List[ContentTypeLabel]
+    thresholds: Dict[ContentTypeLabel, float]
+    overwrite_map: Dict[ContentTypeLabel, ContentTypeLabel]

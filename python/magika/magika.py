@@ -130,7 +130,7 @@ class Magika:
     @staticmethod
     def _load_content_types_kb(
         content_types_kb_json_path: Path,
-    ) -> dict[ContentTypeLabel, ContentTypeInfo]:
+    ) -> Dict[ContentTypeLabel, ContentTypeInfo]:
         TXT_MIME_TYPE = "text/plain"
         UNKNOWN_MIME_TYPE = "application/octet-stream"
         UNKNOWN_GROUP = "unknown"

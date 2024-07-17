@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "magika"
 version = "0.6.0-dev"
-description = "A tool to determine the content type of a file with deep-learning"
-authors = ["Yanick Fratantonio <yanickf@google.com>"]
+description = "A tool to determine the content type of a file with deep learning"
+authors = ["Magika Developers <magika-dev@google.com>"]
 readme = "README.md"
+license = {text = "Apache License 2.0"}
 packages = [{include = "magika"}]
 
 [tool.poetry.dependencies]

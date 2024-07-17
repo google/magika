@@ -19,7 +19,7 @@ class Status(StrEnum):
     OK = "ok"
 
     # Used when a file path does not exist
-    FILE_DOES_NOT_EXIST = "file_does_not_exist"
+    FILE_NOT_FOUND_ERROR = "file_not_found_error"
 
     # Used when a file path exists, but there are permission issues, e.g., can't
     # read file

@@ -18,9 +18,6 @@ numpy = [
 tabulate = "^0.9.0"
 python-dotenv = "^1.0.1"
 
-[tool.poetry.scripts]
-magika = "magika.cli.magika:main"
-
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.1"
 ipython = [

@@ -110,6 +110,8 @@ class Magika:
         return self._get_results_from_paths(paths)
 
     def identify_bytes(self, content: bytes) -> StatusOr[MagikaResult]:
+        if not isinstance(content, bytes):
+            raise Exception(f"Content must have type 'bytes', not {type(content)}.")
         return self._get_result_from_bytes(content)
 
     @staticmethod

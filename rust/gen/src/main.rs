@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -41,14 +41,16 @@ fn main() -> Result<()> {
 fn generate_content_types(
     mut content_types: BTreeMap<String, ContentType>, model_name: &str, model_config: &ModelConfig,
 ) -> Result<Vec<String>> {
-    // We only want to generate file types that are model labels (including from older versions of
-    // the library) or special labels (including from older versions).
-    let mut labels: HashSet<&str> =
-        model_config.target_labels_space.iter().map(|x| x.as_str()).collect();
-    labels.insert("directory");
-    labels.insert("symlink");
-    labels.insert("empty");
-    labels.insert("undefined");
+    // We only want to generate content types that are already exposed or that are model labels.
+    // This is a conservative approach to avoid exposing the whole knowledge base if it contains
+    // experimental content types that won't ever be exposed in the future.
+    let content_types_content = std::fs::read_to_string("content_types")?;
+    let mut labels = content_types_content.lines().collect::<BTreeSet<_>>();
+    labels.extend(model_config.target_labels_space.iter().map(|x| x.as_str()));
+    let mut content_types_file = File::create("content_types")?;
+    for label in &labels {
+        writeln!(&mut content_types_file, "{label}")?;
+    }
     content_types.retain(|x, _| labels.contains(x.as_str()));
     let mut output = create_generated_file("../lib/src/content.rs")?;
     writeln!(output, "use crate::file::TypeInfo;\n")?;

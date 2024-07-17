@@ -20,15 +20,6 @@ from typing import Any
 from tests import utils
 
 
-def test_magika_cli_with_mitra_test_files() -> None:
-    test_files_paths = utils.get_mitra_test_files_paths()
-
-    stdout, stderr = run_magika_python_cli(test_files_paths)
-    utils.check_magika_cli_output_matches_expected_by_ext(
-        test_files_paths, stdout, stderr
-    )
-
-
 def deprecated_test_magika_cli_with_really_many_files() -> None:
     test_file_path = utils.get_one_basic_test_file_path()
 

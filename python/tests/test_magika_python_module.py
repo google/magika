@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 from magika import Magika, PredictionMode
-from magika.types import ContentTypeLabel
+from magika.types import ContentTypeLabel, Status
 from tests import utils
 
 
@@ -139,6 +139,23 @@ def test_magika_module_with_short_content() -> None:
             assert res.value.score == 1.0
 
 
+def test_magika_module_with_python_and_non_python_content() -> None:
+    python_content = (
+        b"import flask\nimport requests\n\ndef foo(a):\n    print(f'Test {a}')\n"
+    )
+    non_python_content = b"xmport asd\nxmport requests"
+
+    m = Magika()
+
+    res = m.identify_bytes(python_content)
+    assert res.ok
+    assert res.value.output.label == ContentTypeLabel.PYTHON
+
+    res = m.identify_bytes(non_python_content)
+    assert res.ok
+    assert res.value.output.label == ContentTypeLabel.TXT
+
+
 def test_magika_module_with_different_prediction_modes() -> None:
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)
@@ -229,6 +246,96 @@ def test_magika_module_with_different_prediction_modes() -> None:
         m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99)
         == ContentTypeLabel.PYTHON
     )
+
+
+def test_magika_module_with_directory() -> None:
+    m = Magika()
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        res = m.identify_path(td_path)
+        assert res.ok
+        assert res.value.dl.label == ContentTypeLabel.UNDEFINED
+        assert res.value.output.label == ContentTypeLabel.DIRECTORY
+        assert res.value.score == 1.0
+
+
+def test_magika_module_multiple_copies_of_the_same_file() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        test_path = Path(td) / "test.txt"
+        test_path.write_text("test")
+
+        test_paths = [test_path] * 3
+
+        m = Magika()
+        results = m.identify_paths(test_paths)
+        assert len(results) == len(test_paths)
+        for result in results:
+            assert result.ok
+            assert result.value.output.label == ContentTypeLabel.TXT
+
+
+def test_magika_cli_with_many_files() -> None:
+    test_file_path = utils.get_one_basic_test_file_path()
+
+    m = Magika()
+
+    for n in [10, 100]:
+        test_files_paths = [test_file_path] * n
+        results = m.identify_paths(test_files_paths)
+        for result in results:
+            assert result.ok
+            # TODO: check that the result is actually correct
+
+
+def test_magika_module_with_symlink() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        test_path = Path(td) / "test.txt"
+        test_path.write_text("test")
+
+        symlink_path = Path(td) / "symlink-test.txt"
+        symlink_path.symlink_to(test_path)
+
+        m = Magika()
+        res = m.identify_path(test_path)
+        assert res.ok
+        assert res.value.output.label == ContentTypeLabel.TXT
+        res = m.identify_path(symlink_path)
+        assert res.ok
+        assert res.value.output.label == ContentTypeLabel.TXT
+
+        m = Magika(no_dereference=True)
+        res = m.identify_path(test_path)
+        assert res.ok
+        assert res.value.output.label == ContentTypeLabel.TXT
+        res = m.identify_path(symlink_path)
+        assert res.ok
+        assert res.value.output.label == ContentTypeLabel.SYMLINK
+
+
+def test_magika_module_with_non_existing_file() -> None:
+    m = Magika()
+
+    with tempfile.TemporaryDirectory() as td:
+        non_existing_path = Path(td) / "non_existing.txt"
+
+        res = m.identify_path(non_existing_path)
+        assert not res.ok
+        assert res.status == Status.FILE_NOT_FOUND_ERROR
+
+
+def test_magika_module_with_permission_error() -> None:
+    m = Magika()
+
+    with tempfile.TemporaryDirectory() as td:
+        unreadable_test_path = Path(td) / "test.txt"
+        unreadable_test_path.write_text("text")
+
+        unreadable_test_path.chmod(0o000)
+
+        res = m.identify_path(unreadable_test_path)
+        assert not res.ok
+        assert res.status == Status.PERMISSION_ERROR
 
 
 def get_content_types_from_ext(magika: Magika, ext: str) -> list[ContentTypeLabel]:

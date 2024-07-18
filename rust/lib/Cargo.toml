@@ -21,21 +21,21 @@ _doc = ["serde"]
 _test = ["ort/download-binaries"]
 
 [dependencies]
-ndarray = "0.15.1"
-serde = { version = "1.0.197", features = ["derive"], optional = true }
-thiserror = "1.0.57"
-tokio = { version = "1.37.0", features = ["fs", "io-util"] }
+ndarray = "0.15.6"
+serde = { version = "1.0.204", features = ["derive"], optional = true }
+thiserror = "1.0.63"
+tokio = { version = "1.38.1", features = ["fs", "io-util"] }
 
 [dependencies.ort]
-version = "2.0.0-rc.2"
+version = "2.0.0-rc.4"
 default-features = false
 features = ["ndarray"]
 
 [dev-dependencies]
-data-encoding = "2.5.0"
-flate2 = "1.0.28"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+data-encoding = "2.6.0"
+flate2 = "1.0.30"
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.120"
 
 [lints.rust]
 missing_docs = "warn"

@@ -70,7 +70,7 @@ impl Session {
 async fn identify_async<'a, F, Fut>(run_async: F, features: &[Features]) -> Result<Vec<Output>>
 where
     F: FnOnce(Array2<f32>) -> Result<Fut>,
-    Fut: Future<Output = Result<ort::SessionOutputs<'a>>>,
+    Fut: Future<Output = Result<ort::SessionOutputs<'a, 'a>>>,
 {
     if features.is_empty() {
         return Ok(Vec::new());

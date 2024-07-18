@@ -12,14 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 
-import dotenv
+import enum
+from typing import List
 
-from magika import magika
-from magika.types import prediction_mode
+from magika.types.strenum import LowerCaseStrEnum
 
-Magika = magika.Magika
-MagikaError = magika.MagikaError
-PredictionMode = prediction_mode.PredictionMode
 
-dotenv.load_dotenv(dotenv.find_dotenv())
+class PredictionMode(LowerCaseStrEnum):
+    BEST_GUESS = enum.auto()
+    MEDIUM_CONFIDENCE = enum.auto()
+    HIGH_CONFIDENCE = enum.auto()
+
+    @staticmethod
+    def get_valid_prediction_modes() -> List[str]:
+        return [pm for pm in PredictionMode]

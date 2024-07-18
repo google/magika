@@ -30,20 +30,20 @@ class StrEnum(str, enum.Enum):
         assert Example.MixedCase == "MixedCase"
     """
 
-    def __new__(cls, value: Union[str, StrEnum], *args, **kwargs):
+    def __new__(cls, value: Union[str, StrEnum], *args, **kwargs):  # type: ignore[no-untyped-def]
         if not isinstance(value, (str, enum.auto)):
             raise TypeError(
                 f"Values of StrEnums must be strings: {value!r} is a {type(value)}"
             )
         return super().__new__(cls, value, *args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.value)
 
-    def _generate_next_value_(name, *_):
+    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def]
         return name
 
 
 class LowerCaseStrEnum(StrEnum):
-    def _generate_next_value_(name, *_):
+    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def]
         return name.lower().replace("_", "-")

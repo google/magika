@@ -471,7 +471,7 @@ impl Response {
                 };
                 let output = x.info();
                 let score = (x.score() * 1000.).trunc() / 1000.;
-                let value = serde_json::to_value(&JsonResult { dl, output, score })?;
+                let value = serde_json::to_value(JsonResult { dl, output, score })?;
                 serde_json::json!({ "status": "ok", "value": value })
             }
             Err(error) => serde_json::json!({ "status": JsonError::from(error) }),

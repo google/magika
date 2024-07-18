@@ -13,21 +13,14 @@
 # limitations under the License.
 
 
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List
+
+from magika.types.content_type_label import ContentTypeLabel
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelFeatures:
-    beg: List[int]
-    mid: List[int]
-    end: List[int]
-
-
-@dataclass
-class ModelFeaturesV2:
     beg: List[int]
     mid: List[int]
     end: List[int]
@@ -39,43 +32,22 @@ class ModelFeaturesV2:
     offset_0x9800_0x9807: List[int]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelOutput:
-    ct_label: str
+    ct_label: ContentTypeLabel
     score: float
 
 
-@dataclass
-class MagikaResult:
-    path: str
-    dl: ModelOutputFields
-    output: MagikaOutputFields
-
-
-@dataclass
-class ModelOutputFields:
-    ct_label: Optional[str]
-    score: Optional[float]
-    group: Optional[str]
-    mime_type: Optional[str]
-    magic: Optional[str]
-    description: Optional[str]
-    is_text: Optional[bool]
-
-
-@dataclass
-class MagikaOutputFields:
-    ct_label: str
-    score: float
-    group: str
-    mime_type: str
-    magic: str
-    description: str
-    is_text: bool
-
-
-@dataclass
-class FeedbackReport:
-    hash: str
-    features: ModelFeatures
-    result: MagikaResult
+@dataclass(frozen=True)
+class ModelConfig:
+    beg_size: int
+    mid_size: int
+    end_size: int
+    use_inputs_at_offsets: bool
+    medium_confidence_threshold: float
+    min_file_size_for_dl: int
+    padding_token: int
+    block_size: int
+    target_labels_space: List[ContentTypeLabel]
+    thresholds: Dict[ContentTypeLabel, float]
+    overwrite_map: Dict[ContentTypeLabel, ContentTypeLabel]

@@ -15,6 +15,11 @@
 use std::future::Future;
 #[cfg(feature = "tokio")]
 use std::io::SeekFrom;
+
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::FileExt as _;
+
+#[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::FileExt as _;
 
 #[cfg(feature = "tokio")]
@@ -66,7 +71,13 @@ impl SyncInputApi for std::fs::File {
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
-        Ok(self.read_exact_at(buffer, offset as u64)?)
+        #[cfg(target_os = "windows")]
+        self.seek_read(buffer, offset as u64)?;
+
+        #[cfg(not(target_os = "windows"))]
+        self.read_exact_at(buffer, offset as u64)?;
+
+        Ok(())
     }
 }
 

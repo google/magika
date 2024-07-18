@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # pin@v4
       - run: rustup default ${{ matrix.toolchain }}
       - run: rustup component add rustfmt clippy
-      - run: rustup target add x86_64-apple-darwin x86_64-pc-windows-msvc
+      - run: rustup target add aarch64-apple-darwin x86_64-pc-windows-msvc
       - run: ./test.sh
         working-directory: rust
       - run: ./sync.sh --check

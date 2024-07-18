@@ -27,7 +27,7 @@ fi
 # Make sure we can build for the targets we care about.
 TARGETS='
 x86_64-unknown-linux-gnu
-x86_64-apple-darwin
+aarch64-apple-darwin
 x86_64-pc-windows-msvc
 '
 for target in $TARGETS; do

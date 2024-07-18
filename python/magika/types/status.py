@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from magika.types.strenum import StrEnum
 
-import dotenv
 
-from magika import magika
-from magika.types import prediction_mode
+class Status(StrEnum):
+    OK = "ok"
 
-Magika = magika.Magika
-MagikaError = magika.MagikaError
-PredictionMode = prediction_mode.PredictionMode
+    # Used when a file path does not exist
+    FILE_NOT_FOUND_ERROR = "file_not_found_error"
 
-dotenv.load_dotenv(dotenv.find_dotenv())
+    # Used when a file path exists, but there are permission issues, e.g., can't
+    # read file
+    PERMISSION_ERROR = "permission_error"
+
+    # Represents a generic error-like unknown status.
+    UNKNOWN = "unknown"

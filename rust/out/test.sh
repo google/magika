@@ -14,12 +14,12 @@
 # limitations under the License.
 
 set -e
-. ./color.sh
+. ../color.sh
 
-for dir in gen lib cli out; do
-  info "Running tests from $dir"
-  ( cd $dir && ./test.sh; )
+cat labels | while read line; do
+  file=${line%: *}
+  directory=${file%/*}
+  expected=${directory##*/}
+  actual=${line#*: }
+  [ "$expected" = "$actual" ] || error "$file is detected as $actual"
 done
-
-info "Testing generated files are synced"
-./sync.sh --check

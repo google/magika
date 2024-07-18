@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+x() { ( set -x; "$@"; ); }
+
 color() { echo "[$1m$2:[m $3"; }
 info() { color '1;36' Info "$*"; }
 todo() { color '1;33' Todo "$*"; }

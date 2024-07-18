@@ -9,6 +9,7 @@ repository = "https://github.com/google/magika"
 homepage = "https://google.github.io/magika/"
 keywords = ["cli", "file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
+include = ["/LICENSE", "/src"]
 
 [[bin]]
 name = "magika"

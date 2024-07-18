@@ -13,15 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
+. ../color.sh
 
-cargo check
-cargo check --features=serde
-cargo test --features=_test
-cargo fmt -- --check
-cargo clippy -- --deny=warnings
+x cargo check
+x cargo check --features=serde
+x cargo test --features=_test
+x cargo fmt -- --check
+x cargo clippy -- --deny=warnings
 if cargo --version | grep -q nightly; then
-  RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
+  x env RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
 fi
 
 # Make sure we can build for the targets we care about.
@@ -31,5 +32,5 @@ aarch64-apple-darwin
 x86_64-pc-windows-msvc
 '
 for target in $TARGETS; do
-  cargo build --release --target=$target
+  x cargo build --release --target=$target
 done

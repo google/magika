@@ -16,10 +16,11 @@
 set -e
 . ./color.sh
 
-for dir in gen lib cli out; do
-  info "Running tests from $dir"
-  ( cd $dir && ./test.sh; )
+for toolchain in stable nightly; do
+  for dir in gen lib cli; do
+    info "Running tests from $dir with $toolchain"
+    ( cd $dir && rustup run $toolchain ./test.sh; )
+  done
 done
 
-info "Testing generated files are synced"
 ./sync.sh --check

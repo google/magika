@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
+. ../color.sh
 
-cargo check
-cargo fmt -- --check
-cargo clippy -- --deny=warnings
+x cargo check
+x cargo fmt -- --check
+x cargo clippy -- --deny=warnings

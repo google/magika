@@ -13,9 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
+. ../color.sh
 
-cargo check
-cargo build --release
-cargo fmt -- --check
-cargo clippy -- --deny=warnings
+x cargo check
+x cargo build --release
+x cargo fmt -- --check
+x cargo clippy -- --deny=warnings
+
+PATH=$(dirname $PWD)/target/release:$PATH
+
+info 'Test against the basic and mitra test suites'
+( cd ../../tests_data
+  magika --format='%p: %l' --recursive basic mitra | while read line; do
+    file=${line%: *}
+    directory=${file%/*}
+    expected=${directory##*/}
+    actual=${line#*: }
+    [ "$expected" = "$actual" ] || error "$file is detected as $actual"
+  done
+)
+
+info 'Test against expected output'
+( set -x
+  magika test.sh
+  magika test.sh --colors
+  magika test.sh --output-score
+  magika test.sh --json
+  magika test.sh README.md --json
+  magika test.sh --jsonl
+  magika test.sh README.md --jsonl
+  magika test.sh --mime-type
+) > output 2>&1
+git diff --exit-code -- output || error 'Unexpected output'

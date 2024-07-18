@@ -16,11 +16,8 @@
 set -e
 . ./color.sh
 
-info "Generating files from gen"
+info "Sync generated files"
 ( cd gen; cargo run; )
-info "Generating files from out"
-( cd out; ./run.sh; )
-
 if [ "$1" = --check ]; then
   if ! git diff --exit-code; then
     [ -n "$CI" ] && todo 'Execute ./sync.sh from the rust directory'

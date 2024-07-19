@@ -14,22 +14,29 @@ import { expect, describe, it, beforeAll, afterAll, beforeEach } from '@jest/glo
 
 
 /**
- * Returns a list of test files and their correct label.
+ * Returns a list of test files and their correct labels.
  * 
  * @param directory the directory to recursively scan for test files. 
- * @returns the list of file paths and labels
+ * @returns the list of file paths and labels.
  */
-const getTestFilesWithLabels = (directory: string): Array<[Dirent, string]> => readdirSync(
+const getTestFilesWithLabels = (directory: string): Array<[string, Dirent]> => readdirSync(
     directory,
     { recursive: true, withFileTypes: true })
     .filter(dirent => dirent.isFile())
-    .map<[Dirent, string]>((dirent) => [dirent, dirent.parentPath.split('/').pop() || 'UNKNOWN'])
+    .map<[string, Dirent]>((dirent) => [dirent.parentPath.split('/').pop() || 'UNKNOWN', dirent])
 
-
-const testFiles: Array<[Dirent, string]> = [
-    ...([getTestFilesWithLabels('../tests_data/basic')[0]]),
-    ... ([getTestFilesWithLabels('../tests_data/mitra')[0]])
+/** 
+ * Array of all our test files and their labels.
+ */
+const TEST_FILES: Array<[string, Dirent]> = [
+    ...(getTestFilesWithLabels('../tests_data/basic')),
+    ...(getTestFilesWithLabels('../tests_data/mitra'))
 ];
+
+/**
+ * File types for Magika V2. Skip them in the tests for now.
+ */
+const SKIP_FUTURE_CONTENT_TYPES = new Set(['dockerfile', 'toml', 'typescript', 'yara'])
 
 describe('Magika class', () => {
 
@@ -185,7 +192,8 @@ describe('Magika class', () => {
         expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
-    it.each(testFiles)('stream and byte should return the same features for "$name"', async (testFile, label) => {
+    it.each(TEST_FILES)('stream and byte should return the same features for "%s"', async (label, testFile) => {
+        if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
         const magika = new Magika();
         await magika.load({ configPath: workdir.config, modelPath: workdir.model });
         const featuresMock = jest.spyOn(magika.model, 'predict');
@@ -203,7 +211,8 @@ describe('Magika class', () => {
         expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
-    it.each(testFiles)('Magika is agnostic to the format of the input bytes for "$name"', async (testFile, _label) => {
+    it.each(TEST_FILES)('Magika is agnostic to the format of the input bytes for "%s"', async (label, testFile) => {
+        if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
         const magika = new Magika();
         await magika.load({ configPath: workdir.config, modelPath: workdir.model });
         const featuresMock = jest.spyOn(magika.model, 'predict');

@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Determines the content type of a file with deep-learning.
+//! Determines the type of a file with deep-learning.
 //!
 //! # Examples
 //!
 //! ```rust
-//! use magika::{Features, Label, Session};
-//!
 //! # fn main() -> magika::Result<()> {
-//! let magika = Session::new()?;
-//! let features = Features::extract_sync(&b"#!/bin/sh\necho hello"[..])?;
-//! let result = magika.identify_one_sync(&features)?;
-//! assert_eq!(result.label(), Label::Shell);
+//! // A Magika session can be used multiple times across multiple threads.
+//! let magika = magika::Session::new()?;
+//!
+//! // Files can be identified from their path.
+//! assert_eq!(magika.identify_file_sync("src/lib.rs")?.info().label, "rust");
+//!
+//! // Contents can also be identified directly from memory.
+//! let result = magika.identify_content_sync(&b"#!/bin/sh\necho hello"[..])?;
+//! assert_eq!(result.info().label, "shell");
 //! # Ok(())
 //! # }
 //! ```
@@ -31,16 +34,18 @@
 #![cfg_attr(feature = "_doc", feature(doc_auto_cfg))]
 
 pub use crate::builder::Builder;
+pub use crate::content::{ContentType, MODEL_NAME};
 pub use crate::error::{Error, Result};
-pub use crate::input::{AsyncInput, Features, SyncInput};
-pub use crate::label::Label;
-pub use crate::output::Output;
+pub use crate::file::{FileType, InferredType, RuledType, TypeInfo};
+pub use crate::input::{AsyncInput, Features, FeaturesOrRuled, SyncInput};
 pub use crate::session::Session;
 
 mod builder;
+mod config;
+mod content;
 mod error;
+mod file;
 mod future;
 mod input;
-mod label;
-mod output;
+mod model;
 mod session;

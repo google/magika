@@ -15,7 +15,8 @@
 
 import dotenv
 
-from magika import magika, prediction_mode
+from magika import magika
+from magika.types import prediction_mode
 
 Magika = magika.Magika
 MagikaError = magika.MagikaError

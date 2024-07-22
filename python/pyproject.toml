@@ -1,25 +1,21 @@
 [tool.poetry]
 name = "magika"
-version = "0.5.2-dev"
-description = "A tool to determine the content type of a file with deep-learning"
-authors = ["Yanick Fratantonio <yanickf@google.com>"]
+version = "0.6.0-dev"
+description = "A tool to determine the content type of a file with deep learning"
+authors = ["Magika Developers <magika-dev@google.com>"]
 readme = "README.md"
+license = "Apache License 2.0"
 packages = [{include = "magika"}]
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.13"
 click = "^8.1.3"
-tqdm = "^4.66.2"
 onnxruntime = "^1.17.0"
 numpy = [
     {version = "^1.24", python = ">=3.8,<3.9"},
     {version = "^1.26", python = ">=3.9,<3.13"}
 ]
-tabulate = "^0.9.0"
 python-dotenv = "^1.0.1"
-
-[tool.poetry.scripts]
-magika = "magika.cli.magika:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.1"
@@ -28,7 +24,7 @@ ipython = [
     {version = "^8.18.1", python = ">=3.9,<3.10"},
     {version = "^8.21.0", python = ">=3.10,<3.13"}
 ]
-ruff = ">=0.2.2,<0.4.0"
+ruff = ">=0.2.2,<0.6.0"
 mypy = "^1.8.0"
 
 [build-system]

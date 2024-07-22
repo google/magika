@@ -14,17 +14,13 @@
 
 from __future__ import annotations
 
-import enum
-from typing import List
+from dataclasses import dataclass
 
-from magika.strenum import LowerCaseStrEnum
+from magika.types.content_type_info import ContentTypeInfo
 
 
-class PredictionMode(LowerCaseStrEnum):
-    BEST_GUESS = enum.auto()
-    MEDIUM_CONFIDENCE = enum.auto()
-    HIGH_CONFIDENCE = enum.auto()
-
-    @staticmethod
-    def get_valid_prediction_modes() -> List[str]:
-        return [pm for pm in PredictionMode]
+@dataclass(frozen=True)
+class MagikaResult:
+    dl: ContentTypeInfo
+    output: ContentTypeInfo
+    score: float

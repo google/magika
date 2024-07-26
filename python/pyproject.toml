@@ -18,7 +18,7 @@ numpy = [
 python-dotenv = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0.1"
+pytest = "^8.3.2"
 ipython = [
     {version = "^8.12.3", python = ">=3.8,<3.9"},
     {version = "^8.18.1", python = ">=3.9,<3.10"},

@@ -25,7 +25,7 @@ ipython = [
     {version = "^8.21.0", python = ">=3.10,<3.13"}
 ]
 ruff = ">=0.2.2,<0.6.0"
-mypy = "^1.8.0"
+mypy = "^1.11.1"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,0 +1,108 @@
++ magika test.sh
+test.sh: Shell script (code)
++ magika test.sh --colors
+[1;34mtest.sh: Shell script (code)[0m
++ magika test.sh --output-score
+test.sh: Shell script (code) 99%
++ magika test.sh --json
+[
+  {
+    "path": "test.sh",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Shell script",
+          "extensions": [
+            "sh"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "shell",
+          "mime_type": "text/x-shellscript"
+        },
+        "output": {
+          "description": "Shell script",
+          "extensions": [
+            "sh"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "shell",
+          "mime_type": "text/x-shellscript"
+        },
+        "score": 0.9980000257492065
+      }
+    }
+  }
+]
++ magika test.sh README.md --json
+[
+  {
+    "path": "test.sh",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Shell script",
+          "extensions": [
+            "sh"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "shell",
+          "mime_type": "text/x-shellscript"
+        },
+        "output": {
+          "description": "Shell script",
+          "extensions": [
+            "sh"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "shell",
+          "mime_type": "text/x-shellscript"
+        },
+        "score": 0.9980000257492065
+      }
+    }
+  },
+  {
+    "path": "README.md",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "output": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  }
+]
++ magika test.sh --jsonl
+{"path":"test.sh","result":{"status":"ok","value":{"dl":{"description":"Shell script","extensions":["sh"],"group":"code","is_text":true,"label":"shell","mime_type":"text/x-shellscript"},"output":{"description":"Shell script","extensions":["sh"],"group":"code","is_text":true,"label":"shell","mime_type":"text/x-shellscript"},"score":0.9980000257492065}}}
++ magika test.sh README.md --jsonl
+{"path":"test.sh","result":{"status":"ok","value":{"dl":{"description":"Shell script","extensions":["sh"],"group":"code","is_text":true,"label":"shell","mime_type":"text/x-shellscript"},"output":{"description":"Shell script","extensions":["sh"],"group":"code","is_text":true,"label":"shell","mime_type":"text/x-shellscript"},"score":0.9980000257492065}}}
+{"path":"README.md","result":{"status":"ok","value":{"dl":{"description":"Markdown document","extensions":["md","markdown"],"group":"text","is_text":true,"label":"markdown","mime_type":"text/markdown"},"output":{"description":"Markdown document","extensions":["md","markdown"],"group":"text","is_text":true,"label":"markdown","mime_type":"text/markdown"},"score":0.9990000128746033}}}
++ magika test.sh --mime-type
+test.sh: text/x-shellscript

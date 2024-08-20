@@ -13,17 +13,16 @@
 // limitations under the License.
 
 use std::future::Future;
-#[cfg(feature = "tokio")]
-use std::io::SeekFrom;
-use std::os::unix::fs::FileExt as _;
+use std::io::{Read, Seek, SeekFrom};
 
-#[cfg(feature = "tokio")]
 use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
 
-use crate::Result;
+use crate::config::ModelConfig;
+use crate::future::exec;
+use crate::{ContentType, Result};
 
-/// Processed file content, ready for inference.
-pub struct Features(pub(crate) Vec<f32>);
+/// Features to identify a file with deep-learning.
+pub struct Features(pub(crate) Vec<i32>);
 
 /// Synchronous abstraction over file content.
 pub trait SyncInput: SyncInputApi {}
@@ -66,7 +65,8 @@ impl SyncInputApi for std::fs::File {
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
-        Ok(self.read_exact_at(buffer, offset as u64)?)
+        self.seek(SeekFrom::Start(offset as u64))?;
+        Ok(self.read_exact(buffer)?)
     }
 }
 
@@ -91,9 +91,7 @@ impl<T: SyncInputApi> AsyncInputApi for T {
     }
 }
 
-#[cfg(feature = "tokio")]
 impl AsyncInput for tokio::fs::File {}
-#[cfg(feature = "tokio")]
 impl AsyncInputApi for tokio::fs::File {
     async fn length(&self) -> Result<usize> {
         Ok(self.metadata().await?.len() as usize)
@@ -106,66 +104,89 @@ impl AsyncInputApi for tokio::fs::File {
     }
 }
 
-impl Features {
+/// Result of features extraction.
+pub enum FeaturesOrRuled {
+    /// Features extracted for deep-learning.
+    Features(Features),
+
+    /// Content identified without deep-learning.
+    Ruled(ContentType),
+}
+
+impl FeaturesOrRuled {
     /// Extracts the features from a file (synchronously).
+    ///
+    /// Returns the content type directly if the file is not suited for deep-learning.
     pub fn extract_sync(file: impl SyncInput) -> Result<Self> {
-        Ok(Features(extract_features_sync(BUFFER_SIZE, file)?))
+        exec(Self::extract(file))
     }
 
     /// Extracts the features from a file (asynchronously).
+    ///
+    /// Returns the content type directly if the file is not suited for deep-learning.
     pub async fn extract_async(file: impl AsyncInput) -> Result<Self> {
-        Ok(Features(extract_features_async(BUFFER_SIZE, file).await?))
+        Self::extract(file).await
     }
-}
 
-pub(crate) const FEATURE_SIZE: usize = 512;
-const FEATURE_PADDING: f32 = 256f32;
-const BUFFER_SIZE: usize = 8192;
-
-fn extract_features_sync(buffer_size: usize, file: impl SyncInputApi) -> Result<Vec<f32>> {
-    crate::future::exec(extract_features_async(buffer_size, file))
+    pub(crate) async fn extract(file: impl AsyncInputApi) -> Result<Self> {
+        let config = &crate::model::CONFIG;
+        let file_len = file.length().await?;
+        if file_len == 0 {
+            return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
+        }
+        let (first_block, features) = extract_features_async(config, file, file_len).await?;
+        if features[config.min_file_size_for_dl - 1] != config.padding_token {
+            return Ok(FeaturesOrRuled::Features(Features(features)));
+        }
+        debug_assert!(first_block.len() <= config.block_size);
+        let content_type = match std::str::from_utf8(&first_block) {
+            Ok(_) => ContentType::Txt,
+            Err(_) => ContentType::Unknown,
+        };
+        Ok(FeaturesOrRuled::Ruled(content_type))
+    }
 }
 
 async fn extract_features_async(
-    buffer_size: usize, mut file: impl AsyncInputApi,
-) -> Result<Vec<f32>> {
-    let file_len = file.length().await?;
-    if file_len < 2 * buffer_size + FEATURE_SIZE {
-        let mut content = vec![0; file_len];
-        file.read_at(&mut content, 0).await?;
-        let content = strip_prefix(strip_suffix(&content));
-        extract_features(content, content, content)
-    } else {
-        let mut beg = vec![0; buffer_size];
-        file.read_at(&mut beg, 0).await?;
-        let beg = strip_prefix(&beg);
-        let mut end = vec![0; buffer_size];
-        file.read_at(&mut end, file_len - buffer_size).await?;
-        let end = strip_suffix(&end);
-        let trimmed_beg = buffer_size - beg.len();
-        let trimmed_end = buffer_size - end.len();
-        let mid_offset = trimmed_beg + (file_len - trimmed_beg - trimmed_end - FEATURE_SIZE) / 2;
-        let mut mid = vec![0; FEATURE_SIZE];
-        file.read_at(&mut mid, mid_offset).await?;
-        extract_features(beg, &mid, end)
+    config: &ModelConfig, mut file: impl AsyncInputApi, file_len: usize,
+) -> Result<(Vec<u8>, Vec<i32>)> {
+    debug_assert!(config.beg_size < config.block_size);
+    debug_assert!(config.mid_size < config.block_size);
+    debug_assert!(config.end_size < config.block_size);
+    let buffer_size = std::cmp::min(config.block_size, file_len);
+    let mut content_beg = vec![0; buffer_size];
+    file.read_at(&mut content_beg, 0).await?;
+    let beg = strip_prefix(&content_beg);
+    let mut end = vec![0; buffer_size];
+    file.read_at(&mut end, file_len - buffer_size).await?;
+    let end = strip_suffix(&end);
+    let mid_len = std::cmp::min(config.mid_size, file_len);
+    let mid_off = (file_len - mid_len) / 2;
+    let mut mid = vec![0; mid_len];
+    file.read_at(&mut mid, mid_off).await?;
+    let mut features = vec![config.padding_token; config.features_size()];
+    let split_features = config.split_features(&mut features);
+    copy_features(split_features.beg, beg, 0);
+    copy_features(split_features.mid, &mid, 1);
+    copy_features(split_features.end, end, 2);
+    for (offset, features) in split_features.off {
+        let mut buffer = Vec::new();
+        if offset + features.len() <= file_len {
+            buffer = vec![0; features.len()];
+            file.read_at(&mut buffer, offset).await?;
+        }
+        copy_features(features, &buffer, 0);
     }
+    Ok((content_beg, features))
 }
 
-fn extract_features(beg: &[u8], mid: &[u8], end: &[u8]) -> Result<Vec<f32>> {
-    let mut features = vec![FEATURE_PADDING; 3 * FEATURE_SIZE];
-    copy_features(&mut features[..FEATURE_SIZE], beg, 0);
-    copy_features(&mut features[FEATURE_SIZE..2 * FEATURE_SIZE], mid, 1);
-    copy_features(&mut features[2 * FEATURE_SIZE..], end, 2);
-    Ok(features)
-}
-
-fn copy_features(dst: &mut [f32], src: &[u8], align: usize) {
+fn copy_features(dst: &mut [i32], src: &[u8], align: usize) {
     let len = std::cmp::min(dst.len(), src.len());
     let dst_len = dst.len(); // borrowing issue: cannot inline below
     let dst = &mut dst[(dst_len - len) * align / 2..][..len];
     let src = &src[(src.len() - len) * align / 2..][..len];
     for (dst, src) in dst.iter_mut().zip(src.iter()) {
-        *dst = *src as f32;
+        *dst = *src as i32;
     }
 }
 
@@ -193,6 +214,7 @@ fn is_whitespace(x: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
     use std::fs::File;
     use std::io::Read;
 
@@ -213,7 +235,7 @@ mod tests {
             mid_size: usize,
             end_size: usize,
             block_size: usize,
-            padding_token: usize,
+            padding_token: i32,
             #[allow(dead_code)] // debugging only
             core_content_size: usize,
             #[allow(dead_code)] // debugging only
@@ -223,20 +245,30 @@ mod tests {
         }
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
+        #[allow(dead_code)] // we only implement v2
         struct FeaturesV1 {
             beg: Vec<usize>,
             mid: Vec<usize>,
             end: Vec<usize>,
         }
         #[derive(Debug, Deserialize)]
-        struct FeaturesV2 {}
+        #[serde(deny_unknown_fields)]
+        struct FeaturesV2 {
+            beg: Vec<usize>,
+            mid: Vec<usize>,
+            end: Vec<usize>,
+            offset_0x8000_0x8007: Vec<usize>,
+            offset_0x8800_0x8807: Vec<usize>,
+            offset_0x9000_0x9007: Vec<usize>,
+            offset_0x9800_0x9807: Vec<usize>,
+        }
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Test {
             test_info: Info,
             content: String,
+            #[allow(dead_code)] // we only implement v2
             features_v1: FeaturesV1,
-            #[allow(dead_code)] // we only implement v1 at this time
             features_v2: FeaturesV2,
         }
         const PATH: &str = "../../tests_data/features_extraction/reference.json.gz";
@@ -244,19 +276,30 @@ mod tests {
         GzDecoder::new(File::open(PATH).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
         for test in tests {
-            assert_eq!(test.test_info.beg_size, FEATURE_SIZE);
-            assert_eq!(test.test_info.mid_size, FEATURE_SIZE);
-            assert_eq!(test.test_info.end_size, FEATURE_SIZE);
-            assert_eq!(test.test_info.padding_token, FEATURE_PADDING as usize);
-            let block_size = test.test_info.block_size;
+            let config = ModelConfig {
+                beg_size: test.test_info.beg_size,
+                mid_size: test.test_info.mid_size,
+                end_size: test.test_info.end_size,
+                use_inputs_at_offsets: true,
+                min_file_size_for_dl: 16,
+                padding_token: test.test_info.padding_token,
+                block_size: test.test_info.block_size,
+                thresholds: Cow::Borrowed(&[0.; ContentType::SIZE]),
+                overwrite_map: Cow::Borrowed(&[ContentType::Unknown; ContentType::SIZE]),
+            };
             let mut expected = Vec::new();
-            expected.extend_from_slice(&test.features_v1.beg);
-            expected.extend_from_slice(&test.features_v1.mid);
-            expected.extend_from_slice(&test.features_v1.end);
+            expected.extend_from_slice(&test.features_v2.beg);
+            expected.extend_from_slice(&test.features_v2.mid);
+            expected.extend_from_slice(&test.features_v2.end);
+            expected.extend_from_slice(&test.features_v2.offset_0x8000_0x8007);
+            expected.extend_from_slice(&test.features_v2.offset_0x8800_0x8807);
+            expected.extend_from_slice(&test.features_v2.offset_0x9000_0x9007);
+            expected.extend_from_slice(&test.features_v2.offset_0x9800_0x9807);
             let content = BASE64.decode(test.content.as_bytes()).unwrap();
-            let actual = extract_features_sync(block_size, content.as_slice()).unwrap();
+            let actual = extract_features_async(&config, content.as_slice(), content.len());
+            let actual = exec(actual).unwrap().1;
             let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();
-            assert_eq!(actual, expected);
+            assert_eq!(actual, expected, "{test:?}");
         }
     }
 }

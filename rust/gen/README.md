@@ -1,24 +1,24 @@
 This crate is for maintenance purposes only. It is used to update the Rust library to a new model.
-There are 2 files in the Rust library that depend on the model:
+There are 3 files in the Rust library that depend on the model:
 
-- The model itself, `rust/lib/src/model.onnx`, which can either be a symbolic link to the source of
-  truth in this repository (publishing the crate will dereference the symbolic link), or a copy of
-  that source of truth (in which case there should be a test to make sure the file is an up-to-date
-  copy).
-- The labels describing the model output, `rust/lib/src/label.rs`, which is generated from the model
-  configuration, `rust/gen/data/config.json`, which can either be a symbolic link or a copy to the
-  source of truth in this repository, and should match the model above.
+- The model itself, `rust/lib/src/model.onnx`, which is a symbolic link to some model under
+  `python/magika/models`, controlled by the `rust/gen/model` symbolic link. Publishing the crate
+  will dereference this symbolic link.
+- The labels describing the model output, `rust/lib/src/model.rs`, which is generated from the model
+  configuration, `rust/gen/model/config.min.json`.
+- The list of possible file types, `rust/lib/src/content.rs`, which is generated from the knowledge
+  base of content types, `python/magika/config/content_types_kb.min.json`.
 
-The purpose of this crate is to generate this second file. There is a test to make sure that this
-file is up-to-date. If the test fails, one simply needs to run `./sync.sh` from the `rust` directory
-to regenerate the file.
+The purpose of this crate is to generate the last two files. There is a test to make sure that they
+are up-to-date. If the test fails, one simply needs to run `./sync.sh` from the `rust` directory to
+regenerate them.
 
-An alternative design to generating the file before publishing the crate, would be to publish the
-model configuration and use a build script to generate the file during compilation. This has a few
-disadvantages:
+An alternative design to generating the files before publishing the crate, would be to publish the
+model and Magika configurations and use a build script to generate the files during compilation.
+This has a few disadvantages:
 
-- We need to publish the model configuration which contains more information than needed to use the
-  library.
+- We need to publish the model and Magika configurations which contain more information than needed
+  to use the library (and the CLI).
 - We need to use a build script, which is frown upon for security reasons, as the entity compiling
   the library or CLI now needs to trust the build script, which can run arbitrary code. This only
   matters when the entity compiling the library or CLI is not the same as the one running the

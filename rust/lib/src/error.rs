@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::PoisonError;
-
 /// Result type of Magika functions.
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -21,24 +19,14 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Input/output errors reported by the standard library.
-    #[error("I/O error")]
+    #[error("{0}")]
     IOError(#[from] std::io::Error),
 
     /// Errors reported by the ONNX Runtime.
-    #[error("ONNX Runtime error")]
+    #[error("{0}")]
     OrtError(#[from] ort::Error),
 
-    /// Errors taking a lock on a mutex.
-    #[error("Mutex lock error")]
-    LockError,
-
     /// Shape errors reported by the ndarray library.
-    #[error("ndarray shape error")]
+    #[error("{0}")]
     ShapeError(#[from] ndarray::ShapeError),
-}
-
-impl<T> From<PoisonError<T>> for Error {
-    fn from(_: PoisonError<T>) -> Self {
-        Error::LockError
-    }
 }

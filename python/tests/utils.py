@@ -12,19 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import random
 import string
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
-
-from magika.content_types import ContentTypesManager
-from magika.types import (
-    MagikaOutputFields,
-    MagikaResult,
-    ModelFeatures,
-    ModelOutputFields,
-)
+from typing import List
 
 
 def get_tests_data_dir() -> Path:
@@ -51,13 +42,13 @@ def get_mitra_tests_files_dir() -> Path:
 
 def get_basic_test_files_paths() -> List[Path]:
     tests_files_dir = get_basic_tests_files_dir()
-    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.iterdir()))
+    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
     return test_files_paths
 
 
 def get_mitra_test_files_paths() -> List[Path]:
     tests_files_dir = get_mitra_tests_files_dir()
-    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.iterdir()))
+    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
     return test_files_paths
 
 
@@ -110,155 +101,3 @@ def get_default_model_dir() -> Path:
         / Magika.get_default_model_name()
     )
     return model_dir
-
-
-def check_magika_cli_output_matches_expected_by_ext(
-    samples_paths: List[Path], stdout: str, stderr: str, **kwargs: Any
-) -> None:
-    assert len(samples_paths) > 0
-    json_output = kwargs.get("json_output", False)
-    jsonl_output = kwargs.get("jsonl_output", False)
-    mime_output = kwargs.get("mime_output", False)
-    label_output = kwargs.get("label_output", False)
-    compatibility_mode = kwargs.get("compatibility_mode", False)
-    cpp_output = kwargs.get("cpp_output", False)
-    ctm = ContentTypesManager()
-    predicted_cts = get_magika_cli_output_from_stdout_stderr(stdout, stderr, **kwargs)
-    assert len(predicted_cts) > 0
-    assert len(samples_paths) == len(predicted_cts)
-    remaining_samples_paths = samples_paths[:]
-    for file_path, output in predicted_cts:
-        remaining_samples_paths.remove(file_path)
-        file_ext = file_path.suffix.lstrip(".")
-        if file_ext != "":
-            true_cts = ctm.get_cts_by_ext(file_ext)
-        else:
-            # The test file does not have any extension. In this case, we assume
-            # this is a test file path with the <dataset>/<content type>/<hash>
-            # pattern.
-            true_ct_name = file_path.parent.name
-            true_cts = [ctm.get_or_raise(true_ct_name)]
-        assert len(true_cts) > 0, f'File extension: "{file_ext}"'
-
-        true_cts_names = [ct.name for ct in true_cts]
-
-        if json_output or jsonl_output:
-            # check that each JSON entry satisfies the requirements
-            assert isinstance(output, dict)
-            dict_output: Dict[str, Any] = output
-            assert dict_output["output"]["ct_label"] in true_cts_names
-        elif cpp_output:
-            assert isinstance(output, str)
-            assert output.lower() in true_cts_names
-        else:
-            assert isinstance(output, str)
-            expected_outputs = []
-            if mime_output:
-                expected_outputs = [ctm.get_mime_type(ct.name) for ct in true_cts]
-            elif label_output:
-                expected_outputs = true_cts_names
-            elif compatibility_mode:
-                expected_outputs = [ctm.get_magic(ct.name) for ct in true_cts]
-            else:
-                expected_outputs = [
-                    f"{ctm.get_description(ct.name)} ({ctm.get_group(ct.name)})"
-                    for ct in true_cts
-                ]
-            assert (
-                output in expected_outputs
-            ), f'Output: "{output}", expected output: "{expected_outputs}"'
-
-    # Check that all input samples have been scanned
-    assert len(remaining_samples_paths) == 0
-
-
-def get_magika_cli_output_from_stdout_stderr(
-    stdout: str, stderr: str, **kwargs: Any
-) -> List[Tuple[Path, Union[Dict[str, Any], str]]]:
-    json_output = kwargs.get("json_output", False)
-    jsonl_output = kwargs.get("jsonl_output", False)
-    output_score = kwargs.get("output_score", False)
-    generate_report = kwargs.get("generate_report", False)
-    cpp_output = kwargs.get("cpp_output", False)
-    """
-    This function returns the output of magika for each input file. In case of
-    JSON or JSONL, it returns the full information dictionary for
-    each of them, not just the output content type label.
-    """
-
-    predicted_cts = []
-    if json_output:
-        # expect json
-        entries = json.loads(stdout)
-        for entry in entries:
-            predicted_cts.append((Path(entry["path"]), entry))
-    elif jsonl_output:
-        # expect jsonl
-        lines = get_lines_from_stream(stdout)
-        for line in lines:
-            entry = json.loads(line)
-            predicted_cts.append((Path(entry["path"]), entry))
-    elif cpp_output:
-        # output from magika-cpp client
-        lines = get_lines_from_stream(stdout)
-        for line in lines:
-            file_path_str, output = line.split(": ", 1)
-            ct_output, score_str = output.split(" ")
-            score_num = float(score_str)
-            assert 0 <= score_num <= 1
-            predicted_cts.append((Path(file_path_str), ct_output))
-    else:
-        # plain output
-        lines = get_lines_from_stream(stdout)
-        for line in lines:
-            if output_score:
-                file_path_str, output = line.split(": ", 1)
-                ct_output, score_str = output.rsplit(" ", 1)
-                assert score_str.endswith("%")
-                score_num_str = score_str[:-1]
-                assert 0 <= int(score_num_str) <= 100
-            else:
-                file_path_str, ct_output = line.split(": ", 1)
-            predicted_cts.append((Path(file_path_str), ct_output))
-
-        # check that we output the expected warnings
-        if generate_report:
-            stderr_lines = get_lines_from_stream(stderr)
-            assert len(stderr_lines) >= 1
-            if generate_report:
-                assert stderr_lines[0].startswith("#" * 10)
-                assert stderr_lines[1].find("REPORT") >= 0
-                assert stderr_lines[2].startswith("#" * 10)
-                assert stderr_lines[-4].startswith("#" * 10)
-                assert stderr_lines[-3].startswith("Please")
-                assert stderr_lines[-2].startswith("Please")
-                assert (
-                    stderr_lines[-1].startswith("IMPORTANT")
-                    and stderr_lines[-1].find("NOT") >= 0
-                    and stderr_lines[-1].find("PII") >= 0
-                )
-                report_info = json.loads(stderr_lines[3])
-                assert set(report_info.keys()) == {
-                    "version",
-                    "model_dir_name",
-                    "python_version",
-                    "reports",
-                }
-                for report in report_info["reports"]:
-                    assert set(report.keys()) == {"hash", "features", "result"}
-                    assert isinstance(report["hash"], str)
-                    # try to parse "features" as ModelFeatures
-                    _ = ModelFeatures(**json.loads(report["features"]))
-                    # try to parse "result" as MagikaResult
-                    result_dict = report["result"]
-                    mr = MagikaResult(
-                        path=result_dict["path"],
-                        dl=ModelOutputFields(**result_dict["dl"]),
-                        output=MagikaOutputFields(
-                            **result_dict["output"],
-                        ),
-                    )
-                    assert mr.path == "<REMOVED>"
-                    assert isinstance(mr.output.ct_label, str)
-
-    return predicted_cts

@@ -18,14 +18,13 @@ import json
 import math
 import random
 import string
-import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Tuple
 
 from magika import Magika
 from magika.seekable import Buffer
-from magika.types import ModelFeatures, ModelFeaturesV2
+from magika.types import ModelFeatures
 from tests.utils import get_tests_data_dir
 
 random.seed(42)
@@ -45,73 +44,23 @@ class TestInfo:
     __test__ = False
 
 
-def test_features_extraction(debug: bool = False) -> None:
-    """This iterates over the content in the test suite and checks whether the
-    trivial implementation matches the python module one, which is the reference
-    code."""
-
-    tests_cases = _get_tests_cases_from_reference()
-
-    for test_case in tests_cases:
-        test_info = TestInfo(**test_case["test_info"])
-        test_content = base64.b64decode(test_case["content"])
-        expected_features = ModelFeatures(**test_case["features_v1"])
-
-        beg_size = test_info.beg_size
-        mid_size = test_info.mid_size
-        end_size = test_info.end_size
-        block_size = test_info.block_size
-        padding_token = test_info.padding_token
-
-        if debug:
-            print(f"Test details: {test_info} =>")
-
-        features_from_bytes = Magika._extract_features_from_bytes(
-            test_content, beg_size, mid_size, end_size, padding_token, block_size
-        )
-        with tempfile.TemporaryDirectory() as td:
-            tf_path = Path(td) / "test.dat"
-            tf_path.write_bytes(test_content)
-            features_from_path = Magika._extract_features_from_path(
-                tf_path, beg_size, mid_size, end_size, padding_token, block_size
-            )
-
-        comparison_by_bytes = {}
-        comparison_by_bytes["beg"] = features_from_bytes.beg == expected_features.beg
-        comparison_by_bytes["mid"] = features_from_bytes.mid == expected_features.mid
-        comparison_by_bytes["end"] = features_from_bytes.end == expected_features.end
-        comparison_by_bytes["all"] = set(comparison_by_bytes.values()) == set([True])
-
-        comparison_by_path = {}
-        comparison_by_path["beg"] = features_from_path.beg == expected_features.beg
-        comparison_by_path["mid"] = features_from_path.mid == expected_features.mid
-        comparison_by_path["end"] = features_from_path.end == expected_features.end
-        comparison_by_path["all"] = set(comparison_by_path.values()) == set([True])
-
-        if debug:
-            print("comparison_by_bytes: " + json.dumps(comparison_by_bytes))
-
-        if not comparison_by_bytes["all"] or not comparison_by_path["all"]:
-            raise Exception
-
-
 def test_features_extraction_v2(debug: bool = False) -> None:
     tests_cases = _get_tests_cases_from_reference()
 
     for test_case in tests_cases:
         test_info = TestInfo(**test_case["test_info"])
         test_content = base64.b64decode(test_case["content"])
-        expected_features = ModelFeaturesV2(**test_case["features_v2"])
-
-        beg_size = test_info.beg_size
-        mid_size = test_info.mid_size
-        end_size = test_info.end_size
-        block_size = test_info.block_size
-        padding_token = test_info.padding_token
+        expected_features = ModelFeatures(**test_case["features_v2"])
 
         s = Buffer(test_content)
-        features = Magika._extract_features_from_seekable_v2(
-            s, beg_size, mid_size, end_size, padding_token, block_size
+        features = Magika._extract_features_from_seekable(
+            s,
+            beg_size=test_info.beg_size,
+            mid_size=test_info.mid_size,
+            end_size=test_info.end_size,
+            padding_token=test_info.padding_token,
+            block_size=test_info.block_size,
+            use_inputs_at_offsets=True,
         )
 
         with_error = False
@@ -197,17 +146,19 @@ def generate_features_extraction_reference():
 
     for test_info, test_content in test_suite:
         s = Buffer(test_content)
-        features_v1 = Magika._extract_features_from_seekable(
-            s, beg_size, mid_size, end_size, padding_token, block_size
-        )
-        features_v2 = Magika._extract_features_from_seekable_v2(
-            s, beg_size, mid_size, end_size, padding_token, block_size
+        features_v2 = Magika._extract_features_from_seekable(
+            s,
+            beg_size,
+            mid_size,
+            end_size,
+            padding_token,
+            block_size,
+            use_inputs_at_offsets=True,
         )
 
         test_case = {
             "test_info": asdict(test_info),
             "content": base64.b64encode(test_content).decode("ascii"),
-            "features_v1": asdict(features_v1),
             "features_v2": asdict(features_v2),
         }
         ref_features_extraction_tests.append(test_case)
@@ -316,5 +267,4 @@ def _get_features_extration_tests_path() -> Path:
 
 
 if __name__ == "__main__":
-    test_features_extraction(debug=True)
     test_features_extraction_v2(debug=True)

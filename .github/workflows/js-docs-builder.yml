@@ -2,7 +2,7 @@ name: JS - generate docs
 
 on:
   push:
-    branches: [ ]
+    branches: [ "main" ]
     paths:
       - 'js/**'
       - '.github/workflows/**'
@@ -37,4 +37,3 @@ jobs:
           git config --local user.email "invernizzi.l@gmail.com"
           git config --local user.name "Luca Invernizzi"
           git commit -m "Update docs" -a
-          git push

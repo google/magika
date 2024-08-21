@@ -1,7 +1,7 @@
 [package]
 name = "magika-cli"
 version = "0.1.0-dev"
-authors = ["Julien Cretin <cretin@google.com>", "Yanick Fratantonio <yanickf@google.com>"]
+authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
 description = "Determines the content type of a file with deep-learning"
@@ -9,15 +9,19 @@ repository = "https://github.com/google/magika"
 homepage = "https://google.github.io/magika/"
 keywords = ["cli", "file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
+include = ["/LICENSE", "/src"]
 
 [[bin]]
 name = "magika"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = "1.0.82"
-async-channel = "2.2.0"
-clap = { version = "4.5.1", features = ["derive"] }
-magika = { version = "0.1.0-dev", path = "../lib", features = ["tokio"] }
-ort = "2.0.0-rc.1"
-tokio = { version = "1.37.0", features = ["full"] }
+anyhow = "1.0.86"
+async-channel = "2.3.1"
+clap = { version = "4.5.9", features = ["derive"] }
+colored = "2.1.0"
+magika = { version = "0.1.0-dev", path = "../lib", features = ["serde"] }
+ort = "2.0.0-rc.4"
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.120"
+tokio = { version = "1.38.1", features = ["full"] }

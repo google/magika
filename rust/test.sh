@@ -16,7 +16,14 @@
 set -e
 . ./color.sh
 
-for dir in gen lib cli; do
-  info "Running $dir/test.sh"
-  ( cd $dir && ./test.sh; )
+TOOLCHAINS='stable nightly'
+[ -z "$CI" ] || TOOLCHAINS=$(rustup show active-toolchain | sed 's/-.*//')
+
+for toolchain in $TOOLCHAINS; do
+  for dir in gen lib cli; do
+    info "Running tests from $dir with $toolchain"
+    ( cd $dir && rustup run $toolchain ./test.sh; )
+  done
 done
+
+./sync.sh --check

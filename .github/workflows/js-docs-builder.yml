@@ -1,8 +1,8 @@
 name: JS - generate docs
 
 on:
+  # Runs on pushes targeting the default branch
   push:
-    # Runs on pushes targeting the default branch
     branches: [ "main" ]
     paths:
       - 'js/**'

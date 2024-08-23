@@ -40,6 +40,12 @@ def get_mitra_tests_files_dir() -> Path:
     return tests_files_dir
 
 
+def get_previously_missdetected_files_dir() -> Path:
+    tests_files_dir = get_tests_data_dir() / "previous_missdetections"
+    assert tests_files_dir.is_dir()
+    return tests_files_dir
+
+
 def get_basic_test_files_paths() -> List[Path]:
     tests_files_dir = get_basic_tests_files_dir()
     test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
@@ -48,6 +54,12 @@ def get_basic_test_files_paths() -> List[Path]:
 
 def get_mitra_test_files_paths() -> List[Path]:
     tests_files_dir = get_mitra_tests_files_dir()
+    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
+    return test_files_paths
+
+
+def get_previously_missdetected_files_paths() -> List[Path]:
+    tests_files_dir = get_previously_missdetected_files_dir()
     test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
     return test_files_paths
 

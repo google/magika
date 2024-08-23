@@ -109,6 +109,23 @@ def test_magika_module_with_mitra_tests_by_paths() -> None:
         assert result.value.output.label == expected_ct_label
 
 
+def test_magika_module_with_previously_missdetected_samples() -> None:
+    model_dir = utils.get_default_model_dir()
+    tests_paths = utils.get_previously_missdetected_files_paths()
+
+    m = Magika(model_dir=model_dir)
+
+    results = m.identify_paths(tests_paths)
+
+    for test_path, result in zip(tests_paths, results):
+        print(f"Test: {test_path}")
+        assert result.ok
+        expected_ct_label = get_expected_content_type_label_from_test_file_path(
+            test_path
+        )
+        assert result.value.output.label == expected_ct_label
+
+
 def test_magika_module_with_empty_content() -> None:
     m = Magika()
 

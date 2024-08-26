@@ -48,6 +48,7 @@ class ContentTypeLabel(StrEnum):
     ASF = "asf"
     ASM = "asm"
     ASP = "asp"
+    AU = "au"
     AUTOHOTKEY = "autohotkey"
     AUTOIT = "autoit"
     AVI = "avi"

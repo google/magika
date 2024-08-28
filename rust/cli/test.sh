@@ -23,9 +23,10 @@ x cargo clippy -- --deny=warnings
 
 PATH=$(dirname $PWD)/target/release:$PATH
 
-info 'Test against the basic and mitra test suites'
+TEST_SUITES='basic mitra previous_missdetections'
+info "Test against the test suites: $TEST_SUITES"
 ( cd ../../tests_data
-  magika --format='%p: %l' --recursive basic mitra | while read line; do
+  magika --format='%p: %l' --recursive $TEST_SUITES | while read line; do
     file=${line%: *}
     directory=${file%/*}
     expected=${directory##*/}
@@ -35,14 +36,15 @@ info 'Test against the basic and mitra test suites'
 )
 
 info 'Test against expected output'
-( set -x
-  magika test.sh
-  magika test.sh --colors
-  magika test.sh --output-score
-  magika test.sh --json
-  magika test.sh README.md --json
-  magika test.sh --jsonl
-  magika test.sh README.md --jsonl
-  magika test.sh --mime-type
+( cd ../../tests_data/basic
+  set -x
+  magika rust/code.rs
+  magika rust/code.rs --colors
+  magika rust/code.rs --output-score
+  magika rust/code.rs --json
+  magika rust/code.rs python/code.py --json
+  magika rust/code.rs --jsonl
+  magika rust/code.rs python/code.py --jsonl
+  magika rust/code.rs --mime-type
 ) > output 2>&1
 git diff --exit-code -- output || error 'Unexpected output'

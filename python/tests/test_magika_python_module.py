@@ -15,12 +15,12 @@
 import signal
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 import pytest
 
 from magika import Magika, PredictionMode
-from magika.types import ContentTypeLabel, Status
+from magika.types import ContentTypeLabel, MagikaResult, Status, StatusOr
 from tests import utils
 
 
@@ -50,15 +50,8 @@ def test_magika_module_with_basic_tests_by_paths() -> None:
     tests_paths = utils.get_basic_test_files_paths()
 
     m = Magika(model_dir=model_dir)
-
     results = m.identify_paths(tests_paths)
-
-    for test_path, result in zip(tests_paths, results):
-        assert result.ok
-        expected_ct_label = get_expected_content_type_label_from_test_file_path(
-            test_path
-        )
-        assert result.value.output.label == expected_ct_label
+    check_results_vs_expected_results(tests_paths, results)
 
 
 def test_magika_module_with_basic_tests_by_path() -> None:
@@ -69,11 +62,7 @@ def test_magika_module_with_basic_tests_by_path() -> None:
 
     for test_path in tests_paths:
         result = m.identify_path(test_path)
-        assert result.ok
-        expected_ct_label = get_expected_content_type_label_from_test_file_path(
-            test_path
-        )
-        assert result.value.output.label == expected_ct_label
+        check_result_vs_expected_result(test_path, result)
 
 
 def test_magika_module_with_basic_tests_by_bytes() -> None:
@@ -85,11 +74,7 @@ def test_magika_module_with_basic_tests_by_bytes() -> None:
     for test_path in tests_paths:
         content = test_path.read_bytes()
         result = m.identify_bytes(content)
-        assert result.ok
-        expected_ct_label = get_expected_content_type_label_from_test_file_path(
-            test_path
-        )
-        assert result.value.output.label == expected_ct_label
+        check_result_vs_expected_result(test_path, result)
 
 
 def test_magika_module_with_mitra_tests_by_paths() -> None:
@@ -97,16 +82,17 @@ def test_magika_module_with_mitra_tests_by_paths() -> None:
     tests_paths = utils.get_mitra_test_files_paths()
 
     m = Magika(model_dir=model_dir)
-
     results = m.identify_paths(tests_paths)
+    check_results_vs_expected_results(tests_paths, results)
 
-    for test_path, result in zip(tests_paths, results):
-        print(f"Test: {test_path}")
-        assert result.ok
-        expected_ct_label = get_expected_content_type_label_from_test_file_path(
-            test_path
-        )
-        assert result.value.output.label == expected_ct_label
+
+def test_magika_module_with_previously_missdetected_samples() -> None:
+    model_dir = utils.get_default_model_dir()
+    tests_paths = utils.get_previously_missdetected_files_paths()
+
+    m = Magika(model_dir=model_dir)
+    results = m.identify_paths(tests_paths)
+    check_results_vs_expected_results(tests_paths, results)
 
 
 def test_magika_module_with_empty_content() -> None:
@@ -401,3 +387,18 @@ def get_expected_content_type_label_from_test_file_path(
     test_path: Path,
 ) -> ContentTypeLabel:
     return ContentTypeLabel(test_path.parent.name)
+
+
+def check_result_vs_expected_result(
+    file_path: Path, result: StatusOr[MagikaResult]
+) -> None:
+    assert result.ok
+    expected_ct_label = get_expected_content_type_label_from_test_file_path(file_path)
+    assert result.value.output.label == expected_ct_label
+
+
+def check_results_vs_expected_results(
+    files_paths: List[Path], results: List[StatusOr[MagikaResult]]
+) -> None:
+    for file_path, result in zip(files_paths, results):
+        check_result_vs_expected_result(file_path, result)

@@ -1651,7 +1651,7 @@ pub(crate) static TIFF: TypeInfo = TypeInfo {
 
 pub(crate) static TOML: TypeInfo = TypeInfo {
     label: "toml",
-    mime_type: "application/tom",
+    mime_type: "application/toml",
     group: "text",
     description: "Tom's obvious, minimal language",
     extensions: &["toml"],

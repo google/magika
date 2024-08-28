@@ -21,9 +21,8 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 
 fn main() -> Result<()> {
-    let content_types: BTreeMap<String, ContentType> = serde_json::from_reader(File::open(
-        "../../python/magika/config/content_types_kb.min.json",
-    )?)?;
+    let content_types: BTreeMap<String, ContentType> =
+        serde_json::from_reader(File::open("../../assets/content_types_kb.min.json")?)?;
     let model_name = std::fs::read_link("model")?;
     let model_name = model_name
         .components()

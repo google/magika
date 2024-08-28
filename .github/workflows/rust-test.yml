@@ -8,8 +8,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/**'
-      - 'python/magika/config/**'
-      - 'python/magika/models/**'
+      - 'assets/**'
       - 'rust/**'
       - 'tests_data/**'
 

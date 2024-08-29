@@ -2,14 +2,15 @@
 # See https://github.com/ossf/scorecard/blob/main/config/README.md
 
 annotations:
+
+  # Binary files in tests_data/ are only used for testing.
   - checks:
       - binary-artifacts
     reasons:
-      - reason: test-data # Binary files are only used for testing.
+      - reason: test-data 
 
-annotations:
   - checks:
-   - pinned-dependencies
+      - pinned-dependencies
     reasons:
       # Test data with unpinned dependencies:
       # - tests_data/basic/dockerfile/Dockerfile

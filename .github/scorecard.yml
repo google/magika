@@ -1,0 +1,19 @@
+# Scorecard maintainer annotations.
+# See https://github.com/ossf/scorecard/blob/main/config/README.md
+
+annotations:
+  - checks:
+      - binary-artifacts
+    reasons:
+      - reason: test-data # Binary files are only used for testing.
+
+annotations:
+  - checks:
+   - pinned-dependencies
+    reasons:
+      # Test data with unpinned dependencies:
+      # - tests_data/basic/dockerfile/Dockerfile
+      - reason: test-data
+      # CI/CD containers meant to run the latest version:
+      # - .github/workflows/python-e2e-test.yml
+      - reason: remediated

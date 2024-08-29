@@ -1,0 +1,59 @@
+name: Python - test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'python/**'
+      - 'tests_data/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'python/**'
+      - 'tests_data/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  unit-testing:
+    strategy:
+      matrix:
+        python-version: [ "3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x" ]
+        os: [ "ubuntu-latest", "macos-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # pin@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+
+      - name: Install poetry
+        uses: abatilo/actions-poetry@7b6d33e44b4f08d7021a1dee3c044e9c253d6439 # pin@v3
+        with:
+          poetry-version: "1.7.1"
+
+      - name: Install the project dependencies
+        working-directory: python
+        run: poetry install
+
+      - name: Run ruff check
+        working-directory: python
+        run: poetry run ruff check --verbose
+
+      - name: Run ruff format check
+        working-directory: python
+        run: poetry run ruff format --check --verbose
+
+      - name: Run mypy
+        working-directory: python
+        run: poetry run mypy magika tests
+
+      - name: Run pytest
+        working-directory: python
+        run: poetry run pytest tests -m "not slow"

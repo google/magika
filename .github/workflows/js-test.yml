@@ -7,10 +7,12 @@ on:
       - 'main'
     paths:
       - 'js/**'
+      - 'tests_data/**'
       - '.github/workflows/**'
   pull_request:
     paths:
       - 'js/**'
+      - 'tests_data/**'
       - '.github/workflows/**'
 permissions:
   contents: read

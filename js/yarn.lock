@@ -1630,9 +1630,9 @@ extend@^3.0.0:
   integrity sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==
 
 fast-check@^3.17.0:
-  version "3.19.0"
-  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-3.19.0.tgz#6a0b7cabc3aa82bc00967332de216c5452ff7ea5"
-  integrity sha512-CO2JX/8/PT9bDGO1iXa5h5ey1skaKI1dvecERyhH4pp3PGjwd3KIjMAXEg79Ps9nclsdt4oPbfqiAnLU0EwrAQ==
+  version "3.22.0"
+  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-3.22.0.tgz#1a8153e9d6fbdcc60b818f447cbb9cac1fdd8fb6"
+  integrity sha512-8HKz3qXqnHYp/VCNn2qfjHdAdcI8zcSqOyX64GOMukp7SL2bfzfeDKjSd+UyECtejccaZv3LcvZTm9YDD22iCQ==
   dependencies:
     pure-rand "^6.1.0"
 

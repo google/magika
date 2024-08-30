@@ -105,7 +105,7 @@ pub(crate) static AUTOHOTKEY: TypeInfo = TypeInfo {
     label: "autohotkey",
     mime_type: "text/plain",
     group: "code",
-    description: "AutoHotKey",
+    description: "AutoHotKey script",
     extensions: &[],
     is_text: true,
 };
@@ -122,7 +122,7 @@ pub(crate) static AUTOIT: TypeInfo = TypeInfo {
 pub(crate) static AWK: TypeInfo = TypeInfo {
     label: "awk",
     mime_type: "text/plain",
-    group: "text",
+    group: "code",
     description: "Awk",
     extensions: &["awk"],
     is_text: true,
@@ -501,7 +501,7 @@ pub(crate) static ERB: TypeInfo = TypeInfo {
     label: "erb",
     mime_type: "text/x-ruby",
     group: "code",
-    description: "erb",
+    description: "Embedded Ruby source",
     extensions: &["erb"],
     is_text: true,
 };
@@ -510,7 +510,7 @@ pub(crate) static ERLANG: TypeInfo = TypeInfo {
     label: "erlang",
     mime_type: "text/x-erlang",
     group: "code",
-    description: "erlang",
+    description: "Erlang source",
     extensions: &["erl", "hrl"],
     is_text: true,
 };
@@ -582,7 +582,7 @@ pub(crate) static GITMODULES: TypeInfo = TypeInfo {
     label: "gitmodules",
     mime_type: "text/plain",
     group: "code",
-    description: "Gitmodules",
+    description: "Gitmodules file",
     extensions: &[],
     is_text: true,
 };
@@ -707,7 +707,7 @@ pub(crate) static ICO: TypeInfo = TypeInfo {
 pub(crate) static ICS: TypeInfo = TypeInfo {
     label: "ics",
     mime_type: "text/calendar",
-    group: "unknown",
+    group: "application",
     description: "Internet Calendaring and Scheduling",
     extensions: &["ics"],
     is_text: true,
@@ -870,7 +870,7 @@ pub(crate) static LHA: TypeInfo = TypeInfo {
     label: "lha",
     mime_type: "application/x-lha",
     group: "archive",
-    description: "LHA Archive",
+    description: "LHarc archive",
     extensions: &["lha", "lzh"],
     is_text: false,
 };
@@ -1158,7 +1158,7 @@ pub(crate) static PASCAL: TypeInfo = TypeInfo {
     label: "pascal",
     mime_type: "text/x-pascal",
     group: "code",
-    description: "pascal",
+    description: "Pascal source",
     extensions: &["pas", "pp"],
     is_text: true,
 };
@@ -1229,7 +1229,7 @@ pub(crate) static PHP: TypeInfo = TypeInfo {
 pub(crate) static PICKLE: TypeInfo = TypeInfo {
     label: "pickle",
     mime_type: "application/octet-stream",
-    group: "code",
+    group: "application",
     description: "Python pickle",
     extensions: &["pickle", "pkl"],
     is_text: false,
@@ -1293,7 +1293,7 @@ pub(crate) static PROLOG: TypeInfo = TypeInfo {
     label: "prolog",
     mime_type: "text/x-prolog",
     group: "code",
-    description: "prolog",
+    description: "Prolog source",
     extensions: &["pl", "pro", "P"],
     is_text: true,
 };
@@ -1553,8 +1553,8 @@ pub(crate) static STLTEXT: TypeInfo = TypeInfo {
 pub(crate) static SUM: TypeInfo = TypeInfo {
     label: "sum",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "sum",
+    group: "application",
+    description: "Checksum file",
     extensions: &["sum"],
     is_text: true,
 };
@@ -1761,7 +1761,7 @@ pub(crate) static VHDL: TypeInfo = TypeInfo {
     label: "vhdl",
     mime_type: "text/x-vhdl",
     group: "code",
-    description: "VHDL",
+    description: "VHDL source",
     extensions: &["vhd"],
     is_text: true,
 };
@@ -1806,7 +1806,7 @@ pub(crate) static WEBM: TypeInfo = TypeInfo {
     label: "webm",
     mime_type: "video/webm",
     group: "video",
-    description: "WebM",
+    description: "WebM media file",
     extensions: &["webm"],
     is_text: false,
 };
@@ -1815,7 +1815,7 @@ pub(crate) static WEBP: TypeInfo = TypeInfo {
     label: "webp",
     mime_type: "image/webp",
     group: "image",
-    description: "WebP",
+    description: "WebP media file",
     extensions: &["webp"],
     is_text: false,
 };
@@ -1986,7 +1986,7 @@ pub enum ContentType {
     Asm,
     /// ASP source
     Asp,
-    /// AutoHotKey
+    /// AutoHotKey script
     Autohotkey,
     /// AutoIt script
     Autoit,
@@ -2072,9 +2072,9 @@ pub enum ContentType {
     Empty,
     /// EPUB document
     Epub,
-    /// erb
+    /// Embedded Ruby source
     Erb,
-    /// erlang
+    /// Erlang source
     Erlang,
     /// FLAC audio bitstream data
     Flac,
@@ -2090,7 +2090,7 @@ pub enum ContentType {
     Gif,
     /// Gitattributes file
     Gitattributes,
-    /// Gitmodules
+    /// Gitmodules file
     Gitmodules,
     /// Golang source
     Go,
@@ -2154,7 +2154,7 @@ pub enum ContentType {
     Kotlin,
     /// LaTeX document
     Latex,
-    /// LHA Archive
+    /// LHarc archive
     Lha,
     /// Lisp source
     Lisp,
@@ -2218,7 +2218,7 @@ pub enum ContentType {
     Outlook,
     /// Apache Parquet
     Parquet,
-    /// pascal
+    /// Pascal source
     Pascal,
     /// pcap capture file
     Pcap,
@@ -2248,7 +2248,7 @@ pub enum ContentType {
     Ppt,
     /// Microsoft PowerPoint 2007+ document
     Pptx,
-    /// prolog
+    /// Prolog source
     Prolog,
     /// Protein DB
     Proteindb,
@@ -2306,7 +2306,7 @@ pub enum ContentType {
     Stlbinary,
     /// Stereolithography CAD (text)
     Stltext,
-    /// sum
+    /// Checksum file
     Sum,
     /// SVG Scalable Vector Graphics image data
     Svg,
@@ -2350,7 +2350,7 @@ pub enum ContentType {
     Vcxproj,
     /// Verilog source
     Verilog,
-    /// VHDL
+    /// VHDL source
     Vhdl,
     /// Web Video Text Tracks
     Vtt,
@@ -2360,9 +2360,9 @@ pub enum ContentType {
     Wasm,
     /// Waveform Audio file (WAV)
     Wav,
-    /// WebM
+    /// WebM media file
     Webm,
-    /// WebP
+    /// WebP media file
     Webp,
     /// Windows Registry text
     Winregistry,

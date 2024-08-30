@@ -26,14 +26,14 @@ def generate_model_readme(model_name: str) -> None:
 
     lines = []
     for idx, target_label in enumerate(target_labels_space):
-        line = f'| {idx} | {target_label} | {kb[target_label]['description']} |'
+        line = f'| {idx+1} | {target_label} | {kb[target_label]["description"]} |'
         lines.append(line)
 
     readme_content_header = f"""
 # Content types supported by model "{model_name}"
 
 | Index   |      Content Type Label      | Description |
-|----------|:-------------:|------:|
+|----------|:-------------:|------|
 """
 
     readme_content = readme_content_header.strip() + "\n" + "\n".join(lines) + "\n"

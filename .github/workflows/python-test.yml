@@ -46,9 +46,9 @@ jobs:
         working-directory: python
         run: uv run ruff format --check --verbose
 
-      # - name: Run mypy
-      #   working-directory: python
-      #   run: uv run mypy src/magika tests
+      - name: Run mypy
+        working-directory: python
+        run: uv run mypy src/magika tests
 
       - name: Run tests
         working-directory: python

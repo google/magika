@@ -7,12 +7,14 @@ authors = [
 ]
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 
 dependencies = [
     "click>=8.1.7",
     "onnxruntime>=1.19.0",
-    "numpy>=2.1.0",
+    "numpy>=1.24; python_version >= '3.8' and python_version < '3.9'",
+    "numpy>=1.26; python_version >= '3.9' and python_version < '3.10'",
+    "numpy>=2.1.0; python_version >= '3.10'",
     "python-dotenv>=1.0.1",
     "requests>=2.32.3",
 ]
@@ -20,7 +22,9 @@ dependencies = [
 [tool.uv]
 dev-dependencies = [
     "mypy>=1.11.2",
-    "ipython>=8.27.0",
+    "ipython>=8.12.3; python_version >= '3.8' and python_version < '3.9'",
+    "ipython>=8.18.1; python_version >= '3.9' and python_version < '3.10'",
+    "ipython>=8.21.0; python_version >= '3.10'",
     "pytest>=8.3.2",
     "ruff>=0.6.3",
 ]
@@ -28,3 +32,10 @@ dev-dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["E4", "E7", "E9", "F", "I001"]
+ignore = []

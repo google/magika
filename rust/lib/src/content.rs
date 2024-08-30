@@ -18,13 +18,13 @@
 use crate::file::TypeInfo;
 
 /// Model name (only comparable with equality).
-pub const MODEL_NAME: &str = "draft_standard_v2";
+pub const MODEL_NAME: &str = "standard_v2_0";
 
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",
     mime_type: "video/3gpp",
     group: "video",
-    description: "3gp",
+    description: "3GPP multimedia file",
     extensions: &["3gp"],
     is_text: false,
 };
@@ -32,8 +32,8 @@ pub(crate) static _3GP: TypeInfo = TypeInfo {
 pub(crate) static ACE: TypeInfo = TypeInfo {
     label: "ace",
     mime_type: "application/x-ace-compressed",
-    group: "unknown",
-    description: "ACE",
+    group: "archive",
+    description: "ACE archive",
     extensions: &["ace"],
     is_text: false,
 };
@@ -104,7 +104,7 @@ pub(crate) static ASP: TypeInfo = TypeInfo {
 pub(crate) static AUTOHOTKEY: TypeInfo = TypeInfo {
     label: "autohotkey",
     mime_type: "text/plain",
-    group: "unknown",
+    group: "code",
     description: "AutoHotKey",
     extensions: &[],
     is_text: true,
@@ -113,8 +113,8 @@ pub(crate) static AUTOHOTKEY: TypeInfo = TypeInfo {
 pub(crate) static AUTOIT: TypeInfo = TypeInfo {
     label: "autoit",
     mime_type: "text/plain",
-    group: "text",
-    description: "AutoIt",
+    group: "code",
+    description: "AutoIt script",
     extensions: &["au3"],
     is_text: true,
 };
@@ -140,8 +140,8 @@ pub(crate) static BATCH: TypeInfo = TypeInfo {
 pub(crate) static BAZEL: TypeInfo = TypeInfo {
     label: "bazel",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "bazel",
+    group: "code",
+    description: "Bazel build file",
     extensions: &["bzl"],
     is_text: true,
 };
@@ -220,9 +220,9 @@ pub(crate) static CLOJURE: TypeInfo = TypeInfo {
 
 pub(crate) static CMAKE: TypeInfo = TypeInfo {
     label: "cmake",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "cmake",
+    mime_type: "text/x-cmake",
+    group: "code",
+    description: "CMake build file",
     extensions: &["cmake"],
     is_text: true,
 };
@@ -265,7 +265,7 @@ pub(crate) static CPP: TypeInfo = TypeInfo {
 
 pub(crate) static CRT: TypeInfo = TypeInfo {
     label: "crt",
-    mime_type: "application/octet-stream",
+    mime_type: "application/x-x509-ca-cert",
     group: "text",
     description: "Certificates (binary format)",
     extensions: &["der", "cer", "crt"],
@@ -293,8 +293,8 @@ pub(crate) static CS: TypeInfo = TypeInfo {
 pub(crate) static CSPROJ: TypeInfo = TypeInfo {
     label: "csproj",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "csproj",
+    group: "code",
+    description: ".NET project config",
     extensions: &["csproj"],
     is_text: true,
 };
@@ -321,7 +321,7 @@ pub(crate) static DART: TypeInfo = TypeInfo {
     label: "dart",
     mime_type: "text/plain",
     group: "code",
-    description: "dart",
+    description: "Dart source",
     extensions: &["dart"],
     is_text: true,
 };
@@ -356,8 +356,8 @@ pub(crate) static DICOM: TypeInfo = TypeInfo {
 pub(crate) static DIFF: TypeInfo = TypeInfo {
     label: "diff",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "diff",
+    group: "text",
+    description: "Diff file",
     extensions: &["diff", "patch"],
     is_text: true,
 };
@@ -455,7 +455,7 @@ pub(crate) static ELF: TypeInfo = TypeInfo {
 pub(crate) static ELIXIR: TypeInfo = TypeInfo {
     label: "elixir",
     mime_type: "text/plain",
-    group: "unknown",
+    group: "code",
     description: "Elixir script",
     extensions: &["exs"],
     is_text: true,
@@ -499,8 +499,8 @@ pub(crate) static EPUB: TypeInfo = TypeInfo {
 
 pub(crate) static ERB: TypeInfo = TypeInfo {
     label: "erb",
-    mime_type: "text/plain",
-    group: "unknown",
+    mime_type: "text/x-ruby",
+    group: "code",
     description: "erb",
     extensions: &["erb"],
     is_text: true,
@@ -545,8 +545,8 @@ pub(crate) static FORTRAN: TypeInfo = TypeInfo {
 pub(crate) static GEMFILE: TypeInfo = TypeInfo {
     label: "gemfile",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "gemfile",
+    group: "code",
+    description: "Gemfile file",
     extensions: &[],
     is_text: true,
 };
@@ -554,8 +554,8 @@ pub(crate) static GEMFILE: TypeInfo = TypeInfo {
 pub(crate) static GEMSPEC: TypeInfo = TypeInfo {
     label: "gemspec",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "gemspec",
+    group: "code",
+    description: "Gemspec file",
     extensions: &["gemspec"],
     is_text: true,
 };
@@ -572,8 +572,8 @@ pub(crate) static GIF: TypeInfo = TypeInfo {
 pub(crate) static GITATTRIBUTES: TypeInfo = TypeInfo {
     label: "gitattributes",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "gitattributes",
+    group: "code",
+    description: "Gitattributes file",
     extensions: &[],
     is_text: true,
 };
@@ -581,8 +581,8 @@ pub(crate) static GITATTRIBUTES: TypeInfo = TypeInfo {
 pub(crate) static GITMODULES: TypeInfo = TypeInfo {
     label: "gitmodules",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "gitmodules",
+    group: "code",
+    description: "Gitmodules",
     extensions: &[],
     is_text: true,
 };
@@ -598,18 +598,18 @@ pub(crate) static GO: TypeInfo = TypeInfo {
 
 pub(crate) static GRADLE: TypeInfo = TypeInfo {
     label: "gradle",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "gradle",
+    mime_type: "text/x-groovy",
+    group: "code",
+    description: "Gradle source",
     extensions: &["gradle"],
     is_text: true,
 };
 
 pub(crate) static GROOVY: TypeInfo = TypeInfo {
     label: "groovy",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "groovy",
+    mime_type: "text/x-groovy",
+    group: "code",
+    description: "Groovy source",
     extensions: &["groovy"],
     is_text: true,
 };
@@ -626,7 +626,7 @@ pub(crate) static GZIP: TypeInfo = TypeInfo {
 pub(crate) static H5: TypeInfo = TypeInfo {
     label: "h5",
     mime_type: "application/x-hdf5",
-    group: "unknown",
+    group: "archive",
     description: "Hierarchical Data Format v5",
     extensions: &["h5", "hdf5"],
     is_text: false,
@@ -634,9 +634,9 @@ pub(crate) static H5: TypeInfo = TypeInfo {
 
 pub(crate) static HANDLEBARS: TypeInfo = TypeInfo {
     label: "handlebars",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "handlebars",
+    mime_type: "text/x-handlebars-template",
+    group: "code",
+    description: "Handlebars source",
     extensions: &["hbs", "handlebars"],
     is_text: true,
 };
@@ -644,17 +644,17 @@ pub(crate) static HANDLEBARS: TypeInfo = TypeInfo {
 pub(crate) static HASKELL: TypeInfo = TypeInfo {
     label: "haskell",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "Haskell",
+    group: "code",
+    description: "Haskell source",
     extensions: &["hs", "lhs"],
     is_text: true,
 };
 
 pub(crate) static HCL: TypeInfo = TypeInfo {
     label: "hcl",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "HashiCorp configuration language.",
+    mime_type: "text/x-hcl",
+    group: "code",
+    description: "HashiCorp configuration language",
     extensions: &["hcl"],
     is_text: true,
 };
@@ -670,9 +670,9 @@ pub(crate) static HLP: TypeInfo = TypeInfo {
 
 pub(crate) static HTACCESS: TypeInfo = TypeInfo {
     label: "htaccess",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "htaccess",
+    mime_type: "text/x-apache-conf",
+    group: "code",
+    description: "Apache access configuration",
     extensions: &[],
     is_text: true,
 };
@@ -688,8 +688,8 @@ pub(crate) static HTML: TypeInfo = TypeInfo {
 
 pub(crate) static ICNS: TypeInfo = TypeInfo {
     label: "icns",
-    mime_type: "application/octet-stream",
-    group: "unknown",
+    mime_type: "image/x-icns",
+    group: "image",
     description: "Mac OS X icon",
     extensions: &["icns"],
     is_text: false,
@@ -716,8 +716,8 @@ pub(crate) static ICS: TypeInfo = TypeInfo {
 pub(crate) static IGNOREFILE: TypeInfo = TypeInfo {
     label: "ignorefile",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "ignorefile",
+    group: "code",
+    description: "Ignorefile",
     extensions: &[],
     is_text: true,
 };
@@ -742,9 +742,9 @@ pub(crate) static INTERNETSHORTCUT: TypeInfo = TypeInfo {
 
 pub(crate) static IPYNB: TypeInfo = TypeInfo {
     label: "ipynb",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "ipynb",
+    mime_type: "application/json",
+    group: "code",
+    description: "Jupyter notebook",
     extensions: &["ipynb"],
     is_text: true,
 };
@@ -796,9 +796,9 @@ pub(crate) static JAVASCRIPT: TypeInfo = TypeInfo {
 
 pub(crate) static JINJA: TypeInfo = TypeInfo {
     label: "jinja",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "Jinja Template",
+    mime_type: "text/x-jinja2-template",
+    group: "code",
+    description: "Jinja template",
     extensions: &["jinja", "jinja2", "j2"],
     is_text: true,
 };
@@ -832,9 +832,9 @@ pub(crate) static JSON: TypeInfo = TypeInfo {
 
 pub(crate) static JSONL: TypeInfo = TypeInfo {
     label: "jsonl",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "jsonl",
+    mime_type: "application/json",
+    group: "code",
+    description: "JSONL document",
     extensions: &["jsonl", "jsonld"],
     is_text: true,
 };
@@ -842,8 +842,8 @@ pub(crate) static JSONL: TypeInfo = TypeInfo {
 pub(crate) static JULIA: TypeInfo = TypeInfo {
     label: "julia",
     mime_type: "text/x-julia",
-    group: "document",
-    description: "Julia",
+    group: "code",
+    description: "Julia source",
     extensions: &["jl"],
     is_text: true,
 };
@@ -852,7 +852,7 @@ pub(crate) static KOTLIN: TypeInfo = TypeInfo {
     label: "kotlin",
     mime_type: "text/plain",
     group: "code",
-    description: "Kotlin",
+    description: "Kotlin source",
     extensions: &["kt", "kts"],
     is_text: true,
 };
@@ -869,8 +869,8 @@ pub(crate) static LATEX: TypeInfo = TypeInfo {
 pub(crate) static LHA: TypeInfo = TypeInfo {
     label: "lha",
     mime_type: "application/x-lha",
-    group: "unknown",
-    description: "LHarc",
+    group: "archive",
+    description: "LHA Archive",
     extensions: &["lha", "lzh"],
     is_text: false,
 };
@@ -949,8 +949,8 @@ pub(crate) static MARKDOWN: TypeInfo = TypeInfo {
 
 pub(crate) static MATLAB: TypeInfo = TypeInfo {
     label: "matlab",
-    mime_type: "text/plain",
-    group: "unknown",
+    mime_type: "text/x-matlab",
+    group: "code",
     description: "Matlab Source",
     extensions: &["m", "matlab"],
     is_text: true,
@@ -1031,7 +1031,7 @@ pub(crate) static MUM: TypeInfo = TypeInfo {
 pub(crate) static NPY: TypeInfo = TypeInfo {
     label: "npy",
     mime_type: "application/octet-stream",
-    group: "unknown",
+    group: "archive",
     description: "Numpy Array",
     extensions: &["npy"],
     is_text: false,
@@ -1040,7 +1040,7 @@ pub(crate) static NPY: TypeInfo = TypeInfo {
 pub(crate) static NPZ: TypeInfo = TypeInfo {
     label: "npz",
     mime_type: "application/octet-stream",
-    group: "unknown",
+    group: "archive",
     description: "Numpy Arrays Archive",
     extensions: &["npz"],
     is_text: false,
@@ -1058,8 +1058,8 @@ pub(crate) static NUPKG: TypeInfo = TypeInfo {
 pub(crate) static OBJECTIVEC: TypeInfo = TypeInfo {
     label: "objectivec",
     mime_type: "text/x-objcsrc",
-    group: "unknown",
-    description: "ObjectiveC",
+    group: "code",
+    description: "ObjectiveC source",
     extensions: &["m", "mm"],
     is_text: true,
 };
@@ -1121,7 +1121,7 @@ pub(crate) static ONE: TypeInfo = TypeInfo {
 pub(crate) static ONNX: TypeInfo = TypeInfo {
     label: "onnx",
     mime_type: "application/octet-stream",
-    group: "unknown",
+    group: "archive",
     description: "Open Neural Network Exchange",
     extensions: &["onnx"],
     is_text: false,
@@ -1175,7 +1175,7 @@ pub(crate) static PCAP: TypeInfo = TypeInfo {
 pub(crate) static PDB: TypeInfo = TypeInfo {
     label: "pdb",
     mime_type: "application/octet-stream",
-    group: "unknown",
+    group: "application",
     description: "Windows Program Database",
     extensions: &["pdb"],
     is_text: false,
@@ -1229,7 +1229,7 @@ pub(crate) static PHP: TypeInfo = TypeInfo {
 pub(crate) static PICKLE: TypeInfo = TypeInfo {
     label: "pickle",
     mime_type: "application/octet-stream",
-    group: "unknown",
+    group: "code",
     description: "Python pickle",
     extensions: &["pickle", "pkl"],
     is_text: false,
@@ -1246,8 +1246,8 @@ pub(crate) static PNG: TypeInfo = TypeInfo {
 
 pub(crate) static PO: TypeInfo = TypeInfo {
     label: "po",
-    mime_type: "text/plain",
-    group: "unknown",
+    mime_type: "text/gettext-translation",
+    group: "application",
     description: "Portable Object (PO) for i18n",
     extensions: &["po"],
     is_text: true,
@@ -1300,8 +1300,8 @@ pub(crate) static PROLOG: TypeInfo = TypeInfo {
 
 pub(crate) static PROTEINDB: TypeInfo = TypeInfo {
     label: "proteindb",
-    mime_type: "text/plain",
-    group: "unknown",
+    mime_type: "application/octet-stream",
+    group: "application",
     description: "Protein DB",
     extensions: &["pdb"],
     is_text: true,
@@ -1309,9 +1309,9 @@ pub(crate) static PROTEINDB: TypeInfo = TypeInfo {
 
 pub(crate) static PROTO: TypeInfo = TypeInfo {
     label: "proto",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "proto",
+    mime_type: "text/x-proto",
+    group: "code",
+    description: "Protocol buffer definition",
     extensions: &["proto"],
     is_text: true,
 };
@@ -1435,9 +1435,9 @@ pub(crate) static SCALA: TypeInfo = TypeInfo {
 
 pub(crate) static SCSS: TypeInfo = TypeInfo {
     label: "scss",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "scss",
+    mime_type: "text/x-scss",
+    group: "code",
+    description: "SCSS source",
     extensions: &["scss"],
     is_text: true,
 };
@@ -1481,8 +1481,8 @@ pub(crate) static SMALI: TypeInfo = TypeInfo {
 pub(crate) static SNAP: TypeInfo = TypeInfo {
     label: "snap",
     mime_type: "application/octet-stream",
-    group: "unknown",
-    description: "snap",
+    group: "archive",
+    description: "Snap archive",
     extensions: &["snap"],
     is_text: false,
 };
@@ -1490,8 +1490,8 @@ pub(crate) static SNAP: TypeInfo = TypeInfo {
 pub(crate) static SOLIDITY: TypeInfo = TypeInfo {
     label: "solidity",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "solidity",
+    group: "code",
+    description: "Solidity source",
     extensions: &["sol"],
     is_text: true,
 };
@@ -1508,7 +1508,7 @@ pub(crate) static SQL: TypeInfo = TypeInfo {
 pub(crate) static SQLITE: TypeInfo = TypeInfo {
     label: "sqlite",
     mime_type: "application/octet-stream",
-    group: "unknown",
+    group: "application",
     description: "SQLITE database",
     extensions: &["sqlite", "sqlite3"],
     is_text: false,
@@ -1525,8 +1525,8 @@ pub(crate) static SQUASHFS: TypeInfo = TypeInfo {
 
 pub(crate) static SRT: TypeInfo = TypeInfo {
     label: "srt",
-    mime_type: "text/plain",
-    group: "unknown",
+    mime_type: "text/srt",
+    group: "application",
     description: "SubRip Text Format",
     extensions: &["srt"],
     is_text: true,
@@ -1616,8 +1616,8 @@ pub(crate) static TCL: TypeInfo = TypeInfo {
 pub(crate) static TEXTPROTO: TypeInfo = TypeInfo {
     label: "textproto",
     mime_type: "text/plain",
-    group: "unknown",
-    description: "textproto",
+    group: "code",
+    description: "Text protocol buffer",
     extensions: &["textproto", "textpb", "pbtxt"],
     is_text: true,
 };
@@ -1633,9 +1633,9 @@ pub(crate) static TGA: TypeInfo = TypeInfo {
 
 pub(crate) static THUMBSDB: TypeInfo = TypeInfo {
     label: "thumbsdb",
-    mime_type: "application/octet-stream",
-    group: "unknown",
-    description: "thumbsdb",
+    mime_type: "image/vnd.ms-thumb",
+    group: "application",
+    description: "Windows thumbnail cache",
     extensions: &[],
     is_text: false,
 };
@@ -1651,9 +1651,9 @@ pub(crate) static TIFF: TypeInfo = TypeInfo {
 
 pub(crate) static TOML: TypeInfo = TypeInfo {
     label: "toml",
-    mime_type: "text/plain",
+    mime_type: "application/toml",
     group: "text",
-    description: "toml",
+    description: "Tom's obvious, minimal language",
     extensions: &["toml"],
     is_text: true,
 };
@@ -1687,9 +1687,9 @@ pub(crate) static TTF: TypeInfo = TypeInfo {
 
 pub(crate) static TWIG: TypeInfo = TypeInfo {
     label: "twig",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "twig",
+    mime_type: "text/x-twig",
+    group: "code",
+    description: "Twig template",
     extensions: &["twig"],
     is_text: true,
 };
@@ -1741,26 +1741,26 @@ pub(crate) static VBA: TypeInfo = TypeInfo {
 
 pub(crate) static VCXPROJ: TypeInfo = TypeInfo {
     label: "vcxproj",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "vcxproj",
+    mime_type: "application/xml",
+    group: "code",
+    description: "Visual Studio MSBuild project",
     extensions: &["vcxproj"],
     is_text: true,
 };
 
 pub(crate) static VERILOG: TypeInfo = TypeInfo {
     label: "verilog",
-    mime_type: "text/plain",
+    mime_type: "text/x-verilog",
     group: "code",
-    description: "verilog",
+    description: "Verilog source",
     extensions: &["v", "verilog", "vlg", "vh"],
     is_text: true,
 };
 
 pub(crate) static VHDL: TypeInfo = TypeInfo {
     label: "vhdl",
-    mime_type: "text/plain",
-    group: "unknown",
+    mime_type: "text/x-vhdl",
+    group: "code",
     description: "VHDL",
     extensions: &["vhd"],
     is_text: true,
@@ -1768,8 +1768,8 @@ pub(crate) static VHDL: TypeInfo = TypeInfo {
 
 pub(crate) static VTT: TypeInfo = TypeInfo {
     label: "vtt",
-    mime_type: "text/plain",
-    group: "unknown",
+    mime_type: "text/vtt",
+    group: "text",
     description: "Web Video Text Tracks",
     extensions: &["vtt", "webvtt"],
     is_text: true,
@@ -1777,9 +1777,9 @@ pub(crate) static VTT: TypeInfo = TypeInfo {
 
 pub(crate) static VUE: TypeInfo = TypeInfo {
     label: "vue",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "vue",
+    mime_type: "application/javascript",
+    group: "code",
+    description: "Vue source",
     extensions: &["vue"],
     is_text: true,
 };
@@ -1930,9 +1930,9 @@ pub(crate) static YAML: TypeInfo = TypeInfo {
 
 pub(crate) static YARA: TypeInfo = TypeInfo {
     label: "yara",
-    mime_type: "text/plain",
-    group: "unknown",
-    description: "yara",
+    mime_type: "text/x-yara",
+    group: "code",
+    description: "YARA rule",
     extensions: &["yar", "yara"],
     is_text: true,
 };
@@ -1968,9 +1968,9 @@ pub(crate) static ZLIBSTREAM: TypeInfo = TypeInfo {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ContentType {
-    /// 3gp
+    /// 3GPP multimedia file
     _3gp,
-    /// ACE
+    /// ACE archive
     Ace,
     /// Adobe Illustrator Artwork
     Ai,
@@ -1988,13 +1988,13 @@ pub enum ContentType {
     Asp,
     /// AutoHotKey
     Autohotkey,
-    /// AutoIt
+    /// AutoIt script
     Autoit,
     /// Awk
     Awk,
     /// DOS batch file
     Batch,
-    /// bazel
+    /// Bazel build file
     Bazel,
     /// BibTeX
     Bib,
@@ -2012,7 +2012,7 @@ pub enum ContentType {
     Chm,
     /// Clojure
     Clojure,
-    /// cmake
+    /// CMake build file
     Cmake,
     /// Cobol
     Cobol,
@@ -2028,13 +2028,13 @@ pub enum ContentType {
     Crx,
     /// C# source
     Cs,
-    /// csproj
+    /// .NET project config
     Csproj,
     /// CSS source
     Css,
     /// CSV document
     Csv,
-    /// dart
+    /// Dart source
     Dart,
     /// Debian binary package
     Deb,
@@ -2042,7 +2042,7 @@ pub enum ContentType {
     Dex,
     /// DICOM
     Dicom,
-    /// diff
+    /// Diff file
     Diff,
     /// Dream Maker
     Dm,
@@ -2082,35 +2082,35 @@ pub enum ContentType {
     Flv,
     /// Fortran
     Fortran,
-    /// gemfile
+    /// Gemfile file
     Gemfile,
-    /// gemspec
+    /// Gemspec file
     Gemspec,
     /// GIF image data
     Gif,
-    /// gitattributes
+    /// Gitattributes file
     Gitattributes,
-    /// gitmodules
+    /// Gitmodules
     Gitmodules,
     /// Golang source
     Go,
-    /// gradle
+    /// Gradle source
     Gradle,
-    /// groovy
+    /// Groovy source
     Groovy,
     /// gzip compressed data
     Gzip,
     /// Hierarchical Data Format v5
     H5,
-    /// handlebars
+    /// Handlebars source
     Handlebars,
-    /// Haskell
+    /// Haskell source
     Haskell,
-    /// HashiCorp configuration language.
+    /// HashiCorp configuration language
     Hcl,
     /// MS Windows help
     Hlp,
-    /// htaccess
+    /// Apache access configuration
     Htaccess,
     /// HTML document
     Html,
@@ -2120,13 +2120,13 @@ pub enum ContentType {
     Ico,
     /// Internet Calendaring and Scheduling
     Ics,
-    /// ignorefile
+    /// Ignorefile
     Ignorefile,
     /// INI configuration file
     Ini,
     /// MS Windows Internet shortcut
     Internetshortcut,
-    /// ipynb
+    /// Jupyter notebook
     Ipynb,
     /// ISO 9660 CD-ROM filesystem data
     Iso,
@@ -2138,7 +2138,7 @@ pub enum ContentType {
     Javabytecode,
     /// JavaScript source
     Javascript,
-    /// Jinja Template
+    /// Jinja template
     Jinja,
     /// jpeg2000
     Jp2,
@@ -2146,15 +2146,15 @@ pub enum ContentType {
     Jpeg,
     /// JSON document
     Json,
-    /// jsonl
+    /// JSONL document
     Jsonl,
-    /// Julia
+    /// Julia source
     Julia,
-    /// Kotlin
+    /// Kotlin source
     Kotlin,
     /// LaTeX document
     Latex,
-    /// LHarc
+    /// LHA Archive
     Lha,
     /// Lisp source
     Lisp,
@@ -2196,7 +2196,7 @@ pub enum ContentType {
     Npz,
     /// NuGet Package
     Nupkg,
-    /// ObjectiveC
+    /// ObjectiveC source
     Objectivec,
     /// OCaml
     Ocaml,
@@ -2252,7 +2252,7 @@ pub enum ContentType {
     Prolog,
     /// Protein DB
     Proteindb,
-    /// proto
+    /// Protocol buffer definition
     Proto,
     /// Adobe Photoshop
     Psd,
@@ -2280,7 +2280,7 @@ pub enum ContentType {
     Rust,
     /// Scala source
     Scala,
-    /// scss
+    /// SCSS source
     Scss,
     /// 7-zip archive data
     Sevenzip,
@@ -2290,9 +2290,9 @@ pub enum ContentType {
     Shell,
     /// Smali source
     Smali,
-    /// snap
+    /// Snap archive
     Snap,
-    /// solidity
+    /// Solidity source
     Solidity,
     /// SQL source
     Sql,
@@ -2318,15 +2318,15 @@ pub enum ContentType {
     Tar,
     /// Tickle
     Tcl,
-    /// textproto
+    /// Text protocol buffer
     Textproto,
     /// Targa image data
     Tga,
-    /// thumbsdb
+    /// Windows thumbnail cache
     Thumbsdb,
     /// TIFF image data
     Tiff,
-    /// toml
+    /// Tom's obvious, minimal language
     Toml,
     /// BitTorrent file
     Torrent,
@@ -2334,7 +2334,7 @@ pub enum ContentType {
     Tsv,
     /// TrueType Font data
     Ttf,
-    /// twig
+    /// Twig template
     Twig,
     /// Generic text document
     Txt,
@@ -2346,15 +2346,15 @@ pub enum ContentType {
     Unknown,
     /// MS Visual Basic source (VBA)
     Vba,
-    /// vcxproj
+    /// Visual Studio MSBuild project
     Vcxproj,
-    /// verilog
+    /// Verilog source
     Verilog,
     /// VHDL
     Vhdl,
     /// Web Video Text Tracks
     Vtt,
-    /// vue
+    /// Vue source
     Vue,
     /// Web Assembly
     Wasm,
@@ -2388,7 +2388,7 @@ pub enum ContentType {
     Xz,
     /// YAML source
     Yaml,
-    /// yara
+    /// YARA rule
     Yara,
     /// Zig source
     Zig,

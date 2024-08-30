@@ -38,4 +38,3 @@ jobs:
           git config --local user.email "invernizzi.l@gmail.com"
           git config --local user.name "Luca Invernizzi"
           git commit -m "Update docs" -a
-          git push

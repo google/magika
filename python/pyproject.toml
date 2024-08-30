@@ -17,11 +17,12 @@ dependencies = [
     "numpy>=2.1.0; python_version >= '3.10'",
     "python-dotenv>=1.0.1",
     "requests>=2.32.3",
+    "mypy>=1.10.1",
 ]
 
 [tool.uv]
 dev-dependencies = [
-    "mypy>=1.11.2",
+    "mypy==1.10.1",
     "ipython>=8.12.3; python_version >= '3.8' and python_version < '3.9'",
     "ipython>=8.18.1; python_version >= '3.9' and python_version < '3.10'",
     "ipython>=8.21.0; python_version >= '3.10'",

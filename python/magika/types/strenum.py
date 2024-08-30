@@ -40,10 +40,10 @@ class StrEnum(str, enum.Enum):
     def __str__(self) -> str:
         return str(self.value)
 
-    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def]
+    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def,override]
         return name
 
 
 class LowerCaseStrEnum(StrEnum):
-    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def]
+    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def,override]
         return name.lower().replace("_", "-")

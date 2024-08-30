@@ -17,6 +17,7 @@ numpy = [
     {version = "^2.1.0", python = ">=3.10,<3.13"},
 ]
 python-dotenv = "^1.0.1"
+mypy = "1.11.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
@@ -26,7 +27,7 @@ ipython = [
     {version = "^8.21.0", python = ">=3.10,<3.13"}
 ]
 ruff = ">=0.2.2,<0.7.0"
-mypy = "^1.8.0"
+mypy = "^1.11.2"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,6 +1,6 @@
 [project]
 name = "magika"
-version = "0.6.0-dev"
+version = "0.6.0-dev0"
 description = "A tool to determine the content type of a file with deep learning"
 authors = [
     {author = "Magika Developers", email = "magika-dev@google.com"},

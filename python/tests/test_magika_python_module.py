@@ -25,6 +25,13 @@ from tests import utils
 
 
 @pytest.mark.smoketest
+def test_magika_module_check_version() -> None:
+    import magika as magika_module
+
+    assert isinstance(magika_module.__version__, str)
+
+
+@pytest.mark.smoketest
 def test_magika_module_one_basic_test() -> None:
     model_dir = utils.get_default_model_dir()
     test_path = utils.get_one_basic_test_file_path()

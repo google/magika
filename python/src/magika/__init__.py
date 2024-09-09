@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
+__version__ = "0.6.0-dev0"
+
+
 import dotenv
 
 from magika import magika

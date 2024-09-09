@@ -1,6 +1,5 @@
 [project]
 name = "magika"
-version = "0.6.0-dev0"
 description = "A tool to determine the content type of a file with deep learning"
 authors = [
     {author = "Magika Developers", email = "magika-dev@google.com"},
@@ -8,6 +7,7 @@ authors = [
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.8"
+dynamic = ["version"]
 
 dependencies = [
     "click>=8.1.7",
@@ -32,6 +32,9 @@ dev-dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/magika/__init__.py"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

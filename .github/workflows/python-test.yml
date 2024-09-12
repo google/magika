@@ -22,38 +22,34 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        python-version: [ "3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x" ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
         os: [ "ubuntu-latest", "macos-latest" ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # pin@v5
-        with:
-          python-version: '${{ matrix.python-version }}'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.4.0/install.sh | sh
 
-      - name: Install poetry
-        uses: abatilo/actions-poetry@7b6d33e44b4f08d7021a1dee3c044e9c253d6439 # pin@v3
-        with:
-          poetry-version: "1.7.1"
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
-      - name: Install the project dependencies
+      - name: Install the project
         working-directory: python
-        run: poetry install
+        run: uv sync --all-extras --dev
 
       - name: Run ruff check
         working-directory: python
-        run: poetry run ruff check --verbose
+        run: uv run ruff check --verbose
 
       - name: Run ruff format check
         working-directory: python
-        run: poetry run ruff format --check --verbose
+        run: uv run ruff format --check --verbose
 
       - name: Run mypy
         working-directory: python
-        run: poetry run mypy magika tests
+        run: uv run mypy src/magika tests
 
-      - name: Run pytest
+      - name: Run tests
         working-directory: python
-        run: poetry run pytest tests -m "not slow"
+        run: uv run pytest tests -m "not slow"

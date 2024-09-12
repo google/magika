@@ -30,11 +30,20 @@ dev-dependencies = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
 
 [tool.hatch.version]
 path = "src/magika/__init__.py"
+
+[tool.maturin]
+python-source = "src"
+module-name = "magika"
+bindings = "bin"
+manifest-path = "../rust/cli/Cargo.toml"
+locked = true
+compatibility = "linux"
+skip-auditwheel = true
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

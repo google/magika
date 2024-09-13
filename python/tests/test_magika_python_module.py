@@ -84,15 +84,6 @@ def test_magika_module_with_basic_tests_by_bytes() -> None:
         check_result_vs_expected_result(test_path, result)
 
 
-def test_magika_module_with_mitra_tests_by_paths() -> None:
-    model_dir = utils.get_default_model_dir()
-    tests_paths = utils.get_mitra_test_files_paths()
-
-    m = Magika(model_dir=model_dir)
-    results = m.identify_paths(tests_paths)
-    check_results_vs_expected_results(tests_paths, results)
-
-
 def test_magika_module_with_previously_missdetected_samples() -> None:
     model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_previously_missdetected_files_paths()

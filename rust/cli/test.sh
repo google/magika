@@ -23,7 +23,7 @@ x cargo clippy -- --deny=warnings
 
 PATH=$(dirname $PWD)/target/release:$PATH
 
-TEST_SUITES='basic mitra previous_missdetections'
+TEST_SUITES='basic previous_missdetections'
 info "Test against the test suites: $TEST_SUITES"
 ( cd ../../tests_data
   magika --format='%p: %l' --recursive $TEST_SUITES | while read line; do

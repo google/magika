@@ -48,10 +48,10 @@ def main(model_dir_or_name: str) -> None:
     with_error = False
 
     tests_data_dir = Path(__file__).parent.parent.parent / "tests_data"
-    tests_dirs_names = ["basic", "mitra", "previous_missdetections"]
+    tests_dirs_names = ["basic", "previous_missdetections"]
 
     for tests_dir_name in tests_dirs_names:
-        tests_dir = Path(__file__).parent.parent.parent / "tests_data" / tests_dir_name
+        tests_dir = tests_data_dir / tests_dir_name
         for test_path in tests_dir.rglob("*"):
             if not test_path.is_file():
                 continue

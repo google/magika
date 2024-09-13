@@ -16,11 +16,19 @@ permissions:
   contents: read
 
 jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
+        with:
+          fetch-depth: 0
+      - run: ./changelog.sh
+        working-directory: rust
   test:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        toolchain: ["stable", "nightly"]
+        toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
       - run: rustup default ${{ matrix.toolchain }}

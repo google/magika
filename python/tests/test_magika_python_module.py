@@ -146,7 +146,7 @@ def test_magika_module_with_python_and_non_python_content() -> None:
     python_content = (
         b"import flask\nimport requests\n\ndef foo(a):\n    print(f'Test {a}')\n"
     )
-    non_python_content = b"xmport asd\nxmport requests"
+    non_python_content = b"clearly not python"
 
     m = Magika()
 

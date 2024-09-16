@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Welcome, {{ user.username }}</h1>
+  
+  {% if user.is_admin %}
+    <p>Admin privileges granted. You can <a href="{{ url_for('admin.dashboard') }}">go to the admin dashboard</a>.</p>
+  {% else %}
+    <p>Regular user access. You can <a href="{{ url_for('user.profile', username=user.username) }}">view your profile</a>.</p>
+  {% endif %}
+
+  <ul>
+  {% for item in items %}
+    <li>{{ item.name }} - {{ item.price | round(2) }} {{ currency_symbol }}</li>
+  {% else %}
+    <li>No items available.</li>
+  {% endfor %}
+  </ul>
+
+  {% set now = current_time() %}
+  <p>Page generated at: {{ now.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+{% endblock %}

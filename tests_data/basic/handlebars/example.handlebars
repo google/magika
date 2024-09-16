@@ -1,0 +1,8 @@
+{{#if isUserLoggedIn}}
+  Welcome, {{username}}!
+  {{#each notifications}}
+    <p>{{this}}</p>
+  {{/each}}
+{{else}}
+  Please log in.
+{{/if}}

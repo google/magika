@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -9,14 +10,27 @@ import click
 ASSETS_DIR = Path(__file__).parent.parent.parent / "assets"
 PYTHON_ROOT_DIR = Path(__file__).parent.parent
 
-MODELS_NAMES = ["standard_v2_0"]
+PUBLISHED_MODELS_NAMES = ["standard_v2_0"]
 
 
 @click.command()
-def main() -> None:
+@click.option("--sync-unpublished-models", is_flag=True)
+def main(sync_unpublished_models: bool) -> None:
     import_content_type_kb()
 
-    for model_name in MODELS_NAMES:
+    if sync_unpublished_models:
+        models_names_to_sync = []
+        models_dir = ASSETS_DIR / "models"
+        for model_dir in models_dir.iterdir():
+            model_name = model_dir.name
+            if re.search("_v2_", model_name):
+                models_names_to_sync.append(model_name)
+    else:
+        models_names_to_sync = PUBLISHED_MODELS_NAMES
+
+    print(f"Syncing these models: {models_names_to_sync}")
+
+    for model_name in models_names_to_sync:
         import_model(model_name)
 
     gen_content_type_label_source()

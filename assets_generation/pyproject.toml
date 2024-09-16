@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
 tensorflowjs = "^4.17.0"
+click = "^8.1.7"
 
 [build-system]
 requires = ["poetry-core"]

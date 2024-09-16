@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-rc.1-dev
+
+### Minor
+
+- Change model from `standard_v2_0` to `standard_v2_1`
+
 ## 0.1.0-rc.0
 
 This version is the initial implementation and should be considered unstable. In particular, it

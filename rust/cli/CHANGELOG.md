@@ -7,6 +7,10 @@
 - Print model version with `--version`
 - Change model from `standard_v2_0` to `standard_v2_1`
 
+### Patch
+
+- Change the default of the hidden flag `--num-tasks` from 1 to the number of CPUs
+
 ## 0.1.0-rc.0
 
 This version is the initial implementation and should be considered unstable. In particular, it

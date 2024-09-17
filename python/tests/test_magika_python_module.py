@@ -72,6 +72,17 @@ def test_magika_module_with_basic_tests_by_path() -> None:
         check_result_vs_expected_result(test_path, result)
 
 
+def test_all_models_with_basic_tests_by_path() -> None:
+    tests_paths = utils.get_basic_test_files_paths()
+
+    models_dir = utils.get_models_dir()
+    for model_dir in models_dir.iterdir():
+        m = Magika(model_dir=model_dir)
+        for test_path in tests_paths:
+            result = m.identify_path(test_path)
+            check_result_vs_expected_result(test_path, result)
+
+
 def test_magika_module_with_basic_tests_by_bytes() -> None:
     model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_basic_test_files_paths()

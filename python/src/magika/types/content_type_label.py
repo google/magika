@@ -349,6 +349,7 @@ class ContentTypeLabel(StrEnum):
     WAV = "wav"
     WEBM = "webm"
     WEBP = "webp"
+    WEBTEMPLATE = "webtemplate"
     WIM = "wim"
     WINREGISTRY = "winregistry"
     WMA = "wma"

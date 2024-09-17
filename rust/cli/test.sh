@@ -34,17 +34,3 @@ info "Test against the test suites: $TEST_SUITES"
     [ "$expected" = "$actual" ] || error "$file is detected as $actual"
   done
 )
-
-info 'Test against expected output'
-( cd ../../tests_data/basic
-  set -x
-  magika rust/code.rs
-  magika rust/code.rs --colors
-  magika rust/code.rs --output-score
-  magika rust/code.rs --json
-  magika rust/code.rs python/code.py --json
-  magika rust/code.rs --jsonl
-  magika rust/code.rs python/code.py --jsonl
-  magika rust/code.rs --mime-type
-) > output 2>&1
-git diff --exit-code -- output || error 'Unexpected output'

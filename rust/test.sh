@@ -16,6 +16,8 @@
 set -e
 . ./color.sh
 
+./sync.sh --check
+
 TOOLCHAINS='stable nightly'
 [ -z "$CI" ] || TOOLCHAINS=$(rustup show active-toolchain | sed 's/-.*//')
 
@@ -25,5 +27,3 @@ for toolchain in $TOOLCHAINS; do
     ( cd $dir && rustup run $toolchain ./test.sh; )
   done
 done
-
-./sync.sh --check

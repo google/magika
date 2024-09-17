@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 
 ASSETS_DIR = Path(__file__).parent.parent.parent / "assets"
-MODELS_NAMES = ["standard_v2_0"]
+MODELS_NAMES = ["standard_v2_0", "standard_v2_1"]
 
 
 @click.command()

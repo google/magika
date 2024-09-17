@@ -30,7 +30,7 @@ use tokio::io::AsyncReadExt;
 
 /// Determines the content type of files with deep-learning.
 #[derive(Parser)]
-#[command(version, arg_required_else_help = true)]
+#[command(version = Version, arg_required_else_help = true)]
 struct Flags {
     /// List of paths to the files to analyze.
     ///
@@ -56,6 +56,15 @@ struct Flags {
 
     #[clap(flatten)]
     experimental: Experimental,
+}
+
+struct Version;
+impl clap::builder::IntoResettable<clap::builder::Str> for Version {
+    fn into_resettable(self) -> clap::builder::Resettable<clap::builder::Str> {
+        let binary = clap::crate_version!();
+        let model = magika::MODEL_NAME;
+        clap::builder::Resettable::Value(format!("{binary} {model}").into())
+    }
 }
 
 #[derive(Args)]

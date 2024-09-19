@@ -9,7 +9,8 @@
 
 ### Patch
 
-- Make sure ort telemetry is disabled
+- Make sure ONNX Runtime telemetry is disabled
+- Change the default of the hidden flag `--num-tasks` from 1 to the number of CPUs
 
 ## 0.1.0-rc.0
 

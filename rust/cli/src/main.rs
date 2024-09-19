@@ -311,6 +311,7 @@ async fn process_path(
 }
 
 fn build_session(flags: &Flags) -> Result<Session> {
+    ort::init().with_telemetry(false).commit()?;
     let mut magika = Session::builder();
     if let Some(inter_threads) = flags.experimental.inter_threads {
         magika = magika.with_inter_threads(inter_threads);

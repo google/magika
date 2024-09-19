@@ -9,7 +9,7 @@
 
 ### Patch
 
-- Make sure telemetry is disabled
+- Make sure ort telemetry is disabled
 
 ## 0.1.0-rc.0
 

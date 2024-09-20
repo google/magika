@@ -51,4 +51,7 @@ class StatusOr(Generic[T]):
         return str(self)
 
     def __str__(self) -> str:
-        return f"StatusOr(status={self.status}, value={self.value})"
+        if self.ok:
+            return f"StatusOr(status={self.status}, value={self.value})"
+        else:
+            return f"StatusOr(status={self.status})"

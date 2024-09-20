@@ -64,7 +64,7 @@ class Magika:
         else:
             # use default model
             self._model_dir = (
-                Path(__file__).parent / "models" / self.get_default_model_name()
+                Path(__file__).parent / "models" / self._get_default_model_name()
             )
 
         self._model_path = self._model_dir / "model.onnx"
@@ -111,11 +111,11 @@ class Magika:
         return self._get_result_from_bytes(content)
 
     @staticmethod
-    def get_default_model_name() -> str:
+    def _get_default_model_name() -> str:
         """This returns the default model name.
 
-        We make this method static so that it can be used by the client (to
-        print help, etc.) without the need to instantiate a Magika object.
+        We make this method static so that it can be used by external
+        clients/tests without the need to instantiate a Magika object.
         """
 
         return DEFAULT_MODEL_NAME

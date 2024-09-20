@@ -38,7 +38,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 HELP_EPILOG = f"""
 Magika version: "{VERSION}"\f
-Default model: "{Magika.get_default_model_name()}"
+Default model: "{Magika._get_default_model_name()}"
 
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
@@ -166,7 +166,7 @@ def main(
 
     if output_version:
         _l.raw_print_to_stdout(f"Magika version: {VERSION}")
-        _l.raw_print_to_stdout(f"Default model: {Magika.get_default_model_name()}")
+        _l.raw_print_to_stdout(f"Default model: {Magika._get_default_model_name()}")
         sys.exit(0)
 
     if len(files_paths) == 0:

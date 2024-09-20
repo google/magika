@@ -16,9 +16,7 @@
 import json
 import logging
 import os
-import statistics
 import time
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -100,8 +98,6 @@ class Magika:
 
         # self._ctm = ContentTypesManager()
         self._onnx_session = self._init_onnx_session()
-
-        self._perf_stats: Dict[str, List[float]] = defaultdict(list)
 
     def identify_path(self, path: Path) -> StatusOr[MagikaResult]:
         return self._get_result_from_path(path)
@@ -788,29 +784,10 @@ class Magika:
                 ["target_label"], {"bytes": X[start_idx:end_idx, :]}
             )[0]
             elapsed_time = 1000 * (time.time() - start_time)
-            self._perf_stats["dl_raw_prediction_time_ms"].append(elapsed_time)
             self._log.debug(f"DL raw prediction in {elapsed_time:.03f} ms")
 
             raw_predictions_list.append(batch_raw_predictions)
         return np.concatenate(raw_predictions_list)
-
-    def dump_performance_stats(self) -> None:
-        self._log.raw_print("PERFORMANCE STATISTICS REPORT")
-        printed_at_least_one = False
-        for key, stats in self._perf_stats.items():
-            if len(stats) >= 4:
-                printed_at_least_one = True
-                self._log.raw_print(f"KEY: {key}")
-                min_val = min(stats)
-                quartiles = statistics.quantiles(stats, n=4)
-                max_val = max(stats)
-                mean = statistics.mean(stats)
-                stdev = statistics.stdev(stats)
-                self._log.raw_print(
-                    f"mean={mean:.3f} stdev={stdev:.3f} min={min_val:.3f} p25={quartiles[0]:.3f} p50={quartiles[1]:.3f} p75={quartiles[2]:.3f} max={max_val:.3f}"
-                )
-        if not printed_at_least_one:
-            self._log.raw_print("Not enough data")
 
 
 class MagikaError(Exception):

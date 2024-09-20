@@ -114,12 +114,6 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 @click.option("-v", "--verbose", is_flag=True, help="Enable more verbose output.")
 @click.option("-vv", "--debug", is_flag=True, help="Enable debug logging.")
 @click.option(
-    "--dump-performance-stats",
-    "dump_performance_stats_flag",
-    is_flag=True,
-    help="Dump statistics about performance.",
-)
-@click.option(
     "--version", "output_version", is_flag=True, help="Print the version and exit."
 )
 @click.option(
@@ -144,7 +138,6 @@ def main(
     with_colors: bool,
     verbose: bool,
     debug: bool,
-    dump_performance_stats_flag: bool,
     output_version: bool,
     model_dir: Optional[Path],
 ) -> None:
@@ -341,9 +334,6 @@ def main(
                 indent=4,
             )
         )
-
-    if dump_performance_stats_flag:
-        magika.dump_performance_stats()
 
 
 def should_read_from_stdin(files_paths: List[Path]) -> bool:

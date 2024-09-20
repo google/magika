@@ -404,11 +404,11 @@ def test_access_statusor_and_magika_result():
     _ = str(res.value.output)
     _ = str(res.value.score)
     with pytest.raises(AttributeError):
-        _ = str(res.foo)
+        _ = str(res.foo)  # type: ignore[attr-defined]
     with pytest.raises(AttributeError):
-        _ = str(res.output)
+        _ = str(res.output)  # type: ignore[attr-defined]
     with pytest.raises(AttributeError):
-        _ = str(res.value.foo)
+        _ = str(res.value.foo)  # type: ignore[attr-defined]
 
     res = m.identify_path(Path("/non_existing.txt"))
     _ = str(res)
@@ -423,9 +423,9 @@ def test_access_statusor_and_magika_result():
     with pytest.raises(ValueError):
         _ = str(res.value.score)
     with pytest.raises(AttributeError):
-        _ = str(res.foo)
+        _ = str(res.foo)  # type: ignore[attr-defined]
     with pytest.raises(ValueError):
-        _ = str(res.value.foo)
+        _ = str(res.value.foo)  # type: ignore[attr-defined]
 
 
 def get_expected_content_type_label_from_test_file_path(

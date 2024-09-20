@@ -9,6 +9,7 @@
 
 ### Patch
 
+- Fix the `--version` binary name from `magika-cli` to `magika`
 - Make sure ONNX Runtime telemetry is disabled
 - Change the default of the hidden flag `--num-tasks` from 1 to the number of CPUs
 

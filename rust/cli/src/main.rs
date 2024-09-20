@@ -30,7 +30,7 @@ use tokio::io::AsyncReadExt;
 
 /// Determines the content type of files with deep-learning.
 #[derive(Parser)]
-#[command(version = Version, arg_required_else_help = true)]
+#[command(name = "magika", version = Version, arg_required_else_help = true)]
 struct Flags {
     /// List of paths to the files to analyze.
     ///

@@ -392,6 +392,42 @@ def test_magika_module_with_big_file() -> None:
             print("Done running Magika")
 
 
+def test_access_statusor_and_magika_result():
+    m = Magika()
+
+    res = m.identify_bytes(b"text")
+    _ = str(res)
+    _ = str(res.ok)
+    _ = str(res.status)
+    _ = str(res.value)
+    _ = str(res.value.dl)
+    _ = str(res.value.output)
+    _ = str(res.value.score)
+    with pytest.raises(AttributeError):
+        _ = str(res.foo)  # type: ignore[attr-defined]
+    with pytest.raises(AttributeError):
+        _ = str(res.output)  # type: ignore[attr-defined]
+    with pytest.raises(AttributeError):
+        _ = str(res.value.foo)  # type: ignore[attr-defined]
+
+    res = m.identify_path(Path("/non_existing.txt"))
+    _ = str(res)
+    _ = str(res.ok)
+    _ = str(res.status)
+    with pytest.raises(ValueError):
+        _ = str(res.value)
+    with pytest.raises(ValueError):
+        _ = str(res.value.dl)
+    with pytest.raises(ValueError):
+        _ = str(res.value.output)
+    with pytest.raises(ValueError):
+        _ = str(res.value.score)
+    with pytest.raises(AttributeError):
+        _ = str(res.foo)  # type: ignore[attr-defined]
+    with pytest.raises(ValueError):
+        _ = str(res.value.foo)  # type: ignore[attr-defined]
+
+
 def get_expected_content_type_label_from_test_file_path(
     test_path: Path,
 ) -> ContentTypeLabel:

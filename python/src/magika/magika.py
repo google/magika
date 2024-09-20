@@ -110,6 +110,9 @@ class Magika:
             raise Exception(f"Content must have type 'bytes', not {type(content)}.")
         return self._get_result_from_bytes(content)
 
+    def get_supported_content_types(self) -> List[ContentTypeLabel]:
+        return self._model_config.target_labels_space
+
     @staticmethod
     def _get_default_model_name() -> str:
         """This returns the default model name.

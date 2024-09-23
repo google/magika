@@ -1,8 +1,11 @@
+import warnings
 from dataclasses import dataclass
 from typing import List
 
 from magika.logger import get_logger
 from magika.types.content_type_label import ContentTypeLabel
+
+warnings.simplefilter("always", DeprecationWarning)
 
 
 @dataclass(frozen=True)
@@ -16,9 +19,9 @@ class ContentTypeInfo:
 
     @property
     def ct_label(self) -> str:
-        log = get_logger()
-        log.warning(
-            "Deprecation warning: `.ct_label` is deprecated and will be removed in a future version. Use `.label` instead. Consult the documentation for more information."
+        warnings.warn(
+            "`.ct_label` is deprecated and will be removed in a future version. Use `.label` instead. Consult the documentation for more information.",
+            category=DeprecationWarning,
         )
         return str(self.label)
 
@@ -31,8 +34,8 @@ class ContentTypeInfo:
 
     @property
     def magic(self) -> str:
-        log = get_logger()
-        log.warning(
-            "Deprecation warning: `.magic` is deprecated and will be removed in a future version. Use `.description` instead. Consult the documentation for more information."
+        warnings.warn(
+            "`.magic` is deprecated and will be removed in a future version. Use `.description` instead. Consult the documentation for more information.",
+            category=DeprecationWarning,
         )
         return self.description

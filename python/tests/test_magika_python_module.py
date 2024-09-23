@@ -398,6 +398,24 @@ def test_magika_module_with_big_file() -> None:
             print("Done running Magika")
 
 
+def test_api_call_with_bad_types() -> None:
+    m = Magika()
+
+    _ = m.identify_path(Path("/non_existing.txt"))
+    with pytest.raises(TypeError):
+        _ = m.identify_path("/non_existing.txt")  # type: ignore[arg-type]
+
+    _ = m.identify_paths([Path("/non_existing.txt")])
+    with pytest.raises(TypeError):
+        _ = m.identify_paths(Path("/non_existing.txt"))  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        _ = m.identify_paths(["/non_existing.txt"])  # type: ignore[list-item]
+
+    _ = m.identify_bytes(b"bytes content")
+    with pytest.raises(TypeError):
+        _ = m.identify_bytes("str content")  # type: ignore[arg-type]
+
+
 def test_access_statusor_and_magika_result():
     m = Magika()
 

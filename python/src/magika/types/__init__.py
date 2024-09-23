@@ -15,6 +15,7 @@
 
 from magika.types.content_type_info import ContentTypeInfo  # noqa: F401
 from magika.types.content_type_label import ContentTypeLabel  # noqa: F401
+from magika.types.magika_error import MagikaError  # noqa: F401
 from magika.types.magika_result import MagikaResult  # noqa: F401
 from magika.types.model import (  # noqa: F401
     ModelConfig,
@@ -28,6 +29,7 @@ from magika.types.statusor_magika_result import StatusOrMagikaResult  # noqa: F4
 __all__ = [
     "ContentTypeInfo",
     "ContentTypeLabel",
+    "MagikaError",
     "MagikaResult",
     "ModelConfig",
     "ModelFeatures",

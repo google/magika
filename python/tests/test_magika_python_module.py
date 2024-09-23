@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, List
 
 import pytest
+from _pytest.capture import CaptureFixture
 
 from magika import Magika, PredictionMode
 from magika.types import (
@@ -441,6 +442,50 @@ def test_access_statusor_and_magika_result():
         _ = res.foo  # type: ignore[attr-defined]
     with pytest.raises(ValueError):
         _ = res.value.foo  # type: ignore[attr-defined]
+
+
+def test_access_backward_compatibility_layer(capsys: CaptureFixture):
+    m = Magika()
+
+    capsys.readouterr
+    res = m.identify_bytes(b"text")
+    assert isinstance(res, StatusOrMagikaResult)
+    assert isinstance(res.ok, bool)
+    assert isinstance(res.status, Status)
+    assert isinstance(res.value, MagikaResult)
+    assert isinstance(res.value.dl, ContentTypeInfo)
+    assert isinstance(res.value.output, ContentTypeInfo)
+    assert isinstance(res.value.score, float)
+
+    with pytest.raises(AttributeError):
+        _ = res.path  # type: ignore[attr-defined]
+
+    _ = capsys.readouterr()
+    assert res.dl.ct_label == res.value.dl.label
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("WARNING: Deprecation warning: ")
+    _ = capsys.readouterr()
+    assert res.output.ct_label == res.value.output.label
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("WARNING: Deprecation warning: ")
+
+    with pytest.raises(AttributeError):
+        _ = res.dl.score  # type: ignore[attr-defined]
+    with pytest.raises(AttributeError):
+        _ = res.output.score  # type: ignore[attr-defined]
+
+    _ = capsys.readouterr()
+    assert res.dl.magic == res.value.dl.description
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("WARNING: Deprecation warning: ")
+    _ = capsys.readouterr()
+    assert res.output.magic == res.value.output.description
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("WARNING: Deprecation warning: ")
 
 
 def get_expected_content_type_label_from_test_file_path(

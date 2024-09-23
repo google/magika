@@ -68,6 +68,12 @@ class StatusOrMagikaResult:
     def score(self) -> float:
         return self.value.score
 
+    # Access to .path is not supported anymore. We forward .path access to the
+    # underlying value object, which will raise an informative exception.
+    @property
+    def path(self) -> str:
+        return self.value.path
+
     def __repr__(self) -> str:
         return str(self)
 

@@ -29,6 +29,7 @@ from magika.seekable import Buffer, File, Seekable
 from magika.types import (
     ContentTypeInfo,
     ContentTypeLabel,
+    MagikaError,
     MagikaResult,
     ModelConfig,
     ModelFeatures,
@@ -783,7 +784,3 @@ class Magika:
 
             raw_predictions_list.append(batch_raw_predictions)
         return np.concatenate(raw_predictions_list)
-
-
-class MagikaError(Exception):
-    pass

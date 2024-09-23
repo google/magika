@@ -100,14 +100,22 @@ class Magika:
         self._onnx_session = self._init_onnx_session()
 
     def identify_path(self, path: Path) -> StatusOrMagikaResult:
+        if not isinstance(path, Path):
+            raise TypeError("Input path should be of type Path")
         return self._get_result_from_path(path)
 
     def identify_paths(self, paths: List[Path]) -> List[StatusOrMagikaResult]:
+        if not isinstance(paths, list):
+            raise TypeError("Input paths should be of type list[Path]")
+        if len(paths) > 0 and not isinstance(paths[0], Path):
+            raise TypeError("Input paths should be of type list[Path]")
         return self._get_results_from_paths(paths)
 
     def identify_bytes(self, content: bytes) -> StatusOrMagikaResult:
         if not isinstance(content, bytes):
-            raise Exception(f"Content must have type 'bytes', not {type(content)}.")
+            raise TypeError(
+                f"Input content should be of type 'bytes', not {type(content)}."
+            )
         return self._get_result_from_bytes(content)
 
     def get_supported_content_types(self) -> List[ContentTypeLabel]:

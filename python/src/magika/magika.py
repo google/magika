@@ -35,7 +35,7 @@ from magika.types import (
     ModelOutput,
     PredictionMode,
     Status,
-    StatusOr,
+    StatusOrMagikaResult,
 )
 
 DEFAULT_MODEL_NAME = "standard_v2_1"
@@ -96,16 +96,15 @@ class Magika:
         )
         self._cts_infos = Magika._load_content_types_kb(content_types_kb_path)
 
-        # self._ctm = ContentTypesManager()
         self._onnx_session = self._init_onnx_session()
 
-    def identify_path(self, path: Path) -> StatusOr[MagikaResult]:
+    def identify_path(self, path: Path) -> StatusOrMagikaResult:
         return self._get_result_from_path(path)
 
-    def identify_paths(self, paths: List[Path]) -> List[StatusOr[MagikaResult]]:
+    def identify_paths(self, paths: List[Path]) -> List[StatusOrMagikaResult]:
         return self._get_results_from_paths(paths)
 
-    def identify_bytes(self, content: bytes) -> StatusOr[MagikaResult]:
+    def identify_bytes(self, content: bytes) -> StatusOrMagikaResult:
         if not isinstance(content, bytes):
             raise Exception(f"Content must have type 'bytes', not {type(content)}.")
         return self._get_result_from_bytes(content)
@@ -182,9 +181,7 @@ class Magika:
     def _get_ct_info(self, content_type: ContentTypeLabel) -> ContentTypeInfo:
         return self._cts_infos[content_type]
 
-    def _get_results_from_paths(
-        self, paths: List[Path]
-    ) -> List[StatusOr[MagikaResult]]:
+    def _get_results_from_paths(self, paths: List[Path]) -> List[StatusOrMagikaResult]:
         """Given a list of paths, returns a list of predictions. Each prediction
         is a dict with the relevant information, such as the file path, the
         output of the DL model, the output of the tool, and the associated
@@ -197,7 +194,7 @@ class Magika:
 
         # We use a "str" instead of Path because it makes it easier later on to
         # serialize.
-        all_outputs: Dict[str, StatusOr[MagikaResult]] = {}  # {path: <output>, ...}
+        all_outputs: Dict[str, StatusOrMagikaResult] = {}  # {path: <output>, ...}
 
         # We use a list and not the dict because that's what we need later on
         # for inference.
@@ -228,10 +225,10 @@ class Magika:
             sorted_outputs.append(all_outputs[str(path)])
         return sorted_outputs
 
-    def _get_result_from_path(self, path: Path) -> StatusOr[MagikaResult]:
+    def _get_result_from_path(self, path: Path) -> StatusOrMagikaResult:
         return self._get_results_from_paths([path])[0]
 
-    def _get_result_from_bytes(self, content: bytes) -> StatusOr[MagikaResult]:
+    def _get_result_from_bytes(self, content: bytes) -> StatusOrMagikaResult:
         result, features = self._get_result_or_features_from_bytes(content)
         if result is not None:
             return result
@@ -490,14 +487,14 @@ class Magika:
 
     def _get_results_from_features(
         self, all_features: List[Tuple[Path, ModelFeatures]]
-    ) -> Dict[str, StatusOr[MagikaResult]]:
+    ) -> Dict[str, StatusOrMagikaResult]:
         # We now do inference for those files that need it.
 
         if len(all_features) == 0:
             # nothing to be done
             return {}
 
-        results: Dict[str, StatusOr[MagikaResult]] = {}
+        results: Dict[str, StatusOrMagikaResult] = {}
 
         for path, model_output in self._get_model_outputs_from_features(all_features):
             # In additional to the content type label from the DL model, we
@@ -520,7 +517,7 @@ class Magika:
 
     def _get_result_from_features(
         self, features: ModelFeatures, path: Optional[Path] = None
-    ) -> StatusOr[MagikaResult]:
+    ) -> StatusOrMagikaResult:
         # This is useful to scan from stream of bytes
         if path is None:
             path = Path("-")
@@ -572,8 +569,8 @@ class Magika:
         dl_ct_label: ContentTypeLabel,
         output_ct_label: ContentTypeLabel,
         score: float,
-    ) -> StatusOr[MagikaResult]:
-        return StatusOr(
+    ) -> StatusOrMagikaResult:
+        return StatusOrMagikaResult(
             value=MagikaResult(
                 dl=self._get_ct_info(dl_ct_label),
                 output=self._get_ct_info(output_ct_label),
@@ -583,7 +580,7 @@ class Magika:
 
     def _get_result_or_features_from_path(
         self, path: Path
-    ) -> Tuple[Optional[StatusOr[MagikaResult]], Optional[ModelFeatures]]:
+    ) -> Tuple[Optional[StatusOrMagikaResult], Optional[ModelFeatures]]:
         """
         Given a path, we return either a MagikaOutput or a MagikaFeatures.
 
@@ -606,7 +603,7 @@ class Magika:
             return result, None
 
         if not path.exists():
-            return StatusOr(status=Status.FILE_NOT_FOUND_ERROR), None
+            return StatusOrMagikaResult(status=Status.FILE_NOT_FOUND_ERROR), None
 
         if path.is_file():
             if path.stat().st_size == 0:
@@ -618,7 +615,7 @@ class Magika:
                 return result, None
 
             elif not os.access(path, os.R_OK):
-                return StatusOr(status=Status.PERMISSION_ERROR), None
+                return StatusOrMagikaResult(status=Status.PERMISSION_ERROR), None
 
             elif path.stat().st_size <= self._model_config.min_file_size_for_dl:
                 result = self._get_result_from_first_block_of_file(path)
@@ -672,7 +669,7 @@ class Magika:
 
     def _get_result_or_features_from_bytes(
         self, content: bytes
-    ) -> Tuple[Optional[StatusOr[MagikaResult]], Optional[ModelFeatures]]:
+    ) -> Tuple[Optional[StatusOrMagikaResult], Optional[ModelFeatures]]:
         if len(content) == 0:
             result = self._get_result_from_labels_and_score(
                 dl_ct_label=ContentTypeLabel.UNDEFINED,
@@ -714,9 +711,7 @@ class Magika:
 
         raise Exception("unreachable")
 
-    def _get_result_from_first_block_of_file(
-        self, path: Path
-    ) -> StatusOr[MagikaResult]:
+    def _get_result_from_first_block_of_file(self, path: Path) -> StatusOrMagikaResult:
         # We read at most "block_size" bytes
         with open(path, "rb") as f:
             content = f.read(self._model_config.block_size)
@@ -724,7 +719,7 @@ class Magika:
 
     def _get_result_from_few_bytes(
         self, content: bytes, path: Path = Path("-")
-    ) -> StatusOr[MagikaResult]:
+    ) -> StatusOrMagikaResult:
         assert len(content) <= 4 * self._model_config.block_size
         ct_label = self._get_ct_label_from_few_bytes(content)
         return self._get_result_from_labels_and_score(

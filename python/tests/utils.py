@@ -110,4 +110,4 @@ def get_models_dir() -> Path:
 def get_default_model_dir() -> Path:
     from magika.magika import Magika
 
-    return get_models_dir() / Magika.get_default_model_name()
+    return get_models_dir() / Magika._get_default_model_name()

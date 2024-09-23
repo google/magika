@@ -110,6 +110,9 @@ class Magika:
             raise Exception(f"Content must have type 'bytes', not {type(content)}.")
         return self._get_result_from_bytes(content)
 
+    def get_supported_content_types(self) -> List[ContentTypeLabel]:
+        return self._model_config.target_labels_space
+
     @staticmethod
     def _get_default_model_name() -> str:
         """This returns the default model name.
@@ -163,7 +166,27 @@ class Magika:
     @staticmethod
     def _load_model_config(model_config_path: Path) -> ModelConfig:
         config = json.loads(model_config_path.read_text())
-        return ModelConfig(**config)
+
+        return ModelConfig(
+            beg_size=config["beg_size"],
+            mid_size=config["mid_size"],
+            end_size=config["end_size"],
+            use_inputs_at_offsets=config["use_inputs_at_offsets"],
+            medium_confidence_threshold=config["medium_confidence_threshold"],
+            min_file_size_for_dl=config["min_file_size_for_dl"],
+            padding_token=config["padding_token"],
+            block_size=config["block_size"],
+            target_labels_space=[
+                ContentTypeLabel(ct_str) for ct_str in config["target_labels_space"]
+            ],
+            thresholds={
+                ContentTypeLabel(k): v for k, v in config["thresholds"].items()
+            },
+            overwrite_map={
+                ContentTypeLabel(k): ContentTypeLabel(v)
+                for k, v in config["overwrite_map"].items()
+            },
+        )
 
     def _init_onnx_session(self) -> rt.InferenceSession:
         start_time = time.time()

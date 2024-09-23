@@ -1,0 +1,2 @@
+class MagikaError(Exception):
+    pass

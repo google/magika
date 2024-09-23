@@ -20,7 +20,13 @@ from typing import Any, List
 import pytest
 
 from magika import Magika, PredictionMode
-from magika.types import ContentTypeLabel, MagikaResult, Status, StatusOr
+from magika.types import (
+    ContentTypeInfo,
+    ContentTypeLabel,
+    MagikaResult,
+    Status,
+    StatusOrMagikaResult,
+)
 from tests import utils
 
 
@@ -396,36 +402,76 @@ def test_access_statusor_and_magika_result():
     m = Magika()
 
     res = m.identify_bytes(b"text")
-    _ = str(res)
-    _ = str(res.ok)
-    _ = str(res.status)
-    _ = str(res.value)
-    _ = str(res.value.dl)
-    _ = str(res.value.output)
-    _ = str(res.value.score)
+    assert isinstance(res, StatusOrMagikaResult)
+    assert isinstance(res.ok, bool)
+    assert isinstance(res.status, Status)
+    assert isinstance(res.value, MagikaResult)
+    assert isinstance(res.value.dl, ContentTypeInfo)
+    assert isinstance(res.value.output, ContentTypeInfo)
+    assert isinstance(res.value.score, float)
+    # test access to forwarded properties
+    assert isinstance(res.dl, ContentTypeInfo)
+    assert isinstance(res.output, ContentTypeInfo)
+    assert isinstance(res.score, float)
+    # test access to non-existing properties
     with pytest.raises(AttributeError):
-        _ = str(res.foo)  # type: ignore[attr-defined]
+        _ = res.foo  # type: ignore[attr-defined]
     with pytest.raises(AttributeError):
-        _ = str(res.output)  # type: ignore[attr-defined]
-    with pytest.raises(AttributeError):
-        _ = str(res.value.foo)  # type: ignore[attr-defined]
+        _ = res.value.foo  # type: ignore[attr-defined]
 
     res = m.identify_path(Path("/non_existing.txt"))
-    _ = str(res)
-    _ = str(res.ok)
-    _ = str(res.status)
+    assert isinstance(res, StatusOrMagikaResult)
+    assert isinstance(res.ok, bool)
+    assert isinstance(res.status, Status)
     with pytest.raises(ValueError):
-        _ = str(res.value)
+        _ = res.value
     with pytest.raises(ValueError):
-        _ = str(res.value.dl)
+        _ = res.value.dl
     with pytest.raises(ValueError):
-        _ = str(res.value.output)
+        _ = res.value.output
     with pytest.raises(ValueError):
-        _ = str(res.value.score)
+        _ = res.value.score
+    with pytest.raises(ValueError):
+        _ = res.dl
+    with pytest.raises(ValueError):
+        _ = res.output
+    with pytest.raises(ValueError):
+        _ = res.score
     with pytest.raises(AttributeError):
-        _ = str(res.foo)  # type: ignore[attr-defined]
+        _ = res.foo  # type: ignore[attr-defined]
     with pytest.raises(ValueError):
-        _ = str(res.value.foo)  # type: ignore[attr-defined]
+        _ = res.value.foo  # type: ignore[attr-defined]
+
+
+def test_access_backward_compatibility_layer() -> None:
+    m = Magika()
+
+    res = m.identify_bytes(b"text")
+    assert isinstance(res, StatusOrMagikaResult)
+    assert isinstance(res.ok, bool)
+    assert isinstance(res.status, Status)
+    assert isinstance(res.value, MagikaResult)
+    assert isinstance(res.value.dl, ContentTypeInfo)
+    assert isinstance(res.value.output, ContentTypeInfo)
+    assert isinstance(res.value.score, float)
+
+    with pytest.raises(AttributeError):
+        _ = res.path
+
+    with pytest.warns(DeprecationWarning):
+        assert res.dl.ct_label == res.value.dl.label
+    with pytest.warns(DeprecationWarning):
+        assert res.output.ct_label == res.value.output.label
+
+    with pytest.raises(AttributeError):
+        _ = res.dl.score
+    with pytest.raises(AttributeError):
+        _ = res.output.score
+
+    with pytest.warns(DeprecationWarning):
+        assert res.dl.magic == res.value.dl.description
+    with pytest.warns(DeprecationWarning):
+        assert res.output.magic == res.value.output.description
 
 
 def get_expected_content_type_label_from_test_file_path(
@@ -435,7 +481,7 @@ def get_expected_content_type_label_from_test_file_path(
 
 
 def check_result_vs_expected_result(
-    file_path: Path, result: StatusOr[MagikaResult]
+    file_path: Path, result: StatusOrMagikaResult
 ) -> None:
     assert result.ok
     expected_ct_label = get_expected_content_type_label_from_test_file_path(file_path)
@@ -443,7 +489,7 @@ def check_result_vs_expected_result(
 
 
 def check_results_vs_expected_results(
-    files_paths: List[Path], results: List[StatusOr[MagikaResult]]
+    files_paths: List[Path], results: List[StatusOrMagikaResult]
 ) -> None:
     for file_path, result in zip(files_paths, results):
         check_result_vs_expected_result(file_path, result)

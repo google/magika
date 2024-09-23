@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Generic, Optional, TypeVar
+from typing import Optional
 
+from magika.types.content_type_info import ContentTypeInfo
+from magika.types.magika_result import MagikaResult
 from magika.types.status import Status
 
-T = TypeVar("T")
 
-
-class StatusOr(Generic[T]):
-    def __init__(self, *, status: Status = Status.OK, value: Optional[T] = None):
+class StatusOrMagikaResult:
+    def __init__(
+        self, *, status: Status = Status.OK, value: Optional[MagikaResult] = None
+    ):
         self._status = status
         self._value = value
 
@@ -41,11 +43,36 @@ class StatusOr(Generic[T]):
         return self._status
 
     @property
-    def value(self) -> T:
+    def value(self) -> MagikaResult:
         if self.ok:
             assert self._value is not None
             return self._value
         raise ValueError("value is not set when status != OK")
+
+    # In the vast majority of cases, Magika API would not return a status != OK
+    # (and there is no code path that leads `identify_bytes()` to return an
+    # error). To optimize for the most frequent scenario, we add the following
+    # properties to forward the underlying value. Clients that want to make use
+    # of the full power of the StatusOr[T] patter can still do so, but we do not
+    # force all clients, regardless of their complexity or criticality to use
+    # the more verbose `mr.value.output`.
+    @property
+    def dl(self) -> ContentTypeInfo:
+        return self.value.dl
+
+    @property
+    def output(self) -> ContentTypeInfo:
+        return self.value.output
+
+    @property
+    def score(self) -> float:
+        return self.value.score
+
+    # Access to .path is not supported anymore. We forward .path access to the
+    # underlying value object, which will raise an informative exception.
+    @property
+    def path(self) -> str:
+        return self.value.path
 
     def __repr__(self) -> str:
         return str(self)

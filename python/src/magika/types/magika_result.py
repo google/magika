@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from magika.logger import get_logger
 from magika.types.content_type_info import ContentTypeInfo
 
 
@@ -24,3 +25,16 @@ class MagikaResult:
     dl: ContentTypeInfo
     output: ContentTypeInfo
     score: float
+
+    # Access to .path is not supported anymore.  As we
+    # cannot implement this in a backward compatibile way, we raise an
+    # informative error message instead of leading to inscrutable crashes.
+    @property
+    def path(self) -> str:
+        error_msg = (
+            "Unsupported field error: `.path` is not stored anymore in `MagikaResult`. "
+            "Consult the documentation for more information."
+        )
+        log = get_logger()
+        log.error(error_msg)
+        raise AttributeError(error_msg)

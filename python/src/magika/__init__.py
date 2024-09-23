@@ -19,10 +19,10 @@ __version__ = "0.6.0-dev0"
 import dotenv
 
 from magika import magika
-from magika.types import prediction_mode
+from magika.types import magika_error, prediction_mode
 
 Magika = magika.Magika
-MagikaError = magika.MagikaError
+MagikaError = magika_error.MagikaError
 PredictionMode = prediction_mode.PredictionMode
 
 dotenv.load_dotenv(dotenv.find_dotenv())

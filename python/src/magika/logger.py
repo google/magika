@@ -40,8 +40,17 @@ class SimpleLogger:
     def raw_print_to_stdout(self, msg: str) -> None:
         self.raw_print(msg, file=sys.stdout)
 
-    def raw_print(self, msg: str, file: TextIO = sys.stderr) -> None:
-        print(msg, file=file)
+    def raw_print(
+        self, msg: str, file: Optional[TextIO] = None, flush: bool = True
+    ) -> None:
+        if file is None:
+            # We avoid using a default value for the `file` argument because we
+            # need to get the reference to the "current" stderr; if we used a
+            # default argument, we would just store the "current at
+            # instantiation time" stderr, which may not be the current one.
+            # This, in turn, could create problems for testing.
+            file = sys.stderr
+        print(msg, file=file, flush=flush)
 
     def debug(self, msg: str) -> None:
         if logging.DEBUG >= self.level:

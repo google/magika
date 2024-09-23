@@ -474,6 +474,13 @@ def test_access_backward_compatibility_layer() -> None:
         assert res.output.magic == res.value.output.description
 
 
+def test_get_supported_content_types() -> None:
+    m = Magika()
+    content_types = m.get_supported_content_types()
+    for ct in content_types:
+        assert isinstance(ct, ContentTypeLabel)
+
+
 def get_expected_content_type_label_from_test_file_path(
     test_path: Path,
 ) -> ContentTypeLabel:

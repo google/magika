@@ -24,13 +24,12 @@ from pathlib import Path
 
 import click
 
-from magika import Magika
-from magika.types.content_type_label import ContentTypeLabel
+from magika import ContentTypeLabel, Magika, PredictionMode
 
 
 @click.command()
 def main() -> None:
-    m = Magika()
+    m = Magika(prediction_mode=PredictionMode.HIGH_CONFIDENCE)
 
     res = m.identify_bytes(b"text")
     assert res.dl.label == ContentTypeLabel.UNDEFINED

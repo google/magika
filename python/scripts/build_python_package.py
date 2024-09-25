@@ -53,15 +53,13 @@ def main() -> None:
         patch_cargo_toml_with_version(rust_cli_cargo_toml_path, python_version)
 
         # update Cargo.lock
-        r = subprocess.run(
-            ["cargo", "check"],
-            cwd=rust_root_dir / "cli",
-        )
+        r = subprocess.run(["cargo", "check"], cwd=rust_root_dir / "cli", check=True)
 
         # build the package
         r = subprocess.run(
             ["uv", "build", "--out-dir", str(dist_output_dir)],
             cwd=python_root_dir,
+            check=True,
         )
         print(f"Python packages built at {dist_output_dir}")
     finally:
@@ -76,8 +74,9 @@ def main() -> None:
                 str(rust_cli_cargo_toml_path),
                 str(rust_cli_cargo_lock_path),
             ],
-            capture_output=True,
             cwd=repo_root_dir,
+            capture_output=True,
+            check=True,
         )
 
 

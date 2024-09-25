@@ -36,3 +36,13 @@ jobs:
       - run: rustup target add aarch64-apple-darwin x86_64-pc-windows-msvc
       - run: ./test.sh
         working-directory: rust
+  run:
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
+      - run: cargo build --release
+        working-directory: rust/cli
+      - run: rust/target/release/magika -r tests_data/basic

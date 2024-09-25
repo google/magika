@@ -315,7 +315,10 @@ fn build_session(flags: &Flags) -> Result<Session> {
     if let Some(inter_threads) = flags.experimental.inter_threads {
         magika = magika.with_inter_threads(inter_threads);
     }
-    if let Some(intra_threads) = flags.experimental.intra_threads {
+    // Apparently, SetIntraOpNumThreads must be called on MacOS, otherwise we get the following
+    // error: intra op thread pool must have at least one thread for RunAsync.
+    let intra_threads_default = cfg!(target_os = "macos").then_some(4);
+    if let Some(intra_threads) = flags.experimental.intra_threads.or(intra_threads_default) {
         magika = magika.with_intra_threads(intra_threads);
     }
     if let Some(opt_level) = flags.experimental.optimization_level {

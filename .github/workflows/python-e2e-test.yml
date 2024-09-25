@@ -60,7 +60,7 @@ jobs:
         shell: bash # Allows for cross-platform
 
       - name: Run magika with tests_data
-        run: magika -r tests_data/basic || exit 1
+        run: magika -r tests_data/basic
 
       - name: Run "magika cli" quick tests
         run: python ./python/scripts/run_quick_test_magika_cli.py

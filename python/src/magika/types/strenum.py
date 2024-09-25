@@ -25,6 +25,7 @@ class StrEnum(str, enum.Enum):
             lower_case = auto()
             MixedCase = auto()
 
+
         assert Example.UPPER_CASE == "UPPER_CASE"
         assert Example.lower_case == "lower_case"
         assert Example.MixedCase == "MixedCase"

@@ -19,18 +19,51 @@ magika`; this script is used as part of "build & test package" github action,
 and the dev dependencies are not available.
 """
 
+import sys
+from pathlib import Path
+
 import click
+
+from magika import Magika
+from magika.types.content_type_label import ContentTypeLabel
 
 
 @click.command()
 def main() -> None:
-    from magika import Magika
-
     m = Magika()
-    res = m.identify_bytes(b"asdasd")
-    print(res)
 
-    # TODO: add actual tests
+    res = m.identify_bytes(b"text")
+    assert res.dl.label == ContentTypeLabel.UNDEFINED
+    assert res.output.label == ContentTypeLabel.TXT
+    assert res.score == 1.0
+
+    res = m.identify_bytes(b"\xff\xff\xff")
+    assert res.dl.label == ContentTypeLabel.UNDEFINED
+    assert res.output.label == ContentTypeLabel.UNKNOWN
+    assert res.score == 1.0
+
+    basic_tests_dir = (
+        Path(__file__).parent.parent.parent / "tests_data" / "basic"
+    ).resolve()
+
+    files_paths = sorted(filter(lambda p: p.is_file(), basic_tests_dir.rglob("*")))
+
+    with_error = False
+    for file_path in files_paths:
+        res = m.identify_path(file_path)
+        output_label = res.output.label
+        expected_label = file_path.parent.name
+        if expected_label != output_label:
+            with_error = True
+            print(
+                f"ERROR: Misprediction for {file_path}: expected_label={expected_label}, output_label={output_label}"
+            )
+
+    if with_error:
+        print("ERROR: There was at least one misprediction")
+        sys.exit(1)
+
+    print("All examples were predicted correctly")
 
 
 if __name__ == "__main__":

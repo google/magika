@@ -24,6 +24,7 @@ and the dev dependencies are not available.
 """
 
 import subprocess
+import sys
 from pathlib import Path
 
 import click
@@ -31,12 +32,40 @@ import click
 
 @click.command()
 def main() -> None:
-    tests_data_dir = (Path(__file__).parent.parent.parent / "tests_data").resolve()
-    basic_tests_dir = tests_data_dir / "basic"
+    basic_tests_dir = (
+        Path(__file__).parent.parent.parent / "tests_data" / "basic"
+    ).resolve()
 
-    subprocess.run(["magika", "-r", str(basic_tests_dir)], check=True)
+    p = subprocess.run(
+        ["magika", "-r", "--label", str(basic_tests_dir)],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
 
-    # TODO: add the actual tests
+    assert p.stderr == ""
+
+    with_error = False
+    lines = p.stdout.split("\n")
+    for line in lines:
+        line = line.strip()
+        if line == "":
+            continue
+        file_path_str, file_output_str = line.split(": ", 1)
+        file_path = Path(file_path_str)
+        output_label = file_output_str.strip().split(" ", 1)[0]
+        expected_label = file_path.parent.name
+        if expected_label != output_label:
+            with_error = True
+            print(
+                f"ERROR: Misprediction for {file_path}: expected_label={expected_label}, output_label={output_label}"
+            )
+
+    if with_error:
+        print("ERROR: There was at least one misprediction")
+        sys.exit(1)
+
+    print("All examples were predicted correctly")
 
 
 if __name__ == "__main__":

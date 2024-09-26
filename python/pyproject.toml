@@ -19,6 +19,15 @@ dependencies = [
     "requests>=2.32.3",
 ]
 
+
+[project.urls]
+Homepage = "https://github.com/google/magika"
+Documentation = "https://github.com/google/magika/blob/main/python/README.md"
+Repository = "https://github.com/google/magika/blob/main/python/README.md"
+Issues = "https://github.com/google/magika/issues"
+Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
+
+
 [tool.uv]
 dev-dependencies = [
     "mypy>=1.11.2",

@@ -5,11 +5,13 @@ on:
       - 'main'
     paths:
       - 'python/**'
+      - 'rust/**'
       - 'tests_data/**'
       - '.github/workflows/**'
   pull_request:
     paths:
       - 'python/**'
+      - 'rust/**'
       - 'tests_data/**'
       - '.github/workflows/**'
 

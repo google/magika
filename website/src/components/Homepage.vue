@@ -75,19 +75,19 @@
   <a href="https://arxiv.org/abs/2409.13768" target="_blank">
     <v-img src="@/../assets/paper.png" class="paper pt-3 pb-3" />
   </a>
-  
+
   <div class="text-normal pt-6 pb-3 pl-3">
     If you use Magika, please cite it like this:
   </div>
   <pre>
 @misc{magika,
-      title={Magika: AI-Powered Content-Type Detection}, 
-      author={Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Bursztein, Elie}},
+      title={{Magika: AI-Powered Content-Type Detection}},
+      author={{Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie}},
       year={2024},
       eprint={2409.13768},
       archivePrefix={arXiv},
       primaryClass={cs.CR},
-      url={https://arxiv.org/abs/2409.13768}, 
+      url={https://arxiv.org/abs/2409.13768},
 }
     </pre
   >

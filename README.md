@@ -6,7 +6,7 @@
 Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU.
 
 In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
-Read more in our [research paper!](https://arxiv.org/abs/2409.13768)
+Read more in our [research paper](https://arxiv.org/abs/2409.13768)!
 
 
 You can try Magika without anything by using our [web demo](https://google.github.io/magika/), which runs locally in your browser!
@@ -261,17 +261,17 @@ We describe how we developed Magika and the choices we made in [our research pap
 If you use this software for your research, please cite it as:
 ```bibtex
 @misc{magika,
-      title={Magika: AI-Powered Content-Type Detection}, 
-      author={Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Bursztein, Elie}},
+      title={{Magika: AI-Powered Content-Type Detection}},
+      author={{Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie}},
       year={2024},
       eprint={2409.13768},
       archivePrefix={arXiv},
       primaryClass={cs.CR},
-      url={https://arxiv.org/abs/2409.13768}, 
+      url={https://arxiv.org/abs/2409.13768},
 }
 ```
 ## Security vulnerabilities
-Please contact us directly at magika-dev@google.com 
+Please contact us directly at magika-dev@google.com
 
 ## License
 

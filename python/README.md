@@ -95,9 +95,13 @@ print(result.output.ct_label)  # Output: "markdown"
 ## Citation
 If you use this software for your research, please cite it as:
 ```bibtex
-@software{magika,
-author = {Fratantonio, Yanick and Bursztein, Elie and Invernizzi, Luca and Zhang, Marina and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois and Petit-Bianco, Alexandre and Farah, Loua and Albertini, Ange},
-title = {{Magika content-type scanner}},
-url = {https://github.com/google/magika}
+@misc{magika,
+      title={{Magika: AI-Powered Content-Type Detection}},
+      author={{Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie}},
+      year={2024},
+      eprint={2409.13768},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR},
+      url={https://arxiv.org/abs/2409.13768},
 }
 ```

@@ -21,6 +21,8 @@ authors:
   given-names: "Julien"
 - family-names: "Petit-Bianco"
   given-names: "Alexandre"
+- family-names: "Tao"
+  given-names: "David"
 - family-names: "Bursztein"
   given-names: "Elie"
 title: "Magika: AI-Powered Content-Type Detection"

@@ -17,6 +17,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+import requests
 
 import click
 
@@ -32,6 +33,10 @@ def main() -> None:
     rust_main_rs_path = rust_root_dir / "cli" / "src" / "main.rs"
     rust_cli_cargo_toml_path = rust_root_dir / "cli" / "Cargo.toml"
     rust_cli_cargo_lock_path = rust_root_dir / "cli" / "Cargo.lock"
+
+    # Check python README links
+    python_readme_path = python_root_dir / "README.md"
+    check_readme_links(python_readme_path)
 
     r = subprocess.run(
         ["git", "status", "--porcelain"], capture_output=True, cwd=repo_root_dir
@@ -149,6 +154,36 @@ def patch_line_matching_prefix(file_path: Path, prefix: str, new_line: str) -> N
             f'ERROR: Did not find any line with prefix "{prefix}" in "{file_path}"'
         )
     file_path.write_text("\n".join(lines))
+
+
+def check_readme_links(readme_path: Path) -> None:
+    """Check if the README contains valid absolute links."""
+    readme_content = readme_path.read_text()
+    
+    # Find all markdown links
+    link_regex = r'\[.*?\]\((.*?)\)'
+    links = re.findall(link_regex, readme_content)
+
+    invalid_links = []
+    for link in links:
+        if not link.startswith("https://github.com/"):
+            invalid_links.append(f"Relative link found: {link}")
+        else:
+            # Check if the link is valid
+            try:
+                response = requests.head(link, allow_redirects=True, timeout=5)
+                if response.status_code != 200:
+                    invalid_links.append(f"Invalid link: {link} (status code: {response.status_code})")
+            except requests.RequestException as e:
+                invalid_links.append(f"Error accessing link: {link} ({e})")
+    
+    if invalid_links:
+        print("README.md contains invalid or relative links:")
+        for error in invalid_links:
+            print(error)
+        sys.exit(1)
+    else:
+        print("All links in README.md are valid.")
 
 
 if __name__ == "__main__":

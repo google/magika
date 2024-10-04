@@ -313,17 +313,21 @@ def test_magika_module_with_symlink() -> None:
 
         m = Magika()
         res = m.identify_path(test_path)
+        assert res.path == test_path
         assert res.ok
         assert res.prediction.output.label == ContentTypeLabel.TXT
         res = m.identify_path(symlink_path)
+        assert res.path == symlink_path
         assert res.ok
         assert res.prediction.output.label == ContentTypeLabel.TXT
 
         m = Magika(no_dereference=True)
         res = m.identify_path(test_path)
+        assert res.path == test_path
         assert res.ok
         assert res.prediction.output.label == ContentTypeLabel.TXT
         res = m.identify_path(symlink_path)
+        assert res.path == symlink_path
         assert res.ok
         assert res.prediction.output.label == ContentTypeLabel.SYMLINK
 

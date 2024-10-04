@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import dataclasses
 import importlib.metadata
 import json
@@ -21,15 +20,14 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
 from magika import Magika, MagikaError, PredictionMode, colors
 from magika.logger import get_logger
-from magika.types import ContentTypeLabel, MagikaResult, Status, StatusOr
+from magika.types import ContentTypeLabel, MagikaResult
 
-# TODO: the version should be migrated to the magika module, or somewhere else in python/
 VERSION = importlib.metadata.version("magika")
 
 CONTACT_EMAIL = "magika-dev@google.com"
@@ -256,7 +254,7 @@ def main(
     }
 
     # updated only when we need to output in JSON format
-    all_predictions: List[Tuple[Path, StatusOr[MagikaResult]]] = []
+    all_predictions: List[Tuple[Path, MagikaResult]] = []
 
     batches_num = len(files_paths) // batch_size
     if len(files_paths) % batch_size != 0:
@@ -276,37 +274,36 @@ def main(
             all_predictions.extend(zip(batch_files_paths, batch_predictions))
         elif jsonl_output:
             for file_path, result in zip(batch_files_paths, batch_predictions):
-                _l.raw_print_to_stdout(
-                    json.dumps(path_and_result_to_dict(file_path, result))
-                )
+                _l.raw_print_to_stdout(json.dumps(result_to_dict(result)))
         else:
             for file_path, result in zip(batch_files_paths, batch_predictions):
                 if result.ok:
                     if mime_output:
                         # If the user requested the MIME type, we use the mime type
                         # regardless of the compatibility mode.
-                        output = result.value.output.mime_type
+                        output = result.prediction.output.mime_type
                     elif label_output:
-                        output = str(result.value.output.label)
+                        output = str(result.prediction.output.label)
                     else:  # human-readable description
-                        output = f"{result.value.output.description} ({result.value.output.group})"
+                        output = f"{result.prediction.output.description} ({result.prediction.output.group})"
 
                         if (
-                            result.value.dl.label != ContentTypeLabel.UNDEFINED
-                            and result.value.dl.label != result.value.output.label
+                            result.prediction.dl.label != ContentTypeLabel.UNDEFINED
+                            and result.prediction.dl.label
+                            != result.prediction.output.label
                         ):
                             # it seems that we had a too-low confidence prediction
                             # from the model. Let's warn the user about our best
                             # bet.
                             output += (
                                 " [Low-confidence model best-guess: "
-                                f"{result.value.dl.description} ({result.value.dl.group}), "
-                                f"score={result.value.score}]"
+                                f"{result.prediction.dl.description} ({result.prediction.dl.group}), "
+                                f"score={result.prediction.score}]"
                             )
 
                     if with_colors:
                         start_color = color_by_group.get(
-                            result.value.output.group, colors.WHITE
+                            result.prediction.output.group, colors.WHITE
                         )
                         end_color = colors.RESET
                 else:
@@ -315,7 +312,7 @@ def main(
                     end_color = ""
 
                 if output_score and result.ok:
-                    score = int(result.value.score * 100)
+                    score = int(result.prediction.score * 100)
                     _l.raw_print_to_stdout(
                         f"{start_color}{file_path}: {output} {score}%{end_color}"
                     )
@@ -327,10 +324,7 @@ def main(
     if json_output:
         _l.raw_print_to_stdout(
             json.dumps(
-                [
-                    path_and_result_to_dict(file_path, result)
-                    for file_path, result in all_predictions
-                ],
+                [result_to_dict(result) for (_, result) in all_predictions],
                 indent=4,
             )
         )
@@ -340,20 +334,16 @@ def should_read_from_stdin(files_paths: List[Path]) -> bool:
     return len(files_paths) == 1 and str(files_paths[0]) == "-"
 
 
-def get_magika_result_from_stdin(magika: Magika) -> StatusOr[MagikaResult]:
+def get_magika_result_from_stdin(magika: Magika) -> MagikaResult:
     content = sys.stdin.buffer.read()
     result = magika.identify_bytes(content)
     return result
 
 
-def path_and_result_to_dict(file_path: Path, result: StatusOr[MagikaResult]) -> dict:
+def result_to_dict(result: MagikaResult) -> dict:
+    out: Dict[str, Any] = {"path": str(result.path), "status": result.status}
     if result.ok:
-        out = {
-            "path": str(file_path),
-            "result": {"status": Status.OK, "value": dataclasses.asdict(result.value)},
-        }
-    else:
-        out = {"path": str(file_path), "result": {"status": result.status}}
+        out["prediction"] = dataclasses.asdict(result.prediction)
     return out
 
 

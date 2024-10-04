@@ -15,7 +15,7 @@
 import signal
 import tempfile
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Optional
 
 import pytest
 
@@ -23,9 +23,9 @@ from magika import Magika, PredictionMode
 from magika.types import (
     ContentTypeInfo,
     ContentTypeLabel,
+    MagikaPrediction,
     MagikaResult,
     Status,
-    StatusOrMagikaResult,
 )
 from tests import utils
 
@@ -98,7 +98,9 @@ def test_magika_module_with_basic_tests_by_bytes() -> None:
     for test_path in tests_paths:
         content = test_path.read_bytes()
         result = m.identify_bytes(content)
-        check_result_vs_expected_result(test_path, result)
+        check_result_vs_expected_result(
+            test_path, result, expected_result_path=Path("-")
+        )
 
 
 def test_magika_module_with_previously_missdetected_samples() -> None:
@@ -117,18 +119,20 @@ def test_magika_module_with_empty_content() -> None:
 
     res = m.identify_bytes(empty_content)
     assert res.ok
-    assert res.value.dl.label == ContentTypeLabel.UNDEFINED
-    assert res.value.output.label == ContentTypeLabel.EMPTY
-    assert res.value.score == 1.0
+    assert res.path == Path("-")
+    assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+    assert res.prediction.output.label == ContentTypeLabel.EMPTY
+    assert res.prediction.score == 1.0
 
     with tempfile.TemporaryDirectory() as td:
         tf_path = Path(td) / "empty.dat"
         tf_path.write_bytes(empty_content)
         res = m.identify_path(tf_path)
+        assert res.path == tf_path
         assert res.ok
-        assert res.value.dl.label == ContentTypeLabel.UNDEFINED
-        assert res.value.output.label == ContentTypeLabel.EMPTY
-        assert res.value.score == 1.0
+        assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+        assert res.prediction.output.label == ContentTypeLabel.EMPTY
+        assert res.prediction.score == 1.0
 
 
 def test_magika_module_with_short_content() -> None:
@@ -146,17 +150,19 @@ def test_magika_module_with_short_content() -> None:
             tf_path = Path(td) / "file.txt"
             tf_path.write_bytes(content)
             res = m.identify_path(tf_path)
+            assert res.path == tf_path
             assert res.ok
-            assert res.value.dl.label == ContentTypeLabel.UNDEFINED
-            assert res.value.output.label == expected_ct_label
-            assert res.value.score == 1.0
+            assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+            assert res.prediction.output.label == expected_ct_label
+            assert res.prediction.score == 1.0
 
             # prediction via content
             res = m.identify_bytes(content)
+            assert res.path == Path("-")
             assert res.ok
-            assert res.value.dl.label == ContentTypeLabel.UNDEFINED
-            assert res.value.output.label == expected_ct_label
-            assert res.value.score == 1.0
+            assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+            assert res.prediction.output.label == expected_ct_label
+            assert res.prediction.score == 1.0
 
 
 def test_magika_module_with_python_and_non_python_content() -> None:
@@ -169,11 +175,11 @@ def test_magika_module_with_python_and_non_python_content() -> None:
 
     res = m.identify_bytes(python_content)
     assert res.ok
-    assert res.value.output.label == ContentTypeLabel.PYTHON
+    assert res.prediction.output.label == ContentTypeLabel.PYTHON
 
     res = m.identify_bytes(non_python_content)
     assert res.ok
-    assert res.value.output.label == ContentTypeLabel.TXT
+    assert res.prediction.output.label == ContentTypeLabel.TXT
 
 
 def test_magika_module_with_different_prediction_modes() -> None:
@@ -274,10 +280,11 @@ def test_magika_module_with_directory() -> None:
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
         res = m.identify_path(td_path)
+        assert res.path == td_path
         assert res.ok
-        assert res.value.dl.label == ContentTypeLabel.UNDEFINED
-        assert res.value.output.label == ContentTypeLabel.DIRECTORY
-        assert res.value.score == 1.0
+        assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+        assert res.prediction.output.label == ContentTypeLabel.DIRECTORY
+        assert res.prediction.score == 1.0
 
 
 def test_magika_module_multiple_copies_of_the_same_file() -> None:
@@ -291,21 +298,9 @@ def test_magika_module_multiple_copies_of_the_same_file() -> None:
         results = m.identify_paths(test_paths)
         assert len(results) == len(test_paths)
         for result in results:
+            assert result.path == test_path
             assert result.ok
-            assert result.value.output.label == ContentTypeLabel.TXT
-
-
-def test_magika_cli_with_many_files() -> None:
-    test_file_path = utils.get_one_basic_test_file_path()
-
-    m = Magika()
-
-    for n in [10, 100]:
-        test_files_paths = [test_file_path] * n
-        results = m.identify_paths(test_files_paths)
-        for result in results:
-            assert result.ok
-            # TODO: check that the result is actually correct
+            assert result.prediction.output.label == ContentTypeLabel.TXT
 
 
 def test_magika_module_with_symlink() -> None:
@@ -319,18 +314,18 @@ def test_magika_module_with_symlink() -> None:
         m = Magika()
         res = m.identify_path(test_path)
         assert res.ok
-        assert res.value.output.label == ContentTypeLabel.TXT
+        assert res.prediction.output.label == ContentTypeLabel.TXT
         res = m.identify_path(symlink_path)
         assert res.ok
-        assert res.value.output.label == ContentTypeLabel.TXT
+        assert res.prediction.output.label == ContentTypeLabel.TXT
 
         m = Magika(no_dereference=True)
         res = m.identify_path(test_path)
         assert res.ok
-        assert res.value.output.label == ContentTypeLabel.TXT
+        assert res.prediction.output.label == ContentTypeLabel.TXT
         res = m.identify_path(symlink_path)
         assert res.ok
-        assert res.value.output.label == ContentTypeLabel.SYMLINK
+        assert res.prediction.output.label == ContentTypeLabel.SYMLINK
 
 
 def test_magika_module_with_non_existing_file() -> None:
@@ -340,6 +335,7 @@ def test_magika_module_with_non_existing_file() -> None:
         non_existing_path = Path(td) / "non_existing.txt"
 
         res = m.identify_path(non_existing_path)
+        assert res.path == non_existing_path
         assert not res.ok
         assert res.status == Status.FILE_NOT_FOUND_ERROR
 
@@ -354,6 +350,7 @@ def test_magika_module_with_permission_error() -> None:
         unreadable_test_path.chmod(0o000)
 
         res = m.identify_path(unreadable_test_path)
+        assert res.path == unreadable_test_path
         assert not res.ok
         assert res.status == Status.PERMISSION_ERROR
 
@@ -416,17 +413,18 @@ def test_api_call_with_bad_types() -> None:
         _ = m.identify_bytes("str content")  # type: ignore[arg-type]
 
 
-def test_access_statusor_and_magika_result():
+def test_access_magika_result_and_prediction():
     m = Magika()
 
     res = m.identify_bytes(b"text")
-    assert isinstance(res, StatusOrMagikaResult)
+    assert isinstance(res, MagikaResult)
+    assert isinstance(res.path, Path)
     assert isinstance(res.ok, bool)
     assert isinstance(res.status, Status)
-    assert isinstance(res.value, MagikaResult)
-    assert isinstance(res.value.dl, ContentTypeInfo)
-    assert isinstance(res.value.output, ContentTypeInfo)
-    assert isinstance(res.value.score, float)
+    assert isinstance(res.prediction, MagikaPrediction)
+    assert isinstance(res.prediction.dl, ContentTypeInfo)
+    assert isinstance(res.prediction.output, ContentTypeInfo)
+    assert isinstance(res.prediction.score, float)
     # test access to forwarded properties
     assert isinstance(res.dl, ContentTypeInfo)
     assert isinstance(res.output, ContentTypeInfo)
@@ -435,20 +433,21 @@ def test_access_statusor_and_magika_result():
     with pytest.raises(AttributeError):
         _ = res.foo  # type: ignore[attr-defined]
     with pytest.raises(AttributeError):
-        _ = res.value.foo  # type: ignore[attr-defined]
+        _ = res.prediction.foo  # type: ignore[attr-defined]
 
     res = m.identify_path(Path("/non_existing.txt"))
-    assert isinstance(res, StatusOrMagikaResult)
+    assert isinstance(res, MagikaResult)
+    assert isinstance(res.path, Path)
     assert isinstance(res.ok, bool)
     assert isinstance(res.status, Status)
     with pytest.raises(ValueError):
-        _ = res.value
+        _ = res.prediction
     with pytest.raises(ValueError):
-        _ = res.value.dl
+        _ = res.prediction.dl
     with pytest.raises(ValueError):
-        _ = res.value.output
+        _ = res.prediction.output
     with pytest.raises(ValueError):
-        _ = res.value.score
+        _ = res.prediction.score
     with pytest.raises(ValueError):
         _ = res.dl
     with pytest.raises(ValueError):
@@ -458,28 +457,26 @@ def test_access_statusor_and_magika_result():
     with pytest.raises(AttributeError):
         _ = res.foo  # type: ignore[attr-defined]
     with pytest.raises(ValueError):
-        _ = res.value.foo  # type: ignore[attr-defined]
+        _ = res.prediction.foo  # type: ignore[attr-defined]
 
 
 def test_access_backward_compatibility_layer() -> None:
     m = Magika()
 
     res = m.identify_bytes(b"text")
-    assert isinstance(res, StatusOrMagikaResult)
+    assert isinstance(res, MagikaResult)
+    assert isinstance(res.path, Path)
     assert isinstance(res.ok, bool)
     assert isinstance(res.status, Status)
-    assert isinstance(res.value, MagikaResult)
-    assert isinstance(res.value.dl, ContentTypeInfo)
-    assert isinstance(res.value.output, ContentTypeInfo)
-    assert isinstance(res.value.score, float)
-
-    with pytest.raises(AttributeError):
-        _ = res.path
+    assert isinstance(res.prediction, MagikaPrediction)
+    assert isinstance(res.prediction.dl, ContentTypeInfo)
+    assert isinstance(res.prediction.output, ContentTypeInfo)
+    assert isinstance(res.prediction.score, float)
 
     with pytest.warns(DeprecationWarning):
-        assert res.dl.ct_label == res.value.dl.label
+        assert res.dl.ct_label == res.prediction.dl.label
     with pytest.warns(DeprecationWarning):
-        assert res.output.ct_label == res.value.output.label
+        assert res.output.ct_label == res.prediction.output.label
 
     with pytest.raises(AttributeError):
         _ = res.dl.score
@@ -487,9 +484,9 @@ def test_access_backward_compatibility_layer() -> None:
         _ = res.output.score
 
     with pytest.warns(DeprecationWarning):
-        assert res.dl.magic == res.value.dl.description
+        assert res.dl.magic == res.prediction.dl.description
     with pytest.warns(DeprecationWarning):
-        assert res.output.magic == res.value.output.description
+        assert res.output.magic == res.prediction.output.description
 
 
 def test_get_supported_content_types() -> None:
@@ -506,15 +503,18 @@ def get_expected_content_type_label_from_test_file_path(
 
 
 def check_result_vs_expected_result(
-    file_path: Path, result: StatusOrMagikaResult
+    file_path: Path, result: MagikaResult, expected_result_path: Optional[Path] = None
 ) -> None:
+    if expected_result_path is None:
+        expected_result_path = file_path
+    assert result.path == expected_result_path
     assert result.ok
     expected_ct_label = get_expected_content_type_label_from_test_file_path(file_path)
-    assert result.value.output.label == expected_ct_label
+    assert result.prediction.output.label == expected_ct_label
 
 
 def check_results_vs_expected_results(
-    files_paths: List[Path], results: List[StatusOrMagikaResult]
+    files_paths: List[Path], results: List[MagikaResult]
 ) -> None:
     for file_path, result in zip(files_paths, results):
         check_result_vs_expected_result(file_path, result)

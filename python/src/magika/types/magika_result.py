@@ -44,7 +44,7 @@ class MagikaResult:
     @property
     def path(self) -> Path:
         return self._path
-    
+
     @property
     def ok(self) -> bool:
         return self._status == Status.OK

@@ -42,12 +42,12 @@ class MagikaResult:
                 raise ValueError("prediction cannot be set when status != OK")
 
     @property
-    def ok(self) -> bool:
-        return self._status == Status.OK
-
-    @property
     def path(self) -> Path:
         return self._path
+    
+    @property
+    def ok(self) -> bool:
+        return self._status == Status.OK
 
     @property
     def status(self) -> Status:
@@ -84,6 +84,6 @@ class MagikaResult:
 
     def __str__(self) -> str:
         if self.ok:
-            return f"MagikaResult(path={self.path}, status={self.status}, value={self.prediction})"
+            return f"MagikaResult(path={self.path}, status={self.status}, prediction={self.prediction})"
         else:
             return f"MagikaResult(path={self.path}, status={self.status})"

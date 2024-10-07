@@ -10,7 +10,7 @@ should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
 
-## [Unreleased]
+## [0.6.0-rc1] - 2024-10-07
 
 - The package ships a new command line client written in Rust. This replaces the old client written in Python.
 - Magika's new CLI output JSON is slightly different: it is now produced by the Rust client, the `score` field is at the same level as `dl` and `output` (and it is not anymore at `dl.score` and `output.score`), the output includes `is_text`, which indicates whether the detected content type is of textual nature, and `extensions`, a list of extensions associated with the predicted content type. Check an example in the main [README.md](../README.md).

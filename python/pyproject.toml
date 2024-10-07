@@ -39,7 +39,6 @@ dependencies = [
     "numpy>=1.26; python_version >= '3.9' and python_version < '3.10'",
     "numpy>=2.1.0; python_version >= '3.10'",
     "python-dotenv>=1.0.1",
-    "requests>=2.32.3",
 ]
 
 

@@ -5,11 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
+should be considered as a major (and thus potentially breaking) change. See
+semver guidelines for more details about this.
+
 
 ## [Unreleased]
 
-- Magika output JSON now includes `is_text`, which indicates whether the detected content type is of textual nature.
-- Add `--dump-performance-stats` CLI option to help debugging the performance of the deep learning inference.
+- The package ships a new command line client written in Rust. This replaces the old client written in Python.
+- Magika's new CLI output JSON is slightly different: it is now produced by the Rust client, the `score` field is at the same level as `dl` and `output` (and it is not anymore at `dl.score` and `output.score`), the output includes `is_text`, which indicates whether the detected content type is of textual nature, and `extensions`, a list of extensions associated with the predicted content type. Check an example in the main [README.md](../README.md).
+- The Magika's python API now returns a `MagikaResult`, which is a [`absl::StatusOr`](https://abseil.io/docs/cpp/guides/status)-like object that wraps `MagikaPrediction`. See the API documentation [here](https://github.com/google/magika/blob/main/python/README.md). The rationale is to have a clear separation between valid predictions and error situations.
+- `dl.ct_label` and `output.ct_label` are deprecated and now accessible as `dl.label` and `output.label`. Such `label` field is of type `ContentTypeLabel` (which is a `StrEnum`). You can treat it as a string.
+- the `magic` metadata is deprecated; use `description` instead.
+- the content type metadata now includes `is_text` (a boolean determining whether the predicted content type is of textual form) and `extensions` (a list of file extensions usually associated with this content type).
+- When the deep learning model is not used, `dl.label` is now `ContentTypeLabel.UNDEFINED`, rather than setting the full `dl` field to `None`.
+- The python module is now fully typed
+- Under the hood, the module uses a new model, which has support for more than 200 content types. You may want to check the [new list of supported content types](https://github.com/google/magika/blob/main/assets/models/standard_v2_1/README.md) and update any code depending on specific results. Note that the model uses more input bytes than the previous one, and it is slightly slower. If this is a problem for your use case, please reach out! We do have smaller models (although slightly less accurate); your feedback would is helpful to know what to prioritize.
 
 
 ## [0.5.1] - 2024-03-06

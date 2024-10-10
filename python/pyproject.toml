@@ -74,8 +74,6 @@ module-name = "magika"
 bindings = "bin"
 manifest-path = "../rust/cli/Cargo.toml"
 locked = true
-compatibility = "linux"
-skip-auditwheel = true
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

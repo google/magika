@@ -58,6 +58,7 @@ dev-dependencies = [
     "ipython>=8.21.0; python_version >= '3.10'",
     "pytest>=8.3.2",
     "ruff>=0.6.3",
+    "twine>=5.1.1",
 ]
 
 [build-system]

@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 
-__version__ = "0.6.0-rc1"
+from dataclasses import dataclass
+
+from magika.types.content_type_info import ContentTypeInfo
 
 
-import dotenv
-
-from magika import magika
-from magika.types import content_type_label, magika_error, prediction_mode
-
-Magika = magika.Magika
-MagikaError = magika_error.MagikaError
-ContentTypeLabel = content_type_label.ContentTypeLabel
-PredictionMode = prediction_mode.PredictionMode
-
-dotenv.load_dotenv(dotenv.find_dotenv())
+@dataclass(frozen=True)
+class MagikaPrediction:
+    dl: ContentTypeInfo
+    output: ContentTypeInfo
+    score: float

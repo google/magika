@@ -1,15 +1,13 @@
 # Magika
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/magika/badge)](https://securityscorecards.dev/viewer/?uri=github.com/google/magika) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706) ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/magika/badge)](https://securityscorecards.dev/viewer/?uri=github.com/google/magika) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706) ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg) [![PyPI Monthly Downloads](https://img.shields.io/pypi/dm/magika)](https://pypi.org/project/magika/)
 
-
-Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU.
+Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU.
 
 In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners.
 Read more in our [research paper](https://arxiv.org/abs/2409.13768)!
 
-
-You can try Magika without anything by using our [web demo](https://google.github.io/magika/), which runs locally in your browser!
+You can try Magika without installing anything by using our [web demo](https://google.github.io/magika/), which runs locally in your browser!
 
 Here is an example of what Magika command line output look like:
 <p align="center">
@@ -18,13 +16,22 @@ Here is an example of what Magika command line output look like:
 
 For more context you can read our initial [announcement post on Google's OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html)
 
+## News
+
+> [!IMPORTANT]
+> We are about to release a number of new things, and they are ready for testing!
+> - A new ML model with support for [200+ content types](./assets/models/standard_v2_1/README.md).
+> - A new CLI written in Rust. This will replace the previous CLI written in python. More information [here](./rust/cli/README.md). The Rust codebase can also be used for applications written in rust, see the [docs](https://docs.rs/magika/0.1.0-rc.1/magika/index.html).
+> - Python package 0.6.0rc1: this version ships the new model with support for 200+ content types, the CLI written in Rust (which replaces the old one written in python), and a revamped Python API with a few breaking changes, see the [docs](./python/README.md) and the [changelog](./python/CHANGELOG.md)!
+> If you need docs about the stable release, browse this repository at the latest stable tag, [here](https://github.com/google/magika/tree/python-v0.5.1).
+
 
 ## Highlights
 
-- Available as a Python command line, a Python API, and an experimental TFJS version (which powers our [web demo](https://google.github.io/magika/)).
+- Available as a command line tool written in Rust, a Python API, a Rust API, and an experimental TFJS version (which powers our [web demo](https://google.github.io/magika/)).
 - Trained on a dataset of over 25M files across more than 100 content types.
 - On our evaluation, Magika achieves 99%+ average precision and recall, outperforming existing approaches.
-- More than 100 content types (see [full list](./docs/supported_content_types_list.md)).
+- More than 200 content types (see [full list](./assets/models/standard_v2_1/README.md)).
 - After the model is loaded (this is a one-off overhead), the inference time is about 5ms per file.
 - Batching: You can pass to the command line and API multiple files at the same time, and Magika will use batching to speed up the inference time. You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.
 - Near-constant inference time independently from the file size; Magika only uses a limited subset of the file's bytes.
@@ -32,7 +39,7 @@ For more context you can read our initial [announcement post on Google's OSS blo
 - Support three different prediction modes, which tweak the tolerance to errors: `high-confidence`, `medium-confidence`, and `best-guess`.
 - It's open source! (And more is yet to come.)
 
-For more details, see the documentation for the [python package](./docs/python.md) and for the [js package](./js/README.md) (dev [docs](./docs/js.md)).
+For more details, see the documentation for the [python package](./python/README.md) and for the [js package](./js/README.md) (dev [docs](./docs/js.md)).
 
 
 ## Table of Contents
@@ -64,6 +71,8 @@ Magika is available as `magika` on PyPI:
 $ pip install magika
 ```
 
+If you intend to use Magika only as a command line, you may want to use `$ pipx install magika` instead.
+
 ### Running in Docker
 
 ```
@@ -75,51 +84,71 @@ docker run -it --rm -v $(pwd):/magika magika -r /magika/tests_data
 
 ### Usage
 
-#### Python command line
+#### Command line (written in Rust)
+
+The new command line is written in Rust, and it is available in the `magika` python package.
 
 Examples:
 
 ```shell
-$ magika -r tests_data/
-tests_data/README.md: Markdown document (text)
-tests_data/basic/code.asm: Assembly (code)
-tests_data/basic/code.c: C source (code)
-tests_data/basic/code.css: CSS source (code)
-tests_data/basic/code.js: JavaScript source (code)
-tests_data/basic/code.py: Python source (code)
-tests_data/basic/code.rs: Rust source (code)
-...
-tests_data/mitra/7-zip.7z: 7-zip archive data (archive)
-tests_data/mitra/bmp.bmp: BMP image data (image)
-tests_data/mitra/bzip2.bz2: bzip2 compressed data (archive)
-tests_data/mitra/cab.cab: Microsoft Cabinet archive data (archive)
-tests_data/mitra/elf.elf: ELF executable (executable)
-tests_data/mitra/flac.flac: FLAC audio bitstream data (audio)
-...
+$ cd tests_data/basic && magika -r *
+asm/code.asm: Assembly (code)
+batch/simple.bat: DOS batch file (code)
+c/code.c: C source (code)
+css/code.css: CSS source (code)
+csv/magika_test.csv: CSV document (code)
+dockerfile/Dockerfile: Dockerfile (code)
+docx/doc.docx: Microsoft Word 2007+ document (document)
+epub/doc.epub: EPUB document (document)
+epub/magika_test.epub: EPUB document (document)
+flac/test.flac: FLAC audio bitstream data (audio)
+handlebars/example.handlebars: Handlebars source (code)
+html/doc.html: HTML document (code)
+ini/doc.ini: INI configuration file (text)
+javascript/code.js: JavaScript source (code)
+jinja/example.j2: Jinja template (code)
+jpeg/magika_test.jpg: JPEG image data (image)
+json/doc.json: JSON document (code)
+latex/sample.tex: LaTeX document (text)
+makefile/simple.Makefile: Makefile source (code)
+markdown/README.md: Markdown document (text)
+[...]
 ```
 
 ```shell
-$ magika code.py --json
+$ magika ./tests_data/basic/python/code.py --json
 [
-    {
-        "path": "code.py",
+  {
+    "path": "./tests_data/basic/python/code.py",
+    "result": {
+      "status": "ok",
+      "value": {
         "dl": {
-            "ct_label": "python",
-            "score": 0.9940916895866394,
-            "group": "code",
-            "mime_type": "text/x-python",
-            "magic": "Python script",
-            "description": "Python source"
+          "description": "Python source",
+          "extensions": [
+            "py",
+            "pyi"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "python",
+          "mime_type": "text/x-python"
         },
         "output": {
-            "ct_label": "python",
-            "score": 0.9940916895866394,
-            "group": "code",
-            "mime_type": "text/x-python",
-            "magic": "Python script",
-            "description": "Python source"
-        }
+          "description": "Python source",
+          "extensions": [
+            "py",
+            "pyi"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "python",
+          "mime_type": "text/x-python"
+        },
+        "score": 0.753000020980835
+      }
     }
+  }
 ]
 ```
 
@@ -129,50 +158,69 @@ $ cat doc.ini | magika -
 ```
 
 ```help
-$ magika -h
-Usage: magika [OPTIONS] [FILE]...
+$ magika --help
+Determines the content type of files with deep-learning
 
-  Magika - Determine type of FILEs with deep-learning.
+Usage: magika [OPTIONS] [PATH]...
+
+Arguments:
+  [PATH]...
+          List of paths to the files to analyze.
+
+          Use a dash (-) to read from standard input (can only be used once).
 
 Options:
-  -r, --recursive                 When passing this option, magika scans every
-                                  file within directories, instead of
-                                  outputting "directory"
-  --json                          Output in JSON format.
-  --jsonl                         Output in JSONL format.
-  -i, --mime-type                 Output the MIME type instead of a verbose
-                                  content type description.
-  -l, --label                     Output a simple label instead of a verbose
-                                  content type description. Use --list-output-
-                                  content-types for the list of supported
-                                  output.
-  -c, --compatibility-mode        Compatibility mode: output is as close as
-                                  possible to `file` and colors are disabled.
-  -s, --output-score              Output the prediction score in addition to
-                                  the content type.
-  -m, --prediction-mode [best-guess|medium-confidence|high-confidence]
-  --batch-size INTEGER            How many files to process in one batch.
-  --no-dereference                This option causes symlinks not to be
-                                  followed. By default, symlinks are
-                                  dereferenced.
-  --colors / --no-colors          Enable/disable use of colors.
-  -v, --verbose                   Enable more verbose output.
-  -vv, --debug                    Enable debug logging.
-  --generate-report               Generate report useful when reporting
-                                  feedback.
-  --version                       Print the version and exit.
-  --list-output-content-types     Show a list of supported content types.
-  --model-dir DIRECTORY           Use a custom model.
-  -h, --help                      Show this message and exit.
+  -r, --recursive
+          Identifies files within directories instead of identifying the directory itself
 
-  Magika version: "0.5.0"
+      --no-dereference
+          Identifies symbolic links as is instead of identifying their content by following them
 
-  Default model: "standard_v1"
+      --colors
+          Prints with colors regardless of terminal support
 
-  Send any feedback to magika-dev@google.com or via GitHub issues.
+      --no-colors
+          Prints without colors regardless of terminal support
+
+  -s, --output-score
+          Prints the prediction score in addition to the content type
+
+  -i, --mime-type
+          Prints the MIME type instead of the content type description
+
+  -l, --label
+          Prints a simple label instead of the content type description
+
+      --json
+          Prints in JSON format
+
+      --jsonl
+          Prints in JSONL format
+
+      --format <CUSTOM>
+          Prints using a custom format (use --help for details).
+
+          The following placeholders are supported:
+
+            %p  The file path
+            %l  The unique label identifying the content type
+            %d  The description of the content type
+            %g  The group of the content type
+            %m  The MIME type of the content type
+            %e  Possible file extensions for the content type
+            %s  The score of the content type for the file
+            %S  The score of the content type for the file in percent
+            %b  The model output if overruled (empty otherwise)
+            %%  A literal %
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
 ```
 
-See [python documentation](./docs/python.md) for detailed documentation.
+See [here](./rust/cli/README.md) for more detailed documentation.
 
 
 #### Python API
@@ -183,12 +231,12 @@ Examples:
 >>> from magika import Magika
 >>> m = Magika()
 >>> res = m.identify_bytes(b"# Example\nThis is an example of markdown!")
->>> print(res.output.ct_label)
+>>> print(res.output.label)
 markdown
 ```
 
 
-See [python documentation](./docs/python.md) for detailed documentation.
+See [python documentation](./python/README.md) for detailed documentation.
 
 
 #### Experimental TFJS model & npm package
@@ -201,29 +249,16 @@ See [js documentation](./docs/js.md) for the details.
 
 ## Development Setup
 
-We use [poetry](https://python-poetry.org/) for development and packaging:
-
-```shell
-$ git clone https://github.com/google/magika
-$ cd magika/python
-$ poetry shell && poetry install
-$ magika -r ../tests_data
-```
-
-To run the tests:
-
-```shell
-$ cd magika/python
-$ poetry shell
-$ pytest tests/
-```
+See the "Development Setup" section in the [python docs](./python/README.md).
 
 
 ## Important Documentation
 
 - [Documentation about the CLI](./docs/command_line_interface.md)
+- [Documentation about the new Rust CLI](./rust/cli/README.md)
 - [Documentation about the bindings for different languages](./docs/bindings.md)
 - [List of supported content types (for v1, more to come).](./docs/supported_content_types_list.md)
+- [List of supported content types for the new model](./assets/models/standard_v2_1/README.md)
 - [Documentation on how to interpret Magika's output.](./docs/magika_output.md)
 - [Frequently Asked Questions](./docs/faq.md)
 
@@ -236,8 +271,6 @@ This initial release is not targeting polyglot detection, and we're looking forw
 We would also love to hear from the community about encountered problems, misdetections, features requests, need for support for additional content types, etc.
 
 Check our open GitHub issues to see what is on our roadmap and please report misdetections or feature requests by either opening GitHub issues (preferred) or by emailing us at magika-dev@google.com.
-
-When reporting misdetections, you may want to use `$ magika --generate-report <path>` to generate a report with debug information, which you can include in your github issue.
 
 **NOTE: Do NOT send reports about files that may contain PII, the report contains (a small) part of the file content!**
 

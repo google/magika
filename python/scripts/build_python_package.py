@@ -17,9 +17,9 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-import requests
 
 import click
+import requests
 
 
 @click.command()
@@ -36,7 +36,7 @@ def main() -> None:
 
     # Check python README links
     python_readme_path = python_root_dir / "README.md"
-    check_readme_links(python_readme_path)
+    check_markdown_has_only_absolute_links(python_readme_path)
 
     r = subprocess.run(
         ["git", "status", "--porcelain"], capture_output=True, cwd=repo_root_dir
@@ -156,35 +156,51 @@ def patch_line_matching_prefix(file_path: Path, prefix: str, new_line: str) -> N
     file_path.write_text("\n".join(lines))
 
 
-def check_readme_links(readme_path: Path) -> None:
-    """Check if the README contains valid absolute links."""
-    readme_content = readme_path.read_text()
+def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
+    """Check if Markdown file(s) contain only valid absolute links. Exits with code 1 if any issues are found."""
     
-    # Find all markdown links
-    link_regex = r'\[.*?\]\((.*?)\)'
-    links = re.findall(link_regex, readme_content)
+    def check_file(file_path: Path) -> None:
+        """Check a single Markdown file for valid links."""
+        markdown_content = file_path.read_text()
 
-    invalid_links = []
-    for link in links:
-        if not link.startswith("https://github.com/"):
-            invalid_links.append(f"Relative link found: {link}")
-        else:
-            # Check if the link is valid
-            try:
-                response = requests.head(link, allow_redirects=True, timeout=5)
-                if response.status_code != 200:
-                    invalid_links.append(f"Invalid link: {link} (status code: {response.status_code})")
-            except requests.RequestException as e:
-                invalid_links.append(f"Error accessing link: {link} ({e})")
-    
-    if invalid_links:
-        print("README.md contains invalid or relative links:")
-        for error in invalid_links:
-            print(error)
-        sys.exit(1)
+        # Find all markdown links
+        link_regex = r"\[.*?\]\((.*?)\)"
+        links = re.findall(link_regex, markdown_content)
+
+        invalid_links = []
+        for link in links:
+            if link.startswith("https://"):
+                # Check if the link is valid
+                try:
+                    response = requests.head(link, allow_redirects=True, timeout=5)
+                    if response.status_code != 200:
+                        invalid_links.append(
+                            f"Invalid link: {link} (status code: {response.status_code})"
+                        )
+                except requests.RequestException as e:
+                    invalid_links.append(f"Error accessing link: {link} ({e})")
+            else:
+                invalid_links.append(f"Relative link found: {link}")
+
+        if len(invalid_links) > 0:
+            print(f"Issues found in {file_path}:")
+            for error in invalid_links:
+                print(error)
+            print() 
+
+    # Check if the path is a directory or a file
+    if markdown_path.is_dir():
+        # Loop through all .md files in the directory (including subdirectories)
+        md_files = markdown_path.rglob("*.md")
+        for md_file in md_files:
+            check_file(md_file)
+    elif markdown_path.is_file():
+        check_file(markdown_path)
     else:
-        print("All links in README.md are valid.")
+        print(f"The path {markdown_path} is neither a valid file nor a directory.")
+        sys.exit(1)
 
+    print("Markdown link check complete.")
 
 if __name__ == "__main__":
     main()

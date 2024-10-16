@@ -351,51 +351,42 @@ class WheelInfo:
 
 
 def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
-    """Check if Markdown file(s) contain only valid absolute links. Exits with code 1 if any issues are found."""
+    """Check if a Markdown file contains only valid absolute links. Exits with code 1 if any issues are found."""
 
-    def check_file(file_path: Path) -> None:
-        """Check a single Markdown file for valid links."""
-        markdown_content = file_path.read_text()
+    if not markdown_path.is_file():
+        print(f"ERROR: The path {markdown_path} is not a valid file.")
+        sys.exit(1)
 
-        # Find all markdown links
-        link_regex = r"\[.*?\]\((.*?)\)"
-        links = re.findall(link_regex, markdown_content)
+    markdown_content = markdown_path.read_text()
 
-        invalid_links = []
-        for link in links:
-            if link.startswith("https://"):
-                # Check if the link is valid
-                try:
-                    response = requests.head(link, allow_redirects=True, timeout=5)
-                    if response.status_code != 200:
-                        invalid_links.append(
-                            f"Invalid link: {link} (status code: {response.status_code})"
-                        )
-                except requests.RequestException as e:
-                    invalid_links.append(f"Error accessing link: {link} ({e})")
-            else:
-                invalid_links.append(f"Relative link found: {link}")
+    # Find all markdown links
+    link_regex = r"\[.*?\]\((.*?)\)"
+    links = re.findall(link_regex, markdown_content)
 
-        if len(invalid_links) > 0:
-            print(f"Issues found in {file_path}:")
-            for error in invalid_links:
-                print(error)
-            print()
+    invalid_links = []
+    for link in links:
+        if link.startswith("https://"):
+            # Check if the link is valid
+            try:
+                response = requests.head(link, allow_redirects=True, timeout=5)
+                if response.status_code != 200:
+                    invalid_links.append(
+                        f"Invalid link: {link} (status code: {response.status_code})"
+                    )
+            except requests.RequestException as e:
+                invalid_links.append(f"Error accessing link: {link} ({e})")
+        else:
+            invalid_links.append(f"Relative link found: {link}")
 
-    # Check if the path is a directory or a file
-    if markdown_path.is_dir():
-        # Loop through all .md files in the directory (including subdirectories)
-        md_files = markdown_path.rglob("*.md")
-        for md_file in md_files:
-            check_file(md_file)
-    elif markdown_path.is_file():
-        check_file(markdown_path)
-    else:
-        print(f"The path {markdown_path} is neither a valid file nor a directory.")
+    if invalid_links:
+        print(f"Issues found in {markdown_path}:")
+        for error in invalid_links:
+            print(error)
         sys.exit(1)
 
     print("Markdown link check complete.")
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    check_markdown_has_only_absolute_links(Path(__file__).parent.parent.parent / "python" / "README.md")

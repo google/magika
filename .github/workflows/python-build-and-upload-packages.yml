@@ -27,7 +27,7 @@ jobs:
       matrix:
         conf:
           - name: linux
-            runner: ubuntu-20.04
+            runner: ubuntu-latest
           - name: windows
             runner: windows-latest
           - name: macos

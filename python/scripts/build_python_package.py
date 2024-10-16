@@ -352,7 +352,7 @@ class WheelInfo:
 
 def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
     """Check if Markdown file(s) contain only valid absolute links. Exits with code 1 if any issues are found."""
-    
+
     def check_file(file_path: Path) -> None:
         """Check a single Markdown file for valid links."""
         markdown_content = file_path.read_text()
@@ -380,7 +380,7 @@ def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
             print(f"Issues found in {file_path}:")
             for error in invalid_links:
                 print(error)
-            print() 
+            print()
 
     # Check if the path is a directory or a file
     if markdown_path.is_dir():
@@ -395,6 +395,7 @@ def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
         sys.exit(1)
 
     print("Markdown link check complete.")
+
 
 if __name__ == "__main__":
     main()

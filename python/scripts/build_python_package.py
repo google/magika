@@ -351,7 +351,7 @@ class WheelInfo:
 
 
 def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
-    """Check if a Markdown file contains only valid absolute links. Exits with code 1 if any issues are found."""
+    """Check if Markdown file contains only valid absolute links. Exits with code 1 if any issues are found."""
 
     if not markdown_path.is_file():
         print(f"ERROR: The path {markdown_path} is not a valid file.")
@@ -388,5 +388,4 @@ def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    # main()
-    check_markdown_has_only_absolute_links(Path(__file__).parent.parent.parent / "python" / "README.md")
+    main()

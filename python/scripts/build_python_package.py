@@ -376,15 +376,15 @@ def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
             except requests.RequestException as e:
                 invalid_links.append(f"Error accessing link: {link} ({e})")
         else:
-            invalid_links.append(f"Relative link found: {link}")
+            invalid_links.append(f"Non-https or relative link found: {link}")
 
-    if invalid_links:
-        print(f"Issues found in {markdown_path}:")
+    if len(invalid_links) > 0:
+        print(f"Invalid links found in {markdown_path}:")
         for error in invalid_links:
             print(error)
         sys.exit(1)
 
-    print("Markdown link check complete.")
+    print("Markdown links check complete.")
 
 
 if __name__ == "__main__":

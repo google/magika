@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Optional
 
 import click
+import requests
 
 
 @click.command()
@@ -41,6 +42,10 @@ def main(allow_git_dirty_state: bool) -> None:
     rust_main_rs_path = rust_root_dir / "cli" / "src" / "main.rs"
     rust_cli_cargo_toml_path = rust_root_dir / "cli" / "Cargo.toml"
     rust_cli_cargo_lock_path = rust_root_dir / "cli" / "Cargo.lock"
+
+    # Check python README links
+    python_readme_path = python_root_dir / "README.md"
+    check_markdown_has_only_absolute_links(python_readme_path)
 
     r = subprocess.run(
         ["git", "status", "--porcelain"], capture_output=True, cwd=repo_root_dir
@@ -343,6 +348,43 @@ class WheelInfo:
             parts.append(self.build_tag)
         parts.extend([self.python_tag, self.abi_tag, self.platform_tag])
         return "-".join(parts) + ".whl"
+
+
+def check_markdown_has_only_absolute_links(markdown_path: Path) -> None:
+    """Check if Markdown file contains only valid absolute links. Exits with code 1 if any issues are found."""
+
+    if not markdown_path.is_file():
+        print(f"ERROR: The path {markdown_path} is not a valid file.")
+        sys.exit(1)
+
+    markdown_content = markdown_path.read_text()
+
+    # Find all markdown links
+    link_regex = r"\[.*?\]\((.*?)\)"
+    links = re.findall(link_regex, markdown_content)
+
+    invalid_links = []
+    for link in links:
+        if link.startswith("https://"):
+            # Check if the link is valid
+            try:
+                response = requests.head(link, allow_redirects=True, timeout=5)
+                if response.status_code != 200:
+                    invalid_links.append(
+                        f"Invalid link: {link} (status code: {response.status_code})"
+                    )
+            except requests.RequestException as e:
+                invalid_links.append(f"Error accessing link: {link} ({e})")
+        else:
+            invalid_links.append(f"Non-https or relative link found: {link}")
+
+    if len(invalid_links) > 0:
+        print(f"Invalid links found in {markdown_path}:")
+        for error in invalid_links:
+            print(error)
+        sys.exit(1)
+
+    print("Markdown links check complete.")
 
 
 if __name__ == "__main__":

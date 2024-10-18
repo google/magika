@@ -153,8 +153,6 @@ struct Experimental {
     parallel_execution: Option<bool>,
 }
 
-// TODO(https://github.com/rust-lang/rust-clippy/issues/13458): Remove when fixed.
-#[allow(clippy::needless_return)]
 #[tokio::main]
 async fn main() -> Result<()> {
     let flags = Arc::new(Flags::parse());

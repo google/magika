@@ -22,7 +22,7 @@ clap = { version = "4.5.9", features = ["cargo", "derive", "string"] }
 colored = "2.1.0"
 magika = { version = "=0.1.0-rc.1", path = "../lib", features = ["serde"] }
 num_cpus = "1.16.0"
-ort = "2.0.0-rc.5"
+ort = "2.0.0-rc.8"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 tokio = { version = "1.38.1", features = ["full"] }

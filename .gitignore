@@ -14,8 +14,6 @@ dist/*
 
 .vscode
 
-.python-version
-
 scratchpad/
 
 */node_modules/*

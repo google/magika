@@ -17,5 +17,5 @@ x() { ( set -x; "$@"; ); }
 color() { echo "[$1m$2:[m $3"; }
 info() { color '1;36' Info "$*"; }
 todo() { color '1;33' Todo "$*"; }
-success() { color '1;32' Done "$*"; }
+success() { color '1;32' Done "$*"; exit 0; }
 error() { color '1;31' Error "$*"; exit 1; }

@@ -1,0 +1,4757 @@
+{
+    "3gp": {
+        "name": "3gp",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ace": {
+        "name": "ace",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "aff": {
+        "name": "aff",
+        "extensions": [
+            "aff"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ai": {
+        "name": "ai",
+        "extensions": [
+            "ai"
+        ],
+        "mime_type": "application/pdf",
+        "group": "document",
+        "magic": "PDF document",
+        "description": "Adobe Illustrator Artwork",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "ai",
+        "target_label": "ai",
+        "correct_labels": [
+            "ai",
+            "pdf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "algol68": {
+        "name": "algol68",
+        "extensions": [
+            "a68"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "apk": {
+        "name": "apk",
+        "extensions": [
+            "apk"
+        ],
+        "mime_type": "application/vnd.android.package-archive",
+        "group": "executable",
+        "magic": "Java archive data",
+        "description": "Android package",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "apk",
+        "correct_labels": [
+            "apk"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "appleplist": {
+        "name": "appleplist",
+        "extensions": [
+            "plist"
+        ],
+        "mime_type": "application/x-plist",
+        "group": "application",
+        "magic": "Apple binary property list",
+        "description": "Android property list",
+        "vt_type": "appleplist",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "text"
+        ],
+        "model_target_label": "appleplist",
+        "target_label": "appleplist",
+        "correct_labels": [
+            "appleplist"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "arj": {
+        "name": "arj",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "asm": {
+        "name": "asm",
+        "extensions": [
+            "S",
+            "asm"
+        ],
+        "mime_type": "text/x-asm",
+        "group": "code",
+        "magic": "assembler source",
+        "description": "Assembly",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "asm",
+        "target_label": "asm",
+        "correct_labels": [
+            "asm"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "asp": {
+        "name": "asp",
+        "extensions": [
+            "aspx",
+            "asp"
+        ],
+        "mime_type": "text/html",
+        "group": "code",
+        "magic": "HTML document",
+        "description": "ASP source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "asp",
+        "target_label": "asp",
+        "correct_labels": [
+            "asp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "avi": {
+        "name": "avi",
+        "extensions": [
+            "avi"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ax": {
+        "name": "ax",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "batch": {
+        "name": "batch",
+        "extensions": [
+            "bat"
+        ],
+        "mime_type": "text/x-msdos-batch",
+        "group": "code",
+        "magic": "DOS batch file",
+        "description": "DOS batch file",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "batch",
+        "target_label": "batch",
+        "correct_labels": [
+            "batch"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "bcad": {
+        "name": "bcad",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "bib": {
+        "name": "bib",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "bmp": {
+        "name": "bmp",
+        "extensions": [
+            "bmp"
+        ],
+        "mime_type": "image/bmp",
+        "group": "image",
+        "magic": "PC bitmap",
+        "description": "BMP image data",
+        "vt_type": "bmp",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "bmp",
+        "target_label": "bmp",
+        "correct_labels": [
+            "bmp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "bpl": {
+        "name": "bpl",
+        "extensions": [
+            "bpl"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "brainfuck": {
+        "name": "brainfuck",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "bzip": {
+        "name": "bzip",
+        "extensions": [
+            "bz2",
+            "tbz2",
+            "tar.bz2"
+        ],
+        "mime_type": "application/x-bzip2",
+        "group": "archive",
+        "magic": "bzip2 compressed data",
+        "description": "bzip2 compressed data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "bzip",
+        "target_label": "bzip",
+        "correct_labels": [
+            "bzip"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "c": {
+        "name": "c",
+        "extensions": [
+            "c",
+            "cpp",
+            "h",
+            "hpp",
+            "cc"
+        ],
+        "mime_type": "text/x-c",
+        "group": "code",
+        "magic": "C source",
+        "description": "C source",
+        "vt_type": "c,cpp",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "c",
+        "target_label": "c",
+        "correct_labels": [
+            "c",
+            "cpp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "cab": {
+        "name": "cab",
+        "extensions": [
+            "cab"
+        ],
+        "mime_type": "application/vnd.ms-cab-compressed",
+        "group": "archive",
+        "magic": "Microsoft Cabinet archive data",
+        "description": "Microsoft Cabinet archive data",
+        "vt_type": "cab",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "cab",
+        "target_label": "cab",
+        "correct_labels": [
+            "cab"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "cad": {
+        "name": "cad",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "cat": {
+        "name": "cat",
+        "extensions": [
+            "cat"
+        ],
+        "mime_type": "application/octet-stream",
+        "group": "application",
+        "magic": "data",
+        "description": "Windows Catalog file",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "cat",
+        "target_label": "cat",
+        "correct_labels": [
+            "cat",
+            "ctl"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "cdf": {
+        "name": "cdf",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "chm": {
+        "name": "chm",
+        "extensions": [
+            "chm"
+        ],
+        "mime_type": "application/chm",
+        "group": "application",
+        "magic": "MS Windows HtmlHelp Data",
+        "description": "MS Windows HtmlHelp Data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "chm",
+        "target_label": "chm",
+        "correct_labels": [
+            "chm"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "clojure": {
+        "name": "clojure",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "cmake": {
+        "name": "cmake",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "cobol": {
+        "name": "cobol",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "coff": {
+        "name": "coff",
+        "extensions": [],
+        "mime_type": "application/x-coff",
+        "group": "executable",
+        "magic": "Intel 80386 COFF",
+        "description": "Intel 80386 COFF",
+        "vt_type": "coff",
+        "datasets": [
+            "vt-type"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "coff",
+        "target_label": "coff",
+        "correct_labels": [
+            "coff",
+            "exp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "coffee": {
+        "name": "coffee",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "com": {
+        "name": "com",
+        "extensions": [],
+        "mime_type": "application/x-dosexec",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": "com",
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "cpl": {
+        "name": "cpl",
+        "extensions": [
+            "cpl"
+        ],
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": "PE32 executable",
+        "description": "PE Windows executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "pebin"
+        ],
+        "model_target_label": "pebin",
+        "target_label": "pebin",
+        "correct_labels": [
+            "pebin",
+            "cpl"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "cpp": {
+        "name": "cpp",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "crx": {
+        "name": "crx",
+        "extensions": [
+            "crx"
+        ],
+        "mime_type": "application/x-chrome-extension",
+        "group": "executable",
+        "magic": "Google Chrome extension",
+        "description": "Google Chrome extension",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "crx",
+        "target_label": "crx",
+        "correct_labels": [
+            "crx"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "cs": {
+        "name": "cs",
+        "extensions": [
+            "cs"
+        ],
+        "mime_type": "text/plain",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "C# source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "cs",
+        "target_label": "cs",
+        "correct_labels": [
+            "cs"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "css": {
+        "name": "css",
+        "extensions": [
+            "css"
+        ],
+        "mime_type": "text/css",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "CSS source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "css",
+        "target_label": "css",
+        "correct_labels": [
+            "css"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "csv": {
+        "name": "csv",
+        "extensions": [
+            "csv"
+        ],
+        "mime_type": "text/csv",
+        "group": "code",
+        "magic": "CSV text",
+        "description": "CSV document",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "csv",
+        "target_label": "csv",
+        "correct_labels": [
+            "csv"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "ctl": {
+        "name": "ctl",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "dart": {
+        "name": "dart",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "deb": {
+        "name": "deb",
+        "extensions": [
+            "deb"
+        ],
+        "mime_type": "application/vnd.debian.binary-package",
+        "group": "archive",
+        "magic": "Debian binary package",
+        "description": "Debian binary package",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "deb",
+        "target_label": "deb",
+        "correct_labels": [
+            "deb"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "dex": {
+        "name": "dex",
+        "extensions": [
+            "dex"
+        ],
+        "mime_type": "application/x-android-dex",
+        "group": "executable",
+        "magic": "Dalvik dex file",
+        "description": "Dalvik dex file",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "dex",
+        "target_label": "dex",
+        "correct_labels": [
+            "dex"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "dey": {
+        "name": "dey",
+        "extensions": [],
+        "mime_type": "application/x-android-dey",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "diff": {
+        "name": "diff",
+        "extensions": [
+            "diff"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "directory": {
+        "name": "directory",
+        "extensions": [],
+        "mime_type": "inode/directory",
+        "group": "inode",
+        "magic": "directory",
+        "description": "A directory",
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": "directory",
+        "correct_labels": [
+            "directory"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": false
+    },
+    "dll": {
+        "name": "dll",
+        "extensions": [
+            "dll"
+        ],
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": "PE Windows executable",
+        "description": "PE Windows executable",
+        "vt_type": "pedll",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "pebin"
+        ],
+        "model_target_label": "pebin",
+        "target_label": "pebin",
+        "correct_labels": [
+            "pebin",
+            "dll"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "dm": {
+        "name": "dm",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "dmg": {
+        "name": "dmg",
+        "extensions": [
+            "dmg"
+        ],
+        "mime_type": "application/x-apple-diskimage",
+        "group": "archive",
+        "magic": "Apple disk image",
+        "description": "Apple disk image",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "dmg",
+        "target_label": "dmg",
+        "correct_labels": [
+            "dmg"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "doc": {
+        "name": "doc",
+        "extensions": [
+            "doc"
+        ],
+        "mime_type": "application/msword",
+        "group": "document",
+        "magic": "Composite Document File",
+        "description": "Microsoft Word CDF document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "cdf"
+        ],
+        "model_target_label": "cdf",
+        "target_label": "doc",
+        "correct_labels": [
+            "doc"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "dockerfile": {
+        "name": "dockerfile",
+        "extensions": [
+            "=Dockerfile"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "docx": {
+        "name": "docx",
+        "extensions": [
+            "docx",
+            "docm"
+        ],
+        "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "group": "document",
+        "magic": "Microsoft Word 2007+",
+        "description": "Microsoft Word 2007+ document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "ooxml",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "docx",
+        "correct_labels": [
+            "docx",
+            "tmdx"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "dosmbr": {
+        "name": "dosmbr",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "dylib": {
+        "name": "dylib",
+        "extensions": [
+            "dylib"
+        ],
+        "mime_type": "application/x-mach-o",
+        "group": "executable",
+        "magic": "Mach-O executable",
+        "description": "Mach-O executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "macho"
+        ],
+        "model_target_label": "macho",
+        "target_label": "macho",
+        "correct_labels": [
+            "macho",
+            "dylib"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "elf": {
+        "name": "elf",
+        "extensions": [
+            "elf",
+            "so"
+        ],
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": "ELF executable",
+        "description": "ELF executable",
+        "vt_type": "elf",
+        "datasets": [
+            "vt-type"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "elf"
+        ],
+        "model_target_label": "elf",
+        "target_label": "elf",
+        "correct_labels": [
+            "elf",
+            "so"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "elixir": {
+        "name": "elixir",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "emf": {
+        "name": "emf",
+        "extensions": [
+            "emf"
+        ],
+        "mime_type": "application/octet-stream",
+        "group": "application",
+        "magic": "Windows Enhanced Metafile",
+        "description": "Windows Enhanced Metafile image data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "emf",
+        "target_label": "emf",
+        "correct_labels": [
+            "emf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "eml": {
+        "name": "eml",
+        "extensions": [
+            "eml"
+        ],
+        "mime_type": "message/rfc822",
+        "group": "text",
+        "magic": "RFC 822 mail",
+        "description": "RFC 822 mail",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "eml",
+        "target_label": "eml",
+        "correct_labels": [
+            "eml"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "empty": {
+        "name": "empty",
+        "extensions": [],
+        "mime_type": "inode/x-empty",
+        "group": "inode",
+        "magic": "empty",
+        "description": "Empty file",
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": "empty",
+        "correct_labels": [
+            "empty"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": false
+    },
+    "epub": {
+        "name": "epub",
+        "extensions": [
+            "epub"
+        ],
+        "mime_type": "application/epub+zip",
+        "group": "document",
+        "magic": "EPUB document",
+        "description": "EPUB document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "epub",
+        "correct_labels": [
+            "epub"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "erlang": {
+        "name": "erlang",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ese": {
+        "name": "ese",
+        "extensions": [],
+        "mime_type": "application/x-ms-ese",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "exe": {
+        "name": "exe",
+        "extensions": [
+            "exe"
+        ],
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": "ELF executable",
+        "description": "ELF executable",
+        "vt_type": "peexe",
+        "datasets": [
+            "vt-ext",
+            "vt-ext-malicious"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "pebin"
+        ],
+        "model_target_label": "pebin",
+        "target_label": "pebin",
+        "correct_labels": [
+            "pebin",
+            "exe"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "exp": {
+        "name": "exp",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "flac": {
+        "name": "flac",
+        "extensions": [
+            "flac"
+        ],
+        "mime_type": "audio/flac",
+        "group": "audio",
+        "magic": "FLAC audio bitstream data",
+        "description": "FLAC audio bitstream data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "flac",
+        "target_label": "flac",
+        "correct_labels": [
+            "flac"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "fortran": {
+        "name": "fortran",
+        "extensions": [
+            "f90",
+            "f95",
+            "f03"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "fpx": {
+        "name": "fpx",
+        "extensions": [
+            "fpx"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": "fpx",
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "gif": {
+        "name": "gif",
+        "extensions": [
+            "gif"
+        ],
+        "mime_type": "image/gif",
+        "group": "image",
+        "magic": "GIF image data",
+        "description": "GIF image data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "gif",
+        "target_label": "gif",
+        "correct_labels": [
+            "gif"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "go": {
+        "name": "go",
+        "extensions": [
+            "go"
+        ],
+        "mime_type": "text/x-golang",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "Golang source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "go",
+        "target_label": "go",
+        "correct_labels": [
+            "go"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "gpx": {
+        "name": "gpx",
+        "extensions": [
+            "gpx"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "groovy": {
+        "name": "groovy",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "gzip": {
+        "name": "gzip",
+        "extensions": [
+            "gz",
+            "gzip",
+            "tgz",
+            "tar.gz"
+        ],
+        "mime_type": "application/gzip",
+        "group": "archive",
+        "magic": "gzip compressed data",
+        "description": "gzip compressed data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "gzip",
+        "target_label": "gzip",
+        "correct_labels": [
+            "gzip"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "haskell": {
+        "name": "haskell",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "hfs": {
+        "name": "hfs",
+        "extensions": [
+            "hfs"
+        ],
+        "mime_type": "application/x-hfs",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "hlp": {
+        "name": "hlp",
+        "extensions": [
+            "hlp"
+        ],
+        "mime_type": "application/winhlp",
+        "group": "application",
+        "magic": "MS Windows help",
+        "description": "MS Windows help",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "hlp",
+        "target_label": "hlp",
+        "correct_labels": [
+            "hlp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "hta": {
+        "name": "hta",
+        "extensions": [
+            "hta"
+        ],
+        "mime_type": "application/hta",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "html": {
+        "name": "html",
+        "extensions": [
+            "html",
+            "htm",
+            "xhtml",
+            "xht"
+        ],
+        "mime_type": "text/html",
+        "group": "code",
+        "magic": "HTML document",
+        "description": "HTML document",
+        "vt_type": "html",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "html",
+        "target_label": "html",
+        "correct_labels": [
+            "html"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "hve": {
+        "name": "hve",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ico": {
+        "name": "ico",
+        "extensions": [
+            "ico"
+        ],
+        "mime_type": "image/vnd.microsoft.icon",
+        "group": "image",
+        "magic": "MS Windows icon resource",
+        "description": "MS Windows icon resource",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "ico",
+        "target_label": "ico",
+        "correct_labels": [
+            "ico"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "img": {
+        "name": "img",
+        "extensions": [
+            "img"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ini": {
+        "name": "ini",
+        "extensions": [
+            "ini"
+        ],
+        "mime_type": "text/plain",
+        "group": "text",
+        "magic": "Generic INItialization configuration",
+        "description": "INI configuration file",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "ini",
+        "target_label": "ini",
+        "correct_labels": [
+            "ini"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "internetshortcut": {
+        "name": "internetshortcut",
+        "extensions": [
+            "url"
+        ],
+        "mime_type": "application/x-mswinurl",
+        "group": "application",
+        "magic": "MS Windows 95 Internet shortcut",
+        "description": "MS Windows Internet shortcut",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "internetshortcut",
+        "target_label": "internetshortcut",
+        "correct_labels": [
+            "internetshortcut"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "iosapp": {
+        "name": "iosapp",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "iso": {
+        "name": "iso",
+        "extensions": [
+            "iso"
+        ],
+        "mime_type": "application/x-iso9660-image",
+        "group": "archive",
+        "magic": "ISO 9660 CD-ROM filesystem data",
+        "description": "ISO 9660 CD-ROM filesystem data",
+        "vt_type": "isoimage",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "iso",
+        "target_label": "iso",
+        "correct_labels": [
+            "iso",
+            "udf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "jar": {
+        "name": "jar",
+        "extensions": [
+            "jar"
+        ],
+        "mime_type": "application/java-archive",
+        "group": "archive",
+        "magic": "Java archive data (JAR)",
+        "description": "Java archive data (JAR)",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "jar",
+        "target_label": "jar",
+        "correct_labels": [
+            "jar"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "java": {
+        "name": "java",
+        "extensions": [
+            "java"
+        ],
+        "mime_type": "text/x-java",
+        "group": "code",
+        "magic": "Java source",
+        "description": "Java source",
+        "vt_type": "java",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "java",
+        "target_label": "java",
+        "correct_labels": [
+            "java"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "javabytecode": {
+        "name": "javabytecode",
+        "extensions": [
+            "class"
+        ],
+        "mime_type": "application/x-java-applet",
+        "group": "executable",
+        "magic": "compiled Java class data",
+        "description": "Java compiled bytecode",
+        "vt_type": "class",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "javabytecode",
+        "target_label": "javabytecode",
+        "correct_labels": [
+            "javabytecode"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "javascript": {
+        "name": "javascript",
+        "extensions": [
+            "js"
+        ],
+        "mime_type": "application/javascript",
+        "group": "code",
+        "magic": "JavaScript source",
+        "description": "JavaScript source",
+        "vt_type": "javascript",
+        "datasets": [
+            "github",
+            "vt-ext",
+            "vt-ext-malicious"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "javascript",
+        "target_label": "javascript",
+        "correct_labels": [
+            "javascript",
+            "typescript"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "jpeg": {
+        "name": "jpeg",
+        "extensions": [
+            "jpg",
+            "jpeg"
+        ],
+        "mime_type": "image/jpeg",
+        "group": "image",
+        "magic": "JPEG image data",
+        "description": "JPEG image data",
+        "vt_type": "jpeg",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "jpeg",
+        "target_label": "jpeg",
+        "correct_labels": [
+            "jpeg"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "json": {
+        "name": "json",
+        "extensions": [
+            "json"
+        ],
+        "mime_type": "application/json",
+        "group": "code",
+        "magic": "JSON data",
+        "description": "JSON document",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "json",
+        "target_label": "json",
+        "correct_labels": [
+            "json"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "julia": {
+        "name": "julia",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ko": {
+        "name": "ko",
+        "extensions": [
+            "ko"
+        ],
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": "ELF executable",
+        "description": "ELF executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "elf"
+        ],
+        "model_target_label": "elf",
+        "target_label": "elf",
+        "correct_labels": [
+            "elf",
+            "ko"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "kotlin": {
+        "name": "kotlin",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "latex": {
+        "name": "latex",
+        "extensions": [
+            "tex"
+        ],
+        "mime_type": "text/x-tex",
+        "group": "text",
+        "magic": "LaTeX document",
+        "description": "LaTeX document",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "latex",
+        "target_label": "latex",
+        "correct_labels": [
+            "latex"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "lisp": {
+        "name": "lisp",
+        "extensions": [
+            "lisp"
+        ],
+        "mime_type": "text/x-lisp",
+        "group": "code",
+        "magic": "Lisp/Scheme program",
+        "description": "Lisp source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "lisp",
+        "target_label": "lisp",
+        "correct_labels": [
+            "lisp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "lnk": {
+        "name": "lnk",
+        "extensions": [
+            "lnk"
+        ],
+        "mime_type": "application/x-ms-shortcut",
+        "group": "application",
+        "magic": "MS Windows shortcut",
+        "description": "MS Windows shortcut",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "lnk",
+        "target_label": "lnk",
+        "correct_labels": [
+            "lnk"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "lua": {
+        "name": "lua",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "m3u": {
+        "name": "m3u",
+        "extensions": [
+            "m3u8",
+            "m3u"
+        ],
+        "mime_type": "text/plain",
+        "group": "application",
+        "magic": "M3U playlist",
+        "description": "M3U playlist",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "m3u",
+        "target_label": "m3u",
+        "correct_labels": [
+            "m3u"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "macho": {
+        "name": "macho",
+        "extensions": [],
+        "mime_type": "application/x-mach-o",
+        "group": "executable",
+        "magic": "Mach-O executable",
+        "description": "Mach-O executable",
+        "vt_type": "macho",
+        "datasets": [
+            "vt-type"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "macho"
+        ],
+        "model_target_label": "macho",
+        "target_label": "macho",
+        "correct_labels": [
+            "macho",
+            "dylib"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "maff": {
+        "name": "maff",
+        "extensions": [
+            "maff"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "makefile": {
+        "name": "makefile",
+        "extensions": [
+            "=Makefile"
+        ],
+        "mime_type": "text/x-makefile",
+        "group": "code",
+        "magic": "makefile script",
+        "description": "Makefile source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "makefile",
+        "target_label": "makefile",
+        "correct_labels": [
+            "makefile"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "markdown": {
+        "name": "markdown",
+        "extensions": [
+            "md"
+        ],
+        "mime_type": "text/markdown",
+        "group": "text",
+        "magic": "ASCII text",
+        "description": "Markdown document",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "markdown",
+        "target_label": "markdown",
+        "correct_labels": [
+            "markdown"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "matlab": {
+        "name": "matlab",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "mht": {
+        "name": "mht",
+        "extensions": [
+            "mht"
+        ],
+        "mime_type": "application/x-mimearchive",
+        "group": "code",
+        "magic": "HTML document",
+        "description": "MHTML document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "mht",
+        "target_label": "mht",
+        "correct_labels": [
+            "mht"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "mkv": {
+        "name": "mkv",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "mov": {
+        "name": "mov",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "mp3": {
+        "name": "mp3",
+        "extensions": [
+            "mp3"
+        ],
+        "mime_type": "audio/mpeg",
+        "group": "audio",
+        "magic": "Audio file with ID3",
+        "description": "MP3 media file",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "mp3",
+        "target_label": "mp3",
+        "correct_labels": [
+            "mp3"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "mp4": {
+        "name": "mp4",
+        "extensions": [
+            "mp4"
+        ],
+        "mime_type": "video/mp4",
+        "group": "video",
+        "magic": "ISO Media",
+        "description": "MP4 medial",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "mp4",
+        "target_label": "mp4",
+        "correct_labels": [
+            "mp4"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "mscompress": {
+        "name": "mscompress",
+        "extensions": [],
+        "mime_type": "application/x-ms-compress-szdd",
+        "group": "archive",
+        "magic": "MS Compress archive data",
+        "description": "MS Compress archive data",
+        "vt_type": "mscompress",
+        "datasets": [
+            "vt-type"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "mscompress",
+        "target_label": "mscompress",
+        "correct_labels": [
+            "mscompress"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "msi": {
+        "name": "msi",
+        "extensions": [
+            "msi"
+        ],
+        "mime_type": "application/x-msi",
+        "group": "archive",
+        "magic": "Composite Document File",
+        "description": "Microsoft Installer file",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "cdf"
+        ],
+        "model_target_label": "msi",
+        "target_label": "msi",
+        "correct_labels": [
+            "msi"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "mst": {
+        "name": "mst",
+        "extensions": [
+            "mst"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "msvisio": {
+        "name": "msvisio",
+        "extensions": [],
+        "mime_type": "application/vnd.ms-visio.drawing.main+xml",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "mui": {
+        "name": "mui",
+        "extensions": [
+            "mui"
+        ],
+        "mime_type": "application/x-dosexec",
+        "group": "application",
+        "magic": "PE Windows executable",
+        "description": "PE Windows executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "pebin"
+        ],
+        "model_target_label": "pebin",
+        "target_label": "pebin",
+        "correct_labels": [
+            "pebin",
+            "mui"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "mum": {
+        "name": "mum",
+        "extensions": [
+            "mum"
+        ],
+        "mime_type": "text/xml",
+        "group": "application",
+        "magic": "XML document",
+        "description": "Windows Update Package file",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "mum",
+        "target_label": "mum",
+        "correct_labels": [
+            "mum"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "mun": {
+        "name": "mun",
+        "extensions": [
+            "mun"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "nim": {
+        "name": "nim",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "null": {
+        "name": "null",
+        "extensions": [
+            "null"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "object": {
+        "name": "object",
+        "extensions": [
+            "o"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "objectivec": {
+        "name": "objectivec",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ocaml": {
+        "name": "ocaml",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ocx": {
+        "name": "ocx",
+        "extensions": [
+            "ocx"
+        ],
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": "PE Windows executable",
+        "description": "PE Windows executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "pebin"
+        ],
+        "model_target_label": "pebin",
+        "target_label": "pebin",
+        "correct_labels": [
+            "pebin",
+            "ax",
+            "ocx"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "odex": {
+        "name": "odex",
+        "extensions": [
+            "odex"
+        ],
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": "ELF executable",
+        "description": "ODEX ELF executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "elf"
+        ],
+        "model_target_label": "odex",
+        "target_label": "odex",
+        "correct_labels": [
+            "odex",
+            "elf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "odp": {
+        "name": "odp",
+        "extensions": [
+            "odp"
+        ],
+        "mime_type": "application/vnd.oasis.opendocument.presentation",
+        "group": "document",
+        "magic": "OpenDocument Presentation",
+        "description": "OpenDocument Presentation",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive"
+        ],
+        "model_target_label": "odp",
+        "target_label": "odp",
+        "correct_labels": [
+            "odp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "ods": {
+        "name": "ods",
+        "extensions": [
+            "ods"
+        ],
+        "mime_type": "application/vnd.oasis.opendocument.spreadsheet",
+        "group": "document",
+        "magic": "OpenDocument Spreadsheet",
+        "description": "OpenDocument Spreadsheet",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive"
+        ],
+        "model_target_label": "ods",
+        "target_label": "ods",
+        "correct_labels": [
+            "ods"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "odt": {
+        "name": "odt",
+        "extensions": [
+            "odt"
+        ],
+        "mime_type": "application/vnd.oasis.opendocument.text",
+        "group": "document",
+        "magic": "OpenDocument Text",
+        "description": "OpenDocument Text",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive"
+        ],
+        "model_target_label": "odt",
+        "target_label": "odt",
+        "correct_labels": [
+            "odt"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "ogg": {
+        "name": "ogg",
+        "extensions": [
+            "ogg"
+        ],
+        "mime_type": "audio/ogg",
+        "group": "audio",
+        "magic": "Ogg data",
+        "description": "Ogg data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "ogg",
+        "target_label": "ogg",
+        "correct_labels": [
+            "ogg"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "ole": {
+        "name": "ole",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ooxml": {
+        "name": "ooxml",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "outlook": {
+        "name": "outlook",
+        "extensions": [],
+        "mime_type": "application/vnd.ms-outlook",
+        "group": "application",
+        "magic": "CDFV2 Microsoft Outlook Message",
+        "description": "MS Outlook Message",
+        "vt_type": "outlook",
+        "datasets": [
+            "vt-type"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "cdf"
+        ],
+        "model_target_label": "cdf",
+        "target_label": "outlook",
+        "correct_labels": [
+            "outlook"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "palmos": {
+        "name": "palmos",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": "palmos",
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "pascal": {
+        "name": "pascal",
+        "extensions": [
+            "pascal"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "pbm": {
+        "name": "pbm",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "pcap": {
+        "name": "pcap",
+        "extensions": [
+            "pcap",
+            "pcapng"
+        ],
+        "mime_type": "application/vnd.tcpdump.pcap",
+        "group": "application",
+        "magic": "pcap capture file",
+        "description": "pcap capture file",
+        "vt_type": "pcap",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "pcap",
+        "target_label": "pcap",
+        "correct_labels": [
+            "pcap"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "pdf": {
+        "name": "pdf",
+        "extensions": [
+            "pdf"
+        ],
+        "mime_type": "application/pdf",
+        "group": "document",
+        "magic": "PDF document",
+        "description": "PDF document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "pdf",
+        "target_label": "pdf",
+        "correct_labels": [
+            "pdf",
+            "ai"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "pebin": {
+        "name": "pebin",
+        "extensions": [
+            "exe",
+            "dll",
+            "sys"
+        ],
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": "PE executable",
+        "description": "PE executable",
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": false
+    },
+    "pem": {
+        "name": "pem",
+        "extensions": [
+            "pem",
+            "pub"
+        ],
+        "mime_type": "application/x-pem-file",
+        "group": "application",
+        "magic": "PEM certificate",
+        "description": "PEM certificate",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "pem",
+        "target_label": "pem",
+        "correct_labels": [
+            "pem",
+            "pgpkey"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "perl": {
+        "name": "perl",
+        "extensions": [
+            "pl"
+        ],
+        "mime_type": "text/x-perl",
+        "group": "code",
+        "magic": "Perl script text executable",
+        "description": "Perl source",
+        "vt_type": "perl",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "perl",
+        "target_label": "perl",
+        "correct_labels": [
+            "perl"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "pgpkey": {
+        "name": "pgpkey",
+        "extensions": [],
+        "mime_type": "application/pgp-keys",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "php": {
+        "name": "php",
+        "extensions": [
+            "php"
+        ],
+        "mime_type": "text/x-php",
+        "group": "code",
+        "magic": "PHP script",
+        "description": "PHP source",
+        "vt_type": "php",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "php",
+        "target_label": "php",
+        "correct_labels": [
+            "php"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "png": {
+        "name": "png",
+        "extensions": [
+            "png"
+        ],
+        "mime_type": "image/png",
+        "group": "image",
+        "magic": "PNG image data",
+        "description": "PNG image data",
+        "vt_type": "png",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "png",
+        "target_label": "png",
+        "correct_labels": [
+            "png"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "postscript": {
+        "name": "postscript",
+        "extensions": [
+            "ps"
+        ],
+        "mime_type": "application/postscript",
+        "group": "document",
+        "magic": "PostScript document text",
+        "description": "PostScript document",
+        "vt_type": "postscript",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "postscript",
+        "target_label": "postscript",
+        "correct_labels": [
+            "postscript"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "powershell": {
+        "name": "powershell",
+        "extensions": [
+            "ps1"
+        ],
+        "mime_type": "application/x-powershell",
+        "group": "code",
+        "magic": "a powershell script",
+        "description": "Powershell source",
+        "vt_type": "ps",
+        "datasets": [
+            "github",
+            "vt-ext",
+            "vt-ext-malicious"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "powershell",
+        "target_label": "powershell",
+        "correct_labels": [
+            "powershell"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "ppt": {
+        "name": "ppt",
+        "extensions": [
+            "ppt"
+        ],
+        "mime_type": "application/vnd.ms-powerpoint",
+        "group": "document",
+        "magic": "Composite Document File",
+        "description": "Microsoft PowerPoint CDF document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "cdf"
+        ],
+        "model_target_label": "cdf",
+        "target_label": "ppt",
+        "correct_labels": [
+            "ppt"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "pptx": {
+        "name": "pptx",
+        "extensions": [
+            "pptx",
+            "pptm"
+        ],
+        "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "group": "document",
+        "magic": "Microsoft PowerPoint 2007+",
+        "description": "Microsoft PowerPoint 2007+ document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "ooxml",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "pptx",
+        "correct_labels": [
+            "pptx"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "printfox": {
+        "name": "printfox",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "prolog": {
+        "name": "prolog",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "pub": {
+        "name": "pub",
+        "extensions": [
+            "pub"
+        ],
+        "mime_type": "application/x-mspublisher",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [
+            "binary",
+            "cdf"
+        ],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "python": {
+        "name": "python",
+        "extensions": [
+            "py"
+        ],
+        "mime_type": "text/x-python",
+        "group": "code",
+        "magic": "Python script",
+        "description": "Python source",
+        "vt_type": "python",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "python",
+        "target_label": "python",
+        "correct_labels": [
+            "python"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "pythonbytecode": {
+        "name": "pythonbytecode",
+        "extensions": [
+            "pyc",
+            "pyo"
+        ],
+        "mime_type": "application/x-bytecode.python",
+        "group": "executable",
+        "magic": "python byte-compiled",
+        "description": "Python compiled bytecode",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "pythonbytecode",
+        "target_label": "pythonbytecode",
+        "correct_labels": [
+            "pythonbytecode"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "pythonpar": {
+        "name": "pythonpar",
+        "extensions": [
+            "par"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "r": {
+        "name": "r",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "randombytes": {
+        "name": "randombytes",
+        "extensions": [],
+        "mime_type": "application/octet-stream",
+        "group": "unknown",
+        "magic": "data",
+        "description": "Random bytes",
+        "vt_type": null,
+        "datasets": [
+            "synthetic"
+        ],
+        "parent": null,
+        "tags": [],
+        "model_target_label": "unknown",
+        "target_label": "unknown",
+        "correct_labels": [
+            "unknown"
+        ],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": true
+    },
+    "rar": {
+        "name": "rar",
+        "extensions": [
+            "rar"
+        ],
+        "mime_type": "application/x-rar",
+        "group": "archive",
+        "magic": "RAR archive data",
+        "description": "RAR archive data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "rar",
+        "target_label": "rar",
+        "correct_labels": [
+            "rar"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "rdf": {
+        "name": "rdf",
+        "extensions": [
+            "rdf"
+        ],
+        "mime_type": "application/rdf+xml",
+        "group": "text",
+        "magic": "XML document",
+        "description": "Resource Description Framework document (RDF)",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "rdf",
+        "target_label": "rdf",
+        "correct_labels": [
+            "rdf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "rll": {
+        "name": "rll",
+        "extensions": [
+            "rll"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "rpm": {
+        "name": "rpm",
+        "extensions": [
+            "rpm"
+        ],
+        "mime_type": "application/x-rpm",
+        "group": "archive",
+        "magic": "RPM",
+        "description": "RedHat Package Manager archive (RPM)",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "rpm",
+        "target_label": "rpm",
+        "correct_labels": [
+            "rpm"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "rst": {
+        "name": "rst",
+        "extensions": [
+            "rst"
+        ],
+        "mime_type": "text/x-rst",
+        "group": "text",
+        "magic": "ReStructuredText file",
+        "description": "ReStructuredText document",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "rst",
+        "target_label": "rst",
+        "correct_labels": [
+            "rst"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "rtf": {
+        "name": "rtf",
+        "extensions": [
+            "rtf"
+        ],
+        "mime_type": "text/rtf",
+        "group": "text",
+        "magic": "Rich Text Format data",
+        "description": "Rich Text Format document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "rtf",
+        "target_label": "rtf",
+        "correct_labels": [
+            "rtf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "ruby": {
+        "name": "ruby",
+        "extensions": [
+            "rb"
+        ],
+        "mime_type": "application/x-ruby",
+        "group": "code",
+        "magic": "Ruby script",
+        "description": "Ruby source",
+        "vt_type": "ruby",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "ruby",
+        "target_label": "ruby",
+        "correct_labels": [
+            "ruby"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "rust": {
+        "name": "rust",
+        "extensions": [
+            "rs"
+        ],
+        "mime_type": "application/x-rust",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "Rust source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "rust",
+        "target_label": "rust",
+        "correct_labels": [
+            "rust"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "s": {
+        "name": "s",
+        "extensions": [
+            "s"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "scala": {
+        "name": "scala",
+        "extensions": [
+            "scala"
+        ],
+        "mime_type": "application/x-scala",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "Scala source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "scala",
+        "target_label": "scala",
+        "correct_labels": [
+            "scala"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "scr": {
+        "name": "scr",
+        "extensions": [
+            "scr"
+        ],
+        "mime_type": "application/x-dosexec",
+        "group": "executable",
+        "magic": "PE Windows executable",
+        "description": "PE Windows executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "pebin"
+        ],
+        "model_target_label": "pebin",
+        "target_label": "pebin",
+        "correct_labels": [
+            "pebin",
+            "scr"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "scriptwsf": {
+        "name": "scriptwsf",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "sevenzip": {
+        "name": "sevenzip",
+        "extensions": [
+            "7z"
+        ],
+        "mime_type": "application/x-7z-compressed",
+        "group": "archive",
+        "magic": "7-zip archive data",
+        "description": "7-zip archive data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "sevenzip",
+        "target_label": "sevenzip",
+        "correct_labels": [
+            "sevenzip"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "sgml": {
+        "name": "sgml",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "sh3d": {
+        "name": "sh3d",
+        "extensions": [
+            "sh3d"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "shell": {
+        "name": "shell",
+        "extensions": [
+            "sh"
+        ],
+        "mime_type": "text/x-shellscript",
+        "group": "code",
+        "magic": "shell script",
+        "description": "Shell script",
+        "vt_type": "shell",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "shell",
+        "target_label": "shell",
+        "correct_labels": [
+            "shell"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "smali": {
+        "name": "smali",
+        "extensions": [
+            "smali"
+        ],
+        "mime_type": "application/x-smali",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "Smali source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "smali",
+        "target_label": "smali",
+        "correct_labels": [
+            "smali"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "so": {
+        "name": "so",
+        "extensions": [
+            "so"
+        ],
+        "mime_type": "application/x-executable-elf",
+        "group": "executable",
+        "magic": "ELF executable",
+        "description": "ELF executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "elf"
+        ],
+        "model_target_label": "elf",
+        "target_label": "elf",
+        "correct_labels": [
+            "elf",
+            "so"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "sql": {
+        "name": "sql",
+        "extensions": [
+            "sql"
+        ],
+        "mime_type": "application/x-sql",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "SQL source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "sql",
+        "target_label": "sql",
+        "correct_labels": [
+            "sql"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "squashfs": {
+        "name": "squashfs",
+        "extensions": [],
+        "mime_type": "application/octet-stream",
+        "group": "archive",
+        "magic": "Squashfs filesystem",
+        "description": "Squash filesystem",
+        "vt_type": "squashfs",
+        "datasets": [
+            "vt-type"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "squashfs",
+        "target_label": "squashfs",
+        "correct_labels": [
+            "squashfs"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "svd": {
+        "name": "svd",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "svg": {
+        "name": "svg",
+        "extensions": [
+            "svg"
+        ],
+        "mime_type": "image/svg+xml",
+        "group": "image",
+        "magic": "SVG Scalable Vector Graphics image",
+        "description": "SVG Scalable Vector Graphics image data",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "svg",
+        "target_label": "svg",
+        "correct_labels": [
+            "svg"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "swf": {
+        "name": "swf",
+        "extensions": [
+            "swf"
+        ],
+        "mime_type": "application/x-shockwave-flash",
+        "group": "executable",
+        "magic": "Macromedia Flash data",
+        "description": "Macromedia Flash data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "swf",
+        "target_label": "swf",
+        "correct_labels": [
+            "swf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "swift": {
+        "name": "swift",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "symlinktext": {
+        "name": "symlinktext",
+        "extensions": [],
+        "mime_type": "text/plain",
+        "group": "application",
+        "magic": "ASCII text",
+        "description": "Symbolic link (textual representation)",
+        "vt_type": null,
+        "datasets": [
+            "synthetic"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "symlinktext",
+        "target_label": "symlinktext",
+        "correct_labels": [
+            "symlinktext",
+            "txt"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "symlink": {
+        "name": "symlink",
+        "extensions": [],
+        "mime_type": "inode/symlink",
+        "group": "inode",
+        "magic": "symbolic link to <path>",
+        "description": "Symbolic link to <path>",
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": "symlink",
+        "correct_labels": [
+            "symlink"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": false
+    },
+    "sys": {
+        "name": "sys",
+        "extensions": [
+            "sys"
+        ],
+        "mime_type": "application/x-windows-driver",
+        "group": "executable",
+        "magic": "PE Windows executable",
+        "description": "PE Windows executable",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "pebin"
+        ],
+        "model_target_label": "pebin",
+        "target_label": "pebin",
+        "correct_labels": [
+            "pebin",
+            "sys"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "tar": {
+        "name": "tar",
+        "extensions": [
+            "tar"
+        ],
+        "mime_type": "application/x-tar",
+        "group": "archive",
+        "magic": "POSIX tar archive",
+        "description": "POSIX tar archive",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "tar",
+        "target_label": "tar",
+        "correct_labels": [
+            "tar"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "tga": {
+        "name": "tga",
+        "extensions": [
+            "tga"
+        ],
+        "mime_type": "image/x-tga",
+        "group": "image",
+        "magic": "Targa image data",
+        "description": "Targa image data",
+        "vt_type": "targa",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "tga",
+        "target_label": "tga",
+        "correct_labels": [
+            "tga"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "tiff": {
+        "name": "tiff",
+        "extensions": [
+            "tiff",
+            "tif"
+        ],
+        "mime_type": "image/tiff",
+        "group": "image",
+        "magic": "TIFF image data",
+        "description": "TIFF image data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "tiff",
+        "target_label": "tiff",
+        "correct_labels": [
+            "tiff"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "tmdx": {
+        "name": "tmdx",
+        "extensions": [
+            "tmdx",
+            "tmvx"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "toml": {
+        "name": "toml",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "torrent": {
+        "name": "torrent",
+        "extensions": [
+            "torrent"
+        ],
+        "mime_type": "application/x-bittorrent",
+        "group": "application",
+        "magic": "BitTorrent file",
+        "description": "BitTorrent file",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "torrent",
+        "target_label": "torrent",
+        "correct_labels": [
+            "torrent"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "troff": {
+        "name": "troff",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "ttf": {
+        "name": "ttf",
+        "extensions": [
+            "ttf"
+        ],
+        "mime_type": "font/sfnt",
+        "group": "font",
+        "magic": "TrueType Font data",
+        "description": "TrueType Font data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "ttf",
+        "target_label": "ttf",
+        "correct_labels": [
+            "ttf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "txt": {
+        "name": "txt",
+        "extensions": [
+            "txt"
+        ],
+        "mime_type": "text/plain",
+        "group": "text",
+        "magic": "ASCII text",
+        "description": "Generic text document",
+        "vt_type": null,
+        "datasets": [
+            "github",
+            "synthetic"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "txt",
+        "target_label": "txt",
+        "correct_labels": [
+            "txt"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "typescript": {
+        "name": "typescript",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "udf": {
+        "name": "udf",
+        "extensions": [],
+        "mime_type": "application/x-udf-image",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "unixcompress": {
+        "name": "unixcompress",
+        "extensions": [
+            "z"
+        ],
+        "mime_type": "application/x-compress",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "unknown": {
+        "name": "unknown",
+        "extensions": [],
+        "mime_type": "application/octet-stream",
+        "group": "unknown",
+        "magic": "data",
+        "description": "Unknown binary data",
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "unknown",
+        "target_label": "unknown",
+        "correct_labels": [
+            "unknown"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": false
+    },
+    "vba": {
+        "name": "vba",
+        "extensions": [
+            "vbs"
+        ],
+        "mime_type": "text/vbscript",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "MS Visual Basic source (VBA)",
+        "vt_type": "vba",
+        "datasets": [
+            "vt-ext",
+            "vt-ext-malicious"
+        ],
+        "parent": null,
+        "tags": [
+            "text"
+        ],
+        "model_target_label": "vba",
+        "target_label": "vba",
+        "correct_labels": [
+            "vba"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "verilog": {
+        "name": "verilog",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "vhd": {
+        "name": "vhd",
+        "extensions": [],
+        "mime_type": "application/x-vhd",
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "wasm": {
+        "name": "wasm",
+        "extensions": [
+            "wasm"
+        ],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "wav": {
+        "name": "wav",
+        "extensions": [
+            "wav"
+        ],
+        "mime_type": "audio/x-wav",
+        "group": "audio",
+        "magic": "RIFF data",
+        "description": "Waveform Audio file (WAV)",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "wav",
+        "target_label": "wav",
+        "correct_labels": [
+            "wav"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "webm": {
+        "name": "webm",
+        "extensions": [
+            "webm"
+        ],
+        "mime_type": "video/webm",
+        "group": "video",
+        "magic": "WebM",
+        "description": "WebM data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "webm",
+        "target_label": "webm",
+        "correct_labels": [
+            "webm"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "webp": {
+        "name": "webp",
+        "extensions": [
+            "webp"
+        ],
+        "mime_type": "image/webp",
+        "group": "image",
+        "magic": "RIFF data",
+        "description": "WebP data",
+        "vt_type": "webp",
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "media"
+        ],
+        "model_target_label": "webp",
+        "target_label": "webp",
+        "correct_labels": [
+            "webp"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "winregistry": {
+        "name": "winregistry",
+        "extensions": [
+            "reg"
+        ],
+        "mime_type": "text/x-ms-regedit",
+        "group": "application",
+        "magic": "Windows Registry text",
+        "description": "Windows Registry text",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "winregistry",
+        "target_label": "winregistry",
+        "correct_labels": [
+            "winregistry"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "wmf": {
+        "name": "wmf",
+        "extensions": [
+            "wmf"
+        ],
+        "mime_type": "image/wmf",
+        "group": "image",
+        "magic": "Windows metafile",
+        "description": "Windows metafile",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "wmf",
+        "target_label": "wmf",
+        "correct_labels": [
+            "wmf"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "woff": {
+        "name": "woff",
+        "extensions": [],
+        "mime_type": null,
+        "group": null,
+        "magic": null,
+        "description": null,
+        "vt_type": null,
+        "datasets": [],
+        "parent": null,
+        "tags": [],
+        "model_target_label": null,
+        "target_label": null,
+        "correct_labels": [],
+        "in_scope_for_output_content_type": false,
+        "in_scope_for_training": false
+    },
+    "xar": {
+        "name": "xar",
+        "extensions": [
+            "pkg"
+        ],
+        "mime_type": "application/x-xar",
+        "group": "archive",
+        "magic": "xar archive compressed",
+        "description": "XAR archive compressed data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "xar",
+        "target_label": "xar",
+        "correct_labels": [
+            "xar"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "xls": {
+        "name": "xls",
+        "extensions": [
+            "xls"
+        ],
+        "mime_type": "application/vnd.ms-excel",
+        "group": "document",
+        "magic": "Composite Document File",
+        "description": "Microsoft Excel CDF document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "cdf"
+        ],
+        "model_target_label": "cdf",
+        "target_label": "xls",
+        "correct_labels": [
+            "xls"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "xlsb": {
+        "name": "xlsb",
+        "extensions": [
+            "xlsb"
+        ],
+        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "group": "document",
+        "magic": "Microsoft Excel 2007+",
+        "description": "Microsoft Excel 2007+ document (binary format)",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "ooxml",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "xlsb",
+        "correct_labels": [
+            "xlsb",
+            "xlsx"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "xlsx": {
+        "name": "xlsx",
+        "extensions": [
+            "xlsx",
+            "xlsm"
+        ],
+        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "group": "document",
+        "magic": "Microsoft Excel 2007+",
+        "description": "Microsoft Excel 2007+ document",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "ooxml",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "xlsx",
+        "correct_labels": [
+            "xlsx",
+            "xlsb"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "xml": {
+        "name": "xml",
+        "extensions": [
+            "xml"
+        ],
+        "mime_type": "text/xml",
+        "group": "code",
+        "magic": "XML document",
+        "description": "XML document",
+        "vt_type": "xml",
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "xml",
+        "target_label": "xml",
+        "correct_labels": [
+            "xml"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "xpi": {
+        "name": "xpi",
+        "extensions": [
+            "xpi"
+        ],
+        "mime_type": "application/zip",
+        "group": "archive",
+        "magic": "Zip archive data",
+        "description": "Compressed installation archive (XPI)",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "xpi",
+        "correct_labels": [
+            "xpi"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "xz": {
+        "name": "xz",
+        "extensions": [
+            "xz"
+        ],
+        "mime_type": "application/x-xz",
+        "group": "archive",
+        "magic": "XZ compressed data",
+        "description": "XZ compressed data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "archive"
+        ],
+        "model_target_label": "xz",
+        "target_label": "xz",
+        "correct_labels": [
+            "xz"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "yaml": {
+        "name": "yaml",
+        "extensions": [
+            "yml",
+            "yaml"
+        ],
+        "mime_type": "application/x-yaml",
+        "group": "code",
+        "magic": "ASCII text",
+        "description": "YAML source",
+        "vt_type": null,
+        "datasets": [
+            "github"
+        ],
+        "parent": null,
+        "tags": [
+            "text",
+            "dl_target"
+        ],
+        "model_target_label": "yaml",
+        "target_label": "yaml",
+        "correct_labels": [
+            "yaml"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "zip": {
+        "name": "zip",
+        "extensions": [
+            "zip"
+        ],
+        "mime_type": "application/zip",
+        "group": "archive",
+        "magic": "Zip archive data",
+        "description": "Zip archive data",
+        "vt_type": null,
+        "datasets": [
+            "vt-ext"
+        ],
+        "parent": null,
+        "tags": [
+            "binary",
+            "zip_archive",
+            "archive"
+        ],
+        "model_target_label": "zip",
+        "target_label": "zip",
+        "correct_labels": [
+            "zip"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    },
+    "zlibstream": {
+        "name": "zlibstream",
+        "extensions": [],
+        "mime_type": "application/zlib",
+        "group": "application",
+        "magic": "zlib compressed data",
+        "description": "zlib compressed data",
+        "vt_type": "zlib",
+        "datasets": [
+            "vt-type"
+        ],
+        "parent": null,
+        "tags": [
+            "binary"
+        ],
+        "model_target_label": "zlibstream",
+        "target_label": "zlibstream",
+        "correct_labels": [
+            "zlibstream"
+        ],
+        "in_scope_for_output_content_type": true,
+        "in_scope_for_training": true
+    }
+}

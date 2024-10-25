@@ -1,0 +1,72 @@
+name: Python - build and upload packages
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'python-v*'
+  # We don't nned to create artifacts for each PR, but this makes it much
+  # easier to test this workflow. Remove comments when needed.
+  # pull_request:
+  #   paths:
+  #     - 'python/**'
+  #     - 'rust/**'
+  #     - 'tests_data/**'
+  #     - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.conf.name }}
+    runs-on: ${{ matrix.conf.runner }}
+    strategy:
+      matrix:
+        conf:
+          - name: linux
+            runner: ubuntu-latest
+          - name: windows
+            runner: windows-latest
+          - name: macos
+            runner: macos-latest
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # pin@v5
+        with:
+          python-version-file: 'python/.python-version'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
+
+      # It's OK to use the default python version and not the specified one
+      - name: Install all projects dependencies
+        working-directory: python
+        run: uv sync --all-extras --dev
+
+      - name: Build the python package
+        working-directory: python
+        run: uv run ./scripts/build_python_package.py
+
+      - name: List wheels
+        working-directory: python
+        run: python -c "import os; print('\n'.join(os.listdir('dist')))"
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.conf.name }}
+          path: python/dist/*.whl
+
+      # We upload the source tarball only for linux as it's the same for the
+      # other platforms.
+      - name: Upload source tarball
+        if: ${{ matrix.conf.name == 'linux' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-tarball
+          path: python/dist/*.tar.gz

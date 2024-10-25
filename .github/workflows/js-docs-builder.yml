@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
         with:
           ref: main
       - name: Generate docs
@@ -38,4 +38,3 @@ jobs:
           git config --local user.email "invernizzi.l@gmail.com"
           git config --local user.name "Luca Invernizzi"
           git commit -m "Update docs" -a
-          git push

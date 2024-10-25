@@ -1,0 +1,20 @@
+{% set items = ['apple', 'banana', 'cherry'] %}
+
+<ul>
+  {% for item in items %}
+    <li>{{ loop.index }} - {{ item|title }}</li>
+  {% endfor %}
+</ul>
+
+{% block content %}
+  <p>This is content from a block definition.</p>
+{% endblock %}
+
+{{ dump(items) }}
+
+{{ 'hello world'|title }}
+
+{% macro input(name, value = '', type = 'text') %}
+  <input type="{{ type }}" name="{{ name }}" value="{{ value }}">
+{% endmacro %}
+

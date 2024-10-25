@@ -17,28 +17,16 @@ from __future__ import annotations
 
 import re
 import subprocess
-import sys
 from pathlib import Path
 
-import click
 
-
-@click.command()
-@click.option("--allow-git-dirty-state", is_flag=True)
-def main(allow_git_dirty_state: bool) -> None:
+def main() -> None:
     repo_root_dir = Path(__file__).parent.parent.parent
     python_root_dir = repo_root_dir / "python"
     rust_root_dir = repo_root_dir / "rust"
     # Compute paths to files we'll need to restore at the end of the build
     rust_main_rs_path = rust_root_dir / "cli" / "src" / "main.rs"
     rust_cli_cargo_toml_path = rust_root_dir / "cli" / "Cargo.toml"
-
-    r = subprocess.run(
-        ["git", "status", "--porcelain"], capture_output=True, cwd=repo_root_dir
-    )
-    if not allow_git_dirty_state and (len(r.stdout) > 0 or len(r.stderr) > 0):
-        print("ERROR: the git repository is in a dirty state.")
-        sys.exit(1)
 
     # get the rust version from Cargo.toml and patch main.rs
     rust_version = get_rust_version(rust_root_dir)
@@ -49,7 +37,7 @@ def main(allow_git_dirty_state: bool) -> None:
     patch_cargo_toml_with_version(rust_cli_cargo_toml_path, python_version)
 
     # update Cargo.lock
-    r = subprocess.run(["cargo", "check"], cwd=rust_root_dir / "cli", check=True)
+    subprocess.run(["cargo", "check"], cwd=rust_root_dir / "cli", check=True)
 
 
 def get_rust_version(rust_root_dir: Path) -> str:

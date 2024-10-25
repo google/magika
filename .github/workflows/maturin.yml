@@ -35,6 +35,8 @@ jobs:
         with:
           path: rust/onnx/runtime/build/Linux
           key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
+      # TODO(reyammer): Factorize this script into the one that also builds.
+      - run: python3 ./python/scripts/fix_package_version.py
       - if: matrix.platform.runner == 'ubuntu-latest'
         name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -51,8 +53,6 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out=../dist
           working-directory: python
-      - name: Rewrite wheels
-        run: true # TODO(reyammer): Fix wheels version.
       - name: Install wheels
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
       - run: magika --version

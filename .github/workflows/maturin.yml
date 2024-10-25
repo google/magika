@@ -11,7 +11,7 @@ on:
     - cron: '12 3 * * 4' # Refresh the cache weekly.
   workflow_dispatch:
   # Uncomment to test the workflow in a PR.
-  pull_request: # TODO: Comment before merge.
+  # pull_request:
 
 permissions:
   contents: read

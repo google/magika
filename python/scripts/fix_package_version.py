@@ -15,19 +15,12 @@
 
 from __future__ import annotations
 
-import base64
-import hashlib
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import click
-import requests
 
 
 @click.command()
@@ -37,10 +30,8 @@ def main(allow_git_dirty_state: bool) -> None:
     python_root_dir = repo_root_dir / "python"
     rust_root_dir = repo_root_dir / "rust"
     # Compute paths to files we'll need to restore at the end of the build
-    rust_cli_readme_path = rust_root_dir / "cli" / "README.md"
     rust_main_rs_path = rust_root_dir / "cli" / "src" / "main.rs"
     rust_cli_cargo_toml_path = rust_root_dir / "cli" / "Cargo.toml"
-    rust_cli_cargo_lock_path = rust_root_dir / "cli" / "Cargo.lock"
 
     r = subprocess.run(
         ["git", "status", "--porcelain"], capture_output=True, cwd=repo_root_dir

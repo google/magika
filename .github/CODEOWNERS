@@ -1,5 +1,5 @@
 #  Default owners (lowest precedence).
-* @reyammer @invernizzi @ia0
+* @reyammer @invernizzi
 
 # Julien owns the Rust code
 /rust/ @ia0

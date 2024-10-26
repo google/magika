@@ -18,7 +18,7 @@
 use crate::file::TypeInfo;
 
 /// Model name (only comparable with equality).
-pub const MODEL_NAME: &str = "standard_v2_0";
+pub const MODEL_NAME: &str = "standard_v2_1";
 
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",
@@ -1343,6 +1343,15 @@ pub(crate) static PYTHONBYTECODE: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static PYTORCH: TypeInfo = TypeInfo {
+    label: "pytorch",
+    mime_type: "application/octet-stream",
+    group: "application",
+    description: "Pytorch storage file",
+    extensions: &["pt", "pth"],
+    is_text: false,
+};
+
 pub(crate) static QT: TypeInfo = TypeInfo {
     label: "qt",
     mime_type: "video/quicktime",
@@ -2260,6 +2269,8 @@ pub enum ContentType {
     Python,
     /// Python compiled bytecode
     Pythonbytecode,
+    /// Pytorch storage file
+    Pytorch,
     /// QuickTime
     Qt,
     /// R (language)
@@ -2399,7 +2410,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 214;
+    pub(crate) const SIZE: usize = 215;
 
     /// Returns the content type information.
     pub fn info(self) -> &'static TypeInfo {
@@ -2550,6 +2561,7 @@ impl ContentType {
             ContentType::Psd => &PSD,
             ContentType::Python => &PYTHON,
             ContentType::Pythonbytecode => &PYTHONBYTECODE,
+            ContentType::Pytorch => &PYTORCH,
             ContentType::Qt => &QT,
             ContentType::R => &R,
             ContentType::Rar => &RAR,

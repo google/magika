@@ -18,6 +18,22 @@ set -e
 
 info "Sync generated files"
 ( cd gen; cargo run; )
+
+info "Sync CLI output"
+( cd cli; cargo build --release; )
+PATH=$PWD/target/release:$PATH
+( cd ../tests_data/basic
+  set -x
+  magika rust/code.rs
+  magika rust/code.rs --colors
+  magika rust/code.rs --output-score
+  magika rust/code.rs --json
+  magika rust/code.rs python/code.py --json
+  magika rust/code.rs --jsonl
+  magika rust/code.rs python/code.py --jsonl
+  magika rust/code.rs --mime-type
+) > cli/output 2>&1
+
 if [ "$1" = --check ]; then
   if ! git diff --exit-code; then
     [ -n "$CI" ] && todo 'Execute ./sync.sh from the rust directory'

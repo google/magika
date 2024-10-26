@@ -1,12 +1,14 @@
-# Introduction
+# This is the greatest markdown test sample
+
+## Introduction
 
 Test!
 
-# Main content
+## Main content
 
 Lorem ipsum?
 
-# Conclusions
+## Conclusions
 
 Nothing much to say!
 

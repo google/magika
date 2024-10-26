@@ -69,22 +69,26 @@
 
   <div class="text-h3 pt-6 pb-3">Paper</div>
   <div class="text-normal pb-6 pl-3">
-    We are releasing a paper later this year detailing how the Magika model was
+    You can read <a href="https://arxiv.org/abs/2409.13768" target="_blank">our research paper</a> on how the Magika model was
     trained and its performance on large datasets.
   </div>
-  <v-img src="@/../assets/paper.png" class="paper pt-3 pb-3" />
+  <a href="https://arxiv.org/abs/2409.13768" target="_blank">
+    <v-img src="@/../assets/paper.png" class="paper pt-3 pb-3" />
+  </a>
 
   <div class="text-normal pt-6 pb-3 pl-3">
     If you use Magika, please cite it like this:
   </div>
   <pre>
-  @software{magika,
-    author = {Fratantonio, Yanick and Bursztein, Elie and Invernizzi, Luca and Zhang, Marina
-              and Metitieri, Giancarlo and Kurt, Thomas and Galilee, Francois 
-              and Petit-Bianco, Alexandre and Albertini, Ange},
-    title = {Magika content-type scanner},
-    url = {https://github.com/google/magika}
-  }
+@misc{magika,
+      title={{Magika: AI-Powered Content-Type Detection}},
+      author={{Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie}},
+      year={2024},
+      eprint={2409.13768},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR},
+      url={https://arxiv.org/abs/2409.13768},
+}
     </pre
   >
 

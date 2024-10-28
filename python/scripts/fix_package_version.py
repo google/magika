@@ -20,6 +20,8 @@ import subprocess
 from pathlib import Path
 
 
+# TODO(reyammer): Factorize this script into build_python_package.py.
+# TODO(https://github.com/PyO3/maturin/issues/2163): Remove this file when fixed.
 def main() -> None:
     repo_root_dir = Path(__file__).parent.parent.parent
     python_root_dir = repo_root_dir / "python"

@@ -64,7 +64,8 @@ jobs:
 
       - name: Run magika with tests_data
         working-directory: python
-        run: uv run magika -r tests_data/basic
+        # TODO(https://github.com/google/magika/issues/780): Remove "grep || exit 1" when fixed.
+        run: '(uv run magika -r ../tests_data/basic | grep "code\.asm.*Assembly") || exit 1'
 
       - name: Run "magika cli" quick tests
         working-directory: python

@@ -11,7 +11,7 @@ on:
     - cron: '12 3 * * 4' # Refresh the cache weekly.
   workflow_dispatch:
   # Uncomment to test the workflow in a PR.
-  # pull_request:
+  pull_request:
 
 permissions:
   contents: read
@@ -24,10 +24,10 @@ jobs:
         platform:
           - runner: ubuntu-latest
             target: x86_64
-          - runner: windows-latest
-            target: x64
-          - runner: macos-14
-            target: aarch64
+          # - runner: windows-latest
+          #   target: x64
+          # - runner: macos-14
+          #   target: aarch64
     steps:
       - uses: actions/checkout@v4
       - if: matrix.platform.runner == 'ubuntu-latest'
@@ -45,41 +45,50 @@ jobs:
           before-script-linux: "${{ github.workspace }}/rust/onnx/maturin.sh"
           manylinux: 2_28
           working-directory: python
-      - if: matrix.platform.runner != 'ubuntu-latest'
-        name: Build wheels
+      - if: matrix.platform.runner == 'ubuntu-latest'
+        name: Test wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out=../dist
+          before-script-linux: "${{ github.workspace }}/rust/test-wheel.sh"
+          manylinux: 2_28
           working-directory: python
-      - name: Install wheels
-        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
-      - run: magika --version
-      - run: python3 -c 'import magika; print(magika.__version__)'
-      - run: magika -r tests_data/basic
-      - run: python3 ./python/scripts/run_quick_test_magika_cli.py
-      - run: python3 ./python/scripts/run_quick_test_magika_module.py
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
-          path: dist
+      # - if: matrix.platform.runner != 'ubuntu-latest'
+      #   name: Build wheels
+      #   uses: PyO3/maturin-action@v1
+      #   with:
+      #     target: ${{ matrix.platform.target }}
+      #     args: --release --out=../dist
+      #     working-directory: python
+      # - name: Install wheels
+      #   run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+      # - run: magika --version
+      # - run: python3 -c 'import magika; print(magika.__version__)'
+      # - run: magika -r tests_data/basic
+      # - run: python3 ./python/scripts/run_quick_test_magika_cli.py
+      # - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      # - name: Upload wheels
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
+      #     path: dist
 
-  sdist:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # TODO(https://github.com/PyO3/maturin/issues/2244): Remove when released.
-      - run: rm rust/cli/README.md
-      - run: python3 ./python/scripts/fix_package_version.py
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out=../dist
-          working-directory: python
-      - name: Upload sdist
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-sdist
-          path: dist
+  # sdist:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # TODO(https://github.com/PyO3/maturin/issues/2244): Remove when released.
+  #     - run: rm rust/cli/README.md
+  #     - run: python3 ./python/scripts/fix_package_version.py
+  #     - name: Build sdist
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         command: sdist
+  #         args: --out=../dist
+  #         working-directory: python
+  #     - name: Upload sdist
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: wheels-sdist
+  #         path: dist

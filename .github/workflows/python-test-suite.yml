@@ -39,5 +39,5 @@ jobs:
 
       - name: Check python version
         working-directory: python
-        run: uv run python --version
+        run: uv run --python 3.9 python --version
         

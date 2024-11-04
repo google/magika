@@ -22,9 +22,8 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        python-version: [ "3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x" ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
         os: [ "ubuntu-latest", "macos-latest" ]
-        # TODO: add windows, ubuntu:20.04
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
@@ -39,38 +38,41 @@ jobs:
 
       - name: Install all projects dependencies (with the requested python version)
         working-directory: python
-        run: uv sync --python $(which python3) --all-extras --dev
+        run: uv sync --python ${{ matrix.python-version }} --all-extras --dev
+
+      - name: Print python version
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} python --version
 
       - name: Run ruff check
         working-directory: python
-        run: uv run --python $(which python3) ruff check --verbose
+        run: uv run --python ${{ matrix.python-version }} ruff check --verbose
 
       - name: Run ruff format --check
         working-directory: python
-        run: uv run --python $(which python3) ruff format --check --verbose
+        run: uv run --python ${{ matrix.python-version }} ruff format --check --verbose
 
       - name: Run mypy
         working-directory: python
-        run: uv run --python $(which python3) mypy src/magika tests
+        run: uv run --python ${{ matrix.python-version }} mypy src/magika tests
 
       - name: Run the python tests suite
         working-directory: python
-        run: uv run --python $(which python3) pytest tests -m "not slow"
+        run: uv run --python ${{ matrix.python-version }} pytest tests -m "not slow"
 
       - name: Run magika --version
         working-directory: python
-        run: uv run magika --version
+        run: uv run --python ${{ matrix.python-version }} magika --version
         shell: bash # Allows for cross-platform
 
       - name: Run magika with tests_data
         working-directory: python
-        # TODO(https://github.com/google/magika/issues/780): Remove "grep || exit 1" when fixed.
-        run: '(uv run magika -r ../tests_data/basic | grep "code\.asm.*Assembly") || exit 1'
+        run: uv run --python ${{ matrix.python-version }} magika -r ../tests_data/basic
 
       - name: Run "magika cli" quick tests
         working-directory: python
-        run: uv run scripts/run_quick_test_magika_cli.py
+        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_cli.py
 
       - name: Run "magika module" quick tests
         working-directory: python
-        run: uv run scripts/run_quick_test_magika_module.py
+        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py

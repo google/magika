@@ -33,15 +33,21 @@ import click
 @click.command()
 def main() -> None:
     basic_tests_dir = (
-        Path(__file__).parent.parent.parent / "tests_data" / "basic"
-    ).resolve()
+        Path(__file__).resolve().parent.parent.parent / "tests_data" / "basic"
+    )
+    assert basic_tests_dir.is_dir()
 
     p = subprocess.run(
         ["magika", "-r", "--label", str(basic_tests_dir)],
         capture_output=True,
-        check=True,
         text=True,
     )
+
+    if p.returncode != 0:
+        print("ERROR: magika CLI exited with non-zero status.")
+        print(f"stdout:\n{p.stdout}\n" + "-" * 40)
+        print(f"stderr:\n{p.stderr}\n" + "-" * 40)
+        sys.exit(1)
 
     assert p.stderr == ""
 

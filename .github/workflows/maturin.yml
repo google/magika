@@ -2,6 +2,7 @@
 name: Maturin
 
 on:
+  pull_request:
   push:
     branches:
       - 'main'
@@ -10,8 +11,6 @@ on:
   schedule:
     - cron: '12 3 * * 4' # Refresh the cache weekly.
   workflow_dispatch:
-  # Uncomment to test the workflow in a PR.
-  # pull_request:
 
 permissions:
   contents: read
@@ -60,6 +59,7 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Upload wheels
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
@@ -79,6 +79,7 @@ jobs:
           args: --out=../dist
           working-directory: python
       - name: Upload sdist
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: wheels-sdist

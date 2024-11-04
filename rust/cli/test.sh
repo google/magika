@@ -35,6 +35,9 @@ info "Test against the test suites: $TEST_SUITES"
   done
 )
 
+# We rely below on the fact that we don't have permission on /etc/shadow.
+[ $(id -u) -eq 0 ] && success "No more tests in Docker"
+
 info "Test exit code with at least one error"
 test_error() {
   files="$1"

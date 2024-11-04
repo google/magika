@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Exit with non-zero code if at least one error was encountered (fixes #780)
 - Print model version with `--version`
 - Change model from `standard_v2_0` to `standard_v2_1`
 

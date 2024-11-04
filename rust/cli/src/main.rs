@@ -199,9 +199,11 @@ async fn main() -> Result<()> {
         print!("[");
     }
     let mut reorder = Reorder::default();
+    let mut errors = false;
     while let Some(response) = result_receiver.recv().await {
         reorder.push(response?);
         while let Some(response) = reorder.pop() {
+            errors |= response.result.is_err();
             if flags.format.json {
                 if reorder.next != 1 {
                     print!(",");
@@ -220,6 +222,9 @@ async fn main() -> Result<()> {
             println!();
         }
         println!("]");
+    }
+    if errors {
+        std::process::exit(1);
     }
     Ok(())
 }

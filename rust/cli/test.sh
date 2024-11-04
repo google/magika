@@ -34,3 +34,20 @@ info "Test against the test suites: $TEST_SUITES"
     [ "$expected" = "$actual" ] || error "$file is detected as $actual"
   done
 )
+
+info "Test exit code with at least one error"
+test_error() {
+  files="$1"
+  expected="$2"
+  ( set +e
+    actual="$(magika $files)"
+    code=$?
+    [ $code -eq 1 ] || error "invalid exit code for magika $files"
+    [ "$actual" = "$expected" ] || error "invalid output for magika $files"
+  )
+}
+test_error '/etc/shadow' "\
+/etc/shadow: Permission denied (os error 13) (error)"
+test_error 'non_existent src/main.rs' "\
+non_existent: No such file or directory (os error 2) (error)
+src/main.rs: Rust source (code)"

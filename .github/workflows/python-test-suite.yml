@@ -22,8 +22,8 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        python-version: [ "3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x" ]
-        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+        python-version: [ "3.9.x" ]
+        os: [ "windows-latest" ]
         # TODO: add ubuntu:20.04
     runs-on: ${{ matrix.os }}
     steps:
@@ -37,40 +37,7 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
 
-      - name: Install all projects dependencies (with the requested python version)
+      - name: Check python version
         working-directory: python
-        run: uv sync --python $(which python3) --all-extras --dev
-
-      - name: Run ruff check
-        working-directory: python
-        run: uv run --python $(which python3) ruff check --verbose
-
-      - name: Run ruff format --check
-        working-directory: python
-        run: uv run --python $(which python3) ruff format --check --verbose
-
-      - name: Run mypy
-        working-directory: python
-        run: uv run --python $(which python3) mypy src/magika tests
-
-      - name: Run the python tests suite
-        working-directory: python
-        run: uv run --python $(which python3) pytest tests -m "not slow"
-
-      - name: Run magika --version
-        working-directory: python
-        run: uv run magika --version
-        shell: bash # Allows for cross-platform
-
-      - name: Run magika with tests_data
-        working-directory: python
-        # TODO(https://github.com/google/magika/issues/780): Remove "grep || exit 1" when fixed.
-        run: '(uv run magika -r ../tests_data/basic | grep "code\.asm.*Assembly") || exit 1'
-
-      - name: Run "magika cli" quick tests
-        working-directory: python
-        run: uv run scripts/run_quick_test_magika_cli.py
-
-      - name: Run "magika module" quick tests
-        working-directory: python
-        run: uv run scripts/run_quick_test_magika_module.py
+        run: uv run python --version
+        

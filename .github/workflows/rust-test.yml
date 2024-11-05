@@ -16,15 +16,32 @@ permissions:
   contents: read
 
 jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+        with:
+          fetch-depth: 0
+      - run: ./changelog.sh
+        working-directory: rust
   test:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        toolchain: ["stable", "nightly"]
+        toolchain: [stable, nightly]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
       - run: rustup default ${{ matrix.toolchain }}
       - run: rustup component add rustfmt clippy
-      - run: rustup target add aarch64-apple-darwin x86_64-pc-windows-msvc
       - run: ./test.sh
         working-directory: rust
+  run:
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+      - run: cargo build --release
+        working-directory: rust/cli
+      - run: rust/target/release/magika -r tests_data/basic

@@ -30,7 +30,7 @@ use tokio::io::AsyncReadExt;
 
 /// Determines the content type of files with deep-learning.
 #[derive(Parser)]
-#[command(version, arg_required_else_help = true)]
+#[command(name = "magika", version = Version, arg_required_else_help = true)]
 struct Flags {
     /// List of paths to the files to analyze.
     ///
@@ -56,6 +56,15 @@ struct Flags {
 
     #[clap(flatten)]
     experimental: Experimental,
+}
+
+struct Version;
+impl clap::builder::IntoResettable<clap::builder::Str> for Version {
+    fn into_resettable(self) -> clap::builder::Resettable<clap::builder::Str> {
+        let binary = clap::crate_version!();
+        let model = magika::MODEL_NAME;
+        clap::builder::Resettable::Value(format!("{binary} {model}").into())
+    }
 }
 
 #[derive(Args)]
@@ -121,9 +130,9 @@ struct Experimental {
     #[arg(hide = true, long, default_value = "1")]
     batch_size: usize,
 
-    /// Number of tasks for batch parallelism.
-    #[arg(hide = true, long, default_value = "1")]
-    num_tasks: usize,
+    /// Number of tasks for batch parallelism (defaults to the number of CPUs).
+    #[arg(hide = true, long)]
+    num_tasks: Option<usize>,
 
     /// Number of threads for graph parallelism (ONNX Runtime configuration).
     ///
@@ -148,7 +157,8 @@ struct Experimental {
 async fn main() -> Result<()> {
     let flags = Arc::new(Flags::parse());
     ensure!(0 < flags.experimental.batch_size, "--batch-size cannot be zero");
-    ensure!(0 < flags.experimental.num_tasks, "--num-tasks cannot be zero");
+    let num_tasks = flags.experimental.num_tasks.unwrap_or_else(num_cpus::get);
+    ensure!(0 < num_tasks, "--num-tasks cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -159,11 +169,9 @@ async fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    let (result_sender, mut result_receiver) = tokio::sync::mpsc::channel::<Result<Response>>(
-        flags.experimental.num_tasks * flags.experimental.batch_size,
-    );
-    let (batch_sender, batch_receiver) =
-        async_channel::bounded::<Batch>(flags.experimental.num_tasks);
+    let (result_sender, mut result_receiver) =
+        tokio::sync::mpsc::channel::<Result<Response>>(num_tasks * flags.experimental.batch_size);
+    let (batch_sender, batch_receiver) = async_channel::bounded::<Batch>(num_tasks);
     tokio::spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
@@ -174,7 +182,7 @@ async fn main() -> Result<()> {
         }
     });
     let magika = Arc::new(build_session(&flags)?);
-    for _ in 0..flags.experimental.num_tasks {
+    for _ in 0..num_tasks {
         tokio::spawn({
             let magika = magika.clone();
             let batch_receiver = batch_receiver.clone();
@@ -191,9 +199,11 @@ async fn main() -> Result<()> {
         print!("[");
     }
     let mut reorder = Reorder::default();
+    let mut errors = false;
     while let Some(response) = result_receiver.recv().await {
         reorder.push(response?);
         while let Some(response) = reorder.pop() {
+            errors |= response.result.is_err();
             if flags.format.json {
                 if reorder.next != 1 {
                     print!(",");
@@ -212,6 +222,9 @@ async fn main() -> Result<()> {
             println!();
         }
         println!("]");
+    }
+    if errors {
+        std::process::exit(1);
     }
     Ok(())
 }
@@ -302,11 +315,15 @@ async fn process_path(
 }
 
 fn build_session(flags: &Flags) -> Result<Session> {
+    ort::init().with_telemetry(false).commit()?;
     let mut magika = Session::builder();
     if let Some(inter_threads) = flags.experimental.inter_threads {
         magika = magika.with_inter_threads(inter_threads);
     }
-    if let Some(intra_threads) = flags.experimental.intra_threads {
+    // Apparently, SetIntraOpNumThreads must be called on MacOS, otherwise we get the following
+    // error: intra op thread pool must have at least one thread for RunAsync.
+    let intra_threads_default = cfg!(target_os = "macos").then_some(4);
+    if let Some(intra_threads) = flags.experimental.intra_threads.or(intra_threads_default) {
         magika = magika.with_intra_threads(intra_threads);
     }
     if let Some(opt_level) = flags.experimental.optimization_level {

@@ -1,0 +1,78 @@
+name: Python - run test suite
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'python/**'
+      - 'tests_data/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'python/**'
+      - 'tests_data/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  unit-testing:
+    strategy:
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+        os: [ "ubuntu-latest", "macos-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
+
+      - name: Install all projects dependencies (with the requested python version)
+        working-directory: python
+        run: uv sync --python ${{ matrix.python-version }} --all-extras --dev
+
+      - name: Print python version
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} python --version
+
+      - name: Run ruff check
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} ruff check --verbose
+
+      - name: Run ruff format --check
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} ruff format --check --verbose
+
+      - name: Run mypy
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} mypy src/magika tests
+
+      - name: Run the python tests suite
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} pytest tests -m "not slow"
+
+      - name: Run magika --version
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} magika --version
+        shell: bash # Allows for cross-platform
+
+      - name: Run magika with tests_data
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} magika -r ../tests_data/basic
+
+      - name: Run "magika cli" quick tests
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_cli.py
+
+      - name: Run "magika module" quick tests
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py

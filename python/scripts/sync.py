@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -9,14 +10,27 @@ import click
 ASSETS_DIR = Path(__file__).parent.parent.parent / "assets"
 PYTHON_ROOT_DIR = Path(__file__).parent.parent
 
-MODELS_NAMES = ["standard_v2_0"]
+PUBLISHED_MODELS_NAMES = ["standard_v2_1"]
 
 
 @click.command()
-def main() -> None:
+@click.option("--sync-unpublished-models", is_flag=True)
+def main(sync_unpublished_models: bool) -> None:
     import_content_type_kb()
 
-    for model_name in MODELS_NAMES:
+    if sync_unpublished_models:
+        models_names_to_sync = []
+        models_dir = ASSETS_DIR / "models"
+        for model_dir in models_dir.iterdir():
+            model_name = model_dir.name
+            if re.search("_v2_", model_name):
+                models_names_to_sync.append(model_name)
+    else:
+        models_names_to_sync = PUBLISHED_MODELS_NAMES
+
+    print(f"Syncing these models: {models_names_to_sync}")
+
+    for model_name in models_names_to_sync:
         import_model(model_name)
 
     gen_content_type_label_source()
@@ -24,7 +38,7 @@ def main() -> None:
 
 def import_content_type_kb() -> None:
     kb_path = ASSETS_DIR / "content_types_kb.min.json"
-    python_config_dir = PYTHON_ROOT_DIR / "magika" / "config"
+    python_config_dir = PYTHON_ROOT_DIR / "src" / "magika" / "config"
     python_kb_path = python_config_dir / kb_path.name
     copy(kb_path, python_kb_path)
 
@@ -34,7 +48,7 @@ def import_model(model_name: str) -> None:
     onnx_path = models_dir / model_name / "model.onnx"
     config_path = models_dir / model_name / "config.min.json"
 
-    python_model_dir = PYTHON_ROOT_DIR / "magika" / "models" / model_name
+    python_model_dir = PYTHON_ROOT_DIR / "src" / "magika" / "models" / model_name
     python_model_dir.mkdir(parents=True, exist_ok=True)
 
     copy(onnx_path, python_model_dir / onnx_path.name)
@@ -80,7 +94,7 @@ def gen_content_type_label_source() -> None:
     kb = json.loads(kb_path.read_text())
 
     content_type_label_path = (
-        PYTHON_ROOT_DIR / "magika" / "types" / "content_type_label.py"
+        PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
     )
 
     enum_body_lines = []

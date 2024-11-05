@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "0.1.0-dev"
+version = "0.1.0-rc.1"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -27,9 +27,10 @@ thiserror = "1.0.63"
 tokio = { version = "1.38.1", features = ["fs", "io-util"] }
 
 [dependencies.ort]
-version = "2.0.0-rc.5"
+version = "2.0.0-rc.8"
 default-features = false
-features = ["ndarray"]
+# TODO: Remove "half" when rc.9 is released.
+features = ["ndarray", "half"]
 
 [dev-dependencies]
 data-encoding = "2.6.0"

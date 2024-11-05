@@ -1,0 +1,6 @@
+{
+  "ToxEnv": {
+    "name": "py38",
+    "type": "VirtualEnvRunner"
+  }
+}

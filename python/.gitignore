@@ -10,3 +10,4 @@ venv/
 dist/*
 *.pickle
 .s.yml
+.DS_Store

@@ -1,10 +1,19 @@
 # Changelog
 
-## 0.1.0-rc.1
+## 0.1.0-rc.2-dev
 
 ### Minor
 
 - Exit with non-zero code if at least one error was encountered (fixes #780)
+
+### Patch
+
+- Update dependencies
+
+## 0.1.0-rc.1
+
+### Minor
+
 - Print model version with `--version`
 - Change model from `standard_v2_0` to `standard_v2_1`
 

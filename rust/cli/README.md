@@ -175,4 +175,5 @@ Options:
 ```
 
 
-See the [docs on Magika's output](../../docs/magika_output.md) for more details about the output format.
+See the [docs on Magika's output](../../docs/magika_output.md) for more details about the output
+format.

@@ -9,7 +9,7 @@ Use Magika as a command line client or in your Python code!
 Please check out Magika on GitHub for more information and documentation: [https://github.com/google/magika](https://github.com/google/magika).
 
 > [!WARNING]
-> This README is about the soon-to-be released `magika 0.6.0` (which will be first published as `0.6.0rc1` on pypi to allow for testing). For older versions, browse the git repository at the latest stable release, [here](https://github.com/google/magika/blob/python-v0.5.1/python/README.md) and [here](https://github.com/google/magika/blob/python-v0.5.1/docs/python.md).
+> This README is about the soon-to-be released `magika 0.6.0` (currently released as `0.6.0rc2` for testing). For older versions, browse the git repository at the latest stable release, [here](https://github.com/google/magika/blob/python-v0.5.1/python/README.md) and [here](https://github.com/google/magika/blob/python-v0.5.1/docs/python.md).
 >
 > See [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md) for more details.
 
@@ -254,3 +254,6 @@ If you use this software for your research, please cite it as:
       url={https://arxiv.org/abs/2409.13768},
 }
 ```
+
+> [!NOTE]
+> The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025!

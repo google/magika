@@ -20,10 +20,12 @@ For more context you can read our initial [announcement post on Google's OSS blo
 
 > [!IMPORTANT]
 > We are about to release a number of new things, and they are ready for testing!
+> - We uploaded to pypi [`magika 0.6.0rc2`](https://pypi.org/project/magika/0.6.0rc2/), it's ready for testing! Please report any problems here: https://github.com/google/magika/issues/798.
 > - A new ML model with support for [200+ content types](./assets/models/standard_v2_1/README.md).
 > - A new CLI written in Rust. This will replace the previous CLI written in python. More information [here](./rust/cli/README.md). The Rust codebase can also be used for applications written in rust, see the [docs](https://docs.rs/magika/0.1.0-rc.1/magika/index.html).
-> - Python package 0.6.0rc1: this version ships the new model with support for 200+ content types, the CLI written in Rust (which replaces the old one written in python), and a revamped Python API with a few breaking changes, see the [docs](./python/README.md) and the [changelog](./python/CHANGELOG.md)!
-> If you need docs about the stable release, browse this repository at the latest stable tag, [here](https://github.com/google/magika/tree/python-v0.5.1).
+> - Python package 0.6.0rc2: this version ships the new model with support for 200+ content types, the CLI written in Rust (which replaces the old one written in python), and a revamped Python API with a few breaking changes, see the [docs](./python/README.md) and the [changelog](./python/CHANGELOG.md)!
+> - If you need docs about the stable release, browse this repository at the latest stable tag, [here](https://github.com/google/magika/tree/python-v0.5.1).
+> - The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025! Stay tuned!
 
 
 ## Highlights
@@ -303,6 +305,10 @@ If you use this software for your research, please cite it as:
       url={https://arxiv.org/abs/2409.13768},
 }
 ```
+
+> [!NOTE]
+> The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025!
+
 ## Security vulnerabilities
 Please contact us directly at magika-dev@google.com
 

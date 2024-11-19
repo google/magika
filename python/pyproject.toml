@@ -45,7 +45,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/google/magika"
 Documentation = "https://github.com/google/magika/blob/main/python/README.md"
-Repository = "https://github.com/google/magika/blob/main/python/README.md"
+Repository = "https://github.com/google/magika/"
 Issues = "https://github.com/google/magika/issues"
 Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
 
@@ -53,9 +53,7 @@ Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
 [tool.uv]
 dev-dependencies = [
     "mypy>=1.11.2",
-    "ipython>=8.12.3; python_version >= '3.8' and python_version < '3.9'",
-    "ipython>=8.18.1; python_version >= '3.9' and python_version < '3.10'",
-    "ipython>=8.21.0; python_version >= '3.10'",
+    "ipython>=8.12.3",
     "pytest>=8.3.2",
     "ruff>=0.6.3",
     "twine>=5.1.1",

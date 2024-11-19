@@ -9,6 +9,10 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [0.6.0-rc2] - 2024-11-19
+
+- Fixed manylinux wheel and other small fixes.
+
 
 ## [0.6.0-rc1] - 2024-10-07
 

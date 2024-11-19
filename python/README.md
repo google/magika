@@ -254,3 +254,6 @@ If you use this software for your research, please cite it as:
       url={https://arxiv.org/abs/2409.13768},
 }
 ```
+
+> [!NOTE]
+> The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025!

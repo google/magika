@@ -29,6 +29,8 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v4
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
       - if: matrix.platform.runner == 'ubuntu-latest'
         uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
         with:
@@ -51,6 +53,9 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out=../dist
           working-directory: python
+      - if: matrix.platform.runner != 'windows-latest'
+        name: Check that `uv add magika.whl` works
+        run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init && uv add ./$(\ls -1 *.whl | head -n 1)
       - name: Install wheels
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
       - run: magika --version

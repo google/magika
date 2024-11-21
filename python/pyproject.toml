@@ -34,7 +34,7 @@ dynamic = ["version"]
 
 dependencies = [
     "click>=8.1.7",
-    "onnxruntime>=1.19.0,<1.20",
+    "onnxruntime>=1.17.0,<1.20",
     "numpy>=1.24; python_version < '3.12'",
     "numpy>=1.26; python_version >= '3.12' and python_version < '3.13'",
     "numpy>=2.1.0; python_version >= '3.13'",

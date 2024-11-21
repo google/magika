@@ -1,0 +1,39 @@
+# This routinely checks that the latest published -rc packages are installable
+# and work properly. This makes sure that a new version of one of our
+# dependencies is not breaking our releases.
+# TODO: test more magika package versions
+# TODO: check the actual predicted content types
+name: Python - test published -rc packages
+
+on:
+  schedule:
+    - cron: '42 3 * * *' # Run daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-testing:
+    strategy:
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+
+      - name: Install magika
+        run: python3 -m pip install --pre magika
+      - run: python3 -c 'import magika; m = magika.Magika(); print(m)'
+      - run: magika --version
+      # The latest published model does not necessarily support detection for
+      # all types in our tests data; thus, for now we just check that the magika
+      # CLI does not crash when scanning the files, without checking the actual
+      # predictions.
+      - run: magika -r tests_data/basic

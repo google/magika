@@ -26,10 +26,10 @@ jobs:
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
         with:
           python-version: '${{ matrix.python-version }}'
-      - if: matrix.platform.runner != 'windows-latest'
+      - if: matrix.os != 'windows-latest'
         name: Install uv
         run: curl -LsSf https://astral.sh/uv/0.5.4/install.sh | sh
-      - if: matrix.platform.runner != 'windows-latest'
+      - if: matrix.os != 'windows-latest'
         name: Check that magika -rc can be installed with uv
         run: mkdir /tmp/test-uv && cd /tmp/test-uv && uv init && uv add --prerelease allow magika && cd - && rm -rf /tmp/test-uv
       - name: Install magika with pip

@@ -22,12 +22,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
-
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
         with:
           python-version: '${{ matrix.python-version }}'
-
+      - name: Check that magika can be installed with uv
+        run: mkdir /tmp/test-uv && uv init && uv add magika && rm -rf /tmp/test-uv
       - name: Install magika
         run: python3 -m pip install magika
       - run: python3 -c 'import magika; m = magika.Magika(); print(m)'

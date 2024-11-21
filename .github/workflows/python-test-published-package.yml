@@ -26,9 +26,11 @@ jobs:
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
         with:
           python-version: '${{ matrix.python-version }}'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
       - name: Check that magika can be installed with uv
         run: mkdir /tmp/test-uv && uv init && uv add magika && rm -rf /tmp/test-uv
-      - name: Install magika
+      - name: Install magika with pip
         run: python3 -m pip install magika
       - run: python3 -c 'import magika; m = magika.Magika(); print(m)'
       - run: magika --version

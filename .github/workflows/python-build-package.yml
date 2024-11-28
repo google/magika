@@ -29,6 +29,10 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
+        with:
+          python-version: '3.12'
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
       - if: matrix.platform.runner == 'ubuntu-latest'

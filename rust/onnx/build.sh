@@ -33,8 +33,8 @@ else
   git clone --recursive https://github.com/Microsoft/onnxruntime.git runtime
   cd runtime
 
-  info "Checkout v1.19.2 because that's what ort v2.0.0-rc.8 supports."
-  git checkout v1.19.2
+  info "Checkout v1.20.0 because that's what ort v2.0.0-rc.9 supports."
+  git checkout v1.20.0
 
   info "Build the static libraries."
   x ./build.sh --config=Release --parallel $ONNX_RUNTIME_BUILD_FLAGS

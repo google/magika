@@ -59,7 +59,7 @@ jobs:
           working-directory: python
       - if: matrix.platform.runner != 'windows-latest'
         name: Check that `uv add magika.whl` works
-        run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init --python 3.12 && uv add --python 3.12 ./$(\ls -1 *.whl | head -n 1)
+        run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init && uv add ./$(\ls -1 *.whl | head -n 1)
       - name: Install wheels
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
       - run: magika --version

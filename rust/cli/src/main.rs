@@ -23,7 +23,7 @@ use anyhow::{bail, ensure, Result};
 use clap::{Args, Parser};
 use colored::{ColoredString, Colorize};
 use magika::{ContentType, Features, FeaturesOrRuled, FileType, RuledType, Session, TypeInfo};
-use ort::GraphOptimizationLevel;
+use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;

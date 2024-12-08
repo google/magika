@@ -35,7 +35,7 @@ jobs:
         with:
           ref: main
       - name: Set up Node
-        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # pin@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # pin@v4
         with:
           node-version: 18.x
       - name: Install dependencies

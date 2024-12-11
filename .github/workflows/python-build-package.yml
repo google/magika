@@ -61,10 +61,7 @@ jobs:
         name: Check that `uv add magika.whl` works
         run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init && uv add ./$(\ls -1 *.whl | head -n 1)
       - if: matrix.platform.runner == 'windows-latest'
-        name: Install uv on Windows
-        run: powershell -Command "Invoke-WebRequest -Uri https://astral.sh/uv/0.4.7/install.ps1 -OutFile install.ps1; ./install.ps1"
-      - if: matrix.platform.runner == 'windows-latest'
-        name: Check that `uv add magika.whl` works on Windows
+        name: Check that magika install with uv works on Windows
         shell: pwsh
         run: |
           mkdir C:\test-uv

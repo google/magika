@@ -36,6 +36,16 @@ jobs:
       - if: matrix.os != 'windows-latest' && matrix.python-version != '3.8' && matrix.python-version != '3.9'
         name: Check that magika can be installed with uv
         run: mkdir /tmp/test-uv && cd /tmp/test-uv && uv init && uv add magika && cd - && rm -rf /tmp/test-uv
+      - if: matrix.platform.runner == 'windows-latest'
+        name: Check that magika install with uv works on Windows
+        shell: pwsh
+        run: |
+          mkdir C:\test-uv
+          Copy-Item -Path dist\*.whl -Destination C:\test-uv
+          cd C:\test-uv
+          uv init
+          $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
+          uv add ".\$wheel"
       - name: Install magika with pip
         run: python3 -m pip install magika
       - run: python3 -c 'import magika; m = magika.Magika(); print(m)'

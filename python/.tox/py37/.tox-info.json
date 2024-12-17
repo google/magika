@@ -1,0 +1,6 @@
+{
+  "ToxEnv": {
+    "name": "py37",
+    "type": "VirtualEnvRunner"
+  }
+}

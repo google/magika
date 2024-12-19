@@ -55,7 +55,15 @@ jobs:
 
       - name: Run the python tests suite
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} pytest tests -m "not slow"
+        run: |
+          uv run --python ${{ matrix.python-version }} pytest tests -m "not slow" --cov=src/magika --cov-report=xml --cov-report=term
+
+      - name: Upload coverage report to Coveralls
+        if: always()
+        working-directory: python
+        uses: coverallsapp/github-action@v2
+        with:
+          path-to-coverage: coverage.xml
 
       - name: Run magika --version
         working-directory: python

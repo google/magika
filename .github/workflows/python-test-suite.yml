@@ -56,7 +56,7 @@ jobs:
       - name: Run the python tests suite
         working-directory: python
         run: |
-          uv run --python ${{ matrix.python-version }} pytest tests -m "not slow" --cov=src/magika --cov-report=xml --cov-report=term
+          uv run --python ${{ matrix.python-version }} pytest tests -m "not slow" 
 
       - name: Upload coverage report to Coveralls
         if: always()

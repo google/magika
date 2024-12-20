@@ -1,6 +1,12 @@
 # Magika
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/magika/badge)](https://securityscorecards.dev/viewer/?uri=github.com/google/magika) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706) ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg) [![PyPI Monthly Downloads](https://img.shields.io/pypi/dm/magika)](https://pypi.org/project/magika/)
+[![image](https://img.shields.io/pypi/v/magika.svg)](https://pypi.python.org/pypi/magika)<!-- [![image](https://img.shields.io/pypi/l/magika.svg)](https://pypi.python.org/pypi/magika) -->
+[![image](https://img.shields.io/pypi/pyversions/magika.svg)](https://pypi.python.org/pypi/magika)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/magika/badge)](https://securityscorecards.dev/viewer/?uri=github.com/google/magika)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706)
+![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)
+[![Actions status](https://github.com/google/magika/actions/workflows/python-build-package.yml/badge.svg)](https://github.com/google/magika/actions)
+[![PyPI Monthly Downloads](https://img.shields.io/pypi/dm/magika)](https://pypi.org/project/magika/)
 
 Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU.
 
@@ -20,10 +26,12 @@ For more context you can read our initial [announcement post on Google's OSS blo
 
 > [!IMPORTANT]
 > We are about to release a number of new things, and they are ready for testing!
+> - We uploaded to pypi a release candidate for v0.6.0 (e.g., [`magika 0.6.0rc3`](https://pypi.org/project/magika/0.6.0rc3/)), it's ready for testing! Please report any problems here: https://github.com/google/magika/issues/798. You can install the latest release candidate with `pip install --pre magika`.
 > - A new ML model with support for [200+ content types](./assets/models/standard_v2_1/README.md).
 > - A new CLI written in Rust. This will replace the previous CLI written in python. More information [here](./rust/cli/README.md). The Rust codebase can also be used for applications written in rust, see the [docs](https://docs.rs/magika/0.1.0-rc.1/magika/index.html).
-> - Python package 0.6.0rc1: this version ships the new model with support for 200+ content types, the CLI written in Rust (which replaces the old one written in python), and a revamped Python API with a few breaking changes, see the [docs](./python/README.md) and the [changelog](./python/CHANGELOG.md)!
-> If you need docs about the stable release, browse this repository at the latest stable tag, [here](https://github.com/google/magika/tree/python-v0.5.1).
+> - Upcoming python package v0.6.0: this version ships the new model with support for 200+ content types, the CLI written in Rust (which replaces the old one written in python), and a revamped Python API with a few breaking changes, see the [docs](./python/README.md) and the [changelog](./python/CHANGELOG.md)!
+> - If you need docs about the stable release, browse this repository at the latest stable tag, [here](https://github.com/google/magika/tree/python-v0.5.1).
+> - The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025! Stay tuned!
 
 
 ## Highlights
@@ -48,7 +56,7 @@ For more details, see the documentation for the [python package](./python/README
     1. [Installation](#installation)
     1. [Running on Docker](#running-in-docker)
     1. [Usage](#usage)
-        1. [Python command line](#python-command-line)
+        1. [Command line (written in Rust)](#command-line-written-in-rust)
         1. [Python API](#python-api)
         1. [Experimental TFJS model & npm package](#experimental-tfjs-model--npm-package)
 1. [Development Setup](#development-setup)
@@ -72,6 +80,9 @@ $ pip install magika
 ```
 
 If you intend to use Magika only as a command line, you may want to use `$ pipx install magika` instead.
+
+If you want to test out the latest release candidate, you can install with `pip install --pre magika`.
+
 
 ### Running in Docker
 
@@ -303,6 +314,10 @@ If you use this software for your research, please cite it as:
       url={https://arxiv.org/abs/2409.13768},
 }
 ```
+
+> [!NOTE]
+> The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025!
+
 ## Security vulnerabilities
 Please contact us directly at magika-dev@google.com
 

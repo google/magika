@@ -1,6 +1,13 @@
 # Magika Python Package
 
+[![image](https://img.shields.io/pypi/v/magika.svg)](https://pypi.python.org/pypi/magika)<!-- [![image](https://img.shields.io/pypi/l/magika.svg)](https://pypi.python.org/pypi/magika) -->
+[![image](https://img.shields.io/pypi/pyversions/magika.svg)](https://pypi.python.org/pypi/magika)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/magika/badge)](https://securityscorecards.dev/viewer/?uri=github.com/google/magika)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706)
+![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)
+[![Actions status](https://github.com/google/magika/actions/workflows/python-build-package.yml/badge.svg)](https://github.com/google/magika/actions)
 [![PyPI Monthly Downloads](https://img.shields.io/pypi/dm/magika)](https://pypi.org/project/magika/)
+
 
 Magika is a novel AI powered file type detection tool that rely on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU.
 
@@ -9,7 +16,7 @@ Use Magika as a command line client or in your Python code!
 Please check out Magika on GitHub for more information and documentation: [https://github.com/google/magika](https://github.com/google/magika).
 
 > [!WARNING]
-> This README is about the soon-to-be released `magika 0.6.0` (which will be first published as `0.6.0rc1` on pypi to allow for testing). For older versions, browse the git repository at the latest stable release, [here](https://github.com/google/magika/blob/python-v0.5.1/python/README.md) and [here](https://github.com/google/magika/blob/python-v0.5.1/docs/python.md).
+> This README is about the soon-to-be released `magika 0.6.0` (currently released as `0.6.0rc2` for testing). For older versions, browse the git repository at the latest stable release, [here](https://github.com/google/magika/blob/python-v0.5.1/python/README.md) and [here](https://github.com/google/magika/blob/python-v0.5.1/docs/python.md).
 >
 > See [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md) for more details.
 
@@ -254,3 +261,6 @@ If you use this software for your research, please cite it as:
       url={https://arxiv.org/abs/2409.13768},
 }
 ```
+
+> [!NOTE]
+> The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025!

@@ -23,7 +23,7 @@ use crate::{AsyncInput, Builder, Features, FeaturesOrRuled, FileType, Result, Sy
 /// A Magika session to identify files.
 #[derive(Debug)]
 pub struct Session {
-    pub(crate) session: ort::Session,
+    pub(crate) session: ort::session::Session,
 }
 
 impl Session {

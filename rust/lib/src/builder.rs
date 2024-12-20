@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use ort::GraphOptimizationLevel;
+use ort::session::builder::GraphOptimizationLevel;
 
 use crate::{Result, Session};
 
@@ -52,7 +52,7 @@ impl Builder {
 
     /// Consumes the builder to create a Magika session.
     pub fn build(self) -> Result<Session> {
-        let mut session = ort::Session::builder()?;
+        let mut session = ort::session::Session::builder()?;
         let Builder { inter_threads, intra_threads, optimization_level, parallel_execution } = self;
         if let Some(num_threads) = inter_threads {
             session = session.with_inter_threads(num_threads)?;

@@ -38,8 +38,8 @@ pub(crate) trait Env {
     async fn symlink_metadata(path: &Path) -> Result<Metadata>;
     async fn open(path: &Path) -> Result<Self::File>;
     async fn ort_session_run(
-        session: &ort::Session, input: Array2<i32>,
-    ) -> Result<ort::SessionOutputs>;
+        session: &ort::session::Session, input: Array2<i32>,
+    ) -> Result<ort::session::SessionOutputs>;
 }
 
 pub(crate) enum SyncEnv {}
@@ -55,8 +55,8 @@ impl Env for SyncEnv {
     }
 
     async fn ort_session_run(
-        session: &ort::Session, input: Array2<i32>,
-    ) -> Result<ort::SessionOutputs> {
+        session: &ort::session::Session, input: Array2<i32>,
+    ) -> Result<ort::session::SessionOutputs> {
         Ok(session.run(ort::inputs!("bytes" => input)?)?)
     }
 }
@@ -74,8 +74,8 @@ impl Env for AsyncEnv {
     }
 
     async fn ort_session_run(
-        session: &ort::Session, input: Array2<i32>,
-    ) -> Result<ort::SessionOutputs> {
+        session: &ort::session::Session, input: Array2<i32>,
+    ) -> Result<ort::session::SessionOutputs> {
         Ok(session.run_async(ort::inputs!("bytes" => input)?)?.await?)
     }
 }

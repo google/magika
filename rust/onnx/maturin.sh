@@ -19,9 +19,15 @@ cd "$(dirname "$0")"
 
 # This script sets up the maturin container for a manylinux build.
 
+# TODO: debug
+env
+aarch64-linux-gnu-gcc -v
+
 info "Build ONNX Runtime from source."
 # We are root in maturin containers and ONNX Runtime doesn't like building as root by default.
 export ONNX_RUNTIME_BUILD_FLAGS=--allow_running_as_root
+# TODO: Only for linux aarch64
+ONNX_RUNTIME_BUILD_FLAGS="$ONNX_RUNTIME_BUILD_FLAGS --cmake_extra_defines onnxruntime_ENABLE_CPUINFO=OFF CMAKE_TOOLCHAIN_FILE=$TARGET_CMAKE_TOOLCHAIN_FILE_PATH"
 ./build.sh
 
 info "Test Magika CLI in the container."

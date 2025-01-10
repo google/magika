@@ -24,6 +24,9 @@ set -e
 if [ -e runtime ]; then
   info "Using cached static libraries."
 else
+  info "Install dependencies."
+  apt install patch
+
   info "Make sure we have Python 3.x and cmake-3.27 or higher."
   python3 -m venv venv
   source venv/bin/activate

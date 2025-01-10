@@ -21,12 +21,14 @@ jobs:
     strategy:
       matrix:
         platform:
+          # - runner: ubuntu-latest
+          #   target: x86_64
           - runner: ubuntu-latest
-            target: x86_64
-          - runner: windows-latest
-            target: x64
-          - runner: macos-14
             target: aarch64
+          # - runner: windows-latest
+          #   target: x64
+          # - runner: macos-14
+          #   target: aarch64
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python
@@ -78,28 +80,26 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Upload wheels
-        if: github.event_name != 'pull_request'
+        # if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
           path: dist
 
-  sdist:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # TODO(https://github.com/PyO3/maturin/issues/2244): Remove when released.
-      - run: rm rust/cli/README.md
-      - run: python3 ./python/scripts/fix_package_version.py
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out=../dist
-          working-directory: python
-      - name: Upload sdist
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-sdist
-          path: dist
+  # sdist:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: python3 ./python/scripts/fix_package_version.py
+  #     - name: Build sdist
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         command: sdist
+  #         args: --out=../dist
+  #         working-directory: python
+  #     - name: Upload sdist
+  #       # if: github.event_name != 'pull_request'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: wheels-sdist
+  #         path: dist

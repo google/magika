@@ -39,7 +39,7 @@ from magika.types import (
     Status,
 )
 
-DEFAULT_MODEL_NAME = "standard_v2_1"
+DEFAULT_MODEL_NAME = "standard_v3_0"
 
 
 class Magika:

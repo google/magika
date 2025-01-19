@@ -88,8 +88,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # TODO(https://github.com/PyO3/maturin/issues/2244): Remove when released.
-      - run: rm rust/cli/README.md
       - run: python3 ./python/scripts/fix_package_version.py
       - name: Build sdist
         uses: PyO3/maturin-action@v1

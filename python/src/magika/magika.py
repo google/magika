@@ -18,7 +18,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -118,8 +118,31 @@ class Magika:
             )
         return self._get_result_from_bytes(content)
 
-    def get_supported_content_types(self) -> List[ContentTypeLabel]:
-        return self._model_config.target_labels_space
+    def get_output_content_types(self) -> List[ContentTypeLabel]:
+        """This method returns the list of all possible output content types of
+        the module.  This considers the list of possible outputs from the model
+        itself, but also keeps into account additional configuration such as
+        `override_map` and special content types such as
+        `ContentTypeLabel.EMPTY` or `ContentTypeLabel.SYMLINK`.
+        """
+
+        target_labels_space = self._model_config.target_labels_space
+        overwrite_map = self._model_config.overwrite_map
+
+        output_content_types: Set[ContentTypeLabel] = {
+            ContentTypeLabel.DIRECTORY,
+            ContentTypeLabel.EMPTY,
+            ContentTypeLabel.SYMLINK,
+            ContentTypeLabel.TXT,
+            ContentTypeLabel.UNKNOWN,
+        }
+        for ct in target_labels_space:
+            # Check if we would overwrite this target label; if not, use the
+            # target label itself.
+            output_ct = overwrite_map.get(ct, ct)
+            output_content_types.add(output_ct)
+
+        return sorted(output_content_types)
 
     @staticmethod
     def _get_default_model_name() -> str:

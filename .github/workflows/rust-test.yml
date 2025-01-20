@@ -26,6 +26,7 @@ jobs:
         working-directory: rust
   test:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.toolchain == 'nightly' }}
     strategy:
       matrix:
         toolchain: [stable, nightly]

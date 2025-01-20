@@ -2,6 +2,10 @@
 
 ## 0.1.0-rc.3-dev
 
+### Minor
+
+- Use the `standard_v3_0` model instead of `standard_v2_1`
+
 ### Patch
 
 - Update dependencies

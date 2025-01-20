@@ -9,6 +9,11 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+
+- Upgrade model from `standard_v2_1` to `standard_v3_0`. This should result in a 3x faster inference speed, with the same overall accuracy. This new model should also be ~20% faster than `standard_v1`.
+- API change: `get_supported_content_types()` => `get_output_content_types()`. This API now returns the list of all possible outputs by the module (which differs from the list of outputs of the model). This is likely what is more important for clients.
+
 ## [0.6.0-rc3] - 2024-11-20
 
 - Fixed problems with installing Magika via `uv` on MacOS.

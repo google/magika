@@ -18,7 +18,10 @@
 use crate::file::TypeInfo;
 
 /// Model name (only comparable with equality).
-pub const MODEL_NAME: &str = "standard_v2_1";
+pub const MODEL_NAME: &str = "standard_v3_0";
+
+/// Model compatibility version.
+pub const MODEL_COMPAT: u32 = 3;
 
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",
@@ -1370,6 +1373,24 @@ pub(crate) static R: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static RANDOMBYTES: TypeInfo = TypeInfo {
+    label: "randombytes",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "Random bytes",
+    extensions: &[],
+    is_text: false,
+};
+
+pub(crate) static RANDOMTXT: TypeInfo = TypeInfo {
+    label: "randomtxt",
+    mime_type: "text/plain",
+    group: "text",
+    description: "Random text",
+    extensions: &[],
+    is_text: true,
+};
+
 pub(crate) static RAR: TypeInfo = TypeInfo {
     label: "rar",
     mime_type: "application/x-rar",
@@ -1602,6 +1623,15 @@ pub(crate) static SYMLINK: TypeInfo = TypeInfo {
     description: "Symbolic link",
     extensions: &[],
     is_text: false,
+};
+
+pub(crate) static SYMLINKTEXT: TypeInfo = TypeInfo {
+    label: "symlinktext",
+    mime_type: "text/plain",
+    group: "application",
+    description: "Symbolic link (textual representation)",
+    extensions: &[],
+    is_text: true,
 };
 
 pub(crate) static TAR: TypeInfo = TypeInfo {
@@ -2275,6 +2305,10 @@ pub enum ContentType {
     Qt,
     /// R (language)
     R,
+    /// Random bytes
+    Randombytes,
+    /// Random text
+    Randomtxt,
     /// RAR archive data
     Rar,
     /// Resource Description Framework document (RDF)
@@ -2325,6 +2359,8 @@ pub enum ContentType {
     Swf,
     /// Swift
     Swift,
+    /// Symbolic link (textual representation)
+    Symlinktext,
     /// POSIX tar archive
     Tar,
     /// Tickle
@@ -2410,7 +2446,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 215;
+    pub(crate) const SIZE: usize = 218;
 
     /// Returns the content type information.
     pub fn info(self) -> &'static TypeInfo {
@@ -2564,6 +2600,8 @@ impl ContentType {
             ContentType::Pytorch => &PYTORCH,
             ContentType::Qt => &QT,
             ContentType::R => &R,
+            ContentType::Randombytes => &RANDOMBYTES,
+            ContentType::Randomtxt => &RANDOMTXT,
             ContentType::Rar => &RAR,
             ContentType::Rdf => &RDF,
             ContentType::Rpm => &RPM,
@@ -2589,6 +2627,7 @@ impl ContentType {
             ContentType::Svg => &SVG,
             ContentType::Swf => &SWF,
             ContentType::Swift => &SWIFT,
+            ContentType::Symlinktext => &SYMLINKTEXT,
             ContentType::Tar => &TAR,
             ContentType::Tcl => &TCL,
             ContentType::Textproto => &TEXTPROTO,

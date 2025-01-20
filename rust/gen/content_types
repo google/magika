@@ -148,6 +148,8 @@ pythonbytecode
 pytorch
 qt
 r
+randombytes
+randomtxt
 rar
 rdf
 rpm
@@ -174,6 +176,7 @@ svg
 swf
 swift
 symlink
+symlinktext
 tar
 tcl
 textproto

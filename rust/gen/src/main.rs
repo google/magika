@@ -55,6 +55,8 @@ fn generate_content_types(
     writeln!(output, "use crate::file::TypeInfo;\n")?;
     writeln!(output, "/// Model name (only comparable with equality).")?;
     writeln!(output, "pub const MODEL_NAME: &str = {model_name:?};\n")?;
+    writeln!(output, "/// Model compatibility version.")?;
+    writeln!(output, "pub const MODEL_COMPAT: u32 = {};\n", model_config.version_major)?;
     struct Variant {
         label: String,
         doc: String,
@@ -120,6 +122,7 @@ fn generate_model_config(content_types: &[String], model_config: ModelConfig) ->
         target_labels_space,
         thresholds,
         overwrite_map,
+        version_major: _,
     } = model_config;
     let mut output = create_generated_file("../lib/src/model.rs")?;
     writeln!(output, "use std::borrow::Cow;\n")?;
@@ -208,6 +211,7 @@ struct ModelConfig {
     target_labels_space: Vec<String>,
     thresholds: BTreeMap<String, f32>,
     overwrite_map: BTreeMap<String, String>,
+    version_major: u32,
 }
 
 fn enum_name(xs: &str) -> String {

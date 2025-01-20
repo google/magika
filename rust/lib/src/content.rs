@@ -20,8 +20,8 @@ use crate::file::TypeInfo;
 /// Model name (only comparable with equality).
 pub const MODEL_NAME: &str = "standard_v3_0";
 
-/// Model compatibility version.
-pub const MODEL_COMPAT: u32 = 3;
+/// Model major version.
+pub const MODEL_MAJOR_VERSION: u32 = 3;
 
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",

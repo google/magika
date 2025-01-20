@@ -6,7 +6,7 @@
 
 - Use the `standard_v3_0` model instead of `standard_v2_1`
 - Add content types `ContentType::{Random{bytes,txt},Symlinktext}`
-- Add a `MODEL_COMPAT` integer in addition to the `MODEL_NAME` string
+- Add a `MODEL_MAJOR_VERSION` integer in addition to the `MODEL_NAME` string
 
 ### Patch
 

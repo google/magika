@@ -55,8 +55,8 @@ fn generate_content_types(
     writeln!(output, "use crate::file::TypeInfo;\n")?;
     writeln!(output, "/// Model name (only comparable with equality).")?;
     writeln!(output, "pub const MODEL_NAME: &str = {model_name:?};\n")?;
-    writeln!(output, "/// Model compatibility version.")?;
-    writeln!(output, "pub const MODEL_COMPAT: u32 = {};\n", model_config.version_major)?;
+    writeln!(output, "/// Model major version.")?;
+    writeln!(output, "pub const MODEL_MAJOR_VERSION: u32 = {};\n", model_config.version_major)?;
     struct Variant {
         label: String,
         doc: String,

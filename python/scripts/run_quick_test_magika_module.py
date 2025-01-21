@@ -54,6 +54,7 @@ def main() -> None:
         res = m.identify_path(file_path)
         output_label = res.output.label
         expected_label = file_path.parent.name
+        print(file_path, res.dl.label, res.output.label, res.score)
         if expected_label != output_label:
             with_error = True
             print(

@@ -1625,15 +1625,6 @@ pub(crate) static SYMLINK: TypeInfo = TypeInfo {
     is_text: false,
 };
 
-pub(crate) static SYMLINKTEXT: TypeInfo = TypeInfo {
-    label: "symlinktext",
-    mime_type: "text/plain",
-    group: "application",
-    description: "Symbolic link (textual representation)",
-    extensions: &[],
-    is_text: true,
-};
-
 pub(crate) static TAR: TypeInfo = TypeInfo {
     label: "tar",
     mime_type: "application/x-tar",
@@ -2359,8 +2350,6 @@ pub enum ContentType {
     Swf,
     /// Swift
     Swift,
-    /// Symbolic link (textual representation)
-    Symlinktext,
     /// POSIX tar archive
     Tar,
     /// Tickle
@@ -2446,7 +2435,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 218;
+    pub(crate) const SIZE: usize = 217;
 
     /// Returns the content type information.
     pub fn info(self) -> &'static TypeInfo {
@@ -2627,7 +2616,6 @@ impl ContentType {
             ContentType::Svg => &SVG,
             ContentType::Swf => &SWF,
             ContentType::Swift => &SWIFT,
-            ContentType::Symlinktext => &SYMLINKTEXT,
             ContentType::Tar => &TAR,
             ContentType::Tcl => &TCL,
             ContentType::Textproto => &TEXTPROTO,

@@ -12,7 +12,8 @@ semver guidelines for more details about this.
 ## [Unreleased]
 
 - Upgrade model from `standard_v2_1` to `standard_v3_0`. This should result in a 3x faster inference speed, with the same overall accuracy. This new model should also be ~20% faster than `standard_v1`.
-- API change: `get_supported_content_types()` => `get_output_content_types()`. This API now returns the list of all possible outputs by the module (which differs from the list of outputs of the model). This is likely what is more important for clients.
+- New API: `get_output_content_types()`. This API returns the list of all possible outputs by the module. I.e., all possible values for `MagikaResult.prediction.output.label`. This is the list that is relevant for most clients.
+- New API: `get_model_content_types()`. This API returns the list of all possible outputs of the deep learning model. I.e., all possible values for `MagikaResult.prediction.dl.label`. Note that, in general, the list of "model outputs" is different than the "tool outputs" as in some cases the model is not even used, or the model's output is overwritten due to a low-confidence score, or other reasons. This API is useful mostly for debugging purposes; the vast majority of client should use `get_output_content_types()`.
 
 ## [0.6.0-rc3] - 2024-11-20
 

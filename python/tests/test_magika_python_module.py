@@ -493,11 +493,42 @@ def test_access_backward_compatibility_layer() -> None:
         assert res.output.magic == res.prediction.output.description
 
 
-def test_get_supported_content_types() -> None:
+def test_get_model_and_output_content_types() -> None:
     m = Magika()
-    content_types = m.get_supported_content_types()
-    for ct in content_types:
+    output_content_types = m.get_output_content_types()
+    output_content_types_set = set(output_content_types)
+    model_content_types = m.get_model_content_types()
+    model_content_types_set = set(model_content_types)
+
+    for ct in output_content_types:
         assert isinstance(ct, ContentTypeLabel)
+
+    # Check for no duplicates
+    assert len(output_content_types) == len(output_content_types_set)
+
+    # Check basic properties about special ContentTypeLabel entries
+    special_output_content_types = {
+        ContentTypeLabel.DIRECTORY,
+        ContentTypeLabel.EMPTY,
+        ContentTypeLabel.SYMLINK,
+        ContentTypeLabel.TXT,
+        ContentTypeLabel.UNKNOWN,
+    }
+    special_model_content_types = {ContentTypeLabel.UNDEFINED}
+    assert special_output_content_types.issubset(output_content_types_set)
+    assert not special_model_content_types.issubset(output_content_types_set)
+    assert special_model_content_types.issubset(model_content_types_set)
+    assert not special_output_content_types.issubset(model_content_types_set)
+
+    # Spot check for popular content types
+    assert {
+        ContentTypeLabel.ELF,
+        ContentTypeLabel.PDF,
+    }.issubset(output_content_types_set)
+    assert {
+        ContentTypeLabel.ELF,
+        ContentTypeLabel.PDF,
+    }.issubset(model_content_types_set)
 
 
 def get_expected_content_type_label_from_test_file_path(

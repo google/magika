@@ -38,7 +38,7 @@ def main() -> None:
     assert basic_tests_dir.is_dir()
 
     p = subprocess.run(
-        ["magika", "-r", "--label", str(basic_tests_dir)],
+        ["magika", "-r", "--label", str(basic_tests_dir), "-s"],
         capture_output=True,
         text=True,
     )
@@ -54,6 +54,7 @@ def main() -> None:
     with_error = False
     lines = p.stdout.split("\n")
     for line in lines:
+        print(line)
         line = line.strip()
         if line == "":
             continue

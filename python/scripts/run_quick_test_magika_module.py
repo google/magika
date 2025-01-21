@@ -50,6 +50,9 @@ def main() -> None:
     with_error = False
     for file_path in files_paths:
         res = m.identify_path(file_path)
+        print(
+            file_path, res.prediction.dl.label, res.prediction.output.label, res.score
+        )
         output_label = res.output.label
         expected_label = file_path.parent.name
         if expected_label != output_label:

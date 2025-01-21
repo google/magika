@@ -24,4 +24,7 @@ jobs:
         working-directory: rust/cli
       - run: rust/target/release/magika --json -r tests_data/basic
       # - run: python3 ./python/scripts/run_quick_test_magika_cli.py
-      - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      # - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      - name: Run "magika module" quick tests
+        working-directory: python
+        run: uv run --python 3.12 scripts/run_quick_test_magika_module.py

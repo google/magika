@@ -73,7 +73,7 @@ jobs:
       - name: Install wheels
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
       - run: magika --version
-      - run: "python3 -c 'import magika; m = magika.Magika(); print(f\"Package version: {magika.__version__}\"); print(f\"Model name: {m.get_model_dir_name()}\")'"
+      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: magika -r tests_data/basic
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
         # Windows' onnxruntime/ort returns different results wrt. Linux/MacOS. For

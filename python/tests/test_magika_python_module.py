@@ -531,34 +531,6 @@ def test_get_model_and_output_content_types() -> None:
     }.issubset(model_content_types_set)
 
 
-def test_get_model_content_types() -> None:
-    m = Magika()
-    model_content_types = m.get_model_content_types()
-    model_content_types_set = set(model_content_types)
-
-    for ct in model_content_types:
-        assert isinstance(ct, ContentTypeLabel)
-
-    # Check for no duplicates
-    assert len(model_content_types) == len(model_content_types_set)
-
-    # Check basic properties about the special ContentTypeLabel
-    assert not {
-        ContentTypeLabel.DIRECTORY,
-        ContentTypeLabel.EMPTY,
-        ContentTypeLabel.SYMLINK,
-        ContentTypeLabel.TXT,
-        ContentTypeLabel.UNKNOWN,
-    }.issubset(model_content_types_set)
-    assert ContentTypeLabel.UNDEFINED not in model_content_types_set
-
-    # Spot check for popular content types
-    assert {
-        ContentTypeLabel.ELF,
-        ContentTypeLabel.PDF,
-    }.issubset(model_content_types_set)
-
-
 def get_expected_content_type_label_from_test_file_path(
     test_path: Path,
 ) -> ContentTypeLabel:

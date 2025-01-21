@@ -1,0 +1,47 @@
+name: POC for debugging windows onnxruntime diff
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  run-inference:
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Disable automatic git CRLF conversion
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: Install magika with pip
+        run: python3 -m pip install magika==0.6.0rc3
+      - run: python3 -c "import magika, pathlib; m = magika.Magika(); res = m.identify_path(pathlib.Path('tests_data/basic/python/code.py')); print(res)"
+      - run: python3 ./python/scripts/extract_features.py
+
+      # do hexdump
+      - if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Format-Hex tests_data/basic/python/code.py
+      - if: matrix.os == 'ubuntu-latest'
+        run: hexdump -C tests_data/basic/python/code.py
+
+      # get the hash
+      - if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Get-FileHash tests_data/basic/python/code.py
+      - if: matrix.os == 'ubuntu-latest'
+        run: sha256sum tests_data/basic/python/code.py
+      - if: matrix.os == 'macos-latest'
+        run: shasum -a256 tests_data/basic/python/code.py
+

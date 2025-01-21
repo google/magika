@@ -47,7 +47,7 @@ jobs:
           uv add --prerelease ".\$wheel"
       - name: Install magika with pip
         run: python3 -m pip install --pre magika
-      - run: python3 -c 'import magika; m = magika.Magika(); print(m); print(magika.__version__)'
+      - run: python3 -c 'import magika; m = magika.Magika(); print(m)'
       - run: magika --version
       # The latest published model does not necessarily support detection for
       # all types in our tests data; thus, for now we just check that the magika

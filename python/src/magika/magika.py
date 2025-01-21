@@ -100,6 +100,18 @@ class Magika:
 
         self._onnx_session = self._init_onnx_session()
 
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __str__(self) -> str:
+        return f'Magika(version="{self.get_version()}", model_name="{self.get_model_name()}")'
+
+    def get_version(self) -> str:
+        return str(__import__(self.__module__).__version__)
+
+    def get_model_name(self) -> str:
+        return self._model_dir.name
+
     def identify_path(self, path: Path) -> MagikaResult:
         if not isinstance(path, Path):
             raise TypeError("Input path should be of type Path")
@@ -171,9 +183,6 @@ class Magika:
         """
 
         return DEFAULT_MODEL_NAME
-
-    def get_model_dir_name(self) -> str:
-        return self._model_dir.name
 
     @staticmethod
     def _load_content_types_kb(

@@ -195,8 +195,10 @@ async fn main() -> Result<()> {
         });
     }
     drop(result_sender);
+    use std::io::Write;
+    let mut output = std::fs::File::create("output")?;
     if flags.format.json {
-        print!("[");
+        write!(output, "[")?;
     }
     let mut reorder = Reorder::default();
     let mut errors = false;
@@ -206,22 +208,22 @@ async fn main() -> Result<()> {
             errors |= response.result.is_err();
             if flags.format.json {
                 if reorder.next != 1 {
-                    print!(",");
+                    write!(output, ",")?;
                 }
                 for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
-                    print!("\n  {line}");
+                    write!(output, "\n  {line}")?;
                 }
             } else {
-                println!("{}", response.format(&flags)?);
+                writeln!(output, "{}", response.format(&flags)?)?;
             }
         }
     }
     debug_assert!(reorder.is_empty());
     if flags.format.json {
         if reorder.next != 0 {
-            println!();
+            writeln!(output)?;
         }
-        println!("]");
+        writeln!(output, "]")?;
     }
     if errors {
         std::process::exit(1);

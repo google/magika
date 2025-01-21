@@ -1,0 +1,2002 @@
+[
+  {
+    "path": "tests_data/basic/asm/code.asm",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Assembly",
+          "extensions": [
+            "s",
+            "S",
+            "asm"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "asm",
+          "mime_type": "text/x-asm"
+        },
+        "output": {
+          "description": "Assembly",
+          "extensions": [
+            "s",
+            "S",
+            "asm"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "asm",
+          "mime_type": "text/x-asm"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/batch/simple.bat",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "DOS batch file",
+          "extensions": [
+            "bat"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "batch",
+          "mime_type": "text/x-msdos-batch"
+        },
+        "output": {
+          "description": "DOS batch file",
+          "extensions": [
+            "bat"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "batch",
+          "mime_type": "text/x-msdos-batch"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/c/code.c",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "C source",
+          "extensions": [
+            "c"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "c",
+          "mime_type": "text/x-c"
+        },
+        "output": {
+          "description": "C source",
+          "extensions": [
+            "c"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "c",
+          "mime_type": "text/x-c"
+        },
+        "score": 0.984000027179718
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/css/code.css",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "CSS source",
+          "extensions": [
+            "css"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "css",
+          "mime_type": "text/css"
+        },
+        "output": {
+          "description": "CSS source",
+          "extensions": [
+            "css"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "css",
+          "mime_type": "text/css"
+        },
+        "score": 0.8899999856948853
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/csv/magika_test.csv",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "CSV document",
+          "extensions": [
+            "csv"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "csv",
+          "mime_type": "text/csv"
+        },
+        "output": {
+          "description": "CSV document",
+          "extensions": [
+            "csv"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "csv",
+          "mime_type": "text/csv"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/dockerfile/Dockerfile",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Dockerfile",
+          "extensions": [],
+          "group": "code",
+          "is_text": true,
+          "label": "dockerfile",
+          "mime_type": "text/x-dockerfile"
+        },
+        "output": {
+          "description": "Dockerfile",
+          "extensions": [],
+          "group": "code",
+          "is_text": true,
+          "label": "dockerfile",
+          "mime_type": "text/x-dockerfile"
+        },
+        "score": 0.9980000257492065
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/docx/doc.docx",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Microsoft Word 2007+ document",
+          "extensions": [
+            "docx",
+            "docm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "docx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "output": {
+          "description": "Microsoft Word 2007+ document",
+          "extensions": [
+            "docx",
+            "docm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "docx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/docx/magika_test.docx",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Microsoft Word 2007+ document",
+          "extensions": [
+            "docx",
+            "docm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "docx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "output": {
+          "description": "Microsoft Word 2007+ document",
+          "extensions": [
+            "docx",
+            "docm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "docx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/epub/doc.epub",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "EPUB document",
+          "extensions": [
+            "epub"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "epub",
+          "mime_type": "application/epub+zip"
+        },
+        "output": {
+          "description": "EPUB document",
+          "extensions": [
+            "epub"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "epub",
+          "mime_type": "application/epub+zip"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/epub/magika_test.epub",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "EPUB document",
+          "extensions": [
+            "epub"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "epub",
+          "mime_type": "application/epub+zip"
+        },
+        "output": {
+          "description": "EPUB document",
+          "extensions": [
+            "epub"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "epub",
+          "mime_type": "application/epub+zip"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/flac/test.flac",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "FLAC audio bitstream data",
+          "extensions": [
+            "flac"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "flac",
+          "mime_type": "audio/flac"
+        },
+        "output": {
+          "description": "FLAC audio bitstream data",
+          "extensions": [
+            "flac"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "flac",
+          "mime_type": "audio/flac"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/handlebars/example.handlebars",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Handlebars source",
+          "extensions": [
+            "hbs",
+            "handlebars"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "handlebars",
+          "mime_type": "text/x-handlebars-template"
+        },
+        "output": {
+          "description": "Handlebars source",
+          "extensions": [
+            "hbs",
+            "handlebars"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "handlebars",
+          "mime_type": "text/x-handlebars-template"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/html/doc.html",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "HTML document",
+          "extensions": [
+            "html",
+            "htm",
+            "xhtml",
+            "xht"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "html",
+          "mime_type": "text/html"
+        },
+        "output": {
+          "description": "HTML document",
+          "extensions": [
+            "html",
+            "htm",
+            "xhtml",
+            "xht"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "html",
+          "mime_type": "text/html"
+        },
+        "score": 0.9419999718666077
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/ini/doc.ini",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "INI configuration file",
+          "extensions": [
+            "ini"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "ini",
+          "mime_type": "text/plain"
+        },
+        "output": {
+          "description": "INI configuration file",
+          "extensions": [
+            "ini"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "ini",
+          "mime_type": "text/plain"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/javascript/code.js",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "JavaScript source",
+          "extensions": [
+            "js",
+            "mjs",
+            "cjs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "javascript",
+          "mime_type": "application/javascript"
+        },
+        "output": {
+          "description": "JavaScript source",
+          "extensions": [
+            "js",
+            "mjs",
+            "cjs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "javascript",
+          "mime_type": "application/javascript"
+        },
+        "score": 0.9679999947547913
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/jinja/example.j2",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Jinja template",
+          "extensions": [
+            "jinja",
+            "jinja2",
+            "j2"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "jinja",
+          "mime_type": "text/x-jinja2-template"
+        },
+        "output": {
+          "description": "Jinja template",
+          "extensions": [
+            "jinja",
+            "jinja2",
+            "j2"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "jinja",
+          "mime_type": "text/x-jinja2-template"
+        },
+        "score": 0.9739999771118164
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/jpeg/magika_test.jpg",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "JPEG image data",
+          "extensions": [
+            "jpg",
+            "jpeg"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "jpeg",
+          "mime_type": "image/jpeg"
+        },
+        "output": {
+          "description": "JPEG image data",
+          "extensions": [
+            "jpg",
+            "jpeg"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "jpeg",
+          "mime_type": "image/jpeg"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/json/doc.json",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "JSON document",
+          "extensions": [
+            "json"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "json",
+          "mime_type": "application/json"
+        },
+        "output": {
+          "description": "JSON document",
+          "extensions": [
+            "json"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "json",
+          "mime_type": "application/json"
+        },
+        "score": 0.8240000009536743
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/latex/sample.tex",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "LaTeX document",
+          "extensions": [
+            "tex",
+            "sty"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "latex",
+          "mime_type": "text/x-tex"
+        },
+        "output": {
+          "description": "LaTeX document",
+          "extensions": [
+            "tex",
+            "sty"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "latex",
+          "mime_type": "text/x-tex"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/makefile/simple.Makefile",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Makefile source",
+          "extensions": [],
+          "group": "code",
+          "is_text": true,
+          "label": "makefile",
+          "mime_type": "text/x-makefile"
+        },
+        "output": {
+          "description": "Makefile source",
+          "extensions": [],
+          "group": "code",
+          "is_text": true,
+          "label": "makefile",
+          "mime_type": "text/x-makefile"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/markdown/README.md",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "output": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "score": 0.9869999885559082
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/markdown/magika_test.md",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "output": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "score": 0.9890000224113464
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/markdown/simple.md",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "output": {
+          "description": "Markdown document",
+          "extensions": [
+            "md",
+            "markdown"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "markdown",
+          "mime_type": "text/markdown"
+        },
+        "score": 0.7900000214576721
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/mp3/test.mp3",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "MP3 media file",
+          "extensions": [
+            "mp3"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "mp3",
+          "mime_type": "audio/mpeg"
+        },
+        "output": {
+          "description": "MP3 media file",
+          "extensions": [
+            "mp3"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "mp3",
+          "mime_type": "audio/mpeg"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/odp/magika_test.odp",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "OpenDocument Presentation",
+          "extensions": [
+            "odp"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odp",
+          "mime_type": "application/vnd.oasis.opendocument.presentation"
+        },
+        "output": {
+          "description": "OpenDocument Presentation",
+          "extensions": [
+            "odp"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odp",
+          "mime_type": "application/vnd.oasis.opendocument.presentation"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/ods/magika_test.ods",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "OpenDocument Spreadsheet",
+          "extensions": [
+            "ods"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "ods",
+          "mime_type": "application/vnd.oasis.opendocument.spreadsheet"
+        },
+        "output": {
+          "description": "OpenDocument Spreadsheet",
+          "extensions": [
+            "ods"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "ods",
+          "mime_type": "application/vnd.oasis.opendocument.spreadsheet"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/odt/doc.odt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "OpenDocument Text",
+          "extensions": [
+            "odt"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odt",
+          "mime_type": "application/vnd.oasis.opendocument.text"
+        },
+        "output": {
+          "description": "OpenDocument Text",
+          "extensions": [
+            "odt"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odt",
+          "mime_type": "application/vnd.oasis.opendocument.text"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/odt/magika_test.odt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "OpenDocument Text",
+          "extensions": [
+            "odt"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odt",
+          "mime_type": "application/vnd.oasis.opendocument.text"
+        },
+        "output": {
+          "description": "OpenDocument Text",
+          "extensions": [
+            "odt"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "odt",
+          "mime_type": "application/vnd.oasis.opendocument.text"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/ogg/test.ogg",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Ogg data",
+          "extensions": [
+            "ogg"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "ogg",
+          "mime_type": "audio/ogg"
+        },
+        "output": {
+          "description": "Ogg data",
+          "extensions": [
+            "ogg"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "ogg",
+          "mime_type": "audio/ogg"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/pdf/magika_test.pdf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "output": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/pdf/magika_test_pptx.pdf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "output": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/pdf/magika_test_xlsx.pdf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "output": {
+          "description": "PDF document",
+          "extensions": [
+            "pdf"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pdf",
+          "mime_type": "application/pdf"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/pem/doc.pem",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "output": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/pem/doc.pub",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "output": {
+          "description": "PEM certificate",
+          "extensions": [
+            "pem",
+            "pub",
+            "gpg"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "pem",
+          "mime_type": "application/x-pem-file"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/png/magika_test.png",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "PNG image",
+          "extensions": [
+            "png"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "png",
+          "mime_type": "image/png"
+        },
+        "output": {
+          "description": "PNG image",
+          "extensions": [
+            "png"
+          ],
+          "group": "image",
+          "is_text": false,
+          "label": "png",
+          "mime_type": "image/png"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/pptx/magika_test.pptx",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Microsoft PowerPoint 2007+ document",
+          "extensions": [
+            "pptx",
+            "pptm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pptx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        },
+        "output": {
+          "description": "Microsoft PowerPoint 2007+ document",
+          "extensions": [
+            "pptx",
+            "pptm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "pptx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        },
+        "score": 0.9980000257492065
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/python/code.py",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Python source",
+          "extensions": [
+            "py",
+            "pyi"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "python",
+          "mime_type": "text/x-python"
+        },
+        "output": {
+          "description": "Python source",
+          "extensions": [
+            "py",
+            "pyi"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "python",
+          "mime_type": "text/x-python"
+        },
+        "score": 0.753000020980835
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/pytorch/example.pth",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Pytorch storage file",
+          "extensions": [
+            "pt",
+            "pth"
+          ],
+          "group": "application",
+          "is_text": false,
+          "label": "pytorch",
+          "mime_type": "application/octet-stream"
+        },
+        "output": {
+          "description": "Pytorch storage file",
+          "extensions": [
+            "pt",
+            "pth"
+          ],
+          "group": "application",
+          "is_text": false,
+          "label": "pytorch",
+          "mime_type": "application/octet-stream"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/rtf/doc.rtf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "output": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/rtf/magika_test.rtf",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "output": {
+          "description": "Rich Text Format document",
+          "extensions": [
+            "rtf"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "rtf",
+          "mime_type": "text/rtf"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/rust/asm.rs",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "output": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/rust/code.rs",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "output": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "score": 0.9950000047683716
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/rust/test_case1.rs",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "output": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "score": 0.9869999885559082
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/rust/test_case2.rs",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "output": {
+          "description": "Rust source",
+          "extensions": [
+            "rs"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "rust",
+          "mime_type": "application/x-rust"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/smali/code.smali",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Smali source",
+          "extensions": [
+            "smali"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "smali",
+          "mime_type": "application/x-smali"
+        },
+        "output": {
+          "description": "Smali source",
+          "extensions": [
+            "smali"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "smali",
+          "mime_type": "application/x-smali"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/srt/code.srt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "SubRip Text Format",
+          "extensions": [
+            "srt"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "srt",
+          "mime_type": "text/srt"
+        },
+        "output": {
+          "description": "SubRip Text Format",
+          "extensions": [
+            "srt"
+          ],
+          "group": "application",
+          "is_text": true,
+          "label": "srt",
+          "mime_type": "text/srt"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/svg/magika_test.svg",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "SVG Scalable Vector Graphics image data",
+          "extensions": [
+            "svg"
+          ],
+          "group": "image",
+          "is_text": true,
+          "label": "svg",
+          "mime_type": "image/svg+xml"
+        },
+        "output": {
+          "description": "SVG Scalable Vector Graphics image data",
+          "extensions": [
+            "svg"
+          ],
+          "group": "image",
+          "is_text": true,
+          "label": "svg",
+          "mime_type": "image/svg+xml"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/toml/doc.toml",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Tom's obvious, minimal language",
+          "extensions": [
+            "toml"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "toml",
+          "mime_type": "application/toml"
+        },
+        "output": {
+          "description": "Tom's obvious, minimal language",
+          "extensions": [
+            "toml"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "toml",
+          "mime_type": "application/toml"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/tsv/magika_test.tsv",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "TSV document",
+          "extensions": [
+            "tsv"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "tsv",
+          "mime_type": "text/tsv"
+        },
+        "output": {
+          "description": "TSV document",
+          "extensions": [
+            "tsv"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "tsv",
+          "mime_type": "text/tsv"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/twig/example.twig",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Twig template",
+          "extensions": [
+            "twig"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "twig",
+          "mime_type": "text/x-twig"
+        },
+        "output": {
+          "description": "Twig template",
+          "extensions": [
+            "twig"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "twig",
+          "mime_type": "text/x-twig"
+        },
+        "score": 0.9350000023841858
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/complex-sentence.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "LaTeX document",
+          "extensions": [
+            "tex",
+            "sty"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "latex",
+          "mime_type": "text/x-tex"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.35199999809265137
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/few-words.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Handlebars source",
+          "extensions": [
+            "hbs",
+            "handlebars"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "handlebars",
+          "mime_type": "text/x-handlebars-template"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.21699999272823334
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/lorem-big.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.4869999885559082
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/lorem-small.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.7279999852180481
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/magika_test_pptx.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.2150000035762787
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/many-words.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "LaTeX document",
+          "extensions": [
+            "tex",
+            "sty"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "latex",
+          "mime_type": "text/x-tex"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.34599998593330383
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/one-sentence-with-newline.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "LaTeX document",
+          "extensions": [
+            "tex",
+            "sty"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "latex",
+          "mime_type": "text/x-tex"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.6660000085830688
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/one-sentence.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "LaTeX document",
+          "extensions": [
+            "tex",
+            "sty"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "latex",
+          "mime_type": "text/x-tex"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.6959999799728394
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/txt/random-ascii.txt",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "output": {
+          "description": "Generic text document",
+          "extensions": [
+            "txt"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "txt",
+          "mime_type": "text/plain"
+        },
+        "score": 0.5619999766349792
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/typescript/code.ts",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Typescript",
+          "extensions": [
+            "ts",
+            "mts",
+            "cts"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "typescript",
+          "mime_type": "application/typescript"
+        },
+        "output": {
+          "description": "Typescript",
+          "extensions": [
+            "ts",
+            "mts",
+            "cts"
+          ],
+          "group": "text",
+          "is_text": true,
+          "label": "typescript",
+          "mime_type": "application/typescript"
+        },
+        "score": 0.9819999933242798
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/wav/test.wav",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Waveform Audio file (WAV)",
+          "extensions": [
+            "wav"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "wav",
+          "mime_type": "audio/x-wav"
+        },
+        "output": {
+          "description": "Waveform Audio file (WAV)",
+          "extensions": [
+            "wav"
+          ],
+          "group": "audio",
+          "is_text": false,
+          "label": "wav",
+          "mime_type": "audio/x-wav"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/xlsx/magika_test.xlsx",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Microsoft Excel 2007+ document",
+          "extensions": [
+            "xlsx",
+            "xlsm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "xlsx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        "output": {
+          "description": "Microsoft Excel 2007+ document",
+          "extensions": [
+            "xlsx",
+            "xlsm"
+          ],
+          "group": "document",
+          "is_text": false,
+          "label": "xlsx",
+          "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        "score": 0.9980000257492065
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/yaml/dependabot.yml",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "YAML source",
+          "extensions": [
+            "yml",
+            "yaml"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "yaml",
+          "mime_type": "application/x-yaml"
+        },
+        "output": {
+          "description": "YAML source",
+          "extensions": [
+            "yml",
+            "yaml"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "yaml",
+          "mime_type": "application/x-yaml"
+        },
+        "score": 0.996999979019165
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/yaml/python-test.yml",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "YAML source",
+          "extensions": [
+            "yml",
+            "yaml"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "yaml",
+          "mime_type": "application/x-yaml"
+        },
+        "output": {
+          "description": "YAML source",
+          "extensions": [
+            "yml",
+            "yaml"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "yaml",
+          "mime_type": "application/x-yaml"
+        },
+        "score": 0.9950000047683716
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/yara/rule.yar",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "YARA rule",
+          "extensions": [
+            "yar",
+            "yara"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "yara",
+          "mime_type": "text/x-yara"
+        },
+        "output": {
+          "description": "YARA rule",
+          "extensions": [
+            "yar",
+            "yara"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "yara",
+          "mime_type": "text/x-yara"
+        },
+        "score": 1.0
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/zig/code.zig",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zig source",
+          "extensions": [
+            "zig"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "zig",
+          "mime_type": "text/zig"
+        },
+        "output": {
+          "description": "Zig source",
+          "extensions": [
+            "zig"
+          ],
+          "group": "code",
+          "is_text": true,
+          "label": "zig",
+          "mime_type": "text/zig"
+        },
+        "score": 0.9990000128746033
+      }
+    }
+  },
+  {
+    "path": "tests_data/basic/zip/magika_test.zip",
+    "result": {
+      "status": "ok",
+      "value": {
+        "dl": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "output": {
+          "description": "Zip archive data",
+          "extensions": [
+            "zip"
+          ],
+          "group": "archive",
+          "is_text": false,
+          "label": "zip",
+          "mime_type": "application/zip"
+        },
+        "score": 0.9919999837875366
+      }
+    }
+  }
+]

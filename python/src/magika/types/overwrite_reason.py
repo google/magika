@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import annotations
 
-from dataclasses import dataclass
+import enum
 
-from magika.types.content_type_info import ContentTypeInfo
-from magika.types.overwrite_reason import OverwriteReason
+from magika.types.strenum import LowerCaseStrEnum
 
 
-@dataclass(frozen=True)
-class MagikaPrediction:
-    dl: ContentTypeInfo
-    output: ContentTypeInfo
-    score: float
-    overwrite_reason: OverwriteReason
+class OverwriteReason(LowerCaseStrEnum):
+    NONE = enum.auto()
+    LOW_CONFIDENCE = enum.auto()
+    OVERWRITE_MAP = enum.auto()

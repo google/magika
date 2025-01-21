@@ -4,8 +4,9 @@
 
 ### Minor
 
-- Use the `standard_v3_0` model instead of `standard_v2_1`
-- Add content types `ContentType::{Random{bytes,txt},Symlinktext}`
+- Use the `standard_v3_0` model instead of `standard_v2_1` (see [model changelog](TODO))
+- Add content types `ContentType::Random{bytes,txt}` (those are only returned in
+  `InferredType::content_type` and not in `RuledType::content_type`)
 - Add a `MODEL_MAJOR_VERSION` integer in addition to the `MODEL_NAME` string
 
 ### Patch

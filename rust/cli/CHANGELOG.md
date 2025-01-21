@@ -4,7 +4,7 @@
 
 ### Minor
 
-- Use the `standard_v3_0` model instead of `standard_v2_1`
+- Use the `standard_v3_0` model instead of `standard_v2_1` (see [model changelog](TODO))
 
 ### Patch
 

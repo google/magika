@@ -120,10 +120,11 @@ class Magika:
 
     def get_output_content_types(self) -> List[ContentTypeLabel]:
         """This method returns the list of all possible output content types of
-        the module.  This considers the list of possible outputs from the model
-        itself, but also keeps into account additional configuration such as
-        `override_map` and special content types such as
-        `ContentTypeLabel.EMPTY` or `ContentTypeLabel.SYMLINK`.
+        the module. I.e., all possible values for
+        `MagikaResult.prediction.output.label`.  This considers the list of
+        possible outputs from the model itself, but also keeps into account
+        additional configuration such as `override_map` and special content
+        types such as `ContentTypeLabel.EMPTY` or `ContentTypeLabel.SYMLINK`.
         """
 
         target_labels_space = self._model_config.target_labels_space
@@ -143,6 +144,22 @@ class Magika:
             output_content_types.add(output_ct)
 
         return sorted(output_content_types)
+
+    def get_model_content_types(self) -> List[ContentTypeLabel]:
+        """This method returns the list of all possible output of the underlying
+        model. I.e., all possible values for `MagikaResult.prediction.dl.label`.
+        Note that, in general, the list of "model outputs" is different than the
+        "tool outputs" as in some cases the model is not even used, or the
+        model's output is overwritten due to a low-confidence score, or other
+        reasons.  This API is useful mostly for debugging purposes; the vast
+        majority of client should use `get_output_content_types()`.
+        """
+
+        model_content_types: Set[ContentTypeLabel] = {
+            ContentTypeLabel.UNDEFINED,
+        }
+        model_content_types.update(self._model_config.target_labels_space)
+        return sorted(model_content_types)
 
     @staticmethod
     def _get_default_model_name() -> str:

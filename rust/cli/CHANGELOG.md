@@ -4,7 +4,7 @@
 
 ### Minor
 
-- Use the `standard_v3_0` model instead of `standard_v2_1` (see [model changelog](TODO))
+- Use the `standard_v3_0` model instead of `standard_v2_1` (see [model changelog])
 
 ### Patch
 
@@ -43,3 +43,5 @@ ships a new model in comparison to the Python binary and we would love feedback 
 ## 0.0.0
 
 This version is a placeholder and does not expose anything.
+
+[model changelog]: https://github.com/google/magika/blob/main/assets/models/CHANGELOG.md

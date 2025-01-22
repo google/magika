@@ -24,6 +24,8 @@ jobs:
         os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Disable automatic git CRLF conversion
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
@@ -47,7 +49,7 @@ jobs:
           uv add --prerelease ".\$wheel"
       - name: Install magika with pip
         run: python3 -m pip install --pre magika
-      - run: python3 -c 'import magika; m = magika.Magika(); print(m); print(magika.__version__)'
+      - run: python3 -c 'import magika; m = magika.Magika(); print(m)'
       - run: magika --version
       # The latest published model does not necessarily support detection for
       # all types in our tests data; thus, for now we just check that the magika

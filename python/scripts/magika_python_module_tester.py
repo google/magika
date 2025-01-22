@@ -27,6 +27,7 @@ import click
 from magika import Magika, MagikaError, PredictionMode, colors
 from magika.logger import get_logger
 from magika.types import ContentTypeLabel, MagikaResult
+from magika.types.overwrite_reason import OverwriteReason
 
 VERSION = importlib.metadata.version("magika")
 
@@ -291,8 +292,10 @@ def main(
                             result.prediction.dl.label != ContentTypeLabel.UNDEFINED
                             and result.prediction.dl.label
                             != result.prediction.output.label
+                            and result.prediction.overwrite_reason
+                            == OverwriteReason.NONE
                         ):
-                            # it seems that we had a too-low confidence prediction
+                            # It seems that we had a low-confidence prediction
                             # from the model. Let's warn the user about our best
                             # bet.
                             output += (

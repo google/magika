@@ -26,7 +26,7 @@ fn main() -> Result<()> {
     let model_name = std::fs::read_link("model")?;
     let model_name = model_name
         .components()
-        .last()
+        .next_back()
         .context("model link")?
         .as_os_str()
         .to_str()

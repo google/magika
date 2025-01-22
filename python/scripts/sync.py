@@ -10,7 +10,10 @@ import click
 ASSETS_DIR = Path(__file__).parent.parent.parent / "assets"
 PYTHON_ROOT_DIR = Path(__file__).parent.parent
 
-PUBLISHED_MODELS_NAMES = ["standard_v2_1"]
+PUBLISHED_MODELS_NAMES = [
+    "standard_v2_1",
+    "standard_v3_0",
+]
 
 
 @click.command()

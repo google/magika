@@ -18,7 +18,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -35,11 +35,12 @@ from magika.types import (
     ModelConfig,
     ModelFeatures,
     ModelOutput,
+    OverwriteReason,
     PredictionMode,
     Status,
 )
 
-DEFAULT_MODEL_NAME = "standard_v2_1"
+DEFAULT_MODEL_NAME = "standard_v3_0"
 
 
 class Magika:
@@ -99,6 +100,18 @@ class Magika:
 
         self._onnx_session = self._init_onnx_session()
 
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __str__(self) -> str:
+        return f'Magika(version="{self.get_version()}", model_name="{self.get_model_name()}")'
+
+    def get_version(self) -> str:
+        return str(__import__(self.__module__).__version__)
+
+    def get_model_name(self) -> str:
+        return self._model_dir.name
+
     def identify_path(self, path: Path) -> MagikaResult:
         if not isinstance(path, Path):
             raise TypeError("Input path should be of type Path")
@@ -118,8 +131,48 @@ class Magika:
             )
         return self._get_result_from_bytes(content)
 
-    def get_supported_content_types(self) -> List[ContentTypeLabel]:
-        return self._model_config.target_labels_space
+    def get_output_content_types(self) -> List[ContentTypeLabel]:
+        """This method returns the list of all possible output content types of
+        the module. I.e., all possible values for
+        `MagikaResult.prediction.output.label`.  This considers the list of
+        possible outputs from the model itself, but also keeps into account
+        additional configuration such as `override_map` and special content
+        types such as `ContentTypeLabel.EMPTY` or `ContentTypeLabel.SYMLINK`.
+        """
+
+        target_labels_space = self._model_config.target_labels_space
+        overwrite_map = self._model_config.overwrite_map
+
+        output_content_types: Set[ContentTypeLabel] = {
+            ContentTypeLabel.DIRECTORY,
+            ContentTypeLabel.EMPTY,
+            ContentTypeLabel.SYMLINK,
+            ContentTypeLabel.TXT,
+            ContentTypeLabel.UNKNOWN,
+        }
+        for ct in target_labels_space:
+            # Check if we would overwrite this target label; if not, use the
+            # target label itself.
+            output_ct = overwrite_map.get(ct, ct)
+            output_content_types.add(output_ct)
+
+        return sorted(output_content_types)
+
+    def get_model_content_types(self) -> List[ContentTypeLabel]:
+        """This method returns the list of all possible output of the underlying
+        model. I.e., all possible values for `MagikaResult.prediction.dl.label`.
+        Note that, in general, the list of "model outputs" is different than the
+        "tool outputs" as in some cases the model is not even used, or the
+        model's output is overwritten due to a low-confidence score, or other
+        reasons.  This API is useful mostly for debugging purposes; the vast
+        majority of client should use `get_output_content_types()`.
+        """
+
+        model_content_types: Set[ContentTypeLabel] = {
+            ContentTypeLabel.UNDEFINED,
+        }
+        model_content_types.update(self._model_config.target_labels_space)
+        return sorted(model_content_types)
 
     @staticmethod
     def _get_default_model_name() -> str:
@@ -130,9 +183,6 @@ class Magika:
         """
 
         return DEFAULT_MODEL_NAME
-
-    def get_model_dir_name(self) -> str:
-        return self._model_dir.name
 
     @staticmethod
     def _load_content_types_kb(
@@ -535,8 +585,10 @@ class Magika:
             # both the raw DL model output and the final output we return to
             # the user.
 
-            output_ct_label = self._get_output_ct_label_from_dl_result(
-                model_output.ct_label, model_output.score
+            output_ct_label, overwrite_reason = (
+                self._get_output_ct_label_from_dl_result(
+                    model_output.ct_label, model_output.score
+                )
             )
 
             results[str(path)] = self._get_result_from_labels_and_score(
@@ -544,6 +596,7 @@ class Magika:
                 dl_ct_label=model_output.ct_label,
                 output_ct_label=output_ct_label,
                 score=model_output.score,
+                overwrite_reason=overwrite_reason,
             )
 
         return results
@@ -560,13 +613,18 @@ class Magika:
 
     def _get_output_ct_label_from_dl_result(
         self, dl_ct_label: ContentTypeLabel, score: float
-    ) -> ContentTypeLabel:
-        # overwrite ct_label if specified in the config
-        dl_ct_label = self._model_config.overwrite_map.get(dl_ct_label, dl_ct_label)
+    ) -> Tuple[ContentTypeLabel, OverwriteReason]:
+        overwrite_reason = OverwriteReason.NONE
+
+        # Overwrite dl_ct_label if specified in the overwrite_map model config
+        output_ct_label = self._model_config.overwrite_map.get(dl_ct_label, dl_ct_label)
+        if output_ct_label != dl_ct_label:
+            overwrite_reason = OverwriteReason.OVERWRITE_MAP
 
         if self._prediction_mode == PredictionMode.BEST_GUESS:
-            # We take the model predictions, no matter what the score is.
-            output_ct_label = dl_ct_label
+            # We take the (potentially overwritten) model prediction, no matter
+            # what the score is.
+            pass
         elif (
             self._prediction_mode == PredictionMode.HIGH_CONFIDENCE
             and score
@@ -575,27 +633,28 @@ class Magika:
             )
         ):
             # The model score is higher than the per-content-type
-            # high-confidence threshold.
-            output_ct_label = dl_ct_label
+            # high-confidence threshold, so we keep it.
+            pass
         elif (
             self._prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
             and score >= self._model_config.medium_confidence_threshold
         ):
-            # We take the model prediction only if the score is above a given
-            # relatively loose threshold.
-            output_ct_label = dl_ct_label
+            # The model score is higher than the generic medium-confidence
+            # threshold, so we keep it.
+            pass
         else:
             # We are not in a condition to trust the model, we opt to return
             # generic labels. Note that here we use an implicit assumption that
             # the model has, at the very least, got the binary vs. text category
             # right. This allows us to pick between unknown and txt without the
             # need to read or scan the file bytes once again.
-            if self._get_ct_info(dl_ct_label).is_text:
+            overwrite_reason = OverwriteReason.LOW_CONFIDENCE
+            if self._get_ct_info(output_ct_label).is_text:
                 output_ct_label = ContentTypeLabel.TXT
             else:
                 output_ct_label = ContentTypeLabel.UNKNOWN
 
-        return output_ct_label
+        return output_ct_label, overwrite_reason
 
     def _get_result_from_labels_and_score(
         self,
@@ -603,6 +662,7 @@ class Magika:
         dl_ct_label: ContentTypeLabel,
         output_ct_label: ContentTypeLabel,
         score: float,
+        overwrite_reason: OverwriteReason = OverwriteReason.NONE,
     ) -> MagikaResult:
         return MagikaResult(
             path=path,
@@ -610,6 +670,7 @@ class Magika:
                 dl=self._get_ct_info(dl_ct_label),
                 output=self._get_ct_info(output_ct_label),
                 score=score,
+                overwrite_reason=overwrite_reason,
             ),
         )
 

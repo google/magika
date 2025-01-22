@@ -31,6 +31,8 @@ from magika import ContentTypeLabel, Magika, PredictionMode
 def main() -> None:
     m = Magika(prediction_mode=PredictionMode.HIGH_CONFIDENCE)
 
+    print(f"Magika instance details: {m}")
+
     res = m.identify_bytes(b"text")
     assert res.dl.label == ContentTypeLabel.UNDEFINED
     assert res.output.label == ContentTypeLabel.TXT

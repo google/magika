@@ -28,8 +28,6 @@ jobs:
           - runner: macos-14
             target: aarch64
     steps:
-      - name: Disable automatic git CRLF conversion
-        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5

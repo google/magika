@@ -2,6 +2,13 @@
 
 ## 0.1.0-rc.3-dev
 
+### Minor
+
+- Use the `standard_v3_0` model instead of `standard_v2_1` (see [model changelog])
+- Add content types `ContentType::Random{bytes,txt}` (those are only returned in
+  `InferredType::content_type` and not in `RuledType::content_type`)
+- Add a `MODEL_MAJOR_VERSION` integer in addition to the `MODEL_NAME` string
+
 ### Patch
 
 - Update dependencies
@@ -27,3 +34,5 @@ ships a new model in comparison to the Python binary and we would love feedback 
 ## 0.0.0
 
 This version is a placeholder and does not expose anything.
+
+[model changelog]: https://github.com/google/magika/blob/main/assets/models/CHANGELOG.md

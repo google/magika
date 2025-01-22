@@ -21,9 +21,9 @@ use crate::config::ModelConfig;
 use crate::ContentType;
 
 pub(crate) const CONFIG: ModelConfig = ModelConfig {
-    beg_size: 2048,
+    beg_size: 1024,
     mid_size: 0,
-    end_size: 2048,
+    end_size: 1024,
     use_inputs_at_offsets: false,
     min_file_size_for_dl: 8,
     padding_token: 256,
@@ -33,7 +33,7 @@ pub(crate) const CONFIG: ModelConfig = ModelConfig {
 };
 
 #[rustfmt::skip]
-const THRESHOLDS: [f32; ContentType::SIZE] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.95, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.95, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+const THRESHOLDS: [f32; ContentType::SIZE] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.9, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.95, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.9, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.95, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
 const OVERWRITE_MAP: [ContentType; ContentType::SIZE] = [
     ContentType::_3gp,
     ContentType::Ace,
@@ -184,6 +184,8 @@ const OVERWRITE_MAP: [ContentType; ContentType::SIZE] = [
     ContentType::Pytorch,
     ContentType::Qt,
     ContentType::R,
+    ContentType::Unknown,
+    ContentType::Txt,
     ContentType::Rar,
     ContentType::Rdf,
     ContentType::Rpm,
@@ -404,6 +406,8 @@ pub(crate) enum Label {
     Pytorch,
     Qt,
     R,
+    Randombytes,
+    Randomtxt,
     Rar,
     Rdf,
     Rpm,
@@ -442,7 +446,6 @@ pub(crate) enum Label {
     Twig,
     Txt,
     Typescript,
-    Unknown,
     Vba,
     Vcxproj,
     Verilog,
@@ -471,7 +474,7 @@ pub(crate) enum Label {
     Zlibstream,
 }
 
-pub(crate) const NUM_LABELS: usize = 213;
+pub(crate) const NUM_LABELS: usize = 214;
 impl Label {
     pub(crate) fn content_type(self) -> ContentType {
         match self {
@@ -623,6 +626,8 @@ impl Label {
             Label::Pytorch => ContentType::Pytorch,
             Label::Qt => ContentType::Qt,
             Label::R => ContentType::R,
+            Label::Randombytes => ContentType::Randombytes,
+            Label::Randomtxt => ContentType::Randomtxt,
             Label::Rar => ContentType::Rar,
             Label::Rdf => ContentType::Rdf,
             Label::Rpm => ContentType::Rpm,
@@ -661,7 +666,6 @@ impl Label {
             Label::Twig => ContentType::Twig,
             Label::Txt => ContentType::Txt,
             Label::Typescript => ContentType::Typescript,
-            Label::Unknown => ContentType::Unknown,
             Label::Vba => ContentType::Vba,
             Label::Vcxproj => ContentType::Vcxproj,
             Label::Verilog => ContentType::Verilog,

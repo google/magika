@@ -34,7 +34,7 @@ jobs:
           python-version: '${{ matrix.python-version }}'
 
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
 
       - name: Install all projects dependencies (with the requested python version)
         working-directory: python
@@ -43,6 +43,10 @@ jobs:
       - name: Print python version
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} python --version
+
+      - name: Print ruff version
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} ruff --version
 
       - name: Run ruff check
         working-directory: python

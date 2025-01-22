@@ -88,6 +88,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
       - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
         working-directory: python
       - name: Build pure python wheel

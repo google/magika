@@ -95,9 +95,9 @@ jobs:
       - name: Build pure python wheel
         run: uv build --wheel
         working-directory: python
-      - name: Upload sdist
-        if: github.event_name != 'pull_request'
+      - name: Upload wheel
+        # if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: wheels-pure
-          path: dist
+          path: python/dist

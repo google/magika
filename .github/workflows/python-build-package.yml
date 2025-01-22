@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  build-wheels:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -84,20 +84,19 @@ jobs:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
           path: dist
 
-  sdist:
+  build-pure-python-wheel:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 ./python/scripts/fix_package_version.py
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
+      - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
+          working-directory: python
+      - name: Build pure python wheel
+        run: uv build --wheel
         with:
-          command: sdist
-          args: --out=../dist
           working-directory: python
       - name: Upload sdist
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-sdist
+          name: wheels-pure
           path: dist

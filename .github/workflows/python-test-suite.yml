@@ -44,10 +44,6 @@ jobs:
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} python --version
 
-      - name: Print ruff version
-        working-directory: python
-        run: uv run --python ${{ matrix.python-version }} ruff --version
-
       - name: Run ruff check
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} ruff check --verbose

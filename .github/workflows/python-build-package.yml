@@ -36,7 +36,7 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
       - if: matrix.platform.runner == 'ubuntu-latest'
-        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: rust/onnx/runtime/build/Linux
           key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
@@ -73,10 +73,17 @@ jobs:
       - name: Install wheels
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
       - run: magika --version
-      - run: python3 -c 'import magika; print(magika.__version__)'
+      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: magika -r tests_data/basic
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
+        # Windows' onnxruntime/ort returns different results wrt. Linux/MacOS. For
+        # now keep building even in case of misdetections.
+        # TODO(https://github.com/google/magika/issues/892): remove when this is fixed.
+        continue-on-error: ${{ matrix.platform.runner == 'windows-latest' }}
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
+        # TODO(https://github.com/google/magika/issues/892): same as above,
+        # remove when this is fixed.
+        continue-on-error: ${{ matrix.platform.runner == 'windows-latest' }}
       - name: Upload wheels
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4

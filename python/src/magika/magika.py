@@ -35,6 +35,7 @@ from magika.types import (
     ModelConfig,
     ModelFeatures,
     ModelOutput,
+    OverwriteReason,
     PredictionMode,
     Status,
 )
@@ -98,6 +99,18 @@ class Magika:
         self._cts_infos = Magika._load_content_types_kb(content_types_kb_path)
 
         self._onnx_session = self._init_onnx_session()
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __str__(self) -> str:
+        return f'Magika(version="{self.get_version()}", model_name="{self.get_model_name()}")'
+
+    def get_version(self) -> str:
+        return str(__import__(self.__module__).__version__)
+
+    def get_model_name(self) -> str:
+        return self._model_dir.name
 
     def identify_path(self, path: Path) -> MagikaResult:
         if not isinstance(path, Path):
@@ -170,9 +183,6 @@ class Magika:
         """
 
         return DEFAULT_MODEL_NAME
-
-    def get_model_dir_name(self) -> str:
-        return self._model_dir.name
 
     @staticmethod
     def _load_content_types_kb(
@@ -575,8 +585,10 @@ class Magika:
             # both the raw DL model output and the final output we return to
             # the user.
 
-            output_ct_label = self._get_output_ct_label_from_dl_result(
-                model_output.ct_label, model_output.score
+            output_ct_label, overwrite_reason = (
+                self._get_output_ct_label_from_dl_result(
+                    model_output.ct_label, model_output.score
+                )
             )
 
             results[str(path)] = self._get_result_from_labels_and_score(
@@ -584,6 +596,7 @@ class Magika:
                 dl_ct_label=model_output.ct_label,
                 output_ct_label=output_ct_label,
                 score=model_output.score,
+                overwrite_reason=overwrite_reason,
             )
 
         return results
@@ -600,13 +613,18 @@ class Magika:
 
     def _get_output_ct_label_from_dl_result(
         self, dl_ct_label: ContentTypeLabel, score: float
-    ) -> ContentTypeLabel:
-        # overwrite ct_label if specified in the config
-        dl_ct_label = self._model_config.overwrite_map.get(dl_ct_label, dl_ct_label)
+    ) -> Tuple[ContentTypeLabel, OverwriteReason]:
+        overwrite_reason = OverwriteReason.NONE
+
+        # Overwrite dl_ct_label if specified in the overwrite_map model config
+        output_ct_label = self._model_config.overwrite_map.get(dl_ct_label, dl_ct_label)
+        if output_ct_label != dl_ct_label:
+            overwrite_reason = OverwriteReason.OVERWRITE_MAP
 
         if self._prediction_mode == PredictionMode.BEST_GUESS:
-            # We take the model predictions, no matter what the score is.
-            output_ct_label = dl_ct_label
+            # We take the (potentially overwritten) model prediction, no matter
+            # what the score is.
+            pass
         elif (
             self._prediction_mode == PredictionMode.HIGH_CONFIDENCE
             and score
@@ -615,27 +633,28 @@ class Magika:
             )
         ):
             # The model score is higher than the per-content-type
-            # high-confidence threshold.
-            output_ct_label = dl_ct_label
+            # high-confidence threshold, so we keep it.
+            pass
         elif (
             self._prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
             and score >= self._model_config.medium_confidence_threshold
         ):
-            # We take the model prediction only if the score is above a given
-            # relatively loose threshold.
-            output_ct_label = dl_ct_label
+            # The model score is higher than the generic medium-confidence
+            # threshold, so we keep it.
+            pass
         else:
             # We are not in a condition to trust the model, we opt to return
             # generic labels. Note that here we use an implicit assumption that
             # the model has, at the very least, got the binary vs. text category
             # right. This allows us to pick between unknown and txt without the
             # need to read or scan the file bytes once again.
-            if self._get_ct_info(dl_ct_label).is_text:
+            overwrite_reason = OverwriteReason.LOW_CONFIDENCE
+            if self._get_ct_info(output_ct_label).is_text:
                 output_ct_label = ContentTypeLabel.TXT
             else:
                 output_ct_label = ContentTypeLabel.UNKNOWN
 
-        return output_ct_label
+        return output_ct_label, overwrite_reason
 
     def _get_result_from_labels_and_score(
         self,
@@ -643,6 +662,7 @@ class Magika:
         dl_ct_label: ContentTypeLabel,
         output_ct_label: ContentTypeLabel,
         score: float,
+        overwrite_reason: OverwriteReason = OverwriteReason.NONE,
     ) -> MagikaResult:
         return MagikaResult(
             path=path,
@@ -650,6 +670,7 @@ class Magika:
                 dl=self._get_ct_info(dl_ct_label),
                 output=self._get_ct_info(output_ct_label),
                 score=score,
+                overwrite_reason=overwrite_reason,
             ),
         )
 

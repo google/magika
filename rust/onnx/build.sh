@@ -36,6 +36,12 @@ else
   info "Checkout v1.20.0 because that's what ort v2.0.0-rc.9 supports."
   git checkout v1.20.0
 
+  # The build fails with GCC 14 due to warnings as errors.
+  sed -i '/function(onnxruntime_set_compile_flags/a\
+    target_compile_options(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Wno-maybe-uninitialized>")\
+    target_compile_options(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Wno-uninitialized>")' \
+    cmake/CMakeLists.txt
+
   info "Build the static libraries."
   x ./build.sh --config=Release --parallel $ONNX_RUNTIME_BUILD_FLAGS
 

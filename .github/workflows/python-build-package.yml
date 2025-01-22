@@ -76,14 +76,7 @@ jobs:
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: magika -r tests_data/basic
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
-        # Windows' onnxruntime/ort returns different results wrt. Linux/MacOS. For
-        # now keep building even in case of misdetections.
-        # TODO(https://github.com/google/magika/issues/892): remove when this is fixed.
-        continue-on-error: ${{ matrix.platform.runner == 'windows-latest' }}
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
-        # TODO(https://github.com/google/magika/issues/892): same as above,
-        # remove when this is fixed.
-        continue-on-error: ${{ matrix.platform.runner == 'windows-latest' }}
       - name: Upload wheels
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4

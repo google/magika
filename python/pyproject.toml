@@ -2,10 +2,10 @@
 name = "magika"
 description = "A tool to determine the content type of a file with deep learning"
 authors = [
-    {author = "Magika Developers", email = "magika-dev@google.com"},
+    {name = "Magika Developers", email = "magika-dev@google.com"},
 ]
 readme = "README.md"
-license = "Apache-2.0"
+license = {"text" = "Apache-2.0"}
 requires-python = ">=3.8"
 keywords = ["content type detection", "machine learning"]
 classifiers = [

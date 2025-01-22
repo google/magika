@@ -19,8 +19,6 @@ jobs:
   changelog:
     runs-on: ubuntu-latest
     steps:
-      - name: Disable automatic git CRLF conversion
-        run: git config --global core.autocrlf false
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
         with:
           fetch-depth: 0
@@ -33,8 +31,6 @@ jobs:
       matrix:
         toolchain: [stable, nightly]
     steps:
-      - name: Disable automatic git CRLF conversion
-        run: git config --global core.autocrlf false
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
       - run: rustup default ${{ matrix.toolchain }}
       - run: rustup component add rustfmt clippy
@@ -46,8 +42,6 @@ jobs:
       matrix:
         os: [ubuntu, macos, windows]
     steps:
-      - name: Disable automatic git CRLF conversion
-        run: git config --global core.autocrlf false
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
       - run: cargo build --release
         working-directory: rust/cli

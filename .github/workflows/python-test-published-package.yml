@@ -24,8 +24,6 @@ jobs:
         os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Disable automatic git CRLF conversion
-        run: git config --global core.autocrlf false
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5

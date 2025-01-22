@@ -89,11 +89,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
-          working-directory: python
+        working-directory: python
       - name: Build pure python wheel
         run: uv build --wheel
-        with:
-          working-directory: python
+        working-directory: python
       - name: Upload sdist
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4

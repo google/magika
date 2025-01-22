@@ -33,6 +33,11 @@ def main() -> None:
         "build-backend": "hatchling.build",
     }
 
+    # Make the python's magika client available as a script
+    pyproject_content["project"]["scripts"] = {
+        "magika": "magika.cli.magika:main",
+    }
+
     pyproject_toml_path.write_text(tomli_w.dumps(pyproject_content))
 
 

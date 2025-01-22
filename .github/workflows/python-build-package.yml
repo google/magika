@@ -93,11 +93,31 @@ jobs:
       - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
         working-directory: python
       - name: Build pure python wheel
-        run: uv build --wheel
+        run: uv build --wheel --out-dir ../dist
         working-directory: python
+      - if: matrix.platform.runner != 'windows-latest'
+        name: Check that `uv add magika.whl` works
+        run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init && uv add ./$(\ls -1 *.whl | head -n 1)
+      - if: matrix.platform.runner == 'windows-latest'
+        name: Check that magika install with uv works on Windows
+        shell: pwsh
+        run: |
+          mkdir C:\test-uv
+          Copy-Item -Path dist\*.whl -Destination C:\test-uv
+          cd C:\test-uv
+          uv init
+          $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
+          uv add ".\$wheel"
+      - name: Install wheels
+        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+      - run: magika --version
+      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
+      - run: magika -r tests_data/basic
+      - run: python3 ./python/scripts/run_quick_test_magika_cli.py
+      - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Upload wheel
-        # if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: wheels-pure
-          path: python/dist
+          path: dist

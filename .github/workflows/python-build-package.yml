@@ -59,9 +59,14 @@ jobs:
           working-directory: python
       - if: matrix.platform.runner != 'windows-latest'
         name: Check that `uv add magika.whl` works
-        run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init && uv add ./$(\ls -1 *.whl | head -n 1)
+        run: |
+          mkdir /tmp/test-uv
+          cp -vR dist/*.whl /tmp/test-uv
+          cd /tmp/test-uv
+          uv init
+          uv add ./$(\ls -1 *.whl | head -n 1)
       - if: matrix.platform.runner == 'windows-latest'
-        name: Check that magika install with uv works on Windows
+        name: Check that `uv add magika.whl` works
         shell: pwsh
         run: |
           mkdir C:\test-uv
@@ -79,7 +84,6 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Upload wheels
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
@@ -97,8 +101,13 @@ jobs:
         run: uv build --wheel --out-dir ../dist
         working-directory: python
       - name: Check that `uv add magika.whl` works
-        run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init && uv add ./$(\ls -1 *.whl | head -n 1)
-      - name: Install wheels
+        run: |
+          mkdir /tmp/test-uv
+          cp -vR dist/*.whl /tmp/test-uv
+          cd /tmp/test-uv
+          uv init
+          uv add ./$(\ls -1 *.whl | head -n 1)
+      - name: Install the wheel
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
       - run: magika --version
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
@@ -106,8 +115,59 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Upload wheel
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-pure
+          name: wheels-pure-python
           path: dist
+
+  # Download, install, and test the pure python wheel on multiple platforms
+  test-pure-python-wheel:
+    needs: [build-pure-python-wheel]
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: windows-latest
+            target: x64
+          - runner: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-pure-python
+          path: dist
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+      - if: matrix.platform.runner != 'windows-latest'
+        name: Check that `uv add magika.whl` works
+        run: |
+          mkdir /tmp/test-uv
+          cp -vR dist/*.whl /tmp/test-uv
+          cd /tmp/test-uv
+          uv init
+          uv add ./$(\ls -1 *.whl | head -n 1)
+      - if: matrix.platform.runner == 'windows-latest'
+        name: Check that `uv add magika.whl` works
+        shell: pwsh
+        run: |
+          mkdir C:\test-uv
+          Copy-Item -Path dist\*.whl -Destination C:\test-uv
+          cd C:\test-uv
+          $env:PATH += ";$HOME/.local/bin"
+          uv init
+          $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
+          uv add ".\$wheel"
+      - name: Install the wheel
+        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+      - run: magika --version
+      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
+      - run: magika -r tests_data/basic
+      - run: python3 ./python/scripts/run_quick_test_magika_cli.py
+      - run: python3 ./python/scripts/run_quick_test_magika_module.py

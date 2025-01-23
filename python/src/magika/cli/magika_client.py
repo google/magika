@@ -154,9 +154,6 @@ def main(
         with_colors = False
 
     _l = get_logger(use_colors=with_colors)
-    _l.warning(
-        "This CLI is deprecated and only used for testing the python module! Use the Rust CLI instead."
-    )
 
     if verbose:
         _l.setLevel(logging.INFO)
@@ -164,6 +161,7 @@ def main(
         _l.setLevel(logging.DEBUG)
 
     if output_version:
+        _l.raw_print_to_stdout("Magika python client")
         _l.raw_print_to_stdout(f"Magika version: {VERSION}")
         _l.raw_print_to_stdout(f"Default model: {Magika._get_default_model_name()}")
         sys.exit(0)

@@ -67,6 +67,7 @@ jobs:
           mkdir C:\test-uv
           Copy-Item -Path dist\*.whl -Destination C:\test-uv
           cd C:\test-uv
+          $env:PATH += ";$HOME/.local/bin"
           uv init
           $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
           uv add ".\$wheel"

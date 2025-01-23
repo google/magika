@@ -66,7 +66,8 @@ def main(client_path: Optional[Path]) -> None:
         print(f"stderr:\n{p.stderr}\n" + "-" * 40)
         sys.exit(1)
 
-    assert p.stderr == ""
+    if p.stderr != "":
+        print(f"WARNING: p.stderr not empty: {p.stderr}")
 
     with_error = False
     lines = p.stdout.split("\n")

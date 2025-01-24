@@ -93,6 +93,8 @@ jobs:
   test-wheels:
     needs: [build-wheels]
     runs-on: ${{ matrix.platform.runner }}
+    # We want to know in which exact situation the tests fail
+    fail-fast: false
     strategy:
       matrix:
         python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
@@ -176,6 +178,8 @@ jobs:
   # Download, install, and test the pure python wheel on multiple platforms
   test-pure-python-wheel:
     needs: [build-pure-python-wheel]
+    # We want to know in which exact situation the tests fail
+    fail-fast: false
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:

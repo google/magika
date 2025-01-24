@@ -183,6 +183,7 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
         platform:
           - runner: ubuntu-latest
             target: x86_64
@@ -199,7 +200,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
         with:
-          python-version: '3.12'
+          python-version: '${{ matrix.python-version }}'
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
       - if: matrix.platform.runner != 'windows-latest'

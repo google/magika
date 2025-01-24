@@ -9,6 +9,11 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+
+- Add version constraint for `onnxruntime` to deal with known `uv` limitation (https://github.com/google/magika/issues/922).
+
+
 ## [0.6.1-rc0] - 2025-01-23
 
 - Upgrade model from `standard_v2_1` to `standard_v3_0`. This should result in a 3x faster inference speed, with the same overall accuracy. This new model should also be ~20% faster than `standard_v1`. More details in the [models' changelog notes](../assets/models/CHANGELOG.md).

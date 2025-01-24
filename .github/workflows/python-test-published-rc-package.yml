@@ -31,7 +31,7 @@ jobs:
           python-version: '${{ matrix.python-version }}'
       - if: matrix.os != 'windows-latest'
         name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.5.4/install.sh | sh
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
       - if: matrix.os != 'windows-latest'
         name: Check that magika -rc can be installed with uv
         run: mkdir /tmp/test-uv && cd /tmp/test-uv && uv init && uv add --prerelease allow magika && cd - && rm -rf /tmp/test-uv
@@ -42,6 +42,7 @@ jobs:
           mkdir C:\test-uv
           Copy-Item -Path dist\*.whl -Destination C:\test-uv
           cd C:\test-uv
+          $env:PATH += ";$HOME/.local/bin"
           uv init
           $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
           uv add --prerelease ".\$wheel"

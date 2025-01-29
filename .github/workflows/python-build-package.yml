@@ -118,7 +118,7 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
 
-  build-pure-python-wheel:
+  build-pure-python-wheel-and-sdist:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -126,18 +126,18 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
       - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
         working-directory: python
-      - name: Build pure python wheel
-        run: uv build --wheel --out-dir ../dist
+      - name: Build pure python wheel and source distribution
+        run: uv build --out-dir ../dist
         working-directory: python
-      - name: Upload wheel
+      - name: Upload wheel and sdist
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-pure-python
+          name: wheel-pure-python-and-sdist
           path: dist
 
   # Download, install, and test the pure python wheel on multiple platforms
   test-pure-python-wheel:
-    needs: [build-pure-python-wheel]
+    needs: [build-pure-python-wheel-and-sdist]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       # We want to know in which exact situation the tests fail
@@ -155,7 +155,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: wheel-pure-python
+          name: wheel-pure-python-and-sdist
           path: dist
       - name: Setup Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5

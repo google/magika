@@ -224,8 +224,13 @@ jobs:
           uv add ".\$wheel"
       - name: Install the wheel
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
-      - run: magika --version
+
+      # Check that the magika script points to the placeholder raising a warning
+      - run: magika --version | grep -C10 WARNING | grep -C10 magika-python-client
+      # Check that the fallback magika's python client can be run
+      - run: magika-python-client -r tests_data/basic
+      # Check that the results of the python's client are correct
+      - run: python3 ./python/scripts/run_quick_test_magika_cli.py --client-path magika-python-client
+      # Test the python module
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
-      - run: magika -r tests_data/basic
-      - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py

@@ -12,6 +12,7 @@ semver guidelines for more details about this.
 ## [Unreleased]
 
 - Add version constraint for `onnxruntime` to deal with known `uv` limitation (https://github.com/google/magika/issues/922).
+- In the pure python wheel, `magika` now warns the users that the Rust client is not available, and tells the users that they can use a fallback python client, now available via `magika-python-client`.
 
 
 ## [0.6.1-rc0] - 2025-01-23

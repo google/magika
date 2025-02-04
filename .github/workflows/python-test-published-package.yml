@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
       - name: Setup Python
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # pin@v5
         with:
           python-version: '${{ matrix.python-version }}'
       # uv's oneline below does not work on windows; uv add magika==0.5.1 is known to not work with python 3.8 and 3.9

@@ -9,10 +9,11 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
-## [Unreleased]
+## [0.6.1-rc1] - 2025-02-04
 
 - Add version constraint for `onnxruntime` to deal with known `uv` limitation (https://github.com/google/magika/issues/922).
 - In the pure python wheel, `magika` now warns the users that the Rust client is not available, and tells the users that they can use a fallback python client, now available via `magika-python-client`.
+- Minor tuning of thresholds for new v3 models.
 
 
 ## [0.6.1-rc0] - 2025-01-23

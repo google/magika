@@ -57,7 +57,7 @@ dev-dependencies = [
     "ipython>=8.12.3",
     "pytest>=8.3.2",
     "ruff>=0.6.3",
-    "twine>=5.1.1",
+    "twine==6.1.0",
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
 ]

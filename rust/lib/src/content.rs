@@ -377,7 +377,7 @@ pub(crate) static DIRECTORY: TypeInfo = TypeInfo {
 pub(crate) static DM: TypeInfo = TypeInfo {
     label: "dm",
     mime_type: "text/plain",
-    group: "text",
+    group: "code",
     description: "Dream Maker",
     extensions: &["dm"],
     is_text: true,
@@ -899,7 +899,7 @@ pub(crate) static LNK: TypeInfo = TypeInfo {
 pub(crate) static LUA: TypeInfo = TypeInfo {
     label: "lua",
     mime_type: "text/plain",
-    group: "text",
+    group: "code",
     description: "Lua",
     extensions: &["lua"],
     is_text: true,
@@ -1070,7 +1070,7 @@ pub(crate) static OBJECTIVEC: TypeInfo = TypeInfo {
 pub(crate) static OCAML: TypeInfo = TypeInfo {
     label: "ocaml",
     mime_type: "text-ocaml",
-    group: "text",
+    group: "code",
     description: "OCaml",
     extensions: &["ml", "mli"],
     is_text: true,
@@ -1637,7 +1637,7 @@ pub(crate) static TAR: TypeInfo = TypeInfo {
 pub(crate) static TCL: TypeInfo = TypeInfo {
     label: "tcl",
     mime_type: "application/x-tcl",
-    group: "text",
+    group: "code",
     description: "Tickle",
     extensions: &["tcl"],
     is_text: true,
@@ -1736,7 +1736,7 @@ pub(crate) static TXT: TypeInfo = TypeInfo {
 pub(crate) static TYPESCRIPT: TypeInfo = TypeInfo {
     label: "typescript",
     mime_type: "application/typescript",
-    group: "text",
+    group: "code",
     description: "Typescript",
     extensions: &["ts", "mts", "cts"],
     is_text: true,

@@ -122,6 +122,8 @@ fn generate_model_config(content_types: &[String], model_config: ModelConfig) ->
         target_labels_space,
         thresholds,
         overwrite_map,
+        protection: _,
+        aes_key_hex: _,
         version_major: _,
     } = model_config;
     let mut output = create_generated_file("../lib/src/model.rs")?;
@@ -211,6 +213,10 @@ struct ModelConfig {
     target_labels_space: Vec<String>,
     thresholds: BTreeMap<String, f32>,
     overwrite_map: BTreeMap<String, String>,
+    #[allow(dead_code)]
+    protection: String,
+    #[allow(dead_code)]
+    aes_key_hex: String,
     version_major: u32,
 }
 

@@ -18,7 +18,7 @@
 use crate::file::TypeInfo;
 
 /// Model name (only comparable with equality).
-pub const MODEL_NAME: &str = "standard_v3_0";
+pub const MODEL_NAME: &str = "standard_v3_1";
 
 /// Model major version.
 pub const MODEL_MAJOR_VERSION: u32 = 3;
@@ -1737,7 +1737,7 @@ pub(crate) static TYPESCRIPT: TypeInfo = TypeInfo {
     label: "typescript",
     mime_type: "application/typescript",
     group: "code",
-    description: "Typescript",
+    description: "TypeScript source",
     extensions: &["ts", "mts", "cts"],
     is_text: true,
 };
@@ -2374,7 +2374,7 @@ pub enum ContentType {
     Twig,
     /// Generic text document
     Txt,
-    /// Typescript
+    /// TypeScript source
     Typescript,
     /// Undefined
     Undefined,

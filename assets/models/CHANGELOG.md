@@ -4,6 +4,13 @@ Here we document the main changes of the various models.
 
 Indicated inference speed calculated by averaging 100 inferences (within one invocation) on an AMD Ryzen 9 7950X 16-Core Processor CPU.
 
+## `standard_v3_1`
+
+- [216 possible tool's outputs](./standard_v3_1/README.md).
+- Overall same average accuracy of `standard_v3_0`, ~99%, but more robust detections of short textual input and improved detection of Javascript.
+- Inference speed: ~2ms (similar to `standard_v3_0`).
+- Augmentation techniques used during training: CutMix, which was used for `v1` but not for `v2_1`; and "Random Snippet Selection", with which we train the model with random snippets extracted from samples in our dataset (this is only enabled for key textual content types).
+
 ## `standard_v3_0`
 
 - [216 possible tool's outputs](./standard_v3_0/README.md).

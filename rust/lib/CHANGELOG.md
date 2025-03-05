@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-rc.5-dev
+
+### Minor
+
+- Use the `standard_v3_1` model instead of `standard_v3_0` (see [model changelog])
+
 ## 0.1.0-rc.4
 
 ### Minor

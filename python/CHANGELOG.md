@@ -9,6 +9,10 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+
+- Upgrade model from `standard_v3_0` to `standard_v3_1`. See details in the [models' changelog notes](../assets/models/CHANGELOG.md).
+
 ## [0.6.1-rc1] - 2025-02-04
 
 - Add version constraint for `onnxruntime` to deal with known `uv` limitation (https://github.com/google/magika/issues/922).

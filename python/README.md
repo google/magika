@@ -248,19 +248,16 @@ class ContentTypeLabel(StrEnum):
 - We use the `maturin` backend to combine the Rust CLI with the python codebase. To build: `$ cd python; uv run ./scripts/build_python_package.py`.
 
 
-## Citation
+## Research Paper and Citation
+We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. A pre-print of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).
+
 If you use this software for your research, please cite it as:
 ```bibtex
-@misc{magika,
-      title={{Magika: AI-Powered Content-Type Detection}},
-      author={{Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie}},
-      year={2024},
-      eprint={2409.13768},
-      archivePrefix={arXiv},
-      primaryClass={cs.CR},
-      url={https://arxiv.org/abs/2409.13768},
+@InProceedings{fratantonio25:magika,
+  author = {Yanick Fratantonio and Luca Invernizzi and Loua Farah and Kurt Thomas and Marina Zhang and Ange Albertini and Francois Galilee and Giancarlo Metitieri and Julien Cretin and Alexandre Petit-Bianco and David Tao and Elie Bursztein},
+  title = {{Magika: AI-Powered Content-Type Detection}},
+  booktitle = {Proceedings of the International Conference on Software Engineering (ICSE)},
+  month = {April},
+  year = {2025}
 }
 ```
-
-> [!NOTE]
-> The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025!

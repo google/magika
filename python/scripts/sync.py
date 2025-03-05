@@ -9,7 +9,7 @@ from typing import Optional
 import click
 
 MODELS_NAMES_TO_INCLUDE_IN_PACKAEG = [
-    "standard_v3_0",
+    "standard_v3_1",
 ]
 
 

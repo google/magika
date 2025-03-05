@@ -1,67 +1,86 @@
 #!/usr/bin/env python3
 
 import json
-import re
 import shutil
+import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 
-ASSETS_DIR = Path(__file__).parent.parent.parent / "assets"
-PYTHON_ROOT_DIR = Path(__file__).parent.parent
-
-PUBLISHED_MODELS_NAMES = [
+MODELS_NAMES_TO_INCLUDE_IN_PACKAEG = [
     "standard_v3_0",
 ]
 
 
+REPO_ROOT_DIR = Path(__file__).parent.parent.parent
+assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
+
+ASSETS_DIR = REPO_ROOT_DIR / "assets"
+assert ASSETS_DIR.is_dir()
+
+CONTENT_TYPES_KB_PATH = ASSETS_DIR / "content_types_kb.min.json"
+assert CONTENT_TYPES_KB_PATH.is_file()
+
+ASSETS_MODELS_DIR = ASSETS_DIR / "models"
+assert ASSETS_MODELS_DIR.is_dir()
+
+PYTHON_ROOT_DIR = REPO_ROOT_DIR / "python"
+assert PYTHON_ROOT_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_KB_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "config" / "content_types_kb.min.json"
+)
+
+PYTHON_MODELS_DIR = PYTHON_ROOT_DIR / "src" / "magika" / "models"
+assert PYTHON_MODELS_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
+)
+
+
 @click.command()
-@click.option("--sync-unpublished-models", is_flag=True)
-def main(sync_unpublished_models: bool) -> None:
-    import_content_type_kb()
-
-    if sync_unpublished_models:
-        models_names_to_sync = []
-        models_dir = ASSETS_DIR / "models"
-        for model_dir in models_dir.iterdir():
-            model_name = model_dir.name
-            if re.search("_v2_", model_name):
-                models_names_to_sync.append(model_name)
+@click.option(
+    "--models-names",
+    "models_names_str",
+    help="Comma-separated list of models names to import in the package",
+)
+def main(models_names_str: Optional[str]) -> None:
+    if models_names_str is None:
+        models_names = MODELS_NAMES_TO_INCLUDE_IN_PACKAEG
     else:
-        models_names_to_sync = PUBLISHED_MODELS_NAMES
+        models_names = list(map(lambda s: s.strip(), models_names_str.split(",")))
 
-    print(f"Syncing these models: {models_names_to_sync}")
+    print(f"Including these models in the package: {models_names}")
 
-    for model_name in models_names_to_sync:
-        import_model(model_name)
+    update_content_type_kb()
+    update_content_type_label_py()
 
-    gen_content_type_label_source()
-
-
-def import_content_type_kb() -> None:
-    kb_path = ASSETS_DIR / "content_types_kb.min.json"
-    python_config_dir = PYTHON_ROOT_DIR / "src" / "magika" / "config"
-    python_kb_path = python_config_dir / kb_path.name
-    copy(kb_path, python_kb_path)
+    print(f"Deleting {PYTHON_MODELS_DIR}")
+    shutil.rmtree(PYTHON_MODELS_DIR)
+    for model_name in models_names:
+        add_model_to_python_package(model_name)
 
 
-def import_model(model_name: str) -> None:
-    models_dir = ASSETS_DIR / "models"
-    onnx_path = models_dir / model_name / "model.onnx"
-    config_path = models_dir / model_name / "config.min.json"
-
-    python_model_dir = PYTHON_ROOT_DIR / "src" / "magika" / "models" / model_name
-    python_model_dir.mkdir(parents=True, exist_ok=True)
-
-    copy(onnx_path, python_model_dir / onnx_path.name)
-    copy(config_path, python_model_dir / config_path.name)
+def update_content_type_kb() -> None:
+    print(
+        f"Syncing python's content types KB: {CONTENT_TYPES_KB_PATH} => {PYTHON_CONTENT_TYPES_KB_PATH}"
+    )
+    PYTHON_CONTENT_TYPES_KB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(CONTENT_TYPES_KB_PATH, PYTHON_CONTENT_TYPES_KB_PATH)
 
 
-def copy(src_path: Path, dst_path: Path) -> None:
-    """Util to copy files and log what is being copied."""
-    print(f"Copying {src_path} => {dst_path}")
-    dst_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(src_path, dst_path)
+def add_model_to_python_package(model_name: str) -> None:
+    assets_model_dir = ASSETS_MODELS_DIR / model_name
+    if not assets_model_dir.is_dir():
+        print(f'ERROR: model "{model_name} not found')
+        sys.exit(1)
+
+    python_model_dir = PYTHON_MODELS_DIR / model_name
+
+    print(f"Adding model {assets_model_dir} => {python_model_dir}")
+    shutil.copytree(assets_model_dir, python_model_dir)
 
 
 CONTENT_TYPE_LABEL_SOURCE_PREFIX = """
@@ -91,13 +110,10 @@ class ContentTypeLabel(StrEnum):
 """
 
 
-def gen_content_type_label_source() -> None:
-    kb_path = ASSETS_DIR / "content_types_kb.min.json"
-    kb = json.loads(kb_path.read_text())
+def update_content_type_label_py() -> None:
+    print(f"Updating {PYTHON_CONTENT_TYPES_LABELS_PY_PATH}")
 
-    content_type_label_path = (
-        PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
-    )
+    kb = json.loads(CONTENT_TYPES_KB_PATH.read_text())
 
     enum_body_lines = []
     for ct_label_str in sorted(kb.keys()):
@@ -125,7 +141,7 @@ def gen_content_type_label_source() -> None:
         )
     )
 
-    content_type_label_path.write_text(out)
+    PYTHON_CONTENT_TYPES_LABELS_PY_PATH.write_text(out)
 
 
 if __name__ == "__main__":

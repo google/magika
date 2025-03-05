@@ -1737,7 +1737,7 @@ pub(crate) static TYPESCRIPT: TypeInfo = TypeInfo {
     label: "typescript",
     mime_type: "application/typescript",
     group: "code",
-    description: "Typescript",
+    description: "TypeScript source",
     extensions: &["ts", "mts", "cts"],
     is_text: true,
 };
@@ -2374,7 +2374,7 @@ pub enum ContentType {
     Twig,
     /// Generic text document
     Txt,
-    /// Typescript
+    /// TypeScript source
     Typescript,
     /// Undefined
     Undefined,

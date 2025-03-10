@@ -9,17 +9,13 @@
 [![PyPI Monthly Downloads](https://img.shields.io/pypi/dm/magika)](https://pypi.org/project/magika/)
 
 
-Magika is a novel AI powered file type detection tool that rely on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about 1MB, and enables precise file identification within milliseconds, even when running on a single CPU.
+Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU. Magika has been trained and evaluated on a dataset of ~100M samples, on 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set.
 
 Use Magika as a command line client or in your Python code!
 
 Please check out Magika on GitHub for more information and documentation: [https://github.com/google/magika](https://github.com/google/magika).
 
-> [!WARNING]
-> This README is about the soon-to-be released `magika 0.6.0` (currently released as `0.6.0rc2` for testing). For older versions, browse the git repository at the latest stable release, [here](https://github.com/google/magika/blob/python-v0.5.1/python/README.md) and [here](https://github.com/google/magika/blob/python-v0.5.1/docs/python.md).
->
-> See [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md) for more details.
-
+> The `magika` Python package is suitable for production use. However, because it's currently in its zero major version (0.x.x) (note that Magika adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)), future updates may include breaking changes. For detailed information and migration guidance, please refer to the [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
 ## Installing Magika
 
@@ -32,17 +28,14 @@ $ pip install magika
 
 If you intend to use Magika only as a command line, you may want to use `$ pipx install magika` instead.
 
-
-To install a specific, possibly unstable version published as a release candidate:
-
-```shell
-$ pip install magika==0.6.0rc1
-```
+If you want to test out the latest release candidate, you can install it with `pip install --pre magika`.
 
 
 ## Using Magika as a command-line tool
 
-Starting from magika `0.6.0`, the python package ships the new CLI, written in Rust (which replaces the old one written in python).
+> Beginning with version `0.6.0`, the magika Python package includes a pre-compiled Rust-based command-line tool, replacing the previous Python version. This binary is distributed as platform-specific wheels for most common architectures. For unsupported platforms, a pure-Python wheel is also available, providing the legacy Python client as a fallback.
+
+
 
 ```shell
 $ cd tests_data/basic && magika -r *
@@ -177,34 +170,50 @@ Options:
 
 Check the [Rust CLI docs](https://github.com/google/magika/blob/main/rust/cli/README.md) for more information.
 
-Check the [docs on Magika's output](https://github.com/google/magika/blob/main/docs/magika_output.md) for more details about the output format.
-
 
 ## Using Magika as a Python module
 
-> [!WARNING] The new API is very similar to the old one, but it ships with a number of improvements and introduces a few breaking changes. Updating existing clients should be fairly straighforward, and, where we could, we kept support for the old API and added deprecation warnings. See the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md) for the full list of changes and suggestions on how to fix.
+> Note: The Python API introduced in version 0.6.x closely resembles the previous version, but includes several enhancements and a few breaking changes. Migrating existing clients should be relatively straightforward. Where possible, we have maintained compatibility with the old API and added deprecation warnings. For a complete list of changes and migration guidance, consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
 ```python
 >>> from magika import Magika
 >>> m = Magika()
->>> res = m.identify_bytes(b"# Example\nThis is an example of markdown!")
+>>> res = m.identify_bytes(b'function log(msg) {console.log(msg);}')
 >>> print(res.output.label)
-markdown
+javascript
 ```
+
+```python
+>>> from magika import Magika
+>>> m = Magika()
+>>> res = m.identify_path('./tests_data/basic/ini/doc.ini')
+>>> print(res.output.label)
+ini
+```
+
+
+## Documentation on core concepts
+
+To get the most out of Magika, it's worth learning about its core concepts. You can read about the models, prediction modes, output structure, and content type knowledge base in the documentation [here](https://github.com/google/magika/blob/main/docs/concepts.md).
 
 
 ### API documentation
 
 First, create a `Magika` instance: `magika = Magika()`.
 
-The `Magika` object exposes three methods:
+The constructor accepts the following optional arguments:
+- `model_dir`: path to a model to use different than the default.
+- `prediction_mode`: which prediction mode to use; defaults to `PredictionMode.HIGH_CONFIDENCE`.
+- `no_dereference`: controls whether symlinks should be dereferenced; defaults to `False`.
+
+Once instantiated, the `Magika` object exposes three methods:
 - `magika.identify_bytes(b"test")`: takes as input a stream of bytes and predict its content type.
 - `magika.identify_path(Path("test.txt"))`: takes as input one `Path` object and predicts its content type.
 - `magika.identify_paths([Path("test.txt"), Path("test2.txt")])`: takes as input a list of `Path` objects and returns the predicted type for each of them.
 
 If you are dealing with big files, the `identify_path` and `identify_paths` variants are generally better: their implementation `seek()`s around the file to extract the needed features, without loading the entire content in memory.
 
-These API returns an object of type [`MagikaResult`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_result.py), an [`absl::StatusOr`](https://abseil.io/docs/cpp/guides/status)-like wrapper around [`MagikaPrediction`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_prediction.py), which exposes the same information discussed in the [Magika's output documentation](https://github.com/google/magika/blob/main/docs/magika_output.md).
+These API returns an object of type [`MagikaResult`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_result.py), an [`absl::StatusOr`](https://abseil.io/docs/cpp/guides/status)-like wrapper around [`MagikaPrediction`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_prediction.py), which exposes the same information discussed in the [Magika's output documentation](https://github.com/google/magika/blob/main/docs/concepts.md).
 
 Here is how the main types look like:
 
@@ -245,7 +254,7 @@ class ContentTypeLabel(StrEnum):
 
 - `magika` uses `uv` as a project and dependency managment tool. To install all the dependencies: `$ cd python; uv sync`.
 - To run the tests suite: `$ cd python; uv run pytest tests -m "not slow"`. Check the github action workflows for more information.
-- We use the `maturin` backend to combine the Rust CLI with the python codebase. To build: `$ cd python; uv run ./scripts/build_python_package.py`.
+- We use the `maturin` backend to combine the Rust CLI with the python codebase in the `magika` python package. This process is automated via the [build python package GitHub action](https://github.com/google/magika/blob/main/.github/workflows/python-build-package.yml).
 
 
 ## Research Paper and Citation

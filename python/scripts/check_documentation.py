@@ -38,9 +38,7 @@ URLS_ALLOWLIST = [
 def main(skip_external_validity_check: bool, verbose: bool) -> None:
     with_errors = False
 
-    for path in enumerate_markdown_files_in_dir(
-        Path(".")
-    ) + enumerate_markdown_files_in_dir(Path("docs")):
+    for path in enumerate_markdown_files_in_dir(Path(".")):
         if verbose:
             print(f"Analyzing {path}")
         for ui in extract_uris_infos_from_file(
@@ -54,24 +52,14 @@ def main(skip_external_validity_check: bool, verbose: bool) -> None:
                     f"ERROR: {path.relative_to(REPO_ROOT_DIR)} has non-valid uri: {ui.uri}"
                 )
 
-    for path in enumerate_markdown_files_in_dir(Path("python")):
-        if verbose:
-            print(f"Analyzing {path}")
-        for ui in extract_uris_infos_from_file(
-            path,
-            skip_external_validity_check=skip_external_validity_check,
-            verbose=verbose,
-        ):
-            if not ui.is_valid:
-                with_errors = True
-                print(
-                    f"ERROR: {path.relative_to(REPO_ROOT_DIR)} has non-valid uri: {ui.uri}"
-                )
-            if not ui.is_external and not ui.is_anchor:
-                with_errors = True
-                print(
-                    f"ERROR: {path.relative_to(REPO_ROOT_DIR)} has a non-external uri: {ui.uri}"
-                )
+            # For .md files in python/, we also check that the URIs are either
+            # pointing to an external resource or they are just an anchor.
+            if str(path.relative_to(REPO_ROOT_DIR)).startswith("python/"):
+                if not ui.is_external and not ui.is_anchor:
+                    with_errors = True
+                    print(
+                        f"ERROR: {path.relative_to(REPO_ROOT_DIR)}, in python/, has a non-external uri: {ui.uri}"
+                    )
 
     if with_errors:
         print("There was at least one error.")
@@ -89,8 +77,8 @@ def enumerate_markdown_files_in_dir(rel_dir: Path) -> list[Path]:
     paths: list[Path] = []
     for path in sorted(a_dir.rglob("*.md")):
         should_ignore = False
-        for prefix_pattern in IGNORE_PREFIX_PATTERNS:
-            if str(path.relative_to(REPO_ROOT_DIR)).startswith(prefix_pattern):
+        for exclude_prefix_pattern in IGNORE_PREFIX_PATTERNS:
+            if str(path.relative_to(REPO_ROOT_DIR)).startswith(exclude_prefix_pattern):
                 should_ignore = True
                 break
         if not should_ignore:

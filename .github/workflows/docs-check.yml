@@ -1,0 +1,26 @@
+name: Docs - Check documentation
+
+on:
+  schedule:
+    - cron: '42 7 * * 4' # Run weekly
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  run-check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+
+      - name: 'Run check_documentation.py script'
+        working-directory: python
+        run: uv run ./scripts/check_documentation.py

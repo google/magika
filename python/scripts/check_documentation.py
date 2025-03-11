@@ -27,6 +27,7 @@ URLS_ALLOWLIST = [
     "https://api.securityscorecards.dev/projects/github.com/google/magika/badge",
     "https://crates.io/crates/magika",
     "https://crates.io/crates/magika-cli",
+    "https://pypi.org/project/magika",
     "https://www.unrealengine.com/en-US",
     "https://www.unrealengine.com/marketplace/en-US/store",
     "https://www.virustotal.com/",

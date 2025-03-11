@@ -173,7 +173,7 @@ Check the [Rust CLI docs](https://github.com/google/magika/blob/main/rust/cli/RE
 
 ## Using Magika as a Python module
 
-> Note: The Python API introduced in version 0.6.x closely resembles the previous version, but includes several enhancements and a few breaking changes. Migrating existing clients should be relatively straightforward. Where possible, we have maintained compatibility with the old API and added deprecation warnings. For a complete list of changes and migration guidance, consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
+> Note: The Python API introduced in version `0.6.0` closely resembles the previous version, but includes several enhancements and a few breaking changes. Migrating existing clients should be relatively straightforward. Where possible, we have maintained compatibility with the old API and added deprecation warnings. For a complete list of changes and migration guidance, consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
 ```python
 >>> from magika import Magika

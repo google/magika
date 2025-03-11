@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-rc.5-dev
+## 0.1.0-rc.5
 
 ### Minor
 

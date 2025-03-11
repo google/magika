@@ -17,6 +17,8 @@ on [GitHub](https://github.com/google/magika/issues).
 
 ## Installation
 
+A recent version of the `magika` Rust client is included in the `magika` python package, which you can install with `pip install magika`.
+
 To install the latest version from crates.io:
 
 ```shell
@@ -42,7 +44,6 @@ cargo install --locked --path=rust/cli
 ```
 
 ## Examples
-
 
 ```shell
 $ cd tests_data/basic && magika -r *

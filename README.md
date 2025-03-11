@@ -267,8 +267,8 @@ Please consult the [python documentation](./python/README.md) for details on the
 | Artifact | Status | Default model |
 |---|---|---|
 | [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
-| [Rust `magika` CLI](./rust/cli/README.md) | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
-| Rust `magika` library | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
+| [Rust `magika` CLI](https://crates.io/crates/magika-cli/0.1.0-rc.5) | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
+| [Rust `magika` library](https://docs.rs/magika/0.1.0-rc.5/magika) | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
 | JavaScript / NPM package ([README](./js/README.md) & [docs](./docs/js.md)) | Experimental | [`standard_v1`](./assets/models/standard_v1/README.md) |
 | [GoLang](./go/README.md) | In development | - |
 

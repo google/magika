@@ -9,11 +9,11 @@
 [![PyPI Monthly Downloads](https://img.shields.io/pypi/dm/magika)](https://pypi.org/project/magika/)
 
 
-Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU. Magika has been trained and evaluated on a dataset of ~100M samples, on 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set.
+Magika is a novel AI-powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU. Magika has been trained and evaluated on a dataset of ~100M samples across 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set.
 
 Use Magika as a command line client or in your Python code!
 
-Please check out Magika on GitHub for more information and documentation: [https://github.com/google/magika](https://github.com/google/magika).
+Please check out Magika on GitHub for more information and documentation on other bindings: [https://github.com/google/magika](https://github.com/google/magika).
 
 > The `magika` Python package is suitable for production use. However, because it's currently in its zero major version (0.x.x) (note that Magika adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)), future updates may include breaking changes. For detailed information and migration guidance, please refer to the [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
@@ -34,8 +34,6 @@ If you want to test out the latest release candidate, you can install it with `p
 ## Using Magika as a command-line tool
 
 > Beginning with version `0.6.0`, the magika Python package includes a pre-compiled Rust-based command-line tool, replacing the previous Python version. This binary is distributed as platform-specific wheels for most common architectures. For unsupported platforms, a pure-Python wheel is also available, providing the legacy Python client as a fallback.
-
-
 
 ```shell
 $ cd tests_data/basic && magika -r *
@@ -202,16 +200,16 @@ To get the most out of Magika, it's worth learning about its core concepts. You 
 First, create a `Magika` instance: `magika = Magika()`.
 
 The constructor accepts the following optional arguments:
-- `model_dir`: path to a model to use different than the default.
+- `model_dir`: path to a model to use; defaults to the latest available model.
 - `prediction_mode`: which prediction mode to use; defaults to `PredictionMode.HIGH_CONFIDENCE`.
 - `no_dereference`: controls whether symlinks should be dereferenced; defaults to `False`.
 
 Once instantiated, the `Magika` object exposes three methods:
 - `magika.identify_bytes(b"test")`: takes as input a stream of bytes and predict its content type.
-- `magika.identify_path(Path("test.txt"))`: takes as input one `Path` object and predicts its content type.
-- `magika.identify_paths([Path("test.txt"), Path("test2.txt")])`: takes as input a list of `Path` objects and returns the predicted type for each of them.
+- `magika.identify_path("test.txt")`: takes as input one `str | os.PathLike` object and predicts its content type.
+- `magika.identify_paths(["test.txt", "test2.txt"])`: takes as input a list of `str | os.PathLike` objects and returns the predicted type for each of them.
 
-If you are dealing with big files, the `identify_path` and `identify_paths` variants are generally better: their implementation `seek()`s around the file to extract the needed features, without loading the entire content in memory.
+If you are dealing with large files, the `identify_path` and `identify_paths` variants are generally better: their implementation `seek()`s around the file to extract the needed features, without loading the entire content in memory.
 
 These API returns an object of type [`MagikaResult`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_result.py), an [`absl::StatusOr`](https://abseil.io/docs/cpp/guides/status)-like wrapper around [`MagikaPrediction`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_prediction.py), which exposes the same information discussed in the [Magika's output documentation](https://github.com/google/magika/blob/main/docs/concepts.md).
 

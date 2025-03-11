@@ -173,6 +173,8 @@ Check the [Rust CLI docs](https://github.com/google/magika/blob/main/rust/cli/RE
 
 > Note: The Python API introduced in version `0.6.0` closely resembles the previous version, but includes several enhancements and a few breaking changes. Migrating existing clients should be relatively straightforward. Where possible, we have maintained compatibility with the old API and added deprecation warnings. For a complete list of changes and migration guidance, consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
+Here is a few examples on how to use the `Magika` Python module:
+
 ```python
 >>> from magika import Magika
 >>> m = Magika()
@@ -185,6 +187,15 @@ javascript
 >>> from magika import Magika
 >>> m = Magika()
 >>> res = m.identify_path('./tests_data/basic/ini/doc.ini')
+>>> print(res.output.label)
+ini
+```
+
+```python
+>>> from magika import Magika
+>>> m = Magika()
+>>> with open('./tests_data/basic/ini/doc.ini', 'rb') as f:
+>>>     res = m.identify_stream(f)
 >>> print(res.output.label)
 ini
 ```
@@ -204,12 +215,13 @@ The constructor accepts the following optional arguments:
 - `prediction_mode`: which prediction mode to use; defaults to `PredictionMode.HIGH_CONFIDENCE`.
 - `no_dereference`: controls whether symlinks should be dereferenced; defaults to `False`.
 
-Once instantiated, the `Magika` object exposes three methods:
+Once instantiated, the `Magika` object exposes methods to identify the content type of a `bytes` object, of files identified by their paths, and of an already-open binary stream:
 - `magika.identify_bytes(b"test")`: takes as input a stream of bytes and predict its content type.
 - `magika.identify_path("test.txt")`: takes as input one `str | os.PathLike` object and predicts its content type.
 - `magika.identify_paths(["test.txt", "test2.txt"])`: takes as input a list of `str | os.PathLike` objects and returns the predicted type for each of them.
+- `magika.identify_stream(stream: typing.BinaryIO)`: takes as input an *already open* binary file-like object (e.g., the output of `open(file_path, 'rb')`) and returns its predicted content type. Keep in mind that Magika will `seek()` around the stream, and that the stream *is not closed* (closing is the responsibility of the caller).
 
-If you are dealing with large files, the `identify_path` and `identify_paths` variants are generally better: their implementation `seek()`s around the file to extract the needed features, without loading the entire content in memory.
+If you are dealing with large files, the `identify_path`, `identify_paths`, and `identify_stream` variants are generally better: their implementation `seek()`s around the file/stream to extract the needed features, without loading the entire content in memory.
 
 These API returns an object of type [`MagikaResult`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_result.py), an [`absl::StatusOr`](https://abseil.io/docs/cpp/guides/status)-like wrapper around [`MagikaPrediction`](https://github.com/google/magika/blob/main/python/src/magika/types/magika_prediction.py), which exposes the same information discussed in the [Magika's output documentation](https://github.com/google/magika/blob/main/docs/concepts.md).
 

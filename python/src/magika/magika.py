@@ -13,19 +13,20 @@
 # limitations under the License.
 
 
+import io
 import json
 import logging
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import BinaryIO, Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 import numpy.typing as npt
 import onnxruntime as rt
 
 from magika.logger import get_logger
-from magika.seekable import Buffer, File, Seekable
+from magika.seekable import Buffer, File, Seekable, Stream
 from magika.types import (
     ContentTypeInfo,
     ContentTypeLabel,
@@ -113,11 +114,15 @@ class Magika:
         return self._model_dir.name
 
     def identify_path(self, path: Path) -> MagikaResult:
+        """Identify the content type of a file given its path."""
+
         if not isinstance(path, Path):
             raise TypeError("Input path should be of type Path")
         return self._get_result_from_path(path)
 
     def identify_paths(self, paths: List[Path]) -> List[MagikaResult]:
+        """Identify the content type of a list of files given their paths."""
+
         if not isinstance(paths, Iterable):
             raise TypeError("Input paths should be of type Iterable[Path]")
         if len(paths) > 0 and not isinstance(paths[0], Path):
@@ -125,11 +130,39 @@ class Magika:
         return self._get_results_from_paths(paths)
 
     def identify_bytes(self, content: bytes) -> MagikaResult:
+        """Identify the content type of raw bytes."""
+
         if not isinstance(content, bytes):
             raise TypeError(
                 f"Input content should be of type 'bytes', not {type(content)}."
             )
         return self._get_result_from_bytes(content)
+
+    def identify_stream(self, stream: BinaryIO) -> MagikaResult:
+        """Identify the content type of a BinaryIO stream. Note that this method will
+        seek() around the stream."""
+
+        if not isinstance(stream, io.IOBase) or not stream.readable():  # type: ignore[unreachable]
+            raise TypeError("Input stream must be a readable BinaryIO object.")
+
+        # Explicitly test for the most common error so that we can return an
+        # helpful error message.
+        if isinstance(stream, io.TextIOBase):  # type: ignore[unreachable]
+            raise TypeError(
+                "Input stream must be opened in bytes mode, not in text mode."
+            )
+
+        if not isinstance(stream, io.BufferedIOBase):
+            raise TypeError("Input stream must be a readable BinaryIO object.")
+
+        if (
+            not hasattr(stream, "seek")
+            or not hasattr(stream, "read")
+            or not hasattr(stream, "tell")
+        ):
+            raise TypeError("Input stream must have seek, read, and tell methods.")
+
+        return self._get_result_from_stream(stream)
 
     def get_output_content_types(self) -> List[ContentTypeLabel]:
         """This method returns the list of all possible output content types of
@@ -317,6 +350,13 @@ class Magika:
         assert features is not None
         return self._get_result_from_features(features)
 
+    def _get_result_from_stream(self, stream: BinaryIO) -> MagikaResult:
+        result, features = self._get_result_or_features_from_stream(stream)
+        if result is not None:
+            return result
+        assert features is not None
+        return self._get_result_from_features(features)
+
     @staticmethod
     def _extract_features_from_path(
         file_path: Path,
@@ -328,9 +368,9 @@ class Magika:
         use_inputs_at_offsets: bool,
     ) -> ModelFeatures:
         # TODO: reimplement this using a context manager
-        seekable = File(file_path)
+        file = File(file_path)
         mf = Magika._extract_features_from_seekable(
-            seekable,
+            file,
             beg_size,
             mid_size,
             end_size,
@@ -338,7 +378,7 @@ class Magika:
             block_size,
             use_inputs_at_offsets,
         )
-        seekable.close()
+        file.close()
         return mf
 
     @staticmethod
@@ -351,9 +391,28 @@ class Magika:
         block_size: int,
         use_inputs_at_offsets: bool,
     ) -> ModelFeatures:
-        buffer = Buffer(content)
         return Magika._extract_features_from_seekable(
-            buffer,
+            Buffer(content),
+            beg_size,
+            mid_size,
+            end_size,
+            padding_token,
+            block_size,
+            use_inputs_at_offsets,
+        )
+
+    @staticmethod
+    def _extract_features_from_stream(
+        stream: BinaryIO,
+        beg_size: int,
+        mid_size: int,
+        end_size: int,
+        padding_token: int,
+        block_size: int,
+        use_inputs_at_offsets: bool,
+    ) -> ModelFeatures:
+        return Magika._extract_features_from_seekable(
+            Stream(stream),
             beg_size,
             mid_size,
             end_size,
@@ -742,9 +801,8 @@ class Magika:
                     return result, None
 
                 else:
-                    # We have enough bytes, scheduling this file for model
+                    # We have enough bytes, return the features for a model
                     # prediction.
-                    # features.append((path, file_features))
                     return None, file_features
 
         elif path.is_dir():
@@ -806,7 +864,72 @@ class Magika:
                 return result, None
 
             else:
-                # We have enough bytes, scheduling this file for model
+                # We have enough bytes, return the features for a model
+                # prediction.
+                return None, file_features
+
+        raise Exception("unreachable")
+
+    def _get_result_or_features_from_stream(
+        self, stream: BinaryIO
+    ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
+        """
+        Given a `BinaryIO` stream, we return either a MagikaOutput or a MagikaFeatures.
+
+        There are some corner cases for which we do not need to use deep
+        learning to get the output; in these cases, we return directly a
+        MagikaOutput object.
+
+        For all other cases, we do need to use deep learning, in which case we
+        return a MagikaFeatures object. Note that for now we just collect the
+        features instead of already performing inference because we want to use
+        batching.
+        """
+
+        stream.seek(0, io.SEEK_END)
+        bytes_stream_size = stream.tell()
+
+        if bytes_stream_size == 0:
+            result = self._get_result_from_labels_and_score(
+                path=Path("-"),
+                dl_ct_label=ContentTypeLabel.UNDEFINED,
+                output_ct_label=ContentTypeLabel.EMPTY,
+                score=1.0,
+            )
+            return result, None
+
+        elif bytes_stream_size <= self._model_config.min_file_size_for_dl:
+            stream.seek(0)
+            content = stream.read()
+            result = self._get_result_from_few_bytes(content)
+            return result, None
+
+        else:
+            file_features = Magika._extract_features_from_stream(
+                stream,
+                self._model_config.beg_size,
+                self._model_config.mid_size,
+                self._model_config.end_size,
+                self._model_config.padding_token,
+                self._model_config.block_size,
+                self._model_config.use_inputs_at_offsets,
+            )
+            # Check whether we have enough bytes for a meaningful
+            # detection, and not just padding.
+            if (
+                file_features.beg[self._model_config.min_file_size_for_dl - 1]
+                == self._model_config.padding_token
+            ):
+                # If the n-th token is padding, then it means that,
+                # post-stripping, we do not have enough meaningful
+                # bytes.
+                stream.seek(0)
+                content = stream.read()
+                result = self._get_result_from_few_bytes(content)
+                return result, None
+
+            else:
+                # We have enough bytes, return the features for a model
                 # prediction.
                 return None, file_features
 

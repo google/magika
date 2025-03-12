@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import abc
+import io
 from pathlib import Path
+from typing import BinaryIO
 
 
 class Seekable(abc.ABC):
@@ -61,3 +63,18 @@ class Buffer(Seekable):
 
         assert offset + size <= self.size
         return self._buffer[offset : offset + size]
+
+
+class Stream(Seekable):
+    def __init__(self, stream: BinaryIO) -> None:
+        self._stream = stream
+        stream.seek(0, io.SEEK_END)
+        self._size = stream.tell()
+
+    def read_at(self, offset: int, size: int) -> bytes:
+        if size == 0:
+            return b""
+
+        assert offset + size <= self.size
+        self._stream.seek(offset)
+        return self._stream.read(size)

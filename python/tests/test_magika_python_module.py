@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import signal
 import tempfile
 from pathlib import Path
@@ -39,47 +40,77 @@ def test_magika_module_check_version() -> None:
 
 
 @pytest.mark.smoketest
-def test_magika_module_one_basic_test() -> None:
-    model_dir = utils.get_default_model_dir()
-    test_path = utils.get_one_basic_test_file_path()
-
-    m = Magika(model_dir=model_dir)
-
-    _ = m.identify_path(test_path)
-    _ = m.identify_paths([test_path])
-
-
-@pytest.mark.smoketest
-def test_magika_module_with_default_model() -> None:
+def test_magika_module_with_one_test_file() -> None:
     test_path = utils.get_one_basic_test_file_path()
 
     m = Magika()
 
     _ = m.identify_path(test_path)
     _ = m.identify_paths([test_path])
+    _ = m.identify_bytes(test_path.read_bytes())
+    with open(test_path, "rb") as f:
+        _ = m.identify_stream(f)
+
+
+@pytest.mark.smoketest
+def test_magika_module_with_explicit_model_dir() -> None:
+    model_dir = utils.get_default_model_dir()
+    test_path = utils.get_one_basic_test_file_path()
+
+    m = Magika(model_dir=model_dir)
+
+    _ = m.identify_path(test_path)
+    _ = m.identify_paths([test_path])
+    _ = m.identify_bytes(test_path.read_bytes())
+    with open(test_path, "rb") as f:
+        _ = m.identify_stream(f)
 
 
 def test_magika_module_with_basic_tests_by_paths() -> None:
-    model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_basic_test_files_paths()
 
-    m = Magika(model_dir=model_dir)
+    m = Magika()
     results = m.identify_paths(tests_paths)
     check_results_vs_expected_results(tests_paths, results)
 
 
 def test_magika_module_with_basic_tests_by_path() -> None:
-    model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_basic_test_files_paths()
 
-    m = Magika(model_dir=model_dir)
+    m = Magika()
 
     for test_path in tests_paths:
         result = m.identify_path(test_path)
         check_result_vs_expected_result(test_path, result)
 
 
-def test_all_models_with_basic_tests_by_path() -> None:
+def test_magika_module_with_basic_tests_by_bytes() -> None:
+    tests_paths = utils.get_basic_test_files_paths()
+
+    m = Magika()
+
+    for test_path in tests_paths:
+        content = test_path.read_bytes()
+        result = m.identify_bytes(content)
+        check_result_vs_expected_result(
+            test_path, result, expected_result_path=Path("-")
+        )
+
+
+def test_magika_module_with_basic_tests_by_stream() -> None:
+    tests_paths = utils.get_basic_test_files_paths()
+
+    m = Magika()
+
+    for test_path in tests_paths:
+        with open(test_path, "rb") as f:
+            result = m.identify_stream(f)
+        check_result_vs_expected_result(
+            test_path, result, expected_result_path=Path("-")
+        )
+
+
+def test_magika_module_with_all_models() -> None:
     tests_paths = utils.get_basic_test_files_paths()
 
     models_dir = utils.get_models_dir()
@@ -88,20 +119,6 @@ def test_all_models_with_basic_tests_by_path() -> None:
         for test_path in tests_paths:
             result = m.identify_path(test_path)
             check_result_vs_expected_result(test_path, result)
-
-
-def test_magika_module_with_basic_tests_by_bytes() -> None:
-    model_dir = utils.get_default_model_dir()
-    tests_paths = utils.get_basic_test_files_paths()
-
-    m = Magika(model_dir=model_dir)
-
-    for test_path in tests_paths:
-        content = test_path.read_bytes()
-        result = m.identify_bytes(content)
-        check_result_vs_expected_result(
-            test_path, result, expected_result_path=Path("-")
-        )
 
 
 def test_magika_module_with_previously_missdetected_samples() -> None:
@@ -135,6 +152,13 @@ def test_magika_module_with_empty_content() -> None:
         assert res.prediction.output.label == ContentTypeLabel.EMPTY
         assert res.prediction.score == 1.0
 
+    res = m.identify_stream(io.BytesIO(b""))
+    assert res.path == Path("-")
+    assert res.ok
+    assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+    assert res.prediction.output.label == ContentTypeLabel.EMPTY
+    assert res.prediction.score == 1.0
+
 
 def test_magika_module_with_short_content() -> None:
     m = Magika()
@@ -157,8 +181,16 @@ def test_magika_module_with_short_content() -> None:
             assert res.prediction.output.label == expected_ct_label
             assert res.prediction.score == 1.0
 
-            # prediction via content
+            # prediction via bytes
             res = m.identify_bytes(content)
+            assert res.path == Path("-")
+            assert res.ok
+            assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+            assert res.prediction.output.label == expected_ct_label
+            assert res.prediction.score == 1.0
+
+            # prediction via stream
+            res = m.identify_stream(io.BytesIO(content))
             assert res.path == Path("-")
             assert res.ok
             assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
@@ -401,6 +433,14 @@ def test_api_call_with_bad_types() -> None:
     _ = m.identify_bytes(b"bytes content")
     with pytest.raises(TypeError):
         _ = m.identify_bytes("str content")  # type: ignore[arg-type]
+
+    _ = m.identify_stream(io.BytesIO(b"bytes stream content"))
+    with pytest.raises(TypeError):
+        _ = m.identify_stream(io.StringIO("str stream content"))  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        _ = m.identify_stream(b"bytes content")  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        _ = m.identify_stream("str content")  # type: ignore[arg-type]
 
 
 def test_access_magika_result_and_prediction():

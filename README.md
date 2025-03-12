@@ -223,7 +223,7 @@ Options:
 
 While the command line client is handy for many use cases, it may not be the most suitable for automated workflows. Thus, Magika comes with bindings for Python and other languages (see the [Bindings section](#bindings) below for more details).
 
-Here is a couple of examples on how to use the `Magika` Python module:
+Here is a few examples on how to use the `Magika` Python module:
 
 ```python
 >>> from magika import Magika
@@ -237,6 +237,15 @@ javascript
 >>> from magika import Magika
 >>> m = Magika()
 >>> res = m.identify_path('./tests_data/basic/ini/doc.ini')
+>>> print(res.output.label)
+ini
+```
+
+```python
+>>> from magika import Magika
+>>> m = Magika()
+>>> with open('./tests_data/basic/ini/doc.ini', 'rb') as f:
+>>>     res = m.identify_stream(f)
 >>> print(res.output.label)
 ini
 ```

@@ -9,6 +9,10 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+
+- Add new `identify_stream(stream: typing.BinaryIO)` API to infer the content type from an already-open binary stream.
+
 ## [0.6.1-rc2] - 2025-03-11
 
 - Upgrade model from `standard_v3_0` to `standard_v3_1`. See details in the [models' changelog notes](../assets/models/CHANGELOG.md).

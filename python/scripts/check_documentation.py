@@ -21,9 +21,9 @@ IGNORE_PREFIX_PATTERNS = [
     "python/dist",
 ]
 
-# List of urls that return non-200 even if they are valid; for simplicity, we
-# just skip checking them.
-URLS_ALLOWLIST = [
+# List of (prefix) of urls that return non-200 even if they are valid; for
+# simplicity, we just skip checking them.
+URLS_ALLOWLIST_PREFIXES = [
     "https://api.securityscorecards.dev/projects/github.com/google/magika/badge",
     "https://crates.io/crates/magika",
     "https://crates.io/crates/magika-cli",
@@ -116,9 +116,11 @@ def extract_uris_infos_from_file(
                 print(f"WARNING: skipping check for {uri}")
                 is_valid = True
             else:
-                if uri in URLS_ALLOWLIST:
-                    is_valid = True
-                else:
+                for url_allowlist_prefix in URLS_ALLOWLIST_PREFIXES:
+                    if uri.startswith(url_allowlist_prefix):
+                        is_valid = True
+                        break
+                if is_valid is not True:
                     r = requests.head(uri, allow_redirects=True, timeout=5)
                     if r.status_code == 200:
                         is_valid = True

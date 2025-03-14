@@ -105,9 +105,9 @@ class Magika:
         return str(self)
 
     def __str__(self) -> str:
-        return f'Magika(version="{self.get_version()}", model_name="{self.get_model_name()}")'
+        return f'Magika(module_version="{self.get_module_version()}", model_name="{self.get_model_name()}")'
 
-    def get_version(self) -> str:
+    def get_module_version(self) -> str:
         return str(__import__(self.__module__).__version__)
 
     def get_model_name(self) -> str:

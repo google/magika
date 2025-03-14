@@ -38,6 +38,13 @@ def test_magika_module_check_version() -> None:
 
     assert isinstance(magika_module.__version__, str)
 
+    m = Magika()
+    assert m.get_module_version() == magika_module.__version__
+
+    # Check that, when we don't specify `model_dir`, Magika uses the default
+    # model.
+    assert m.get_model_name() == m._get_default_model_name()
+
 
 @pytest.mark.smoketest
 def test_magika_module_with_one_test_file() -> None:
@@ -532,6 +539,11 @@ def test_get_model_and_output_content_types() -> None:
     output_content_types_set = set(output_content_types)
     model_content_types = m.get_model_content_types()
     model_content_types_set = set(model_content_types)
+
+    assert isinstance(output_content_types, List)
+    assert len(output_content_types) > 0
+    assert isinstance(model_content_types, List)
+    assert len(model_content_types) > 0
 
     for ct in output_content_types:
         assert isinstance(ct, ContentTypeLabel)

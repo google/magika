@@ -11,7 +11,8 @@ semver guidelines for more details about this.
 
 ## [Unreleased]
 
-- Add new `identify_stream(stream: typing.BinaryIO)` API to infer the content type from an already-open binary stream.
+- Add new `identify_stream(stream: typing.BinaryIO)` API to infer the content type from an already-open binary stream (https://github.com/google/magika/issues/970).
+- Improved path handling in `identify_path` and `identify_paths`. These functions now accept `Union[str, os.PathLike]` objects, eliminating the need to import `pathlib.Path` for basic usage (https://github.com/google/magika/issues/935).
 
 ## [0.6.1-rc2] - 2025-03-11
 

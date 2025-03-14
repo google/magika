@@ -19,7 +19,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import BinaryIO, Dict, Iterable, List, Optional, Set, Tuple
+from typing import BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -113,21 +113,36 @@ class Magika:
     def get_model_name(self) -> str:
         return self._model_dir.name
 
-    def identify_path(self, path: Path) -> MagikaResult:
+    def identify_path(self, path: Union[str, os.PathLike]) -> MagikaResult:
         """Identify the content type of a file given its path."""
 
-        if not isinstance(path, Path):
-            raise TypeError("Input path should be of type Path")
+        if isinstance(path, str) or isinstance(path, os.PathLike):
+            path = Path(path)
+        else:
+            raise TypeError(
+                f"Path '{path}' is invalid: input path should be of type `Union[str, os.PathLike]`"
+            )
+
         return self._get_result_from_path(path)
 
-    def identify_paths(self, paths: List[Path]) -> List[MagikaResult]:
+    def identify_paths(
+        self, paths: Sequence[Union[str, os.PathLike]]
+    ) -> List[MagikaResult]:
         """Identify the content type of a list of files given their paths."""
 
-        if not isinstance(paths, Iterable):
-            raise TypeError("Input paths should be of type Iterable[Path]")
-        if len(paths) > 0 and not isinstance(paths[0], Path):
-            raise TypeError("Input paths should be of type Iterable[Path]")
-        return self._get_results_from_paths(paths)
+        if not isinstance(paths, Sequence):
+            raise TypeError("Input paths should be of type Sequence[Path]")
+
+        paths_ = []
+        for path in paths:
+            if isinstance(path, str) or isinstance(path, os.PathLike):
+                paths_.append(Path(path))
+            else:
+                raise TypeError(
+                    f"Input '{path}' is invalid: input path should be of type `Union[str, os.PathLike]`"
+                )
+
+        return self._get_results_from_paths(paths_)
 
     def identify_bytes(self, content: bytes) -> MagikaResult:
         """Identify the content type of raw bytes."""

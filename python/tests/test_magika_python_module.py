@@ -421,14 +421,21 @@ def test_api_call_with_bad_types() -> None:
     m = Magika()
 
     _ = m.identify_path(Path("/non_existing.txt"))
+    _ = m.identify_path("/non_existing.txt")
     with pytest.raises(TypeError):
-        _ = m.identify_path("/non_existing.txt")  # type: ignore[arg-type]
+        _ = m.identify_path(b"/non_existing.txt")  # type: ignore[arg-type]
 
     _ = m.identify_paths([Path("/non_existing.txt")])
+    _ = m.identify_paths(["/non_existing.txt"])
+    _ = m.identify_paths([Path("/non_existing.txt"), Path("/not_existing2.txt")])
+    _ = m.identify_paths([Path("/non_existing.txt"), "/not_existing2.txt"])
+    _ = m.identify_paths(["/non_existing.txt", "/not_existing2.txt"])
     with pytest.raises(TypeError):
         _ = m.identify_paths(Path("/non_existing.txt"))  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        _ = m.identify_paths(["/non_existing.txt"])  # type: ignore[list-item]
+        _ = m.identify_paths([b"/non_existing.txt"])  # type: ignore[list-item]
+    with pytest.raises(TypeError):
+        _ = m.identify_paths([Path("/non_existing.txt"), b"/not_existing2.txt"])  # type: ignore[list-item]
 
     _ = m.identify_bytes(b"bytes content")
     with pytest.raises(TypeError):

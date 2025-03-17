@@ -13,6 +13,7 @@ import requests
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent
 assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
 
+
 IGNORE_PREFIX_PATTERNS = [
     ".mypy_cache",
     ".pytest_cache",
@@ -39,6 +40,79 @@ URLS_ALLOWLIST_PREFIXES = [
 def main(skip_external_validity_check: bool, verbose: bool) -> None:
     with_errors = False
 
+    success = check_versions_are_up_to_date()
+    if not success:
+        with_errors = True
+
+    success = check_markdown_links(skip_external_validity_check, verbose)
+    if not success:
+        with_errors = True
+
+    if with_errors:
+        print("There was at least one error.")
+        sys.exit(1)
+
+    print("Everything looks good.")
+
+
+def check_versions_are_up_to_date() -> bool:
+    """Checks that the mentioned latest versions and models are up to date.
+    Returns True if everything is good, False otherwise."""
+
+    # Check that the versions mentioned in the READMEs are up to date
+    python_latest_stable_version = get_python_latest_stable_version()
+    python_default_model_name = get_python_default_model_name()
+
+    print(f"INFO: {python_latest_stable_version=} {python_default_model_name=}")
+
+    expected_lines = [
+        f"> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `{python_latest_stable_version}`, and you can consult the associated documenation [here](https://github.com/google/magika/tree/python-v{python_latest_stable_version}). You can install the latest stable version with: `pip install magika`.",
+        f"- Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/{python_default_model_name}/README.md).",
+        f"- [List of supported content types by the latest model, `{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md)",
+        f"| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md) |",
+    ]
+
+    readme_content_lines_set = set(
+        (REPO_ROOT_DIR / "README.md").read_text().split("\n")
+    )
+
+    with_errors = False
+    for expected_line in expected_lines:
+        if expected_line not in readme_content_lines_set:
+            print(f'ERROR: could not find the following line: "{expected_line}"')
+            with_errors = True
+
+    success = with_errors is False
+    return success
+
+
+def get_python_latest_stable_version() -> str:
+    res = requests.get("https://pypi.org/pypi/magika/json")
+    assert res.status_code == 200
+    latest_stable_version = res.json().get("info", {}).get("version", None)
+    assert latest_stable_version is not None
+    return latest_stable_version
+
+
+def get_python_default_model_name() -> str:
+    default_model_name = None
+    magika_path = REPO_ROOT_DIR / "python" / "src" / "magika" / "magika.py"
+    assert magika_path.is_file()
+    for line in magika_path.read_text().split("\n"):
+        m = re.fullmatch('_DEFAULT_MODEL_NAME = "([a-zA-Z0-9_]+)"', line)
+        if m:
+            # If we already found something, there is a bug somewhere
+            assert default_model_name is None
+            default_model_name = m.group(1)
+
+    return default_model_name
+
+
+def check_markdown_links(skip_external_validity_check: bool, verbose: bool) -> bool:
+    """Checks that links in Markdown files are OK. Returns True if everything is
+    good, False otherwise."""
+
+    with_errors = False
     for path in enumerate_markdown_files_in_dir(Path(".")):
         if verbose:
             print(f"Analyzing {path}")
@@ -63,11 +137,8 @@ def main(skip_external_validity_check: bool, verbose: bool) -> None:
                         f"ERROR: {path.relative_to(REPO_ROOT_DIR)}, in python/, has a non-external uri: {ui.uri}"
                     )
 
-    if with_errors:
-        print("There was at least one error.")
-        sys.exit(1)
-
-    print("Everything looks good.")
+    success = with_errors is False
+    return success
 
 
 def enumerate_markdown_files_in_dir(rel_dir: Path) -> list[Path]:

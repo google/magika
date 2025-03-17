@@ -13,9 +13,9 @@ Magika is a novel AI-powered file type detection tool that relies on the recent 
 
 Use Magika as a command line client or in your Python code!
 
-Please check out Magika on GitHub for more information and documentation on other bindings: [https://github.com/google/magika](https://github.com/google/magika).
+You can find more information on which content types are supported, extended documentation, and bindings for other languages on our GitHub project at [https://github.com/google/magika](https://github.com/google/magika).
 
-> The `magika` Python package is suitable for production use. However, because it's currently in its zero major version (0.x.x) (note that Magika adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)), future updates may include breaking changes. For detailed information and migration guidance, please refer to the [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
+> The `magika` Python package is suitable for production use. However, because it's currently in its zero major version (`0.x.y`), future `0.x+1.z` updates may include breaking changes (more in general, Magika adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)). For detailed information and migration guidance, please refer to the [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
 ## Installing Magika
 

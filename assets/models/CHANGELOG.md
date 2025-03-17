@@ -4,6 +4,11 @@ Here we document the main changes of the various models.
 
 Indicated inference speed calculated by averaging 100 inferences (within one invocation) on an AMD Ryzen 9 7950X 16-Core Processor CPU.
 
+## `standard_v3_2` - 2025-03-17
+
+- [216 possible tool's outputs](./standard_v3_2/README.md), ~99% average accuracy, ~2ms inference speed.
+- Difference with respect `standard_v3_1`: trained on a new (synthetic) dataset of CSV files to address a regression with CSV files (https://github.com/google/magika/issues/983); model selection now uses minimal test loss instead of other heuristics.
+
 ## `standard_v3_1`
 
 - [216 possible tool's outputs](./standard_v3_1/README.md).

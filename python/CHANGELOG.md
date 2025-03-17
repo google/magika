@@ -14,6 +14,7 @@ semver guidelines for more details about this.
 - Add new `identify_stream(stream: typing.BinaryIO)` API to infer the content type from an already-open binary stream (https://github.com/google/magika/issues/970).
 - Improved path handling in `identify_path` and `identify_paths`. These functions now accept `Union[str, os.PathLike]` objects, eliminating the need to import `pathlib.Path` for basic usage (https://github.com/google/magika/issues/935).
 - Rename `get_version` => `get_module_version` method to help disambiguate which "thing" the version is referring to.
+- Upgrade model from `standard_v3_1` to `standard_v3_2`. See details in the [models' changelog notes](../assets/models/CHANGELOG.md).
 
 ## [0.6.1-rc2] - 2025-03-11
 

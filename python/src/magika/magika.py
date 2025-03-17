@@ -41,7 +41,7 @@ from magika.types import (
     Status,
 )
 
-DEFAULT_MODEL_NAME = "standard_v3_1"
+_DEFAULT_MODEL_NAME = "standard_v3_2"
 
 
 class Magika:
@@ -230,7 +230,7 @@ class Magika:
         clients/tests without the need to instantiate a Magika object.
         """
 
-        return DEFAULT_MODEL_NAME
+        return _DEFAULT_MODEL_NAME
 
     @staticmethod
     def _load_content_types_kb(

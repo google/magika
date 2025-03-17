@@ -9,7 +9,7 @@ from typing import Optional
 import click
 
 MODELS_NAMES_TO_INCLUDE_IN_PACKAEG = [
-    "standard_v3_1",
+    "standard_v3_2",
 ]
 
 
@@ -105,7 +105,7 @@ from magika.types.strenum import StrEnum
 
 
 # This is the list of all possible content types we know about; however, models
-# support a smaller subset of them. See model's config for details.
+# support a smaller subset of them. See model's README.md for details.
 class ContentTypeLabel(StrEnum):
 """
 

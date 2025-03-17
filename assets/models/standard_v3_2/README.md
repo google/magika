@@ -199,7 +199,7 @@ This is the full list of all possible tool's outputs (which are different than t
 | 186 | ttf | TrueType Font data |
 | 187 | twig | Twig template |
 | 188 | txt | Generic text document |
-| 189 | typescript | Typescript |
+| 189 | typescript | TypeScript source |
 | 190 | unknown | Unknown binary data |
 | 191 | vba | MS Visual Basic source (VBA) |
 | 192 | vcxproj | Visual Studio MSBuild project |
@@ -422,7 +422,7 @@ This is the full list of all possible model's output. E.g., this is the list of 
 | 185 | ttf | TrueType Font data |
 | 186 | twig | Twig template |
 | 187 | txt | Generic text document |
-| 188 | typescript | Typescript |
+| 188 | typescript | TypeScript source |
 | 189 | undefined | Undefined |
 | 190 | vba | MS Visual Basic source (VBA) |
 | 191 | vcxproj | Visual Studio MSBuild project |

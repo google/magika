@@ -3,7 +3,7 @@ rust/code.rs: Rust source (code)
 + magika rust/code.rs --colors
 [1;34mrust/code.rs: Rust source (code)[0m
 + magika rust/code.rs --output-score
-rust/code.rs: Rust source (code) 91%
+rust/code.rs: Rust source (code) 72%
 + magika rust/code.rs --json
 [
   {
@@ -31,7 +31,7 @@ rust/code.rs: Rust source (code) 91%
           "label": "rust",
           "mime_type": "application/x-rust"
         },
-        "score": 0.9129999876022339
+        "score": 0.7289999723434448
       }
     }
   }
@@ -63,7 +63,7 @@ rust/code.rs: Rust source (code) 91%
           "label": "rust",
           "mime_type": "application/x-rust"
         },
-        "score": 0.9129999876022339
+        "score": 0.7289999723434448
       }
     }
   },
@@ -94,15 +94,15 @@ rust/code.rs: Rust source (code) 91%
           "label": "python",
           "mime_type": "text/x-python"
         },
-        "score": 0.9769999980926514
+        "score": 0.9900000095367432
       }
     }
   }
 ]
 + magika rust/code.rs --jsonl
-{"path":"rust/code.rs","result":{"status":"ok","value":{"dl":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"output":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"score":0.9129999876022339}}}
+{"path":"rust/code.rs","result":{"status":"ok","value":{"dl":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"output":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"score":0.7289999723434448}}}
 + magika rust/code.rs python/code.py --jsonl
-{"path":"rust/code.rs","result":{"status":"ok","value":{"dl":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"output":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"score":0.9129999876022339}}}
-{"path":"python/code.py","result":{"status":"ok","value":{"dl":{"description":"Python source","extensions":["py","pyi"],"group":"code","is_text":true,"label":"python","mime_type":"text/x-python"},"output":{"description":"Python source","extensions":["py","pyi"],"group":"code","is_text":true,"label":"python","mime_type":"text/x-python"},"score":0.9769999980926514}}}
+{"path":"rust/code.rs","result":{"status":"ok","value":{"dl":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"output":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"score":0.7289999723434448}}}
+{"path":"python/code.py","result":{"status":"ok","value":{"dl":{"description":"Python source","extensions":["py","pyi"],"group":"code","is_text":true,"label":"python","mime_type":"text/x-python"},"output":{"description":"Python source","extensions":["py","pyi"],"group":"code","is_text":true,"label":"python","mime_type":"text/x-python"},"score":0.9900000095367432}}}
 + magika rust/code.rs --mime-type
 rust/code.rs: application/x-rust

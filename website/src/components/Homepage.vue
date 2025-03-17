@@ -13,6 +13,15 @@
     </div>
   </header>
 
+  <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3 border rounded-lg bg-primary">
+  <h2> New Magika version available!</h2>
+  <p>
+  While this website is running on Magika 1.0, we have released a newer version of our model supporting 200+ content types.
+  Our Python and Rust libraries support the newer model, as well as our CLI.
+  This website will follow soon, but if you want the latest and greatest, go check out those!
+  </p>
+  </div>
+
   <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3">
     <p>
       Magika leverages the power of cutting-edge deep learning to enhance the
@@ -81,8 +90,8 @@
   </div>
   <pre>
 @misc{magika,
-      title={{Magika: AI-Powered Content-Type Detection}},
-      author={{Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie}},
+      title={ {Magika: AI-Powered Content-Type Detection} },
+      author={ {Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie} },
       year={2024},
       eprint={2409.13768},
       archivePrefix={arXiv},

@@ -62,14 +62,19 @@ def check_versions_are_up_to_date() -> bool:
     # Check that the versions mentioned in the READMEs are up to date
     python_latest_stable_version = get_python_latest_stable_version()
     python_default_model_name = get_python_default_model_name()
+    rust_default_model_name = get_rust_default_model_name()
 
-    print(f"INFO: {python_latest_stable_version=} {python_default_model_name=}")
+    print(
+        f"INFO: {python_latest_stable_version=} {python_default_model_name=} {rust_default_model_name=}"
+    )
 
     expected_lines = [
         f"> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `{python_latest_stable_version}`, and you can consult the associated documenation [here](https://github.com/google/magika/tree/python-v{python_latest_stable_version}). You can install the latest stable version with: `pip install magika`.",
         f"- Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/{python_default_model_name}/README.md).",
         f"- [List of supported content types by the latest model, `{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md)",
         f"| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md) |",
+        f"| [Rust `magika` CLI](https://crates.io/crates/magika-cli) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
+        f"| [Rust `magika` library](https://docs.rs/magika) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
     ]
 
     readme_content_lines_set = set(
@@ -106,6 +111,12 @@ def get_python_default_model_name() -> str:
             default_model_name = m.group(1)
 
     return default_model_name
+
+
+def get_rust_default_model_name() -> str:
+    model_symlink_path = REPO_ROOT_DIR / "rust" / "gen" / "model"
+    assert model_symlink_path.is_symlink()
+    return model_symlink_path.readlink().name
 
 
 def check_markdown_links(skip_external_validity_check: bool, verbose: bool) -> bool:

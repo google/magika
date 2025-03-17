@@ -30,7 +30,7 @@ You can try Magika without installing anything by using our [web demo](https://g
 # Highlights
 
 - Available as a command line tool written in Rust, a Python API, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package, which powers our [web demo](https://google.github.io/magika/)), and GoLang (WIP).
-- Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/standard_v3_1/README.md).
+- Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/standard_v3_2/README.md).
 - On our test set, Magika achieves ~99% average precision and recall, outperforming existing approaches.
 - After the model is loaded (which is a one-off overhead), the inference time is about 5ms per file, even when run on a single CPU.
 - You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.
@@ -256,7 +256,7 @@ Please consult the [python documentation](./python/README.md) for details on the
 # Documentation
 
 - [Core concepts: models, prediction mode, magika's output, and content types knowledge base](./docs/concepts.md)
-- [List of supported content types by the latest model, `standard_v3_1`](./assets/models/standard_v3_1/README.md)
+- [List of supported content types by the latest model, `standard_v3_2`](./assets/models/standard_v3_2/README.md)
 - [Documentation about the CLI](./rust/cli/README.md)
 - [Documentation about the python `magika` package and module](./python/README.md)
 - [Frequently Asked Questions](./docs/faq.md)
@@ -266,9 +266,9 @@ Please consult the [python documentation](./python/README.md) for details on the
 
 | Artifact | Status | Default model |
 |---|---|---|
-| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
-| [Rust `magika` CLI](https://crates.io/crates/magika-cli) | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
-| [Rust `magika` library](https://docs.rs/magika) | Stable enough for prod use cases | [`standard_v3_1`](./assets/models/standard_v3_1/README.md) |
+| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`standard_v3_2`](./assets/models/standard_v3_2/README.md) |
+| [Rust `magika` CLI](https://crates.io/crates/magika-cli) | Stable enough for prod use cases | [`standard_v3_2`](./assets/models/standard_v3_2/README.md) |
+| [Rust `magika` library](https://docs.rs/magika) | Stable enough for prod use cases | [`standard_v3_2`](./assets/models/standard_v3_2/README.md) |
 | JavaScript / NPM package ([README](./js/README.md) & [docs](./docs/js.md)) | Experimental | [`standard_v1`](./assets/models/standard_v1/README.md) |
 | [GoLang](./go/README.md) | In development | - |
 

@@ -18,7 +18,7 @@
   <p>
   While this website is running on Magika 1.0, we have released a newer version of our model supporting 200+ content types.
   Our Python and Rust libraries support the newer model, as well as our CLI.
-  This website will follow soon, but if you want the latest and greatest, go check out those!
+  This website will follow soon, but if you want the latest and greatest, go check <a href="https://github.com/google/magika">those out</a> 
   </p>
   </div>
 
@@ -89,14 +89,12 @@
     If you use Magika, please cite it like this:
   </div>
   <pre>
-@misc{magika,
-      title={ {Magika: AI-Powered Content-Type Detection} },
-      author={ {Fratantonio, Yanick and Invernizzi, Luca and Farah, Loua and Kurt, Thomas and Zhang, Marina and Albertini, Ange and Galilee, Francois and Metitieri, Giancarlo and Cretin, Julien and Petit-Bianco, Alexandre and Tao, David and Bursztein, Elie} },
-      year={2024},
-      eprint={2409.13768},
-      archivePrefix={arXiv},
-      primaryClass={cs.CR},
-      url={https://arxiv.org/abs/2409.13768},
+@InProceedings{fratantonio25:magika,
+  author = {Yanick Fratantonio and Luca Invernizzi and Loua Farah and Kurt Thomas and Marina Zhang and Ange Albertini and Francois Galilee and Giancarlo Metitieri and Julien Cretin and Alexandre Petit-Bianco and David Tao and Elie Bursztein},
+  title = { {Magika: AI-Powered Content-Type Detection} },
+  booktitle = {Proceedings of the International Conference on Software Engineering (ICSE)},
+  month = {April},
+  year = {2025}
 }
     </pre
   >

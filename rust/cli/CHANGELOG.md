@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1-rc.0-dev
+## 0.1.1-dev
 
 ### Minor
 

@@ -20,7 +20,7 @@ anyhow = "1.0.86"
 async-channel = "2.3.1"
 clap = { version = "4.5.9", features = ["cargo", "derive", "string"] }
 colored = "2.1.0"
-magika = { version = "=0.1.1-rc.0-dev", path = "../lib", features = ["serde"] }
+magika = { version = "=0.1.1-dev", path = "../lib", features = ["serde"] }
 num_cpus = "1.16.0"
 ort = "=2.0.0-rc.9"
 serde = { version = "1.0.204", features = ["derive"] }

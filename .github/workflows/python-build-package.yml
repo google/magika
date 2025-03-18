@@ -11,12 +11,14 @@ on:
   schedule:
     - cron: '12 3 * * 4' # Refresh the cache weekly.
   workflow_dispatch:
+  release:
+    types: [created]
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  build-wheels:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -28,17 +30,15 @@ jobs:
           - runner: macos-14
             target: aarch64
     steps:
-      - name: Disable automatic git CRLF conversion
-        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # pin@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # pin@v5
         with:
           python-version: '3.12'
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.4.7/install.sh | sh
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
       - if: matrix.platform.runner == 'ubuntu-latest'
-        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: rust/onnx/runtime/build/Linux
           key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
@@ -59,54 +59,140 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out=../dist
           working-directory: python
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
+          path: dist
+
+  # Download, install, and test the wheels with different versions of python
+  test-wheels:
+    needs: [build-wheels]
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      # We want to know in which exact situation the tests fail
+      fail-fast: false
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: windows-latest
+            target: x64
+          - runner: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
+          path: dist
+      - name: Setup Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # pin@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
       - if: matrix.platform.runner != 'windows-latest'
         name: Check that `uv add magika.whl` works
-        run: mkdir /tmp/test-uv && cp -vR dist/*.whl /tmp/test-uv && cd /tmp/test-uv && uv init && uv add ./$(\ls -1 *.whl | head -n 1)
+        run: |
+          mkdir /tmp/test-uv
+          cp -vR dist/*.whl /tmp/test-uv
+          cd /tmp/test-uv
+          uv init
+          uv add ./$(\ls -1 *.whl | head -n 1)
       - if: matrix.platform.runner == 'windows-latest'
-        name: Check that magika install with uv works on Windows
+        name: Check that `uv add magika.whl` works
         shell: pwsh
         run: |
           mkdir C:\test-uv
           Copy-Item -Path dist\*.whl -Destination C:\test-uv
           cd C:\test-uv
+          $env:PATH += ";$HOME/.local/bin"
           uv init
           $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
           uv add ".\$wheel"
-      - name: Install wheels
+      - name: Install the wheel
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
       - run: magika --version
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: magika -r tests_data/basic
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
-        # Windows' onnxruntime/ort returns different results wrt. Linux/MacOS. For
-        # now keep building even in case of misdetections.
-        # TODO(https://github.com/google/magika/issues/892): remove when this is fixed.
-        continue-on-error: ${{ matrix.platform.runner == 'windows-latest' }}
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
-        # TODO(https://github.com/google/magika/issues/892): same as above,
-        # remove when this is fixed.
-        continue-on-error: ${{ matrix.platform.runner == 'windows-latest' }}
-      - name: Upload wheels
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
-          path: dist
 
-  sdist:
+  build-pure-python-wheel-and-sdist:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 ./python/scripts/fix_package_version.py
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out=../dist
-          working-directory: python
-      - name: Upload sdist
-        if: github.event_name != 'pull_request'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+      - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
+        working-directory: python
+      - name: Build pure python wheel and source distribution
+        run: uv build --out-dir ../dist
+        working-directory: python
+      - name: Upload wheel and sdist
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-sdist
+          name: wheel-pure-python-and-sdist
           path: dist
+
+  # Download, install, and test the pure python wheel on multiple platforms
+  test-pure-python-wheel:
+    needs: [build-pure-python-wheel-and-sdist]
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      # We want to know in which exact situation the tests fail
+      fail-fast: false
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: windows-latest
+            target: x64
+          - runner: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-pure-python-and-sdist
+          path: dist
+      - name: Setup Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # pin@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+      - if: matrix.platform.runner != 'windows-latest'
+        name: Check that `uv add magika.whl` works
+        run: |
+          mkdir /tmp/test-uv
+          cp -vR dist/*.whl /tmp/test-uv
+          cd /tmp/test-uv
+          uv init
+          uv add ./$(\ls -1 *.whl | head -n 1)
+      - if: matrix.platform.runner == 'windows-latest'
+        name: Check that `uv add magika.whl` works
+        shell: pwsh
+        run: |
+          mkdir C:\test-uv
+          Copy-Item -Path dist\*.whl -Destination C:\test-uv
+          cd C:\test-uv
+          $env:PATH += ";$HOME/.local/bin"
+          uv init
+          $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
+          uv add ".\$wheel"
+      - name: Install the wheel
+        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+
+      # Check that the magika script points to the placeholder raising a warning
+      - run: magika --version | grep -C10 WARNING | grep -C10 magika-python-client
+      # Check that the fallback magika's python client can be run
+      - run: magika-python-client -r tests_data/basic
+      # Check that the results of the python's client are correct
+      - run: python3 ./python/scripts/run_quick_test_magika_cli.py --client-path magika-python-client
+      # Test the python module
+      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
+      - run: python3 ./python/scripts/run_quick_test_magika_module.py

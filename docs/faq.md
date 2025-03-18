@@ -1,8 +1,8 @@
 # Frequently Asked Questions
 
-## Q: Why does Magika support "only" ~100 content types and not many more?
+## Q: Why does Magika support "only" ~200 content types and not many more?
 
-Because we needed to start from somewhere. Magika is based on a new approach, and at first we did not know whether it would work or not. It was prohibitively complex to aim to support all content types from the very beginning, and we aimed at selecting at least 100 content types (we settled with 110+). Which ones? The ones that seemed most relevant for most use cases (but, still, we miss many more!). Now that we know this approach works, we will be looking at improving content types coverage for the next iterations.
+Because we needed to start from somewhere. Magika is based on a new approach, and at first we did not know whether it would work or not. It was prohibitively complex to aim to support all content types from the very beginning, and we aimed at selecting at least 100 content types (we settled with 110+), while newer models support 200+ content types. Which ones? The ones that seemed most relevant for most use cases (but, still, we miss many more!). Now that we know this approach works, we will be looking at improving content types coverage for the next iterations.
 
 
 ## Q: Why does not Magika support content type X or Y?
@@ -14,26 +14,26 @@ But please open GitHub issues on what you want! Getting this sort of feedback wa
 
 ## Q: What is the use case for the javascript package?
 
-The main client we expect people to use for this release is the Python client and Python API. The javascript package, based on a TFJS version of the same model, was developed for our [web demo](https://google.github.io/magika/), which allows users to test Magika and report feedback without installing anything. The demo also showcases on-device capabilities. The javascript package could also be useful for integrations that require javascript bindings. For now it is not envisioned to be used as a standalone command line (the model loading phase is quite slow), but it could be useful for those deployments where you can load the model once, and keep using it for many inferences.
+The main client we expect people to use for the first release is the Rust client and the python package / module. The javascript package, based on a TFJS version of the same model, was developed for our [web demo](https://google.github.io/magika/), which allows users to test Magika and report feedback without installing anything. The demo also showcases on-device capabilities. The javascript package could also be useful for integrations that require javascript bindings. For now it is not envisioned to be used as a standalone command line (the model loading phase is quite slow), but it could be useful for those deployments where you can load the model once, and keep using it for many inferences.
 
 
 ## Q: Where can I find more details about all this?
 
-We are releasing a paper later this year detailing how the Magika model was trained and the specifics about the model itself. We will also open source other components of this project (e.g., the keras model Python code). Stay tuned!
+Please consult our research paper, see details [here](../README.md#research-paper-and-citation).
 
 
 ## Q: The inference time is ~5ms but the Python CLI takes a few hundred ms to bootstrap?
 
-Yes, but this is because the Python CLI needs to load the Python interpreter and various libraries, plus the model. For the future, we are considering other options (e.g., a Rust client).
+Yes, but this is because the Python CLI needs to load the Python interpreter and various libraries, plus the model. This is why we worked on the Rust client, which is now shipped in the `magika` python module as well.
 
-In the meantime, we believe the current release is already good enough for many use cases, including scanning thousands of files: you can pass them all as arguments in one single invocation, and the Python client (and API) will internally load the model only once and use batching to achieve fast inference speeds.
+Note that he Python client (and API) will internally load the model only once and use batching to achieve fast inference speeds, so this should be OK for most use cases.
 
 
 ## Q: Magika returns the content type in a number of formats, which one should I use?
 
 If Magika's output is for human consumption, then the default verbose textual description should be fine (but, if you want, you can change the output format with CLI options, e.g., `--label`, `--jsonl`, ...).
 
-However, if you are using Magika for automated pipelines, we strongly suggest to use the simple textual label,`ct_label` (either by using `--label`, or by using `--jsonl` and parse out the `ct_label` field). Other verbose output (e.g., `file`'s magic) or MIME types have proved to be very painful to work with. See the following Q/A for more context.
+However, if you are using Magika for automated pipelines, we strongly suggest to use the simple textual label,`label` (either by using `--label`, or by using `--jsonl` and parse out the `label` field). Other verbose output (e.g., `file`'s magic) or MIME types have proved to be very painful to work with. See the following Q/A for more context.
 
 
 ## Q: What is the problem with relying on type detectors' verbose textual description for automated workflows?
@@ -44,14 +44,14 @@ See for example [this commit](https://github.com/file/file/commit/a2756aa50fdf7d
 
 These textual representations could also slightly differ even for the same content type, thus making the normalization process rather tedious and error-prone. For example, these are different variations on how an XML file can be recognized by `file`: `XML document`, `XML 1.0 document`, or `XML 1.0 document text`.
 
-Thus, this type of output is useful for human consumption, but it does not appear suitable for automated workflows.
+Thus, this type of output is useful for human consumption, but it is not ideal for automated workflows.
 
 
 ## Q: What is the problem with relying on MIME types for automated workflows?
 
 Despite the popularity of using MIME types to label content types, we have run into problems when performing our evaluation of existing tools.
 
-We found that the same given content type can be associated to multiple MIME types (e.g., `application/xml`, `text/xml`). The full mapping is often not available, and can change with time. This makes the mapping task tedious and error-prone.
+We found that the same given content type can be associated to multiple MIME types (e.g., `application/xml`, `text/xml`). The full mapping is often not available, and can change with time. This makes the mapping task tedious and error-prone. Even if there is "one correct answer" about which is the MIME type for a given content type, this does not mean that existing tools follow along.
 
 Another problem relates to content types that were initially not officially registered and that they were registered only later on. For example, Markdown was initially associated to `text/x-markdown` (the `x-` prefix is used for unofficial MIME types), but, later on, Markdown was registered and associated to `text/markdown`. The problem is that, when (and if) existing tools update their MIME types database, existing automated workflows would break.
 

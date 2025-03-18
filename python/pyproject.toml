@@ -2,10 +2,10 @@
 name = "magika"
 description = "A tool to determine the content type of a file with deep learning"
 authors = [
-    {author = "Magika Developers", email = "magika-dev@google.com"},
+    {name = "Magika Developers", email = "magika-dev@google.com"},
 ]
 readme = "README.md"
-license = "Apache-2.0"
+license = {"text" = "Apache-2.0"}
 requires-python = ">=3.8"
 keywords = ["content type detection", "machine learning"]
 classifiers = [
@@ -34,7 +34,8 @@ dynamic = ["version"]
 
 dependencies = [
     "click>=8.1.7",
-    "onnxruntime>=1.17.0,<1.20",
+    "onnxruntime>=1.17.0 ; python_version > '3.9'",
+    "onnxruntime>=1.17.0, <1.20.0 ; python_version <= '3.9'",
     "numpy>=1.24; python_version < '3.12'",
     "numpy>=1.26; python_version >= '3.12' and python_version < '3.13'",
     "numpy>=2.1.0; python_version >= '3.13'",
@@ -56,7 +57,9 @@ dev-dependencies = [
     "ipython>=8.12.3",
     "pytest>=8.3.2",
     "ruff>=0.6.3",
-    "twine>=5.1.1",
+    "twine==6.1.0",
+    "tomli-w>=1.0.0",
+    "tomli>=2.0.1",
 ]
 
 [build-system]

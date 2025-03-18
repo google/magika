@@ -18,7 +18,10 @@
 use crate::file::TypeInfo;
 
 /// Model name (only comparable with equality).
-pub const MODEL_NAME: &str = "standard_v2_1";
+pub const MODEL_NAME: &str = "standard_v3_2";
+
+/// Model major version.
+pub const MODEL_MAJOR_VERSION: u32 = 3;
 
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",
@@ -374,7 +377,7 @@ pub(crate) static DIRECTORY: TypeInfo = TypeInfo {
 pub(crate) static DM: TypeInfo = TypeInfo {
     label: "dm",
     mime_type: "text/plain",
-    group: "text",
+    group: "code",
     description: "Dream Maker",
     extensions: &["dm"],
     is_text: true,
@@ -896,7 +899,7 @@ pub(crate) static LNK: TypeInfo = TypeInfo {
 pub(crate) static LUA: TypeInfo = TypeInfo {
     label: "lua",
     mime_type: "text/plain",
-    group: "text",
+    group: "code",
     description: "Lua",
     extensions: &["lua"],
     is_text: true,
@@ -1067,7 +1070,7 @@ pub(crate) static OBJECTIVEC: TypeInfo = TypeInfo {
 pub(crate) static OCAML: TypeInfo = TypeInfo {
     label: "ocaml",
     mime_type: "text-ocaml",
-    group: "text",
+    group: "code",
     description: "OCaml",
     extensions: &["ml", "mli"],
     is_text: true,
@@ -1370,6 +1373,24 @@ pub(crate) static R: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static RANDOMBYTES: TypeInfo = TypeInfo {
+    label: "randombytes",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "Random bytes",
+    extensions: &[],
+    is_text: false,
+};
+
+pub(crate) static RANDOMTXT: TypeInfo = TypeInfo {
+    label: "randomtxt",
+    mime_type: "text/plain",
+    group: "text",
+    description: "Random text",
+    extensions: &[],
+    is_text: true,
+};
+
 pub(crate) static RAR: TypeInfo = TypeInfo {
     label: "rar",
     mime_type: "application/x-rar",
@@ -1616,7 +1637,7 @@ pub(crate) static TAR: TypeInfo = TypeInfo {
 pub(crate) static TCL: TypeInfo = TypeInfo {
     label: "tcl",
     mime_type: "application/x-tcl",
-    group: "text",
+    group: "code",
     description: "Tickle",
     extensions: &["tcl"],
     is_text: true,
@@ -1715,8 +1736,8 @@ pub(crate) static TXT: TypeInfo = TypeInfo {
 pub(crate) static TYPESCRIPT: TypeInfo = TypeInfo {
     label: "typescript",
     mime_type: "application/typescript",
-    group: "text",
-    description: "Typescript",
+    group: "code",
+    description: "TypeScript source",
     extensions: &["ts", "mts", "cts"],
     is_text: true,
 };
@@ -2275,6 +2296,10 @@ pub enum ContentType {
     Qt,
     /// R (language)
     R,
+    /// Random bytes
+    Randombytes,
+    /// Random text
+    Randomtxt,
     /// RAR archive data
     Rar,
     /// Resource Description Framework document (RDF)
@@ -2349,7 +2374,7 @@ pub enum ContentType {
     Twig,
     /// Generic text document
     Txt,
-    /// Typescript
+    /// TypeScript source
     Typescript,
     /// Undefined
     Undefined,
@@ -2410,7 +2435,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 215;
+    pub(crate) const SIZE: usize = 217;
 
     /// Returns the content type information.
     pub fn info(self) -> &'static TypeInfo {
@@ -2564,6 +2589,8 @@ impl ContentType {
             ContentType::Pytorch => &PYTORCH,
             ContentType::Qt => &QT,
             ContentType::R => &R,
+            ContentType::Randombytes => &RANDOMBYTES,
+            ContentType::Randomtxt => &RANDOMTXT,
             ContentType::Rar => &RAR,
             ContentType::Rdf => &RDF,
             ContentType::Rpm => &RPM,

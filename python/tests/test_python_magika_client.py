@@ -16,16 +16,16 @@ import subprocess
 from pathlib import Path
 
 
-def test_python_module_tester() -> None:
+def test_python_magika_client() -> None:
     python_root_dir = Path(__file__).parent.parent
-    python_module_tester_path = (
-        python_root_dir / "scripts" / "magika_python_module_tester.py"
+    python_magika_client_path = (
+        python_root_dir / "src" / "magika" / "cli" / "magika_client.py"
     ).resolve()
 
     # quick test to check there are no obvious problems
-    cmd = [str(python_module_tester_path), "--help"]
+    cmd = [str(python_magika_client_path), "--help"]
     subprocess.run(cmd, capture_output=True, check=True)
 
     # quick test to check there are no crashes
-    cmd = [str(python_module_tester_path), str(python_module_tester_path)]
+    cmd = [str(python_magika_client_path), str(python_magika_client_path)]
     subprocess.run(cmd, capture_output=True, check=True)

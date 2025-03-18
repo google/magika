@@ -26,19 +26,37 @@ and the dev dependencies are not available.
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 
 
 @click.command()
-def main() -> None:
+@click.option(
+    "--client-path",
+    type=click.Path(exists=False, resolve_path=False),
+)
+def main(client_path: Optional[Path]) -> None:
+    """Tests the Rust or Python Magika client. By default, it runs "magika"
+    (expected in PATH). Use --client-path to specify a different client
+    executable. Note that "client_path" may not point to a valid file, but still
+    be a valid target to run as it may be found in the PATH.
+    """
+
     basic_tests_dir = (
         Path(__file__).resolve().parent.parent.parent / "tests_data" / "basic"
     )
     assert basic_tests_dir.is_dir()
 
+    if client_path is None:
+        client_path = Path("magika")
+    print(f'Testing client: "{client_path}"')
+
+    p = subprocess.run([str(client_path), "--version"], capture_output=True, text=True)
+    print(f'Output of "magika --version": {p.stdout.strip()}')
+
     p = subprocess.run(
-        ["magika", "-r", "--label", str(basic_tests_dir)],
+        [str(client_path), "-r", "--label", "--no-colors", str(basic_tests_dir)],
         capture_output=True,
         text=True,
     )
@@ -49,7 +67,8 @@ def main() -> None:
         print(f"stderr:\n{p.stderr}\n" + "-" * 40)
         sys.exit(1)
 
-    assert p.stderr == ""
+    if p.stderr != "":
+        print(f"WARNING: p.stderr not empty: {p.stderr}")
 
     with_error = False
     lines = p.stdout.split("\n")

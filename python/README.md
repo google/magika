@@ -17,6 +17,9 @@ You can find more information on which content types are supported, extended doc
 
 > The `magika` Python package is suitable for production use. However, because it's currently in its zero major version (`0.x.y`), future `0.x+1.z` updates may include breaking changes (more in general, Magika adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)). For detailed information and migration guidance, please refer to the [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
+> **IMPORTANT**: This latest 0.6.1 version has a few breaking changes from the latest stable version, 0.5.1. Please consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md#061---2025-03-19) and the [migration guide](https://github.com/google/magika/blob/main/python/CHANGELOG.md#breaking-changes-and-migration-guide).
+
+
 ## Installing Magika
 
 Magika is available as `magika` on [PyPI](https://pypi.org/project/magika):

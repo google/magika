@@ -146,12 +146,12 @@ This release introduces several breaking changes. Please review this guide caref
 
 For a detailed list of all changes, including those from the -rc releases, please refer to the individual changelog entries for each release candidate:
 - [0.6.1-rc3](https://github.com/google/magika/blob/python-v0.6.1-rc3/python/CHANGELOG.md#061-rc3---2025-03-17)
-- [0.6.1-rc2](https://github.com/google/magika/blob/python-v0.6.1-rc3/python/CHANGELOG.md#061-rc2---2025-03-11)
-- [0.6.1-rc1](https://github.com/google/magika/blob/python-v0.6.1-rc3/python/CHANGELOG.md#061-rc1---2025-02-04)
-- [0.6.1-rc0](https://github.com/google/magika/blob/python-v0.6.1-rc3/python/CHANGELOG.md#061-rc0---2025-01-23)
-- [0.6.0-rc3](https://github.com/google/magika/blob/python-v0.6.0rc3/python/CHANGELOG.md#060-rc3---2024-11-20)
-- [0.6.0-rc2](https://github.com/google/magika/blob/python-v0.6.0rc3/python/CHANGELOG.md#060-rc2---2024-11-19)
-- [0.6.0-rc1](https://github.com/google/magika/blob/python-v0.6.0rc3/python/CHANGELOG.md#060-rc1---2024-10-07)
+- [0.6.1-rc2](https://github.com/google/magika/blob/python-v0.6.1-rc2/python/CHANGELOG.md#061-rc2---2025-03-11)
+- [0.6.1-rc1](https://github.com/google/magika/blob/python-v0.6.1-rc1/python/CHANGELOG.md#061-rc1---2025-02-04)
+- [0.6.1-rc0](https://github.com/google/magika/blob/python-v0.6.1-rc0/python/CHANGELOG.md#061-rc0---2025-01-23)
+- [0.6.0-rc3](https://github.com/google/magika/blob/python-v0.6.0-rc3/python/CHANGELOG.md#060-rc3---2024-11-20)
+- [0.6.0-rc2](https://github.com/google/magika/blob/python-v0.6.0-rc2/python/CHANGELOG.md#060-rc2---2024-11-19)
+- [0.6.0-rc1](https://github.com/google/magika/blob/python-v0.6.0-rc2/python/CHANGELOG.md#060-rc1---2024-10-07)
 
 
 ## [0.5.1] - 2024-03-06

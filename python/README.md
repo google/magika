@@ -230,9 +230,12 @@ Here is how the main types look like:
 ```python
 class MagikaResult:
     path: Path
+    ok: bool
     status: Status
     prediction: MagikaPrediction
-    [...]
+    dl: ContentTypeInfo  # Shortcut for `prediction.dl`, valid only for `status == Status.OK`
+    output: ContentTypeInfo  # Same as above, shortcut to `prediction.output`
+    score: float  # Same as above, shortcut to `prediction.float`
 ```
 
 ```python
@@ -240,6 +243,8 @@ class MagikaPrediction:
     dl: ContentTypeInfo
     output: ContentTypeInfo
     score: float
+    # Specify why the model's output has been overwritten (if that's the case)
+    overwrite_reason: OverwriteReason
 ```
 
 ```python
@@ -260,7 +265,14 @@ class ContentTypeLabel(StrEnum):
 ```
 
 
-### Development setup
+### Additional APIs
+
+- `get_output_content_types()`: Returns a list of all possible content type labels that Magika can output (i.e., the possible values of `MagikaResult.prediction.output.label`). This is the recommended method for most users that want to have a list of what is the output space of Magika.
+- `get_model_content_types()`: Returns a list of all possible content type labels the *deep learning model* can output (i.e., `MagikaResult.prediction.dl.label`). Useful for debugging, most users should refer to `get_output_content_types()`.
+- `get_module_version()` and `get_model_version()`: Returns the module version and the model's name being used, respectively.
+
+
+## Development setup
 
 - `magika` uses `uv` as a project and dependency managment tool. To install all the dependencies: `$ cd python; uv sync`.
 - To run the tests suite: `$ cd python; uv run pytest tests -m "not slow"`. Check the github action workflows for more information.

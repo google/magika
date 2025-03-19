@@ -69,7 +69,7 @@ def check_versions_are_up_to_date() -> bool:
     )
 
     expected_lines = [
-        f"> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `{python_latest_stable_version}`, and you can consult the associated documenation [here](https://github.com/google/magika/tree/python-v{python_latest_stable_version}). You can install the latest stable version with: `pip install magika`.",
+        f"> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `{python_latest_stable_version}`, and you can consult the associated documentation [here](https://github.com/google/magika/blob/python-v{python_latest_stable_version}/python/README.md). You can install the latest stable version with: `pip install magika`.",
         f"- Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/{python_default_model_name}/README.md).",
         f"- [List of supported content types by the latest model, `{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md)",
         f"| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md) |",

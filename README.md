@@ -23,7 +23,7 @@ You can try Magika without installing anything by using our [web demo](https://g
 
 
 > [!IMPORTANT]
-> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `0.5.1`, and you can consult the associated documenation [here](https://github.com/google/magika/tree/python-v0.5.1). You can install the latest stable version with: `pip install magika`.
+> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `0.6.1`, and you can consult the associated documenation [here](https://github.com/google/magika/tree/python-v0.6.1). You can install the latest stable version with: `pip install magika`.
 > - Help testing the latest release candidate is very appreciated! See the available candidates [here](https://pypi.org/project/magika/#history) and the recent changes in the [CHANGELOG.md](./python/CHANGELOG.md). You can install the latest release candidate with `pip install --pre magika`.
 
 

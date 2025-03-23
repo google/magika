@@ -131,11 +131,17 @@ jobs:
       - name: Build pure python wheel and source distribution
         run: uv build --out-dir ../dist
         working-directory: python
-      - name: Upload wheel and sdist
+      - name: Upload pure python wheel
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-pure-python-and-sdist
-          path: dist
+          name: wheel-pure-python
+          path: dist/*.whl
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
 
   # Download, install, and test the pure python wheel on multiple platforms
   test-pure-python-wheel:
@@ -157,7 +163,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: wheel-pure-python-and-sdist
+          name: wheel-pure-python
           path: dist
       - name: Setup Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # pin@v5
@@ -186,6 +192,65 @@ jobs:
           uv add ".\$wheel"
       - name: Install the wheel
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+
+      # Check that the magika script points to the placeholder raising a warning
+      - run: magika --version | grep -C10 WARNING | grep -C10 magika-python-client
+      # Check that the fallback magika's python client can be run
+      - run: magika-python-client -r tests_data/basic
+      # Check that the results of the python's client are correct
+      - run: python3 ./python/scripts/run_quick_test_magika_cli.py --client-path magika-python-client
+      # Test the python module
+      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
+      - run: python3 ./python/scripts/run_quick_test_magika_module.py
+
+  test-sdist:
+    needs: [build-pure-python-wheel-and-sdist]
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      # We want to know in which exact situation the tests fail
+      fail-fast: false
+      matrix:
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: windows-latest
+            target: x64
+          - runner: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+      - name: Setup Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # pin@v5
+        with:
+          python-version: '${{ matrix.python-version }}'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+      - if: matrix.platform.runner != 'windows-latest'
+        name: Check that `uv add magika.tar.gz` works
+        run: |
+          mkdir /tmp/test-uv
+          cp -vR dist/*.tar.gz /tmp/test-uv
+          cd /tmp/test-uv
+          uv init
+          uv add ./$(\ls -1 *.tar.gz | head -n 1)
+      - if: matrix.platform.runner == 'windows-latest'
+        name: Check that `uv add magika.tar.gz` works
+        shell: pwsh
+        run: |
+          mkdir C:\test-uv
+          Copy-Item -Path dist\*.tar.gz -Destination C:\test-uv
+          cd C:\test-uv
+          $env:PATH += ";$HOME\.local\bin"
+          uv init
+          $sdist = Get-ChildItem -Filter *.tar.gz | Select-Object -ExpandProperty Name
+          uv add ".\$sdist"
+      - name: Install the sdist
+        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.tar.gz')[0])")
 
       # Check that the magika script points to the placeholder raising a warning
       - run: magika --version | grep -C10 WARNING | grep -C10 magika-python-client

@@ -10,6 +10,11 @@ should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
 
+## [Unreleased]
+
+- Mark python 3.13 as supported.
+
+
 ## [0.6.1] - 2025-03-19
 
 ### Overview

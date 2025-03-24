@@ -106,7 +106,11 @@ export class MagikaNode extends Magika {
         const halfpoint = Math.max(0, Math.round(length / 2) - Math.round(this.config.midBytes / 2));
         const halfpointCap = Math.min(length, (halfpoint + this.config.midBytes));
         let lastChunk: Buffer | null = null;
-        stream.on('data', (data: Buffer) => {
+        stream.on('data', (data: string| Buffer) => {
+                        if (typeof data === 'string') {
+                throw new Error('Stream data should be a Buffer, not a string');
+            }
+            
             if ((stream.bytesRead - data.length) == 0) {
                 features.withStart(data.slice(0, this.config.begBytes), 0);
             }

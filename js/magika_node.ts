@@ -132,7 +132,7 @@ export class MagikaNode extends Magika {
             lastChunk = data;
         });
         await finished(stream);
-        return this.model.generateResultFromPrediction(this.model.predict(features.toArray()));
+        return this.model.generateResultFromPrediction(await this.model.predict(features.toArray()));
     }
 
 }

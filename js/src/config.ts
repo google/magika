@@ -39,10 +39,17 @@ export class Config {
     private setConfig(config: Record<string, any>): void {
         this.minFileSizeForDl = config.min_file_size_for_dl;
         this.paddingToken = config.padding_token;
-        this.labels = config.labels;
-        this.begBytes = config.input_size_beg;
-        this.midBytes = config.input_size_beg;
-        this.endBytes = config.input_size_beg;
+        this.labels = []
+        for (const label of config.target_labels_space) {
+            this.labels.push({
+                name: label,
+                threshold: label in config.thresholds ? config.thresholds[label]: config.medium_confidence_threshold,
+                // This is clearly a bug - @reyammer, where is this stored now?
+                is_text: false})
+        }
+        this.begBytes = config.beg_size;
+        this.midBytes = config.mid_size;
+        this.endBytes = config.end_size;
     }
 
 }

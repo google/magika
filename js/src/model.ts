@@ -42,12 +42,12 @@ export class Model {
         }
     }
 
-    predict(features: number[]): ModelProdiction {
+    async predict(features: number[]): Promise<ModelProdiction> {
         if (this.model == null) {
             throw new Error('model has not been loaded');
         }
-        const modelInput = tf.tensor([features]);
-        const modelOutput = tf.squeeze(this.model.predict(modelInput) as any);
+        const modelInput = tf.tensor([features], [1, features.length], 'int32');
+        const modelOutput = tf.squeeze(await this.model.executeAsync(modelInput) as any);
         const maxProbability = tf.argMax(modelOutput);
         const index = maxProbability.dataSync()[0];
         const scores = modelOutput.dataSync();

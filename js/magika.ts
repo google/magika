@@ -34,9 +34,9 @@ export class Magika {
         this.model = new Model(this.config);
     }
 
-    static CONFIG_URL = 'https://google.github.io/magika/model/config.json';
-    static MODEL_URL = 'https://google.github.io/magika/model/model.json';
-
+    static CONFIG_URL = 'https://google.github.io/magika/models/standard_v3_2/config.min.json';
+    static MODEL_URL = 'https://google.github.io/magika/models/standard_v3_2/model.json';
+   
     static async create(options?: MagikaOptions): Promise<Magika> {
         const magika = new Magika();
         await magika.load(options);
@@ -117,7 +117,7 @@ export class Magika {
             .withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2)
             .withEnd(endChunk, endOffset);
 
-        return this.model.generateResultFromPrediction(this.model.predict(features.toArray()));
+        return this.model.generateResultFromPrediction(await this.model.predict(features.toArray()));
     }
 
 }

@@ -61,6 +61,7 @@ dev-dependencies = [
     "twine==6.1.0",
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
+    "tqdm>=4.67.1",
 ]
 
 [build-system]

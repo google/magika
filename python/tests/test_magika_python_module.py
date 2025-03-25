@@ -222,6 +222,63 @@ def test_magika_module_with_python_and_non_python_content() -> None:
     assert res.prediction.output.label == ContentTypeLabel.TXT
 
 
+def test_magika_module_with_whitespaces() -> None:
+    m = Magika()
+
+    ws_nums = sorted(
+        {
+            1,
+            m._model_config.min_file_size_for_dl - 1,
+            m._model_config.min_file_size_for_dl,
+            m._model_config.min_file_size_for_dl + 1,
+            m._model_config.beg_size - 1,
+            m._model_config.beg_size,
+            m._model_config.beg_size + 1,
+            m._model_config.end_size - 1,
+            m._model_config.end_size,
+            m._model_config.end_size + 1,
+            m._model_config.beg_size + m._model_config.end_size - 1,
+            m._model_config.beg_size + m._model_config.end_size,
+            m._model_config.beg_size + m._model_config.end_size + 1,
+            m._model_config.beg_size + m._model_config.end_size + 1,
+            m._model_config.block_size - 1,
+            m._model_config.block_size,
+            m._model_config.block_size + 1,
+            2 * m._model_config.block_size - 1,
+            2 * m._model_config.block_size,
+            2 * m._model_config.block_size + 1,
+            4 * m._model_config.block_size - 1,
+            4 * m._model_config.block_size,
+            4 * m._model_config.block_size + 1,
+        }
+    )
+
+    for ws_num in ws_nums:
+        print(f"Calling indentify_bytes with {ws_num} whitespaces")
+        content = b" " * ws_num
+        res = m.identify_bytes(content)
+        assert (
+            res.ok
+            and res.dl.label == ContentTypeLabel.UNDEFINED
+            and res.output.label == ContentTypeLabel.TXT
+        )
+        res = m.identify_stream(io.BytesIO(content))
+        assert (
+            res.ok
+            and res.dl.label == ContentTypeLabel.UNDEFINED
+            and res.output.label == ContentTypeLabel.TXT
+        )
+        with tempfile.TemporaryDirectory() as td:
+            tf_path = Path(td) / "test.bin"
+            tf_path.write_bytes(content)
+            res = m.identify_path(tf_path)
+            assert (
+                res.ok
+                and res.dl.label == ContentTypeLabel.UNDEFINED
+                and res.output.label == ContentTypeLabel.TXT
+            )
+
+
 def test_magika_module_with_different_prediction_modes() -> None:
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)

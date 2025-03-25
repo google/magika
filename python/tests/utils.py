@@ -18,8 +18,12 @@ from pathlib import Path
 from typing import List
 
 
+def get_repo_root_dir() -> Path:
+    return Path(__file__).parent.parent.parent.resolve()
+
+
 def get_tests_data_dir() -> Path:
-    repo_root_dir = Path(__file__).parent.parent
+    repo_root_dir = get_repo_root_dir()
     tests_data_dir = repo_root_dir / "tests_data"
     if tests_data_dir.is_dir():
         return tests_data_dir
@@ -66,6 +70,10 @@ def get_previously_missdetected_files_paths() -> List[Path]:
 
 def get_reference_features_extraction_tests_path() -> Path:
     return get_tests_data_dir() / "reference" / "features_extraction.json.gz"
+
+
+def get_reference_for_inference_examples_by_path(model_name: str) -> Path:
+    return get_tests_data_dir() / "reference" / f"{model_name}_examples_by_path.json"
 
 
 def get_one_basic_test_file_path() -> Path:

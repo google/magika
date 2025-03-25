@@ -18,8 +18,8 @@ import {MagikaOptions} from './src/magikaOptions.js';
  * const prediction = await magika.identifyBytes(fileBytes);
  * console.log(prediction);
  * ```
- * For a Node implementation, please import `MagikaNode` instead. 
- * 
+ * For a Node implementation, please import `MagikaNode` instead.
+ *
  * Demos:
  * - Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
  * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
@@ -36,7 +36,7 @@ export class Magika {
 
     static CONFIG_URL = 'https://google.github.io/magika/models/standard_v3_2/config.min.json';
     static MODEL_URL = 'https://google.github.io/magika/models/standard_v3_2/model.json';
-   
+
     static async create(options?: MagikaOptions): Promise<Magika> {
         const magika = new Magika();
         await magika.load(options);
@@ -97,10 +97,22 @@ export class Magika {
         }
     }
 
+    _lstrip(fileBytes: Uint16Array): Uint16Array {
+        let startIndex = 0;
+        while (startIndex < fileBytes.length && (fileBytes[startIndex] === 10 || fileBytes[startIndex] === 13)) {
+            startIndex++;
+        }
+
+        // Use subarray to create a *view* of the original array,
+        // avoiding a full copy if possible.
+        return fileBytes.subarray(startIndex);
+    }
+
     async _identifyFromBytes(fileBytes: Uint16Array | Uint8Array): Promise<ModelResultScores> {
         if (fileBytes.length <= this.config.minFileSizeForDl) {
             return this._getResultForAFewBytes(fileBytes);
         }
+
         const fileArray = new Uint16Array(fileBytes);
 
         // Middle chunk. Padding on either side.
@@ -113,10 +125,12 @@ export class Magika {
         const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
 
         const features = new ModelFeatures(this.config)
-            .withStart(fileArray.slice(0, this.config.begBytes), 0)  // Beginning chunk. It should start with the file, and padding at the end.
+            .withStart(this._lstrip(fileArray).slice(0, this.config.begBytes), 0)  // Beginning chunk. It should start with the file, and padding at the end.
             .withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2)
             .withEnd(endChunk, endOffset);
 
+        console.log('features: ');
+        console.log(features.toArray());
         return this.model.generateResultFromPrediction(await this.model.predict(features.toArray()));
     }
 

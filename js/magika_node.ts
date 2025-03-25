@@ -20,8 +20,8 @@ import { MagikaOptions } from './src/magikaOptions.js';
  * const prediction = await magika.identifyBytes(data);
  * console.log(prediction);
  * ```
- * For a client-side implementation, please import `Magika` instead. 
- * 
+ * For a client-side implementation, please import `Magika` instead.
+ *
  * Demos:
  * - Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
  * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
@@ -58,7 +58,7 @@ export class MagikaNode extends Magika {
     }
 
     /** Identifies the content type from a read stream
-     * 
+     *
      * @param stream A read stream
      * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
      * @returns A dictionary containing the top label and its score,
@@ -69,7 +69,7 @@ export class MagikaNode extends Magika {
     }
 
     /** Identifies the content type from a read stream
-     * 
+     *
      * @param stream A read stream
      * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
      * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
@@ -110,7 +110,7 @@ export class MagikaNode extends Magika {
                         if (typeof data === 'string') {
                 throw new Error('Stream data should be a Buffer, not a string');
             }
-            
+
             if ((stream.bytesRead - data.length) == 0) {
                 features.withStart(data.slice(0, this.config.begBytes), 0);
             }

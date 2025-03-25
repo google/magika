@@ -76,7 +76,9 @@ def generate_features_extraction_reference():
         }
         ref_features_extraction_tests.append(test_case)
 
-    ref_features_extraction_tests_path = tests.utils.get_features_extration_tests_path()
+    ref_features_extraction_tests_path = (
+        tests.utils.get_features_extraction_tests_path()
+    )
     ref_features_extraction_tests_path.parent.mkdir(parents=True, exist_ok=True)
     ref_features_extraction_tests_path.write_bytes(
         gzip.compress(json.dumps(ref_features_extraction_tests).encode("ascii"))

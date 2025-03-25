@@ -21,7 +21,7 @@ from typing import List
 from magika import Magika
 from magika.seekable import Buffer
 from magika.types import ModelFeatures
-from tests.utils import get_features_extration_tests_path
+from tests.utils import get_features_extraction_tests_path
 
 
 @dataclass
@@ -82,7 +82,7 @@ def test_features_extraction_v2(debug: bool = False) -> None:
 
 
 def _get_tests_cases_from_reference() -> List:
-    ref_features_extraction_tests_path = get_features_extration_tests_path()
+    ref_features_extraction_tests_path = get_features_extraction_tests_path()
 
     tests_cases = json.loads(
         gzip.decompress(ref_features_extraction_tests_path.read_bytes())

@@ -64,7 +64,7 @@ def get_previously_missdetected_files_paths() -> List[Path]:
     return test_files_paths
 
 
-def get_features_extration_tests_path() -> Path:
+def get_features_extraction_tests_path() -> Path:
     return get_tests_data_dir() / "features_extraction" / "reference.json.gz"
 
 

@@ -62,6 +62,7 @@ dev-dependencies = [
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
     "tqdm>=4.67.1",
+    "dacite>=1.9.2",
 ]
 
 [build-system]

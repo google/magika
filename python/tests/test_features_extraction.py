@@ -20,9 +20,10 @@ import json
 import math
 import string
 from dataclasses import asdict, dataclass
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import click
+from tqdm import tqdm
 
 from magika import Magika
 from magika.types import ModelFeatures
@@ -45,7 +46,7 @@ def cli():
 
 
 @cli.command()
-@click.option("--debug", is_flag=True)
+@click.option("--debug/--no-debug", is_flag=True, default=True)
 def run_tests(debug: bool) -> None:
     test_features_extraction(debug=debug)
 
@@ -56,24 +57,26 @@ def generate_tests():
 
 
 def test_features_extraction(debug: bool = False) -> None:
-    raw_tests_cases = _get_tests_cases_from_reference()
+    raw_tests_cases = _get_raw_tests_cases_from_reference()
+    if debug:
+        print(f"Loaded {len(raw_tests_cases)} tests cases")
 
-    for raw_test_case in raw_tests_cases:
-        content = base64.b64decode(raw_test_case["content"])
+    for raw_test_case in tqdm(raw_tests_cases, disable=not debug):
         test_case = FeaturesExtractionTestCase(
+            args=FeaturesExtractionTestCaseArgs(**raw_test_case["args"]),
             metadata=FeaturesExtractionTestCaseMetadata(**raw_test_case["metadata"]),
-            content=content,
+            content=base64.b64decode(raw_test_case["content"]),
             features=ModelFeatures(**raw_test_case["features"]),
         )
 
         features = Magika._extract_features_from_bytes(
             test_case.content,
-            beg_size=test_case.metadata.beg_size,
-            mid_size=test_case.metadata.mid_size,
-            end_size=test_case.metadata.end_size,
-            padding_token=test_case.metadata.padding_token,
-            block_size=test_case.metadata.block_size,
-            use_inputs_at_offsets=test_case.metadata.use_inputs_at_offsets,
+            beg_size=test_case.args.beg_size,
+            mid_size=test_case.args.mid_size,
+            end_size=test_case.args.end_size,
+            padding_token=test_case.args.padding_token,
+            block_size=test_case.args.block_size,
+            use_inputs_at_offsets=test_case.args.use_inputs_at_offsets,
         )
 
         with_error = False
@@ -129,24 +132,25 @@ def _dump_reference_features_extraction(
 def _generate_reference_features_extraction_tests_cases() -> (
     List[FeaturesExtractionTestCase]
 ):
-    test_suite: List[Tuple[FeaturesExtractionTestCaseMetadata, bytes]] = (
-        _generate_reference_features_extraction_tests_cases_inputs()
-    )
+    test_suite: List[
+        Tuple[FeaturesExtractionTestCaseArgs, FeaturesExtractionTestCaseMetadata, bytes]
+    ] = _generate_reference_features_extraction_tests_cases_inputs()
 
     tests_cases = []
-    for test_info, test_content in test_suite:
+    for test_args, test_metadata, test_content in test_suite:
         features = Magika._extract_features_from_bytes(
             test_content,
-            test_info.beg_size,
-            test_info.mid_size,
-            test_info.end_size,
-            test_info.padding_token,
-            test_info.block_size,
-            use_inputs_at_offsets=test_info.use_inputs_at_offsets,
+            test_args.beg_size,
+            test_args.mid_size,
+            test_args.end_size,
+            test_args.padding_token,
+            test_args.block_size,
+            test_args.use_inputs_at_offsets,
         )
 
         test_case = FeaturesExtractionTestCase(
-            metadata=test_info,
+            args=test_args,
+            metadata=test_metadata,
             content=test_content,
             features=features,
         )
@@ -157,7 +161,9 @@ def _generate_reference_features_extraction_tests_cases() -> (
 
 
 def _generate_reference_features_extraction_tests_cases_inputs() -> (
-    List[Tuple[FeaturesExtractionTestCaseMetadata, bytes]]
+    List[
+        Tuple[FeaturesExtractionTestCaseArgs, FeaturesExtractionTestCaseMetadata, bytes]
+    ]
 ):
     beg_size = 128
     mid_size = 0
@@ -199,20 +205,22 @@ def _generate_reference_features_extraction_tests_cases_inputs() -> (
     for core_content_size in content_size_options:
         for left_ws_num in ws_num_options:
             for right_ws_num in ws_num_options:
-                test_metadata = FeaturesExtractionTestCaseMetadata(
+                test_args = FeaturesExtractionTestCaseArgs(
                     beg_size=beg_size,
                     mid_size=mid_size,
                     end_size=end_size,
                     block_size=block_size,
                     padding_token=padding_token,
                     use_inputs_at_offsets=use_inputs_at_offsets,
+                )
+                test_metadata = FeaturesExtractionTestCaseMetadata(
                     core_content_size=core_content_size,
                     left_ws_num=left_ws_num,
                     right_ws_num=right_ws_num,
                 )
 
                 content = _generate_content_from_metadata(test_metadata)
-                tests_cases_inputs.append((test_metadata, content))
+                tests_cases_inputs.append((test_args, test_metadata, content))
 
     return tests_cases_inputs
 
@@ -259,7 +267,7 @@ def _generate_pattern(size: int) -> bytearray:
     return pattern
 
 
-def _get_tests_cases_from_reference() -> List:
+def _get_raw_tests_cases_from_reference() -> List[Dict]:
     ref_features_extraction_tests_path = (
         test_utils.get_reference_features_extraction_tests_path()
     )
@@ -272,24 +280,27 @@ def _get_tests_cases_from_reference() -> List:
 
 @dataclass
 class FeaturesExtractionTestCase:
+    args: FeaturesExtractionTestCaseArgs
     metadata: FeaturesExtractionTestCaseMetadata
     content: bytes
     features: ModelFeatures
 
 
 @dataclass
-class FeaturesExtractionTestCaseMetadata:
+class FeaturesExtractionTestCaseArgs:
     beg_size: int
     mid_size: int
     end_size: int
     block_size: int
     padding_token: int
     use_inputs_at_offsets: bool
+
+
+@dataclass
+class FeaturesExtractionTestCaseMetadata:
     core_content_size: int
     left_ws_num: int
     right_ws_num: int
-
-    __test__ = False
 
 
 if __name__ == "__main__":

@@ -178,28 +178,31 @@ def _generate_reference_features_extraction_tests_cases_inputs() -> (
     assert mid_size < block_size
     assert end_size < block_size
 
-    features_size = beg_size
-
     ws_num_options = [
         0,
         1,
         10,
-        features_size - 1,
-        features_size,
-        features_size + 1,
+        beg_size - 1,
+        beg_size,
+        beg_size + 1,
+        end_size - 1,
+        end_size,
+        end_size + 1,
+        beg_size + end_size - 1,
+        beg_size + end_size,
+        beg_size + end_size + 1,
         block_size - 1,
         block_size,
         block_size + 1,
         2 * block_size - 1,
         2 * block_size,
         2 * block_size + 1,
-        2 * block_size + features_size - 1,
-        2 * block_size + features_size,
-        2 * block_size + features_size + 1,
+        4 * block_size - 1,
+        4 * block_size,
+        4 * block_size + 1,
     ]
 
     content_size_options = list(ws_num_options)
-    content_size_options.extend([10_000, 100_000])
 
     tests_cases_inputs = []
     for core_content_size in content_size_options:

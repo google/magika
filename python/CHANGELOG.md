@@ -13,6 +13,7 @@ semver guidelines for more details about this.
 ## [Unreleased]
 
 - Mark python 3.13 as supported.
+- Bugfix: limit the number of bytes we read in case of an input with just many whitespaces. ([#1015](https://github.com/google/magika/pull/1015))
 
 
 ## [0.6.1] - 2025-03-19

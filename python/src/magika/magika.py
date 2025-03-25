@@ -875,7 +875,8 @@ class Magika:
                 # If the n-th token is padding, then it means that,
                 # post-stripping, we do not have enough meaningful
                 # bytes.
-                result = self._get_result_from_few_bytes(content)
+                bytes_to_read = min(len(content), self._model_config.block_size)
+                result = self._get_result_from_few_bytes(content[0:bytes_to_read])
                 return result, None
 
             else:
@@ -938,8 +939,9 @@ class Magika:
                 # If the n-th token is padding, then it means that,
                 # post-stripping, we do not have enough meaningful
                 # bytes.
+                bytes_to_read = min(bytes_stream_size, self._model_config.block_size)
                 stream.seek(0)
-                content = stream.read()
+                content = stream.read(bytes_to_read)
                 result = self._get_result_from_few_bytes(content)
                 return result, None
 

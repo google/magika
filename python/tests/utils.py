@@ -72,8 +72,8 @@ def get_reference_features_extraction_tests_path() -> Path:
     return get_tests_data_dir() / "reference" / "features_extraction.json.gz"
 
 
-def get_reference_for_inference_examples_by_path(model_name: str) -> Path:
-    return get_tests_data_dir() / "reference" / f"{model_name}_examples_by_path.json"
+def get_reference_for_inference_examples_by_path_path(model_name: str) -> Path:
+    return get_tests_data_dir() / "reference" / f"{model_name}-examples_by_path.json"
 
 
 def get_one_basic_test_file_path() -> Path:

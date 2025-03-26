@@ -14,9 +14,12 @@
 
 from __future__ import annotations
 
+import base64
+import enum
 import json
+import random
 from dataclasses import asdict, dataclass
-from typing import List, Optional
+from typing import Generator, List, Optional, Set, Tuple
 
 import click
 import dacite
@@ -24,6 +27,7 @@ import pytest
 from tqdm import tqdm
 
 from magika import ContentTypeLabel, Magika
+from magika.types.magika_result import MagikaResult
 from magika.types.status import Status
 
 try:
@@ -74,10 +78,19 @@ def test_inference_vs_reference(debug: bool = False) -> None:
             assert result.prediction.output.label == example.prediction.output
             assert result.prediction.score == pytest.approx(example.prediction.score)
 
+    examples_by_content = _get_examples_by_content(model_name)
+    if debug:
+        print(f"Loaded {len(examples_by_path)} examples by content")
+    for example in tqdm(examples_by_content, disable=not debug):
+        result = m.identify_bytes(base64.b64decode(example.content_base64))
+        assert result.status == example.status
+        if result.ok:
+            assert result.prediction.dl.label == example.prediction.dl
+            assert result.prediction.output.label == example.prediction.output
+            assert result.prediction.score == pytest.approx(example.prediction.score)
 
-def _get_examples_by_path(
-    model_name: str,
-) -> List[ExampleByPath]:
+
+def _get_examples_by_path(model_name: str) -> List[ExampleByPath]:
     reference_for_inference_examples_by_path = (
         test_utils.get_reference_for_inference_examples_by_path_path(model_name)
     )
@@ -91,10 +104,26 @@ def _get_examples_by_path(
     ]
 
 
+def _get_examples_by_content(model_name: str) -> List[ExampleByContent]:
+    reference_for_inference_examples_by_content = (
+        test_utils.get_reference_for_inference_examples_by_content_path(model_name)
+    )
+    return [
+        dacite.from_dict(
+            ExampleByContent,
+            entry,
+            config=dacite.Config(cast=[Status, ContentTypeLabel]),
+        )
+        for entry in json.loads(reference_for_inference_examples_by_content.read_text())
+    ]
+
+
 def _generate_reference_for_inference():
     model_name = Magika._get_default_model_name()
     examples_by_path = _generate_examples_by_path(model_name)
     _dump_examples_by_path(model_name, examples_by_path)
+    examples_by_content = _generate_examples_by_content(model_name)
+    _dump_examples_by_content(model_name, examples_by_content)
 
 
 def _generate_examples_by_path(
@@ -132,6 +161,105 @@ def _generate_examples_by_path(
     return examples_by_path
 
 
+def _generate_examples_by_content(model_name: str) -> List[ExampleByContent]:
+    random.seed(42)
+
+    print(f'Generating examples by content for model "{model_name}"...')
+
+    magika = Magika()
+    assert magika.get_model_name() == model_name
+
+    content_list = []
+    content_list.append(b"")
+    for size in [
+        magika._model_config.min_file_size_for_dl - 1,
+        magika._model_config.min_file_size_for_dl,
+        magika._model_config.min_file_size_for_dl + 1,
+        magika._model_config.beg_size - 1,
+        magika._model_config.beg_size,
+        magika._model_config.beg_size + 1,
+        magika._model_config.end_size - 1,
+        magika._model_config.end_size,
+        magika._model_config.end_size + 1,
+        magika._model_config.beg_size + magika._model_config.end_size - 1,
+        magika._model_config.beg_size + magika._model_config.end_size,
+        magika._model_config.beg_size + magika._model_config.end_size + 1,
+        magika._model_config.block_size - 1,
+        magika._model_config.block_size,
+        magika._model_config.block_size + 1,
+        2 * magika._model_config.block_size - 1,
+        2 * magika._model_config.block_size,
+        2 * magika._model_config.block_size + 1,
+        4 * magika._model_config.block_size - 1,
+        4 * magika._model_config.block_size,
+        4 * magika._model_config.block_size + 1,
+    ]:
+        content_list.append(test_utils.generate_pattern(size, only_printable=True))
+        content_list.append(test_utils.generate_pattern(size, only_printable=False))
+
+    examples_by_content = []
+    for content in content_list:
+        result = magika.identify_bytes(content)
+        if result.ok:
+            example = ExampleByContent(
+                content_base64=base64.b64encode(content).decode("ascii"),
+                status=result.status,
+                prediction=Prediction(
+                    dl=result.prediction.dl.label,
+                    output=result.prediction.output.label,
+                    score=result.prediction.score,
+                ),
+            )
+        else:
+            example = ExampleByContent(
+                content_base64=base64.b64encode(content).decode("ascii"),
+                status=result.status,
+                prediction=None,
+            )
+        examples_by_content.append(example)
+
+    # We now generate additional examples to check for additional corner cases,
+    # related to prediction mode, thresholds, and overwrite map. We use a
+    # fuzzing-like approach to generate weird samples at random, we then check
+    # each of them to fill what we need for the test suite.
+    collector = CornerCaseCollector(magika)
+    generator = corner_case_candidates_generator(magika)
+    for source_info, content in generator:
+        is_useful, result, cc_info = collector.inspect_content(content)
+        if is_useful:
+            print(
+                source_info,
+                result.dl.label,
+                result.score,
+                result.output.label,
+                cc_info,
+                collector.get_missing_examples_num(),
+            )
+
+            example = ExampleByContent(
+                content_base64=base64.b64encode(content).decode("ascii"),
+                status=result.status,
+                prediction=Prediction(
+                    dl=result.prediction.dl.label,
+                    output=result.prediction.output.label,
+                    score=result.prediction.score,
+                ),
+            )
+
+            examples_by_content.append(example)
+
+            if collector.is_complete():
+                break
+
+    if not collector.is_complete():
+        print(f"ERROR: Missing {collector.get_missing_examples_num()} corner cases:")
+        for example in collector._missing_corner_cases:
+            print(f"\t{example}")
+        sys.exit(1)
+
+    return examples_by_content
+
+
 def _dump_examples_by_path(
     model_name: str,
     examples_by_path: List[ExampleByPath],
@@ -149,9 +277,35 @@ def _dump_examples_by_path(
     print(f"Wrote {len(examples_by_path)} examples by path to {examples_by_path_path}")
 
 
+def _dump_examples_by_content(
+    model_name: str,
+    examples_by_content: List[ExampleByContent],
+) -> None:
+    examples_by_content_path = (
+        test_utils.get_reference_for_inference_examples_by_content_path(model_name)
+    )
+    examples_by_content_path.parent.mkdir(parents=True, exist_ok=True)
+    examples_by_content_path.write_text(
+        json.dumps(
+            [asdict(example) for example in examples_by_content],
+            separators=(",", ":"),
+        )
+    )
+    print(
+        f"Wrote {len(examples_by_content)} examples by content to {examples_by_content_path}"
+    )
+
+
 @dataclass
 class ExampleByPath:
     path: str
+    status: Status
+    prediction: Optional[Prediction]
+
+
+@dataclass
+class ExampleByContent:
+    content_base64: str
     status: Status
     prediction: Optional[Prediction]
 
@@ -161,6 +315,193 @@ class Prediction:
     dl: ContentTypeLabel
     output: ContentTypeLabel
     score: float
+
+
+@dataclass(frozen=True)
+class CornerCaseInfo:
+    label_category: LabelCategory
+    with_threshold: bool
+    with_overwrite: bool
+    score_range: ScoreRange
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"{self.label_category},"
+            f"{'TH' if self.with_threshold else 'NO_TH'},"
+            f"{'OW' if self.with_overwrite else 'NO_OW'},"
+            f"{self.score_range})"
+        )
+
+
+class LabelCategory(enum.Enum):
+    GENERIC_TEXT = enum.auto()
+    GENERIC_BINARY = enum.auto()
+    NON_GENERIC_TEXT = enum.auto()
+    NON_GENERIC_BINARY = enum.auto()
+
+
+class ScoreRange(enum.Enum):
+    LT_050 = enum.auto()
+    GE_050 = enum.auto()
+    GE_050_LT_T = enum.auto()
+    GE_T = enum.auto()
+
+
+class CornerCaseCollector:
+    def __init__(self, magika: Magika):
+        self._magika = magika
+        self._missing_corner_cases: Set[CornerCaseInfo] = set()
+        # fmt: off
+        self._missing_corner_cases.update({
+            # NON_GENERIC_TEXT
+            CornerCaseInfo(LabelCategory.NON_GENERIC_TEXT, False, False, ScoreRange.LT_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_TEXT, False, False, ScoreRange.GE_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_TEXT, True, False, ScoreRange.LT_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_TEXT, True, False, ScoreRange.GE_050_LT_T),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_TEXT, True, False, ScoreRange.GE_T),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_TEXT, False, True, ScoreRange.LT_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_TEXT, False, True, ScoreRange.GE_050),
+            # NON_GENERIC_BINARY
+            CornerCaseInfo(LabelCategory.NON_GENERIC_BINARY, False, False, ScoreRange.LT_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_BINARY, False, False, ScoreRange.GE_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_BINARY, True, False, ScoreRange.LT_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_BINARY, True, False, ScoreRange.GE_050_LT_T),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_BINARY, True, False, ScoreRange.GE_T),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_BINARY, False, True, ScoreRange.LT_050),
+            CornerCaseInfo(LabelCategory.NON_GENERIC_BINARY, False, True, ScoreRange.GE_050),
+        })
+        self._missing_corner_cases.update({
+            CornerCaseInfo(LabelCategory.GENERIC_TEXT, False, False, ScoreRange.LT_050),
+            CornerCaseInfo(LabelCategory.GENERIC_TEXT, False, False, ScoreRange.GE_050),
+            # No GENERIC_BINARY (aka UNKNOWN) because the model would never output that
+        })
+        # fmt: on
+
+    def inspect_content(
+        self, content: bytes
+    ) -> Tuple[bool, MagikaResult, CornerCaseInfo]:
+        res = self._magika.identify_bytes(content)
+        cce = self.get_cornern_case_example(res.dl.label, res.score)
+        if cce in self._missing_corner_cases:
+            self._missing_corner_cases.remove(cce)
+            return True, res, cce
+        return False, res, cce
+
+    def is_complete(self) -> bool:
+        return self.get_missing_examples_num() == 0
+
+    def get_missing_examples(self) -> Set[CornerCaseInfo]:
+        return self._missing_corner_cases
+
+    def get_missing_examples_num(self) -> int:
+        return len(self._missing_corner_cases)
+
+    def get_cornern_case_example(
+        self, dl_label: ContentTypeLabel, score: float
+    ) -> CornerCaseInfo:
+        return CornerCaseInfo(
+            label_category=self._get_label_category(dl_label),
+            with_threshold=self._has_threshold(dl_label),
+            with_overwrite=self._has_overwrite(dl_label),
+            score_range=self._get_score_range(dl_label, score),
+        )
+
+    def _get_label_category(self, dl_label: ContentTypeLabel) -> LabelCategory:
+        m = {
+            # is_generic, is_text
+            (True, True): LabelCategory.GENERIC_TEXT,
+            (True, False): LabelCategory.GENERIC_BINARY,
+            (False, True): LabelCategory.NON_GENERIC_TEXT,
+            (False, False): LabelCategory.NON_GENERIC_BINARY,
+        }
+        return m[
+            self._is_generic(dl_label),
+            self._is_text(dl_label),
+        ]
+
+    def _is_generic(self, dl_label: ContentTypeLabel) -> bool:
+        return dl_label in [ContentTypeLabel.TXT, ContentTypeLabel.UNKNOWN]
+
+    def _is_text(self, dl_label: ContentTypeLabel) -> bool:
+        return self._magika._cts_infos[dl_label].is_text
+
+    def _has_threshold(self, dl_label) -> bool:
+        return dl_label in self._magika._model_config.thresholds.keys()
+
+    def _get_threshold(self, dl_label: ContentTypeLabel) -> float:
+        return self._magika._model_config.thresholds[dl_label]
+
+    def _has_overwrite(self, dl_label: ContentTypeLabel) -> bool:
+        return dl_label in self._magika._model_config.overwrite_map.keys()
+
+    def _get_score_range(self, dl_label: ContentTypeLabel, score: float) -> ScoreRange:
+        if score < 0.50:
+            return ScoreRange.LT_050
+        else:
+            if self._has_threshold(dl_label):
+                if score < self._get_threshold(dl_label):
+                    return ScoreRange.GE_050_LT_T
+                else:
+                    return ScoreRange.GE_T
+            else:
+                return ScoreRange.GE_050
+
+
+def corner_case_candidates_generator(
+    magika: Magika,
+) -> Generator[Tuple[str, bytes], None, None]:
+    beg_size = magika._model_config.beg_size
+    end_size = magika._model_config.end_size
+
+    print("Using random bytes")
+    for n in range(1_000):
+        if random.random() < 0.5:
+            yield (
+                "randomtxt",
+                test_utils.get_random_ascii_bytes(
+                    random.randrange(8, beg_size + end_size)
+                ),
+            )
+        else:
+            yield (
+                "randombytes",
+                test_utils.get_random_bytes(random.randrange(8, beg_size + end_size)),
+            )
+
+    base_contents = []
+    base_contents.append(
+        ("randomtxt", test_utils.get_random_ascii_bytes(beg_size + end_size))
+    )
+    base_contents.append(
+        ("randombytes", test_utils.get_random_bytes(beg_size + end_size))
+    )
+    for example_path in test_utils.get_basic_test_files_paths():
+        base_example = (str(example_path), example_path.read_bytes())
+        yield base_example
+        base_contents.append(base_example)
+
+    for base_source, base_content in base_contents:
+        print(f"Using {base_source} as base")
+        for only_printable in [True, False]:
+            for n in range(
+                0,
+                min(
+                    beg_size,
+                    end_size,
+                    len(base_content),
+                ),
+            ):
+                patched_content = bytearray(base_content[:])
+                patched_content[0:n] = test_utils.generate_pattern(
+                    n, only_printable=only_printable
+                )
+                yield (f"base_{base_source}_beg_{n}", bytes(patched_content))
+
+                patched_content[len(base_content) - n : len(base_content)] = (
+                    test_utils.generate_pattern(n, only_printable=only_printable)
+                )
+                yield (f"base_{base_source}_end_{n}", bytes(patched_content))
 
 
 if __name__ == "__main__":

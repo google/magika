@@ -22,14 +22,14 @@ import random
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Generator, List, Optional, Set, Tuple
+from typing import Dict, Generator, List, Optional, Set, Tuple
 
 import click
 import dacite
 import pytest
 from tqdm import tqdm
 
-from magika import ContentTypeLabel, Magika
+from magika import ContentTypeLabel, Magika, PredictionMode
 from magika.types.magika_result import MagikaResult
 from magika.types.status import Status
 
@@ -64,13 +64,25 @@ def generate_tests(test_mode: bool) -> None:
 def test_inference_vs_reference(debug: bool = False) -> None:
     repo_root_dir = test_utils.get_repo_root_dir()
 
-    m = Magika()
-    model_name = m.get_model_name()
+    magika_by_prediction_mode: Dict[PredictionMode, Magika] = {}
+    for prediction_mode in [
+        PredictionMode.HIGH_CONFIDENCE,
+        PredictionMode.MEDIUM_CONFIDENCE,
+        PredictionMode.BEST_GUESS,
+    ]:
+        magika_by_prediction_mode[prediction_mode] = Magika(
+            prediction_mode=prediction_mode
+        )
+
+    model_name = magika_by_prediction_mode[
+        PredictionMode.HIGH_CONFIDENCE
+    ].get_model_name()
 
     examples_by_path = _get_examples_by_path(model_name)
     if debug:
         print(f"Loaded {len(examples_by_path)} examples by path")
     for example in tqdm(examples_by_path, disable=not debug):
+        m = magika_by_prediction_mode[example.prediction_mode]
         abs_path = repo_root_dir / example.path
         result = m.identify_path(abs_path)
         _check_result_vs_reference_example(
@@ -92,8 +104,8 @@ def test_inference_vs_reference(debug: bool = False) -> None:
     if debug:
         print(f"Loaded {len(examples_by_content)} examples by content")
     for example in tqdm(examples_by_content, disable=not debug):
+        m = magika_by_prediction_mode[example.prediction_mode]
         example_content = base64.b64decode(example.content_base64)
-
         result = m.identify_bytes(example_content)
         _check_result_vs_reference_example(
             result, Path("-"), example.status, example.prediction
@@ -129,7 +141,7 @@ def _get_examples_by_path(model_name: str) -> List[ExampleByPath]:
         dacite.from_dict(
             ExampleByPath,
             entry,
-            config=dacite.Config(cast=[Status, ContentTypeLabel]),
+            config=dacite.Config(cast=[ContentTypeLabel, PredictionMode, Status]),
         )
         for entry in json.loads(
             gzip.decompress(reference_for_inference_examples_by_path.read_bytes())
@@ -145,7 +157,7 @@ def _get_examples_by_content(model_name: str) -> List[ExampleByContent]:
         dacite.from_dict(
             ExampleByContent,
             entry,
-            config=dacite.Config(cast=[Status, ContentTypeLabel]),
+            config=dacite.Config(cast=[ContentTypeLabel, PredictionMode, Status]),
         )
         for entry in json.loads(
             gzip.decompress(reference_for_inference_examples_by_content.read_bytes())
@@ -167,31 +179,38 @@ def _generate_examples_by_path(
     print(f'Generating examples by path for model "{model_name}"...')
 
     repo_root_dir = test_utils.get_repo_root_dir()
-
-    m = Magika()
-    assert m.get_model_name() == model_name
-
     tests_paths = test_utils.get_basic_test_files_paths()
     examples_by_path = []
-    for test_path in tqdm(tests_paths):
-        result = m.identify_path(test_path)
-        if result.ok:
-            example = ExampleByPath(
-                path=str(test_path.resolve().relative_to(repo_root_dir)),
-                status=result.status,
-                prediction=Prediction(
-                    dl=result.prediction.dl.label,
-                    output=result.prediction.output.label,
-                    score=result.prediction.score,
-                ),
-            )
-        else:
-            example = ExampleByPath(
-                path=str(test_path),
-                status=result.status,
-                prediction=None,
-            )
-        examples_by_path.append(example)
+
+    for prediction_mode in [
+        PredictionMode.HIGH_CONFIDENCE,
+        PredictionMode.MEDIUM_CONFIDENCE,
+        PredictionMode.BEST_GUESS,
+    ]:
+        m = Magika(prediction_mode=prediction_mode)
+        assert m.get_model_name() == model_name
+
+        for test_path in tqdm(tests_paths):
+            result = m.identify_path(test_path)
+            if result.ok:
+                example = ExampleByPath(
+                    prediction_mode=prediction_mode,
+                    path=str(test_path.resolve().relative_to(repo_root_dir)),
+                    status=result.status,
+                    prediction=Prediction(
+                        dl=result.prediction.dl.label,
+                        output=result.prediction.output.label,
+                        score=result.prediction.score,
+                    ),
+                )
+            else:
+                example = ExampleByPath(
+                    prediction_mode=prediction_mode,
+                    path=str(test_path),
+                    status=result.status,
+                    prediction=None,
+                )
+            examples_by_path.append(example)
 
     return examples_by_path
 
@@ -202,6 +221,12 @@ def _generate_examples_by_content(
     random.seed(42)
 
     print(f'Generating examples by content for model "{model_name}"...')
+
+    # First we generate corner cases examples by content, without caring about
+    # the prediction mode. In fact, at the example generation phase, we only
+    # care about the model prediction, which is not affected by the prediction
+    # mode. Then, we generate the reference by looping over possible prediction
+    # modes and all the cornern case examples.
 
     magika = Magika()
     assert magika.get_model_name() == model_name
@@ -228,27 +253,6 @@ def _generate_examples_by_content(
         content_list.append(test_utils.generate_pattern(size, only_printable=True))
         content_list.append(test_utils.generate_pattern(size, only_printable=False))
 
-    examples_by_content = []
-    for content in content_list:
-        result = magika.identify_bytes(content)
-        if result.ok:
-            example = ExampleByContent(
-                content_base64=base64.b64encode(content).decode("ascii"),
-                status=result.status,
-                prediction=Prediction(
-                    dl=result.prediction.dl.label,
-                    output=result.prediction.output.label,
-                    score=result.prediction.score,
-                ),
-            )
-        else:
-            example = ExampleByContent(
-                content_base64=base64.b64encode(content).decode("ascii"),
-                status=result.status,
-                prediction=None,
-            )
-        examples_by_content.append(example)
-
     # We now generate additional examples to check for additional corner cases,
     # related to prediction mode, thresholds, and overwrite map. We use a
     # fuzzing-like approach to generate weird samples at random, we then check
@@ -267,17 +271,7 @@ def _generate_examples_by_content(
                 collector.get_missing_examples_num(),
             )
 
-            example = ExampleByContent(
-                content_base64=base64.b64encode(content).decode("ascii"),
-                status=result.status,
-                prediction=Prediction(
-                    dl=result.prediction.dl.label,
-                    output=result.prediction.output.label,
-                    score=result.prediction.score,
-                ),
-            )
-
-            examples_by_content.append(example)
+            content_list.append(content)
 
             if collector.is_complete():
                 break
@@ -300,6 +294,35 @@ def _generate_examples_by_content(
             for example in collector._missing_corner_cases:
                 print(f"\t{example}")
             sys.exit(1)
+
+    examples_by_content = []
+    for prediction_mode in [
+        PredictionMode.HIGH_CONFIDENCE,
+        PredictionMode.MEDIUM_CONFIDENCE,
+        PredictionMode.BEST_GUESS,
+    ]:
+        magika = Magika(prediction_mode=prediction_mode)
+        for content in content_list:
+            result = magika.identify_bytes(content)
+            if result.ok:
+                example = ExampleByContent(
+                    prediction_mode=prediction_mode,
+                    content_base64=base64.b64encode(content).decode("ascii"),
+                    status=result.status,
+                    prediction=Prediction(
+                        dl=result.prediction.dl.label,
+                        output=result.prediction.output.label,
+                        score=result.prediction.score,
+                    ),
+                )
+            else:
+                example = ExampleByContent(
+                    prediction_mode=prediction_mode,
+                    content_base64=base64.b64encode(content).decode("ascii"),
+                    status=result.status,
+                    prediction=None,
+                )
+            examples_by_content.append(example)
 
     return examples_by_content
 
@@ -363,6 +386,7 @@ def _dump_examples_by_content(
 
 @dataclass
 class ExampleByPath:
+    prediction_mode: PredictionMode
     path: str
     status: Status
     prediction: Optional[Prediction]
@@ -370,6 +394,7 @@ class ExampleByPath:
 
 @dataclass
 class ExampleByContent:
+    prediction_mode: PredictionMode
     content_base64: str
     status: Status
     prediction: Optional[Prediction]

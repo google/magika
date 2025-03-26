@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import enum
+import gzip
 import json
 import random
 from dataclasses import asdict, dataclass
@@ -107,7 +108,9 @@ def _get_examples_by_path(model_name: str) -> List[ExampleByPath]:
             entry,
             config=dacite.Config(cast=[Status, ContentTypeLabel]),
         )
-        for entry in json.loads(reference_for_inference_examples_by_path.read_text())
+        for entry in json.loads(
+            gzip.decompress(reference_for_inference_examples_by_path.read_bytes())
+        )
     ]
 
 
@@ -121,7 +124,9 @@ def _get_examples_by_content(model_name: str) -> List[ExampleByContent]:
             entry,
             config=dacite.Config(cast=[Status, ContentTypeLabel]),
         )
-        for entry in json.loads(reference_for_inference_examples_by_content.read_text())
+        for entry in json.loads(
+            gzip.decompress(reference_for_inference_examples_by_content.read_bytes())
+        )
     ]
 
 
@@ -297,10 +302,12 @@ def _dump_examples_by_path(
         )
     else:
         examples_by_path_path.parent.mkdir(parents=True, exist_ok=True)
-        examples_by_path_path.write_text(
-            json.dumps(
-                [asdict(example) for example in examples_by_path],
-                separators=(",", ":"),
+        examples_by_path_path.write_bytes(
+            gzip.compress(
+                json.dumps(
+                    [asdict(example) for example in examples_by_path],
+                    separators=(",", ":"),
+                ).encode("ascii")
             )
         )
         print(
@@ -323,10 +330,13 @@ def _dump_examples_by_content(
         )
     else:
         examples_by_content_path.parent.mkdir(parents=True, exist_ok=True)
-        examples_by_content_path.write_text(
-            json.dumps(
-                [asdict(example) for example in examples_by_content],
-                separators=(",", ":"),
+
+        examples_by_content_path.write_bytes(
+            gzip.compress(
+                json.dumps(
+                    [asdict(example) for example in examples_by_content],
+                    separators=(",", ":"),
+                ).encode("ascii")
             )
         )
         print(

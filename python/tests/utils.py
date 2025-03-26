@@ -77,7 +77,7 @@ def get_reference_for_inference_examples_by_path_path(model_name: str) -> Path:
     return (
         get_tests_data_dir()
         / "reference"
-        / f"{model_name}-inference_examples_by_path.json"
+        / f"{model_name}-inference_examples_by_path.json.gz"
     )
 
 
@@ -85,7 +85,7 @@ def get_reference_for_inference_examples_by_content_path(model_name: str) -> Pat
     return (
         get_tests_data_dir()
         / "reference"
-        / f"{model_name}-inference_examples_by_content.json"
+        / f"{model_name}-inference_examples_by_content.json.gz"
     )
 
 

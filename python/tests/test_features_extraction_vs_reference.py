@@ -46,7 +46,7 @@ def cli():
 @cli.command()
 @click.option("--debug/--no-debug", is_flag=True, default=True)
 def run_tests(debug: bool) -> None:
-    test_features_extraction(debug=debug)
+    test_features_extraction_vs_reference(debug=debug)
 
 
 @cli.command()
@@ -55,7 +55,7 @@ def generate_tests(test_mode: bool) -> None:
     _generate_reference_features_extraction(test_mode=test_mode)
 
 
-def test_features_extraction(debug: bool = False) -> None:
+def test_features_extraction_vs_reference(debug: bool = False) -> None:
     raw_tests_cases = _get_raw_tests_cases_from_reference()
     if debug:
         print(f"Loaded {len(raw_tests_cases)} tests cases")

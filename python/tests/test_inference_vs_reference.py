@@ -232,7 +232,7 @@ def _generate_examples_by_content(
     # fuzzing-like approach to generate weird samples at random, we then check
     # each of them to fill what we need for the test suite.
     collector = CornerCaseCollector(magika)
-    generator = corner_case_candidates_generator(magika)
+    generator = collector.get_corner_case_candidates_generator()
     for candidate_idx, (source_info, content) in enumerate(generator):
         is_useful, result, cc_info = collector.inspect_content(content)
         if is_useful:
@@ -292,7 +292,9 @@ def _dump_examples_by_path(
     )
 
     if test_mode:
-        print('WARNING: running in "test_mode", not writing examples to file')
+        print(
+            f'WARNING: running in "test_mode", not writing examples by path to {examples_by_path_path}'
+        )
     else:
         examples_by_path_path.parent.mkdir(parents=True, exist_ok=True)
         examples_by_path_path.write_text(
@@ -316,7 +318,9 @@ def _dump_examples_by_content(
     )
 
     if test_mode:
-        print('WARNING: running in "test_mode", not writing examples to file')
+        print(
+            f'WARNING: running in "test_mode", not writing examples by content to {examples_by_content_path}'
+        )
     else:
         examples_by_content_path.parent.mkdir(parents=True, exist_ok=True)
         examples_by_content_path.write_text(
@@ -416,7 +420,7 @@ class CornerCaseCollector:
         self, content: bytes
     ) -> Tuple[bool, MagikaResult, CornerCaseInfo]:
         res = self._magika.identify_bytes(content)
-        cce = self.get_cornern_case_example(res.dl.label, res.score)
+        cce = self._get_cornern_case_example(res.dl.label, res.score)
         if cce in self._missing_corner_cases:
             self._missing_corner_cases.remove(cce)
             return True, res, cce
@@ -431,7 +435,7 @@ class CornerCaseCollector:
     def get_missing_examples_num(self) -> int:
         return len(self._missing_corner_cases)
 
-    def get_cornern_case_example(
+    def _get_cornern_case_example(
         self, dl_label: ContentTypeLabel, score: float
     ) -> CornerCaseInfo:
         return CornerCaseInfo(
@@ -481,61 +485,62 @@ class CornerCaseCollector:
             else:
                 return ScoreRange.GE_050
 
+    def get_corner_case_candidates_generator(
+        self,
+    ) -> Generator[Tuple[str, bytes], None, None]:
+        beg_size = self._magika._model_config.beg_size
+        end_size = self._magika._model_config.end_size
 
-def corner_case_candidates_generator(
-    magika: Magika,
-) -> Generator[Tuple[str, bytes], None, None]:
-    beg_size = magika._model_config.beg_size
-    end_size = magika._model_config.end_size
-
-    print("Using random bytes")
-    for n in range(1_000):
-        if random.random() < 0.5:
-            yield (
-                "randomtxt",
-                test_utils.get_random_ascii_bytes(
-                    random.randrange(8, beg_size + end_size)
-                ),
-            )
-        else:
-            yield (
-                "randombytes",
-                test_utils.get_random_bytes(random.randrange(8, beg_size + end_size)),
-            )
-
-    base_contents = []
-    base_contents.append(
-        ("randomtxt", test_utils.get_random_ascii_bytes(beg_size + end_size))
-    )
-    base_contents.append(
-        ("randombytes", test_utils.get_random_bytes(beg_size + end_size))
-    )
-    for example_path in test_utils.get_basic_test_files_paths():
-        base_example = (str(example_path), example_path.read_bytes())
-        yield base_example
-        base_contents.append(base_example)
-
-    for base_source, base_content in base_contents:
-        print(f"Using {base_source} as base")
-        for only_printable in [True, False]:
-            for n in range(
-                0,
-                min(
-                    beg_size,
-                    end_size,
-                    len(base_content),
-                ),
-            ):
-                patched_content = bytearray(base_content[:])
-                patched_content[0:n] = test_utils.generate_pattern(
-                    n, only_printable=only_printable
+        print("Using random bytes")
+        for n in range(1_000):
+            if random.random() < 0.5:
+                yield (
+                    "randomtxt",
+                    test_utils.get_random_ascii_bytes(
+                        random.randrange(8, beg_size + end_size)
+                    ),
                 )
-                yield (f"base_{base_source}_beg_{n}", bytes(patched_content))
-
-                patched_content[len(base_content) - n : len(base_content)] = (
-                    test_utils.generate_pattern(n, only_printable=only_printable)
+            else:
+                yield (
+                    "randombytes",
+                    test_utils.get_random_bytes(
+                        random.randrange(8, beg_size + end_size)
+                    ),
                 )
-                yield (f"base_{base_source}_end_{n}", bytes(patched_content))
+
+        base_contents = []
+        base_contents.append(
+            ("randomtxt", test_utils.get_random_ascii_bytes(beg_size + end_size))
+        )
+        base_contents.append(
+            ("randombytes", test_utils.get_random_bytes(beg_size + end_size))
+        )
+        for example_path in test_utils.get_basic_test_files_paths():
+            base_example = (str(example_path), example_path.read_bytes())
+            yield base_example
+            base_contents.append(base_example)
+
+        for base_source, base_content in base_contents:
+            print(f"Using {base_source} as base")
+            for only_printable in [True, False]:
+                for n in range(
+                    0,
+                    min(
+                        beg_size,
+                        end_size,
+                        len(base_content),
+                    ),
+                ):
+                    patched_content = bytearray(base_content[:])
+                    patched_content[0:n] = test_utils.generate_pattern(
+                        n, only_printable=only_printable
+                    )
+                    yield (f"base_{base_source}_beg_{n}", bytes(patched_content))
+
+                    patched_content[len(base_content) - n : len(base_content)] = (
+                        test_utils.generate_pattern(n, only_printable=only_printable)
+                    )
+                    yield (f"base_{base_source}_end_{n}", bytes(patched_content))
 
 
 if __name__ == "__main__":

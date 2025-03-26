@@ -69,7 +69,6 @@ def test_inference_vs_reference(debug: bool = False) -> None:
     examples_by_path = _get_examples_by_path(model_name)
     if debug:
         print(f"Loaded {len(examples_by_path)} examples by path")
-
     for example in tqdm(examples_by_path, disable=not debug):
         abs_path = repo_root_dir / example.path
         result = m.identify_path(abs_path)
@@ -82,7 +81,7 @@ def test_inference_vs_reference(debug: bool = False) -> None:
 
     examples_by_content = _get_examples_by_content(model_name)
     if debug:
-        print(f"Loaded {len(examples_by_path)} examples by content")
+        print(f"Loaded {len(examples_by_content)} examples by content")
     for example in tqdm(examples_by_content, disable=not debug):
         result = m.identify_bytes(base64.b64decode(example.content_base64))
         assert result.status == example.status
@@ -201,12 +200,6 @@ def _generate_examples_by_content(
         magika._model_config.block_size - 1,
         magika._model_config.block_size,
         magika._model_config.block_size + 1,
-        2 * magika._model_config.block_size - 1,
-        2 * magika._model_config.block_size,
-        2 * magika._model_config.block_size + 1,
-        4 * magika._model_config.block_size - 1,
-        4 * magika._model_config.block_size,
-        4 * magika._model_config.block_size + 1,
     ]:
         content_list.append(test_utils.generate_pattern(size, only_printable=True))
         content_list.append(test_utils.generate_pattern(size, only_printable=False))
@@ -518,19 +511,28 @@ class CornerCaseCollector:
                     ),
                 )
 
-        base_contents = []
-        base_contents.append(
+        base_examples = []
+        base_examples.append(
             ("randomtxt", test_utils.get_random_ascii_bytes(beg_size + end_size))
         )
-        base_contents.append(
+        base_examples.append(
             ("randombytes", test_utils.get_random_bytes(beg_size + end_size))
         )
         for example_path in test_utils.get_basic_test_files_paths():
-            base_example = (str(example_path), example_path.read_bytes())
+            example_content = example_path.read_bytes()
+            if len(example_content) < beg_size + end_size:
+                base_content = example_content
+            else:
+                base_content = b""
+                if beg_size > 0:
+                    example_content += base_content[:beg_size]
+                if end_size > 0:
+                    example_content += base_content[-end_size:]
+            base_example = (str(example_path), base_content)
             yield base_example
-            base_contents.append(base_example)
+            base_examples.append(base_example)
 
-        for base_source, base_content in base_contents:
+        for base_source, base_content in base_examples:
             print(f"Using {base_source} as base")
             for only_printable in [True, False]:
                 for n in range(

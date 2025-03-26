@@ -30,7 +30,7 @@ import pytest
 from tqdm import tqdm
 
 from magika import ContentTypeLabel, Magika, PredictionMode
-from magika.types.magika_result import MagikaResult
+from magika.types import MagikaResult, OverwriteReason
 from magika.types.status import Status
 
 try:
@@ -141,7 +141,9 @@ def _get_examples_by_path(model_name: str) -> List[ExampleByPath]:
         dacite.from_dict(
             ExampleByPath,
             entry,
-            config=dacite.Config(cast=[ContentTypeLabel, PredictionMode, Status]),
+            config=dacite.Config(
+                cast=[ContentTypeLabel, OverwriteReason, PredictionMode, Status]
+            ),
         )
         for entry in json.loads(
             gzip.decompress(reference_for_inference_examples_by_path.read_bytes())
@@ -157,7 +159,9 @@ def _get_examples_by_content(model_name: str) -> List[ExampleByContent]:
         dacite.from_dict(
             ExampleByContent,
             entry,
-            config=dacite.Config(cast=[ContentTypeLabel, PredictionMode, Status]),
+            config=dacite.Config(
+                cast=[ContentTypeLabel, OverwriteReason, PredictionMode, Status]
+            ),
         )
         for entry in json.loads(
             gzip.decompress(reference_for_inference_examples_by_content.read_bytes())
@@ -201,6 +205,7 @@ def _generate_examples_by_path(
                         dl=result.prediction.dl.label,
                         output=result.prediction.output.label,
                         score=result.prediction.score,
+                        overwrite_reason=result.prediction.overwrite_reason,
                     ),
                 )
             else:
@@ -313,6 +318,7 @@ def _generate_examples_by_content(
                         dl=result.prediction.dl.label,
                         output=result.prediction.output.label,
                         score=result.prediction.score,
+                        overwrite_reason=result.prediction.overwrite_reason,
                     ),
                 )
             else:
@@ -405,6 +411,7 @@ class Prediction:
     dl: ContentTypeLabel
     output: ContentTypeLabel
     score: float
+    overwrite_reason: OverwriteReason
 
 
 @dataclass(frozen=True)
@@ -616,6 +623,9 @@ def _check_result_vs_reference_example(
         assert result.prediction.dl.label == expected_prediction.dl
         assert result.prediction.output.label == expected_prediction.output
         assert result.prediction.score == pytest.approx(expected_prediction.score)
+        assert (
+            result.prediction.overwrite_reason == expected_prediction.overwrite_reason
+        )
 
 
 if __name__ == "__main__":

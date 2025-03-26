@@ -19,7 +19,9 @@ import enum
 import gzip
 import json
 import random
+import tempfile
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Generator, List, Optional, Set, Tuple
 
 import click
@@ -37,7 +39,6 @@ except ImportError:
     # Hack to support both `uv run pytest tests/` and `uv run ./tests/test_...
     # <command>`
     import sys
-    from pathlib import Path
 
     sys.path.append(str(Path(__file__).parent.parent))
     from tests import utils as test_utils
@@ -72,23 +73,46 @@ def test_inference_vs_reference(debug: bool = False) -> None:
     for example in tqdm(examples_by_path, disable=not debug):
         abs_path = repo_root_dir / example.path
         result = m.identify_path(abs_path)
-        assert result.path == abs_path
-        assert result.status == example.status
-        if result.ok:
-            assert result.prediction.dl.label == example.prediction.dl
-            assert result.prediction.output.label == example.prediction.output
-            assert result.prediction.score == pytest.approx(example.prediction.score)
+        _check_result_vs_reference_example(
+            result, abs_path, example.status, example.prediction
+        )
+
+        result = m.identify_bytes(abs_path.read_bytes())
+        _check_result_vs_reference_example(
+            result, Path("-"), example.status, example.prediction
+        )
+
+        with open(abs_path, "rb") as f:
+            result = m.identify_stream(f)
+            _check_result_vs_reference_example(
+                result, Path("-"), example.status, example.prediction
+            )
 
     examples_by_content = _get_examples_by_content(model_name)
     if debug:
         print(f"Loaded {len(examples_by_content)} examples by content")
     for example in tqdm(examples_by_content, disable=not debug):
-        result = m.identify_bytes(base64.b64decode(example.content_base64))
-        assert result.status == example.status
-        if result.ok:
-            assert result.prediction.dl.label == example.prediction.dl
-            assert result.prediction.output.label == example.prediction.output
-            assert result.prediction.score == pytest.approx(example.prediction.score)
+        example_content = base64.b64decode(example.content_base64)
+
+        result = m.identify_bytes(example_content)
+        _check_result_vs_reference_example(
+            result, Path("-"), example.status, example.prediction
+        )
+
+        with tempfile.TemporaryDirectory() as td:
+            tf_path = Path(td) / "file.bin"
+            tf_path.write_bytes(example_content)
+
+            result = m.identify_path(tf_path)
+            _check_result_vs_reference_example(
+                result, tf_path, example.status, example.prediction
+            )
+
+            with open(tf_path, "rb") as f:
+                result = m.identify_stream(f)
+                _check_result_vs_reference_example(
+                    result, Path("-"), example.status, example.prediction
+                )
 
 
 def test_reference_generation() -> None:
@@ -553,6 +577,20 @@ class CornerCaseCollector:
                         test_utils.generate_pattern(n, only_printable=only_printable)
                     )
                     yield (f"base_{base_source}_end_{n}", bytes(patched_content))
+
+
+def _check_result_vs_reference_example(
+    result: MagikaResult,
+    expected_path: Path,
+    expected_status: Status,
+    expected_prediction: Prediction,
+) -> None:
+    assert result.path == expected_path
+    assert result.status == expected_status
+    if result.ok:
+        assert result.prediction.dl.label == expected_prediction.dl
+        assert result.prediction.output.label == expected_prediction.output
+        assert result.prediction.score == pytest.approx(expected_prediction.score)
 
 
 if __name__ == "__main__":

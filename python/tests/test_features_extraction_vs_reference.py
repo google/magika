@@ -17,7 +17,9 @@ from __future__ import annotations
 import base64
 import gzip
 import json
+import tempfile
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import List, Tuple
 
 import click
@@ -33,7 +35,6 @@ except ImportError:
     # Hack to support both `uv run pytest tests/` and `uv run ./tests/test_...
     # <command>`
     import sys
-    from pathlib import Path
 
     sys.path.append(str(Path(__file__).parent.parent))
     from tests import utils as test_utils
@@ -62,8 +63,10 @@ def test_features_extraction_vs_reference(debug: bool = False) -> None:
         print(f"Loaded {len(tests_cases)} tests cases")
 
     for test_case in tqdm(tests_cases, disable=not debug):
+        test_case_content = base64.b64decode(test_case.content_base64)
+
         features = Magika._extract_features_from_bytes(
-            base64.b64decode(test_case.content_base64),
+            test_case_content,
             beg_size=test_case.args.beg_size,
             mid_size=test_case.args.mid_size,
             end_size=test_case.args.end_size,
@@ -71,29 +74,40 @@ def test_features_extraction_vs_reference(debug: bool = False) -> None:
             block_size=test_case.args.block_size,
             use_inputs_at_offsets=test_case.args.use_inputs_at_offsets,
         )
+        _check_features_vs_reference_test_case_features(
+            features, test_case.features, debug=debug
+        )
 
-        with_error = False
-        if features.beg != test_case.features.beg:
-            with_error = True
-            if debug:
-                print("beg does not match")
-        if features.mid != test_case.features.mid:
-            with_error = True
-            if debug:
-                print("mid does not match")
-        if features.end != test_case.features.end:
-            with_error = True
-            if debug:
-                print("end does not match")
-        try:
-            assert features == test_case.features
-        except AssertionError:
-            with_error = True
-            if debug:
-                print("other fields do not match")
+        with tempfile.TemporaryDirectory() as td:
+            tf_path = Path(td) / "file.bin"
+            tf_path.write_bytes(test_case_content)
 
-        if with_error:
-            raise Exception
+            features = Magika._extract_features_from_path(
+                tf_path,
+                beg_size=test_case.args.beg_size,
+                mid_size=test_case.args.mid_size,
+                end_size=test_case.args.end_size,
+                padding_token=test_case.args.padding_token,
+                block_size=test_case.args.block_size,
+                use_inputs_at_offsets=test_case.args.use_inputs_at_offsets,
+            )
+            _check_features_vs_reference_test_case_features(
+                features, test_case.features, debug=debug
+            )
+
+            with open(tf_path, "rb") as f:
+                features = Magika._extract_features_from_stream(
+                    f,
+                    beg_size=test_case.args.beg_size,
+                    mid_size=test_case.args.mid_size,
+                    end_size=test_case.args.end_size,
+                    padding_token=test_case.args.padding_token,
+                    block_size=test_case.args.block_size,
+                    use_inputs_at_offsets=test_case.args.use_inputs_at_offsets,
+                )
+                _check_features_vs_reference_test_case_features(
+                    features, test_case.features, debug=debug
+                )
 
 
 def test_reference_generation() -> None:
@@ -268,6 +282,33 @@ def _get_tests_cases_from_reference() -> List[FeaturesExtractionTestCase]:
             gzip.decompress(ref_features_extraction_tests_path.read_bytes())
         )
     ]
+
+
+def _check_features_vs_reference_test_case_features(
+    features, test_case_features, debug: bool = False
+) -> None:
+    with_error = False
+    if features.beg != test_case_features.beg:
+        with_error = True
+        if debug:
+            print("beg does not match")
+    if features.mid != test_case_features.mid:
+        with_error = True
+        if debug:
+            print("mid does not match")
+    if features.end != test_case_features.end:
+        with_error = True
+        if debug:
+            print("end does not match")
+    try:
+        assert features == test_case_features
+    except AssertionError:
+        with_error = True
+        if debug:
+            print("other fields do not match")
+
+    if with_error:
+        raise Exception
 
 
 @dataclass

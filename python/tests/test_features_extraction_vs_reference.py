@@ -18,9 +18,10 @@ import base64
 import gzip
 import json
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 import click
+import dacite
 from tqdm import tqdm
 
 from magika import Magika
@@ -56,20 +57,13 @@ def generate_tests(test_mode: bool) -> None:
 
 
 def test_features_extraction_vs_reference(debug: bool = False) -> None:
-    raw_tests_cases = _get_raw_tests_cases_from_reference()
+    tests_cases = _get_tests_cases_from_reference()
     if debug:
-        print(f"Loaded {len(raw_tests_cases)} tests cases")
+        print(f"Loaded {len(tests_cases)} tests cases")
 
-    for raw_test_case in tqdm(raw_tests_cases, disable=not debug):
-        test_case = FeaturesExtractionTestCase(
-            args=FeaturesExtractionTestCaseArgs(**raw_test_case["args"]),
-            metadata=FeaturesExtractionTestCaseMetadata(**raw_test_case["metadata"]),
-            content=base64.b64decode(raw_test_case["content"]),
-            features=ModelFeatures(**raw_test_case["features"]),
-        )
-
+    for test_case in tqdm(tests_cases, disable=not debug):
         features = Magika._extract_features_from_bytes(
-            test_case.content,
+            base64.b64decode(test_case.content_base64),
             beg_size=test_case.args.beg_size,
             mid_size=test_case.args.mid_size,
             end_size=test_case.args.end_size,
@@ -117,12 +111,6 @@ def _dump_reference_features_extraction(
     tests_cases: List[FeaturesExtractionTestCase],
     test_mode: bool,
 ) -> None:
-    raw_tests_cases = []
-    for test_case in tests_cases:
-        raw_test_case = asdict(test_case)
-        raw_test_case["content"] = base64.b64encode(test_case.content).decode("ascii")
-        raw_tests_cases.append(raw_test_case)
-
     reference_features_extraction_tests_path = (
         test_utils.get_reference_features_extraction_tests_path()
     )
@@ -134,7 +122,11 @@ def _dump_reference_features_extraction(
             parents=True, exist_ok=True
         )
         reference_features_extraction_tests_path.write_bytes(
-            gzip.compress(json.dumps(raw_tests_cases).encode("ascii"))
+            gzip.compress(
+                json.dumps([asdict(test_case) for test_case in tests_cases]).encode(
+                    "ascii"
+                )
+            )
         )
         print(f"Wrote tests cases to {reference_features_extraction_tests_path}")
 
@@ -142,12 +134,12 @@ def _dump_reference_features_extraction(
 def _generate_reference_features_extraction_tests_cases() -> (
     List[FeaturesExtractionTestCase]
 ):
-    test_suite: List[
+    tests_cases_inputs: List[
         Tuple[FeaturesExtractionTestCaseArgs, FeaturesExtractionTestCaseMetadata, bytes]
     ] = _generate_reference_features_extraction_tests_cases_inputs()
 
     tests_cases = []
-    for test_args, test_metadata, test_content in test_suite:
+    for test_args, test_metadata, test_content in tests_cases_inputs:
         features = Magika._extract_features_from_bytes(
             test_content,
             test_args.beg_size,
@@ -161,7 +153,7 @@ def _generate_reference_features_extraction_tests_cases() -> (
         test_case = FeaturesExtractionTestCase(
             args=test_args,
             metadata=test_metadata,
-            content=test_content,
+            content_base64=base64.b64encode(test_content).decode("ascii"),
             features=features,
         )
 
@@ -265,22 +257,24 @@ def _generate_content_from_metadata(
     )
 
 
-def _get_raw_tests_cases_from_reference() -> List[Dict]:
+def _get_tests_cases_from_reference() -> List[FeaturesExtractionTestCase]:
     ref_features_extraction_tests_path = (
         test_utils.get_reference_features_extraction_tests_path()
     )
 
-    tests_cases = json.loads(
-        gzip.decompress(ref_features_extraction_tests_path.read_bytes())
-    )
-    return tests_cases  # type: ignore[no-any-return]
+    return [
+        dacite.from_dict(FeaturesExtractionTestCase, test_case)
+        for test_case in json.loads(
+            gzip.decompress(ref_features_extraction_tests_path.read_bytes())
+        )
+    ]
 
 
 @dataclass
 class FeaturesExtractionTestCase:
     args: FeaturesExtractionTestCaseArgs
     metadata: FeaturesExtractionTestCaseMetadata
-    content: bytes
+    content_base64: str
     features: ModelFeatures
 
 

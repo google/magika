@@ -390,30 +390,6 @@ def _dump_examples_by_content(
         )
 
 
-@dataclass
-class ExampleByPath:
-    prediction_mode: PredictionMode
-    path: str
-    status: Status
-    prediction: Optional[Prediction]
-
-
-@dataclass
-class ExampleByContent:
-    prediction_mode: PredictionMode
-    content_base64: str
-    status: Status
-    prediction: Optional[Prediction]
-
-
-@dataclass
-class Prediction:
-    dl: ContentTypeLabel
-    output: ContentTypeLabel
-    score: float
-    overwrite_reason: OverwriteReason
-
-
 @dataclass(frozen=True)
 class CornerCaseInfo:
     label_category: LabelCategory
@@ -626,6 +602,34 @@ def _check_result_vs_reference_example(
         assert (
             result.prediction.overwrite_reason == expected_prediction.overwrite_reason
         )
+
+
+@dataclass
+class ExampleByPath:
+    """Data model for <model_name>-inference_examples_by_path.json.gz."""
+
+    prediction_mode: PredictionMode
+    path: str
+    status: Status
+    prediction: Optional[Prediction]
+
+
+@dataclass
+class ExampleByContent:
+    """Data model for <model_name>-inference_examples_by_content.json.gz."""
+
+    prediction_mode: PredictionMode
+    content_base64: str
+    status: Status
+    prediction: Optional[Prediction]
+
+
+@dataclass
+class Prediction:
+    dl: ContentTypeLabel
+    output: ContentTypeLabel
+    score: float
+    overwrite_reason: OverwriteReason
 
 
 if __name__ == "__main__":

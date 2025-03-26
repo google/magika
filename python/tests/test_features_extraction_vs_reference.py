@@ -58,55 +58,55 @@ def generate_tests(test_mode: bool) -> None:
 
 
 def test_features_extraction_vs_reference(debug: bool = False) -> None:
-    tests_cases = _get_tests_cases_from_reference()
+    examples = _get_examples_from_reference()
     if debug:
-        print(f"Loaded {len(tests_cases)} tests cases")
+        print(f"Loaded {len(examples)} tests cases")
 
-    for test_case in tqdm(tests_cases, disable=not debug):
-        test_case_content = base64.b64decode(test_case.content_base64)
+    for example in tqdm(examples, disable=not debug):
+        example_content = base64.b64decode(example.content_base64)
 
         features = Magika._extract_features_from_bytes(
-            test_case_content,
-            beg_size=test_case.args.beg_size,
-            mid_size=test_case.args.mid_size,
-            end_size=test_case.args.end_size,
-            padding_token=test_case.args.padding_token,
-            block_size=test_case.args.block_size,
-            use_inputs_at_offsets=test_case.args.use_inputs_at_offsets,
+            example_content,
+            beg_size=example.args.beg_size,
+            mid_size=example.args.mid_size,
+            end_size=example.args.end_size,
+            padding_token=example.args.padding_token,
+            block_size=example.args.block_size,
+            use_inputs_at_offsets=example.args.use_inputs_at_offsets,
         )
-        _check_features_vs_reference_test_case_features(
-            features, test_case.features, debug=debug
+        _check_features_vs_reference_example_features(
+            features, example.features, debug=debug
         )
 
         with tempfile.TemporaryDirectory() as td:
             tf_path = Path(td) / "file.bin"
-            tf_path.write_bytes(test_case_content)
+            tf_path.write_bytes(example_content)
 
             features = Magika._extract_features_from_path(
                 tf_path,
-                beg_size=test_case.args.beg_size,
-                mid_size=test_case.args.mid_size,
-                end_size=test_case.args.end_size,
-                padding_token=test_case.args.padding_token,
-                block_size=test_case.args.block_size,
-                use_inputs_at_offsets=test_case.args.use_inputs_at_offsets,
+                beg_size=example.args.beg_size,
+                mid_size=example.args.mid_size,
+                end_size=example.args.end_size,
+                padding_token=example.args.padding_token,
+                block_size=example.args.block_size,
+                use_inputs_at_offsets=example.args.use_inputs_at_offsets,
             )
-            _check_features_vs_reference_test_case_features(
-                features, test_case.features, debug=debug
+            _check_features_vs_reference_example_features(
+                features, example.features, debug=debug
             )
 
             with open(tf_path, "rb") as f:
                 features = Magika._extract_features_from_stream(
                     f,
-                    beg_size=test_case.args.beg_size,
-                    mid_size=test_case.args.mid_size,
-                    end_size=test_case.args.end_size,
-                    padding_token=test_case.args.padding_token,
-                    block_size=test_case.args.block_size,
-                    use_inputs_at_offsets=test_case.args.use_inputs_at_offsets,
+                    beg_size=example.args.beg_size,
+                    mid_size=example.args.mid_size,
+                    end_size=example.args.end_size,
+                    padding_token=example.args.padding_token,
+                    block_size=example.args.block_size,
+                    use_inputs_at_offsets=example.args.use_inputs_at_offsets,
                 )
-                _check_features_vs_reference_test_case_features(
-                    features, test_case.features, debug=debug
+                _check_features_vs_reference_example_features(
+                    features, example.features, debug=debug
                 )
 
 
@@ -118,38 +118,36 @@ def _generate_reference_features_extraction(test_mode: bool) -> None:
     print("Genearting reference features extraction tests cases...")
     tests_cases = _generate_reference_features_extraction_tests_cases()
     print(f"Generated {len(tests_cases)} tests cases")
-    _dump_reference_features_extraction(tests_cases, test_mode=test_mode)
+    _dump_reference_features_extraction_examples(tests_cases, test_mode=test_mode)
 
 
-def _dump_reference_features_extraction(
-    tests_cases: List[FeaturesExtractionTestCase],
+def _dump_reference_features_extraction_examples(
+    examples: List[FeaturesExtractionExample],
     test_mode: bool,
 ) -> None:
-    reference_features_extraction_tests_path = (
-        test_utils.get_reference_features_extraction_tests_path()
+    reference_features_extraction_examples_path = (
+        test_utils.get_reference_features_extraction_examples_path()
     )
 
     if test_mode:
         print('WARNING: running in "test_mode", not writing examples to file')
     else:
-        reference_features_extraction_tests_path.parent.mkdir(
+        reference_features_extraction_examples_path.parent.mkdir(
             parents=True, exist_ok=True
         )
-        reference_features_extraction_tests_path.write_bytes(
+        reference_features_extraction_examples_path.write_bytes(
             gzip.compress(
-                json.dumps([asdict(test_case) for test_case in tests_cases]).encode(
-                    "ascii"
-                )
+                json.dumps([asdict(example) for example in examples]).encode("ascii")
             )
         )
-        print(f"Wrote tests cases to {reference_features_extraction_tests_path}")
+        print(f"Wrote tests cases to {reference_features_extraction_examples_path}")
 
 
 def _generate_reference_features_extraction_tests_cases() -> (
-    List[FeaturesExtractionTestCase]
+    List[FeaturesExtractionExample]
 ):
     tests_cases_inputs: List[
-        Tuple[FeaturesExtractionTestCaseArgs, FeaturesExtractionTestCaseMetadata, bytes]
+        Tuple[FeaturesExtractionExampleArgs, FeaturesExtractionExampleMetadata, bytes]
     ] = _generate_reference_features_extraction_tests_cases_inputs()
 
     tests_cases = []
@@ -164,22 +162,20 @@ def _generate_reference_features_extraction_tests_cases() -> (
             test_args.use_inputs_at_offsets,
         )
 
-        test_case = FeaturesExtractionTestCase(
+        example = FeaturesExtractionExample(
             args=test_args,
             metadata=test_metadata,
             content_base64=base64.b64encode(test_content).decode("ascii"),
             features=features,
         )
 
-        tests_cases.append(test_case)
+        tests_cases.append(example)
 
     return tests_cases
 
 
 def _generate_reference_features_extraction_tests_cases_inputs() -> (
-    List[
-        Tuple[FeaturesExtractionTestCaseArgs, FeaturesExtractionTestCaseMetadata, bytes]
-    ]
+    List[Tuple[FeaturesExtractionExampleArgs, FeaturesExtractionExampleMetadata, bytes]]
 ):
     beg_size = 128
     mid_size = 0
@@ -224,7 +220,7 @@ def _generate_reference_features_extraction_tests_cases_inputs() -> (
     for core_content_size in content_size_options:
         for left_ws_num in ws_num_options:
             for right_ws_num in ws_num_options:
-                test_args = FeaturesExtractionTestCaseArgs(
+                test_args = FeaturesExtractionExampleArgs(
                     beg_size=beg_size,
                     mid_size=mid_size,
                     end_size=end_size,
@@ -232,7 +228,7 @@ def _generate_reference_features_extraction_tests_cases_inputs() -> (
                     padding_token=padding_token,
                     use_inputs_at_offsets=use_inputs_at_offsets,
                 )
-                test_metadata = FeaturesExtractionTestCaseMetadata(
+                test_metadata = FeaturesExtractionExampleMetadata(
                     core_content_size=core_content_size,
                     left_ws_num=left_ws_num,
                     right_ws_num=right_ws_num,
@@ -245,7 +241,7 @@ def _generate_reference_features_extraction_tests_cases_inputs() -> (
 
 
 def _generate_content_from_metadata(
-    test_info: FeaturesExtractionTestCaseMetadata,
+    test_info: FeaturesExtractionExampleMetadata,
 ) -> bytes:
     """Generate content with a given "core size", with n left and right
     whitespaces, and the core content. with_ws_near_beg and with_ws_near_end
@@ -271,37 +267,37 @@ def _generate_content_from_metadata(
     )
 
 
-def _get_tests_cases_from_reference() -> List[FeaturesExtractionTestCase]:
-    ref_features_extraction_tests_path = (
-        test_utils.get_reference_features_extraction_tests_path()
+def _get_examples_from_reference() -> List[FeaturesExtractionExample]:
+    ref_features_extraction_examples_path = (
+        test_utils.get_reference_features_extraction_examples_path()
     )
 
     return [
-        dacite.from_dict(FeaturesExtractionTestCase, test_case)
-        for test_case in json.loads(
-            gzip.decompress(ref_features_extraction_tests_path.read_bytes())
+        dacite.from_dict(FeaturesExtractionExample, example)
+        for example in json.loads(
+            gzip.decompress(ref_features_extraction_examples_path.read_bytes())
         )
     ]
 
 
-def _check_features_vs_reference_test_case_features(
-    features, test_case_features, debug: bool = False
+def _check_features_vs_reference_example_features(
+    features, example_features, debug: bool = False
 ) -> None:
     with_error = False
-    if features.beg != test_case_features.beg:
+    if features.beg != example_features.beg:
         with_error = True
         if debug:
             print("beg does not match")
-    if features.mid != test_case_features.mid:
+    if features.mid != example_features.mid:
         with_error = True
         if debug:
             print("mid does not match")
-    if features.end != test_case_features.end:
+    if features.end != example_features.end:
         with_error = True
         if debug:
             print("end does not match")
     try:
-        assert features == test_case_features
+        assert features == example_features
     except AssertionError:
         with_error = True
         if debug:
@@ -312,15 +308,17 @@ def _check_features_vs_reference_test_case_features(
 
 
 @dataclass
-class FeaturesExtractionTestCase:
-    args: FeaturesExtractionTestCaseArgs
-    metadata: FeaturesExtractionTestCaseMetadata
+class FeaturesExtractionExample:
+    """Data model for features_extraction_examples.json.gz."""
+
+    args: FeaturesExtractionExampleArgs
+    metadata: FeaturesExtractionExampleMetadata
     content_base64: str
     features: ModelFeatures
 
 
 @dataclass
-class FeaturesExtractionTestCaseArgs:
+class FeaturesExtractionExampleArgs:
     beg_size: int
     mid_size: int
     end_size: int
@@ -330,7 +328,7 @@ class FeaturesExtractionTestCaseArgs:
 
 
 @dataclass
-class FeaturesExtractionTestCaseMetadata:
+class FeaturesExtractionExampleMetadata:
     core_content_size: int
     left_ws_num: int
     right_ws_num: int

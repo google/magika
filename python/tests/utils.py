@@ -69,8 +69,8 @@ def get_previously_missdetected_files_paths() -> List[Path]:
     return test_files_paths
 
 
-def get_reference_features_extraction_tests_path() -> Path:
-    return get_tests_data_dir() / "reference" / "features_extraction.json.gz"
+def get_reference_features_extraction_examples_path() -> Path:
+    return get_tests_data_dir() / "reference" / "features_extraction_examples.json.gz"
 
 
 def get_reference_for_inference_examples_by_path_path(model_name: str) -> Path:

@@ -796,7 +796,7 @@ class Magika:
             elif not os.access(path, os.R_OK):
                 return MagikaResult(path=path, status=Status.PERMISSION_ERROR), None
 
-            elif path.stat().st_size <= self._model_config.min_file_size_for_dl:
+            elif path.stat().st_size < self._model_config.min_file_size_for_dl:
                 result = self._get_result_from_first_block_of_file(path)
                 return result, None
 
@@ -859,7 +859,7 @@ class Magika:
             )
             return result, None
 
-        elif len(content) <= self._model_config.min_file_size_for_dl:
+        elif len(content) < self._model_config.min_file_size_for_dl:
             result = self._get_result_from_few_bytes(content)
             return result, None
 
@@ -921,7 +921,7 @@ class Magika:
             )
             return result, None
 
-        elif bytes_stream_size <= self._model_config.min_file_size_for_dl:
+        elif bytes_stream_size < self._model_config.min_file_size_for_dl:
             stream.seek(0)
             content = stream.read()
             result = self._get_result_from_few_bytes(content)

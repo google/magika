@@ -17,8 +17,6 @@ from __future__ import annotations
 import base64
 import gzip
 import json
-import math
-import string
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Tuple
 
@@ -237,7 +235,9 @@ def _generate_content_from_metadata(
     useful to test that we don't strip whitespaces that we are not supposed to
     strip."""
 
-    content = _generate_pattern(test_info.core_content_size)
+    content = bytearray(
+        test_utils.generate_pattern(test_info.core_content_size, only_printable=True)
+    )
 
     if test_info.core_content_size >= 5:
         # inject characters that other implementations may mistakenly strip
@@ -247,27 +247,10 @@ def _generate_content_from_metadata(
         content[-1] = ord("\x00")
 
     return (
-        _generate_whitespaces(test_info.left_ws_num)
+        test_utils.generate_whitespaces(test_info.left_ws_num)
         + bytes(content)
-        + _generate_whitespaces(test_info.right_ws_num)
+        + test_utils.generate_whitespaces(test_info.right_ws_num)
     )
-
-
-def _generate_whitespaces(size: int) -> bytes:
-    whitespaces = string.whitespace
-    ws_len = len(whitespaces)
-    return bytes([ord(whitespaces[idx % ws_len]) for idx in range(size)])
-
-
-def _generate_pattern(size: int) -> bytearray:
-    """Generate a pattern we can use to test features extraction"""
-
-    chars = string.printable[: 10 + 26 * 2]
-
-    base_pattern = bytearray(chars.encode("ascii"))
-    base_pattern_len = len(base_pattern)
-    pattern = (base_pattern * int(math.ceil(size / base_pattern_len)))[:size]
-    return pattern
 
 
 def _get_raw_tests_cases_from_reference() -> List[Dict]:

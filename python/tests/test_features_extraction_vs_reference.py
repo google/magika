@@ -50,8 +50,9 @@ def run_tests(debug: bool) -> None:
 
 
 @cli.command()
-def generate_tests():
-    generate_reference_features_extraction()
+@click.option("--test-mode", is_flag=True)
+def generate_tests(test_mode: bool) -> None:
+    _generate_reference_features_extraction(test_mode=test_mode)
 
 
 def test_features_extraction(debug: bool = False) -> None:
@@ -101,15 +102,20 @@ def test_features_extraction(debug: bool = False) -> None:
             raise Exception
 
 
-def generate_reference_features_extraction():
+def test_reference_generation() -> None:
+    _generate_reference_features_extraction(test_mode=True)
+
+
+def _generate_reference_features_extraction(test_mode: bool) -> None:
     print("Genearting reference features extraction tests cases...")
     tests_cases = _generate_reference_features_extraction_tests_cases()
     print(f"Generated {len(tests_cases)} tests cases")
-    _dump_reference_features_extraction(tests_cases)
+    _dump_reference_features_extraction(tests_cases, test_mode=test_mode)
 
 
 def _dump_reference_features_extraction(
     tests_cases: List[FeaturesExtractionTestCase],
+    test_mode: bool,
 ) -> None:
     raw_tests_cases = []
     for test_case in tests_cases:
@@ -120,11 +126,17 @@ def _dump_reference_features_extraction(
     reference_features_extraction_tests_path = (
         test_utils.get_reference_features_extraction_tests_path()
     )
-    reference_features_extraction_tests_path.parent.mkdir(parents=True, exist_ok=True)
-    reference_features_extraction_tests_path.write_bytes(
-        gzip.compress(json.dumps(raw_tests_cases).encode("ascii"))
-    )
-    print(f"Wrote tests cases to {reference_features_extraction_tests_path}")
+
+    if test_mode:
+        print('WARNING: running in "test_mode", not writing examples to file')
+    else:
+        reference_features_extraction_tests_path.parent.mkdir(
+            parents=True, exist_ok=True
+        )
+        reference_features_extraction_tests_path.write_bytes(
+            gzip.compress(json.dumps(raw_tests_cases).encode("ascii"))
+        )
+        print(f"Wrote tests cases to {reference_features_extraction_tests_path}")
 
 
 def _generate_reference_features_extraction_tests_cases() -> (

@@ -54,8 +54,9 @@ def run_tests(debug: bool) -> None:
 
 
 @cli.command()
-def generate_tests():
-    _generate_reference_for_inference()
+@click.option("--test-mode", is_flag=True)
+def generate_tests(test_mode: bool) -> None:
+    _generate_reference_for_inference(test_mode=test_mode)
 
 
 def test_inference_vs_reference(debug: bool = False) -> None:
@@ -90,6 +91,12 @@ def test_inference_vs_reference(debug: bool = False) -> None:
             assert result.prediction.score == pytest.approx(example.prediction.score)
 
 
+def test_reference_generation() -> None:
+    # This is useful to exercise the various paths to make sure the reference
+    # generation stays up to date.
+    _generate_reference_for_inference(test_mode=True)
+
+
 def _get_examples_by_path(model_name: str) -> List[ExampleByPath]:
     reference_for_inference_examples_by_path = (
         test_utils.get_reference_for_inference_examples_by_path_path(model_name)
@@ -118,12 +125,12 @@ def _get_examples_by_content(model_name: str) -> List[ExampleByContent]:
     ]
 
 
-def _generate_reference_for_inference():
+def _generate_reference_for_inference(test_mode: bool) -> None:
     model_name = Magika._get_default_model_name()
     examples_by_path = _generate_examples_by_path(model_name)
-    _dump_examples_by_path(model_name, examples_by_path)
-    examples_by_content = _generate_examples_by_content(model_name)
-    _dump_examples_by_content(model_name, examples_by_content)
+    _dump_examples_by_path(model_name, examples_by_path, test_mode=test_mode)
+    examples_by_content = _generate_examples_by_content(model_name, test_mode=test_mode)
+    _dump_examples_by_content(model_name, examples_by_content, test_mode=test_mode)
 
 
 def _generate_examples_by_path(
@@ -161,7 +168,9 @@ def _generate_examples_by_path(
     return examples_by_path
 
 
-def _generate_examples_by_content(model_name: str) -> List[ExampleByContent]:
+def _generate_examples_by_content(
+    model_name: str, test_mode: bool
+) -> List[ExampleByContent]:
     random.seed(42)
 
     print(f'Generating examples by content for model "{model_name}"...')
@@ -224,7 +233,7 @@ def _generate_examples_by_content(model_name: str) -> List[ExampleByContent]:
     # each of them to fill what we need for the test suite.
     collector = CornerCaseCollector(magika)
     generator = corner_case_candidates_generator(magika)
-    for source_info, content in generator:
+    for candidate_idx, (source_info, content) in enumerate(generator):
         is_useful, result, cc_info = collector.inspect_content(content)
         if is_useful:
             print(
@@ -251,11 +260,24 @@ def _generate_examples_by_content(model_name: str) -> List[ExampleByContent]:
             if collector.is_complete():
                 break
 
+        if test_mode:
+            if candidate_idx >= 100:
+                # In "test_mode", we exit after evaluating 100 samples, even if
+                # we are not done
+                break
+
     if not collector.is_complete():
-        print(f"ERROR: Missing {collector.get_missing_examples_num()} corner cases:")
-        for example in collector._missing_corner_cases:
-            print(f"\t{example}")
-        sys.exit(1)
+        if test_mode:
+            print(
+                'WARNING: running in "test_mode", exiting corner cases generation early'
+            )
+        else:
+            print(
+                f"ERROR: Missing {collector.get_missing_examples_num()} corner cases:"
+            )
+            for example in collector._missing_corner_cases:
+                print(f"\t{example}")
+            sys.exit(1)
 
     return examples_by_content
 
@@ -263,37 +285,49 @@ def _generate_examples_by_content(model_name: str) -> List[ExampleByContent]:
 def _dump_examples_by_path(
     model_name: str,
     examples_by_path: List[ExampleByPath],
+    test_mode: bool,
 ) -> None:
     examples_by_path_path = (
         test_utils.get_reference_for_inference_examples_by_path_path(model_name)
     )
-    examples_by_path_path.parent.mkdir(parents=True, exist_ok=True)
-    examples_by_path_path.write_text(
-        json.dumps(
-            [asdict(example) for example in examples_by_path],
-            separators=(",", ":"),
+
+    if test_mode:
+        print('WARNING: running in "test_mode", not writing examples to file')
+    else:
+        examples_by_path_path.parent.mkdir(parents=True, exist_ok=True)
+        examples_by_path_path.write_text(
+            json.dumps(
+                [asdict(example) for example in examples_by_path],
+                separators=(",", ":"),
+            )
         )
-    )
-    print(f"Wrote {len(examples_by_path)} examples by path to {examples_by_path_path}")
+        print(
+            f"Wrote {len(examples_by_path)} examples by path to {examples_by_path_path}"
+        )
 
 
 def _dump_examples_by_content(
     model_name: str,
     examples_by_content: List[ExampleByContent],
+    test_mode: bool,
 ) -> None:
     examples_by_content_path = (
         test_utils.get_reference_for_inference_examples_by_content_path(model_name)
     )
-    examples_by_content_path.parent.mkdir(parents=True, exist_ok=True)
-    examples_by_content_path.write_text(
-        json.dumps(
-            [asdict(example) for example in examples_by_content],
-            separators=(",", ":"),
+
+    if test_mode:
+        print('WARNING: running in "test_mode", not writing examples to file')
+    else:
+        examples_by_content_path.parent.mkdir(parents=True, exist_ok=True)
+        examples_by_content_path.write_text(
+            json.dumps(
+                [asdict(example) for example in examples_by_content],
+                separators=(",", ":"),
+            )
         )
-    )
-    print(
-        f"Wrote {len(examples_by_content)} examples by content to {examples_by_content_path}"
-    )
+        print(
+            f"Wrote {len(examples_by_content)} examples by content to {examples_by_content_path}"
+        )
 
 
 @dataclass

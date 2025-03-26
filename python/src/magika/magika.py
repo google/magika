@@ -695,6 +695,11 @@ class Magika:
         if output_ct_label != dl_ct_label:
             overwrite_reason = OverwriteReason.OVERWRITE_MAP
 
+        # The following code checks whether the score is "high enough", where
+        # "high enough" depends on the selected prediction mode. If the score is
+        # high enough, we return the (potentially ovewritten) model prediction;
+        # if it is not, we return a generic content type, such as TXT or
+        # UNKNOWN.
         if self._prediction_mode == PredictionMode.BEST_GUESS:
             # We take the (potentially overwritten) model prediction, no matter
             # what the score is.
@@ -707,14 +712,16 @@ class Magika:
             )
         ):
             # The model score is higher than the per-content-type
-            # high-confidence threshold, so we keep it.
+            # high-confidence threshold, so we keep it (note that the model
+            # prediction may have been overwritten).
             pass
         elif (
             self._prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
             and score >= self._model_config.medium_confidence_threshold
         ):
             # The model score is higher than the generic medium-confidence
-            # threshold, so we keep it.
+            # threshold, so we keep it (note that the model prediction may have
+            # been overwritten).
             pass
         else:
             # We are not in a condition to trust the model, we opt to return

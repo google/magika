@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import random
 import string
 from pathlib import Path
@@ -73,7 +74,19 @@ def get_reference_features_extraction_tests_path() -> Path:
 
 
 def get_reference_for_inference_examples_by_path_path(model_name: str) -> Path:
-    return get_tests_data_dir() / "reference" / f"{model_name}-examples_by_path.json"
+    return (
+        get_tests_data_dir()
+        / "reference"
+        / f"{model_name}-inference_examples_by_path.json"
+    )
+
+
+def get_reference_for_inference_examples_by_content_path(model_name: str) -> Path:
+    return (
+        get_tests_data_dir()
+        / "reference"
+        / f"{model_name}-inference_examples_by_content.json"
+    )
 
 
 def get_one_basic_test_file_path() -> Path:
@@ -83,10 +96,14 @@ def get_one_basic_test_file_path() -> Path:
 def get_random_ascii_bytes(size: int) -> bytes:
     return bytes(
         [
-            random.choice(bytes(string.ascii_letters.encode("ascii")))
+            random.choice(bytes(string.printable[:62].encode("ascii")))
             for _ in range(size)
         ]
     )
+
+
+def get_random_bytes(size: int) -> bytes:
+    return bytes([random.choice(range(256)) for _ in range(size)])
 
 
 def get_lines_from_stream(stream: str) -> List[str]:
@@ -123,3 +140,24 @@ def get_default_model_dir() -> Path:
     from magika.magika import Magika
 
     return get_models_dir() / Magika._get_default_model_name()
+
+
+def generate_whitespaces(size: int) -> bytes:
+    whitespaces = string.whitespace
+    ws_len = len(whitespaces)
+    return bytes([ord(whitespaces[idx % ws_len]) for idx in range(size)])
+
+
+def generate_pattern(size: int, only_printable: bool) -> bytes:
+    """Generate a pattern we can use to test features extraction"""
+
+    if only_printable:
+        chars = string.printable[: 10 + 26 * 2]
+        base_pattern = chars.encode("ascii")
+    else:
+        base_pattern = bytes(range(256))
+
+    base_pattern_len = len(base_pattern)
+    pattern = (base_pattern * int(math.ceil(size / base_pattern_len)))[:size]
+    assert len(pattern) == size
+    return pattern

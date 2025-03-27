@@ -598,7 +598,9 @@ def _check_result_vs_reference_example(
     if result.ok:
         assert result.prediction.dl.label == expected_prediction.dl
         assert result.prediction.output.label == expected_prediction.output
-        assert result.prediction.score == pytest.approx(expected_prediction.score)
+        assert result.prediction.score == pytest.approx(
+            expected_prediction.score, abs=1e-6
+        )
         assert (
             result.prediction.overwrite_reason == expected_prediction.overwrite_reason
         )

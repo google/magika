@@ -14,7 +14,7 @@
 
 import dataclasses
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from magika.types.content_type_info import ContentTypeInfo
 from magika.types.magika_prediction import MagikaPrediction
@@ -81,7 +81,7 @@ class MagikaResult:
         return self.prediction.score
 
     def asdict(self) -> Dict:
-        out = {
+        out: Dict[str, Any] = {
             "path": str(self.path),
             "status": self.status,
         }

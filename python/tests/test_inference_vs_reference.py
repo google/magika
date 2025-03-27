@@ -296,8 +296,8 @@ def _generate_examples_by_content(
             print(
                 f"ERROR: Missing {collector.get_missing_examples_num()} corner cases:"
             )
-            for example in collector._missing_corner_cases:
-                print(f"\t{example}")
+            for corner_case_info in collector._missing_corner_cases:
+                print(f"\t{corner_case_info}")
             sys.exit(1)
 
     examples_by_content = []
@@ -499,7 +499,7 @@ class CornerCaseCollector:
     def _is_text(self, dl_label: ContentTypeLabel) -> bool:
         return self._magika._cts_infos[dl_label].is_text
 
-    def _has_threshold(self, dl_label) -> bool:
+    def _has_threshold(self, dl_label: ContentTypeLabel) -> bool:
         return dl_label in self._magika._model_config.thresholds.keys()
 
     def _get_threshold(self, dl_label: ContentTypeLabel) -> float:

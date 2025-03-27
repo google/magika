@@ -281,7 +281,7 @@ def _get_examples_from_reference() -> List[FeaturesExtractionExample]:
 
 
 def _check_features_vs_reference_example_features(
-    features, example_features, debug: bool = False
+    features: ModelFeatures, example_features: ModelFeatures, debug: bool = False
 ) -> None:
     with_error = False
     if features.beg != example_features.beg:

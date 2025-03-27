@@ -178,7 +178,13 @@ class Magika:
         ):
             raise TypeError("Input stream must have seek, read, and tell methods.")
 
-        return self._get_result_from_seekable(Seekable(stream))
+        try:
+            current_position = stream.tell()
+            result = self._get_result_from_seekable(Seekable(stream))
+        finally:
+            # seek to the previous position even in case of exceptions
+            stream.seek(current_position)
+        return result
 
     def get_output_content_types(self) -> List[ContentTypeLabel]:
         """This method returns the list of all possible output content types of

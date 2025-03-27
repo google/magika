@@ -222,6 +222,26 @@ def test_magika_module_with_python_and_non_python_content() -> None:
     assert res.prediction.output.label == ContentTypeLabel.TXT
 
 
+def test_magika_module_identify_stream_does_not_alter_position() -> None:
+    m = Magika()
+
+    contents = [
+        b"",
+        b"short",
+        b"A" * 100,
+        b"A" * 1000,
+        b"A" * 10000,
+    ]
+    for content in contents:
+        stream = io.BytesIO(content)
+        # seek to a specific non-special position
+        pos = min(2, len(content))
+        stream.seek(pos)
+        res = m.identify_stream(stream)
+        assert res.ok
+        assert stream.tell() == pos
+
+
 def test_magika_module_with_whitespaces() -> None:
     m = Magika()
 

@@ -462,6 +462,23 @@ def test_magika_module_with_permission_error() -> None:
         assert not res.ok
         assert res.status == Status.PERMISSION_ERROR
 
+    # Check that an empty, non-accessible file is marked as "permission error".
+    # Note that on some file-systems, one can read the file size even without
+    # read permission, and it would thus be possible to return "empty" (this is
+    # what we were actually doing in the past). However, returning
+    # "permission_error" makes the expected behavior consistent across file
+    # systems and it simplifies the implementation.
+    with tempfile.TemporaryDirectory() as td:
+        unreadable_test_path = Path(td) / "test.txt"
+        unreadable_test_path.write_text("")
+
+        unreadable_test_path.chmod(0o000)
+
+        res = m.identify_path(unreadable_test_path)
+        assert res.path == unreadable_test_path
+        assert not res.ok
+        assert res.status == Status.PERMISSION_ERROR
+
 
 @pytest.mark.skip
 def test_magika_module_with_really_many_files() -> None:

@@ -704,16 +704,7 @@ class Magika:
             return MagikaResult(path=path, status=Status.FILE_NOT_FOUND_ERROR), None
 
         if path.is_file():
-            if path.stat().st_size == 0:
-                result = self._get_result_from_labels_and_score(
-                    path=path,
-                    dl_label=ContentTypeLabel.UNDEFINED,
-                    output_label=ContentTypeLabel.EMPTY,
-                    score=1.0,
-                )
-                return result, None
-
-            elif not os.access(path, os.R_OK):
+            if not os.access(path, os.R_OK):
                 return MagikaResult(path=path, status=Status.PERMISSION_ERROR), None
 
             else:

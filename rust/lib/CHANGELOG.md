@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2-git
+
+### Patch
+
+- Update features extraction test to the new reference file
+
 ## 0.1.1
 
 ### Minor

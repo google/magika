@@ -282,36 +282,50 @@ def test_magika_module_with_whitespaces() -> None:
 def test_magika_module_with_different_prediction_modes() -> None:
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.40) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.40
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.60) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.60
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
 
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.TXT,
         OverwriteReason.LOW_CONFIDENCE,
     )
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold - 0.01
     ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.60) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.60
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
@@ -320,17 +334,21 @@ def test_magika_module_with_different_prediction_modes() -> None:
     high_confidence_threshold = m._model_config.thresholds.get(
         ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.TXT,
         OverwriteReason.LOW_CONFIDENCE,
     )
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold - 0.01
     ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold + 0.01
     ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
@@ -340,17 +358,21 @@ def test_magika_module_with_different_prediction_modes() -> None:
     high_confidence_threshold = m._model_config.thresholds.get(
         ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.TXT,
         OverwriteReason.LOW_CONFIDENCE,
     )
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold - 0.01
     ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold + 0.01
     ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
@@ -432,6 +454,23 @@ def test_magika_module_with_permission_error() -> None:
     with tempfile.TemporaryDirectory() as td:
         unreadable_test_path = Path(td) / "test.txt"
         unreadable_test_path.write_text("text")
+
+        unreadable_test_path.chmod(0o000)
+
+        res = m.identify_path(unreadable_test_path)
+        assert res.path == unreadable_test_path
+        assert not res.ok
+        assert res.status == Status.PERMISSION_ERROR
+
+    # Check that an empty, non-accessible file is marked as "permission error".
+    # Note that on some file-systems, one can read the file size even without
+    # read permission, and it would thus be possible to return "empty" (this is
+    # what we were actually doing in the past). However, returning
+    # "permission_error" makes the expected behavior consistent across file
+    # systems and it simplifies the implementation.
+    with tempfile.TemporaryDirectory() as td:
+        unreadable_test_path = Path(td) / "test.txt"
+        unreadable_test_path.write_text("")
 
         unreadable_test_path.chmod(0o000)
 

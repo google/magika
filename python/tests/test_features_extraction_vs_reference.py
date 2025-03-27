@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import base64
 import gzip
+import io
 import json
-import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Tuple
@@ -27,6 +27,7 @@ import dacite
 from tqdm import tqdm
 
 from magika import Magika
+from magika.seekable import Seekable
 from magika.types import ModelFeatures
 
 try:
@@ -65,8 +66,8 @@ def test_features_extraction_vs_reference(debug: bool = False) -> None:
     for example in tqdm(examples, disable=not debug):
         example_content = base64.b64decode(example.content_base64)
 
-        features = Magika._extract_features_from_bytes(
-            example_content,
+        features = Magika._extract_features_from_seekable(
+            Seekable(io.BytesIO(example_content)),
             beg_size=example.args.beg_size,
             mid_size=example.args.mid_size,
             end_size=example.args.end_size,
@@ -77,37 +78,6 @@ def test_features_extraction_vs_reference(debug: bool = False) -> None:
         _check_features_vs_reference_example_features(
             features, example.features, debug=debug
         )
-
-        with tempfile.TemporaryDirectory() as td:
-            tf_path = Path(td) / "file.bin"
-            tf_path.write_bytes(example_content)
-
-            features = Magika._extract_features_from_path(
-                tf_path,
-                beg_size=example.args.beg_size,
-                mid_size=example.args.mid_size,
-                end_size=example.args.end_size,
-                padding_token=example.args.padding_token,
-                block_size=example.args.block_size,
-                use_inputs_at_offsets=example.args.use_inputs_at_offsets,
-            )
-            _check_features_vs_reference_example_features(
-                features, example.features, debug=debug
-            )
-
-            with open(tf_path, "rb") as f:
-                features = Magika._extract_features_from_stream(
-                    f,
-                    beg_size=example.args.beg_size,
-                    mid_size=example.args.mid_size,
-                    end_size=example.args.end_size,
-                    padding_token=example.args.padding_token,
-                    block_size=example.args.block_size,
-                    use_inputs_at_offsets=example.args.use_inputs_at_offsets,
-                )
-                _check_features_vs_reference_example_features(
-                    features, example.features, debug=debug
-                )
 
 
 def test_reference_generation() -> None:
@@ -152,8 +122,8 @@ def _generate_reference_features_extraction_tests_cases() -> (
 
     tests_cases = []
     for test_args, test_metadata, test_content in tests_cases_inputs:
-        features = Magika._extract_features_from_bytes(
-            test_content,
+        features = Magika._extract_features_from_seekable(
+            Seekable(io.BytesIO(test_content)),
             test_args.beg_size,
             test_args.mid_size,
             test_args.end_size,

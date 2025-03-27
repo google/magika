@@ -26,7 +26,7 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from magika.logger import get_logger
-from magika.seekable import Buffer, File, Seekable, Stream
+from magika.seekable import Seekable
 from magika.types import (
     ContentTypeInfo,
     ContentTypeLabel,
@@ -151,7 +151,8 @@ class Magika:
             raise TypeError(
                 f"Input content should be of type 'bytes', not {type(content)}."
             )
-        return self._get_result_from_bytes(content)
+
+        return self._get_result_from_seekable(Seekable(io.BytesIO(content)))
 
     def identify_stream(self, stream: BinaryIO) -> MagikaResult:
         """Identify the content type of a BinaryIO stream. Note that this method will
@@ -177,7 +178,7 @@ class Magika:
         ):
             raise TypeError("Input stream must have seek, read, and tell methods.")
 
-        return self._get_result_from_stream(stream)
+        return self._get_result_from_seekable(Seekable(stream))
 
     def get_output_content_types(self) -> List[ContentTypeLabel]:
         """This method returns the list of all possible output content types of
@@ -358,83 +359,12 @@ class Magika:
     def _get_result_from_path(self, path: Path) -> MagikaResult:
         return self._get_results_from_paths([path])[0]
 
-    def _get_result_from_bytes(self, content: bytes) -> MagikaResult:
-        result, features = self._get_result_or_features_from_bytes(content)
+    def _get_result_from_seekable(self, seekable: Seekable) -> MagikaResult:
+        result, features = self._get_result_or_features_from_seekable(seekable)
         if result is not None:
             return result
         assert features is not None
-        return self._get_result_from_features(features)
-
-    def _get_result_from_stream(self, stream: BinaryIO) -> MagikaResult:
-        result, features = self._get_result_or_features_from_stream(stream)
-        if result is not None:
-            return result
-        assert features is not None
-        return self._get_result_from_features(features)
-
-    @staticmethod
-    def _extract_features_from_path(
-        file_path: Path,
-        beg_size: int,
-        mid_size: int,
-        end_size: int,
-        padding_token: int,
-        block_size: int,
-        use_inputs_at_offsets: bool,
-    ) -> ModelFeatures:
-        # TODO: reimplement this using a context manager
-        file = File(file_path)
-        mf = Magika._extract_features_from_seekable(
-            file,
-            beg_size,
-            mid_size,
-            end_size,
-            padding_token,
-            block_size,
-            use_inputs_at_offsets,
-        )
-        file.close()
-        return mf
-
-    @staticmethod
-    def _extract_features_from_bytes(
-        content: bytes,
-        beg_size: int,
-        mid_size: int,
-        end_size: int,
-        padding_token: int,
-        block_size: int,
-        use_inputs_at_offsets: bool,
-    ) -> ModelFeatures:
-        return Magika._extract_features_from_seekable(
-            Buffer(content),
-            beg_size,
-            mid_size,
-            end_size,
-            padding_token,
-            block_size,
-            use_inputs_at_offsets,
-        )
-
-    @staticmethod
-    def _extract_features_from_stream(
-        stream: BinaryIO,
-        beg_size: int,
-        mid_size: int,
-        end_size: int,
-        padding_token: int,
-        block_size: int,
-        use_inputs_at_offsets: bool,
-    ) -> ModelFeatures:
-        return Magika._extract_features_from_seekable(
-            Stream(stream),
-            beg_size,
-            mid_size,
-            end_size,
-            padding_token,
-            block_size,
-            use_inputs_at_offsets,
-        )
+        return self._get_results_from_features([(Path("-"), features)])["-"]
 
     @staticmethod
     def _extract_features_from_seekable(
@@ -660,39 +590,29 @@ class Magika:
             # the user.
 
             output_ct_label, overwrite_reason = (
-                self._get_output_ct_label_from_dl_result(
+                self._get_output_label_from_dl_label_and_score(
                     model_output.ct_label, model_output.score
                 )
             )
 
             results[str(path)] = self._get_result_from_labels_and_score(
                 path=path,
-                dl_ct_label=model_output.ct_label,
-                output_ct_label=output_ct_label,
+                dl_label=model_output.ct_label,
+                output_label=output_ct_label,
                 score=model_output.score,
                 overwrite_reason=overwrite_reason,
             )
 
         return results
 
-    def _get_result_from_features(
-        self, features: ModelFeatures, path: Optional[Path] = None
-    ) -> MagikaResult:
-        # This is useful to scan from stream of bytes
-        if path is None:
-            path = Path("-")
-        all_features = [(Path("-"), features)]
-        result_with_dl = self._get_results_from_features(all_features)["-"]
-        return result_with_dl
-
-    def _get_output_ct_label_from_dl_result(
-        self, dl_ct_label: ContentTypeLabel, score: float
+    def _get_output_label_from_dl_label_and_score(
+        self, dl_label: ContentTypeLabel, score: float
     ) -> Tuple[ContentTypeLabel, OverwriteReason]:
         overwrite_reason = OverwriteReason.NONE
 
         # Overwrite dl_ct_label if specified in the overwrite_map model config
-        output_ct_label = self._model_config.overwrite_map.get(dl_ct_label, dl_ct_label)
-        if output_ct_label != dl_ct_label:
+        output_label = self._model_config.overwrite_map.get(dl_label, dl_label)
+        if output_label != dl_label:
             overwrite_reason = OverwriteReason.OVERWRITE_MAP
 
         # The following code checks whether the score is "high enough", where
@@ -708,7 +628,7 @@ class Magika:
             self._prediction_mode == PredictionMode.HIGH_CONFIDENCE
             and score
             >= self._model_config.thresholds.get(
-                dl_ct_label, self._model_config.medium_confidence_threshold
+                dl_label, self._model_config.medium_confidence_threshold
             )
         ):
             # The model score is higher than the per-content-type
@@ -730,26 +650,26 @@ class Magika:
             # right. This allows us to pick between unknown and txt without the
             # need to read or scan the file bytes once again.
             overwrite_reason = OverwriteReason.LOW_CONFIDENCE
-            if self._get_ct_info(output_ct_label).is_text:
-                output_ct_label = ContentTypeLabel.TXT
+            if self._get_ct_info(output_label).is_text:
+                output_label = ContentTypeLabel.TXT
             else:
-                output_ct_label = ContentTypeLabel.UNKNOWN
+                output_label = ContentTypeLabel.UNKNOWN
 
-        return output_ct_label, overwrite_reason
+        return output_label, overwrite_reason
 
     def _get_result_from_labels_and_score(
         self,
         path: Path,
-        dl_ct_label: ContentTypeLabel,
-        output_ct_label: ContentTypeLabel,
+        dl_label: ContentTypeLabel,
+        output_label: ContentTypeLabel,
         score: float,
         overwrite_reason: OverwriteReason = OverwriteReason.NONE,
     ) -> MagikaResult:
         return MagikaResult(
             path=path,
             prediction=MagikaPrediction(
-                dl=self._get_ct_info(dl_ct_label),
-                output=self._get_ct_info(output_ct_label),
+                dl=self._get_ct_info(dl_label),
+                output=self._get_ct_info(output_label),
                 score=score,
                 overwrite_reason=overwrite_reason,
             ),
@@ -774,8 +694,8 @@ class Magika:
         if self._no_dereference and path.is_symlink():
             result = self._get_result_from_labels_and_score(
                 path=path,
-                dl_ct_label=ContentTypeLabel.UNDEFINED,
-                output_ct_label=ContentTypeLabel.SYMLINK,
+                dl_label=ContentTypeLabel.UNDEFINED,
+                output_label=ContentTypeLabel.SYMLINK,
                 score=1.0,
             )
             return result, None
@@ -787,8 +707,8 @@ class Magika:
             if path.stat().st_size == 0:
                 result = self._get_result_from_labels_and_score(
                     path=path,
-                    dl_ct_label=ContentTypeLabel.UNDEFINED,
-                    output_ct_label=ContentTypeLabel.EMPTY,
+                    dl_label=ContentTypeLabel.UNDEFINED,
+                    output_label=ContentTypeLabel.EMPTY,
                     score=1.0,
                 )
                 return result, None
@@ -796,42 +716,19 @@ class Magika:
             elif not os.access(path, os.R_OK):
                 return MagikaResult(path=path, status=Status.PERMISSION_ERROR), None
 
-            elif path.stat().st_size < self._model_config.min_file_size_for_dl:
-                result = self._get_result_from_first_block_of_file(path)
-                return result, None
-
             else:
-                file_features = Magika._extract_features_from_path(
-                    path,
-                    self._model_config.beg_size,
-                    self._model_config.mid_size,
-                    self._model_config.end_size,
-                    self._model_config.padding_token,
-                    self._model_config.block_size,
-                    self._model_config.use_inputs_at_offsets,
-                )
-                # Check whether we have enough bytes for a meaningful
-                # detection, and not just padding.
-                if (
-                    file_features.beg[self._model_config.min_file_size_for_dl - 1]
-                    == self._model_config.padding_token
-                ):
-                    # If the n-th token is padding, then it means that,
-                    # post-stripping, we do not have enough meaningful
-                    # bytes.
-                    result = self._get_result_from_first_block_of_file(path)
-                    return result, None
-
-                else:
-                    # We have enough bytes, return the features for a model
-                    # prediction.
-                    return None, file_features
+                # There are no additional path-specific corner cases, we can
+                # treat the input path as a stream.
+                with open(path, "rb") as stream:
+                    return self._get_result_or_features_from_seekable(
+                        Seekable(stream), path
+                    )
 
         elif path.is_dir():
             result = self._get_result_from_labels_and_score(
                 path=path,
-                dl_ct_label=ContentTypeLabel.UNDEFINED,
-                output_ct_label=ContentTypeLabel.DIRECTORY,
+                dl_label=ContentTypeLabel.UNDEFINED,
+                output_label=ContentTypeLabel.DIRECTORY,
                 score=1.0,
             )
             return result, None
@@ -839,62 +736,16 @@ class Magika:
         else:
             result = self._get_result_from_labels_and_score(
                 path=path,
-                dl_ct_label=ContentTypeLabel.UNDEFINED,
-                output_ct_label=ContentTypeLabel.UNKNOWN,
+                dl_label=ContentTypeLabel.UNDEFINED,
+                output_label=ContentTypeLabel.UNKNOWN,
                 score=1.0,
             )
             return result, None
 
         raise Exception("unreachable")
 
-    def _get_result_or_features_from_bytes(
-        self, content: bytes
-    ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
-        if len(content) == 0:
-            result = self._get_result_from_labels_and_score(
-                path=Path("-"),
-                dl_ct_label=ContentTypeLabel.UNDEFINED,
-                output_ct_label=ContentTypeLabel.EMPTY,
-                score=1.0,
-            )
-            return result, None
-
-        elif len(content) < self._model_config.min_file_size_for_dl:
-            result = self._get_result_from_few_bytes(content)
-            return result, None
-
-        else:
-            file_features = Magika._extract_features_from_bytes(
-                content,
-                self._model_config.beg_size,
-                self._model_config.mid_size,
-                self._model_config.end_size,
-                self._model_config.padding_token,
-                self._model_config.block_size,
-                self._model_config.use_inputs_at_offsets,
-            )
-            # Check whether we have enough bytes for a meaningful
-            # detection, and not just padding.
-            if (
-                file_features.beg[self._model_config.min_file_size_for_dl - 1]
-                == self._model_config.padding_token
-            ):
-                # If the n-th token is padding, then it means that,
-                # post-stripping, we do not have enough meaningful
-                # bytes.
-                bytes_to_read = min(len(content), self._model_config.block_size)
-                result = self._get_result_from_few_bytes(content[0:bytes_to_read])
-                return result, None
-
-            else:
-                # We have enough bytes, return the features for a model
-                # prediction.
-                return None, file_features
-
-        raise Exception("unreachable")
-
-    def _get_result_or_features_from_stream(
-        self, stream: BinaryIO
+    def _get_result_or_features_from_seekable(
+        self, seekable: Seekable, path: Path = Path("-")
     ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
         """
         Given a `BinaryIO` stream, we return either a MagikaOutput or a MagikaFeatures.
@@ -909,27 +760,23 @@ class Magika:
         batching.
         """
 
-        stream.seek(0, io.SEEK_END)
-        bytes_stream_size = stream.tell()
-
-        if bytes_stream_size == 0:
+        if seekable.size == 0:
             result = self._get_result_from_labels_and_score(
-                path=Path("-"),
-                dl_ct_label=ContentTypeLabel.UNDEFINED,
-                output_ct_label=ContentTypeLabel.EMPTY,
+                path=path,
+                dl_label=ContentTypeLabel.UNDEFINED,
+                output_label=ContentTypeLabel.EMPTY,
                 score=1.0,
             )
             return result, None
 
-        elif bytes_stream_size < self._model_config.min_file_size_for_dl:
-            stream.seek(0)
-            content = stream.read()
-            result = self._get_result_from_few_bytes(content)
+        elif seekable.size < self._model_config.min_file_size_for_dl:
+            content = seekable.read_at(0, seekable.size)
+            result = self._get_result_from_few_bytes(content, path=path)
             return result, None
 
         else:
-            file_features = Magika._extract_features_from_stream(
-                stream,
+            file_features = Magika._extract_features_from_seekable(
+                seekable,
                 self._model_config.beg_size,
                 self._model_config.mid_size,
                 self._model_config.end_size,
@@ -946,10 +793,9 @@ class Magika:
                 # If the n-th token is padding, then it means that,
                 # post-stripping, we do not have enough meaningful
                 # bytes.
-                bytes_to_read = min(bytes_stream_size, self._model_config.block_size)
-                stream.seek(0)
-                content = stream.read(bytes_to_read)
-                result = self._get_result_from_few_bytes(content)
+                bytes_to_read = min(seekable.size, self._model_config.block_size)
+                content = seekable.read_at(0, bytes_to_read)
+                result = self._get_result_from_few_bytes(content, path=path)
                 return result, None
 
             else:
@@ -959,25 +805,19 @@ class Magika:
 
         raise Exception("unreachable")
 
-    def _get_result_from_first_block_of_file(self, path: Path) -> MagikaResult:
-        # We read at most "block_size" bytes
-        with open(path, "rb") as f:
-            content = f.read(self._model_config.block_size)
-        return self._get_result_from_few_bytes(content, path)
-
     def _get_result_from_few_bytes(
         self, content: bytes, path: Path = Path("-")
     ) -> MagikaResult:
         assert len(content) <= 4 * self._model_config.block_size
-        ct_label = self._get_ct_label_from_few_bytes(content)
+        ct_label = self._get_label_from_few_bytes(content)
         return self._get_result_from_labels_and_score(
             path=path,
-            dl_ct_label=ContentTypeLabel.UNDEFINED,
-            output_ct_label=ct_label,
+            dl_label=ContentTypeLabel.UNDEFINED,
+            output_label=ct_label,
             score=1.0,
         )
 
-    def _get_ct_label_from_few_bytes(self, content: bytes) -> ContentTypeLabel:
+    def _get_label_from_few_bytes(self, content: bytes) -> ContentTypeLabel:
         try:
             ct_label = ContentTypeLabel.TXT
             _ = content.decode("utf-8")

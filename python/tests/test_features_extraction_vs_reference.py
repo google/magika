@@ -27,8 +27,7 @@ import dacite
 from tqdm import tqdm
 
 from magika import Magika
-from magika.seekable import Seekable
-from magika.types import ModelFeatures
+from magika.types import ModelFeatures, Seekable
 
 try:
     from tests import utils as test_utils

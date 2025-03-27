@@ -26,7 +26,6 @@ import numpy.typing as npt
 import onnxruntime as rt
 
 from magika.logger import get_logger
-from magika.seekable import Seekable
 from magika.types import (
     ContentTypeInfo,
     ContentTypeLabel,
@@ -38,6 +37,7 @@ from magika.types import (
     ModelOutput,
     OverwriteReason,
     PredictionMode,
+    Seekable,
     Status,
 )
 

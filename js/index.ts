@@ -5,6 +5,7 @@
 // To run this, you need to install the optional dependencies too.
 import { program } from 'commander';
 import { readFile } from 'fs/promises';
+import * as fs from 'fs';
 import chalk from 'chalk';
 import { MagikaNode as Magika } from './src/magika_node.js';
 
@@ -15,6 +16,7 @@ program
     .option('--model-path <model-path>', 'Modle file path')
     .option('--config-url <config-url>', 'Config URL', Magika.CONFIG_URL)
     .option('--config-path <config-path>', 'Config file path')
+    .option('--by-stream', 'Identify file via stream, not via bytes')
     .argument('<paths...>', 'Paths of the files to detect');
 
 program.parse();
@@ -38,14 +40,28 @@ const magika = new Magika();
         }
 
         if (data != null) {
-            const prediction = await magika.identifyBytes(data);
-            if (flags.jsonOutput) {
-                console.log({ path, ...prediction });
+            if (flags.byStream) {
+                const prediction_stream = await magika.identifyStream(fs.createReadStream(path), data.length);
+                if (flags.jsonOutput) {
+                    console.log({ path, ...prediction_stream });
+                } else {
+                    console.log(
+                        chalk.blue(path),
+                        "by_stream",
+                        chalk.green(prediction_stream?.label, chalk.white(prediction_stream?.score)),
+                    );
+                }
             } else {
-                console.log(
-                    chalk.blue(path),
-                    chalk.green(prediction?.label, chalk.white(prediction?.score)),
-                );
+                const prediction = await magika.identifyBytes(data);
+                if (flags.jsonOutput) {
+                    console.log({ path, ...prediction });
+                } else {
+                    console.log(
+                        chalk.blue(path),
+                        "by_path",
+                        chalk.green(prediction?.label, chalk.white(prediction?.score)),
+                    );
+                }
             }
         }
     }));

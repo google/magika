@@ -7,7 +7,7 @@ import * as os from 'os';
 import { Readable } from 'stream';
 import { finished } from 'stream/promises';
 import { ReadableStream } from 'stream/web';
-import { MagikaNode as Magika } from '../magika_node';
+import { MagikaNode as Magika } from '../src/magika_node';
 import * as fc from 'fast-check';
 import { readdirSync, Dirent } from 'fs';
 import { expect, describe, it, beforeAll, afterAll, beforeEach } from '@jest/globals';
@@ -15,8 +15,8 @@ import { expect, describe, it, beforeAll, afterAll, beforeEach } from '@jest/glo
 
 /**
  * Returns a list of test files and their correct labels.
- * 
- * @param directory the directory to recursively scan for test files. 
+ *
+ * @param directory the directory to recursively scan for test files.
  * @returns the list of file paths and labels.
  */
 const getTestFilesWithLabels = (directory: string): Array<[string, Dirent]> => readdirSync(
@@ -25,7 +25,7 @@ const getTestFilesWithLabels = (directory: string): Array<[string, Dirent]> => r
     .filter(dirent => dirent.isFile())
     .map<[string, Dirent]>((dirent) => [dirent.parentPath.split('/').pop() || 'UNKNOWN', dirent])
 
-/** 
+/**
  * Array of all our test files and their labels.
  */
 const TEST_FILES: Array<[string, Dirent]> = [

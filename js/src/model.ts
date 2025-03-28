@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
-import {GraphModel, DataTypeMap, NumericDataType} from '@tensorflow/tfjs';
-import {Config} from './config.js';
-import {ContentType} from './contentType.js';
+import { GraphModel, DataTypeMap, NumericDataType } from '@tensorflow/tfjs';
+import { Config } from './config.js';
+import { ContentType } from './contentType.js';
 
 export interface ModelProdiction {
 
@@ -34,7 +34,7 @@ export class Model {
 
     model?: GraphModel;
 
-    constructor(public config: Config) {}
+    constructor(public config: Config) { }
 
     async loadUrl(modelURL: string): Promise<void> {
         if (this.model == null) {
@@ -54,19 +54,19 @@ export class Model {
         maxProbability.dispose();
         modelInput.dispose();
         modelOutput.dispose();
-        return {index: index, scores: scores};
+        return { index: index, scores: scores };
     }
 
     generateResultFromPrediction(prediction: ModelProdiction): ModelResultScores {
         const score = prediction.scores[prediction.index];
         const labelConfig = this.config.labels[prediction.index];
         if (score >= labelConfig.threshold) {
-            return {score: score, label: labelConfig.name, scores: prediction.scores};
+            return { score: score, label: labelConfig.name, scores: prediction.scores };
         }
         if (labelConfig['is_text']) {
-            return {score, label: ContentType.GENERIC_TEXT, scores: prediction.scores};
+            return { score, label: ContentType.GENERIC_TEXT, scores: prediction.scores };
         }
-        return {score: score, label: ContentType.UNKNOWN, scores: prediction.scores};
+        return { score: score, label: ContentType.UNKNOWN, scores: prediction.scores };
     }
 
 }

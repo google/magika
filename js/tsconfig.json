@@ -20,5 +20,5 @@
     },
     "compileOnSave": false,
     "exclude": ["node_modules", "dist"],
-    "include": ["src", "./index.ts", "./magika.ts"]
+    "include": ["src", "./index.ts", "src/magika.ts"]
 }

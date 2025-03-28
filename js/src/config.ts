@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises';
-import {ContentType} from './contentType.js';
+import { ContentType } from './contentType.js';
 
 interface ConfigLabel {
 
@@ -26,7 +26,7 @@ export class Config {
         this.setConfig(config);
         this.loaded = true;
     }
-    
+
     async loadFile(configPath: string): Promise<void> {
         if (this.loaded) {
             return;
@@ -43,9 +43,10 @@ export class Config {
         for (const label of config.target_labels_space) {
             this.labels.push({
                 name: label,
-                threshold: label in config.thresholds ? config.thresholds[label]: config.medium_confidence_threshold,
+                threshold: label in config.thresholds ? config.thresholds[label] : config.medium_confidence_threshold,
                 // This is clearly a bug - @reyammer, where is this stored now?
-                is_text: false})
+                is_text: false
+            })
         }
         this.begBytes = config.beg_size;
         this.midBytes = config.mid_size;

@@ -2,10 +2,10 @@ import { ReadStream } from 'fs';
 import { finished } from 'stream/promises';
 
 import { Magika } from './magika.js';
-import { ModelNode } from './src/model_node.js';
-import { ModelFeatures } from './src/moduleFeatures.js';
-import { ModelResult, ModelResultLabels, ModelResultScores } from './src/model.js';
-import { MagikaOptions } from './src/magikaOptions.js';
+import { ModelNode } from './model_node.js';
+import { ModelFeatures } from './moduleFeatures.js';
+import { ModelResult, ModelResultLabels, ModelResultScores } from './model.js';
+import { MagikaOptions } from './magikaOptions.js';
 
 /**
  * The main Magika object for Node use.
@@ -106,8 +106,8 @@ export class MagikaNode extends Magika {
         const halfpoint = Math.max(0, Math.round(length / 2) - Math.round(this.config.midBytes / 2));
         const halfpointCap = Math.min(length, (halfpoint + this.config.midBytes));
         let lastChunk: Buffer | null = null;
-        stream.on('data', (data: string| Buffer) => {
-                        if (typeof data === 'string') {
+        stream.on('data', (data: string | Buffer) => {
+            if (typeof data === 'string') {
                 throw new Error('Stream data should be a Buffer, not a string');
             }
 

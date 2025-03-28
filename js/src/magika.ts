@@ -1,7 +1,7 @@
 
 import { ContentType } from './contentType.js';
 import { Config } from './config.js';
-import { Model } from './model.js';
+import { Model, ContentTypeInfo } from './model.js';
 import { ModelFeatures } from './moduleFeatures.js';
 import { ModelResult, ModelResultLabels, ModelResultScores } from './model.js';
 import { MagikaOptions } from './magikaOptions.js';
@@ -28,10 +28,15 @@ export class Magika {
 
     config: Config;
     model: Model;
+    ct_infos: Record<string, ContentTypeInfo>;
 
     constructor() {
         this.config = new Config();
-        this.model = new Model(this.config);
+        this.ct_infos = {
+            "txt": { label: "txt", is_text: true },
+            "unknown": { label: "unknown", is_text: false },
+        };
+        this.model = new Model(this.config, this.ct_infos);
     }
 
     static CONFIG_URL = 'https://google.github.io/magika/models/standard_v3_2/config.min.json';

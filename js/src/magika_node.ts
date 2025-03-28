@@ -32,7 +32,7 @@ export class MagikaNode extends Magika {
     constructor() {
         super();
         // We load the version of the model that uses tfjs/node.
-        this.model = new ModelNode(this.config);
+        this.model = new ModelNode(this.config, this.ct_infos);
     }
 
     /** Loads the Magika model and config from URLs.
@@ -155,7 +155,7 @@ export class MagikaNode extends Magika {
                     // chunk. In the meantime, we can throw away whatever data
                     // we have in excess of block_size bytes.
                     accData = accData.subarray(accData.length - block_size);
-            if (stream.bytesRead == length) {
+                    if (stream.bytesRead == length) {
                         // We have just read the last chunk. We now use
                         // accData's content, which is the last block_size bytes
                         // from the file, and we extract the end_bytes features.
@@ -164,7 +164,7 @@ export class MagikaNode extends Magika {
                         const endBytes = endChunk.slice(Math.max(0, endChunk.length - this.config.endBytes))
                         const endOffset = Math.max(0, this.config.endBytes - endBytes.length);
                         features.withEnd(endBytes, endOffset);
-            }
+                    }
                 }
             }
         });

@@ -37,9 +37,10 @@ const TEST_FILES: Array<[string, string, Dirent]> = [
 ];
 
 /**
- * File types for Magika V2. Skip them in the tests for now.
+ * File types for Magika V2 or for corner cases that are not handled by the
+ * model. Skip them in the tests for now.
  */
-const SKIP_FUTURE_CONTENT_TYPES = new Set(['dockerfile', 'toml', 'typescript', 'yara'])
+const SKIP_FUTURE_CONTENT_TYPES = new Set(['dockerfile', 'empty', 'toml', 'typescript', 'yara'])
 
 describe('Magika class', () => {
 

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import base64
 import enum
-import gzip
 import json
 import random
 import tempfile
@@ -146,7 +145,9 @@ def _get_examples_by_path(model_name: str) -> List[ExampleByPath]:
             ),
         )
         for entry in json.loads(
-            gzip.decompress(reference_for_inference_examples_by_path.read_bytes())
+            test_utils.gzip_decompress(
+                reference_for_inference_examples_by_path.read_bytes()
+            )
         )
     ]
 
@@ -164,7 +165,9 @@ def _get_examples_by_content(model_name: str) -> List[ExampleByContent]:
             ),
         )
         for entry in json.loads(
-            gzip.decompress(reference_for_inference_examples_by_content.read_bytes())
+            test_utils.gzip_decompress(
+                reference_for_inference_examples_by_content.read_bytes()
+            )
         )
     ]
 
@@ -349,7 +352,7 @@ def _dump_examples_by_path(
     else:
         examples_by_path_path.parent.mkdir(parents=True, exist_ok=True)
         examples_by_path_path.write_bytes(
-            gzip.compress(
+            test_utils.gzip_compress(
                 json.dumps(
                     [asdict(example) for example in examples_by_path],
                     separators=(",", ":"),
@@ -378,11 +381,11 @@ def _dump_examples_by_content(
         examples_by_content_path.parent.mkdir(parents=True, exist_ok=True)
 
         examples_by_content_path.write_bytes(
-            gzip.compress(
+            test_utils.gzip_compress(
                 json.dumps(
                     [asdict(example) for example in examples_by_content],
                     separators=(",", ":"),
-                ).encode("ascii")
+                ).encode("ascii"),
             )
         )
         print(

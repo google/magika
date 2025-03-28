@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import gzip
 import math
 import random
 import string
@@ -161,3 +162,11 @@ def generate_pattern(size: int, only_printable: bool) -> bytes:
     pattern = (base_pattern * int(math.ceil(size / base_pattern_len)))[:size]
     assert len(pattern) == size
     return pattern
+
+
+def gzip_compress(content: bytes) -> bytes:
+    return gzip.compress(content, mtime=0.0)
+
+
+def gzip_decompress(content: bytes) -> bytes:
+    return gzip.decompress(content)

@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import base64
-import gzip
 import io
 import json
 from dataclasses import asdict, dataclass
@@ -105,7 +104,7 @@ def _dump_reference_features_extraction_examples(
             parents=True, exist_ok=True
         )
         reference_features_extraction_examples_path.write_bytes(
-            gzip.compress(
+            test_utils.gzip_compress(
                 json.dumps([asdict(example) for example in examples]).encode("ascii")
             )
         )
@@ -244,7 +243,9 @@ def _get_examples_from_reference() -> List[FeaturesExtractionExample]:
     return [
         dacite.from_dict(FeaturesExtractionExample, example)
         for example in json.loads(
-            gzip.decompress(ref_features_extraction_examples_path.read_bytes())
+            test_utils.gzip_decompress(
+                ref_features_extraction_examples_path.read_bytes()
+            )
         )
     ]
 

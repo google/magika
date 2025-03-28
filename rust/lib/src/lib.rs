@@ -36,7 +36,7 @@
 pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::error::{Error, Result};
-pub use crate::file::{FileType, InferredType, RuledType, TypeInfo};
+pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{AsyncInput, Features, FeaturesOrRuled, SyncInput};
 pub use crate::session::Session;
 
@@ -67,7 +67,6 @@ mod tests {
         dl: String,
         output: String,
         score: f32,
-        #[allow(dead_code)] // debugging only
         overwrite_reason: String,
     }
 
@@ -79,11 +78,26 @@ mod tests {
     }
 
     fn assert_prediction(actual: FileType, expected: Prediction, debug: &str) {
-        assert_eq!(actual.info().label, expected.output, "{debug}");
-        assert_float(actual.score(), expected.score, debug);
-        if let FileType::Ruled(RuledType { overruled: Some(overruled), .. }) = actual {
-            assert_eq!(overruled.content_type.info().label, expected.dl, "{debug}");
-        }
+        let actual = match actual {
+            FileType::Inferred(x) => x,
+            FileType::Ruled(content_type) => {
+                assert_eq!(content_type.info().label, expected.output, "{debug}");
+                assert_eq!(1.0, expected.score, "{debug}");
+                assert_eq!("none", expected.overwrite_reason, "{debug}");
+                assert_eq!("undefined", expected.dl, "{debug}");
+                return;
+            }
+            _ => unreachable!(),
+        };
+        assert_eq!(actual.content_type().info().label, expected.output, "{debug}");
+        assert_float(actual.score, expected.score, debug);
+        let overwrite_reason = match actual.content_type {
+            None => "none",
+            Some((_, OverwriteReason::LowConfidence)) => "low-confidence",
+            Some((_, OverwriteReason::OverwriteMap)) => "overwrite-map",
+        };
+        assert_eq!(overwrite_reason, expected.overwrite_reason);
+        assert_eq!(actual.inferred_type.info().label, expected.dl, "{debug}");
     }
 
     #[test]

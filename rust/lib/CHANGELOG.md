@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.1.2-dev
+## 0.2.0-dev
+
+### Major
+
+- Change `FileType::Ruled` to take `ContentType` directly and remove `RuledType`
+- Change `InferredType::content_type` to describe the content type when overwritten
+- Add `InferredType::inferred_type` for the (possibly overwritten) inferred content type
+
+### Minor
+
+- Add `OverwriteReason` to document why the inferred content type is overwritten
 
 ### Patch
 

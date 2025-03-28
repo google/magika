@@ -2,6 +2,10 @@
 
 ## 0.1.2-dev
 
+### Minor
+
+- Do not print the low-confidence warning if the content type was simply overwritten
+
 ### Patch
 
 - Update dependencies

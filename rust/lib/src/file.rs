@@ -33,58 +33,33 @@ pub enum FileType {
     Inferred(InferredType),
 
     /// The file is a regular file and was identified without deep-learning.
-    Ruled(RuledType),
-}
-
-impl From<InferredType> for FileType {
-    fn from(value: InferredType) -> Self {
-        FileType::Inferred(value)
-    }
-}
-
-impl From<RuledType> for FileType {
-    fn from(value: RuledType) -> Self {
-        FileType::Ruled(value)
-    }
-}
-
-impl From<ContentType> for FileType {
-    fn from(value: ContentType) -> Self {
-        FileType::Ruled(value.into())
-    }
+    Ruled(ContentType),
 }
 
 /// Content type identified with deep-learning.
 #[derive(Debug, Clone)]
 pub struct InferredType {
+    /// The content type.
+    ///
+    /// The inferred content type may be overwritten for a variety of reasons. Use
+    /// [`Self::content_type()`] to access the final content type (after possible overwrite).
+    pub content_type: Option<(ContentType, OverwriteReason)>,
+
     /// The inferred content type.
-    pub content_type: ContentType,
+    pub inferred_type: ContentType,
 
     /// The inference score between 0 and 1.
     pub score: f32,
 }
 
-impl InferredType {
-    /// Overrules an inferred content type.
-    pub fn overrule_with(self, content_type: ContentType) -> RuledType {
-        RuledType { content_type, overruled: Some(self) }
-    }
-}
-
-/// Content type identified without deep-learning.
+/// Reason to overwrite an inferred content type.
 #[derive(Debug, Clone)]
-pub struct RuledType {
-    /// The ruled content type.
-    pub content_type: ContentType,
+pub enum OverwriteReason {
+    /// The inference score is too low for the inferred content type.
+    LowConfidence,
 
-    /// The overruled content type identified with deep-learning, if any.
-    pub overruled: Option<InferredType>,
-}
-
-impl From<ContentType> for RuledType {
-    fn from(content_type: ContentType) -> Self {
-        RuledType { content_type, overruled: None }
-    }
+    /// The inferred content type is not canonical.
+    OverwriteMap,
 }
 
 impl FileType {
@@ -93,8 +68,8 @@ impl FileType {
         match self {
             FileType::Directory => None,
             FileType::Symlink => None,
-            FileType::Inferred(x) => Some(x.content_type),
-            FileType::Ruled(x) => Some(x.content_type),
+            FileType::Inferred(x) => Some(x.content_type()),
+            FileType::Ruled(x) => Some(*x),
         }
     }
 
@@ -103,8 +78,8 @@ impl FileType {
         match self {
             FileType::Directory => &crate::content::DIRECTORY,
             FileType::Symlink => &crate::content::SYMLINK,
-            FileType::Inferred(x) => x.content_type.info(),
-            FileType::Ruled(x) => x.content_type.info(),
+            FileType::Inferred(x) => x.content_type().info(),
+            FileType::Ruled(x) => x.info(),
         }
     }
 
@@ -116,8 +91,17 @@ impl FileType {
             FileType::Directory => 1.0,
             FileType::Symlink => 1.0,
             FileType::Inferred(x) => x.score,
-            FileType::Ruled(RuledType { overruled: None, .. }) => 1.0,
-            FileType::Ruled(RuledType { overruled: Some(x), .. }) => x.score,
+            FileType::Ruled(_) => 1.0,
+        }
+    }
+}
+
+impl InferredType {
+    /// Returns the content type.
+    pub fn content_type(&self) -> ContentType {
+        match self.content_type {
+            Some((x, _)) => x,
+            None => self.inferred_type,
         }
     }
 }
@@ -156,21 +140,22 @@ impl FileType {
                 }
             }
             assert!(best < crate::model::NUM_LABELS);
+            let score = scores[best];
             // SAFETY: Labels are u32 smaller than NUM_LABELS.
             let label = unsafe { std::mem::transmute::<u32, Label>(best as u32) };
-            let inferred = InferredType { content_type: label.content_type(), score: scores[best] };
+            let inferred_type = label.content_type();
             let config = &crate::model::CONFIG;
-            let mut overwrite = config.overwrite_map[inferred.content_type as usize];
-            if inferred.score < config.thresholds[overwrite as usize] {
-                overwrite =
-                    if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
-            }
-            let file_type = if overwrite == inferred.content_type {
-                inferred.into()
+            let content_type = if score < config.thresholds[inferred_type as usize] {
+                let is_text = inferred_type.info().is_text;
+                Some((
+                    if is_text { ContentType::Txt } else { ContentType::Unknown },
+                    OverwriteReason::LowConfidence,
+                ))
             } else {
-                inferred.overrule_with(overwrite).into()
+                let overwrite = config.overwrite_map[inferred_type as usize];
+                (overwrite != inferred_type).then_some((overwrite, OverwriteReason::OverwriteMap))
             };
-            results.push(file_type);
+            results.push(FileType::Inferred(InferredType { content_type, inferred_type, score }));
         }
         results
     }

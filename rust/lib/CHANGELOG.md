@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2-git
+## 0.1.2-dev
 
 ### Patch
 

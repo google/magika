@@ -145,7 +145,7 @@ impl FileType {
             let label = unsafe { std::mem::transmute::<u32, Label>(best as u32) };
             let inferred_type = label.content_type();
             let config = &crate::model::CONFIG;
-            let content_type = if score < config.thresholds[inferred_type as usize] {
+            let mut content_type = if score < config.thresholds[inferred_type as usize] {
                 let is_text = inferred_type.info().is_text;
                 Some((
                     if is_text { ContentType::Txt } else { ContentType::Unknown },
@@ -155,6 +155,9 @@ impl FileType {
                 let overwrite = config.overwrite_map[inferred_type as usize];
                 (overwrite != inferred_type).then_some((overwrite, OverwriteReason::OverwriteMap))
             };
+            if content_type.as_ref().is_some_and(|(x, _)| *x == inferred_type) {
+                content_type = None;
+            }
             results.push(FileType::Inferred(InferredType { content_type, inferred_type, score }));
         }
         results

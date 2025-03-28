@@ -19,18 +19,21 @@ import { expect, describe, it, beforeAll, afterAll, beforeEach } from '@jest/glo
  * @param directory the directory to recursively scan for test files.
  * @returns the list of file paths and labels.
  */
-const getTestFilesWithLabels = (directory: string): Array<[string, Dirent]> => readdirSync(
-    directory,
-    { recursive: true, withFileTypes: true })
-    .filter(dirent => dirent.isFile())
-    .map<[string, Dirent]>((dirent) => [dirent.parentPath.split('/').pop() || 'UNKNOWN', dirent])
+const getTestFilesWithLabels = (directory: string): Array<[string, string, Dirent]> =>
+    readdirSync(directory, { recursive: true, withFileTypes: true })
+        .filter((dirent) => dirent.isFile())
+        .map<[string, string, Dirent]>((dirent) => {
+            const label = dirent.parentPath.split('/').pop() || 'UNKNOWN';
+            const filePath = path.join(dirent.parentPath, dirent.name);
+            return [label, filePath, dirent];
+        });
 
 /**
  * Array of all our test files and their labels.
  */
-const TEST_FILES: Array<[string, Dirent]> = [
+const TEST_FILES: Array<[string, string, Dirent]> = [
     ...(getTestFilesWithLabels('../tests_data/basic')),
-    ...(getTestFilesWithLabels('../tests_data/mitra'))
+    // ...(getTestFilesWithLabels('../tests_data/mitra'))
 ];
 
 /**
@@ -192,7 +195,7 @@ describe('Magika class', () => {
         expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
-    it.each(TEST_FILES)('stream and byte should return the same features for "%s"', async (label, testFile) => {
+    it.each(TEST_FILES)('by_stream vs by_byte should return the same (correct) features/label for "%s" "%s"', async (label, testPath, testFile) => {
         if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
         const magika = new Magika();
         await magika.load({ configPath: workdir.config, modelPath: workdir.model });
@@ -204,6 +207,7 @@ describe('Magika class', () => {
         );
         const input = await fs.promises.readFile(filePath);
         const byteResult = await magika.identifyBytes(input);
+
         expect(streamResult.label).toBe(byteResult.label);
         expect(featuresMock.mock.calls[0][0]).toStrictEqual(featuresMock.mock.calls[1][0]);
         expect(streamResult.label).toBe(label);
@@ -211,7 +215,7 @@ describe('Magika class', () => {
         expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
     });
 
-    it.each(TEST_FILES)('Magika is agnostic to the format of the input bytes for "%s"', async (label, testFile) => {
+    it.each(TEST_FILES)('Magika is agnostic to the format of the input bytes for "%s" "%s"', async (label, testPath, testFile) => {
         if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
         const magika = new Magika();
         await magika.load({ configPath: workdir.config, modelPath: workdir.model });

@@ -1,10 +1,10 @@
 
-import {ContentType} from './src/contentType.js';
-import {Config} from './src/config.js';
-import {Model} from './src/model.js';
-import {ModelFeatures} from './src/moduleFeatures.js';
-import {ModelResult, ModelResultLabels, ModelResultScores} from './src/model.js';
-import {MagikaOptions} from './src/magikaOptions.js';
+import { ContentType } from './contentType.js';
+import { Config } from './config.js';
+import { Model } from './model.js';
+import { ModelFeatures } from './moduleFeatures.js';
+import { ModelResult, ModelResultLabels, ModelResultScores } from './model.js';
+import { MagikaOptions } from './magikaOptions.js';
 
 /**
  * The main Magika object for client-side use.
@@ -73,7 +73,7 @@ export class Magika {
      */
     async identifyBytes(fileBytes: Uint16Array | Uint8Array): Promise<ModelResult> {
         const result = await this._identifyFromBytes(fileBytes);
-        return {label: result.label, score: result.score};
+        return { label: result.label, score: result.score };
     }
 
     _getLabelsResult(result: ModelResultScores): ModelResultLabels {
@@ -81,19 +81,19 @@ export class Magika {
             ...Object.values(this.config.labels).map((label) => label.name),
             ...Object.values(ContentType),
         ].map((label, i) => [label, (label == result.label) ? result.score : (result.scores[i] || 0)]);
-        return {label: result.label, score: result.score, labels: Object.fromEntries(labels)};
+        return { label: result.label, score: result.score, labels: Object.fromEntries(labels) };
     }
 
     _getResultForAFewBytes(fileBytes: Uint16Array | Uint8Array): ModelResultScores {
         if (fileBytes.length === 0) {
-            return {score: 1.0, label: ContentType.EMPTY, scores: new Uint8Array()};
+            return { score: 1.0, label: ContentType.EMPTY, scores: new Uint8Array() };
         }
-        const decoder = new TextDecoder('utf-8', {fatal: true});
+        const decoder = new TextDecoder('utf-8', { fatal: true });
         try {
             decoder.decode(fileBytes);
-            return {score: 1.0, label: ContentType.GENERIC_TEXT, scores: new Uint8Array()};
+            return { score: 1.0, label: ContentType.GENERIC_TEXT, scores: new Uint8Array() };
         } catch (error) {
-            return {score: 1.0, label: ContentType.UNKNOWN, scores: new Uint8Array()};
+            return { score: 1.0, label: ContentType.UNKNOWN, scores: new Uint8Array() };
         }
     }
 
@@ -129,8 +129,6 @@ export class Magika {
             .withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2)
             .withEnd(endChunk, endOffset);
 
-        console.log('features: ');
-        console.log(features.toArray());
         return this.model.generateResultFromPrediction(await this.model.predict(features.toArray()));
     }
 

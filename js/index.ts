@@ -3,18 +3,18 @@
 // tool (`pip install magika`) for normal use.
 
 // To run this, you need to install the optional dependencies too.
-import {program} from 'commander';
-import {readFile} from 'fs/promises';
+import { program } from 'commander';
+import { readFile } from 'fs/promises';
 import chalk from 'chalk';
-import {MagikaNode as Magika} from './magika_node.js';
+import { MagikaNode as Magika } from './src/magika_node.js';
 
 program
     .description('Magika JS - file type detection with ML. https://google.github.io/magika')
     .option('--json-output', 'Format output in JSON')
     .option('--model-url <model-url>', 'Model URL', Magika.MODEL_URL)
-    .option( '--model-path <model-path>', 'Modle file path')
-    .option( '--config-url <config-url>', 'Config URL', Magika.CONFIG_URL)
-    .option( '--config-path <config-path>', 'Config file path')
+    .option('--model-path <model-path>', 'Modle file path')
+    .option('--config-url <config-url>', 'Config URL', Magika.CONFIG_URL)
+    .option('--config-path <config-path>', 'Config file path')
     .argument('<paths...>', 'Paths of the files to detect');
 
 program.parse();
@@ -40,7 +40,7 @@ const magika = new Magika();
         if (data != null) {
             const prediction = await magika.identifyBytes(data);
             if (flags.jsonOutput) {
-                console.log({path, ...prediction});
+                console.log({ path, ...prediction });
             } else {
                 console.log(
                     chalk.blue(path),

@@ -214,7 +214,6 @@ fn is_whitespace(x: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
     use std::fs::File;
     use std::io::Read;
 
@@ -278,11 +277,9 @@ mod tests {
                 mid_size: test.args.mid_size,
                 end_size: test.args.end_size,
                 use_inputs_at_offsets: test.args.use_inputs_at_offsets,
-                min_file_size_for_dl: 16,
                 padding_token: test.args.padding_token,
                 block_size: test.args.block_size,
-                thresholds: Cow::Borrowed(&[0.; ContentType::SIZE]),
-                overwrite_map: Cow::Borrowed(&[ContentType::Unknown; ContentType::SIZE]),
+                ..crate::model::CONFIG
             };
             let mut expected = Vec::new();
             expected.extend_from_slice(&test.features.beg);

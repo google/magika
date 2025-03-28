@@ -22,7 +22,10 @@ use std::sync::Arc;
 use anyhow::{bail, ensure, Result};
 use clap::{Args, Parser};
 use colored::{ColoredString, Colorize};
-use magika::{ContentType, Features, FeaturesOrRuled, FileType, RuledType, Session, TypeInfo};
+use magika::{
+    ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason, Session,
+    TypeInfo,
+};
 use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;
 use tokio::fs::File;
@@ -273,7 +276,7 @@ impl From<FeaturesOrRuled> for ProcessPath {
     fn from(value: FeaturesOrRuled) -> Self {
         match value {
             FeaturesOrRuled::Features(x) => ProcessPath::Features(x),
-            FeaturesOrRuled::Ruled(x) => ProcessPath::Ruled(x.into()),
+            FeaturesOrRuled::Ruled(x) => ProcessPath::Ruled(FileType::Ruled(x)),
         }
     }
 }
@@ -455,15 +458,18 @@ impl Response {
                     Some('s') => write!(&mut result, "{:.2}", self.score())?,
                     Some('S') => write!(&mut result, "{}%", (100. * self.score()).trunc())?,
                     Some('b') => {
-                        if let Ok(FileType::Ruled(RuledType { overruled: Some(x), .. })) =
-                            &self.result
+                        if let Ok(FileType::Inferred(InferredType {
+                            content_type: Some((_, OverwriteReason::LowConfidence)),
+                            inferred_type,
+                            score,
+                        })) = &self.result
                         {
                             write!(
                                 &mut result,
                                 " [Low-confidence model best-guess: {} ({}), score={:.3}]",
-                                x.content_type.info().description,
-                                x.content_type.info().group,
-                                x.score,
+                                inferred_type.info().description,
+                                inferred_type.info().group,
+                                score,
                             )?;
                         }
                     }
@@ -482,8 +488,7 @@ impl Response {
         let result = match self.result {
             Ok(x) => {
                 let dl = match &x {
-                    FileType::Inferred(x) => x.content_type.info(),
-                    FileType::Ruled(RuledType { overruled: Some(x), .. }) => x.content_type.info(),
+                    FileType::Inferred(x) => x.inferred_type.info(),
                     _ => ContentType::Undefined.info(),
                 };
                 let output = x.info();

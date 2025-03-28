@@ -214,7 +214,6 @@ fn is_whitespace(x: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
     use std::fs::File;
     use std::io::Read;
 
@@ -230,12 +229,17 @@ mod tests {
         // format is modified. Fields that are not used are simply marked as dead-code.
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
-        struct Info {
+        struct Args {
             beg_size: usize,
             mid_size: usize,
             end_size: usize,
             block_size: usize,
             padding_token: i32,
+            use_inputs_at_offsets: bool,
+        }
+        #[derive(Debug, Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Metadata {
             #[allow(dead_code)] // debugging only
             core_content_size: usize,
             #[allow(dead_code)] // debugging only
@@ -245,15 +249,7 @@ mod tests {
         }
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
-        #[allow(dead_code)] // we only implement v2
-        struct FeaturesV1 {
-            beg: Vec<usize>,
-            mid: Vec<usize>,
-            end: Vec<usize>,
-        }
-        #[derive(Debug, Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct FeaturesV2 {
+        struct Features {
             beg: Vec<usize>,
             mid: Vec<usize>,
             end: Vec<usize>,
@@ -265,37 +261,35 @@ mod tests {
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Test {
-            test_info: Info,
-            content: String,
-            #[allow(dead_code)] // we only implement v2
-            features_v1: FeaturesV1,
-            features_v2: FeaturesV2,
+            args: Args,
+            #[allow(dead_code)] // debugging only
+            metadata: Metadata,
+            content_base64: String,
+            features: Features,
         }
-        const PATH: &str = "../../tests_data/features_extraction/reference.json.gz";
+        const PATH: &str = "../../tests_data/reference/features_extraction_examples.json.gz";
         let mut tests = String::new();
         GzDecoder::new(File::open(PATH).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
         for test in tests {
             let config = ModelConfig {
-                beg_size: test.test_info.beg_size,
-                mid_size: test.test_info.mid_size,
-                end_size: test.test_info.end_size,
-                use_inputs_at_offsets: true,
-                min_file_size_for_dl: 16,
-                padding_token: test.test_info.padding_token,
-                block_size: test.test_info.block_size,
-                thresholds: Cow::Borrowed(&[0.; ContentType::SIZE]),
-                overwrite_map: Cow::Borrowed(&[ContentType::Unknown; ContentType::SIZE]),
+                beg_size: test.args.beg_size,
+                mid_size: test.args.mid_size,
+                end_size: test.args.end_size,
+                use_inputs_at_offsets: test.args.use_inputs_at_offsets,
+                padding_token: test.args.padding_token,
+                block_size: test.args.block_size,
+                ..crate::model::CONFIG
             };
             let mut expected = Vec::new();
-            expected.extend_from_slice(&test.features_v2.beg);
-            expected.extend_from_slice(&test.features_v2.mid);
-            expected.extend_from_slice(&test.features_v2.end);
-            expected.extend_from_slice(&test.features_v2.offset_0x8000_0x8007);
-            expected.extend_from_slice(&test.features_v2.offset_0x8800_0x8807);
-            expected.extend_from_slice(&test.features_v2.offset_0x9000_0x9007);
-            expected.extend_from_slice(&test.features_v2.offset_0x9800_0x9807);
-            let content = BASE64.decode(test.content.as_bytes()).unwrap();
+            expected.extend_from_slice(&test.features.beg);
+            expected.extend_from_slice(&test.features.mid);
+            expected.extend_from_slice(&test.features.end);
+            expected.extend_from_slice(&test.features.offset_0x8000_0x8007);
+            expected.extend_from_slice(&test.features.offset_0x8800_0x8807);
+            expected.extend_from_slice(&test.features.offset_0x9000_0x9007);
+            expected.extend_from_slice(&test.features.offset_0x9800_0x9807);
+            let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
             let actual = extract_features_async(&config, content.as_slice(), content.len());
             let actual = exec(actual).unwrap().1;
             let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();

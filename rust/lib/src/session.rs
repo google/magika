@@ -71,7 +71,7 @@ impl Session {
 
     async fn identify_content<E: Env>(&self, file: impl AsyncInputApi) -> Result<FileType> {
         match FeaturesOrRuled::extract(file).await? {
-            FeaturesOrRuled::Ruled(content_type) => Ok(content_type.into()),
+            FeaturesOrRuled::Ruled(content_type) => Ok(FileType::Ruled(content_type)),
             FeaturesOrRuled::Features(features) => self.identify_features::<E>(&features).await,
         }
     }

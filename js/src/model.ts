@@ -3,11 +3,15 @@ import { GraphModel, DataTypeMap, NumericDataType } from '@tensorflow/tfjs';
 import { Config } from './config.js';
 import { ContentType } from './contentType.js';
 
-export interface ModelProdiction {
 
+export interface ContentTypeInfo {
+    label: string;
+    is_text: boolean;
+}
+
+export interface ModelProdiction {
     index: number;
     scores: DataTypeMap[NumericDataType];
-
 }
 
 export interface ModelResult {
@@ -34,7 +38,7 @@ export class Model {
 
     model?: GraphModel;
 
-    constructor(public config: Config) { }
+    constructor(public config: Config, public ct_infos: Record<string, ContentTypeInfo>) { }
 
     async loadUrl(modelURL: string): Promise<void> {
         if (this.model == null) {
@@ -63,10 +67,18 @@ export class Model {
         if (score >= labelConfig.threshold) {
             return { score: score, label: labelConfig.name, scores: prediction.scores };
         }
-        if (labelConfig['is_text']) {
-            return { score, label: ContentType.GENERIC_TEXT, scores: prediction.scores };
+        let generic_type: ContentType;
+        if (this.ct_infos[labelConfig.name] || null) {
+            if (this.ct_infos[labelConfig.name].is_text) {
+                generic_type = ContentType.GENERIC_TEXT;
+            } else {
+                generic_type = ContentType.UNKNOWN;
+            }
+        } else {
+            generic_type = ContentType.UNKNOWN;
         }
-        return { score: score, label: ContentType.UNKNOWN, scores: prediction.scores };
+
+        return { score: score, label: generic_type, scores: prediction.scores };
     }
 
 }

@@ -98,14 +98,23 @@ export class Magika {
     }
 
     _lstrip(fileBytes: Uint16Array): Uint16Array {
+        const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
         let startIndex = 0;
-        while (startIndex < fileBytes.length && (fileBytes[startIndex] === 10 || fileBytes[startIndex] === 13)) {
+
+        while (startIndex < fileBytes.length && whitespaceChars.includes(fileBytes[startIndex])) {
             startIndex++;
         }
-
-        // Use subarray to create a *view* of the original array,
-        // avoiding a full copy if possible.
         return fileBytes.subarray(startIndex);
+    }
+
+    _rstrip(fileBytes: Uint16Array): Uint16Array {
+        const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
+        let endIndex = fileBytes.length - 1;
+
+        while (endIndex >= 0 && whitespaceChars.includes(fileBytes[endIndex])) {
+            endIndex--;
+        }
+        return fileBytes.subarray(0, endIndex + 1);
     }
 
     async _identifyFromBytes(fileBytes: Uint16Array | Uint8Array): Promise<ModelResultScores> {
@@ -115,19 +124,24 @@ export class Magika {
 
         const fileArray = new Uint16Array(fileBytes);
 
+        const block_size = 4096;
+
+        const begChunk = this._lstrip(fileArray.slice(0, Math.min(block_size, fileArray.length)));
+        const begBytes = begChunk.slice(0, Math.min(begChunk.length, this.config.begBytes));
+
         // Middle chunk. Padding on either side.
-        const halfpoint = Math.round(fileArray.length / 2);
-        const startHalf = Math.max(0, halfpoint - this.config.midBytes / 2);
-        const halfChunk = fileArray.slice(startHalf, startHalf + this.config.midBytes);
+        // const halfpoint = Math.round(fileArray.length / 2);
+        // const startHalf = Math.max(0, halfpoint - this.config.midBytes / 2);
+        // const halfChunk = fileArray.slice(startHalf, startHalf + this.config.midBytes);
 
         // End chunk. It should end with the file, and padding at the beginning.
-        const endChunk = fileArray.slice(Math.max(0, fileArray.length - this.config.endBytes));
-        const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
+        const endChunk = this._rstrip(fileArray.slice(Math.max(0, fileArray.length - block_size)));
+        const endBytes = endChunk.slice(Math.max(0, endChunk.length - this.config.endBytes))
+        const endOffset = Math.max(0, this.config.endBytes - endBytes.length);
 
         const features = new ModelFeatures(this.config)
-            .withStart(this._lstrip(fileArray).slice(0, this.config.begBytes), 0)  // Beginning chunk. It should start with the file, and padding at the end.
-            .withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2)
-            .withEnd(endChunk, endOffset);
+            .withStart(begBytes, 0)
+            .withEnd(endBytes, endOffset);
 
         return this.model.generateResultFromPrediction(await this.model.predict(features.toArray()));
     }

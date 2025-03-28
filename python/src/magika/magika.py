@@ -660,6 +660,12 @@ class Magika:
                 output_label = ContentTypeLabel.TXT
             else:
                 output_label = ContentTypeLabel.UNKNOWN
+            if dl_label == output_label:
+                # overwrite_reason is useful to convey to clients why the output
+                # predicted is different than the model predicted type; if those
+                # two are the same, the model predicted type has not actually
+                # been overwritten, so we set this to NONE.
+                overwrite_reason = OverwriteReason.NONE
 
         return output_label, overwrite_reason
 

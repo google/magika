@@ -17,6 +17,7 @@ semver guidelines for more details about this.
 - Bugfix: limit the number of bytes we read in case of an input with just many whitespaces. ([#1015](https://github.com/google/magika/pull/1015))
 - Bugfix: do not alter warnings' simplefilter as this has visible side effects for other modules. ([#1017](https://github.com/google/magika/pull/1017))
 - Add `asdict()` utility method to `MagikaResult`.
+- Set `prediction.overwrite_reason` to `Overwrite.NONE` if `output.label` is the same as `dl.label`. ([#1023](https://github.com/google/magika/pull/1023))
 
 
 ## [0.6.1] - 2025-03-19

@@ -1,14 +1,8 @@
 import * as tf from "@tensorflow/tfjs";
-import { DataTypeMap, GraphModel, NumericDataType } from "@tensorflow/tfjs";
+import { GraphModel } from "@tensorflow/tfjs";
 import { Config } from "./config.js";
-import { ContentTypeLabel } from "./content-type-label.js";
+import { ModelPrediction } from "./model-prediction.js";
 import { ModelFeatures } from "./module-features.js";
-
-export interface ModelPrediction {
-  label: ContentTypeLabel;
-  score: number;
-  scores: DataTypeMap[NumericDataType];
-}
 
 export class Model {
   model?: GraphModel;

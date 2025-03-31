@@ -1,6 +1,6 @@
 #! /usr/bin/env node
-// Command line tool to test MagikaJs. Please use the official command line
-// tool (`pip install magika`) for normal use.
+// Command line tool to test the JavaScript implementation of Magika. Please use
+// the official command line tool (`pip install magika`) for normal use.
 
 // To run this, you need to install the optional dependencies too.
 import chalk from "chalk";

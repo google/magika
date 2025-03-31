@@ -5,9 +5,10 @@ import { ContentTypeLabel } from "./src/content-type-label.js";
 import { ContentTypesInfos } from "./src/content-types-infos.js";
 import { MagikaOptions } from "./src/magika-options.js";
 import { MagikaResult } from "./src/magika-result.js";
-import { Model, ModelPrediction } from "./src/model.js";
+import { ModelPrediction } from "./src/model-prediction.js";
+import { Model } from "./src/model.js";
 import { ModelFeatures } from "./src/module-features.js";
-import { OverwriteReason } from "./src/overwrite_reason.js";
+import { OverwriteReason } from "./src/overwrite-reason.js";
 import { Status } from "./src/status.js";
 
 /**
@@ -19,8 +20,8 @@ import { Status } from "./src/status.js";
  * const fileBytes = new Uint8Array(await file.arrayBuffer());
  * const magika = new Magika();
  * await magika.load();
- * const prediction = await magika.identifyBytes(fileBytes);
- * console.log(prediction);
+ * const result = await magika.identifyBytes(fileBytes);
+ * console.log(result.prediction.output.label);
  * ```
  * For a Node implementation, please import `MagikaNode` instead.
  *

@@ -17,8 +17,8 @@ import { Status } from "./src/status.js";
  * const data = await readFile("some file");
  * const magika = new Magika();
  * await magika.load();
- * const prediction = await magika.identifyBytes(data);
- * console.log(prediction);
+ * const result = await magika.identifyBytes(data);
+ * console.log(result.prediction.output.label);
  * ```
  * For a client-side implementation, please import `Magika` instead.
  *

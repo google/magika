@@ -1,3 +1,6 @@
+import { TfnMock } from "./tfnHook";
+// TfnMock must be imported first; leave this line here to avoid imports
+// sorting.
 import {
   afterAll,
   beforeAll,
@@ -17,7 +20,6 @@ import { Readable } from "stream";
 import { finished } from "stream/promises";
 import { ReadableStream } from "stream/web";
 import { MagikaNode as Magika } from "../magika-node";
-import { TfnMock } from "./tfnHook";
 
 /**
  * Returns a list of test files and their correct labels.

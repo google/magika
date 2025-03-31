@@ -28,7 +28,8 @@
         "bin": "TF_CPP_MIN_LOG_LEVEL=1 node ./dist/mjs/index.js",
         "make-docs": "documentation build *.ts --parse-extension ts   -f md --github -o ../docs/js.md",
         "test": "TF_CPP_MIN_LOG_LEVEL=1 node node_modules/jest/bin/jest.js",
-        "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node postBuild.js"
+        "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node postBuild.js",
+        "format": "prettier --write *.ts src/*.ts"
     },
     "bin": {
         "magika-js": "./dist/cjs/index.js"

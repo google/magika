@@ -32,7 +32,7 @@ export class MagikaNode extends Magika {
   constructor() {
     super();
     // We load the version of the model that uses tfjs/node.
-    this.model = new ModelNode(this.config);
+    this.model = new ModelNode(this.model_config);
   }
 
   /** Loads the Magika model and config from URLs.
@@ -44,10 +44,14 @@ export class MagikaNode extends Magika {
    */
   async load(options?: MagikaOptions): Promise<void> {
     const p: Promise<void>[] = [];
-    if (options?.configPath != null) {
-      p.push(this.config.loadFile(options?.configPath));
+    if (options?.modelConfigPath != null) {
+      p.push(this.model_config.loadFile(options?.modelConfigPath));
     } else {
-      p.push(this.config.loadUrl(options?.configURL || Magika.CONFIG_URL));
+      p.push(
+        this.model_config.loadUrl(
+          options?.modelConfigURL || Magika.MODEL_CONFIG_URL,
+        ),
+      );
     }
     if (options?.modelPath != null) {
       p.push(this.model.loadFile(options?.modelPath));
@@ -113,7 +117,7 @@ export class MagikaNode extends Magika {
     stream: ReadStream,
     length: number,
   ): Promise<MagikaResult> {
-    let features = new ModelFeatures(this.config);
+    let features = new ModelFeatures(this.model_config);
 
     let accData: Buffer = Buffer.from("");
     stream.on("data", (data: string | Buffer) => {
@@ -145,15 +149,18 @@ export class MagikaNode extends Magika {
           );
           const begBytes = begChunk.slice(
             0,
-            Math.min(begChunk.length, this.config.beg_size),
+            Math.min(begChunk.length, this.model_config.beg_size),
           );
           const endChunk = this._rstrip(
             fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
           );
           const endBytes = endChunk.slice(
-            Math.max(0, endChunk.length - this.config.end_size),
+            Math.max(0, endChunk.length - this.model_config.end_size),
           );
-          const endOffset = Math.max(0, this.config.end_size - endBytes.length);
+          const endOffset = Math.max(
+            0,
+            this.model_config.end_size - endBytes.length,
+          );
           features.withStart(begBytes, 0).withEnd(endBytes, endOffset);
         }
       } else {
@@ -167,7 +174,7 @@ export class MagikaNode extends Magika {
             );
             const begBytes = begChunk.slice(
               0,
-              Math.min(begChunk.length, this.config.beg_size),
+              Math.min(begChunk.length, this.model_config.beg_size),
             );
             processed_beg = true;
             features.withStart(begBytes, 0);
@@ -190,11 +197,11 @@ export class MagikaNode extends Magika {
               fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
             );
             const endBytes = endChunk.slice(
-              Math.max(0, endChunk.length - this.config.end_size),
+              Math.max(0, endChunk.length - this.model_config.end_size),
             );
             const endOffset = Math.max(
               0,
-              this.config.end_size - endBytes.length,
+              this.model_config.end_size - endBytes.length,
             );
             features.withEnd(endBytes, endOffset);
           }

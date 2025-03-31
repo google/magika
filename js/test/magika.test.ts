@@ -61,22 +61,24 @@ const SKIP_FUTURE_CONTENT_TYPES = new Set([
 describe("Magika class", () => {
   const workdir = {
     root: "",
-    config: "",
+    model_config: "",
     model: "",
   };
   beforeAll(async () => {
     workdir.root = await mkdtemp(path.join(os.tmpdir(), "magika-"));
-    workdir.config = path.join(workdir.root, "config.json");
+    workdir.model_config = path.join(workdir.root, "config.json");
     workdir.model = path.join(workdir.root, "model.json");
 
-    const config = Readable.fromWeb(
-      (await fetch(Magika.CONFIG_URL)).body as ReadableStream<any>,
+    const model_config = Readable.fromWeb(
+      (await fetch(Magika.MODEL_CONFIG_URL)).body as ReadableStream<any>,
     );
     const model = Readable.fromWeb(
       (await fetch(Magika.MODEL_URL)).body as ReadableStream<any>,
     );
     await Promise.all([
-      await finished(config.pipe(fs.createWriteStream(workdir.config))),
+      await finished(
+        model_config.pipe(fs.createWriteStream(workdir.model_config)),
+      ),
       await finished(model.pipe(fs.createWriteStream(workdir.model))),
     ]);
     const weights = JSON.parse((await readFile(workdir.model)).toString())
@@ -94,11 +96,11 @@ describe("Magika class", () => {
       .flat();
     await Promise.all(
       weights.map(async (weight: { name: string; url: string }) => {
-        const config = Readable.fromWeb(
+        const model_config = Readable.fromWeb(
           (await fetch(weight.url)).body as ReadableStream<any>,
         );
         await finished(
-          config.pipe(
+          model_config.pipe(
             fs.createWriteStream(path.join(workdir.root, weight.name)),
           ),
         );
@@ -120,15 +122,18 @@ describe("Magika class", () => {
     const magika = new Magika();
     await magika.load();
     expect(magika.model.model).toBeDefined();
-    expect(magika.config.target_labels_space.length).toBeGreaterThan(0);
+    expect(magika.model_config.target_labels_space.length).toBeGreaterThan(0);
     expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(0);
   });
 
   it("should load model from file path", async () => {
     const magika = new Magika();
-    await magika.load({ configPath: workdir.config, modelPath: workdir.model });
+    await magika.load({
+      modelConfigPath: workdir.model_config,
+      modelPath: workdir.model,
+    });
     expect(magika.model.model).toBeDefined();
-    expect(magika.config.target_labels_space.length).toBeGreaterThan(0);
+    expect(magika.model_config.target_labels_space.length).toBeGreaterThan(0);
     expect(TfnMock.accessed.io).toBe(1);
     expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
   });
@@ -155,7 +160,10 @@ describe("Magika class", () => {
 
   it("features should result in known value", async () => {
     const magika = new Magika();
-    await magika.load({ configPath: workdir.config, modelPath: workdir.model });
+    await magika.load({
+      modelConfigPath: workdir.model_config,
+      modelPath: workdir.model,
+    });
     const featuresMock = jest.spyOn(magika.model, "predict");
 
     const streamResult = await magika.identifyStream(
@@ -310,7 +318,7 @@ describe("Magika class", () => {
       if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
       const magika = new Magika();
       await magika.load({
-        configPath: workdir.config,
+        modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
       });
       const featuresMock = jest.spyOn(magika.model, "predict");
@@ -340,7 +348,7 @@ describe("Magika class", () => {
       if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
       const magika = new Magika();
       await magika.load({
-        configPath: workdir.config,
+        modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
       });
       const featuresMock = jest.spyOn(magika.model, "predict");

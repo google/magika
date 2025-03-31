@@ -16,7 +16,7 @@ program
   .option("--json-output", "Format output in JSON")
   .option("--model-url <model-url>", "Model URL", Magika.MODEL_URL)
   .option("--model-path <model-path>", "Modle file path")
-  .option("--config-url <config-url>", "Config URL", Magika.CONFIG_URL)
+  .option("--config-url <config-url>", "Config URL", Magika.MODEL_CONFIG_URL)
   .option("--config-path <config-path>", "Config file path")
   .option("--by-stream", "Identify file via stream, not via bytes")
   .argument("<paths...>", "Paths of the files to detect");
@@ -30,8 +30,8 @@ const magika = new Magika();
   await magika.load({
     modelURL: flags.modelUrl,
     modelPath: flags.modelPath,
-    configURL: flags.configUrl,
-    configPath: flags.configPath,
+    modelConfigURL: flags.configUrl,
+    modelConfigPath: flags.configPath,
   });
   await Promise.all(
     program.args.map(async (path) => {

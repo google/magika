@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Config } from "./src/config.js";
+import { ModelConfig } from "./src/model-config.js";
 import { ContentTypeInfo } from "./src/content-type-info.js";
 import { ContentTypeLabel } from "./src/content-type-label.js";
 import { ContentTypesInfos } from "./src/content-types-infos.js";
@@ -30,17 +30,17 @@ import { Status } from "./src/status.js";
  * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
  */
 export class Magika {
-  config: Config;
+  model_config: ModelConfig;
   model: Model;
   cts_infos: ContentTypesInfos;
 
   constructor() {
     this.cts_infos = ContentTypesInfos.get();
-    this.config = new Config();
-    this.model = new Model(this.config);
+    this.model_config = new ModelConfig();
+    this.model = new Model(this.model_config);
   }
 
-  static CONFIG_URL =
+  static MODEL_CONFIG_URL =
     "https://google.github.io/magika/models/standard_v3_2/config.min.json";
   static MODEL_URL =
     "https://google.github.io/magika/models/standard_v3_2/model.json";
@@ -59,7 +59,9 @@ export class Magika {
    */
   async load(options?: MagikaOptions): Promise<void> {
     await Promise.all([
-      this.config.loadUrl(options?.configURL || Magika.CONFIG_URL),
+      this.model_config.loadUrl(
+        options?.modelConfigURL || Magika.MODEL_CONFIG_URL,
+      ),
       this.model.loadUrl(options?.modelURL || Magika.MODEL_URL),
     ]);
   }
@@ -105,7 +107,7 @@ export class Magika {
     fileBytes: Uint8Array,
     path: string = "-",
   ): MagikaResult {
-    assert(fileBytes.length <= 4 * this.config.block_size);
+    assert(fileBytes.length <= 4 * this.model_config.block_size);
     const decoder = new TextDecoder("utf-8", { fatal: true });
     try {
       decoder.decode(fileBytes);
@@ -162,7 +164,7 @@ export class Magika {
       );
     }
 
-    if (fileBytes.length < this.config.min_file_size_for_dl) {
+    if (fileBytes.length < this.model_config.min_file_size_for_dl) {
       return this._getResultForAFewBytes(fileBytes);
     }
 
@@ -187,7 +189,7 @@ export class Magika {
 
     // Overwrite model_prediction.label if specified in the overwrite_map.
     let output_label =
-      this.config.overwrite_map[model_prediction.label] ??
+      this.model_config.overwrite_map[model_prediction.label] ??
       model_prediction.label;
     if (output_label != model_prediction.label) {
       overwrite_reason = OverwriteReason.OVERWRITE_MAP;
@@ -199,8 +201,8 @@ export class Magika {
     // we return a generic content type.
     if (
       model_prediction.score <
-      (this.config.thresholds[model_prediction.label] ??
-        this.config.medium_confidence_threshold)
+      (this.model_config.thresholds[model_prediction.label] ??
+        this.model_config.medium_confidence_threshold)
     ) {
       // overwrite_reason = OverwriteReason.LOW_CONFIDENCE
       if (this.cts_infos[model_prediction.label].is_text) {
@@ -222,22 +224,27 @@ export class Magika {
 
   _extract_features_from_bytes(fileBytes: Uint8Array): ModelFeatures {
     const begChunk = this._lstrip(
-      fileBytes.slice(0, Math.min(this.config.block_size, fileBytes.length)),
+      fileBytes.slice(
+        0,
+        Math.min(this.model_config.block_size, fileBytes.length),
+      ),
     );
     const begBytes = begChunk.slice(
       0,
-      Math.min(begChunk.length, this.config.beg_size),
+      Math.min(begChunk.length, this.model_config.beg_size),
     );
 
     const endChunk = this._rstrip(
-      fileBytes.slice(Math.max(0, fileBytes.length - this.config.block_size)),
+      fileBytes.slice(
+        Math.max(0, fileBytes.length - this.model_config.block_size),
+      ),
     );
     const endBytes = endChunk.slice(
-      Math.max(0, endChunk.length - this.config.end_size),
+      Math.max(0, endChunk.length - this.model_config.end_size),
     );
-    const endOffset = Math.max(0, this.config.end_size - endBytes.length);
+    const endOffset = Math.max(0, this.model_config.end_size - endBytes.length);
 
-    return new ModelFeatures(this.config)
+    return new ModelFeatures(this.model_config)
       .withStart(begBytes, 0)
       .withEnd(endBytes, endOffset);
   }

@@ -1,13 +1,13 @@
 import * as tf from "@tensorflow/tfjs";
 import { GraphModel } from "@tensorflow/tfjs";
-import { Config } from "./config.js";
+import { ModelConfig } from "./model-config.js";
 import { ModelPrediction } from "./model-prediction.js";
 import { ModelFeatures } from "./module-features.js";
 
 export class Model {
   model?: GraphModel;
 
-  constructor(public config: Config) {}
+  constructor(public model_config: ModelConfig) {}
 
   async loadUrl(modelURL: string): Promise<void> {
     if (this.model == null) {
@@ -36,7 +36,7 @@ export class Model {
     modelInput.dispose();
     modelOutput.dispose();
 
-    let maxScoreLabel = this.config.target_labels_space[maxScoreIndex];
+    let maxScoreLabel = this.model_config.target_labels_space[maxScoreIndex];
 
     return { label: maxScoreLabel, score: maxScore, scores: scores };
   }

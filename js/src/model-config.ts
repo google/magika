@@ -2,7 +2,7 @@ import * as fs from "fs/promises";
 import { ContentTypeLabel } from "./content-type-label.js";
 import assert from "assert";
 
-export class Config {
+export class ModelConfig {
   beg_size: number = 0;
   mid_size: number = 0;
   end_size: number = 0;

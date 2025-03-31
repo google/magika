@@ -2,10 +2,10 @@ import { ReadStream } from 'fs';
 import { finished } from 'stream/promises';
 
 import { Magika } from './magika.js';
-import { ModelNode } from './model_node.js';
-import { ModelFeatures } from './moduleFeatures.js';
-import { ModelResult, ModelResultLabels, ModelResultScores } from './model.js';
-import { MagikaOptions } from './magikaOptions.js';
+import { ModelNode } from './src/model_node.js';
+import { ModelFeatures } from './src/moduleFeatures.js';
+import { ModelResult, ModelResultLabels, ModelResultScores } from './src/model.js';
+import { MagikaOptions } from './src/magikaOptions.js';
 
 /**
  * The main Magika object for Node use.

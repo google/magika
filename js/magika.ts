@@ -1,10 +1,10 @@
 
-import { ContentType } from './contentType.js';
-import { Config } from './config.js';
-import { Model, ContentTypeInfo } from './model.js';
-import { ModelFeatures } from './moduleFeatures.js';
-import { ModelResult, ModelResultLabels, ModelResultScores } from './model.js';
-import { MagikaOptions } from './magikaOptions.js';
+import { ContentType } from './src/contentType.js';
+import { Config } from './src/config.js';
+import { Model, ContentTypeInfo } from './src/model.js';
+import { ModelFeatures } from './src/moduleFeatures.js';
+import { ModelResult, ModelResultLabels, ModelResultScores } from './src/model.js';
+import { MagikaOptions } from './src/magikaOptions.js';
 
 /**
  * The main Magika object for client-side use.

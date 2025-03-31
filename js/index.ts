@@ -7,7 +7,7 @@ import { program } from 'commander';
 import { readFile } from 'fs/promises';
 import * as fs from 'fs';
 import chalk from 'chalk';
-import { MagikaNode as Magika } from './src/magika_node.js';
+import { MagikaNode as Magika } from './magika_node.js';
 
 program
     .description('Magika JS - file type detection with ML. https://google.github.io/magika')

@@ -7,7 +7,7 @@ import * as os from 'os';
 import { Readable } from 'stream';
 import { finished } from 'stream/promises';
 import { ReadableStream } from 'stream/web';
-import { MagikaNode as Magika } from '../src/magika_node';
+import { MagikaNode as Magika } from '../magika_node';
 import * as fc from 'fast-check';
 import { readdirSync, Dirent } from 'fs';
 import { expect, describe, it, beforeAll, afterAll, beforeEach } from '@jest/globals';

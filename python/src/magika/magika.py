@@ -616,7 +616,7 @@ class Magika:
     ) -> Tuple[ContentTypeLabel, OverwriteReason]:
         overwrite_reason = OverwriteReason.NONE
 
-        # Overwrite dl_ct_label if specified in the overwrite_map model config
+        # Overwrite dl_label if specified in the overwrite_map model config.
         output_label = self._model_config.overwrite_map.get(dl_label, dl_label)
         if output_label != dl_label:
             overwrite_reason = OverwriteReason.OVERWRITE_MAP

@@ -1,15 +1,11 @@
 import { ReadStream } from "fs";
 import { finished } from "stream/promises";
-
 import { Magika } from "./magika.js";
-import { ModelNode } from "./src/model_node.js";
-import { ModelFeatures } from "./src/moduleFeatures.js";
-import {
-  ModelResult,
-  ModelResultLabels,
-  ModelResultScores,
-} from "./src/model.js";
-import { MagikaOptions } from "./src/magikaOptions.js";
+import { MagikaOptions } from "./src/magika-options.js";
+import { MagikaResult } from "./src/magika-result.js";
+import { ModelNode } from "./src/model-node.js";
+import { ModelFeatures } from "./src/module-features.js";
+import { Status } from "./src/status.js";
 
 /**
  * The main Magika object for Node use.
@@ -36,7 +32,7 @@ export class MagikaNode extends Magika {
   constructor() {
     super();
     // We load the version of the model that uses tfjs/node.
-    this.model = new ModelNode(this.config, this.ct_infos);
+    this.model = new ModelNode(this.config);
   }
 
   /** Loads the Magika model and config from URLs.
@@ -70,9 +66,9 @@ export class MagikaNode extends Magika {
   async identifyStream(
     stream: ReadStream,
     length: number,
-  ): Promise<ModelResult> {
-    const result = await this._identifyFromStream(stream, length);
-    return { label: result.label, score: result.score };
+  ): Promise<MagikaResult> {
+    let result = await this._identifyFromStream(stream, length);
+    return result;
   }
 
   /** Identifies the content type from a read stream
@@ -81,25 +77,25 @@ export class MagikaNode extends Magika {
    * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
    * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
    */
-  async identifyStreamFull(
-    stream: ReadStream,
-    length: number,
-  ): Promise<ModelResultLabels> {
-    const result = await this._identifyFromStream(stream, length);
-    return this._getLabelsResult(result);
-  }
+  // async identifyStreamFull(
+  //   stream: ReadStream,
+  //   length: number,
+  // ): Promise<MagikaResult> {
+  //   const result = await this._identifyFromStream(stream, length);
+  //   return this._getLabelsResult(result);
+  // }
 
   /** Identifies the content type of a byte array, returning all probabilities instead of just the top one.
    *
    * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
    * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
    */
-  async identifyBytesFull(
-    fileBytes: Uint16Array | Uint8Array | Buffer,
-  ): Promise<ModelResultLabels> {
-    const result = await this._identifyFromBytes(new Uint16Array(fileBytes));
-    return this._getLabelsResult(result);
-  }
+  // async identifyBytesFull(
+  //   fileBytes: Uint16Array | Uint8Array | Buffer,
+  // ): Promise<ModelResultLabels> {
+  //   const result = await this._identifyFromBytes(new Uint16Array(fileBytes));
+  //   return this._getLabelsResult(result);
+  // }
 
   /** Identifies the content type of a byte array.
    *
@@ -108,15 +104,15 @@ export class MagikaNode extends Magika {
    */
   async identifyBytes(
     fileBytes: Uint16Array | Uint8Array | Buffer,
-  ): Promise<ModelResult> {
-    const result = await this._identifyFromBytes(new Uint16Array(fileBytes));
-    return { label: result.label, score: result.score };
+  ): Promise<MagikaResult> {
+    const result = await this._identifyFromBytes(new Uint8Array(fileBytes));
+    return result;
   }
 
   async _identifyFromStream(
     stream: ReadStream,
     length: number,
-  ): Promise<ModelResultScores> {
+  ): Promise<MagikaResult> {
     let features = new ModelFeatures(this.config);
 
     let accData: Buffer = Buffer.from("");
@@ -143,21 +139,21 @@ export class MagikaNode extends Magika {
         accData = Buffer.concat([accData, data]);
         if (stream.bytesRead == length) {
           // Ok, we have the full file in memory.
-          const fileArray = new Uint16Array(accData);
+          const fileBytes = new Uint8Array(accData);
           const begChunk = this._lstrip(
-            fileArray.slice(0, Math.min(block_size, fileArray.length)),
+            fileBytes.slice(0, Math.min(block_size, fileBytes.length)),
           );
           const begBytes = begChunk.slice(
             0,
-            Math.min(begChunk.length, this.config.begBytes),
+            Math.min(begChunk.length, this.config.beg_size),
           );
           const endChunk = this._rstrip(
-            fileArray.slice(Math.max(0, fileArray.length - block_size)),
+            fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
           );
           const endBytes = endChunk.slice(
-            Math.max(0, endChunk.length - this.config.endBytes),
+            Math.max(0, endChunk.length - this.config.end_size),
           );
-          const endOffset = Math.max(0, this.config.endBytes - endBytes.length);
+          const endOffset = Math.max(0, this.config.end_size - endBytes.length);
           features.withStart(begBytes, 0).withEnd(endBytes, endOffset);
         }
       } else {
@@ -165,13 +161,13 @@ export class MagikaNode extends Magika {
         if (!processed_beg) {
           if (accData.length >= block_size) {
             // We have at least one first block_size, let's process it.
-            const fileArray = new Uint16Array(accData);
+            const fileBytes = new Uint8Array(accData);
             const begChunk = this._lstrip(
-              fileArray.slice(0, Math.min(block_size, fileArray.length)),
+              fileBytes.slice(0, Math.min(block_size, fileBytes.length)),
             );
             const begBytes = begChunk.slice(
               0,
-              Math.min(begChunk.length, this.config.begBytes),
+              Math.min(begChunk.length, this.config.beg_size),
             );
             processed_beg = true;
             features.withStart(begBytes, 0);
@@ -189,16 +185,16 @@ export class MagikaNode extends Magika {
             // We have just read the last chunk. We now use
             // accData's content, which is the last block_size bytes
             // from the file, and we extract the end_bytes features.
-            const fileArray = new Uint16Array(accData);
+            const fileBytes = new Uint8Array(accData);
             const endChunk = this._rstrip(
-              fileArray.slice(Math.max(0, fileArray.length - block_size)),
+              fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
             );
             const endBytes = endChunk.slice(
-              Math.max(0, endChunk.length - this.config.endBytes),
+              Math.max(0, endChunk.length - this.config.end_size),
             );
             const endOffset = Math.max(
               0,
-              this.config.endBytes - endBytes.length,
+              this.config.end_size - endBytes.length,
             );
             features.withEnd(endBytes, endOffset);
           }
@@ -206,8 +202,18 @@ export class MagikaNode extends Magika {
       }
     });
     await finished(stream);
-    return this.model.generateResultFromPrediction(
-      await this.model.predict(features.toArray()),
+
+    // TODO: refactor this to avoid code duplication
+    let model_prediction = await this.model.predict(features);
+    let [output_label, overwrite_reason] =
+      this._get_output_label_from_model_prediction(model_prediction);
+    return this._get_result_from_labels_and_score(
+      "-",
+      Status.OK,
+      model_prediction.label,
+      output_label,
+      model_prediction.score,
+      overwrite_reason,
     );
   }
 }

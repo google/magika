@@ -1,5 +1,5 @@
-import * as tfn from "@tensorflow/tfjs-node";
 import * as tf from "@tensorflow/tfjs";
+import * as tfn from "@tensorflow/tfjs-node";
 import { Model } from "./model.js";
 
 export class ModelNode extends Model {

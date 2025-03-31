@@ -3,4 +3,6 @@ export interface MagikaOptions {
   modelPath?: string;
   configURL?: string;
   configPath?: string;
+  contentTypesKBURL?: string;
+  contentTypesKBPath?: string;
 }

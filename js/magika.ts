@@ -1,13 +1,14 @@
-import { ContentType } from "./src/contentType.js";
+import assert from "assert";
 import { Config } from "./src/config.js";
-import { Model, ContentTypeInfo } from "./src/model.js";
-import { ModelFeatures } from "./src/moduleFeatures.js";
-import {
-  ModelResult,
-  ModelResultLabels,
-  ModelResultScores,
-} from "./src/model.js";
-import { MagikaOptions } from "./src/magikaOptions.js";
+import { ContentTypeInfo } from "./src/content-type-info.js";
+import { ContentTypeLabel } from "./src/content-type-label.js";
+import { ContentTypesInfos } from "./src/content-types-infos.js";
+import { MagikaOptions } from "./src/magika-options.js";
+import { MagikaResult } from "./src/magika-result.js";
+import { Model, ModelPrediction } from "./src/model.js";
+import { ModelFeatures } from "./src/module-features.js";
+import { OverwriteReason } from "./src/overwrite_reason.js";
+import { Status } from "./src/status.js";
 
 /**
  * The main Magika object for client-side use.
@@ -30,15 +31,12 @@ import { MagikaOptions } from "./src/magikaOptions.js";
 export class Magika {
   config: Config;
   model: Model;
-  ct_infos: Record<string, ContentTypeInfo>;
+  cts_infos: ContentTypesInfos;
 
   constructor() {
+    this.cts_infos = ContentTypesInfos.get();
     this.config = new Config();
-    this.ct_infos = {
-      txt: { label: "txt", is_text: true },
-      unknown: { label: "unknown", is_text: false },
-    };
-    this.model = new Model(this.config, this.ct_infos);
+    this.model = new Model(this.config);
   }
 
   static CONFIG_URL =
@@ -70,64 +68,66 @@ export class Magika {
    * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
    * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
    */
-  async identifyBytesFull(
-    fileBytes: Uint16Array | Uint8Array,
-  ): Promise<ModelResultLabels> {
-    const result = await this._identifyFromBytes(fileBytes);
-    return this._getLabelsResult(result);
-  }
+  // async identifyBytesFull(fileBytes: Uint8Array): Promise<ModelResultLabels> {
+  //   const result = await this._identifyFromBytes(fileBytes);
+  //   return this._getLabelsResult(result);
+  // }
 
   /** Identifies the content type of a byte array.
    *
    * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
    * @returns A dictionary containing the top label and its score
    */
-  async identifyBytes(
-    fileBytes: Uint16Array | Uint8Array,
-  ): Promise<ModelResult> {
+  async identifyBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
     const result = await this._identifyFromBytes(fileBytes);
-    return { label: result.label, score: result.score };
+    return result;
   }
 
-  _getLabelsResult(result: ModelResultScores): ModelResultLabels {
-    const labels = [
-      ...Object.values(this.config.labels).map((label) => label.name),
-      ...Object.values(ContentType),
-    ].map((label, i) => [
-      label,
-      label == result.label ? result.score : result.scores[i] || 0,
-    ]);
-    return {
-      label: result.label,
-      score: result.score,
-      labels: Object.fromEntries(labels),
-    };
-  }
+  // _getLabelsResult(result: ModelResultScores): ModelResultLabels {
+  //   const labels = [
+  //     ...Object.values(this.config.target_labels_space).map(
+  //       (label) => label.name,
+  //     ),
+  //     ...Object.values(ContentTypeLabel),
+  //   ].map((label, i) => [
+  //     label,
+  //     label == result.label ? result.score : result.scores[i] || 0,
+  //   ]);
+  //   return {
+  //     label: result.label,
+  //     score: result.score,
+  //     labels: Object.fromEntries(labels),
+  //   };
+  // }
 
   _getResultForAFewBytes(
-    fileBytes: Uint16Array | Uint8Array,
-  ): ModelResultScores {
-    if (fileBytes.length === 0) {
-      return { score: 1.0, label: ContentType.EMPTY, scores: new Uint8Array() };
-    }
+    fileBytes: Uint8Array,
+    path: string = "-",
+  ): MagikaResult {
+    assert(fileBytes.length <= 4 * this.config.block_size);
     const decoder = new TextDecoder("utf-8", { fatal: true });
     try {
       decoder.decode(fileBytes);
-      return {
-        score: 1.0,
-        label: ContentType.GENERIC_TEXT,
-        scores: new Uint8Array(),
-      };
+
+      return this._get_result_from_labels_and_score(
+        "-",
+        Status.OK,
+        ContentTypeLabel.UNDEFINED,
+        ContentTypeLabel.TXT,
+        1.0,
+      );
     } catch (error) {
-      return {
-        score: 1.0,
-        label: ContentType.UNKNOWN,
-        scores: new Uint8Array(),
-      };
+      return this._get_result_from_labels_and_score(
+        "-",
+        Status.OK,
+        ContentTypeLabel.UNDEFINED,
+        ContentTypeLabel.UNKNOWN,
+        1.0,
+      );
     }
   }
 
-  _lstrip(fileBytes: Uint16Array): Uint16Array {
+  _lstrip(fileBytes: Uint8Array): Uint8Array {
     const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
     let startIndex = 0;
 
@@ -140,7 +140,7 @@ export class Magika {
     return fileBytes.subarray(startIndex);
   }
 
-  _rstrip(fileBytes: Uint16Array): Uint16Array {
+  _rstrip(fileBytes: Uint8Array): Uint8Array {
     const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
     let endIndex = fileBytes.length - 1;
 
@@ -150,45 +150,118 @@ export class Magika {
     return fileBytes.subarray(0, endIndex + 1);
   }
 
-  async _identifyFromBytes(
-    fileBytes: Uint16Array | Uint8Array,
-  ): Promise<ModelResultScores> {
-    if (fileBytes.length <= this.config.minFileSizeForDl) {
+  async _identifyFromBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
+    if (fileBytes.length == 0) {
+      return this._get_result_from_labels_and_score(
+        "-",
+        Status.OK,
+        ContentTypeLabel.UNDEFINED,
+        ContentTypeLabel.EMPTY,
+        1.0,
+      );
+    }
+
+    if (fileBytes.length < this.config.min_file_size_for_dl) {
       return this._getResultForAFewBytes(fileBytes);
     }
 
-    const fileArray = new Uint16Array(fileBytes);
+    let features = this._extract_features_from_bytes(fileBytes);
+    let model_prediction = await this.model.predict(features);
+    let [output_label, overwrite_reason] =
+      this._get_output_label_from_model_prediction(model_prediction);
+    return this._get_result_from_labels_and_score(
+      "-",
+      Status.OK,
+      model_prediction.label,
+      output_label,
+      model_prediction.score,
+      overwrite_reason,
+    );
+  }
 
-    const block_size = 4096;
+  _get_output_label_from_model_prediction(
+    model_prediction: ModelPrediction,
+  ): [ContentTypeLabel, OverwriteReason] {
+    let overwrite_reason = OverwriteReason.NONE;
 
+    // Overwrite model_prediction.label if specified in the overwrite_map.
+    let output_label =
+      this.config.overwrite_map[model_prediction.label] ??
+      model_prediction.label;
+    if (output_label != model_prediction.label) {
+      overwrite_reason = OverwriteReason.OVERWRITE_MAP;
+    }
+
+    // The following code checks whether the score is "high enough" according to
+    // HIGH_CONFIDENCE prediction mode (the only one we currently support in
+    // this implementation). If it's not, it means we can't trust the model, and
+    // we return a generic content type.
+    if (
+      model_prediction.score <
+      (this.config.thresholds[model_prediction.label] ??
+        this.config.medium_confidence_threshold)
+    ) {
+      // overwrite_reason = OverwriteReason.LOW_CONFIDENCE
+      if (this.cts_infos[model_prediction.label].is_text) {
+        output_label = ContentTypeLabel.TXT;
+      } else {
+        output_label = ContentTypeLabel.UNKNOWN;
+      }
+      if (model_prediction.label == output_label) {
+        // overwrite_reason is useful to convey to clients why the output
+        // predicted is different than the model predicted type; if those two
+        // are the same, the model predicted type has not actually been
+        // overwritten, so we set this to NONE.
+        overwrite_reason = OverwriteReason.NONE;
+      }
+    }
+
+    return [output_label, overwrite_reason];
+  }
+
+  _extract_features_from_bytes(fileBytes: Uint8Array): ModelFeatures {
     const begChunk = this._lstrip(
-      fileArray.slice(0, Math.min(block_size, fileArray.length)),
+      fileBytes.slice(0, Math.min(this.config.block_size, fileBytes.length)),
     );
     const begBytes = begChunk.slice(
       0,
-      Math.min(begChunk.length, this.config.begBytes),
+      Math.min(begChunk.length, this.config.beg_size),
     );
 
-    // Middle chunk. Padding on either side.
-    // const halfpoint = Math.round(fileArray.length / 2);
-    // const startHalf = Math.max(0, halfpoint - this.config.midBytes / 2);
-    // const halfChunk = fileArray.slice(startHalf, startHalf + this.config.midBytes);
-
-    // End chunk. It should end with the file, and padding at the beginning.
     const endChunk = this._rstrip(
-      fileArray.slice(Math.max(0, fileArray.length - block_size)),
+      fileBytes.slice(Math.max(0, fileBytes.length - this.config.block_size)),
     );
     const endBytes = endChunk.slice(
-      Math.max(0, endChunk.length - this.config.endBytes),
+      Math.max(0, endChunk.length - this.config.end_size),
     );
-    const endOffset = Math.max(0, this.config.endBytes - endBytes.length);
+    const endOffset = Math.max(0, this.config.end_size - endBytes.length);
 
-    const features = new ModelFeatures(this.config)
+    return new ModelFeatures(this.config)
       .withStart(begBytes, 0)
       .withEnd(endBytes, endOffset);
+  }
 
-    return this.model.generateResultFromPrediction(
-      await this.model.predict(features.toArray()),
-    );
+  _get_ct_info(label: ContentTypeLabel): ContentTypeInfo {
+    return this.cts_infos[label];
+  }
+
+  _get_result_from_labels_and_score(
+    path: string,
+    status: Status = Status.OK,
+    dl_label: ContentTypeLabel,
+    output: ContentTypeLabel,
+    score: number,
+    overwrite_reason: OverwriteReason = OverwriteReason.NONE,
+  ): MagikaResult {
+    return {
+      path: path,
+      status: status,
+      prediction: {
+        dl: this._get_ct_info(dl_label),
+        output: this._get_ct_info(output),
+        score: score,
+        overwrite_reason: overwrite_reason,
+      },
+    };
   }
 }

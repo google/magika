@@ -3,11 +3,11 @@
 // tool (`pip install magika`) for normal use.
 
 // To run this, you need to install the optional dependencies too.
-import { program } from "commander";
-import { readFile } from "fs/promises";
-import * as fs from "fs";
 import chalk from "chalk";
-import { MagikaNode as Magika } from "./magika_node.js";
+import { program } from "commander";
+import * as fs from "fs";
+import { readFile } from "fs/promises";
+import { MagikaNode as Magika } from "./magika-node.js";
 
 program
   .description(
@@ -44,31 +44,36 @@ const magika = new Magika();
 
       if (data != null) {
         if (flags.byStream) {
-          const prediction_stream = await magika.identifyStream(
+          const magika_result_by_stream = await magika.identifyStream(
             fs.createReadStream(path),
             data.length,
           );
           if (flags.jsonOutput) {
-            console.log({ path, ...prediction_stream });
+            console.log(path, magika_result_by_stream);
           } else {
             console.log(
               chalk.blue(path),
               "by_stream",
               chalk.green(
-                prediction_stream?.label,
-                chalk.white(prediction_stream?.score),
+                magika_result_by_stream.prediction.dl.label,
+                magika_result_by_stream.prediction.output.label,
+                chalk.white(magika_result_by_stream.prediction.score),
               ),
             );
           }
         } else {
-          const prediction = await magika.identifyBytes(data);
+          const magika_result_by_path = await magika.identifyBytes(data);
           if (flags.jsonOutput) {
-            console.log({ path, ...prediction });
+            console.log(path, magika_result_by_path);
           } else {
             console.log(
               chalk.blue(path),
               "by_path",
-              chalk.green(prediction?.label, chalk.white(prediction?.score)),
+              chalk.green(
+                magika_result_by_path.prediction.dl.label,
+                magika_result_by_path.prediction.output.label,
+                chalk.white(magika_result_by_path.prediction.score),
+              ),
             );
           }
         }

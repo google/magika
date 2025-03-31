@@ -46,28 +46,4 @@ export class Model {
 
     return { label: maxScoreLabel, score: maxScore, scores: scores };
   }
-
-  // generateResultFromPrediction(prediction: ModelPrediction): ModelResultScores {
-  //   const score = prediction.scores[prediction.index];
-  //   const labelConfig = this.config.target_labels_space[prediction.index];
-  //   if (score >= labelConfig.threshold) {
-  //     return {
-  //       score: score,
-  //       label: labelConfig.name,
-  //       scores: prediction.scores,
-  //     };
-  //   }
-  //   let generic_type: ContentTypeLabel;
-  //   // if (this.ct_infos[labelConfig.name] || null) {
-  //   //   if (this.ct_infos[labelConfig.name].is_text) {
-  //   //     generic_type = ContentTypeLabel.GENERIC_TEXT;
-  //   //   } else {
-  //   //     generic_type = ContentTypeLabel.UNKNOWN;
-  //   //   }
-  //   // } else {
-  //   //   generic_type = ContentTypeLabel.UNKNOWN;
-  //   // }
-
-  //   return { score: score, label: generic_type, scores: prediction.scores };
-  // }
 }

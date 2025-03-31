@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import enum
 import json
 import shutil
 import sys
@@ -8,10 +9,13 @@ from typing import Optional
 
 import click
 
-MODELS_NAMES_TO_INCLUDE_IN_PACKAEG = [
+MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE = [
     "standard_v3_2",
 ]
 
+MODELS_NAMES_TO_INCLUDE_IN_JS_PACKAGE = [
+    "standard_v3_2",
+]
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent
 assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
@@ -39,31 +43,58 @@ PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
     PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
 )
 
+JS_ROOT_DIR = REPO_ROOT_DIR / "js"
+assert PYTHON_ROOT_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_KB_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "config" / "content_types_kb.min.json"
+)
+
+PYTHON_MODELS_DIR = PYTHON_ROOT_DIR / "src" / "magika" / "models"
+assert PYTHON_MODELS_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
+)
+
+
+class Target(enum.StrEnum):
+    JS = "js"
+    PYTHON = "python"
+
 
 @click.command()
+@click.argument("target", type=Target)
 @click.option(
     "--models-names",
     "models_names_str",
     help="Comma-separated list of models names to import in the package",
 )
-def main(models_names_str: Optional[str]) -> None:
-    if models_names_str is None:
-        models_names = MODELS_NAMES_TO_INCLUDE_IN_PACKAEG
-    else:
-        models_names = list(map(lambda s: s.strip(), models_names_str.split(",")))
+def main(target: Target, models_names_str: Optional[str]) -> None:
+    if target == Target.PYTHON:
+        if models_names_str is None:
+            models_names = MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE
+        else:
+            models_names = list(map(lambda s: s.strip(), models_names_str.split(",")))
 
-    print(f"Including these models in the package: {models_names}")
+        print(f"Including these models in the python package: {models_names}")
 
-    update_content_type_kb()
-    update_content_type_label_py()
+        update_python_content_type_kb()
+        update_python_content_type_label_py()
 
-    print(f"Deleting {PYTHON_MODELS_DIR}")
-    shutil.rmtree(PYTHON_MODELS_DIR)
-    for model_name in models_names:
-        add_model_to_python_package(model_name)
+        print(f"Deleting {PYTHON_MODELS_DIR}")
+        shutil.rmtree(PYTHON_MODELS_DIR)
+        for model_name in models_names:
+            add_model_to_python_package(model_name)
+
+    elif target == Target.JS:
+        update_js_content_type_files()
+
+        # FIXME: the model is currently copied manually
+        print("WARNING: copying the model is currently NOT supported by this script")
 
 
-def update_content_type_kb() -> None:
+def update_python_content_type_kb() -> None:
     print(
         f"Syncing python's content types KB: {CONTENT_TYPES_KB_PATH} => {PYTHON_CONTENT_TYPES_KB_PATH}"
     )
@@ -83,7 +114,7 @@ def add_model_to_python_package(model_name: str) -> None:
     shutil.copytree(assets_model_dir, python_model_dir)
 
 
-CONTENT_TYPE_LABEL_SOURCE_PREFIX = """
+CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = """
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -110,7 +141,7 @@ class ContentTypeLabel(StrEnum):
 """
 
 
-def update_content_type_label_py() -> None:
+def update_python_content_type_label_py() -> None:
     print(f"Updating {PYTHON_CONTENT_TYPES_LABELS_PY_PATH}")
 
     kb = json.loads(CONTENT_TYPES_KB_PATH.read_text())
@@ -124,7 +155,7 @@ def update_content_type_label_py() -> None:
         enum_body_lines.append(line)
 
     out = (
-        CONTENT_TYPE_LABEL_SOURCE_PREFIX.strip()
+        CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX.strip()
         + "\n"
         + "\n".join(enum_body_lines)
         + "\n"
@@ -142,6 +173,87 @@ def update_content_type_label_py() -> None:
     )
 
     PYTHON_CONTENT_TYPES_LABELS_PY_PATH.write_text(out)
+
+
+CONTENT_TYPE_LABEL_TS_SOURCE_PREFIX = """
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This is the list of all possible content types we know about; however, models
+// support a smaller subset of them. See model's README.md for details.
+export enum ContentTypeLabel {
+
+"""
+
+
+def update_js_content_type_files() -> None:
+    # Update content type labels enum
+    content_type_label_ts_path = JS_ROOT_DIR / "src" / "content-type-label.ts"
+
+    kb = json.loads(CONTENT_TYPES_KB_PATH.read_text())
+
+    enum_body_lines = []
+    for ct_label_str in sorted(kb.keys()):
+        if ct_label_str[0].isdigit():
+            line = (" " * 2) + f'_{ct_label_str.upper()} = "{ct_label_str}",'
+        else:
+            line = (" " * 2) + f'{ct_label_str.upper()} = "{ct_label_str}",'
+        enum_body_lines.append(line)
+
+    out = (
+        CONTENT_TYPE_LABEL_TS_SOURCE_PREFIX.strip()
+        + "\n"
+        + "\n".join(enum_body_lines)
+        + "\n"
+        + "}\n"
+    ).strip() + "\n"
+
+    content_type_label_ts_path.write_text(out)
+    print(f"Updated {content_type_label_ts_path}")
+
+    # Update content types info
+    content_types_infos_ts_path = JS_ROOT_DIR / "src" / "content-types-infos.ts"
+    content_types_info_content = """
+import { ContentTypeInfo } from "./content-type-info";
+import { ContentTypeLabel } from "./content-type-label";
+
+export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;
+
+export const ContentTypesInfos = {
+  get: (): ContentTypesInfos => ({
+"""
+    for ct_label_str, ct_info in sorted(kb.items()):
+        if ct_label_str[0].isdigit():
+            ct_label_enum = f"_{ct_label_str.upper()}"
+        else:
+            ct_label_enum = ct_label_str.upper()
+        is_text = ct_info["is_text"]
+        content_types_info_content += (
+            "    "
+            + f"""
+    [ContentTypeLabel.{ct_label_enum}]: {{
+      label: ContentTypeLabel.{ct_label_enum},
+      is_text: {"true" if is_text else "false"},
+    }},
+""".strip()
+            + "\n"
+        )
+
+    content_types_info_content += "  })\n};\n"
+
+    content_types_infos_ts_path.write_text(content_types_info_content)
+    print(f"Updated {content_types_infos_ts_path}")
 
 
 if __name__ == "__main__":

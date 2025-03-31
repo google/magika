@@ -1,5 +1,6 @@
 import * as fs from "fs/promises";
 import { ContentTypeLabel } from "./content-type-label.js";
+import assert from "assert";
 
 export class Config {
   beg_size: number = 0;
@@ -9,7 +10,7 @@ export class Config {
   medium_confidence_threshold: number = 0;
   min_file_size_for_dl: number = 0;
   padding_token: number = 0;
-  block_size: number = 4096;
+  block_size: number = 0;
   target_labels_space: ContentTypeLabel[] = [];
   thresholds: Partial<Record<ContentTypeLabel, number>> = {};
   overwrite_map: Partial<Record<ContentTypeLabel, ContentTypeLabel>> = {};
@@ -59,5 +60,11 @@ export class Config {
       this.overwrite_map[label as ContentTypeLabel] =
         target_label as ContentTypeLabel;
     }
+
+    assert(this.beg_size > 0);
+    assert(this.mid_size == 0);
+    assert(this.end_size > 0);
+    assert(!this.use_inputs_at_offsets);
+    assert(this.block_size > 0);
   }
 }

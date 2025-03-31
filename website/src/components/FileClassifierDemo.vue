@@ -38,8 +38,8 @@ import { Magika } from "magika";
 
 import BarsVisualization from "./BarsVisualization.vue";
 
-const MAGIKA_MODEL_URL = `${import.meta.env.BASE_URL}model/model.json`;
-const MAGIKA_CONFIG_URL = `${import.meta.env.BASE_URL}model/config.json`;
+const MAGIKA_MODEL_URL = `${import.meta.env.BASE_URL}models/standard_v3_2/model.json`;
+const MAGIKA_CONFIG_URL = `${import.meta.env.BASE_URL}models/standard_v3_2/config.min.json`;
 
 const files = ref([]);
 const labels = ref([]);

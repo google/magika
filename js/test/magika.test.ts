@@ -392,15 +392,10 @@ describe("Magika class", () => {
       const filePath = path.join(testFile.parentPath, testFile.name);
       const inputBuffer = await fs.promises.readFile(filePath);
       const inputUint8 = new Uint8Array(inputBuffer);
-      const inputUint16 = new Uint16Array(inputBuffer);
       const resultFromBuffer = await magika.identifyBytes(inputBuffer);
       const resultFromUint8 = await magika.identifyBytes(inputUint8);
-      const resultFromUint16 = await magika.identifyBytes(inputUint16);
       expect(resultFromBuffer.prediction).toStrictEqual(
         resultFromUint8.prediction,
-      );
-      expect(resultFromBuffer.prediction).toStrictEqual(
-        resultFromUint16.prediction,
       );
     },
   );

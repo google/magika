@@ -14,24 +14,31 @@
   </header>
 
   <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3 border rounded-lg bg-primary">
-  <h2> New Magika version available!</h2>
+  <h2> This website now uses the latest model, standard_v3_2!</h2>
   <p>
-  While this website is running on Magika 1.0, we have released a newer version of our model supporting 200+ content types.
-  Our Python and Rust libraries support the newer model, as well as our CLI.
-  This website will follow soon, but if you want the latest and greatest, go check <a href="https://github.com/google/magika">those out</a>
+  The new model supports 200+ content types (2x from the previous version), with the same overall average accuracy of 99%, and it is 20% faster.
+  Our `magika` command line tool (now written in Rust), as well as our Python and Rust libraries support this new model as well.
+  For more information and the latest news, go check <a href="https://github.com/google/magika">the Magika GitHub repository</a>!
   </p>
   </div>
 
   <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3">
     <p>
-      Magika leverages the power of cutting-edge deep learning to enhance the
-      world of file type detection. It provides increased accuracy and support
-      for a comprehensive range of content types, outperforming traditional
-      tools with 99%+ average precision and recall.
+      Magika is a novel AI-powered file type detection tool that relies on the
+      recent advance of deep learning to provide accurate detection. Under the
+      hood, Magika employs a custom, highly optimized model that only weighs
+      about a few MBs, and enables precise file identification within
+      milliseconds. Magika has been trained and evaluated on a dataset of ~100M
+      samples across 200+ content types (covering both binary and textual file
+      formats), and it achieves an average ~99% accuracy on our test set.
     </p>
     <p>
       Designed for efficiency, Magika runs quickly even on a single CPU. A
-      similar model currently scans millions of files per second at Google (see <a href='https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html' class='text-primary'>blog post</a>).
+      similar model currently scans hundreds of billions of files every week at
+      Google (see our announcment
+      <a
+      href='https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html'
+      class='text-primary'>blog post</a>).
     </p>
   </div>
 
@@ -109,8 +116,6 @@
 
 <script setup>
 import FileClassifierDemo from "@/components/FileClassifierDemo.vue";
-
-import ModelCard from "@/../assets/model_card.html?raw";
 </script>
 
 <style scoped lang="scss">

@@ -4,7 +4,6 @@ import { ModelConfig } from "./model-config.js";
 import { ModelPrediction } from "./model-prediction.js";
 import { ModelFeatures } from "./module-features.js";
 import { ContentTypeLabel } from "./content-type-label.js";
-import { assert } from "console";
 
 export class Model {
   model?: GraphModel;
@@ -40,7 +39,12 @@ export class Model {
     const maxScoreLabel = this.model_config.target_labels_space[maxScoreIndex];
     const maxScore = rawScores[maxScoreIndex];
 
-    assert(rawScores.length == this.model_config.target_labels_space.length);
+    if (rawScores.length != this.model_config.target_labels_space.length) {
+      throw new Error(
+        `Assertion failed: Expected rawScores.length (${rawScores.length}) to have the same length of the targets_label_space (${this.model_config.target_labels_space.length})`,
+      );
+    }
+
     let scores_map: Partial<Record<ContentTypeLabel, number>> = {};
     for (let i = 0; i < rawScores.length; i++) {
       const label: ContentTypeLabel = this.model_config.target_labels_space[i];

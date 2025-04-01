@@ -1,6 +1,5 @@
 import * as fs from "fs/promises";
 import { ContentTypeLabel } from "./content-type-label.js";
-import assert from "assert";
 
 export class ModelConfig {
   beg_size: number = 0;
@@ -61,10 +60,16 @@ export class ModelConfig {
         target_label as ContentTypeLabel;
     }
 
-    assert(this.beg_size > 0);
-    assert(this.mid_size == 0);
-    assert(this.end_size > 0);
-    assert(!this.use_inputs_at_offsets);
-    assert(this.block_size > 0);
+    if (
+      !(
+        this.beg_size > 0 &&
+        this.mid_size == 0 &&
+        this.end_size > 0 &&
+        !this.use_inputs_at_offsets &&
+        this.block_size > 0
+      )
+    ) {
+      throw new Error("Invalid config");
+    }
   }
 }

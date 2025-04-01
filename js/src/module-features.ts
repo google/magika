@@ -1,4 +1,3 @@
-import { assert } from "console";
 import { ModelConfig } from "./model-config.js";
 
 export class ModelFeatures {
@@ -7,7 +6,11 @@ export class ModelFeatures {
   locked: { beg: boolean; end: boolean };
 
   constructor(public model_config: ModelConfig) {
-    assert(this.model_config.mid_size == 0);
+    if (this.model_config.mid_size != 0) {
+      throw new Error(
+        `Assertion failed: This implementation does not support mid_size (${this.model_config.mid_size}) != 0 model config.`,
+      );
+    }
 
     this.beg_ints = new Uint16Array(this.model_config.beg_size).fill(
       this.model_config.padding_token,

@@ -86,24 +86,7 @@ export class Magika {
     return result;
   }
 
-  // _getLabelsResult(result: ModelResultScores): ModelResultLabels {
-  //   const labels = [
-  //     ...Object.values(this.config.target_labels_space).map(
-  //       (label) => label.name,
-  //     ),
-  //     ...Object.values(ContentTypeLabel),
-  //   ].map((label, i) => [
-  //     label,
-  //     label == result.label ? result.score : result.scores[i] || 0,
-  //   ]);
-  //   return {
-  //     label: result.label,
-  //     score: result.score,
-  //     labels: Object.fromEntries(labels),
-  //   };
-  // }
-
-  _getResultForAFewBytes(
+  _get_result_for_a_few_bytes(
     fileBytes: Uint8Array,
     path: string = "-",
   ): MagikaResult {
@@ -165,7 +148,7 @@ export class Magika {
     }
 
     if (fileBytes.length < this.model_config.min_file_size_for_dl) {
-      return this._getResultForAFewBytes(fileBytes);
+      return this._get_result_for_a_few_bytes(fileBytes);
     }
 
     let features = this._extract_features_from_bytes(fileBytes);

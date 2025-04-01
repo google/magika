@@ -209,19 +209,6 @@ export class MagikaNode extends Magika {
       }
     });
     await finished(stream);
-
-    // TODO: refactor this to avoid code duplication
-    let model_prediction = await this.model.predict(features);
-    let [output_label, overwrite_reason] =
-      this._get_output_label_from_model_prediction(model_prediction);
-    return this._get_result_from_labels_and_score(
-      "-",
-      Status.OK,
-      model_prediction.label,
-      output_label,
-      model_prediction.score,
-      overwrite_reason,
-      model_prediction.scores_map,
-    );
+    return await this._get_result_from_features(features);
   }
 }

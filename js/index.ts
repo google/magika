@@ -14,6 +14,7 @@ program
     "Magika JS - file type detection with ML. https://google.github.io/magika",
   )
   .option("--json-output", "Format output in JSON")
+  .option("--model-version <model-url>", "Model Version", Magika.MODEL_VERSION)
   .option("--model-url <model-url>", "Model URL", Magika.MODEL_URL)
   .option("--model-path <model-path>", "Modle file path")
   .option("--config-url <config-url>", "Config URL", Magika.MODEL_CONFIG_URL)
@@ -28,6 +29,7 @@ const magika = new Magika();
 
 (async () => {
   await magika.load({
+    modelVersion: flags.modelVersion,
     modelURL: flags.modelUrl,
     modelPath: flags.modelPath,
     modelConfigURL: flags.configUrl,

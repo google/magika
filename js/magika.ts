@@ -66,16 +66,6 @@ export class Magika {
     ]);
   }
 
-  /** Identifies the content type of a byte array, returning all probabilities instead of just the top one.
-   *
-   * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
-   * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
-   */
-  // async identifyBytesFull(fileBytes: Uint8Array): Promise<ModelResultLabels> {
-  //   const result = await this._identifyFromBytes(fileBytes);
-  //   return this._getLabelsResult(result);
-  // }
-
   /** Identifies the content type of a byte array.
    *
    * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)

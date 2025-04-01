@@ -41,14 +41,16 @@ import BarsVisualization from "./BarsVisualization.vue";
 // Interface for the structure we'll pass to BarsVisualization.
 /*
 interface ProcessedResult {
+  modelVersion: string;
   topLabel: string | null;
   scores: Record<string, number> | null;
   error?: string; // Optional: include an error message if processing fails
 }
 */
 
-const MAGIKA_MODEL_URL = `${import.meta.env.BASE_URL}models/standard_v3_2/model.json`;
-const MAGIKA_MODEL_CONFIG_URL = `${import.meta.env.BASE_URL}models/standard_v3_2/config.min.json`;
+const MAGIKA_MODEL_VERSION = "standard_v3_2"
+const MAGIKA_MODEL_URL = `${import.meta.env.BASE_URL}models/${MAGIKA_MODEL_VERSION}/model.json`;
+const MAGIKA_MODEL_CONFIG_URL = `${import.meta.env.BASE_URL}models/${MAGIKA_MODEL_VERSION}/config.min.json`;
 
 const files = ref([]);
 const results = ref([]);
@@ -66,6 +68,7 @@ watch(files, async () => {
   // Ensure magika is loaded.
   try {
     await magika.load({
+      modelVersion: MAGIKA_MODEL_VERSION,
       modelURL: MAGIKA_MODEL_URL,
       configURL: MAGIKA_MODEL_CONFIG_URL,
     });
@@ -96,6 +99,7 @@ watch(files, async () => {
       // Store the extracted data in the results array for the corresponding file
       // Adjust the structure based on what BarsVisualization expects
       results.value[fileIndex] = {
+          modelVersion: magika.getModelVersion(),
           topLabel: topLabel,
           scores: scoresMap
       };
@@ -131,6 +135,7 @@ onMounted(async () => {
   try {
       // Start loading Magika immediately (prefetch it).
     await magika.load({
+      modelVersion: MAGIKA_MODEL_VERSION,
       modelURL: MAGIKA_MODEL_URL,
       configURL: MAGIKA_MODEL_CONFIG_URL,
     });

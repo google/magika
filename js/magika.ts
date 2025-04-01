@@ -32,18 +32,19 @@ import { Status } from "./src/status.js";
 export class Magika {
   model_config: ModelConfig;
   model: Model;
+  model_version: string;
   cts_infos: ContentTypesInfos;
 
   constructor() {
-    this.cts_infos = ContentTypesInfos.get();
     this.model_config = new ModelConfig();
     this.model = new Model(this.model_config);
+    this.model_version = "unknown";
+    this.cts_infos = ContentTypesInfos.get();
   }
 
-  static MODEL_CONFIG_URL =
-    "https://google.github.io/magika/models/standard_v3_2/config.min.json";
-  static MODEL_URL =
-    "https://google.github.io/magika/models/standard_v3_2/model.json";
+  static MODEL_VERSION = "standard_v3_2";
+  static MODEL_CONFIG_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/config.min.json`;
+  static MODEL_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/model.json`;
 
   static async create(options?: MagikaOptions): Promise<Magika> {
     const magika = new Magika();
@@ -60,6 +61,7 @@ export class Magika {
    * Parameters are optional. If not provided, the model will be loaded from GitHub.
    */
   async load(options?: MagikaOptions): Promise<void> {
+    this.model_version = options?.modelVersion || Magika.MODEL_VERSION;
     await Promise.all([
       this.model_config.loadUrl(
         options?.modelConfigURL || Magika.MODEL_CONFIG_URL,
@@ -78,6 +80,10 @@ export class Magika {
   async identifyBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
     const result = await this._identifyFromBytes(fileBytes);
     return result;
+  }
+
+  getModelVersion(): string {
+    return this.model_version;
   }
 
   _get_result_for_a_few_bytes(

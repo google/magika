@@ -3,4 +3,5 @@ export interface MagikaOptions {
   modelPath?: string;
   modelConfigURL?: string;
   modelConfigPath?: string;
+  modelVersion: string;
 }

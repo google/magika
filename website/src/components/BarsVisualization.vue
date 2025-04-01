@@ -3,7 +3,7 @@
     <v-card-title class="title-h3"> {{ file.name }}</v-card-title>
 
     <v-card-subtitle v-if="props.resultData && props.resultData.topLabel">
-      Detected as <v-chip rounded color="primary">{{ props.resultData.topLabel }}</v-chip>
+      Detected as <v-chip rounded color="primary">{{ props.resultData.topLabel }}</v-chip> (model: <pre style="display: inline; font-size: 0.8em; margin: 0; padding: 5px;">{{ props.resultData.modelVersion }}</pre>)
     </v-card-subtitle>
 
     <v-card-subtitle v-else-if="props.resultData && props.resultData.error">

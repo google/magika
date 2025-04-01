@@ -7,7 +7,7 @@ To quicky edit the demo and get a feel on how to run Magika, click [here](https:
 To start the website locally, you'll need Node installed. Then, execute:
 
 ```bash
-cd docs
+cd website
 yarn install
 yarn run dev
 ```

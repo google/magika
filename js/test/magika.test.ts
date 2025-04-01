@@ -42,22 +42,9 @@ const getTestFilesWithLabels = (
 /**
  * Array of all our test files and their labels.
  */
-const TEST_FILES: Array<[string, string, Dirent]> = [
+const BASIC_TEST_FILES: Array<[string, string, Dirent]> = [
   ...getTestFilesWithLabels("../tests_data/basic"),
-  // ...(getTestFilesWithLabels('../tests_data/mitra'))
 ];
-
-/**
- * File types for Magika V2 or for corner cases that are not handled by the
- * model. Skip them in the tests for now.
- */
-const SKIP_FUTURE_CONTENT_TYPES = new Set([
-  "dockerfile",
-  "empty",
-  "toml",
-  "typescript",
-  "yara",
-]);
 
 describe("Magika class", () => {
   const workdir = {
@@ -315,10 +302,9 @@ describe("Magika class", () => {
     expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
   });
 
-  it.each(TEST_FILES)(
+  it.each(BASIC_TEST_FILES)(
     'by_stream vs by_byte should return the same (correct) features/label for "%s" "%s"',
     async (label, testPath, testFile) => {
-      if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
       const magika = new Magika();
       await magika.load({
         modelVersion: Magika.MODEL_VERSION,
@@ -382,10 +368,9 @@ describe("Magika class", () => {
     },
   );
 
-  it.each(TEST_FILES)(
+  it.each(BASIC_TEST_FILES)(
     'Magika is agnostic to the format of the input bytes for "%s" "%s"',
     async (label, testPath, testFile) => {
-      if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
       const magika = new Magika();
       await magika.load({
         modelVersion: Magika.MODEL_VERSION,

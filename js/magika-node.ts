@@ -221,6 +221,7 @@ export class MagikaNode extends Magika {
       output_label,
       model_prediction.score,
       overwrite_reason,
+      model_prediction.scores_map,
     );
   }
 }

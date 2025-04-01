@@ -7,5 +7,5 @@ export interface MagikaPrediction {
   output: ContentTypeInfo;
   score: number;
   overwrite_reason: OverwriteReason;
-  scores_map?: Record<ContentTypeLabel, number>;
+  scores_map?: Partial<Record<ContentTypeLabel, number>>;
 }

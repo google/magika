@@ -20,6 +20,7 @@ import { Readable } from "stream";
 import { finished } from "stream/promises";
 import { ReadableStream } from "stream/web";
 import { MagikaNode as Magika } from "../magika-node";
+import { ContentTypeLabel } from "../src/content-type-label";
 
 /**
  * Returns a list of test files and their correct labels.
@@ -322,23 +323,59 @@ describe("Magika class", () => {
         modelPath: workdir.model,
       });
       const featuresMock = jest.spyOn(magika.model, "predict");
+
+      // Do predictions by stream and by path.
       const filePath = path.join(testFile.parentPath, testFile.name);
       const streamResult = await magika.identifyStream(
         fs.createReadStream(filePath),
         (await fs.promises.stat(filePath)).size,
       );
-      const input = await fs.promises.readFile(filePath);
-      const byteResult = await magika.identifyBytes(input);
+      const fileBytes = await fs.promises.readFile(filePath);
+      const byteResult = await magika.identifyBytes(fileBytes);
 
-      expect(streamResult.prediction).toStrictEqual(byteResult.prediction);
+      // Compare the results; they should match between them
+      expect(streamResult).toStrictEqual(byteResult);
       expect(featuresMock.mock.calls[0][0]).toStrictEqual(
         featuresMock.mock.calls[1][0],
       );
+      // Check that the predictions make the expectations.
       expect(streamResult.prediction.output.label).toBe(label);
+
+      // Check properties on the TfnMock object.
       expect(TfnMock.accessed.io).toBe(1);
       expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(
         1,
       );
+
+      // The predictions are the same via bytes and via stream, let's just take one.
+      const prediction = byteResult.prediction;
+      expect(prediction).not.toBeUndefined();
+      expect(prediction.dl).not.toBeUndefined();
+      expect(prediction.output).not.toBeUndefined();
+      expect(prediction.score).not.toBeUndefined();
+
+      if (prediction.dl.label == ContentTypeLabel.UNDEFINED) {
+        // If dl.label == UNDEFINED, scores_map should not be set.
+        expect(prediction.scores_map).toBeUndefined();
+      } else {
+        // If dl.label is not UNDEFINED, scores_map should be set.
+        expect(prediction.scores_map).not.toBeUndefined();
+        // Check that the max score and label associated to max score matches
+        // what's returned in the prediction.
+        const scores = Object.values(prediction?.scores_map ?? {});
+        let curr_max_score = scores[0];
+        let argmax_idx = 0;
+        for (let i = 1; i < scores.length; i++) {
+          if (scores[i] > curr_max_score) {
+            curr_max_score = scores[i];
+            argmax_idx = i;
+          }
+        }
+        const predicted_label =
+          magika.model_config.target_labels_space[argmax_idx];
+        expect(predicted_label).toBe(prediction.dl.label);
+        expect(curr_max_score).toBe(prediction.score);
+      }
     },
   );
 

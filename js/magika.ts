@@ -179,6 +179,7 @@ export class Magika {
       output_label,
       model_prediction.score,
       overwrite_reason,
+      model_prediction.scores_map,
     );
   }
 
@@ -260,6 +261,7 @@ export class Magika {
     output: ContentTypeLabel,
     score: number,
     overwrite_reason: OverwriteReason = OverwriteReason.NONE,
+    scores_map?: Partial<Record<ContentTypeLabel, number>>,
   ): MagikaResult {
     return {
       path: path,
@@ -269,6 +271,7 @@ export class Magika {
         output: this._get_ct_info(output),
         score: score,
         overwrite_reason: overwrite_reason,
+        scores_map: scores_map,
       },
     };
   }

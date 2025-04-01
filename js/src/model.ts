@@ -3,6 +3,8 @@ import { GraphModel } from "@tensorflow/tfjs";
 import { ModelConfig } from "./model-config.js";
 import { ModelPrediction } from "./model-prediction.js";
 import { ModelFeatures } from "./module-features.js";
+import { ContentTypeLabel } from "./content-type-label.js";
+import { assert } from "console";
 
 export class Model {
   model?: GraphModel;
@@ -30,14 +32,22 @@ export class Model {
     );
     const maxScoreIndexTensor = tf.argMax(modelOutput);
     const maxScoreIndex = maxScoreIndexTensor.dataSync()[0];
-    const scores = modelOutput.dataSync();
-    const maxScore = scores[maxScoreIndex];
+    const rawScores = modelOutput.dataSync();
     maxScoreIndexTensor.dispose();
     modelInput.dispose();
     modelOutput.dispose();
 
-    let maxScoreLabel = this.model_config.target_labels_space[maxScoreIndex];
+    const maxScoreLabel = this.model_config.target_labels_space[maxScoreIndex];
+    const maxScore = rawScores[maxScoreIndex];
 
-    return { label: maxScoreLabel, score: maxScore, scores: scores };
+    assert(rawScores.length == this.model_config.target_labels_space.length);
+    let scores_map: Partial<Record<ContentTypeLabel, number>> = {};
+    for (let i = 0; i < rawScores.length; i++) {
+      const label: ContentTypeLabel = this.model_config.target_labels_space[i];
+      const score: number = rawScores[i];
+      scores_map[label] = score;
+    }
+
+    return { label: maxScoreLabel, score: maxScore, scores_map: scores_map };
   }
 }

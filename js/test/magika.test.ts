@@ -130,6 +130,7 @@ describe("Magika class", () => {
   it("should load model from file path", async () => {
     const magika = new Magika();
     await magika.load({
+      modelVersion: Magika.MODEL_VERSION,
       modelConfigPath: workdir.model_config,
       modelPath: workdir.model,
     });
@@ -162,6 +163,7 @@ describe("Magika class", () => {
   it("features should result in known value", async () => {
     const magika = new Magika();
     await magika.load({
+      modelVersion: Magika.MODEL_VERSION,
       modelConfigPath: workdir.model_config,
       modelPath: workdir.model,
     });
@@ -319,6 +321,7 @@ describe("Magika class", () => {
       if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
       const magika = new Magika();
       await magika.load({
+        modelVersion: Magika.MODEL_VERSION,
         modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
       });
@@ -385,6 +388,7 @@ describe("Magika class", () => {
       if (SKIP_FUTURE_CONTENT_TYPES.has(label)) return;
       const magika = new Magika();
       await magika.load({
+        modelVersion: Magika.MODEL_VERSION,
         modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
       });

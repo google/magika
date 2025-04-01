@@ -51,9 +51,11 @@ export class Magika {
     return magika;
   }
 
-  /** Loads the Magika model and config from URLs.
+  /**
+   * Loads the Magika model and config from URLs.
    *
-   * @param {MagikaOptions} options The urls where the model and its config are stored.
+   * @param {MagikaOptions} options The urls or file paths where the model and
+   * its config are stored.
    *
    * Parameters are optional. If not provided, the model will be loaded from GitHub.
    */
@@ -66,10 +68,12 @@ export class Magika {
     ]);
   }
 
-  /** Identifies the content type of a byte array.
+  /**
+   * Identifies the content type of a byte array.
    *
-   * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
-   * @returns A dictionary containing the top label and its score
+   * @param {Uint8Array} fileBytes A fixed-length sequence of bytes.
+   * @returns {MagikaResult} An object containing the result of the content type
+   * prediction.
    */
   async identifyBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
     const result = await this._identifyFromBytes(fileBytes);

@@ -35,12 +35,13 @@ export class MagikaNode extends Magika {
     this.model = new ModelNode(this.model_config);
   }
 
-  /** Loads the Magika model and config from URLs.
+  /**
+   * Loads the Magika model and config from URLs.
    *
-   * @param {MagikaOptions} options The urls or file paths where the model and its config are stored.
+   * @param {MagikaOptions} options The urls or file paths where the model and
+   * its config are stored.
    *
    * Parameters are optional. If not provided, the model will be loaded from GitHub.
-   *
    */
   async load(options?: MagikaOptions): Promise<void> {
     const p: Promise<void>[] = [];
@@ -61,11 +62,13 @@ export class MagikaNode extends Magika {
     await Promise.all(p);
   }
 
-  /** Identifies the content type from a read stream
+  /**
+   * Identifies the content type from a read stream
    *
-   * @param stream A read stream
-   * @param length Total length of stream data (this is needed to find the middle without keep the file in memory)
-   * @returns A dictionary containing the top label and its score,
+   * @param {ReadStream} stream A read stream.
+   * @param {number} length Total length of stream data.
+   * @returns {MagikaResult} An object containing the result of the content type
+   * prediction.
    */
   async identifyStream(
     stream: ReadStream,
@@ -75,14 +78,17 @@ export class MagikaNode extends Magika {
     return result;
   }
 
-  /** Identifies the content type of a byte array.
+  /**
+   * Identifies the content type of a byte array.
    *
-   * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
-   * @returns A dictionary containing the top label and its score
+   * @param {Uint8Array | Buffer} fileBytes A fixed-length sequence of bytes.
+   * @returns {MagikaResult} An object containing the result of the content type
+   * prediction.
+   *
+   * This extends the existing Magika's fileBytes method to add support
+   * prediction from a Buffer object as well.
    */
-  async identifyBytes(
-    fileBytes: Uint16Array | Uint8Array | Buffer,
-  ): Promise<MagikaResult> {
+  async identifyBytes(fileBytes: Uint8Array | Buffer): Promise<MagikaResult> {
     const result = await this._identifyFromBytes(new Uint8Array(fileBytes));
     return result;
   }

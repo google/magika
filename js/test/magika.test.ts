@@ -324,9 +324,11 @@ describe("Magika class", () => {
 
       // Compare the results; they should match between them
       expect(streamResult).toStrictEqual(byteResult);
-      expect(featuresMock.mock.calls[0][0]).toStrictEqual(
-        featuresMock.mock.calls[1][0],
-      );
+      if (streamResult.prediction.dl.label != ContentTypeLabel.UNDEFINED) {
+        expect(featuresMock.mock.calls[0][0]).toStrictEqual(
+          featuresMock.mock.calls[1][0],
+        );
+      }
       // Check that the predictions make the expectations.
       expect(streamResult.prediction.output.label).toBe(label);
 

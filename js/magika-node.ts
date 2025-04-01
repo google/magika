@@ -97,9 +97,8 @@ export class MagikaNode extends Magika {
     stream: ReadStream,
     length: number,
   ): Promise<MagikaResult> {
-    let features = new ModelFeatures(this.model_config);
-
     let accData: Buffer = Buffer.from("");
+    let fileData: Buffer = Buffer.from("");
     stream.on("data", (data: string | Buffer) => {
       if (typeof data === "string") {
         throw new Error("Stream data should be a Buffer, not a string");
@@ -110,85 +109,45 @@ export class MagikaNode extends Magika {
       // is to avoid to store the full file in memory; but we are indeed
       // traversing the full file.
 
-      const block_size = 4096;
-      let processed_beg = false;
+      // Here we collect the file bytes. For small files, we collect the full
+      // stream of bytes. For large files, we collect only the first and last
+      // `block_size` bytes.
 
-      if (length <= 4 * block_size) {
-        // The file is small, read the full file in memory and extract
-        // the features. Note that this short cut should NOT change
-        // which features are eventually extracted. Let's keep
-        // accumulating, and let's process the full payload once we have
-        // read the entire file.
-        // TODO: can we remove this check?
-        accData = Buffer.concat([accData, data]);
-        if (stream.bytesRead == length) {
-          // Ok, we have the full file in memory.
-          const fileBytes = new Uint8Array(accData);
-          const begChunk = this._lstrip(
-            fileBytes.slice(0, Math.min(block_size, fileBytes.length)),
-          );
-          const begBytes = begChunk.slice(
-            0,
-            Math.min(begChunk.length, this.model_config.beg_size),
-          );
-          const endChunk = this._rstrip(
-            fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
-          );
-          const endBytes = endChunk.slice(
-            Math.max(0, endChunk.length - this.model_config.end_size),
-          );
-          const endOffset = Math.max(
-            0,
-            this.model_config.end_size - endBytes.length,
-          );
-          features.withStart(begBytes, 0).withEnd(endBytes, endOffset);
-        }
+      if (length <= 4 * this.model_config.block_size) {
+        // The file is small; we read the full file in memory.
+        fileData = Buffer.concat([fileData, data]);
       } else {
         accData = Buffer.concat([accData, data]);
-        if (!processed_beg) {
-          if (accData.length >= block_size) {
-            // We have at least one first block_size, let's process it.
-            const fileBytes = new Uint8Array(accData);
-            const begChunk = this._lstrip(
-              fileBytes.slice(0, Math.min(block_size, fileBytes.length)),
-            );
-            const begBytes = begChunk.slice(
-              0,
-              Math.min(begChunk.length, this.model_config.beg_size),
-            );
-            processed_beg = true;
-            features.withStart(begBytes, 0);
-            // We keep a buffer of block_size bytes of what we have seen so far, not more.
-            accData = accData.subarray(accData.length - block_size);
+        if (fileData.length == 0) {
+          if (accData.length >= this.model_config.block_size) {
+            // We have at least block_size bytes, let's keep them as the first
+            // block.
+            fileData = Buffer.concat([
+              fileData,
+              accData.subarray(0, this.model_config.block_size),
+            ]);
           }
         }
-        if (processed_beg) {
-          // If we are here, it means we have already processed the
-          // beginning. Let's just be on the look out for the end
-          // chunk. In the meantime, we can throw away whatever data
-          // we have in excess of block_size bytes.
-          accData = accData.subarray(accData.length - block_size);
+        if (fileData.length > 0) {
+          // If we are here, it means we have already collected block_size bytes
+          // and kept it as the "beg block". Now, we keep processing bytes, and
+          // we just store the last block_size bytes. Then, once we are at the
+          // very end of the stream, we take these last block_size bytes as the
+          // "end block".
+          accData = accData.subarray(
+            accData.length - this.model_config.block_size,
+          );
           if (stream.bytesRead == length) {
-            // We have just read the last chunk. We now use
-            // accData's content, which is the last block_size bytes
-            // from the file, and we extract the end_bytes features.
-            const fileBytes = new Uint8Array(accData);
-            const endChunk = this._rstrip(
-              fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
-            );
-            const endBytes = endChunk.slice(
-              Math.max(0, endChunk.length - this.model_config.end_size),
-            );
-            const endOffset = Math.max(
-              0,
-              this.model_config.end_size - endBytes.length,
-            );
-            features.withEnd(endBytes, endOffset);
+            // We have just read the last chunk. We now these last block_size
+            // bytes as "the end block", which together with the "beg block"
+            // form the file's bytes that we can pass to the features
+            // extraction.
+            fileData = Buffer.concat([fileData, accData]);
           }
         }
       }
     });
     await finished(stream);
-    return await this._get_result_from_features(features);
+    return await this._identifyFromBytes(fileData);
   }
 }

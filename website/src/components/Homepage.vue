@@ -18,7 +18,7 @@
   <p>
   While this website is running on Magika 1.0, we have released a newer version of our model supporting 200+ content types.
   Our Python and Rust libraries support the newer model, as well as our CLI.
-  This website will follow soon, but if you want the latest and greatest, go check <a href="https://github.com/google/magika">those out</a> 
+  This website will follow soon, but if you want the latest and greatest, go check <a href="https://github.com/google/magika">those out</a>
   </p>
   </div>
 
@@ -105,12 +105,6 @@
     on GitHub!
   </div>
 
-  <div class="text-h3 pt-12 mt-6 pb-3 model-card">Model card</div>
-  <v-card>
-    <v-card-text>
-      <div v-html="ModelCard" />
-    </v-card-text>
-  </v-card>
 </template>
 
 <script setup>

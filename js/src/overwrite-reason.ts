@@ -1,5 +1,5 @@
 export enum OverwriteReason {
-  NONE = "NONE",
-  LOW_CONFIDENCE = "LOW_CONFIDENCE",
-  OVERWRITE_MAP = "OVERWRITE_MAP",
+  NONE = "none",
+  LOW_CONFIDENCE = "low-confidence",
+  OVERWRITE_MAP = "overwrite-map",
 }

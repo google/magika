@@ -1,13 +1,18 @@
 name: Docs - Check documentation
 
 on:
-  schedule:
-    - cron: '42 7 * * 4' # Run weekly
   workflow_dispatch:
   push:
     branches:
-      - 'main'
+      - "main"
   pull_request:
+    paths:
+      - "*.md"
+      - "python/**/*.md"
+      - "rust/**/*.md"
+      - "js/**/*.md"
+  schedule:
+    - cron: "42 7 * * 4" # Run weekly
 
 permissions:
   contents: read
@@ -21,6 +26,6 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
 
-      - name: 'Run check_documentation.py script'
+      - name: "Run check_documentation.py script"
         working-directory: python
         run: uv run ./scripts/check_documentation.py

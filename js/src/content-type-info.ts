@@ -1,4 +1,4 @@
-import { ContentTypeLabel } from "./content-type-label.js";
+import { ContentTypeLabel } from "./content-type-label";
 
 export interface ContentTypeInfo {
   label: ContentTypeLabel;

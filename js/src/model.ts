@@ -1,9 +1,9 @@
 import * as tf from "@tensorflow/tfjs";
 import { GraphModel } from "@tensorflow/tfjs";
-import { ModelConfig } from "./model-config.js";
-import { ModelPrediction } from "./model-prediction.js";
-import { ModelFeatures } from "./model-features.js";
-import { ContentTypeLabel } from "./content-type-label.js";
+import { ModelConfig } from "./model-config";
+import { ModelPrediction } from "./model-prediction";
+import { ModelFeatures } from "./model-features";
+import { ContentTypeLabel } from "./content-type-label";
 
 export class Model {
   model?: GraphModel;
@@ -11,13 +11,13 @@ export class Model {
   constructor(public model_config: ModelConfig) {}
 
   async loadUrl(modelURL: string): Promise<void> {
-    if (this.model == null) {
+    if (!this.model) {
       this.model = await tf.loadGraphModel(modelURL);
     }
   }
 
   async predict(features: ModelFeatures): Promise<ModelPrediction> {
-    if (this.model == null) {
+    if (!this.model) {
       throw new Error("model has not been loaded");
     }
     let features_array = features.toArray();

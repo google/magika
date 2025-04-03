@@ -1,5 +1,5 @@
 import * as fs from "fs/promises";
-import { ContentTypeLabel } from "./content-type-label.js";
+import { ContentTypeLabel } from "./content-type-label";
 
 export class ModelConfig {
   beg_size: number = 0;
@@ -64,7 +64,7 @@ export class ModelConfig {
     if (
       !(
         this.beg_size > 0 &&
-        this.mid_size == 0 &&
+        this.mid_size === 0 &&
         this.end_size > 0 &&
         !this.use_inputs_at_offsets &&
         this.medium_confidence_threshold > 0 &&

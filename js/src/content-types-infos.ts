@@ -1,5 +1,5 @@
-import { ContentTypeInfo } from "./content-type-info.js";
-import { ContentTypeLabel } from "./content-type-label.js";
+import { ContentTypeInfo } from "./content-type-info";
+import { ContentTypeLabel } from "./content-type-label";
 
 export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;
 

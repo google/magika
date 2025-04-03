@@ -1,15 +1,15 @@
 import assert from "assert";
-import { ModelConfig } from "./src/model-config.js";
-import { ContentTypeInfo } from "./src/content-type-info.js";
-import { ContentTypeLabel } from "./src/content-type-label.js";
-import { ContentTypesInfos } from "./src/content-types-infos.js";
-import { MagikaOptions } from "./src/magika-options.js";
-import { MagikaResult } from "./src/magika-result.js";
-import { ModelPrediction } from "./src/model-prediction.js";
-import { Model } from "./src/model.js";
-import { ModelFeatures } from "./src/model-features.js";
-import { OverwriteReason } from "./src/overwrite-reason.js";
-import { Status } from "./src/status.js";
+import { ModelConfig } from "./src/model-config";
+import { ContentTypeInfo } from "./src/content-type-info";
+import { ContentTypeLabel } from "./src/content-type-label";
+import { ContentTypesInfos } from "./src/content-types-infos";
+import { MagikaOptions } from "./src/magika-options";
+import { MagikaResult } from "./src/magika-result";
+import { ModelPrediction } from "./src/model-prediction";
+import { Model } from "./src/model";
+import { ModelFeatures } from "./src/model-features";
+import { OverwriteReason } from "./src/overwrite-reason";
+import { Status } from "./src/status";
 
 /**
  * The main Magika object for client-side use.
@@ -45,6 +45,7 @@ export class Magika {
   static MODEL_VERSION = "standard_v3_2";
   static MODEL_CONFIG_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/config.min.json`;
   static MODEL_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/model.json`;
+  static WHITESPACE_CHARS = [..." \t\n\r\v\f"].map((c) => c.charCodeAt(0));
 
   static async create(options?: MagikaOptions): Promise<Magika> {
     const magika = new Magika();
@@ -114,12 +115,10 @@ export class Magika {
   }
 
   static _lstrip(fileBytes: Uint8Array): Uint8Array {
-    const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
     let startIndex = 0;
-
     while (
       startIndex < fileBytes.length &&
-      whitespaceChars.includes(fileBytes[startIndex])
+      Magika.WHITESPACE_CHARS.includes(fileBytes[startIndex])
     ) {
       startIndex++;
     }
@@ -127,17 +126,18 @@ export class Magika {
   }
 
   static _rstrip(fileBytes: Uint8Array): Uint8Array {
-    const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
     let endIndex = fileBytes.length - 1;
-
-    while (endIndex >= 0 && whitespaceChars.includes(fileBytes[endIndex])) {
+    while (
+      endIndex >= 0 &&
+      Magika.WHITESPACE_CHARS.includes(fileBytes[endIndex])
+    ) {
       endIndex--;
     }
     return fileBytes.subarray(0, endIndex + 1);
   }
 
   async _identifyFromBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
-    if (fileBytes.length == 0) {
+    if (fileBytes.length === 0) {
       return this._get_result_from_labels_and_score(
         "-",
         Status.OK,
@@ -151,7 +151,7 @@ export class Magika {
       return this._get_result_for_a_few_bytes(fileBytes);
     }
 
-    let features = Magika._extract_features_from_bytes(
+    const features = Magika._extract_features_from_bytes(
       fileBytes,
       this.model_config.beg_size,
       this.model_config.mid_size,
@@ -191,7 +191,7 @@ export class Magika {
       } else {
         output_label = ContentTypeLabel.UNKNOWN;
       }
-      if (model_prediction.label == output_label) {
+      if (model_prediction.label === output_label) {
         // overwrite_reason is useful to convey to clients why the output
         // predicted is different than the model predicted type; if those two
         // are the same, the model predicted type has not actually been

@@ -1,5 +1,3 @@
-import { ModelConfig } from "./model-config.js";
-
 export class ModelFeatures {
   beg_ints: Uint16Array;
   end_ints: Uint16Array;

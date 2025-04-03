@@ -1,11 +1,9 @@
 import { ReadStream } from "fs";
 import { finished } from "stream/promises";
-import { Magika } from "./magika.js";
-import { MagikaOptions } from "./src/magika-options.js";
-import { MagikaResult } from "./src/magika-result.js";
-import { ModelNode } from "./src/model-node.js";
-import { ModelFeatures } from "./src/model-features.js";
-import { Status } from "./src/status.js";
+import { Magika } from "./magika";
+import { MagikaOptions } from "./src/magika-options";
+import { MagikaResult } from "./src/magika-result";
+import { ModelNode } from "./src/model-node";
 
 /**
  * The main Magika object for Node use.
@@ -44,22 +42,22 @@ export class MagikaNode extends Magika {
    * Parameters are optional. If not provided, the model will be loaded from GitHub.
    */
   async load(options?: MagikaOptions): Promise<void> {
-    const p: Promise<void>[] = [];
+    const promises: Promise<void>[] = [];
     if (options?.modelConfigPath != null) {
-      p.push(this.model_config.loadFile(options?.modelConfigPath));
+      promises.push(this.model_config.loadFile(options?.modelConfigPath));
     } else {
-      p.push(
+      promises.push(
         this.model_config.loadUrl(
           options?.modelConfigURL || Magika.MODEL_CONFIG_URL,
         ),
       );
     }
     if (options?.modelPath != null) {
-      p.push(this.model.loadFile(options?.modelPath));
+      promises.push(this.model.loadFile(options?.modelPath));
     } else {
-      p.push(this.model.loadUrl(options?.modelURL || Magika.MODEL_URL));
+      promises.push(this.model.loadUrl(options?.modelURL || Magika.MODEL_URL));
     }
-    await Promise.all(p);
+    await Promise.all(promises);
   }
 
   /**
@@ -118,7 +116,7 @@ export class MagikaNode extends Magika {
         fileData = Buffer.concat([fileData, data]);
       } else {
         accData = Buffer.concat([accData, data]);
-        if (fileData.length == 0) {
+        if (fileData.length === 0) {
           if (accData.length >= this.model_config.block_size) {
             // We have at least block_size bytes, let's keep them as the first
             // block.
@@ -137,7 +135,7 @@ export class MagikaNode extends Magika {
           accData = accData.subarray(
             accData.length - this.model_config.block_size,
           );
-          if (stream.bytesRead == length) {
+          if (stream.bytesRead === length) {
             // We have just read the last chunk. We now these last block_size
             // bytes as "the end block", which together with the "beg block"
             // form the file's bytes that we can pass to the features

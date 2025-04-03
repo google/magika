@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from magika.types.strenum import StrEnum
+import enum
+
+from magika.types.strenum import LowerCaseStrEnum
 
 
-class Status(StrEnum):
-    OK = "ok"
+class Status(LowerCaseStrEnum):
+    OK = enum.auto()
 
-    # Used when a file path does not exist
-    FILE_NOT_FOUND_ERROR = "file_not_found_error"
+    # Used when a file path does not exist.
+    FILE_NOT_FOUND_ERROR = enum.auto()
 
     # Used when a file path exists, but there are permission issues, e.g., can't
-    # read file
-    PERMISSION_ERROR = "permission_error"
+    # read file.
+    PERMISSION_ERROR = enum.auto()
 
     # Represents a generic error-like unknown status.
-    UNKNOWN = "unknown"
+    UNKNOWN = enum.auto()

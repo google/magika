@@ -571,8 +571,8 @@ class Magika:
         scores = np.max(raw_preds, axis=1)
 
         return [
-            (path, ModelOutput(ct_label=ContentTypeLabel(ct_label), score=float(score)))
-            for (path, _), ct_label, score in zip(
+            (path, ModelOutput(label=ContentTypeLabel(label), score=float(score)))
+            for (path, _), label, score in zip(
                 all_features, preds_content_types_labels, scores
             )
         ]
@@ -595,16 +595,16 @@ class Magika:
             # both the raw DL model output and the final output we return to
             # the user.
 
-            output_ct_label, overwrite_reason = (
+            output_label, overwrite_reason = (
                 self._get_output_label_from_dl_label_and_score(
-                    model_output.ct_label, model_output.score
+                    model_output.label, model_output.score
                 )
             )
 
             results[str(path)] = self._get_result_from_labels_and_score(
                 path=path,
-                dl_label=model_output.ct_label,
-                output_label=output_ct_label,
+                dl_label=model_output.label,
+                output_label=output_label,
                 score=model_output.score,
                 overwrite_reason=overwrite_reason,
             )
@@ -616,7 +616,7 @@ class Magika:
     ) -> Tuple[ContentTypeLabel, OverwriteReason]:
         overwrite_reason = OverwriteReason.NONE
 
-        # Overwrite dl_ct_label if specified in the overwrite_map model config
+        # Overwrite dl_label if specified in the overwrite_map model config.
         output_label = self._model_config.overwrite_map.get(dl_label, dl_label)
         if output_label != dl_label:
             overwrite_reason = OverwriteReason.OVERWRITE_MAP
@@ -751,7 +751,8 @@ class Magika:
         self, seekable: Seekable, path: Path = Path("-")
     ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
         """
-        Given a `BinaryIO` stream, we return either a MagikaOutput or a MagikaFeatures.
+        Given a Seekable object (which is a wrapper of BinaryIO), we return
+        either a MagikaOutput or a MagikaFeatures.
 
         There are some corner cases for which we do not need to use deep
         learning to get the output; in these cases, we return directly a
@@ -812,21 +813,21 @@ class Magika:
         self, content: bytes, path: Path = Path("-")
     ) -> MagikaResult:
         assert len(content) <= 4 * self._model_config.block_size
-        ct_label = self._get_label_from_few_bytes(content)
+        label = self._get_label_from_few_bytes(content)
         return self._get_result_from_labels_and_score(
             path=path,
             dl_label=ContentTypeLabel.UNDEFINED,
-            output_label=ct_label,
+            output_label=label,
             score=1.0,
         )
 
     def _get_label_from_few_bytes(self, content: bytes) -> ContentTypeLabel:
         try:
-            ct_label = ContentTypeLabel.TXT
+            label = ContentTypeLabel.TXT
             _ = content.decode("utf-8")
         except UnicodeDecodeError:
-            ct_label = ContentTypeLabel.UNKNOWN
-        return ct_label
+            label = ContentTypeLabel.UNKNOWN
+        return label
 
     def _get_raw_predictions(
         self, features: List[Tuple[Path, ModelFeatures]]

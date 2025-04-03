@@ -177,7 +177,7 @@ export class Magika {
       (this.model_config.thresholds[model_prediction.label] ??
         this.model_config.medium_confidence_threshold)
     ) {
-      // overwrite_reason = OverwriteReason.LOW_CONFIDENCE
+      overwrite_reason = OverwriteReason.LOW_CONFIDENCE;
       if (this.cts_infos[model_prediction.label].is_text) {
         output_label = ContentTypeLabel.TXT;
       } else {

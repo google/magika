@@ -34,7 +34,7 @@ class ModelFeatures:
 
 @dataclass(frozen=True)
 class ModelOutput:
-    ct_label: ContentTypeLabel
+    label: ContentTypeLabel
     score: float
 
 

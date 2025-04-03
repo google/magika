@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'main'
+      - "main"
   pull_request:
     paths:
-      - '.github/workflows/**'
-      - 'assets/**'
-      - 'rust/**'
-      - 'tests_data/**'
+      - ".github/workflows/rust-*"
+      - "assets/**"
+      - "rust/**"
+      - "tests_data/**"
 
 permissions:
   contents: read

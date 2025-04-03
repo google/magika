@@ -5,19 +5,26 @@ export class ModelFeatures {
   end_ints: Uint16Array;
   locked: { beg: boolean; end: boolean };
 
-  constructor(public model_config: ModelConfig) {
-    if (this.model_config.mid_size != 0) {
+  constructor(
+    beg_size: number,
+    mid_size: number,
+    end_size: number,
+    padding_token: number,
+    use_inputs_at_offsets: boolean,
+  ) {
+    if (mid_size != 0) {
       throw new Error(
-        `Assertion failed: This implementation does not support mid_size (${this.model_config.mid_size}) != 0 model config.`,
+        `Assertion failed: This implementation does not support mid_size (${mid_size}) != 0 model config.`,
+      );
+    }
+    if (use_inputs_at_offsets) {
+      throw new Error(
+        `Assertion failed: This implementation does not support use_inputs_at_offsets = true model config.`,
       );
     }
 
-    this.beg_ints = new Uint16Array(this.model_config.beg_size).fill(
-      this.model_config.padding_token,
-    );
-    this.end_ints = new Uint16Array(this.model_config.end_size).fill(
-      this.model_config.padding_token,
-    );
+    this.beg_ints = new Uint16Array(beg_size).fill(padding_token);
+    this.end_ints = new Uint16Array(end_size).fill(padding_token);
     this.locked = { beg: false, end: false };
   }
 

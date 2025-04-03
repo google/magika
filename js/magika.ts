@@ -7,7 +7,7 @@ import { MagikaOptions } from "./src/magika-options.js";
 import { MagikaResult } from "./src/magika-result.js";
 import { ModelPrediction } from "./src/model-prediction.js";
 import { Model } from "./src/model.js";
-import { ModelFeatures } from "./src/module-features.js";
+import { ModelFeatures } from "./src/model-features.js";
 import { OverwriteReason } from "./src/overwrite-reason.js";
 import { Status } from "./src/status.js";
 

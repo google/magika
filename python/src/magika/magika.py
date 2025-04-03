@@ -751,7 +751,8 @@ class Magika:
         self, seekable: Seekable, path: Path = Path("-")
     ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
         """
-        Given a `BinaryIO` stream, we return either a MagikaOutput or a MagikaFeatures.
+        Given a Seekable object (which is a wrapper of BinaryIO), we return
+        either a MagikaOutput or a MagikaFeatures.
 
         There are some corner cases for which we do not need to use deep
         learning to get the output; in these cases, we return directly a

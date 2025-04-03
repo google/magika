@@ -8,7 +8,7 @@ export class ModelConfig {
   use_inputs_at_offsets: boolean = false;
   medium_confidence_threshold: number = 0;
   min_file_size_for_dl: number = 0;
-  padding_token: number = 0;
+  padding_token: number = -1;
   block_size: number = 0;
   target_labels_space: ContentTypeLabel[] = [];
   thresholds: Partial<Record<ContentTypeLabel, number>> = {};
@@ -41,6 +41,7 @@ export class ModelConfig {
     this.mid_size = config.mid_size;
     this.end_size = config.end_size;
     this.use_inputs_at_offsets = config.use_inputs_at_offsets;
+    this.medium_confidence_threshold = config.medium_confidence_threshold;
     this.min_file_size_for_dl = config.min_file_size_for_dl;
     this.padding_token = config.padding_token;
     this.block_size = config.block_size;
@@ -66,6 +67,9 @@ export class ModelConfig {
         this.mid_size == 0 &&
         this.end_size > 0 &&
         !this.use_inputs_at_offsets &&
+        this.medium_confidence_threshold > 0 &&
+        this.min_file_size_for_dl > 0 &&
+        this.padding_token != -1 &&
         this.block_size > 0
       )
     ) {

@@ -4,7 +4,7 @@ import { Magika } from "./magika.js";
 import { MagikaOptions } from "./src/magika-options.js";
 import { MagikaResult } from "./src/magika-result.js";
 import { ModelNode } from "./src/model-node.js";
-import { ModelFeatures } from "./src/module-features.js";
+import { ModelFeatures } from "./src/model-features.js";
 import { Status } from "./src/status.js";
 
 /**

@@ -2,7 +2,7 @@ import * as tf from "@tensorflow/tfjs";
 import { GraphModel } from "@tensorflow/tfjs";
 import { ModelConfig } from "./model-config.js";
 import { ModelPrediction } from "./model-prediction.js";
-import { ModelFeatures } from "./module-features.js";
+import { ModelFeatures } from "./model-features.js";
 import { ContentTypeLabel } from "./content-type-label.js";
 
 export class Model {

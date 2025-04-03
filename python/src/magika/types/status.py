@@ -20,11 +20,11 @@ from magika.types.strenum import LowerCaseStrEnum
 class Status(LowerCaseStrEnum):
     OK = enum.auto()
 
-    # Used when a file path does not exist
+    # Used when a file path does not exist.
     FILE_NOT_FOUND_ERROR = enum.auto()
 
     # Used when a file path exists, but there are permission issues, e.g., can't
-    # read file
+    # read file.
     PERMISSION_ERROR = enum.auto()
 
     # Represents a generic error-like unknown status.

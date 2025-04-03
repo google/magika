@@ -1,6 +1,6 @@
 export enum Status {
   // No errors.
-  OK = "OK",
+  OK = "ok",
 
   // Used when a file path does not exist.
   FILE_NOT_FOUND_ERROR = "file_not_found_error",

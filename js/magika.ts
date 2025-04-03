@@ -113,7 +113,7 @@ export class Magika {
     }
   }
 
-  _lstrip(fileBytes: Uint8Array): Uint8Array {
+  static _lstrip(fileBytes: Uint8Array): Uint8Array {
     const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
     let startIndex = 0;
 
@@ -126,7 +126,7 @@ export class Magika {
     return fileBytes.subarray(startIndex);
   }
 
-  _rstrip(fileBytes: Uint8Array): Uint8Array {
+  static _rstrip(fileBytes: Uint8Array): Uint8Array {
     const whitespaceChars = [32, 9, 10, 13, 11, 12]; // ASCII values for ' ', '\t', '\n', '\r', '\v', '\f'
     let endIndex = fileBytes.length - 1;
 
@@ -151,7 +151,15 @@ export class Magika {
       return this._get_result_for_a_few_bytes(fileBytes);
     }
 
-    let features = this._extract_features_from_bytes(fileBytes);
+    let features = Magika._extract_features_from_bytes(
+      fileBytes,
+      this.model_config.beg_size,
+      this.model_config.mid_size,
+      this.model_config.end_size,
+      this.model_config.padding_token,
+      this.model_config.block_size,
+      this.model_config.use_inputs_at_offsets,
+    );
     return await this._get_result_from_features(features);
   }
 
@@ -195,29 +203,33 @@ export class Magika {
     return [output_label, overwrite_reason];
   }
 
-  _extract_features_from_bytes(fileBytes: Uint8Array): ModelFeatures {
+  static _extract_features_from_bytes(
+    fileBytes: Uint8Array,
+    beg_size: number,
+    mid_size: number,
+    end_size: number,
+    padding_token: number,
+    block_size: number,
+    use_inputs_at_offsets: boolean,
+  ): ModelFeatures {
     const begChunk = this._lstrip(
-      fileBytes.slice(
-        0,
-        Math.min(this.model_config.block_size, fileBytes.length),
-      ),
+      fileBytes.slice(0, Math.min(block_size, fileBytes.length)),
     );
-    const begBytes = begChunk.slice(
-      0,
-      Math.min(begChunk.length, this.model_config.beg_size),
-    );
+    const begBytes = begChunk.slice(0, Math.min(begChunk.length, beg_size));
 
     const endChunk = this._rstrip(
-      fileBytes.slice(
-        Math.max(0, fileBytes.length - this.model_config.block_size),
-      ),
+      fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
     );
-    const endBytes = endChunk.slice(
-      Math.max(0, endChunk.length - this.model_config.end_size),
-    );
-    const endOffset = Math.max(0, this.model_config.end_size - endBytes.length);
+    const endBytes = endChunk.slice(Math.max(0, endChunk.length - end_size));
+    const endOffset = Math.max(0, end_size - endBytes.length);
 
-    return new ModelFeatures(this.model_config)
+    return new ModelFeatures(
+      beg_size,
+      mid_size,
+      end_size,
+      padding_token,
+      use_inputs_at_offsets,
+    )
       .withStart(begBytes, 0)
       .withEnd(endBytes, endOffset);
   }

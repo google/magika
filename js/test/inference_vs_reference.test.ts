@@ -28,8 +28,7 @@ describe("Magika -- inference vs. reference", () => {
   let workdir = "";
 
   beforeAll(async () => {
-    magika = new Magika();
-    await magika.load();
+    magika = await Magika.create();
     workdir = await mkdtemp(path.join(os.tmpdir(), "magika-"));
   });
 

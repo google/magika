@@ -25,10 +25,9 @@ program
 program.parse();
 
 const flags = program.opts();
-const magika = new Magika();
 
 (async () => {
-  await magika.load({
+  const magika = await Magika.create({
     modelVersion: flags.modelVersion,
     modelURL: flags.modelUrl,
     modelPath: flags.modelPath,

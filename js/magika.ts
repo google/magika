@@ -18,8 +18,7 @@ import { Status } from "./src/status";
  * ```js
  * const file = new File(["# Hello I am a markdown file"], "hello.md");
  * const fileBytes = new Uint8Array(await file.arrayBuffer());
- * const magika = new Magika();
- * await magika.load();
+ * const magika = await Magika.create();
  * const result = await magika.identifyBytes(fileBytes);
  * console.log(result.prediction.output.label);
  * ```
@@ -35,33 +34,33 @@ export class Magika {
   model_version: string;
   cts_infos: ContentTypesInfos;
 
-  constructor() {
+  static MODEL_VERSION = "standard_v3_2";
+  static MODEL_CONFIG_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/config.min.json`;
+  static MODEL_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/model.json`;
+  static WHITESPACE_CHARS = [..." \t\n\r\v\f"].map((c) => c.charCodeAt(0));
+
+  protected constructor() {
     this.model_config = new ModelConfig();
     this.model = new Model(this.model_config);
     this.model_version = "unknown";
     this.cts_infos = ContentTypesInfos.get();
   }
 
-  static MODEL_VERSION = "standard_v3_2";
-  static MODEL_CONFIG_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/config.min.json`;
-  static MODEL_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/model.json`;
-  static WHITESPACE_CHARS = [..." \t\n\r\v\f"].map((c) => c.charCodeAt(0));
-
-  static async create(options?: MagikaOptions): Promise<Magika> {
-    const magika = new Magika();
-    await magika.load(options);
-    return magika;
-  }
-
   /**
-   * Loads the Magika model and config from URLs.
+   * Factory method to create a Magika instance.
    *
    * @param {MagikaOptions} options The urls or file paths where the model and
    * its config are stored.
    *
    * Parameters are optional. If not provided, the model will be loaded from GitHub.
    */
-  async load(options?: MagikaOptions): Promise<void> {
+  public static async create(options?: MagikaOptions): Promise<Magika> {
+    const magika = new Magika();
+    await magika.load(options);
+    return magika;
+  }
+
+  protected async load(options?: MagikaOptions): Promise<void> {
     this.model_version = options?.modelVersion || Magika.MODEL_VERSION;
     await Promise.all([
       this.model_config.loadUrl(
@@ -78,16 +77,16 @@ export class Magika {
    * @returns {MagikaResult} An object containing the result of the content type
    * prediction.
    */
-  async identifyBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
+  public async identifyBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
     const result = await this._identifyFromBytes(fileBytes);
     return result;
   }
 
-  getModelVersion(): string {
+  public getModelVersion(): string {
     return this.model_version;
   }
 
-  _getResultFromFewBytes(
+  private _getResultFromFewBytes(
     fileBytes: Uint8Array,
     path: string = "-",
   ): MagikaResult {
@@ -114,7 +113,7 @@ export class Magika {
     }
   }
 
-  static _lstrip(fileBytes: Uint8Array): Uint8Array {
+  private static _lstrip(fileBytes: Uint8Array): Uint8Array {
     let startIndex = 0;
     while (
       startIndex < fileBytes.length &&
@@ -125,7 +124,7 @@ export class Magika {
     return fileBytes.subarray(startIndex);
   }
 
-  static _rstrip(fileBytes: Uint8Array): Uint8Array {
+  private static _rstrip(fileBytes: Uint8Array): Uint8Array {
     let endIndex = fileBytes.length - 1;
     while (
       endIndex >= 0 &&
@@ -136,7 +135,9 @@ export class Magika {
     return fileBytes.subarray(0, endIndex + 1);
   }
 
-  async _identifyFromBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
+  protected async _identifyFromBytes(
+    fileBytes: Uint8Array,
+  ): Promise<MagikaResult> {
     if (fileBytes.length === 0) {
       return this._getResultFromLabelsAndScore(
         "-",
@@ -163,7 +164,7 @@ export class Magika {
     return await this._getResultFromFeatures(features);
   }
 
-  _getOutputLabelFromModelPrediction(
+  private _getOutputLabelFromModelPrediction(
     model_prediction: ModelPrediction,
   ): [ContentTypeLabel, OverwriteReason] {
     let overwrite_reason = OverwriteReason.NONE;
@@ -203,7 +204,7 @@ export class Magika {
     return [output_label, overwrite_reason];
   }
 
-  static _extractFeaturesFromBytes(
+  protected static _extractFeaturesFromBytes(
     fileBytes: Uint8Array,
     beg_size: number,
     mid_size: number,
@@ -234,11 +235,11 @@ export class Magika {
       .withEnd(endBytes, endOffset);
   }
 
-  _getContentTypeInfo(label: ContentTypeLabel): ContentTypeInfo {
+  private _getContentTypeInfo(label: ContentTypeLabel): ContentTypeInfo {
     return this.cts_infos[label];
   }
 
-  _getResultFromLabelsAndScore(
+  private _getResultFromLabelsAndScore(
     path: string,
     status: Status = Status.OK,
     dl_label: ContentTypeLabel,
@@ -260,7 +261,9 @@ export class Magika {
     };
   }
 
-  async _getResultFromFeatures(features: ModelFeatures): Promise<MagikaResult> {
+  private async _getResultFromFeatures(
+    features: ModelFeatures,
+  ): Promise<MagikaResult> {
     let model_prediction = await this.model.predict(features);
     let [output_label, overwrite_reason] =
       this._getOutputLabelFromModelPrediction(model_prediction);

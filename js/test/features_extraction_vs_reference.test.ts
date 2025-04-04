@@ -1,18 +1,40 @@
 import { beforeAll, describe, expect, it } from "@jest/globals";
 import { MagikaNode as Magika } from "../magika-node";
 import * as utils from "./utils";
+import { ModelFeatures } from "../src/model-features";
 
 const FEATURES_EXTRACTION_EXAMPLES: FeaturesExtractionExamples = [
   ...parseGzippedFeaturesExtractionExamples(),
 ];
+
+class TestableMagika extends Magika {
+  public static extractFeaturesFromBytes(
+    fileBytes: Uint8Array,
+    beg_size: number,
+    mid_size: number,
+    end_size: number,
+    padding_token: number,
+    block_size: number,
+    use_inputs_at_offsets: boolean,
+  ): ModelFeatures {
+    return Magika._extractFeaturesFromBytes(
+      fileBytes,
+      beg_size,
+      mid_size,
+      end_size,
+      padding_token,
+      block_size,
+      use_inputs_at_offsets,
+    );
+  }
+}
 
 describe("Magika -- features extraction vs. reference", () => {
   let magika: Magika;
   const repoRootDir = "../";
 
   beforeAll(async () => {
-    magika = new Magika();
-    await magika.load();
+    magika = await Magika.create();
   });
 
   it.each(FEATURES_EXTRACTION_EXAMPLES)(
@@ -24,7 +46,7 @@ describe("Magika -- features extraction vs. reference", () => {
       }
 
       const fileBytes = Buffer.from(example.content_base64, "base64");
-      const features = Magika._extractFeaturesFromBytes(
+      const features = TestableMagika.extractFeaturesFromBytes(
         fileBytes,
         example.args.beg_size,
         example.args.mid_size,
@@ -44,7 +66,7 @@ interface FeaturesExtractionExample {
   args: FeaturesExtractionExampleArgs;
   metadata: FeaturesExtractionExampleMetadata;
   content_base64: string;
-  features: ModelFeatures;
+  features: ExampleModelFeatures;
 }
 
 interface FeaturesExtractionExampleArgs {
@@ -62,7 +84,7 @@ interface FeaturesExtractionExampleMetadata {
   right_ws_num: number;
 }
 
-interface ModelFeatures {
+interface ExampleModelFeatures {
   beg: number[];
   mid: number[];
   end: number[];

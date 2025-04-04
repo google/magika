@@ -107,16 +107,14 @@ describe("Magika class", () => {
   });
 
   it("should load default model from url", async () => {
-    const magika = new Magika();
-    await magika.load();
+    const magika = await Magika.create();
     expect(magika.model.model).toBeDefined();
     expect(magika.model_config.target_labels_space.length).toBeGreaterThan(0);
     expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(0);
   });
 
   it("should load model from file path", async () => {
-    const magika = new Magika();
-    await magika.load({
+    const magika = await Magika.create({
       modelVersion: Magika.MODEL_VERSION,
       modelConfigPath: workdir.model_config,
       modelPath: workdir.model,
@@ -128,8 +126,7 @@ describe("Magika class", () => {
   });
 
   it("scores should be in the expected range", async () => {
-    const magika = new Magika();
-    await magika.load();
+    const magika = await Magika.create();
     fc.assert(
       fc.asyncProperty(
         fc.array(fc.integer({ min: 0, max: 255 }), {
@@ -150,8 +147,7 @@ describe("Magika class", () => {
   it.each(BASIC_TEST_FILES)(
     'by_stream vs by_byte should return the same (correct) features/label for "%s" "%s"',
     async (label, testPath, testFile) => {
-      const magika = new Magika();
-      await magika.load({
+      const magika = await Magika.create({
         modelVersion: Magika.MODEL_VERSION,
         modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
@@ -218,8 +214,7 @@ describe("Magika class", () => {
   it.each(BASIC_TEST_FILES)(
     'Magika is agnostic to the format of the input bytes for "%s" "%s"',
     async (label, testPath, testFile) => {
-      const magika = new Magika();
-      await magika.load({
+      const magika = await Magika.create({
         modelVersion: Magika.MODEL_VERSION,
         modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
@@ -230,9 +225,13 @@ describe("Magika class", () => {
       const inputUint8 = new Uint8Array(inputBuffer);
       const resultFromBuffer = await magika.identifyBytes(inputBuffer);
       const resultFromUint8 = await magika.identifyBytes(inputUint8);
-      expect(resultFromBuffer.prediction).toStrictEqual(
-        resultFromUint8.prediction,
-      );
+      expect(resultFromBuffer).toStrictEqual(resultFromUint8);
+
+      if (resultFromBuffer.prediction.dl.label != ContentTypeLabel.UNDEFINED) {
+        expect(featuresMock.mock.calls[0][0]).toStrictEqual(
+          featuresMock.mock.calls[1][0],
+        );
+      }
     },
   );
 });

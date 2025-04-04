@@ -13,8 +13,7 @@ import { ModelNode } from "./src/model-node";
  * import { readFile } from "fs/promises";
  * import { MagikaNode as Magika } from "magika";
  * const data = await readFile("some file");
- * const magika = new Magika();
- * await magika.load();
+ * const magika = await Magika.create();
  * const result = await magika.identifyBytes(data);
  * console.log(result.prediction.output.label);
  * ```
@@ -27,21 +26,27 @@ import { ModelNode } from "./src/model-node";
 export class MagikaNode extends Magika {
   model: ModelNode;
 
-  constructor() {
+  protected constructor() {
     super();
     // We load the version of the model that uses tfjs/node.
     this.model = new ModelNode(this.model_config);
   }
 
   /**
-   * Loads the Magika model and config from URLs.
+   * Factory method to create a Magika instance.
    *
    * @param {MagikaOptions} options The urls or file paths where the model and
    * its config are stored.
    *
    * Parameters are optional. If not provided, the model will be loaded from GitHub.
    */
-  async load(options?: MagikaOptions): Promise<void> {
+  public static async create(options?: MagikaOptions): Promise<MagikaNode> {
+    const magika = new MagikaNode();
+    await magika.load(options);
+    return magika;
+  }
+
+  protected async load(options?: MagikaOptions): Promise<void> {
     const promises: Promise<void>[] = [];
     if (options?.modelConfigPath != null) {
       promises.push(this.model_config.loadFile(options?.modelConfigPath));
@@ -68,7 +73,7 @@ export class MagikaNode extends Magika {
    * @returns {MagikaResult} An object containing the result of the content type
    * prediction.
    */
-  async identifyStream(
+  public async identifyStream(
     stream: ReadStream,
     length: number,
   ): Promise<MagikaResult> {
@@ -86,12 +91,14 @@ export class MagikaNode extends Magika {
    * This extends the existing Magika's fileBytes method to add support
    * prediction from a Buffer object as well.
    */
-  async identifyBytes(fileBytes: Uint8Array | Buffer): Promise<MagikaResult> {
+  public async identifyBytes(
+    fileBytes: Uint8Array | Buffer,
+  ): Promise<MagikaResult> {
     const result = await this._identifyFromBytes(new Uint8Array(fileBytes));
     return result;
   }
 
-  async _identifyFromStream(
+  private async _identifyFromStream(
     stream: ReadStream,
     length: number,
   ): Promise<MagikaResult> {

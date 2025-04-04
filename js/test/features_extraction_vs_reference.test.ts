@@ -24,7 +24,7 @@ describe("Magika -- features extraction vs. reference", () => {
       }
 
       const fileBytes = Buffer.from(example.content_base64, "base64");
-      const features = Magika._extract_features_from_bytes(
+      const features = Magika._extractFeaturesFromBytes(
         fileBytes,
         example.args.beg_size,
         example.args.mid_size,

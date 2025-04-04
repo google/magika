@@ -87,7 +87,7 @@ export class Magika {
     return this.model_version;
   }
 
-  _get_result_for_a_few_bytes(
+  _getResultFromFewBytes(
     fileBytes: Uint8Array,
     path: string = "-",
   ): MagikaResult {
@@ -96,16 +96,16 @@ export class Magika {
     try {
       decoder.decode(fileBytes);
 
-      return this._get_result_from_labels_and_score(
-        "-",
+      return this._getResultFromLabelsAndScore(
+        path,
         Status.OK,
         ContentTypeLabel.UNDEFINED,
         ContentTypeLabel.TXT,
         1.0,
       );
     } catch (error) {
-      return this._get_result_from_labels_and_score(
-        "-",
+      return this._getResultFromLabelsAndScore(
+        path,
         Status.OK,
         ContentTypeLabel.UNDEFINED,
         ContentTypeLabel.UNKNOWN,
@@ -138,7 +138,7 @@ export class Magika {
 
   async _identifyFromBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
     if (fileBytes.length === 0) {
-      return this._get_result_from_labels_and_score(
+      return this._getResultFromLabelsAndScore(
         "-",
         Status.OK,
         ContentTypeLabel.UNDEFINED,
@@ -148,10 +148,10 @@ export class Magika {
     }
 
     if (fileBytes.length < this.model_config.min_file_size_for_dl) {
-      return this._get_result_for_a_few_bytes(fileBytes);
+      return this._getResultFromFewBytes(fileBytes);
     }
 
-    const features = Magika._extract_features_from_bytes(
+    const features = Magika._extractFeaturesFromBytes(
       fileBytes,
       this.model_config.beg_size,
       this.model_config.mid_size,
@@ -160,10 +160,10 @@ export class Magika {
       this.model_config.block_size,
       this.model_config.use_inputs_at_offsets,
     );
-    return await this._get_result_from_features(features);
+    return await this._getResultFromFeatures(features);
   }
 
-  _get_output_label_from_model_prediction(
+  _getOutputLabelFromModelPrediction(
     model_prediction: ModelPrediction,
   ): [ContentTypeLabel, OverwriteReason] {
     let overwrite_reason = OverwriteReason.NONE;
@@ -203,7 +203,7 @@ export class Magika {
     return [output_label, overwrite_reason];
   }
 
-  static _extract_features_from_bytes(
+  static _extractFeaturesFromBytes(
     fileBytes: Uint8Array,
     beg_size: number,
     mid_size: number,
@@ -234,11 +234,11 @@ export class Magika {
       .withEnd(endBytes, endOffset);
   }
 
-  _get_ct_info(label: ContentTypeLabel): ContentTypeInfo {
+  _getContentTypeInfo(label: ContentTypeLabel): ContentTypeInfo {
     return this.cts_infos[label];
   }
 
-  _get_result_from_labels_and_score(
+  _getResultFromLabelsAndScore(
     path: string,
     status: Status = Status.OK,
     dl_label: ContentTypeLabel,
@@ -251,8 +251,8 @@ export class Magika {
       path: path,
       status: status,
       prediction: {
-        dl: this._get_ct_info(dl_label),
-        output: this._get_ct_info(output),
+        dl: this._getContentTypeInfo(dl_label),
+        output: this._getContentTypeInfo(output),
         score: score,
         overwrite_reason: overwrite_reason,
         scores_map: scores_map,
@@ -260,13 +260,11 @@ export class Magika {
     };
   }
 
-  async _get_result_from_features(
-    features: ModelFeatures,
-  ): Promise<MagikaResult> {
+  async _getResultFromFeatures(features: ModelFeatures): Promise<MagikaResult> {
     let model_prediction = await this.model.predict(features);
     let [output_label, overwrite_reason] =
-      this._get_output_label_from_model_prediction(model_prediction);
-    return this._get_result_from_labels_and_score(
+      this._getOutputLabelFromModelPrediction(model_prediction);
+    return this._getResultFromLabelsAndScore(
       "-",
       Status.OK,
       model_prediction.label,

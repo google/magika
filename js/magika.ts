@@ -1,10 +1,15 @@
-
-import {ContentType} from './src/contentType.js';
-import {Config} from './src/config.js';
-import {Model} from './src/model.js';
-import {ModelFeatures} from './src/moduleFeatures.js';
-import {ModelResult, ModelResultLabels, ModelResultScores} from './src/model.js';
-import {MagikaOptions} from './src/magikaOptions.js';
+import assert from "assert";
+import { ModelConfig } from "./src/model-config";
+import { ContentTypeInfo } from "./src/content-type-info";
+import { ContentTypeLabel } from "./src/content-type-label";
+import { ContentTypesInfos } from "./src/content-types-infos";
+import { MagikaOptions } from "./src/magika-options";
+import { MagikaResult } from "./src/magika-result";
+import { ModelPrediction } from "./src/model-prediction";
+import { Model } from "./src/model";
+import { ModelFeatures } from "./src/model-features";
+import { OverwriteReason } from "./src/overwrite-reason";
+import { Status } from "./src/status";
 
 /**
  * The main Magika object for client-side use.
@@ -13,111 +18,263 @@ import {MagikaOptions} from './src/magikaOptions.js';
  * ```js
  * const file = new File(["# Hello I am a markdown file"], "hello.md");
  * const fileBytes = new Uint8Array(await file.arrayBuffer());
- * const magika = new Magika();
- * await magika.load();
- * const prediction = await magika.identifyBytes(fileBytes);
- * console.log(prediction);
+ * const magika = await Magika.create();
+ * const result = await magika.identifyBytes(fileBytes);
+ * console.log(result.prediction.output.label);
  * ```
- * For a Node implementation, please import `MagikaNode` instead. 
- * 
+ * For a Node implementation, please import `MagikaNode` instead.
+ *
  * Demos:
  * - Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
  * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
  */
 export class Magika {
+  model_config: ModelConfig;
+  model: Model;
+  model_version: string;
+  cts_infos: ContentTypesInfos;
 
-    config: Config;
-    model: Model;
+  static MODEL_VERSION = "standard_v3_2";
+  static MODEL_CONFIG_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/config.min.json`;
+  static MODEL_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/model.json`;
+  static WHITESPACE_CHARS = [..." \t\n\r\v\f"].map((c) => c.charCodeAt(0));
 
-    constructor() {
-        this.config = new Config();
-        this.model = new Model(this.config);
+  protected constructor() {
+    this.model_config = new ModelConfig();
+    this.model = new Model(this.model_config);
+    this.model_version = "unknown";
+    this.cts_infos = ContentTypesInfos.get();
+  }
+
+  /**
+   * Factory method to create a Magika instance.
+   *
+   * @param {MagikaOptions} options The urls or file paths where the model and
+   * its config are stored.
+   *
+   * Parameters are optional. If not provided, the model will be loaded from GitHub.
+   */
+  public static async create(options?: MagikaOptions): Promise<Magika> {
+    const magika = new Magika();
+    await magika.load(options);
+    return magika;
+  }
+
+  protected async load(options?: MagikaOptions): Promise<void> {
+    this.model_version = options?.modelVersion || Magika.MODEL_VERSION;
+    await Promise.all([
+      this.model_config.loadUrl(
+        options?.modelConfigURL || Magika.MODEL_CONFIG_URL,
+      ),
+      this.model.loadUrl(options?.modelURL || Magika.MODEL_URL),
+    ]);
+  }
+
+  /**
+   * Identifies the content type of a byte array.
+   *
+   * @param {Uint8Array} fileBytes A fixed-length sequence of bytes.
+   * @returns {MagikaResult} An object containing the result of the content type
+   * prediction.
+   */
+  public async identifyBytes(fileBytes: Uint8Array): Promise<MagikaResult> {
+    const result = await this._identifyFromBytes(fileBytes);
+    return result;
+  }
+
+  public getModelVersion(): string {
+    return this.model_version;
+  }
+
+  private _getResultFromFewBytes(
+    fileBytes: Uint8Array,
+    path: string = "-",
+  ): MagikaResult {
+    assert(fileBytes.length <= 4 * this.model_config.block_size);
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    try {
+      decoder.decode(fileBytes);
+
+      return this._getResultFromLabelsAndScore(
+        path,
+        Status.OK,
+        ContentTypeLabel.UNDEFINED,
+        ContentTypeLabel.TXT,
+        1.0,
+      );
+    } catch (error) {
+      return this._getResultFromLabelsAndScore(
+        path,
+        Status.OK,
+        ContentTypeLabel.UNDEFINED,
+        ContentTypeLabel.UNKNOWN,
+        1.0,
+      );
+    }
+  }
+
+  private static _lstrip(fileBytes: Uint8Array): Uint8Array {
+    let startIndex = 0;
+    while (
+      startIndex < fileBytes.length &&
+      Magika.WHITESPACE_CHARS.includes(fileBytes[startIndex])
+    ) {
+      startIndex++;
+    }
+    return fileBytes.subarray(startIndex);
+  }
+
+  private static _rstrip(fileBytes: Uint8Array): Uint8Array {
+    let endIndex = fileBytes.length - 1;
+    while (
+      endIndex >= 0 &&
+      Magika.WHITESPACE_CHARS.includes(fileBytes[endIndex])
+    ) {
+      endIndex--;
+    }
+    return fileBytes.subarray(0, endIndex + 1);
+  }
+
+  protected async _identifyFromBytes(
+    fileBytes: Uint8Array,
+  ): Promise<MagikaResult> {
+    if (fileBytes.length === 0) {
+      return this._getResultFromLabelsAndScore(
+        "-",
+        Status.OK,
+        ContentTypeLabel.UNDEFINED,
+        ContentTypeLabel.EMPTY,
+        1.0,
+      );
     }
 
-    static CONFIG_URL = 'https://google.github.io/magika/model/config.json';
-    static MODEL_URL = 'https://google.github.io/magika/model/model.json';
-
-    static async create(options?: MagikaOptions): Promise<Magika> {
-        const magika = new Magika();
-        await magika.load(options);
-        return magika;
+    if (fileBytes.length < this.model_config.min_file_size_for_dl) {
+      return this._getResultFromFewBytes(fileBytes);
     }
 
-    /** Loads the Magika model and config from URLs.
-     *
-     * @param {MagikaOptions} options The urls where the model and its config are stored.
-     *
-     * Parameters are optional. If not provided, the model will be loaded from GitHub.
-     */
-    async load(options?: MagikaOptions): Promise<void> {
-        await Promise.all([
-            (this.config.loadUrl(options?.configURL || Magika.CONFIG_URL)),
-            (this.model.loadUrl(options?.modelURL || Magika.MODEL_URL))
-        ]);
+    const features = Magika._extractFeaturesFromBytes(
+      fileBytes,
+      this.model_config.beg_size,
+      this.model_config.mid_size,
+      this.model_config.end_size,
+      this.model_config.padding_token,
+      this.model_config.block_size,
+      this.model_config.use_inputs_at_offsets,
+    );
+    return await this._getResultFromFeatures(features);
+  }
+
+  private _getOutputLabelFromModelPrediction(
+    model_prediction: ModelPrediction,
+  ): [ContentTypeLabel, OverwriteReason] {
+    let overwrite_reason = OverwriteReason.NONE;
+
+    // Overwrite model_prediction.label if specified in the overwrite_map.
+    let output_label =
+      this.model_config.overwrite_map[model_prediction.label] ??
+      model_prediction.label;
+    if (output_label != model_prediction.label) {
+      overwrite_reason = OverwriteReason.OVERWRITE_MAP;
     }
 
-    /** Identifies the content type of a byte array, returning all probabilities instead of just the top one.
-     *
-     * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
-     * @returns A dictionary containing the top label, its score, and a list of content types and their scores.
-     */
-    async identifyBytesFull(fileBytes: Uint16Array | Uint8Array): Promise<ModelResultLabels> {
-        const result = await this._identifyFromBytes(fileBytes);
-        return this._getLabelsResult(result);
+    // The following code checks whether the score is "high enough" according to
+    // HIGH_CONFIDENCE prediction mode (the only one we currently support in
+    // this implementation). If it's not, it means we can't trust the model, and
+    // we return a generic content type.
+    if (
+      model_prediction.score <
+      (this.model_config.thresholds[model_prediction.label] ??
+        this.model_config.medium_confidence_threshold)
+    ) {
+      overwrite_reason = OverwriteReason.LOW_CONFIDENCE;
+      if (this.cts_infos[model_prediction.label].is_text) {
+        output_label = ContentTypeLabel.TXT;
+      } else {
+        output_label = ContentTypeLabel.UNKNOWN;
+      }
+      if (model_prediction.label === output_label) {
+        // overwrite_reason is useful to convey to clients why the output
+        // predicted is different than the model predicted type; if those two
+        // are the same, the model predicted type has not actually been
+        // overwritten, so we set this to NONE.
+        overwrite_reason = OverwriteReason.NONE;
+      }
     }
 
-    /** Identifies the content type of a byte array.
-     *
-     * @param {*} fileBytes a Buffer object (a fixed-length sequence of bytes)
-     * @returns A dictionary containing the top label and its score
-     */
-    async identifyBytes(fileBytes: Uint16Array | Uint8Array): Promise<ModelResult> {
-        const result = await this._identifyFromBytes(fileBytes);
-        return {label: result.label, score: result.score};
-    }
+    return [output_label, overwrite_reason];
+  }
 
-    _getLabelsResult(result: ModelResultScores): ModelResultLabels {
-        const labels = [
-            ...Object.values(this.config.labels).map((label) => label.name),
-            ...Object.values(ContentType),
-        ].map((label, i) => [label, (label == result.label) ? result.score : (result.scores[i] || 0)]);
-        return {label: result.label, score: result.score, labels: Object.fromEntries(labels)};
-    }
+  protected static _extractFeaturesFromBytes(
+    fileBytes: Uint8Array,
+    beg_size: number,
+    mid_size: number,
+    end_size: number,
+    padding_token: number,
+    block_size: number,
+    use_inputs_at_offsets: boolean,
+  ): ModelFeatures {
+    const begChunk = this._lstrip(
+      fileBytes.slice(0, Math.min(block_size, fileBytes.length)),
+    );
+    const begBytes = begChunk.slice(0, Math.min(begChunk.length, beg_size));
 
-    _getResultForAFewBytes(fileBytes: Uint16Array | Uint8Array): ModelResultScores {
-        if (fileBytes.length === 0) {
-            return {score: 1.0, label: ContentType.EMPTY, scores: new Uint8Array()};
-        }
-        const decoder = new TextDecoder('utf-8', {fatal: true});
-        try {
-            decoder.decode(fileBytes);
-            return {score: 1.0, label: ContentType.GENERIC_TEXT, scores: new Uint8Array()};
-        } catch (error) {
-            return {score: 1.0, label: ContentType.UNKNOWN, scores: new Uint8Array()};
-        }
-    }
+    const endChunk = this._rstrip(
+      fileBytes.slice(Math.max(0, fileBytes.length - block_size)),
+    );
+    const endBytes = endChunk.slice(Math.max(0, endChunk.length - end_size));
+    const endOffset = Math.max(0, end_size - endBytes.length);
 
-    async _identifyFromBytes(fileBytes: Uint16Array | Uint8Array): Promise<ModelResultScores> {
-        if (fileBytes.length <= this.config.minFileSizeForDl) {
-            return this._getResultForAFewBytes(fileBytes);
-        }
-        const fileArray = new Uint16Array(fileBytes);
+    return new ModelFeatures(
+      beg_size,
+      mid_size,
+      end_size,
+      padding_token,
+      use_inputs_at_offsets,
+    )
+      .withStart(begBytes, 0)
+      .withEnd(endBytes, endOffset);
+  }
 
-        // Middle chunk. Padding on either side.
-        const halfpoint = Math.round(fileArray.length / 2);
-        const startHalf = Math.max(0, halfpoint - this.config.midBytes / 2);
-        const halfChunk = fileArray.slice(startHalf, startHalf + this.config.midBytes);
+  private _getContentTypeInfo(label: ContentTypeLabel): ContentTypeInfo {
+    return this.cts_infos[label];
+  }
 
-        // End chunk. It should end with the file, and padding at the beginning.
-        const endChunk = fileArray.slice(Math.max(0, fileArray.length - this.config.endBytes));
-        const endOffset = Math.max(0, this.config.endBytes - endChunk.length);
+  private _getResultFromLabelsAndScore(
+    path: string,
+    status: Status = Status.OK,
+    dl_label: ContentTypeLabel,
+    output: ContentTypeLabel,
+    score: number,
+    overwrite_reason: OverwriteReason = OverwriteReason.NONE,
+    scores_map?: Partial<Record<ContentTypeLabel, number>>,
+  ): MagikaResult {
+    return {
+      path: path,
+      status: status,
+      prediction: {
+        dl: this._getContentTypeInfo(dl_label),
+        output: this._getContentTypeInfo(output),
+        score: score,
+        overwrite_reason: overwrite_reason,
+        scores_map: scores_map,
+      },
+    };
+  }
 
-        const features = new ModelFeatures(this.config)
-            .withStart(fileArray.slice(0, this.config.begBytes), 0)  // Beginning chunk. It should start with the file, and padding at the end.
-            .withMiddle(halfChunk, this.config.midBytes / 2 - halfChunk.length / 2)
-            .withEnd(endChunk, endOffset);
-
-        return this.model.generateResultFromPrediction(this.model.predict(features.toArray()));
-    }
-
+  private async _getResultFromFeatures(
+    features: ModelFeatures,
+  ): Promise<MagikaResult> {
+    let model_prediction = await this.model.predict(features);
+    let [output_label, overwrite_reason] =
+      this._getOutputLabelFromModelPrediction(model_prediction);
+    return this._getResultFromLabelsAndScore(
+      "-",
+      Status.OK,
+      model_prediction.label,
+      output_label,
+      model_prediction.score,
+      overwrite_reason,
+      model_prediction.scores_map,
+    );
+  }
 }

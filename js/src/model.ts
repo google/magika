@@ -1,72 +1,57 @@
-import * as tf from '@tensorflow/tfjs';
-import {GraphModel, DataTypeMap, NumericDataType} from '@tensorflow/tfjs';
-import {Config} from './config.js';
-import {ContentType} from './contentType.js';
-
-export interface ModelProdiction {
-
-    index: number;
-    scores: DataTypeMap[NumericDataType];
-
-}
-
-export interface ModelResult {
-
-    score: number;
-    label: ContentType;
-
-}
-
-export interface ModelResultScores extends ModelResult {
-
-    scores: DataTypeMap[NumericDataType];
-
-}
-
-export interface ModelResultLabels extends ModelResult {
-
-    labels: Record<string, number>;
-
-}
-
+import * as tf from "@tensorflow/tfjs";
+import { GraphModel } from "@tensorflow/tfjs";
+import { ModelConfig } from "./model-config";
+import { ModelPrediction } from "./model-prediction";
+import { ModelFeatures } from "./model-features";
+import { ContentTypeLabel } from "./content-type-label";
 
 export class Model {
+  model?: GraphModel;
 
-    model?: GraphModel;
+  constructor(public model_config: ModelConfig) {}
 
-    constructor(public config: Config) {}
+  async loadUrl(modelURL: string): Promise<void> {
+    if (!this.model) {
+      this.model = await tf.loadGraphModel(modelURL);
+    }
+  }
 
-    async loadUrl(modelURL: string): Promise<void> {
-        if (this.model == null) {
-            this.model = await tf.loadGraphModel(modelURL);
-        }
+  async predict(features: ModelFeatures): Promise<ModelPrediction> {
+    if (!this.model) {
+      throw new Error("model has not been loaded");
+    }
+    let features_array = features.toArray();
+    const modelInput = tf.tensor(
+      [features_array],
+      [1, features_array.length],
+      "int32",
+    );
+    const modelOutput = tf.squeeze(
+      (await this.model.executeAsync(modelInput)) as any,
+    );
+    const maxScoreIndexTensor = tf.argMax(modelOutput);
+    const maxScoreIndex = maxScoreIndexTensor.dataSync()[0];
+    const rawScores = modelOutput.dataSync();
+    maxScoreIndexTensor.dispose();
+    modelInput.dispose();
+    modelOutput.dispose();
+
+    const maxScoreLabel = this.model_config.target_labels_space[maxScoreIndex];
+    const maxScore = rawScores[maxScoreIndex];
+
+    if (rawScores.length != this.model_config.target_labels_space.length) {
+      throw new Error(
+        `Assertion failed: Expected rawScores.length (${rawScores.length}) to have the same length of the targets_label_space (${this.model_config.target_labels_space.length})`,
+      );
     }
 
-    predict(features: number[]): ModelProdiction {
-        if (this.model == null) {
-            throw new Error('model has not been loaded');
-        }
-        const modelInput = tf.tensor([features]);
-        const modelOutput = tf.squeeze(this.model.predict(modelInput) as any);
-        const maxProbability = tf.argMax(modelOutput);
-        const index = maxProbability.dataSync()[0];
-        const scores = modelOutput.dataSync();
-        maxProbability.dispose();
-        modelInput.dispose();
-        modelOutput.dispose();
-        return {index: index, scores: scores};
+    let scores_map: Partial<Record<ContentTypeLabel, number>> = {};
+    for (let i = 0; i < rawScores.length; i++) {
+      const label: ContentTypeLabel = this.model_config.target_labels_space[i];
+      const score: number = rawScores[i];
+      scores_map[label] = score;
     }
 
-    generateResultFromPrediction(prediction: ModelProdiction): ModelResultScores {
-        const score = prediction.scores[prediction.index];
-        const labelConfig = this.config.labels[prediction.index];
-        if (score >= labelConfig.threshold) {
-            return {score: score, label: labelConfig.name, scores: prediction.scores};
-        }
-        if (labelConfig['is_text']) {
-            return {score, label: ContentType.GENERIC_TEXT, scores: prediction.scores};
-        }
-        return {score: score, label: ContentType.UNKNOWN, scores: prediction.scores};
-    }
-
+    return { label: maxScoreLabel, score: maxScore, scores_map: scores_map };
+  }
 }

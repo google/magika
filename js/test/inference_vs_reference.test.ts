@@ -96,7 +96,15 @@ describe("Magika -- inference vs. reference", () => {
       }
 
       const fileBytes = Buffer.from(exampleByContent.content_base64, "base64");
+      let tempFilePath = path.join(workdir, "fileBytes.bin");
+      await writeFile(tempFilePath, fileBytes);
+
       const result = await magika.identifyBytes(fileBytes);
+      const resultByStream = await magika.identifyStream(
+        fs.createReadStream(tempFilePath),
+        fileBytes.length,
+      );
+      expect(result).toStrictEqual(resultByStream);
 
       expect(result.status).toBe(exampleByContent.status);
       expect(result.prediction.score).toBeCloseTo(

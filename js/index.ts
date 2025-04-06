@@ -37,6 +37,7 @@ program
   )
   .option("--model-config-path <model-config-path>", "Model config file path")
   .option("--by-stream", "Identify file via stream, not via bytes")
+  .option("--debug", "Output debug information")
   .argument("<paths...>", "Paths of the files to detect");
 
 program.exitOverride();
@@ -79,30 +80,42 @@ const flags = program.opts();
           );
           if (flags.jsonOutput) {
             console.log(path, magika_result_by_stream);
-          } else {
+          } else if (flags.debug) {
             console.log(
-              chalk.blue(path),
+              chalk.yellow(path),
               "by_stream",
               chalk.green(
                 magika_result_by_stream.prediction.dl.label,
                 magika_result_by_stream.prediction.output.label,
-                chalk.white(magika_result_by_stream.prediction.score),
               ),
+              chalk.white(magika_result_by_stream.prediction.score),
+            );
+          } else {
+            console.log(
+              chalk.yellow(path),
+              chalk.green(magika_result_by_stream.prediction.output.label),
+              chalk.white(magika_result_by_stream.prediction.score.toFixed(3)),
             );
           }
         } else {
           const magika_result_by_path = await magika.identifyBytes(data);
           if (flags.jsonOutput) {
             console.log(path, magika_result_by_path);
-          } else {
+          } else if (flags.debug) {
             console.log(
-              chalk.blue(path),
+              chalk.yellow(path),
               "by_path",
               chalk.green(
                 magika_result_by_path.prediction.dl.label,
                 magika_result_by_path.prediction.output.label,
-                chalk.white(magika_result_by_path.prediction.score),
               ),
+              chalk.white(magika_result_by_path.prediction.score),
+            );
+          } else {
+            console.log(
+              chalk.yellow(path),
+              chalk.green(magika_result_by_path.prediction.output.label),
+              chalk.white(magika_result_by_path.prediction.score.toFixed(3)),
             );
           }
         }

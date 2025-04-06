@@ -129,7 +129,6 @@ describe("Magika class", () => {
 
   it("should load model from file path", async () => {
     const magika = await Magika.create({
-      modelVersion: Magika.MODEL_VERSION,
       modelConfigPath: workdir.model_config,
       modelPath: workdir.model,
     });
@@ -162,7 +161,6 @@ describe("Magika class", () => {
     'by_stream vs by_byte should return the same (correct) features/label for "%s" "%s"',
     async (label, testPath, testFile) => {
       const magika = await Magika.create({
-        modelVersion: Magika.MODEL_VERSION,
         modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
       });
@@ -229,7 +227,6 @@ describe("Magika class", () => {
     'Magika is agnostic to the format of the input bytes for "%s" "%s"',
     async (label, testPath, testFile) => {
       const magika = await Magika.create({
-        modelVersion: Magika.MODEL_VERSION,
         modelConfigPath: workdir.model_config,
         modelPath: workdir.model,
       });

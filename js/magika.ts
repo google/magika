@@ -45,7 +45,7 @@ import { Status } from "./src/status";
 export class Magika {
   model_config: ModelConfig;
   model: Model;
-  model_version: string;
+  model_name: string;
   cts_infos: ContentTypesInfos;
 
   static MODEL_VERSION = "standard_v3_2";
@@ -56,7 +56,7 @@ export class Magika {
   protected constructor() {
     this.model_config = new ModelConfig();
     this.model = new Model(this.model_config);
-    this.model_version = "unknown";
+    this.model_name = "unknown";
     this.cts_infos = ContentTypesInfos.get();
   }
 
@@ -75,12 +75,12 @@ export class Magika {
   }
 
   protected async load(options?: MagikaOptions): Promise<void> {
-    this.model_version = options?.modelVersion || Magika.MODEL_VERSION;
+    const modelURL = options?.modelURL || Magika.MODEL_URL;
+    const modelConfigURL = options?.modelConfigURL || Magika.MODEL_CONFIG_URL;
+    this.model_name = this._getModelName(modelURL);
     await Promise.all([
-      this.model_config.loadUrl(
-        options?.modelConfigURL || Magika.MODEL_CONFIG_URL,
-      ),
-      this.model.loadUrl(options?.modelURL || Magika.MODEL_URL),
+      this.model.loadUrl(modelURL),
+      this.model_config.loadUrl(modelConfigURL),
     ]);
   }
 
@@ -96,8 +96,8 @@ export class Magika {
     return result;
   }
 
-  public getModelVersion(): string {
-    return this.model_version;
+  public getModelName(): string {
+    return this.model_name;
   }
 
   private _getResultFromFewBytes(
@@ -290,5 +290,23 @@ export class Magika {
       overwrite_reason,
       model_prediction.scores_map,
     );
+  }
+
+  protected _getModelName(pathOrUrl: string): string {
+    const UNKNOWN_MODEL_NAME = "unknown";
+    try {
+      const parts = pathOrUrl.split("/");
+      // Filter out empty strings that can occur due to leading/trailing slashes
+      const nonEmptyParts = parts.filter((part) => part !== "");
+
+      if (nonEmptyParts.length >= 2) {
+        return nonEmptyParts[nonEmptyParts.length - 2];
+      } else {
+        return UNKNOWN_MODEL_NAME;
+      }
+    } catch (error) {
+      console.error("Error processing path or URL to get model name:", error);
+      return UNKNOWN_MODEL_NAME;
+    }
   }
 }

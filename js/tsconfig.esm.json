@@ -1,7 +1,8 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "module": "esnext",
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
         "outDir": "dist/mjs",
         "target": "esnext"
     }

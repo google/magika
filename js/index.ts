@@ -21,7 +21,7 @@ import chalk from "chalk";
 import { program } from "commander";
 import * as fs from "fs";
 import { readFile } from "fs/promises";
-import { MagikaNode as Magika } from "./magika-node";
+import { MagikaNode as Magika } from "./magika-node.js";
 
 program
   .description(

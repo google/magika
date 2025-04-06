@@ -13,17 +13,17 @@
 // limitations under the License.
 
 import assert from "assert";
-import { ModelConfig } from "./src/model-config";
-import { ContentTypeInfo } from "./src/content-type-info";
-import { ContentTypeLabel } from "./src/content-type-label";
-import { ContentTypesInfos } from "./src/content-types-infos";
-import { MagikaOptions } from "./src/magika-options";
-import { MagikaResult } from "./src/magika-result";
-import { ModelPrediction } from "./src/model-prediction";
-import { Model } from "./src/model";
-import { ModelFeatures } from "./src/model-features";
-import { OverwriteReason } from "./src/overwrite-reason";
-import { Status } from "./src/status";
+import { ModelConfig } from "./src/model-config.js";
+import { ContentTypeInfo } from "./src/content-type-info.js";
+import { ContentTypeLabel } from "./src/content-type-label.js";
+import { ContentTypesInfos } from "./src/content-types-infos.js";
+import { MagikaOptions } from "./src/magika-options.js";
+import { MagikaResult } from "./src/magika-result.js";
+import { ModelPrediction } from "./src/model-prediction.js";
+import { Model } from "./src/model.js";
+import { ModelFeatures } from "./src/model-features.js";
+import { OverwriteReason } from "./src/overwrite-reason.js";
+import { Status } from "./src/status.js";
 
 /**
  * The main Magika object for client-side use.

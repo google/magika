@@ -147,6 +147,13 @@ def check_markdown_links(skip_external_validity_check: bool, verbose: bool) -> b
                     print(
                         f"ERROR: {path.relative_to(REPO_ROOT_DIR)}, in python/, has a non-external uri: {ui.uri}"
                     )
+            # Same for js/README.md, which ends up on npm.
+            if str(path.relative_to(REPO_ROOT_DIR)) == "js/README.md":
+                if not ui.is_external and not ui.is_pure_anchor:
+                    with_errors = True
+                    print(
+                        f"ERROR: {path.relative_to(REPO_ROOT_DIR)}, in python/, has a non-external uri: {ui.uri}"
+                    )
 
     success = with_errors is False
     return success

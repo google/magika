@@ -8,8 +8,8 @@
     "module": "./dist/mjs/magika.js",
     "exports": {
         "node": {
-            "import": "./dist/mjs/magika_node.js",
-            "require": "./dist/cjs/magika_node.js"
+            "import": "./dist/mjs/magika-node.js",
+            "require": "./dist/cjs/magika-node.js"
         },
         "default": {
             "import": "./dist/mjs/magika.js",

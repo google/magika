@@ -28,21 +28,35 @@ program
     "Magika JS - file type detection with ML. https://google.github.io/magika",
   )
   .option("--json-output", "Format output in JSON")
-  .option("--model-version <model-url>", "Model Version", Magika.MODEL_VERSION)
   .option("--model-url <model-url>", "Model URL", Magika.MODEL_URL)
   .option("--model-path <model-path>", "Modle file path")
-  .option("--config-url <config-url>", "Config URL", Magika.MODEL_CONFIG_URL)
-  .option("--config-path <config-path>", "Config file path")
+  .option(
+    "--model-config-url <model-config-url>",
+    "Model config URL",
+    Magika.MODEL_CONFIG_URL,
+  )
+  .option("--model-config-path <model-config-path>", "Model config file path")
   .option("--by-stream", "Identify file via stream, not via bytes")
   .argument("<paths...>", "Paths of the files to detect");
 
-program.parse();
+program.exitOverride();
+
+try {
+  program.parse(process.argv);
+} catch (error: any) {
+  // There was an error parsing the arguments, let's print the help.
+  try {
+    program.help();
+  } catch (error: any) {
+    // Avoid that commander shows some weird exception.
+    process.exit(1);
+  }
+}
 
 const flags = program.opts();
 
 (async () => {
   const magika = await Magika.create({
-    modelVersion: flags.modelVersion,
     modelURL: flags.modelUrl,
     modelPath: flags.modelPath,
     modelConfigURL: flags.configUrl,

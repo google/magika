@@ -9,8 +9,8 @@
 </template>
 
 <style lang="scss">
-@import url("https://fonts.googleapis.com/css? family=Google+Sans+Text:300,400,700&display=swap");
-@import url("https://fonts.googleapis.com/css? family=Google+Sans&display=swap");
+@import url("https://fonts.googleapis.com/css?family=Google+Sans+Text:300,400,700&display=swap");
+@import url("https://fonts.googleapis.com/css?family=Google+Sans&display=swap");
 
 $body-font-family: "Google Sans Text";
 $title-font: "Google Sans";

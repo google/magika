@@ -1,34 +1,13 @@
 <template>
-  <v-card
-    class="pt-3 pb-3 pl-2 pr-3 mx-auto"
-    variant="outlined"
-    color="primary"
-  >
+  <v-card class="pt-3 pb-3 pl-2 pr-3 mx-auto" variant="outlined" color="primary">
     <v-card-text class="text-normal pb-6">
       You can drop your files below to test out Magika. The processing happens
       entirely in your browser - the files won't be uploaded anywhere else.
     </v-card-text>
-    <v-file-input
-      v-model="files"
-      variant="solo-filled"
-      multiple
-      show-size
-      counter
-      label="Drop files here to classify them!"
-    />
-    <v-alert
-      v-if="message"
-      type="info"
-      :text="message"
-      variant="tonal"
-      class="ml-9 mb-3"
-    ></v-alert>
-    <bars-visualization
-      v-for="(file, index) in files"
-      :key="index"
-      :file="file"
-      :resultData="results[index]"
-    />
+    <v-file-input v-model="files" variant="solo-filled" multiple show-size counter
+      label="Drop files here to classify them!" />
+    <v-alert v-if="message" type="info" :text="message" variant="tonal" class="ml-9 mb-3"></v-alert>
+    <bars-visualization v-for="(file, index) in files" :key="index" :file="file" :resultData="results[index]" />
   </v-card>
 </template>
 
@@ -57,21 +36,22 @@ const results = ref([]);
 const message = ref();
 
 // Holds the initialized model and config.
-const magika = new Magika();
+let magika = undefined;
 
 watch(files, async () => {
   if (!files.value || files.value.length === 0) {
-      results.value = []; // Clear results if files are cleared
-      return;
+    results.value = []; // Clear results if files are cleared
+    return;
   }
 
   // Ensure magika is loaded.
   try {
-    await magika.load({
-      modelVersion: MAGIKA_MODEL_VERSION,
-      modelURL: MAGIKA_MODEL_URL,
-      configURL: MAGIKA_MODEL_CONFIG_URL,
-    });
+    if (magika === undefined) {
+      magika = await Magika.create({
+        modelURL: MAGIKA_MODEL_URL,
+        configURL: MAGIKA_MODEL_CONFIG_URL,
+      });
+    }
   } catch (error) {
     console.error("Failed to load Magika model:", error);
     message.value = "Error loading Magika model. Please refresh.";
@@ -100,18 +80,18 @@ watch(files, async () => {
       // Adjust the structure based on what BarsVisualization expects
       console.log(magika)
       results.value[fileIndex] = {
-          modelVersion: magika.getModelName(),
-          topLabel: topLabel,
-          scores: scoresMap
+        modelVersion: magika.getModelName(),
+        topLabel: topLabel,
+        scores: scoresMap
       };
     } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        // Set an error state for this specific file's result
-        results.value[fileIndex] = {
-            topLabel: null,
-            scores: null,
-            error: `Failed to process: ${error.message}`
-        };
+      console.error(`Error processing file ${file.name}:`, error);
+      // Set an error state for this specific file's result
+      results.value[fileIndex] = {
+        topLabel: null,
+        scores: null,
+        error: `Failed to process: ${error.message}`
+      };
     }
   });
 
@@ -134,12 +114,13 @@ function hello() {
 onMounted(async () => {
   message.value = "Initializing Magika...";
   try {
-      // Start loading Magika immediately (prefetch it).
-    await magika.load({
-      modelVersion: MAGIKA_MODEL_VERSION,
-      modelURL: MAGIKA_MODEL_URL,
-      configURL: MAGIKA_MODEL_CONFIG_URL,
-    });
+    // Start loading Magika immediately (prefetch it).
+    if (magika === undefined) {
+      magika = await Magika.create({
+        modelURL: MAGIKA_MODEL_URL,
+        configURL: MAGIKA_MODEL_CONFIG_URL,
+      });
+    }
     message.value = "Magika is loaded! Drop any file to classify it";
     setTimeout(() => {
       message.value = null;
@@ -152,8 +133,8 @@ onMounted(async () => {
     files.value = [exampleFile];
 
   } catch (error) {
-      console.error("Failed to initialize Magika on mount:", error);
-      message.value = "Failed to initialize Magika. Please refresh.";
+    console.error("Failed to initialize Magika on mount:", error);
+    message.value = "Failed to initialize Magika. Please refresh.";
   }
 });
 </script>

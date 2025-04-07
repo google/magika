@@ -7,22 +7,23 @@
         Magika is a tool to detect common file content types, using deep
         learning.
       </div>
-      <a href="https://github.com/google/magika" class="button"
-        ><small>View project on</small> GitHub</a
-      >
+      <a href="https://github.com/google/magika" class="button"><small>View project on</small> GitHub</a>
     </div>
   </header>
 
   <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3 border rounded-lg bg-primary">
-  <h2> This website now uses the latest model, `standard_v3_2`!</h2>
-  <p>
-  The new model supports 200+ content types (2x from the previous version), with the same overall average accuracy of 99%, and it is 20% faster.</p>
-  <p>
-  Our `magika` command line tool (now written in Rust), as well as our Python and Rust libraries support this new model as well.
-  </p>
-  <p>
-  For more information and the latest news, go check <a href="https://github.com/google/magika">the Magika GitHub repository</a>!
-  </p>
+    <h2> This website now uses the latest model, `standard_v3_2`!</h2>
+    <p>
+      The new model supports 200+ content types (2x from the previous version), with the same overall average accuracy
+      of 99%, and it is 20% faster.</p>
+    <p>
+      Our `magika` command line tool (now written in Rust), as well as our Python and Rust libraries support this new
+      model as well.
+    </p>
+    <p>
+      For more information and the latest news, go check <a href="https://github.com/google/magika">the Magika GitHub
+        repository</a>!
+    </p>
   </div>
 
   <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3">
@@ -37,15 +38,31 @@
       Designed for efficiency, Magika runs quickly even on a single CPU. A
       similar model currently scans hundreds of billions of files every week at
       Google (see our announcment
-      <a
-      href='https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html'
-      class='text-primary'>blog post</a>).
+      <a href='https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html'
+        class='text-primary'>blog post</a>).
     </p>
   </div>
 
   <div class="text-h3 pt-6 pb-3">Demo (Magika runs in your browser!)</div>
-  <FileClassifierDemo cols="6" />
 
+  <v-tabs v-model="activeTab" align-tabs="center" class="mb-4" grow>
+    <v-tab value="text">Text Input Demo</v-tab>
+    <v-tab value="file">File Upload Demo</v-tab>
+  </v-tabs>
+
+  <v-window v-model="activeTab">
+    <v-window-item value="text">
+      <div class="pa-4">
+        <TextAreaClassifierDemo />
+      </div>
+    </v-window-item>
+
+    <v-window-item value="file">
+      <div class="pa-4">
+        <FileClassifierDemo />
+      </div>
+    </v-window-item>
+  </v-window>
   <div class="text-h3 pt-6 mt-6 pb-3">Get Magika in your command line</div>
   <div class="text-normal pt-3 pr-3 pl-3">
     The Magika client is written in written in Rust, and you can install it with:
@@ -80,8 +97,7 @@
     code, in
     <a href="https://github.com/google/magika/tree/main/js">JavaScript</a> (in
     Node or client side; In fact, this page is using Magika's JavaScript
-    library), in <a
-    href="https://github.com/google/magika/tree/main/rust">Rust</a>, and soon in
+    library), in <a href="https://github.com/google/magika/tree/main/rust">Rust</a>, and soon in
     <a href="https://github.com/google/magika/tree/main/go">GoLang</a>!
     Check the <a href="https://github.com/google/magika">Magika GitHub repository</a> for more details.
 
@@ -89,7 +105,8 @@
 
   <div class="text-h3 pt-6 pb-3">Paper</div>
   <div class="text-normal pb-6 pl-3">
-    You can read <a href="https://arxiv.org/abs/2409.13768" target="_blank">our research paper</a> on how the Magika model was
+    You can read <a href="https://arxiv.org/abs/2409.13768" target="_blank">our research paper</a> on how the Magika
+    model was
     trained and its performance on large datasets.
   </div>
   <a href="https://arxiv.org/abs/2409.13768" target="_blank">
@@ -107,8 +124,7 @@
   month = {April},
   year = {2025}
 }
-    </pre
-  >
+    </pre>
 
   <div class="text-h3 pt-6 mt-6 pb-3">
     Need more info? See our
@@ -119,7 +135,13 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import FileClassifierDemo from "@/components/FileClassifierDemo.vue";
+import TextAreaClassifierDemo from "./TextAreaClassifierDemo.vue";
+
+// Reactive variable to control the active tab
+// Initialize with 'text' to show the text demo first
+const activeTab = ref('text');
 </script>
 
 <style scoped lang="scss">
@@ -161,12 +183,10 @@ header {
 
 .paper {
   max-height: 30rem;
-  mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 1),
-    80%,
-    rgba(0, 0, 0, 0)
-  );
+  mask-image: linear-gradient(to bottom,
+      rgba(0, 0, 0, 1),
+      80%,
+      rgba(0, 0, 0, 0));
 }
 
 pre {

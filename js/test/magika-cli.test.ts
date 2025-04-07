@@ -17,8 +17,8 @@ import { spawn } from "child_process";
 import path from "path";
 
 describe("magika-cli.ts CLI Tests", () => {
-  const scriptPath = path.resolve(__dirname, "../dist/mjs/magika-cli.js"); // Adjust path as needed
-  const nodeExecutable = process.execPath; // Path to your Node.js executable
+  const scriptPath = path.resolve(__dirname, "../dist/mjs/magika-cli.js");
+  const nodeExecutable = process.execPath;
 
   async function executeCli(
     args: string[] = [],
@@ -52,13 +52,26 @@ describe("magika-cli.ts CLI Tests", () => {
     expect(stdout).toContain("Usage: ");
     expect(stdout).toContain("Options:");
     expect(stderr).toContain("error: missing required argument");
+
+    // Check that the help is printed only once.
+    const usageOccurrences = (stdout.match(/Usage:/g) || []).length;
+    expect(usageOccurrences).toBe(1);
+    const optionsOccurrences = (stdout.match(/Options:/g) || []).length;
+    expect(optionsOccurrences).toBe(1);
+  });
+
+  it("should display help information when --help is passed", async () => {
+    const { stdout, stderr, exitCode } = await executeCli(["--help"]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Usage: ");
+    expect(stdout).toContain("Options:");
   });
 
   it("should process (by path) a specific file and output the expected result", async () => {
     const filePath = "../README.md";
     const expectedLabel = "markdown";
     const { stdout, exitCode } = await executeCli([filePath]);
-    expect(exitCode).toBe(0); // Expect success
+    expect(exitCode).toBe(0);
     expect(stdout).toContain(filePath);
     expect(stdout).toContain(expectedLabel);
   });
@@ -67,7 +80,7 @@ describe("magika-cli.ts CLI Tests", () => {
     const filePath = "../README.md";
     const expectedLabel = "markdown";
     const { stdout, exitCode } = await executeCli(["--by-stream", filePath]);
-    expect(exitCode).toBe(0); // Expect success
+    expect(exitCode).toBe(0);
     expect(stdout).toContain(filePath);
     expect(stdout).toContain(expectedLabel);
   });

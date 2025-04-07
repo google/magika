@@ -18,7 +18,7 @@
 
 // To run this, you need to install the optional dependencies too.
 import chalk from "chalk";
-import { program } from "commander";
+import { CommanderError, program } from "commander";
 import * as fs from "fs";
 import { readFile } from "fs/promises";
 import { MagikaNode as Magika } from "./magika-node.js";
@@ -45,12 +45,20 @@ program.exitOverride();
 try {
   program.parse(process.argv);
 } catch (error: any) {
-  // There was an error parsing the arguments, let's print the help.
-  try {
-    program.help();
-  } catch (error: any) {
-    // Avoid that commander shows some weird exception.
-    process.exit(1);
+  if (
+    error instanceof CommanderError &&
+    error.code === "commander.helpDisplayed"
+  ) {
+    // Help was already displayed by commander, so just exit cleanly.
+    process.exit(0);
+  } else {
+    // There was an error parsing the arguments, let's print the help.
+    try {
+      program.help();
+    } catch (error: any) {
+      // Avoid that commander shows some weird exception.
+      process.exit(1);
+    }
   }
 }
 

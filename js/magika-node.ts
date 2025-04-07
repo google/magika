@@ -98,23 +98,6 @@ export class MagikaNode extends Magika {
     return result;
   }
 
-  /**
-   * Identifies the content type of a byte array.
-   *
-   * @param {Uint8Array | Buffer} fileBytes A fixed-length sequence of bytes.
-   * @returns {MagikaResult} An object containing the result of the content type
-   * prediction.
-   *
-   * This extends the existing Magika's fileBytes method to add support
-   * prediction from a Buffer object as well.
-   */
-  public async identifyBytes(
-    fileBytes: Uint8Array | Buffer,
-  ): Promise<MagikaResult> {
-    const result = await this._identifyFromBytes(new Uint8Array(fileBytes));
-    return result;
-  }
-
   private async _identifyFromStream(
     stream: ReadStream,
     length: number,

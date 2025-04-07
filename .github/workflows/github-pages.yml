@@ -39,9 +39,9 @@ jobs:
         with:
           node-version: 18.x
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
       - name: Build
-        run: npm run build-github
+        run: yarn run build-github
       - name: Setup Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # pin@v4
       - name: Upload artifact

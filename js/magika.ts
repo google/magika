@@ -103,7 +103,7 @@ export class Magika {
     fileBytes: Uint8Array,
     path: string = "-",
   ): MagikaResult {
-    if (fileBytes.length <= 4 * this.model_config.block_size) {
+    if (fileBytes.length > 4 * this.model_config.block_size) {
       throw new Error("fileBytes is unexpectedly long for this function.");
     }
     const decoder = new TextDecoder("utf-8", { fatal: true });

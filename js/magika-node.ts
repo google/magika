@@ -18,6 +18,7 @@ import { Magika } from "./magika.js";
 import { MagikaOptions } from "./src/magika-options.js";
 import { MagikaResult } from "./src/magika-result.js";
 import { ModelNode } from "./src/model-node.js";
+import { ModelConfigNode } from "./src/model-config-node.js";
 
 /**
  * The main Magika object for Node use.
@@ -38,11 +39,13 @@ import { ModelNode } from "./src/model-node.js";
  * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
  */
 export class MagikaNode extends Magika {
+  model_config: ModelConfigNode;
   model: ModelNode;
 
   protected constructor() {
     super();
     // We load the version of the model that uses tfjs/node.
+    this.model_config = new ModelConfigNode();
     this.model = new ModelNode(this.model_config);
   }
 

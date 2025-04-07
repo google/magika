@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import assert from "assert";
-import { ModelConfig } from "./src/model-config.js";
 import { ContentTypeInfo } from "./src/content-type-info.js";
 import { ContentTypeLabel } from "./src/content-type-label.js";
 import { ContentTypesInfos } from "./src/content-types-infos.js";
 import { MagikaOptions } from "./src/magika-options.js";
 import { MagikaResult } from "./src/magika-result.js";
+import { ModelConfig } from "./src/model-config.js";
+import { ModelFeatures } from "./src/model-features.js";
 import { ModelPrediction } from "./src/model-prediction.js";
 import { Model } from "./src/model.js";
-import { ModelFeatures } from "./src/model-features.js";
 import { OverwriteReason } from "./src/overwrite-reason.js";
 import { Status } from "./src/status.js";
 
@@ -104,7 +103,9 @@ export class Magika {
     fileBytes: Uint8Array,
     path: string = "-",
   ): MagikaResult {
-    assert(fileBytes.length <= 4 * this.model_config.block_size);
+    if (fileBytes.length <= 4 * this.model_config.block_size) {
+      throw new Error("fileBytes is unexpectedly long for this function.");
+    }
     const decoder = new TextDecoder("utf-8", { fatal: true });
     try {
       decoder.decode(fileBytes);

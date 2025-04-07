@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as fs from "fs/promises";
 import { ContentTypeLabel } from "./content-type-label.js";
 
 export class ModelConfig {
@@ -41,16 +40,7 @@ export class ModelConfig {
     this.loaded = true;
   }
 
-  async loadFile(configPath: string): Promise<void> {
-    if (this.loaded) {
-      return;
-    }
-    const config = JSON.parse((await fs.readFile(configPath)).toString());
-    this.setConfig(config);
-    this.loaded = true;
-  }
-
-  private setConfig(config: Record<string, any>): void {
+  protected setConfig(config: Record<string, any>): void {
     this.beg_size = config.beg_size;
     this.mid_size = config.mid_size;
     this.end_size = config.end_size;

@@ -8,9 +8,11 @@ on:
   pull_request:
     paths:
       - "*.md"
+      - "assets/**/*.md"
+      - "docs/**/*.md"
+      - "js/**/*.md"
       - "python/**/*.md"
       - "rust/**/*.md"
-      - "js/**/*.md"
   schedule:
     - cron: "42 7 * * 4" # Run weekly
 

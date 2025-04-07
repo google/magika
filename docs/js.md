@@ -3,27 +3,19 @@
 ### Table of Contents
 
 *   [MagikaNode][1]
-    *   [load][2]
+    *   [identifyStream][2]
         *   [Parameters][3]
-    *   [identifyStream][4]
+    *   [identifyBytes][4]
         *   [Parameters][5]
-    *   [identifyStreamFull][6]
+    *   [create][6]
         *   [Parameters][7]
-    *   [identifyBytesFull][8]
-        *   [Parameters][9]
-    *   [identifyBytes][10]
-        *   [Parameters][11]
-*   [Magika][12]
-    *   [load][13]
-        *   [Parameters][14]
-    *   [identifyBytesFull][15]
-        *   [Parameters][16]
-    *   [identifyBytes][17]
-        *   [Parameters][18]
+*   [Magika][8]
+    *   [identifyBytes][9]
+        *   [Parameters][10]
+    *   [create][11]
+        *   [Parameters][12]
 
 ## MagikaNode
-
-[js/magika\_node.ts:29-134][19]
 
 **Extends Magika**
 
@@ -35,10 +27,9 @@ Example usage:
 import { readFile } from "fs/promises";
 import { MagikaNode as Magika } from "magika";
 const data = await readFile("some file");
-const magika = new Magika();
-await magika.load();
-const prediction = await magika.identifyBytes(data);
-console.log(prediction);
+const magika = await Magika.create();
+const result = await magika.identifyBytes(data);
+console.log(result.prediction.output.label);
 ```
 
 For a client-side implementation, please import `Magika` instead.
@@ -48,71 +39,42 @@ Demos:
 *   Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
 *   Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
 
-### load
-
-[js/magika\_node.ts:45-58][20]
-
-Loads the Magika model and config from URLs.
-
-#### Parameters
-
-*   `options` **MagikaOptions** The urls or file paths where the model and its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
-
-Returns **[Promise][21]\<void>**&#x20;
-
 ### identifyStream
 
-[js/magika\_node.ts:66-69][22]
-
 Identifies the content type from a read stream
 
 #### Parameters
 
-*   `stream` **ReadStream** A read stream
-*   `length` **[number][23]** Total length of stream data (this is needed to find the middle without keep the file in memory)
+*   `stream` **ReadStream** A read stream.
+*   `length` **[number][13]** Total length of stream data.
 
-Returns **[Promise][21]\<ModelResult>** A dictionary containing the top label and its score,
-
-### identifyStreamFull
-
-[js/magika\_node.ts:77-80][24]
-
-Identifies the content type from a read stream
-
-#### Parameters
-
-*   `stream` **ReadStream** A read stream
-*   `length` **[number][23]** Total length of stream data (this is needed to find the middle without keep the file in memory)
-
-Returns **[Promise][21]\<ModelResultLabels>** A dictionary containing the top label, its score, and a list of content types and their scores.
-
-### identifyBytesFull
-
-[js/magika\_node.ts:87-91][25]
-
-Identifies the content type of a byte array, returning all probabilities instead of just the top one.
-
-#### Parameters
-
-*   `fileBytes` **any** a Buffer object (a fixed-length sequence of bytes)
-
-Returns **[Promise][21]\<ModelResultLabels>** A dictionary containing the top label, its score, and a list of content types and their scores.
+Returns **MagikaResult** An object containing the result of the content type
+prediction.
 
 ### identifyBytes
-
-[js/magika\_node.ts:98-101][26]
 
 Identifies the content type of a byte array.
 
 #### Parameters
 
-*   `fileBytes` **any** a Buffer object (a fixed-length sequence of bytes)
+*   `fileBytes` **([Uint8Array][14] | [Buffer][15])** A fixed-length sequence of bytes.
 
-Returns **[Promise][21]\<ModelResult>** A dictionary containing the top label and its score
+Returns **MagikaResult** An object containing the result of the content type
+prediction.This extends the existing Magika's fileBytes method to add support
+prediction from a Buffer object as well.
+
+### create
+
+Factory method to create a Magika instance.
+
+#### Parameters
+
+*   `options` **MagikaOptions** The urls or file paths where the model and
+    its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
+
+Returns **[Promise][16]<[MagikaNode][1]>**&#x20;
 
 ## Magika
-
-[js/magika.ts:27-123][27]
 
 The main Magika object for client-side use.
 
@@ -121,10 +83,9 @@ Example usage:
 ```js
 const file = new File(["# Hello I am a markdown file"], "hello.md");
 const fileBytes = new Uint8Array(await file.arrayBuffer());
-const magika = new Magika();
-await magika.load();
-const prediction = await magika.identifyBytes(fileBytes);
-console.log(prediction);
+const magika = await Magika.create();
+const result = await magika.identifyBytes(fileBytes);
+console.log(result.prediction.output.label);
 ```
 
 For a Node implementation, please import `MagikaNode` instead.
@@ -134,98 +95,56 @@ Demos:
 *   Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
 *   Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
 
-### load
-
-[js/magika.ts:52-57][28]
-
-Loads the Magika model and config from URLs.
-
-#### Parameters
-
-*   `options` **MagikaOptions** The urls where the model and its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
-
-Returns **[Promise][21]\<void>**&#x20;
-
-### identifyBytesFull
-
-[js/magika.ts:64-67][29]
-
-Identifies the content type of a byte array, returning all probabilities instead of just the top one.
-
-#### Parameters
-
-*   `fileBytes` **any** a Buffer object (a fixed-length sequence of bytes)
-
-Returns **[Promise][21]\<ModelResultLabels>** A dictionary containing the top label, its score, and a list of content types and their scores.
-
 ### identifyBytes
-
-[js/magika.ts:74-77][30]
 
 Identifies the content type of a byte array.
 
 #### Parameters
 
-*   `fileBytes` **any** a Buffer object (a fixed-length sequence of bytes)
+*   `fileBytes` **[Uint8Array][14]** A fixed-length sequence of bytes.
 
-Returns **[Promise][21]\<ModelResult>** A dictionary containing the top label and its score
+Returns **MagikaResult** An object containing the result of the content type
+prediction.
+
+### create
+
+Factory method to create a Magika instance.
+
+#### Parameters
+
+*   `options` **MagikaOptions** The urls or file paths where the model and
+    its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
+
+Returns **[Promise][16]<[Magika][8]>**&#x20;
 
 [1]: #magikanode
 
-[2]: #load
+[2]: #identifystream
 
 [3]: #parameters
 
-[4]: #identifystream
+[4]: #identifybytes
 
 [5]: #parameters-1
 
-[6]: #identifystreamfull
+[6]: #create
 
 [7]: #parameters-2
 
-[8]: #identifybytesfull
+[8]: #magika
 
-[9]: #parameters-3
+[9]: #identifybytes-1
 
-[10]: #identifybytes
+[10]: #parameters-3
 
-[11]: #parameters-4
+[11]: #create-1
 
-[12]: #magika
+[12]: #parameters-4
 
-[13]: #load-1
+[13]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
 
-[14]: #parameters-5
+[14]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
 
-[15]: #identifybytesfull-1
+[15]: https://nodejs.org/api/buffer.html
 
-[16]: #parameters-6
-
-[17]: #identifybytes-1
-
-[18]: #parameters-7
-
-[19]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika_node.ts#L29-L134 "Source code on GitHub"
-
-[20]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika_node.ts#L45-L58 "Source code on GitHub"
-
-[21]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
-
-[22]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika_node.ts#L66-L69 "Source code on GitHub"
-
-[23]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
-
-[24]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika_node.ts#L77-L80 "Source code on GitHub"
-
-[25]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika_node.ts#L87-L91 "Source code on GitHub"
-
-[26]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika_node.ts#L98-L101 "Source code on GitHub"
-
-[27]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika.ts#L27-L123 "Source code on GitHub"
-
-[28]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika.ts#L52-L57 "Source code on GitHub"
-
-[29]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika.ts#L64-L67 "Source code on GitHub"
-
-[30]: https://github.com/google/magika/blob/83ee5b54b8e6500c30e36aa22ed1eea0481f6844/js/magika.ts#L74-L77 "Source code on GitHub"
+[16]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise

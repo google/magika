@@ -38,7 +38,7 @@ as well.
 
 Demos:
 
-*   Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
+*   Node: `<MAGIKA_REPO>/js/magika-cli.js`, which you can run with `yarn run bin -h`.
 *   Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
 
 ### identifyStream
@@ -82,7 +82,7 @@ For a Node implementation, please import `MagikaNode` instead.
 
 Demos:
 
-*   Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
+*   Node: `<MAGIKA_REPO>/js/magika-cli.js`, which you can run with `yarn run bin -h`.
 *   Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
 
 ### identifyBytes

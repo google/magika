@@ -16,8 +16,8 @@ import { describe, expect, it } from "@jest/globals";
 import { spawn } from "child_process";
 import path from "path";
 
-describe("index.ts CLI Tests", () => {
-  const scriptPath = path.resolve(__dirname, "../dist/mjs/index.js"); // Adjust path as needed
+describe("magika-cli.ts CLI Tests", () => {
+  const scriptPath = path.resolve(__dirname, "../dist/mjs/magika-cli.js"); // Adjust path as needed
   const nodeExecutable = process.execPath; // Path to your Node.js executable
 
   async function executeCli(

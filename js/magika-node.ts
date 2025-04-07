@@ -39,7 +39,7 @@ import { ModelConfigNode } from "./src/model-config-node.js";
  * as well.
  *
  * Demos:
- * - Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
+ * - Node: `<MAGIKA_REPO>/js/magika-cli.js`, which you can run with `yarn run bin -h`.
  * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
  */
 export class MagikaNode extends Magika {

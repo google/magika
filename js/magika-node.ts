@@ -21,7 +21,7 @@ import { ModelNode } from "./src/model-node.js";
 import { ModelConfigNode } from "./src/model-config-node.js";
 
 /**
- * The main Magika object for Node use.
+ * The main Magika object for Node use (`MagikaNode`).
  *
  * Example usage:
  * ```js
@@ -33,6 +33,10 @@ import { ModelConfigNode } from "./src/model-config-node.js";
  * console.log(result.prediction.output.label);
  * ```
  * For a client-side implementation, please import `Magika` instead.
+ *
+ * Note that this `MagikaNode` class extends `Magika`, which means that all
+ * public `Magika` APIs (e.g., `identifyBytes`) are available for `MagikaNode`
+ * as well.
  *
  * Demos:
  * - Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.

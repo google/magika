@@ -5,21 +5,19 @@
 *   [MagikaNode][1]
     *   [identifyStream][2]
         *   [Parameters][3]
-    *   [identifyBytes][4]
+    *   [create][4]
         *   [Parameters][5]
-    *   [create][6]
-        *   [Parameters][7]
-*   [Magika][8]
-    *   [identifyBytes][9]
+*   [Magika][6]
+    *   [identifyBytes][7]
+        *   [Parameters][8]
+    *   [create][9]
         *   [Parameters][10]
-    *   [create][11]
-        *   [Parameters][12]
 
 ## MagikaNode
 
 **Extends Magika**
 
-The main Magika object for Node use.
+The main Magika object for Node use (`MagikaNode`).
 
 Example usage:
 
@@ -34,6 +32,10 @@ console.log(result.prediction.output.label);
 
 For a client-side implementation, please import `Magika` instead.
 
+Note that this `MagikaNode` class extends `Magika`, which means that all
+public `Magika` APIs (e.g., `identifyBytes`) are available for `MagikaNode`
+as well.
+
 Demos:
 
 *   Node: `<MAGIKA_REPO>/js/index.js`, which you can run with `yarn run bin -h`.
@@ -46,22 +48,10 @@ Identifies the content type from a read stream
 #### Parameters
 
 *   `stream` **ReadStream** A read stream.
-*   `length` **[number][13]** Total length of stream data.
+*   `length` **[number][11]** Total length of stream data.
 
 Returns **MagikaResult** An object containing the result of the content type
 prediction.
-
-### identifyBytes
-
-Identifies the content type of a byte array.
-
-#### Parameters
-
-*   `fileBytes` **([Uint8Array][14] | [Buffer][15])** A fixed-length sequence of bytes.
-
-Returns **MagikaResult** An object containing the result of the content type
-prediction.This extends the existing Magika's fileBytes method to add support
-prediction from a Buffer object as well.
 
 ### create
 
@@ -72,7 +62,7 @@ Factory method to create a Magika instance.
 *   `options` **MagikaOptions** The urls or file paths where the model and
     its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
 
-Returns **[Promise][16]<[MagikaNode][1]>**&#x20;
+Returns **[Promise][12]<[MagikaNode][1]>**&#x20;
 
 ## Magika
 
@@ -101,7 +91,7 @@ Identifies the content type of a byte array.
 
 #### Parameters
 
-*   `fileBytes` **[Uint8Array][14]** A fixed-length sequence of bytes.
+*   `fileBytes` **[Uint8Array][13]** A fixed-length sequence of bytes.
 
 Returns **MagikaResult** An object containing the result of the content type
 prediction.
@@ -115,7 +105,7 @@ Factory method to create a Magika instance.
 *   `options` **MagikaOptions** The urls or file paths where the model and
     its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
 
-Returns **[Promise][16]<[Magika][8]>**&#x20;
+Returns **[Promise][12]<[Magika][6]>**&#x20;
 
 [1]: #magikanode
 
@@ -123,28 +113,22 @@ Returns **[Promise][16]<[Magika][8]>**&#x20;
 
 [3]: #parameters
 
-[4]: #identifybytes
+[4]: #create
 
 [5]: #parameters-1
 
-[6]: #create
+[6]: #magika
 
-[7]: #parameters-2
+[7]: #identifybytes
 
-[8]: #magika
+[8]: #parameters-2
 
-[9]: #identifybytes-1
+[9]: #create-1
 
 [10]: #parameters-3
 
-[11]: #create-1
+[11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
 
-[12]: #parameters-4
+[12]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
 
-[13]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
-
-[14]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
-
-[15]: https://nodejs.org/api/buffer.html
-
-[16]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
+[13]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array

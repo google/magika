@@ -98,8 +98,9 @@ watch(files, async () => {
 
       // Store the extracted data in the results array for the corresponding file
       // Adjust the structure based on what BarsVisualization expects
+      console.log(magika)
       results.value[fileIndex] = {
-          modelVersion: magika.getModelVersion(),
+          modelVersion: magika.getModelName(),
           topLabel: topLabel,
           scores: scoresMap
       };

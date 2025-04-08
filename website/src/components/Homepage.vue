@@ -153,11 +153,7 @@ function getMaxTexture() {
 }
 
 function isInferenceSupported() {
-  if (getMaxTexture() < 5804) {
-    return false;
-  } else {
-    return true;
-  }
+  return getMaxTexture() >= 5804;
 }
 
 

@@ -39,7 +39,7 @@ jobs:
         run: yarn link magika
       - name: Install website dependencies
         working-directory: website
-        run: yarn install
+        run: yarn install --frozen-lockfile
       - name: Build website
         working-directory: website
         run: yarn build

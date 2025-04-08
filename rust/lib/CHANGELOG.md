@@ -14,6 +14,7 @@
 
 ### Patch
 
+- Update dependencies
 - Add inference tests with the new reference files
 - Update features extraction test to the new reference file
 

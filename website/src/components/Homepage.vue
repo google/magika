@@ -50,7 +50,7 @@
     <v-tab value="file">File Upload Demo</v-tab>
   </v-tabs>
 
-  <v-window v-model="activeTab">
+  <v-window v-if="isSupported === true" v-model="activeTab">
     <v-window-item value="text">
       <div class="pa-4">
         <TextAreaClassifierDemo />
@@ -63,6 +63,13 @@
       </div>
     </v-window-item>
   </v-window>
+
+  <v-alert v-else-if="isSupported === false" type="warning" variant="tonal" class="mt-4 mx-4" title="Demo Not Supported"
+    text="Unfortunately, this version of the interactive demo requires browser
+    features that are not available or enabled on your current device/browser.
+    But we are working on a fix, stay tuned!">
+  </v-alert>
+
   <div class="text-h3 pt-6 mt-6 pb-3">Get Magika in your command line</div>
   <div class="text-normal pt-3 pr-3 pl-3">
     The Magika client is written in written in Rust, and you can install it with:
@@ -135,13 +142,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import FileClassifierDemo from "@/components/FileClassifierDemo.vue";
 import TextAreaClassifierDemo from "./TextAreaClassifierDemo.vue";
 
+function getMaxTexture() {
+  var canvas = document.createElement('canvas');
+  var gl = canvas.getContext('webgl');
+  return gl.getParameter(gl.MAX_TEXTURE_SIZE);
+}
+
+function isInferenceSupported() {
+  return getMaxTexture() >= 5804;
+}
+
+
 // Reactive variable to control the active tab
-// Initialize with 'text' to show the text demo first
 const activeTab = ref('text');
+
+// Reactive variable to store whether the demo is supported
+// null = undetermined, true = supported, false = not supported
+const isSupported = ref(null);
+
+// Check for inference support after the component is mounted
+onMounted(() => {
+  // Call your support checking function
+  // Ensure isInferenceSupported is defined and returns a boolean
+  try {
+    // Make sure isInferenceSupported is defined in your scope
+    isSupported.value = isInferenceSupported();
+  } catch (error) {
+    console.error("Error calling or finding isInferenceSupported():", error);
+    isSupported.value = false; // Assume not supported if check fails
+  }
+});
+
 </script>
 
 <style scoped lang="scss">

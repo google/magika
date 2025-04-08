@@ -2,12 +2,11 @@
 # See https://github.com/ossf/scorecard/blob/main/config/README.md
 
 annotations:
-
   # Binary files in tests_data/ are only used for testing.
   - checks:
       - binary-artifacts
     reasons:
-      - reason: test-data 
+      - reason: test-data
 
   - checks:
       - pinned-dependencies

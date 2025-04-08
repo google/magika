@@ -3,13 +3,13 @@ name: Pages - deploy
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: [ "main" ]
-    paths: [ website ]
+    branches: ["main"]
+    paths: [website]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-    # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
@@ -47,7 +47,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # pin@v3
         with:
-          path: './website/dist'
+          path: "./website/dist"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # pin@v4

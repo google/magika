@@ -7,11 +7,11 @@ name: Python - test published packages
 
 on:
   schedule:
-    - cron: '42 4 * * *' # Run daily
+    - cron: "42 4 * * *" # Run daily
   workflow_dispatch:
   pull_request:
     paths:
-      - '.github/workflows/python-test-published-package.yml'
+      - ".github/workflows/python-test-published-package.yml"
 
 permissions:
   contents: read
@@ -20,15 +20,15 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12", "3.13" ]
-        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
       - name: Setup Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # pin@v5
         with:
-          python-version: '${{ matrix.python-version }}'
+          python-version: "${{ matrix.python-version }}"
       # uv's oneline below does not work on windows; uv add magika==0.5.1 is known to not work with python 3.8 and 3.9
       - if: matrix.os != 'windows-latest' && matrix.python-version != '3.8' && matrix.python-version != '3.9'
         name: Install uv

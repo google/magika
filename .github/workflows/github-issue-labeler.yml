@@ -1,8 +1,8 @@
 name: New issue labeler
 on:
-  # Runs on newly opened issues 
+  # Runs on newly opened issues
   issues:
-    types: [ opened ]
+    types: [opened]
 
 # Sets permissions of the GITHUB_TOKEN
 permissions:

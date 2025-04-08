@@ -72,7 +72,7 @@
 
   <div class="text-h3 pt-6 mt-6 pb-3">Get Magika in your command line</div>
   <div class="text-normal pt-3 pr-3 pl-3">
-    The Magika client is written in written in Rust, and you can install it with:
+    The Magika client is written in Rust, and you can install it with:
     <code>pip install magika</code>
   </div>
   <div class="text-normal pt-3 pb-3 pr-3 pl-3">

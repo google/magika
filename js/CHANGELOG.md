@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## [0.3.0-dev]
+## [0.3.2]
+
+- Upgrade to `standard_v3_3` model.
+
+## [0.3.1]
 
 - Overhaul of the API to use much cleaner abstractions.
 - Removed identifyBytesFull and identifyStreamFull: identifyBytes and

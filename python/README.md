@@ -3,13 +3,13 @@
 [![image](https://img.shields.io/pypi/v/magika.svg)](https://pypi.python.org/pypi/magika)
 [![image](https://img.shields.io/pypi/l/magika.svg)](https://pypi.python.org/pypi/magika)
 [![image](https://img.shields.io/pypi/pyversions/magika.svg)](https://pypi.python.org/pypi/magika)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/magika/badge)](https://securityscorecards.dev/viewer/?uri=github.com/google/magika)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706)
 ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)
 [![Actions status](https://github.com/google/magika/actions/workflows/python-build-package.yml/badge.svg)](https://github.com/google/magika/actions)
 [![PyPI Monthly Downloads](https://static.pepy.tech/badge/magika/month)](https://pepy.tech/projects/magika)
 [![PyPI Downloads](https://static.pepy.tech/badge/magika)](https://pepy.tech/projects/magika)
 
+<!-- [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/magika/badge)](https://securityscorecards.dev/viewer/?uri=github.com/google/magika) -->
 
 Magika is a novel AI-powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU. Magika has been trained and evaluated on a dataset of ~100M samples across 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set.
 
@@ -21,12 +21,12 @@ You can find more information on which content types are supported, extended doc
 
 > **IMPORTANT**: This latest 0.6.1 version has a few breaking changes from the latest stable version, 0.5.1. Please consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md#061---2025-03-19) and the [migration guide](https://github.com/google/magika/blob/main/python/CHANGELOG.md#breaking-changes-and-migration-guide).
 
-
 ## Installing Magika
 
 Magika is available as `magika` on [PyPI](https://pypi.org/project/magika):
 
 To install the most recent stable version:
+
 ```shell
 $ pip install magika
 ```
@@ -34,7 +34,6 @@ $ pip install magika
 If you intend to use Magika only as a command line, you may want to use `$ pipx install magika` instead.
 
 If you want to test out the latest release candidate, you can install it with `pip install --pre magika`.
-
 
 ## Using Magika as a command-line tool
 
@@ -170,9 +169,7 @@ Options:
           Print version
 ```
 
-
 Check the [Rust CLI docs](https://github.com/google/magika/blob/main/rust/cli/README.md) for more information.
-
 
 ## Using Magika as a Python module
 
@@ -205,26 +202,26 @@ ini
 ini
 ```
 
-
 ## Documentation on core concepts
 
 To get the most out of Magika, it's worth learning about its core concepts. You can read about the models, prediction modes, output structure, and content type knowledge base in the documentation [here](https://github.com/google/magika/blob/main/docs/concepts.md).
-
 
 ### API documentation
 
 First, create a `Magika` instance: `magika = Magika()`.
 
 The constructor accepts the following optional arguments:
+
 - `model_dir`: path to a model to use; defaults to the latest available model.
 - `prediction_mode`: which prediction mode to use; defaults to `PredictionMode.HIGH_CONFIDENCE`.
 - `no_dereference`: controls whether symlinks should be dereferenced; defaults to `False`.
 
 Once instantiated, the `Magika` object exposes methods to identify the content type of a `bytes` object, of files identified by their paths, and of an already-open binary stream:
+
 - `magika.identify_bytes(b"test")`: takes as input a stream of bytes and predict its content type.
 - `magika.identify_path("test.txt")`: takes as input one `str | os.PathLike` object and predicts its content type.
 - `magika.identify_paths(["test.txt", "test2.txt"])`: takes as input a list of `str | os.PathLike` objects and returns the predicted type for each of them.
-- `magika.identify_stream(stream: typing.BinaryIO)`: takes as input an *already open* binary file-like object (e.g., the output of `open(file_path, 'rb')`) and returns its predicted content type. Keep in mind that Magika will `seek()` around the stream, and that the stream *is not closed* (closing is the responsibility of the caller).
+- `magika.identify_stream(stream: typing.BinaryIO)`: takes as input an _already open_ binary file-like object (e.g., the output of `open(file_path, 'rb')`) and returns its predicted content type. Keep in mind that Magika will `seek()` around the stream, and that the stream _is not closed_ (closing is the responsibility of the caller).
 
 If you are dealing with large files, the `identify_path`, `identify_paths`, and `identify_stream` variants are generally better: their implementation `seek()`s around the file/stream to extract the needed features, without loading the entire content in memory.
 
@@ -269,13 +266,11 @@ class ContentTypeLabel(StrEnum):
     [...]
 ```
 
-
 ### Additional APIs
 
 - `get_output_content_types()`: Returns a list of all possible content type labels that Magika can output (i.e., the possible values of `MagikaResult.prediction.output.label`). This is the recommended method for most users that want to have a list of what is the output space of Magika.
-- `get_model_content_types()`: Returns a list of all possible content type labels the *deep learning model* can output (i.e., `MagikaResult.prediction.dl.label`). Useful for debugging, most users should refer to `get_output_content_types()`.
+- `get_model_content_types()`: Returns a list of all possible content type labels the _deep learning model_ can output (i.e., `MagikaResult.prediction.dl.label`). Useful for debugging, most users should refer to `get_output_content_types()`.
 - `get_module_version()` and `get_model_version()`: Returns the module version and the model's name being used, respectively.
-
 
 ## Development setup
 
@@ -283,11 +278,12 @@ class ContentTypeLabel(StrEnum):
 - To run the tests suite: `$ cd python; uv run pytest tests -m "not slow"`. Check the github action workflows for more information.
 - We use the `maturin` backend to combine the Rust CLI with the python codebase in the `magika` python package. This process is automated via the [build python package GitHub action](https://github.com/google/magika/blob/main/.github/workflows/python-build-package.yml).
 
-
 ## Research Paper and Citation
+
 We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. A pre-print of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).
 
 If you use this software for your research, please cite it as:
+
 ```bibtex
 @InProceedings{fratantonio25:magika,
   author = {Yanick Fratantonio and Luca Invernizzi and Loua Farah and Kurt Thomas and Marina Zhang and Ange Albertini and Francois Galilee and Giancarlo Metitieri and Julien Cretin and Alexandre Petit-Bianco and David Tao and Elie Bursztein},

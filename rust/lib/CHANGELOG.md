@@ -10,6 +10,7 @@
 
 ### Minor
 
+- Use the `standard_v3_3` model instead of `standard_v3_2` (see [model changelog])
 - Add `OverwriteReason` to document why the inferred content type is overwritten
 
 ### Patch

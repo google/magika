@@ -149,7 +149,7 @@ type ExamplesByContent = ExampleByContent[];
 
 function parseGzippedExamplesByPath(): ExamplesByPath {
   const parsedData = utils.parseGzippedJSON(
-    "../tests_data/reference/standard_v3_2-inference_examples_by_path.json.gz",
+    "../tests_data/reference/standard_v3_3-inference_examples_by_path.json.gz",
   );
   const examplesByPath = parsedData as ExamplesByPath;
   for (const exampleByPath of examplesByPath) {
@@ -166,7 +166,7 @@ function parseGzippedExamplesByPath(): ExamplesByPath {
 
 function parseGzippedExamplesByContent(): ExamplesByContent {
   const parsedData = utils.parseGzippedJSON(
-    "../tests_data/reference/standard_v3_2-inference_examples_by_content.json.gz",
+    "../tests_data/reference/standard_v3_3-inference_examples_by_content.json.gz",
   );
   const examplesByContent = parsedData as ExamplesByContent;
   for (const exampleByContent of examplesByContent) {

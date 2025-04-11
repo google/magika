@@ -18,7 +18,7 @@
 use crate::file::TypeInfo;
 
 /// Model name (only comparable with equality).
-pub const MODEL_NAME: &str = "standard_v3_2";
+pub const MODEL_NAME: &str = "standard_v3_3";
 
 /// Model major version.
 pub const MODEL_MAJOR_VERSION: u32 = 3;

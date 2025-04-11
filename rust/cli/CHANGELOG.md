@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Use the `standard_v3_3` model instead of `standard_v3_2` (see [model changelog])
 - Do not print the low-confidence warning if the content type was simply overwritten
 
 ### Patch

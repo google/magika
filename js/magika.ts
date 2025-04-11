@@ -47,7 +47,7 @@ export class Magika {
   model_name: string;
   cts_infos: ContentTypesInfos;
 
-  static MODEL_VERSION = "standard_v3_2";
+  static MODEL_VERSION = "standard_v3_3";
   static MODEL_CONFIG_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/config.min.json`;
   static MODEL_URL = `https://google.github.io/magika/models/${this.MODEL_VERSION}/model.json`;
   static WHITESPACE_CHARS = [..." \t\n\r\v\f"].map((c) => c.charCodeAt(0));

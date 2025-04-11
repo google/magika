@@ -107,7 +107,7 @@ const EXAMPLE_JS = `
 function hello() {
   const name = document.querySelector('input').value;
   const hi = 'salutation ' + name;
-  return hi
+  return hi;
 }
 `;
 

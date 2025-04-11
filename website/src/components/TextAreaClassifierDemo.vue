@@ -49,14 +49,12 @@ const DEBOUNCE_DELAY = 300; // milliseconds
 
 // Example initial text
 const EXAMPLE_JS = `
-  function hello() {
-    // This is a comment
-    const name = document.querySelector('input').value;
-    const hi = 'salutation ' + name;
-    console.log(\`Hello \${name}!\`);
-    return hi;
-  }
-  `;
+function hello() {
+  const name = document.querySelector('input').value;
+  const hi = 'salutation ' + name;
+  return hi;
+}
+`;
 
 // Function to process the text input
 const processText = async (text) => {

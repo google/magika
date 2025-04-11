@@ -41,7 +41,7 @@ from magika.types import (
     Status,
 )
 
-_DEFAULT_MODEL_NAME = "standard_v3_2"
+_DEFAULT_MODEL_NAME = "standard_v3_3"
 
 
 class Magika:

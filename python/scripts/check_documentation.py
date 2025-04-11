@@ -76,9 +76,12 @@ def check_versions_are_up_to_date() -> bool:
         f"> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `{python_latest_stable_version}`, and you can consult the associated documentation [here](https://github.com/google/magika/blob/python-v{python_latest_stable_version}/python/README.md). You can install the latest stable version with: `pip install magika`.",
         f"- Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/{python_default_model_name}/README.md).",
         f"- [List of supported content types by the latest model, `{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md)",
-        f"| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md) |",
-        f"| [Rust `magika` CLI](https://crates.io/crates/magika-cli) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
-        f"| [Rust `magika` library](https://docs.rs/magika) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
+        # TODO(#1039): currently the script checks for "what's on main", not
+        # "what's on pip/npm".  Until we clean this up, we skip these automated
+        # checks.
+        # f"| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md) |",
+        # f"| [Rust `magika` CLI](https://crates.io/crates/magika-cli) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
+        # f"| [Rust `magika` library](https://docs.rs/magika) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
     ]
 
     readme_content_lines_set = set(

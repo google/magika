@@ -20,6 +20,10 @@ IGNORE_PREFIX_PATTERNS = [
     ".ruff_cache",
     "python/.venv",
     "python/dist",
+    "website/node_modules",
+    "website/dist",
+    "js/node_modules",
+    "js/dist",
 ]
 
 # List of (prefix) of urls that return non-200 even if they are valid; for

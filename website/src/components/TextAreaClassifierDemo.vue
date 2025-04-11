@@ -80,7 +80,7 @@ const processText = async (text) => {
 
     try {
         // Convert the text string to Uint8Array
-        const textBytes = new TextEncoder().encode(text);
+        const textBytes = new TextEncoder().encode(text.trim());
 
         // Identify content type using Magika
         const magikaResult = await magika.identifyBytes(textBytes);

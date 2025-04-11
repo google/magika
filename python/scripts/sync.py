@@ -10,11 +10,7 @@ from typing import Optional
 import click
 
 MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE = [
-    "standard_v3_2",
-]
-
-MODELS_NAMES_TO_INCLUDE_IN_JS_PACKAGE = [
-    "standard_v3_2",
+    "standard_v3_3",
 ]
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent

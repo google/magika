@@ -11,6 +11,7 @@
 Magika is a novel AI-powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU. Magika has been trained and evaluated on a dataset of ~100M samples across 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set.
 
 Here is an example of what Magika command line output looks like:
+
 <p align="center">
     <img src="./assets/magika-screenshot.png" width="600">
 </p>
@@ -21,12 +22,11 @@ For more context you can read our initial [announcement post on Google's OSS blo
 
 You can try Magika without installing anything by using our [web demo](https://google.github.io/magika/), which runs locally in your browser! (Note: the website runs an older version of the model; but while results may differ, it is still useful to get an idea of Magika's capabilities.)
 
-
 > [!IMPORTANT]
+>
 > - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `0.6.1`, and you can consult the associated documentation [here](https://github.com/google/magika/blob/python-v0.6.1/python/README.md). You can install the latest stable version with: `pip install magika`.
 > - A detailed changelog and migration guidelines from older versions are discussed [here](https://github.com/google/magika/blob/python-v0.6.1/python/CHANGELOG.md).
 > - Help testing the latest release candidate is very appreciated! See the available candidates [here](https://pypi.org/project/magika/#history) and the recent changes in the [CHANGELOG.md](./python/CHANGELOG.md). You can install the latest release candidate with `pip install --pre magika`.
-
 
 # Highlights
 
@@ -40,14 +40,13 @@ You can try Magika without installing anything by using our [web demo](https://g
 - The tolerance to errors can be controlled via different prediction modes, such as `high-confidence`, `medium-confidence`, and `best-guess`.
 - The client and the bindings are already open source, and more is coming soon!
 
-
 # Table of Contents
 
 1. [Getting Started](#getting-started)
-    1. [Installation](#installation)
-    1. [Usage](#usage)
-        1. [Command line client](#command-line-client)
-        1. [Python module and other bindings](#python-module-and-other-bindings)
+   1. [Installation](#installation)
+   1. [Usage](#usage)
+      1. [Command line client](#command-line-client)
+      1. [Python module and other bindings](#python-module-and-other-bindings)
 1. [Documentation](#documentation)
 1. [Bindings](#bindings)
 1. [Development Setup](#development-setup)
@@ -57,7 +56,6 @@ You can try Magika without installing anything by using our [web demo](https://g
 1. [Security vulnerabilities](#security-vulnerabilities)
 1. [License](#license)
 1. [Disclaimer](#disclaimer)
-
 
 # Getting Started
 
@@ -74,6 +72,7 @@ If you intend to use Magika only as a command line, you may want to use `$ pipx 
 If you want to test out the latest release candidate, you can install with `pip install --pre magika`.
 
 If you want to test Magika within a Docker container, you can run:
+
 ```shell
 git clone https://github.com/google/magika
 cd magika/
@@ -219,7 +218,6 @@ Options:
           Print version
 ```
 
-
 ### Python module and other bindings
 
 While the command line client is handy for many use cases, it may not be the most suitable for automated workflows. Thus, Magika comes with bindings for Python and other languages (see the [Bindings section](#bindings) below for more details).
@@ -253,7 +251,6 @@ ini
 
 Please consult the [python documentation](./python/README.md) for details on the Python `Magika` API, and the [additional documentation listed below](#documentation) for more information about the output format and other aspects.
 
-
 # Documentation
 
 - [Core concepts: models, prediction mode, magika's output, and content types knowledge base](./docs/concepts.md)
@@ -261,7 +258,6 @@ Please consult the [python documentation](./python/README.md) for details on the
 - [Documentation about the CLI](./rust/cli/README.md)
 - [Documentation about the python `magika` package and module](./python/README.md)
 - [Frequently Asked Questions](./docs/faq.md)
-
 
 # Bindings
 
@@ -278,7 +274,6 @@ Please consult the [python documentation](./python/README.md) for details on the
 
 We have Magika bindings in multiple languages; each of them has its own development setup. Consult the documentation associated to each binding for more information. For example, for the python `magika` package and module, consult [python/README.md](./python/README.md).
 
-
 # Known Limitations & Contributing
 
 Magika significantly improves over the state of the art, but there's always room for improvement! More work can be done to increase detection accuracy, support for additional content types, bindings for more languages, etc.
@@ -292,17 +287,17 @@ Check our open GitHub issues to see what is on our roadmap and please report mis
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
-
 # Additional Resources
 
 - [Google's OSS blog post](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html) about Magika announcement.
 - Web demo: [web demo](https://google.github.io/magika/).
 
-
 # Research Paper and Citation
+
 We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. A pre-print of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).
 
 If you use this software for your research, please cite it as:
+
 ```bibtex
 @InProceedings{fratantonio25:magika,
   author = {Yanick Fratantonio and Luca Invernizzi and Loua Farah and Kurt Thomas and Marina Zhang and Ange Albertini and Francois Galilee and Giancarlo Metitieri and Julien Cretin and Alexandre Petit-Bianco and David Tao and Elie Bursztein},
@@ -314,6 +309,7 @@ If you use this software for your research, please cite it as:
 ```
 
 # Security vulnerabilities
+
 Please contact us directly at magika-dev@google.com
 
 # License

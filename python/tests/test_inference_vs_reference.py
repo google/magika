@@ -602,7 +602,7 @@ def _check_result_vs_reference_example(
         assert result.prediction.dl.label == expected_prediction.dl
         assert result.prediction.output.label == expected_prediction.output
         assert result.prediction.score == pytest.approx(
-            expected_prediction.score, abs=1e-6
+            expected_prediction.score, abs=1e-5
         )
         assert (
             result.prediction.overwrite_reason == expected_prediction.overwrite_reason

@@ -27,7 +27,7 @@ interface ProcessedResult {
 }
 */
 
-const MAGIKA_MODEL_VERSION = "standard_v3_2"
+const MAGIKA_MODEL_VERSION = "standard_v3_3"
 const MAGIKA_MODEL_URL = `${import.meta.env.BASE_URL}models/${MAGIKA_MODEL_VERSION}/model.json`;
 const MAGIKA_MODEL_CONFIG_URL = `${import.meta.env.BASE_URL}models/${MAGIKA_MODEL_VERSION}/config.min.json`;
 

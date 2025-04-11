@@ -12,7 +12,7 @@
   </header>
 
   <div class="text-normal pt-6 mt-6 pb-3 pr-3 pl-3 border rounded-lg bg-primary">
-    <h2> This website now uses the latest model, `standard_v3_2`!</h2>
+    <h2> This website now uses the latest model, `standard_v3_3`!</h2>
     <p>
       The new model supports 200+ content types (2x from the previous version), with the same overall average accuracy
       of 99%, and it is 20% faster.</p>

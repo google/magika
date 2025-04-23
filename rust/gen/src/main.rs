@@ -17,7 +17,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use anyhow::{Context, Result};
+use anyhow::{ensure, Context, Result};
 use serde::Deserialize;
 
 fn main() -> Result<()> {
@@ -132,9 +132,9 @@ fn generate_model_config(content_types: &[String], model_config: ModelConfig) ->
     writeln!(output, "use crate::ContentType;\n")?;
     writeln!(output, "pub(crate) const CONFIG: ModelConfig = ModelConfig {{")?;
     writeln!(output, "    beg_size: {beg_size},")?;
-    writeln!(output, "    mid_size: {mid_size},")?;
+    ensure!(mid_size == 0, "unsupported mid_size");
     writeln!(output, "    end_size: {end_size},")?;
-    writeln!(output, "    use_inputs_at_offsets: {use_inputs_at_offsets},")?;
+    ensure!(!use_inputs_at_offsets, "unsupported use_inputs_at_offsets");
     writeln!(output, "    min_file_size_for_dl: {min_file_size_for_dl},")?;
     writeln!(output, "    padding_token: {padding_token},")?;
     writeln!(output, "    block_size: {block_size},")?;

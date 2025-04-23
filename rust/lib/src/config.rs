@@ -19,9 +19,7 @@ use crate::ContentType;
 #[derive(Debug)]
 pub(crate) struct ModelConfig {
     pub(crate) beg_size: usize,
-    pub(crate) mid_size: usize,
     pub(crate) end_size: usize,
-    pub(crate) use_inputs_at_offsets: bool,
     pub(crate) min_file_size_for_dl: usize,
     pub(crate) padding_token: i32,
     pub(crate) block_size: usize,
@@ -31,30 +29,18 @@ pub(crate) struct ModelConfig {
 
 pub(crate) struct SplitFeatures<'a> {
     pub(crate) beg: &'a mut [i32],
-    pub(crate) mid: &'a mut [i32],
     pub(crate) end: &'a mut [i32],
-    pub(crate) off: Vec<(usize, &'a mut [i32])>,
 }
 
 impl ModelConfig {
     pub(crate) fn features_size(&self) -> usize {
-        let offsets_size = if self.use_inputs_at_offsets { 4 * 8 } else { 0 };
-        self.beg_size + self.mid_size + self.end_size + offsets_size
+        self.beg_size + self.end_size
     }
 
     pub(crate) fn split_features<'a>(&self, features: &'a mut [i32]) -> SplitFeatures<'a> {
         let (beg, features) = features.split_at_mut(self.beg_size);
-        let (mid, features) = features.split_at_mut(self.mid_size);
-        let (end, mut features) = features.split_at_mut(self.end_size);
-        let mut off = Vec::new();
-        if self.use_inputs_at_offsets {
-            for offset in [0x8000, 0x8800, 0x9000, 0x9800] {
-                let (head, tail) = features.split_at_mut(8);
-                features = tail;
-                off.push((offset, head));
-            }
-        }
+        let (end, features) = features.split_at_mut(self.end_size);
         debug_assert!(features.is_empty());
-        SplitFeatures { beg, mid, end, off }
+        SplitFeatures { beg, end }
     }
 }

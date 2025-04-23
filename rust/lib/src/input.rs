@@ -151,7 +151,6 @@ async fn extract_features_async(
     config: &ModelConfig, mut file: impl AsyncInputApi, file_len: usize,
 ) -> Result<(Vec<u8>, Vec<i32>)> {
     debug_assert!(config.beg_size < config.block_size);
-    debug_assert!(config.mid_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
     let buffer_size = std::cmp::min(config.block_size, file_len);
     let mut content_beg = vec![0; buffer_size];
@@ -160,31 +159,18 @@ async fn extract_features_async(
     let mut end = vec![0; buffer_size];
     file.read_at(&mut end, file_len - buffer_size).await?;
     let end = strip_suffix(&end);
-    let mid_len = std::cmp::min(config.mid_size, file_len);
-    let mid_off = (file_len - mid_len) / 2;
-    let mut mid = vec![0; mid_len];
-    file.read_at(&mut mid, mid_off).await?;
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
-    copy_features(split_features.mid, &mid, 1);
-    copy_features(split_features.end, end, 2);
-    for (offset, features) in split_features.off {
-        let mut buffer = Vec::new();
-        if offset + features.len() <= file_len {
-            buffer = vec![0; features.len()];
-            file.read_at(&mut buffer, offset).await?;
-        }
-        copy_features(features, &buffer, 0);
-    }
+    copy_features(split_features.end, end, 1);
     Ok((content_beg, features))
 }
 
 fn copy_features(dst: &mut [i32], src: &[u8], align: usize) {
     let len = std::cmp::min(dst.len(), src.len());
     let dst_len = dst.len(); // borrowing issue: cannot inline below
-    let dst = &mut dst[(dst_len - len) * align / 2..][..len];
-    let src = &src[(src.len() - len) * align / 2..][..len];
+    let dst = &mut dst[(dst_len - len) * align..][..len];
+    let src = &src[(src.len() - len) * align..][..len];
     for (dst, src) in dst.iter_mut().zip(src.iter()) {
         *dst = *src as i32;
     }
@@ -272,23 +258,23 @@ mod tests {
         GzDecoder::new(File::open(PATH).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
         for test in tests {
+            assert_eq!(test.args.mid_size, 0, "unsupported mid_size");
+            assert!(!test.args.use_inputs_at_offsets, "unsupported use_inputs_at_offsets");
+            assert!(test.features.mid.is_empty(), "unsupported mid");
+            assert!(test.features.offset_0x8000_0x8007.is_empty(), "unsupported offset");
+            assert!(test.features.offset_0x8800_0x8807.is_empty(), "unsupported offset");
+            assert!(test.features.offset_0x9000_0x9007.is_empty(), "unsupported offset");
+            assert!(test.features.offset_0x9800_0x9807.is_empty(), "unsupported offset");
             let config = ModelConfig {
                 beg_size: test.args.beg_size,
-                mid_size: test.args.mid_size,
                 end_size: test.args.end_size,
-                use_inputs_at_offsets: test.args.use_inputs_at_offsets,
                 padding_token: test.args.padding_token,
                 block_size: test.args.block_size,
                 ..crate::model::CONFIG
             };
             let mut expected = Vec::new();
             expected.extend_from_slice(&test.features.beg);
-            expected.extend_from_slice(&test.features.mid);
             expected.extend_from_slice(&test.features.end);
-            expected.extend_from_slice(&test.features.offset_0x8000_0x8007);
-            expected.extend_from_slice(&test.features.offset_0x8800_0x8807);
-            expected.extend_from_slice(&test.features.offset_0x9000_0x9007);
-            expected.extend_from_slice(&test.features.offset_0x9800_0x9807);
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
             let actual = extract_features_async(&config, content.as_slice(), content.len());
             let actual = exec(actual).unwrap().1;

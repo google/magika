@@ -22,9 +22,7 @@ use crate::ContentType;
 
 pub(crate) const CONFIG: ModelConfig = ModelConfig {
     beg_size: 1024,
-    mid_size: 0,
     end_size: 1024,
-    use_inputs_at_offsets: false,
     min_file_size_for_dl: 8,
     padding_token: 256,
     block_size: 4096,

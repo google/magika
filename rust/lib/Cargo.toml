@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "0.2.0-dev"
+version = "0.2.0"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"

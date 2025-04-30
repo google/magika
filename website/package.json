@@ -33,7 +33,7 @@
     "prettier": "^3.2.5",
     "sass": "^1.60.0",
     "unplugin-fonts": "^1.0.3",
-    "vite": "^6.2.6",
+    "vite": "^6.2.7",
     "vite-plugin-vuetify": "^2.0.1"
   }
 }

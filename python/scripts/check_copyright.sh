@@ -24,11 +24,12 @@ e() {
 }
 
 # Files we want to check for copyright
-EXTENSIONS="py\|sh"
+EXTENSIONS="py\|sh\|ts"
 
 
 for file in $(git ls-files | \
-  grep -e '\.\('"${EXTENSIONS}"'\)$')
+  grep -e '\.\('"${EXTENSIONS}"'\)$' | \
+  grep -v "tests_data")
 do
   sed -n 'N;/Copyright/q;q1' $file || e "No copyright notice in $file"
 done

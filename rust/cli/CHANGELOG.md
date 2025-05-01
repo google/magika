@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.2
+
+### Minor
+
+- Use the `standard_v3_3` model instead of `standard_v3_2` (see [model changelog])
+- Do not print the low-confidence warning if the content type was simply overwritten
+
+### Patch
+
+- Update dependencies
+
+## 0.1.1
+
+### Minor
+
+- Use the `standard_v3_2` model instead of `standard_v3_1` (see [model changelog])
+
+## 0.1.0
+
+No changes.
+
+## 0.1.0-rc.5
+
+### Minor
+
+- Use the `standard_v3_1` model instead of `standard_v3_0` (see [model changelog])
+
+## 0.1.0-rc.4
+
+### Minor
+
+- Update the model thresholds
+
 ## 0.1.0-rc.3
 
 ### Minor

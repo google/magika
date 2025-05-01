@@ -34,12 +34,13 @@ import click
 @click.command()
 @click.option(
     "--client-path",
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    type=click.Path(exists=False, resolve_path=False),
 )
 def main(client_path: Optional[Path]) -> None:
     """Tests the Rust or Python Magika client. By default, it runs "magika"
     (expected in PATH). Use --client-path to specify a different client
-    executable.
+    executable. Note that "client_path" may not point to a valid file, but still
+    be a valid target to run as it may be found in the PATH.
     """
 
     basic_tests_dir = (

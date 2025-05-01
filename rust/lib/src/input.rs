@@ -151,7 +151,6 @@ async fn extract_features_async(
     config: &ModelConfig, mut file: impl AsyncInputApi, file_len: usize,
 ) -> Result<(Vec<u8>, Vec<i32>)> {
     debug_assert!(config.beg_size < config.block_size);
-    debug_assert!(config.mid_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
     let buffer_size = std::cmp::min(config.block_size, file_len);
     let mut content_beg = vec![0; buffer_size];
@@ -160,31 +159,18 @@ async fn extract_features_async(
     let mut end = vec![0; buffer_size];
     file.read_at(&mut end, file_len - buffer_size).await?;
     let end = strip_suffix(&end);
-    let mid_len = std::cmp::min(config.mid_size, file_len);
-    let mid_off = (file_len - mid_len) / 2;
-    let mut mid = vec![0; mid_len];
-    file.read_at(&mut mid, mid_off).await?;
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
-    copy_features(split_features.mid, &mid, 1);
-    copy_features(split_features.end, end, 2);
-    for (offset, features) in split_features.off {
-        let mut buffer = Vec::new();
-        if offset + features.len() <= file_len {
-            buffer = vec![0; features.len()];
-            file.read_at(&mut buffer, offset).await?;
-        }
-        copy_features(features, &buffer, 0);
-    }
+    copy_features(split_features.end, end, 1);
     Ok((content_beg, features))
 }
 
 fn copy_features(dst: &mut [i32], src: &[u8], align: usize) {
     let len = std::cmp::min(dst.len(), src.len());
     let dst_len = dst.len(); // borrowing issue: cannot inline below
-    let dst = &mut dst[(dst_len - len) * align / 2..][..len];
-    let src = &src[(src.len() - len) * align / 2..][..len];
+    let dst = &mut dst[(dst_len - len) * align..][..len];
+    let src = &src[(src.len() - len) * align..][..len];
     for (dst, src) in dst.iter_mut().zip(src.iter()) {
         *dst = *src as i32;
     }
@@ -214,7 +200,6 @@ fn is_whitespace(x: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
     use std::fs::File;
     use std::io::Read;
 
@@ -230,12 +215,17 @@ mod tests {
         // format is modified. Fields that are not used are simply marked as dead-code.
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
-        struct Info {
+        struct Args {
             beg_size: usize,
             mid_size: usize,
             end_size: usize,
             block_size: usize,
             padding_token: i32,
+            use_inputs_at_offsets: bool,
+        }
+        #[derive(Debug, Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Metadata {
             #[allow(dead_code)] // debugging only
             core_content_size: usize,
             #[allow(dead_code)] // debugging only
@@ -245,15 +235,7 @@ mod tests {
         }
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
-        #[allow(dead_code)] // we only implement v2
-        struct FeaturesV1 {
-            beg: Vec<usize>,
-            mid: Vec<usize>,
-            end: Vec<usize>,
-        }
-        #[derive(Debug, Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct FeaturesV2 {
+        struct Features {
             beg: Vec<usize>,
             mid: Vec<usize>,
             end: Vec<usize>,
@@ -265,37 +247,35 @@ mod tests {
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Test {
-            test_info: Info,
-            content: String,
-            #[allow(dead_code)] // we only implement v2
-            features_v1: FeaturesV1,
-            features_v2: FeaturesV2,
+            args: Args,
+            #[allow(dead_code)] // debugging only
+            metadata: Metadata,
+            content_base64: String,
+            features: Features,
         }
-        const PATH: &str = "../../tests_data/features_extraction/reference.json.gz";
+        const PATH: &str = "../../tests_data/reference/features_extraction_examples.json.gz";
         let mut tests = String::new();
         GzDecoder::new(File::open(PATH).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
         for test in tests {
+            assert_eq!(test.args.mid_size, 0, "unsupported mid_size");
+            assert!(!test.args.use_inputs_at_offsets, "unsupported use_inputs_at_offsets");
+            assert!(test.features.mid.is_empty(), "unsupported mid");
+            assert!(test.features.offset_0x8000_0x8007.is_empty(), "unsupported offset");
+            assert!(test.features.offset_0x8800_0x8807.is_empty(), "unsupported offset");
+            assert!(test.features.offset_0x9000_0x9007.is_empty(), "unsupported offset");
+            assert!(test.features.offset_0x9800_0x9807.is_empty(), "unsupported offset");
             let config = ModelConfig {
-                beg_size: test.test_info.beg_size,
-                mid_size: test.test_info.mid_size,
-                end_size: test.test_info.end_size,
-                use_inputs_at_offsets: true,
-                min_file_size_for_dl: 16,
-                padding_token: test.test_info.padding_token,
-                block_size: test.test_info.block_size,
-                thresholds: Cow::Borrowed(&[0.; ContentType::SIZE]),
-                overwrite_map: Cow::Borrowed(&[ContentType::Unknown; ContentType::SIZE]),
+                beg_size: test.args.beg_size,
+                end_size: test.args.end_size,
+                padding_token: test.args.padding_token,
+                block_size: test.args.block_size,
+                ..crate::model::CONFIG
             };
             let mut expected = Vec::new();
-            expected.extend_from_slice(&test.features_v2.beg);
-            expected.extend_from_slice(&test.features_v2.mid);
-            expected.extend_from_slice(&test.features_v2.end);
-            expected.extend_from_slice(&test.features_v2.offset_0x8000_0x8007);
-            expected.extend_from_slice(&test.features_v2.offset_0x8800_0x8807);
-            expected.extend_from_slice(&test.features_v2.offset_0x9000_0x9007);
-            expected.extend_from_slice(&test.features_v2.offset_0x9800_0x9807);
-            let content = BASE64.decode(test.content.as_bytes()).unwrap();
+            expected.extend_from_slice(&test.features.beg);
+            expected.extend_from_slice(&test.features.end);
+            let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
             let actual = extract_features_async(&config, content.as_slice(), content.len());
             let actual = exec(actual).unwrap().1;
             let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();

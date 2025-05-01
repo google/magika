@@ -1,6 +1,6 @@
 {
     "name": "magika",
-    "version": "0.2.14",
+    "version": "0.3.2",
     "description": "A tool to detect content types with deep learning.",
     "type": "module",
     "main": "./dist/cjs/magika.js",
@@ -8,8 +8,8 @@
     "module": "./dist/mjs/magika.js",
     "exports": {
         "node": {
-            "import": "./dist/mjs/magika_node.js",
-            "require": "./dist/cjs/magika_node.js"
+            "import": "./dist/mjs/magika-node.js",
+            "require": "./dist/cjs/magika-node.js"
         },
         "default": {
             "import": "./dist/mjs/magika.js",
@@ -25,21 +25,22 @@
         "magic"
     ],
     "scripts": {
-        "bin": "TF_CPP_MIN_LOG_LEVEL=1 node ./dist/mjs/index.js",
+        "bin": "TF_CPP_MIN_LOG_LEVEL=1 node ./dist/mjs/magika-cli.js",
         "make-docs": "documentation build *.ts --parse-extension ts   -f md --github -o ../docs/js.md",
-        "test": "TF_CPP_MIN_LOG_LEVEL=1 node node_modules/jest/bin/jest.js",
-        "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node postBuild.js"
+        "test": "TF_CPP_MIN_LOG_LEVEL=1 yarn build && node node_modules/jest/bin/jest.js",
+        "build": "rm -fr dist/* && tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json && node postBuild.js",
+        "format": "prettier --write *.ts src/*.ts"
     },
     "bin": {
-        "magika-js": "./dist/cjs/index.js"
+        "magika-js": "./dist/cjs/magika-cli.js"
     },
     "dependencies": {
-        "@tensorflow/tfjs": "^4.19.0"
+        "@tensorflow/tfjs": "^4.22.0"
     },
     "optionalDependencies": {
-        "@tensorflow/tfjs-node": "^4.19.0",
+        "@tensorflow/tfjs-node": "^4.22.0",
         "chalk": "^5.3.0",
-        "commander": "^12.0.0"
+        "commander": "^13.1.0"
     },
     "jest": {
         "moduleFileExtensions": [
@@ -71,10 +72,11 @@
     },
     "devDependencies": {
         "@types/jest": "^29.5.12",
-        "@types/node": "^22.4.1",
+        "@types/node": "^22.13.17",
         "documentation": "^14.0.3",
-        "fast-check": "^3.17.0",
+        "fast-check": "^4.1.0",
         "jest": "^29.5.0",
+        "prettier": "^3.5.3",
         "ts-jest": "^29.0.5",
         "typescript": "^5.0.2"
     }

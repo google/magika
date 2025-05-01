@@ -5,8 +5,6 @@ from typing import List
 from magika.logger import get_logger
 from magika.types.content_type_label import ContentTypeLabel
 
-warnings.simplefilter("always", DeprecationWarning)
-
 
 @dataclass(frozen=True)
 class ContentTypeInfo:
@@ -22,6 +20,7 @@ class ContentTypeInfo:
         warnings.warn(
             "`.ct_label` is deprecated and will be removed in a future version. Use `.label` instead. Consult the documentation for more information.",
             category=DeprecationWarning,
+            stacklevel=2,
         )
         return str(self.label)
 
@@ -37,5 +36,6 @@ class ContentTypeInfo:
         warnings.warn(
             "`.magic` is deprecated and will be removed in a future version. Use `.description` instead. Consult the documentation for more information.",
             category=DeprecationWarning,
+            stacklevel=2,
         )
         return self.description

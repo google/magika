@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.2.0
+
+### Major
+
+- Change `FileType::Ruled` to take `ContentType` directly and remove `RuledType`
+- Change `InferredType::content_type` to describe the content type when overwritten
+- Add `InferredType::inferred_type` for the (possibly overwritten) inferred content type
+
+### Minor
+
+- Remove features extraction logic of older models
+- Use the `standard_v3_3` model instead of `standard_v3_2` (see [model changelog])
+- Add `OverwriteReason` to document why the inferred content type is overwritten
+
+### Patch
+
+- Update dependencies
+- Add inference tests with the new reference files
+- Update features extraction test to the new reference file
+
+## 0.1.1
+
+### Minor
+
+- Use the `standard_v3_2` model instead of `standard_v3_1` (see [model changelog])
+
+## 0.1.0
+
+No changes.
+
+## 0.1.0-rc.5
+
+### Minor
+
+- Use the `standard_v3_1` model instead of `standard_v3_0` (see [model changelog])
+
+## 0.1.0-rc.4
+
+### Minor
+
+- Update the model thresholds
+
 ## 0.1.0-rc.3
 
 ### Minor

@@ -19,7 +19,7 @@ from magika.types.strenum import StrEnum
 
 
 # This is the list of all possible content types we know about; however, models
-# support a smaller subset of them. See model's config for details.
+# support a smaller subset of them. See model's README.md for details.
 class ContentTypeLabel(StrEnum):
     _3DS = "3ds"
     _3DSM = "3dsm"

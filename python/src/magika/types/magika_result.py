@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import dataclasses
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from magika.types.content_type_info import ContentTypeInfo
 from magika.types.magika_prediction import MagikaPrediction
@@ -78,6 +79,15 @@ class MagikaResult:
     @property
     def score(self) -> float:
         return self.prediction.score
+
+    def asdict(self) -> Dict:
+        out: Dict[str, Any] = {
+            "path": str(self.path),
+            "status": self.status,
+        }
+        if self.ok:
+            out["prediction"] = dataclasses.asdict(self.prediction)
+        return out
 
     def __repr__(self) -> str:
         return str(self)

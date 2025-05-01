@@ -1,70 +1,116 @@
 #!/usr/bin/env python3
 
+import enum
 import json
-import re
 import shutil
+import sys
 from pathlib import Path
+from typing import Optional
 
 import click
 
-ASSETS_DIR = Path(__file__).parent.parent.parent / "assets"
-PYTHON_ROOT_DIR = Path(__file__).parent.parent
-
-PUBLISHED_MODELS_NAMES = [
-    "standard_v3_0",
+MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE = [
+    "standard_v3_3",
 ]
+
+REPO_ROOT_DIR = Path(__file__).parent.parent.parent
+assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
+
+ASSETS_DIR = REPO_ROOT_DIR / "assets"
+assert ASSETS_DIR.is_dir()
+
+CONTENT_TYPES_KB_PATH = ASSETS_DIR / "content_types_kb.min.json"
+assert CONTENT_TYPES_KB_PATH.is_file()
+
+ASSETS_MODELS_DIR = ASSETS_DIR / "models"
+assert ASSETS_MODELS_DIR.is_dir()
+
+PYTHON_ROOT_DIR = REPO_ROOT_DIR / "python"
+assert PYTHON_ROOT_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_KB_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "config" / "content_types_kb.min.json"
+)
+
+PYTHON_MODELS_DIR = PYTHON_ROOT_DIR / "src" / "magika" / "models"
+assert PYTHON_MODELS_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
+)
+
+JS_ROOT_DIR = REPO_ROOT_DIR / "js"
+assert PYTHON_ROOT_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_KB_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "config" / "content_types_kb.min.json"
+)
+
+PYTHON_MODELS_DIR = PYTHON_ROOT_DIR / "src" / "magika" / "models"
+assert PYTHON_MODELS_DIR.is_dir()
+
+PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
+    PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
+)
+
+
+class Target(enum.StrEnum):
+    JS = "js"
+    PYTHON = "python"
 
 
 @click.command()
-@click.option("--sync-unpublished-models", is_flag=True)
-def main(sync_unpublished_models: bool) -> None:
-    import_content_type_kb()
+@click.argument("target", type=Target)
+@click.option(
+    "--models-names",
+    "models_names_str",
+    help="Comma-separated list of models names to import in the package",
+)
+def main(target: Target, models_names_str: Optional[str]) -> None:
+    if target == Target.PYTHON:
+        if models_names_str is None:
+            models_names = MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE
+        else:
+            models_names = list(map(lambda s: s.strip(), models_names_str.split(",")))
 
-    if sync_unpublished_models:
-        models_names_to_sync = []
-        models_dir = ASSETS_DIR / "models"
-        for model_dir in models_dir.iterdir():
-            model_name = model_dir.name
-            if re.search("_v2_", model_name):
-                models_names_to_sync.append(model_name)
-    else:
-        models_names_to_sync = PUBLISHED_MODELS_NAMES
+        print(f"Including these models in the python package: {models_names}")
 
-    print(f"Syncing these models: {models_names_to_sync}")
+        update_python_content_type_kb()
+        update_python_content_type_label_py()
 
-    for model_name in models_names_to_sync:
-        import_model(model_name)
+        print(f"Deleting {PYTHON_MODELS_DIR}")
+        shutil.rmtree(PYTHON_MODELS_DIR)
+        for model_name in models_names:
+            add_model_to_python_package(model_name)
 
-    gen_content_type_label_source()
+    elif target == Target.JS:
+        update_js_content_type_files()
 
-
-def import_content_type_kb() -> None:
-    kb_path = ASSETS_DIR / "content_types_kb.min.json"
-    python_config_dir = PYTHON_ROOT_DIR / "src" / "magika" / "config"
-    python_kb_path = python_config_dir / kb_path.name
-    copy(kb_path, python_kb_path)
-
-
-def import_model(model_name: str) -> None:
-    models_dir = ASSETS_DIR / "models"
-    onnx_path = models_dir / model_name / "model.onnx"
-    config_path = models_dir / model_name / "config.min.json"
-
-    python_model_dir = PYTHON_ROOT_DIR / "src" / "magika" / "models" / model_name
-    python_model_dir.mkdir(parents=True, exist_ok=True)
-
-    copy(onnx_path, python_model_dir / onnx_path.name)
-    copy(config_path, python_model_dir / config_path.name)
+        # FIXME: the model is currently copied manually
+        print("WARNING: copying the model is currently NOT supported by this script")
 
 
-def copy(src_path: Path, dst_path: Path) -> None:
-    """Util to copy files and log what is being copied."""
-    print(f"Copying {src_path} => {dst_path}")
-    dst_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(src_path, dst_path)
+def update_python_content_type_kb() -> None:
+    print(
+        f"Syncing python's content types KB: {CONTENT_TYPES_KB_PATH} => {PYTHON_CONTENT_TYPES_KB_PATH}"
+    )
+    PYTHON_CONTENT_TYPES_KB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(CONTENT_TYPES_KB_PATH, PYTHON_CONTENT_TYPES_KB_PATH)
 
 
-CONTENT_TYPE_LABEL_SOURCE_PREFIX = """
+def add_model_to_python_package(model_name: str) -> None:
+    assets_model_dir = ASSETS_MODELS_DIR / model_name
+    if not assets_model_dir.is_dir():
+        print(f'ERROR: model "{model_name} not found')
+        sys.exit(1)
+
+    python_model_dir = PYTHON_MODELS_DIR / model_name
+
+    print(f"Adding model {assets_model_dir} => {python_model_dir}")
+    shutil.copytree(assets_model_dir, python_model_dir)
+
+
+CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = """
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -86,18 +132,15 @@ from magika.types.strenum import StrEnum
 
 
 # This is the list of all possible content types we know about; however, models
-# support a smaller subset of them. See model's config for details.
+# support a smaller subset of them. See model's README.md for details.
 class ContentTypeLabel(StrEnum):
 """
 
 
-def gen_content_type_label_source() -> None:
-    kb_path = ASSETS_DIR / "content_types_kb.min.json"
-    kb = json.loads(kb_path.read_text())
+def update_python_content_type_label_py() -> None:
+    print(f"Updating {PYTHON_CONTENT_TYPES_LABELS_PY_PATH}")
 
-    content_type_label_path = (
-        PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
-    )
+    kb = json.loads(CONTENT_TYPES_KB_PATH.read_text())
 
     enum_body_lines = []
     for ct_label_str in sorted(kb.keys()):
@@ -108,7 +151,7 @@ def gen_content_type_label_source() -> None:
         enum_body_lines.append(line)
 
     out = (
-        CONTENT_TYPE_LABEL_SOURCE_PREFIX.strip()
+        CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX.strip()
         + "\n"
         + "\n".join(enum_body_lines)
         + "\n"
@@ -125,7 +168,101 @@ def gen_content_type_label_source() -> None:
         )
     )
 
-    content_type_label_path.write_text(out)
+    PYTHON_CONTENT_TYPES_LABELS_PY_PATH.write_text(out)
+
+
+COPYRIGHT_AND_DONOT_EDIT_PREFIX = """
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// NOTE: DO NOT EDIT --- This file is automatically generated by sync.py.
+"""
+
+
+CONTENT_TYPE_LABEL_TS_SOURCE_PREFIX = (
+    COPYRIGHT_AND_DONOT_EDIT_PREFIX.strip()
+    + "\n\n"
+    + """
+// This is the list of all possible content types we know about; however, models
+// support a smaller subset of them. See model's README.md for details.
+export enum ContentTypeLabel {
+""".strip()
+)
+
+
+def update_js_content_type_files() -> None:
+    # Update content type labels enum
+    content_type_label_ts_path = JS_ROOT_DIR / "src" / "content-type-label.ts"
+
+    kb = json.loads(CONTENT_TYPES_KB_PATH.read_text())
+
+    enum_body_lines = []
+    for ct_label_str in sorted(kb.keys()):
+        if ct_label_str[0].isdigit():
+            line = (" " * 2) + f'_{ct_label_str.upper()} = "{ct_label_str}",'
+        else:
+            line = (" " * 2) + f'{ct_label_str.upper()} = "{ct_label_str}",'
+        enum_body_lines.append(line)
+
+    out = (
+        CONTENT_TYPE_LABEL_TS_SOURCE_PREFIX.strip()
+        + "\n"
+        + "\n".join(enum_body_lines)
+        + "\n"
+        + "}\n"
+    ).strip() + "\n"
+
+    content_type_label_ts_path.write_text(out)
+    print(f"Updated {content_type_label_ts_path}")
+
+    # Update content types info
+    content_types_infos_ts_path = JS_ROOT_DIR / "src" / "content-types-infos.ts"
+    content_types_info_content = COPYRIGHT_AND_DONOT_EDIT_PREFIX.strip() + "\n\n"
+
+    content_types_info_content += (
+        """
+import { ContentTypeInfo } from "./content-type-info";
+import { ContentTypeLabel } from "./content-type-label";
+
+export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;
+
+export const ContentTypesInfos = {
+  get: (): ContentTypesInfos => ({
+""".strip()
+        + "\n"
+    )
+    for ct_label_str, ct_info in sorted(kb.items()):
+        if ct_label_str[0].isdigit():
+            ct_label_enum = f"_{ct_label_str.upper()}"
+        else:
+            ct_label_enum = ct_label_str.upper()
+        is_text = ct_info["is_text"]
+        content_types_info_content += (
+            "    "
+            + f"""
+    [ContentTypeLabel.{ct_label_enum}]: {{
+      label: ContentTypeLabel.{ct_label_enum},
+      is_text: {"true" if is_text else "false"},
+    }},
+""".strip()
+            + "\n"
+        )
+
+    content_types_info_content += "  })\n};\n"
+
+    content_types_infos_ts_path.write_text(content_types_info_content)
+    print(f"Updated {content_types_infos_ts_path}")
 
 
 if __name__ == "__main__":

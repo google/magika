@@ -25,6 +25,7 @@ from magika.types.model import (  # noqa: F401
 )
 from magika.types.overwrite_reason import OverwriteReason  # noqa: F401
 from magika.types.prediction_mode import PredictionMode  # noqa: F401
+from magika.types.seekable import Seekable  # noqa: F401
 from magika.types.status import Status  # noqa: F401
 
 __all__ = [
@@ -38,5 +39,6 @@ __all__ = [
     "ModelOutput",
     "OverwriteReason",
     "PredictionMode",
+    "Seekable",
     "Status",
 ]

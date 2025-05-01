@@ -1,0 +1,46 @@
+name: Website - tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    paths:
+      - "website/**"
+      - "js/**"
+      - "tests_data/**"
+      - ".github/workflows/website-*"
+permissions:
+  contents: read
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        node-version: ["20"]
+        os: ["ubuntu-latest"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # pin@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install js dependencies
+        working-directory: js
+        run: yarn install --frozen-lockfile
+      - name: Build js
+        working-directory: js
+        run: yarn run build
+      - name: Create magika link
+        working-directory: js
+        run: yarn link
+      - name: Link to local magika
+        working-directory: website
+        run: yarn link magika
+      - name: Install website dependencies
+        working-directory: website
+        run: yarn install --frozen-lockfile
+      - name: Build website
+        working-directory: website
+        run: yarn build
+      # TODO: add some actual testing

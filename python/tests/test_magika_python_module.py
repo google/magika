@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import signal
 import tempfile
 from pathlib import Path
@@ -37,49 +38,86 @@ def test_magika_module_check_version() -> None:
 
     assert isinstance(magika_module.__version__, str)
 
+    m = Magika()
+    assert m.get_module_version() == magika_module.__version__
 
-@pytest.mark.smoketest
-def test_magika_module_one_basic_test() -> None:
-    model_dir = utils.get_default_model_dir()
-    test_path = utils.get_one_basic_test_file_path()
-
-    m = Magika(model_dir=model_dir)
-
-    _ = m.identify_path(test_path)
-    _ = m.identify_paths([test_path])
+    # Check that, when we don't specify `model_dir`, Magika uses the default
+    # model.
+    assert m.get_model_name() == m._get_default_model_name()
 
 
 @pytest.mark.smoketest
-def test_magika_module_with_default_model() -> None:
+def test_magika_module_with_one_test_file() -> None:
     test_path = utils.get_one_basic_test_file_path()
 
     m = Magika()
 
     _ = m.identify_path(test_path)
     _ = m.identify_paths([test_path])
+    _ = m.identify_bytes(test_path.read_bytes())
+    with open(test_path, "rb") as f:
+        _ = m.identify_stream(f)
+
+
+@pytest.mark.smoketest
+def test_magika_module_with_explicit_model_dir() -> None:
+    model_dir = utils.get_default_model_dir()
+    test_path = utils.get_one_basic_test_file_path()
+
+    m = Magika(model_dir=model_dir)
+
+    _ = m.identify_path(test_path)
+    _ = m.identify_paths([test_path])
+    _ = m.identify_bytes(test_path.read_bytes())
+    with open(test_path, "rb") as f:
+        _ = m.identify_stream(f)
 
 
 def test_magika_module_with_basic_tests_by_paths() -> None:
-    model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_basic_test_files_paths()
 
-    m = Magika(model_dir=model_dir)
+    m = Magika()
     results = m.identify_paths(tests_paths)
     check_results_vs_expected_results(tests_paths, results)
 
 
 def test_magika_module_with_basic_tests_by_path() -> None:
-    model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_basic_test_files_paths()
 
-    m = Magika(model_dir=model_dir)
+    m = Magika()
 
     for test_path in tests_paths:
         result = m.identify_path(test_path)
         check_result_vs_expected_result(test_path, result)
 
 
-def test_all_models_with_basic_tests_by_path() -> None:
+def test_magika_module_with_basic_tests_by_bytes() -> None:
+    tests_paths = utils.get_basic_test_files_paths()
+
+    m = Magika()
+
+    for test_path in tests_paths:
+        content = test_path.read_bytes()
+        result = m.identify_bytes(content)
+        check_result_vs_expected_result(
+            test_path, result, expected_result_path=Path("-")
+        )
+
+
+def test_magika_module_with_basic_tests_by_stream() -> None:
+    tests_paths = utils.get_basic_test_files_paths()
+
+    m = Magika()
+
+    for test_path in tests_paths:
+        with open(test_path, "rb") as f:
+            result = m.identify_stream(f)
+        check_result_vs_expected_result(
+            test_path, result, expected_result_path=Path("-")
+        )
+
+
+def test_magika_module_with_all_models() -> None:
     tests_paths = utils.get_basic_test_files_paths()
 
     models_dir = utils.get_models_dir()
@@ -88,20 +126,6 @@ def test_all_models_with_basic_tests_by_path() -> None:
         for test_path in tests_paths:
             result = m.identify_path(test_path)
             check_result_vs_expected_result(test_path, result)
-
-
-def test_magika_module_with_basic_tests_by_bytes() -> None:
-    model_dir = utils.get_default_model_dir()
-    tests_paths = utils.get_basic_test_files_paths()
-
-    m = Magika(model_dir=model_dir)
-
-    for test_path in tests_paths:
-        content = test_path.read_bytes()
-        result = m.identify_bytes(content)
-        check_result_vs_expected_result(
-            test_path, result, expected_result_path=Path("-")
-        )
 
 
 def test_magika_module_with_previously_missdetected_samples() -> None:
@@ -135,6 +159,13 @@ def test_magika_module_with_empty_content() -> None:
         assert res.prediction.output.label == ContentTypeLabel.EMPTY
         assert res.prediction.score == 1.0
 
+    res = m.identify_stream(io.BytesIO(b""))
+    assert res.path == Path("-")
+    assert res.ok
+    assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+    assert res.prediction.output.label == ContentTypeLabel.EMPTY
+    assert res.prediction.score == 1.0
+
 
 def test_magika_module_with_short_content() -> None:
     m = Magika()
@@ -157,8 +188,16 @@ def test_magika_module_with_short_content() -> None:
             assert res.prediction.output.label == expected_ct_label
             assert res.prediction.score == 1.0
 
-            # prediction via content
+            # prediction via bytes
             res = m.identify_bytes(content)
+            assert res.path == Path("-")
+            assert res.ok
+            assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+            assert res.prediction.output.label == expected_ct_label
+            assert res.prediction.score == 1.0
+
+            # prediction via stream
+            res = m.identify_stream(io.BytesIO(content))
             assert res.path == Path("-")
             assert res.ok
             assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
@@ -183,39 +222,130 @@ def test_magika_module_with_python_and_non_python_content() -> None:
     assert res.prediction.output.label == ContentTypeLabel.TXT
 
 
+def test_magika_module_identify_stream_does_not_alter_position() -> None:
+    m = Magika()
+
+    contents = [
+        b"",
+        b"short",
+        b"A" * 100,
+        b"A" * 1000,
+        b"A" * 10000,
+    ]
+    for content in contents:
+        stream = io.BytesIO(content)
+        # seek to a specific non-special position
+        pos = min(2, len(content))
+        stream.seek(pos)
+        res = m.identify_stream(stream)
+        assert res.ok
+        assert stream.tell() == pos
+
+
+def test_magika_module_with_whitespaces() -> None:
+    m = Magika()
+
+    ws_nums = sorted(
+        {
+            1,
+            m._model_config.min_file_size_for_dl - 1,
+            m._model_config.min_file_size_for_dl,
+            m._model_config.min_file_size_for_dl + 1,
+            m._model_config.beg_size - 1,
+            m._model_config.beg_size,
+            m._model_config.beg_size + 1,
+            m._model_config.end_size - 1,
+            m._model_config.end_size,
+            m._model_config.end_size + 1,
+            m._model_config.beg_size + m._model_config.end_size - 1,
+            m._model_config.beg_size + m._model_config.end_size,
+            m._model_config.beg_size + m._model_config.end_size + 1,
+            m._model_config.beg_size + m._model_config.end_size + 1,
+            m._model_config.block_size - 1,
+            m._model_config.block_size,
+            m._model_config.block_size + 1,
+            2 * m._model_config.block_size - 1,
+            2 * m._model_config.block_size,
+            2 * m._model_config.block_size + 1,
+            4 * m._model_config.block_size - 1,
+            4 * m._model_config.block_size,
+            4 * m._model_config.block_size + 1,
+        }
+    )
+
+    for ws_num in ws_nums:
+        print(f"Calling indentify_bytes with {ws_num} whitespaces")
+        content = b" " * ws_num
+        res = m.identify_bytes(content)
+        assert (
+            res.ok
+            and res.dl.label == ContentTypeLabel.UNDEFINED
+            and res.output.label == ContentTypeLabel.TXT
+        )
+        res = m.identify_stream(io.BytesIO(content))
+        assert (
+            res.ok
+            and res.dl.label == ContentTypeLabel.UNDEFINED
+            and res.output.label == ContentTypeLabel.TXT
+        )
+        with tempfile.TemporaryDirectory() as td:
+            tf_path = Path(td) / "test.bin"
+            tf_path.write_bytes(content)
+            res = m.identify_path(tf_path)
+            assert (
+                res.ok
+                and res.dl.label == ContentTypeLabel.UNDEFINED
+                and res.output.label == ContentTypeLabel.TXT
+            )
+
+
 def test_magika_module_with_different_prediction_modes() -> None:
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.40) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.40
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.60) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.60
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
 
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.TXT,
         OverwriteReason.LOW_CONFIDENCE,
     )
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold - 0.01
     ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.60) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.60
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
@@ -224,17 +354,21 @@ def test_magika_module_with_different_prediction_modes() -> None:
     high_confidence_threshold = m._model_config.thresholds.get(
         ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.TXT,
         OverwriteReason.LOW_CONFIDENCE,
     )
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold - 0.01
     ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold + 0.01
     ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
@@ -244,20 +378,93 @@ def test_magika_module_with_different_prediction_modes() -> None:
     high_confidence_threshold = m._model_config.thresholds.get(
         ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold
     )
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.01) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
         ContentTypeLabel.TXT,
         OverwriteReason.LOW_CONFIDENCE,
     )
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold - 0.01
     ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
-    assert m._get_output_ct_label_from_dl_result(
+    assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, high_confidence_threshold + 0.01
     ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
-    assert m._get_output_ct_label_from_dl_result(ContentTypeLabel.PYTHON, 0.99) == (
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
         ContentTypeLabel.PYTHON,
         OverwriteReason.NONE,
     )
+
+
+def test_magika_module_overwrite_reason() -> None:
+    m_high = Magika(prediction_mode=PredictionMode.HIGH_CONFIDENCE)
+    m_medium = Magika(prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
+    m_best = Magika(prediction_mode=PredictionMode.BEST_GUESS)
+
+    python_high_confidence_threshold = m_high._model_config.thresholds.get(
+        ContentTypeLabel.PYTHON, m_high._model_config.medium_confidence_threshold
+    )
+    medium_confidence_threshold = m_medium._model_config.medium_confidence_threshold
+
+    assert m_high._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, python_high_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m_high._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, python_high_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
+
+    assert m_medium._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m_medium._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
+
+    assert m_best._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m_best._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+
+    for overwrite_map_ct_key in sorted(m_high._model_config.overwrite_map.keys()):
+        overwrite_map_ct_value = m_high._model_config.overwrite_map[
+            overwrite_map_ct_key
+        ]
+        is_overwrite_map_ct_target_text = m_high._cts_infos[
+            overwrite_map_ct_value
+        ].is_text
+        overwrite_map_ct_high_confidence_threshold = (
+            m_high._model_config.thresholds.get(
+                overwrite_map_ct_key, m_high._model_config.medium_confidence_threshold
+            )
+        )
+        assert m_high._get_output_label_from_dl_label_and_score(
+            overwrite_map_ct_key, overwrite_map_ct_high_confidence_threshold + 0.01
+        ) == (overwrite_map_ct_value, OverwriteReason.OVERWRITE_MAP)
+        assert m_high._get_output_label_from_dl_label_and_score(
+            overwrite_map_ct_key, overwrite_map_ct_high_confidence_threshold - 0.01
+        ) == (
+            ContentTypeLabel.TXT
+            if is_overwrite_map_ct_target_text
+            else ContentTypeLabel.UNKNOWN,
+            OverwriteReason.LOW_CONFIDENCE,
+        )
+
+    for generic_ct in [ContentTypeLabel.TXT, ContentTypeLabel.UNKNOWN]:
+        generic_type_high_confidence_threshold = m_high._model_config.thresholds.get(
+            generic_ct,
+            m_high._model_config.medium_confidence_threshold,
+        )
+        assert m_high._get_output_label_from_dl_label_and_score(
+            generic_ct,
+            generic_type_high_confidence_threshold - 0.01,
+        ) == (generic_ct, OverwriteReason.NONE)
+        assert m_medium._get_output_label_from_dl_label_and_score(
+            generic_ct, medium_confidence_threshold - 0.01
+        ) == (generic_ct, OverwriteReason.NONE)
 
 
 def test_magika_module_with_directory() -> None:
@@ -344,6 +551,23 @@ def test_magika_module_with_permission_error() -> None:
         assert not res.ok
         assert res.status == Status.PERMISSION_ERROR
 
+    # Check that an empty, non-accessible file is marked as "permission error".
+    # Note that on some file-systems, one can read the file size even without
+    # read permission, and it would thus be possible to return "empty" (this is
+    # what we were actually doing in the past). However, returning
+    # "permission_error" makes the expected behavior consistent across file
+    # systems and it simplifies the implementation.
+    with tempfile.TemporaryDirectory() as td:
+        unreadable_test_path = Path(td) / "test.txt"
+        unreadable_test_path.write_text("")
+
+        unreadable_test_path.chmod(0o000)
+
+        res = m.identify_path(unreadable_test_path)
+        assert res.path == unreadable_test_path
+        assert not res.ok
+        assert res.status == Status.PERMISSION_ERROR
+
 
 @pytest.mark.skip
 def test_magika_module_with_really_many_files() -> None:
@@ -389,18 +613,33 @@ def test_api_call_with_bad_types() -> None:
     m = Magika()
 
     _ = m.identify_path(Path("/non_existing.txt"))
+    _ = m.identify_path("/non_existing.txt")
     with pytest.raises(TypeError):
-        _ = m.identify_path("/non_existing.txt")  # type: ignore[arg-type]
+        _ = m.identify_path(b"/non_existing.txt")  # type: ignore[arg-type]
 
     _ = m.identify_paths([Path("/non_existing.txt")])
+    _ = m.identify_paths(["/non_existing.txt"])
+    _ = m.identify_paths([Path("/non_existing.txt"), Path("/not_existing2.txt")])
+    _ = m.identify_paths([Path("/non_existing.txt"), "/not_existing2.txt"])
+    _ = m.identify_paths(["/non_existing.txt", "/not_existing2.txt"])
     with pytest.raises(TypeError):
         _ = m.identify_paths(Path("/non_existing.txt"))  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        _ = m.identify_paths(["/non_existing.txt"])  # type: ignore[list-item]
+        _ = m.identify_paths([b"/non_existing.txt"])  # type: ignore[list-item]
+    with pytest.raises(TypeError):
+        _ = m.identify_paths([Path("/non_existing.txt"), b"/not_existing2.txt"])  # type: ignore[list-item]
 
     _ = m.identify_bytes(b"bytes content")
     with pytest.raises(TypeError):
         _ = m.identify_bytes("str content")  # type: ignore[arg-type]
+
+    _ = m.identify_stream(io.BytesIO(b"bytes stream content"))
+    with pytest.raises(TypeError):
+        _ = m.identify_stream(io.StringIO("str stream content"))  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        _ = m.identify_stream(b"bytes content")  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        _ = m.identify_stream("str content")  # type: ignore[arg-type]
 
 
 def test_access_magika_result_and_prediction():
@@ -485,6 +724,11 @@ def test_get_model_and_output_content_types() -> None:
     output_content_types_set = set(output_content_types)
     model_content_types = m.get_model_content_types()
     model_content_types_set = set(model_content_types)
+
+    assert isinstance(output_content_types, List)
+    assert len(output_content_types) > 0
+    assert isinstance(model_content_types, List)
+    assert len(model_content_types) > 0
 
     for ct in output_content_types:
         assert isinstance(ct, ContentTypeLabel)

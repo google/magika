@@ -290,7 +290,7 @@ def main(
                             and result.prediction.dl.label
                             != result.prediction.output.label
                             and result.prediction.overwrite_reason
-                            == OverwriteReason.NONE
+                            == OverwriteReason.LOW_CONFIDENCE
                         ):
                             # It seems that we had a low-confidence prediction
                             # from the model. Let's warn the user about our best

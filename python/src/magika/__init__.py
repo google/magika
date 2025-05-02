@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-__version__ = "0.6.2-dev"
+__version__ = "0.6.2"
 
 
 import dotenv

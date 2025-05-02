@@ -9,7 +9,7 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
-## [Unreleased]
+## [0.6.2] - 2025-05-02
 
 - Mark python 3.13 as supported.
 - New model `standard_v3_3` model, with better support for TypeScript and non-ascii characters in textual files. See [models' CHANGELOG](../assets/models/CHANGELOG.md) for more information.

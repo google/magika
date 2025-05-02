@@ -14,10 +14,12 @@ semver guidelines for more details about this.
 - Mark python 3.13 as supported.
 - New model `standard_v3_3` model, with better support for TypeScript and non-ascii characters in textual files. See [models' CHANGELOG](../assets/models/CHANGELOG.md) for more information.
 - `identify_stream()` now restores the stream's original position after reading from it, preventing side effects on subsequent stream operations. ([#1020](https://github.com/google/magika/pull/1020))
-- Bugfix: limit the number of bytes we read in case of an input with just many whitespaces. ([#1015](https://github.com/google/magika/pull/1015))
-- Bugfix: do not alter warnings' simplefilter as this has visible side effects for other modules. ([#1017](https://github.com/google/magika/pull/1017))
 - Add `asdict()` utility method to `MagikaResult`.
 - Set `prediction.overwrite_reason` to `Overwrite.NONE` if `output.label` is the same as `dl.label`. ([#1023](https://github.com/google/magika/pull/1023))
+- Bugfix: limit the number of bytes we read in case of an input with just many whitespaces. ([#1015](https://github.com/google/magika/pull/1015))
+- Bugfix: do not alter warnings' simplefilter as this has visible side effects for other modules. ([#1017](https://github.com/google/magika/pull/1017))
+- Bugfix: magika's python client now properly warns for low-confidence predictions.
+- Bugfix: update Magika's StrEnum string representation to be compatible with standard library.
 
 ## [0.6.1] - 2025-03-19
 

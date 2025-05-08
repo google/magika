@@ -267,9 +267,9 @@ Please consult the [python documentation](./python/README.md) for details on the
 
 | Artifact                                                                   | Status         | Latest version | Default model                                              |
 | -------------------------------------------------------------------------- | -------------- | -------------- | ---------------------------------------------------------- |
-| [Python `Magika` module](./python/README.md)                               | Stable         | `0.6.1`        | [`standard_v3_2`](./assets/models/standard_v3_2/README.md) |
-| [Rust `magika` CLI](https://crates.io/crates/magika-cli)                   | Stable         | `0.1.1`        | [`standard_v3_2`](./assets/models/standard_v3_2/README.md) |
-| [Rust `magika` library](https://docs.rs/magika)                            | Stable         | `0.1.1`        | [`standard_v3_2`](./assets/models/standard_v3_2/README.md) |
+| [Python `Magika` module](./python/README.md)                               | Stable         | `0.6.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
+| [Rust `magika` CLI](https://crates.io/crates/magika-cli)                   | Stable         | `0.1.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
+| [Rust `magika` library](https://docs.rs/magika)                            | Stable         | `0.2.0`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
 | TypeScript / NPM package ([README](./js/README.md) & [docs](./docs/js.md)) | Stable         | `0.3.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
 | [Demo Website](https://google.github.io/magika/)                           | Stable         | -              | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
 | [GoLang](./go/README.md)                                                   | In development | -              | -                                                          |
@@ -298,7 +298,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 # Research Paper and Citation
 
-We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. A pre-print of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).
+We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](./assets/2025_icse_magika.pdf). (A previous version of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).)
 
 If you use this software for your research, please cite it as:
 

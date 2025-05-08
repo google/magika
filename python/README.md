@@ -281,7 +281,7 @@ class ContentTypeLabel(StrEnum):
 
 ## Research Paper and Citation
 
-We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. A pre-print of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).
+We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](https://github.com/google/magika/blob/main/assets/2025_icse_magika.pdf). (A previous version of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).)
 
 If you use this software for your research, please cite it as:
 

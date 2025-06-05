@@ -184,14 +184,13 @@ async fn main() -> Result<()> {
             }
         }
     });
-    let magika = Arc::new(build_session(&flags)?);
     for _ in 0..num_tasks {
+        let mut magika = build_session(&flags)?;
         tokio::spawn({
-            let magika = magika.clone();
             let batch_receiver = batch_receiver.clone();
             let result_sender = result_sender.clone();
             async move {
-                if let Err(e) = infer_batch(&magika, &batch_receiver, &result_sender).await {
+                if let Err(e) = infer_batch(&mut magika, &batch_receiver, &result_sender).await {
                     result_sender.send(Err(e)).await.unwrap();
                 }
             }
@@ -346,7 +345,7 @@ fn build_session(flags: &Flags) -> Result<Session> {
 }
 
 async fn infer_batch(
-    magika: &Session, receiver: &async_channel::Receiver<Batch>,
+    magika: &mut Session, receiver: &async_channel::Receiver<Batch>,
     sender: &tokio::sync::mpsc::Sender<Result<Response>>,
 ) -> Result<()> {
     while let Ok(Batch { paths, features }) = receiver.recv().await {
@@ -508,7 +507,7 @@ impl Response {
         }
     }
 
-    fn description(&self) -> Cow<str> {
+    fn description(&self) -> Cow<'_, str> {
         match &self.result {
             Err(e) => e.to_string().into(),
             Ok(x) => x.info().description.into(),

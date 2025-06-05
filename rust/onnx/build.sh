@@ -27,14 +27,14 @@ else
   info "Make sure we have Python 3.x and cmake-3.27 or higher."
   python3 -m venv venv
   source venv/bin/activate
-  python3 -m pip install cmake
+  python3 -m pip install cmake==3.31.6
 
   info "Clone ONNX Runtime repository (recursively)."
   git clone --recursive https://github.com/Microsoft/onnxruntime.git runtime
   cd runtime
 
-  info "Checkout v1.20.0 because that's what ort v2.0.0-rc.9 supports."
-  git checkout v1.20.0
+  info "Checkout v1.22.0 because that's what ort v2.0.0-rc.10 supports."
+  git checkout v1.22.0
 
   # The build fails with GCC 14 due to warnings as errors.
   sed -i '/function(onnxruntime_set_compile_flags/a\

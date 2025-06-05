@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "0.2.0"
+version = "0.2.1-dev"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -27,9 +27,9 @@ thiserror = "1.0.63"
 tokio = { version = "1.43.1", features = ["fs", "io-util"] }
 
 [dependencies.ort]
-version = "=2.0.0-rc.9"
+version = "=2.0.0-rc.10"
 default-features = false
-features = ["ndarray"]
+features = ["ndarray", "std"]
 
 [dev-dependencies]
 data-encoding = "2.6.0"

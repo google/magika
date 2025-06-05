@@ -19,7 +19,7 @@
 //! ```rust
 //! # fn main() -> magika::Result<()> {
 //! // A Magika session can be used multiple times across multiple threads.
-//! let magika = magika::Session::new()?;
+//! let mut magika = magika::Session::new()?;
 //!
 //! // Files can be identified from their path.
 //! assert_eq!(magika.identify_file_sync("src/lib.rs")?.info().label, "rust");
@@ -115,7 +115,7 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let session = Session::new().unwrap();
+        let mut session = Session::new().unwrap();
         for test in tests {
             if test.prediction_mode != "high-confidence" {
                 continue; // we only support high-confidence
@@ -143,7 +143,7 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let session = Session::new().unwrap();
+        let mut session = Session::new().unwrap();
         for test in tests {
             if test.prediction_mode != "high-confidence" {
                 continue; // we only support high-confidence

@@ -5,8 +5,8 @@ reorder_keys = true
 
 [[rule]]
 formatting = { reorder_keys = false }
-keys = ["dependencies.*", "package"]
+keys = ["build-dependencies.*", "dependencies.*", "dev-dependencies.*", "package"]
 
 [[rule]]
-formatting = { reorder_keys = true }
-keys = ["package.*"]
+formatting = { reorder_arrays = false }
+keys = ["package.metadata.deb"]

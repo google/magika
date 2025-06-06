@@ -24,6 +24,9 @@ info "Build ONNX Runtime from source."
 export ONNX_RUNTIME_BUILD_FLAGS=--allow_running_as_root
 ./build.sh
 
+info "Install openssl for the openssl-sys crate."
+yum install -y openssl-devel
+
 info "Test Magika CLI in the container."
 cd ../cli
 rustup default stable

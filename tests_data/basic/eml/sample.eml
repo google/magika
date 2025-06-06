@@ -1,0 +1,87 @@
+Delivered-To: samplelefay@gmail.com
+Received: by 2002:a05:6e04:60c8:b0:358:f759:ca6 with SMTP id do8csp3407339imd;
+        Sat, 24 May 2025 13:12:33 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IE2JLkhE/TNDdtqP0aHL2ofqoWkUhPk4z8fSmHFWHbViXC85kImFXv+Ve6tpwRtChavAQEY
+X-Received: by 2002:a05:6402:28a5:b0:602:b6fd:150a with SMTP id 4fb4d7f45d1cf-602da9d8a34mr2169618a12.33.1748117553220;
+        Sat, 24 May 2025 13:12:33 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1748117553; cv=none;
+        d=google.com; s=arc-20240605;
+        b=SddPvSqiWCZ3hcLsPoKY5mgF8G90kpPEboy8YkxV4AqqgrNfPla4NETejNpnuJvLJI
+         byt+SaYq7Ve2RoJoDkZSBaT4J2RnU0MA4QW3F7YtWHrCgyo+6O/RvB9/ZTdrrdG58Z54
+         p0jFd0pWF+pTEhh71+Y2rDrbDwq9D2omwUp22IaFUZsL7KiLOlKQAMdaIF1GlmAPwEKM
+         epNVkNFNIzE/T+051fMcrUm6dIVe9xBIIMv5HJ4px+beQM/cHy7Jgj9Ryxh7l7CYpwmJ
+         dJwvYqQRrZ3XAv65p/A55YDtv5OFk82723B9MeW/m5G1XB8T4rFsBbcpcJQxrC5OfXL5
+         P6lw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:mime-version:list-unsubscribe
+         :list-unsubscribe-post:message-id:subject:from:to:date
+         :dkim-signature;
+        bh=GBTxS/zUYzBpSA9sl7FQde1QfK2F+C1PfO1VwyLNlxU=;
+        fh=GMaPNuYHJRKUGsaZzBcjeSmH+fuDvdR3OD4VRmo8LKk=;
+        b=Rrv9c6Y6Z0aAUmlV7kkSgHmjexkqZaryb+ewpcGXZAJLjwG1xT36eEr+xNSza5JUl9
+         C+bPB/Roa4aLghXgOUie709Unq91eI6EoMKxltvYryLMShqQf2lUPZLJBH324ARNB0rZ
+         G+IjcJwQb8m1ygBkN9f72s6QW9a2L1uWoNZ9FxIEEsP2RZMiLcORzEhC4mNFdydQm7gA
+         90EKqelXscw7mii3yfDfmoCb5fnbodG4SDhvQxpRLmv1RosBpDDh92jbKcH8MkYkbzfX
+         Bnylixa3LtK0On61xFeg/WyEIMBRgaBP2pBzy9nJhwsx8+1nfGR/ZhmPqUrlz2WJ1FOo
+         46ag==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@anonymousemail.eu header.s=mail header.b=qPEZ9skF;
+       spf=pass (google.com: domain of noreply@anonymousemail.eu designates 5.45.184.142 as permitted sender) smtp.mailfrom=noreply@anonymousemail.eu;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=anonymousemail.eu
+Return-Path: <noreply@anonymousemail.eu>
+Received: from s9.inboxpress.eu (s9.inboxpress.eu. [5.45.184.142])
+        by mx.google.com with ESMTPS id 4fb4d7f45d1cf-6045eb06b43si298940a12.544.2025.05.24.13.12.31
+        for <samplelefay@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 24 May 2025 13:12:33 -0700 (PDT)
+Received-SPF: pass (google.com: domain of noreply@anonymousemail.eu designates 5.45.184.142 as permitted sender) client-ip=5.45.184.142;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@anonymousemail.eu header.s=mail header.b=qPEZ9skF;
+       spf=pass (google.com: domain of noreply@anonymousemail.eu designates 5.45.184.142 as permitted sender) smtp.mailfrom=noreply@anonymousemail.eu;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=anonymousemail.eu
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=anonymousemail.eu;
+	s=mail; t=1748117551;
+	bh=GBTxS/zUYzBpSA9sl7FQde1QfK2F+C1PfO1VwyLNlxU=;
+	h=Date:To:From:Subject:List-Unsubscribe:From;
+	b=qPEZ9skFQk06ORoxmFFYnqX188C7IfQLRyph7CHfLArHqw0r8RSzpQfpUjpnmRKED
+	 wrm2jqxdj6L+2sNUEZGvs7HznrOrhYY9/RSzVOvGBQ0PMl7Fk0cvU32rm6Tu8+eGYp
+	 7KNpMO4TCJh6oOZ4x33cU+3HHeEZSjPCYO8zBujJherHw5fTEx4VyfuBQpAioVbBkf
+	 B5CGscCax1bnoQJBbpFENs6vHZgXvjJcgSxD01g2Hmv5a9mV/7c4VD6WsrvePcEsW+
+	 tKTHJBXw1b+xyh4Jv3JjP4KGO2SWTlD+F5bIQxDRGiUtg8KXSHGBaKaGTEhfEduoXX
+	 PTxWm9Kg9SC6w==
+Received: from authenticated-user (s9.inboxpress.eu [5.45.184.142])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by s9.inboxpress.eu (Postfix) with ESMTPSA id A66156601C
+	for <samplelefay@gmail.com>; Sat, 24 May 2025 20:12:31 +0000 (UTC)
+Date: Sat, 24 May 2025 20:12:31 +0000
+To: samplelefay@gmail.com
+From: Anonymousemail <noreply@anonymousemail.eu>
+Subject: =?UTF-8?Q?Welcome_to_your_sample_email._=F0=9F=99=83?=
+Message-ID: <1182da168e8347704d33d53e86784b69@anonymousemail.eu>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+List-Unsubscribe: <https://anonymousemail.eu/unsubscribe.php?uid=Z2RtWU9GL3ZoL0xXbG1EbVpnS0JDbUxNdkRjRjZRbEdLMExWQW9TLzhTUT0=>
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="b1=_jkjvSBcyLEOb6jiwQT8Nx1r1IwoULznyMtSrrJRQO0A"
+Content-Transfer-Encoding: 8bit
+
+--b1=_jkjvSBcyLEOb6jiwQT8Nx1r1IwoULznyMtSrrJRQO0A
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Powered by Anonymousemail
+
+You've been sent a sample email! 🎉
+
+--b1=_jkjvSBcyLEOb6jiwQT8Nx1r1IwoULznyMtSrrJRQO0A
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<p><span style="color:#c0392b">Powered by <strong>Anonymousemail</strong></span></p><p>You've been sent a sample email! 🎉</p>
+
+
+--b1=_jkjvSBcyLEOb6jiwQT8Nx1r1IwoULznyMtSrrJRQO0A--
+

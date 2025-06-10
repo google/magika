@@ -133,7 +133,7 @@ struct Experimental {
     #[arg(hide = true, long, default_value = "1")]
     batch_size: usize,
 
-    /// Number of tasks for batch parallelism (defaults to the number of CPUs).
+    /// Number of tasks for batch parallelism.
     #[arg(hide = true, long)]
     num_tasks: Option<usize>,
 
@@ -158,14 +158,25 @@ struct Experimental {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let flags = Arc::new(Flags::parse());
+    let mut flags = Flags::parse();
     ensure!(0 < flags.experimental.batch_size, "--batch-size cannot be zero");
-    let num_tasks = flags.experimental.num_tasks.unwrap_or_else(num_cpus::get);
+    // If --num-tasks is set, we don't do any guessing.
+    let num_tasks = flags.experimental.num_tasks.unwrap_or_else(|| {
+        // Otherwise, if --intra-thread is set, we use a single task.
+        if flags.experimental.intra_threads.is_some() {
+            return 1;
+        }
+        // Otherwise, we use the minimum number of intra threads (which is 2).
+        flags.experimental.intra_threads = Some(2);
+        // And as many tasks as physical CPUs with a minimum of 2.
+        std::cmp::max(2, num_cpus::get_physical())
+    });
     ensure!(0 < num_tasks, "--num-tasks cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
     );
+    let flags = Arc::new(flags);
     if flags.colors.enable {
         colored::control::set_override(true);
     }

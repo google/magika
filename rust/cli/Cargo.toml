@@ -11,6 +11,12 @@ keywords = ["cli", "file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
 include = ["/LICENSE", "/src"]
 
+[package.metadata.deb]
+name = "magika"
+license-file = ["LICENSE", "0"]
+extended-description-file = "deb/extended-description"
+section = "utils"
+
 [[bin]]
 name = "magika"
 path = "src/main.rs"

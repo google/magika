@@ -2,6 +2,10 @@
 
 ## 0.1.3-dev
 
+### Minor
+
+- Change performance tuning configuration
+
 ### Patch
 
 - Update dependencies

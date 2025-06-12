@@ -508,7 +508,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "magika"
-version = "0.2.1-dev"
+version = "0.2.1"
 dependencies = [
  "ndarray",
  "ort",
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "magika-cli"
-version = "0.1.3-dev"
+version = "0.1.3"
 dependencies = [
  "anyhow",
  "async-channel",

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.1-dev
+## 0.2.1
 
 ### Patch
 

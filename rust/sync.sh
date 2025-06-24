@@ -34,9 +34,6 @@ PATH=$PWD/target/release:$PATH
   magika rust/code.rs --mime-type
 ) > cli/output 2>&1
 
-info "Sync deb package extended description"
-grep '^Magika is a novel' ../README.md > cli/deb/extended-description
-
 if [ "$1" = --check ]; then
   if ! git diff --exit-code; then
     [ -n "$CI" ] && todo 'Execute ./sync.sh from the rust directory'

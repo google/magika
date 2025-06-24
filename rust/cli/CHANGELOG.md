@@ -6,6 +6,11 @@
 
 - Use true colors when available
 
+### Patch
+
+- Dissociate repository from published content (see `publish.sh` script)
+- Remove `package.metadata.deb`
+
 ## 0.1.3
 
 ### Minor

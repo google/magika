@@ -71,7 +71,13 @@ Magika is available as `magika` on PyPI:
 $ pip install magika
 ```
 
-If you intend to use Magika only as a command line, you may want to use `$ pipx install magika` instead.
+If you intend to use Magika only as a command line, you may want to use one of the following alternatives:
+
+```
+pipx install magika
+curl -LsSf https://google.github.io/magika/install.sh | sh
+powershell -ExecutionPolicy Bypass -c "irm https://google.github.io/magika/install.ps1 | iex
+```
 
 If you want to test out the latest release candidate, you can install with `pip install --pre magika`.
 

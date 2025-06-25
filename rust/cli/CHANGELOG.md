@@ -4,7 +4,7 @@
 
 ### Minor
 
-- Use true colors
+- Use true colors when available
 
 ## 0.1.3
 

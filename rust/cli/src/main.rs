@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use anyhow::{bail, ensure, Result};
 use clap::{Args, Parser};
-use colored::{ColoredString, Colorize};
+use colored::ColoredString;
 use magika::{
     ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason, Session,
     TypeInfo,
@@ -554,17 +554,29 @@ impl Response {
     }
 
     fn color(&self, result: ColoredString) -> ColoredString {
+        use colored::Colorize as _;
+        // We only use true colors. If the terminal doesn't support true colors, the colored crate
+        // will automatically choose the closest one. For testing colors during development:
+        //
+        //     cargo run -- -r --format='%p: %l (%g)' PATH...
+        //
         match &self.result {
-            Err(_) => result.bold().red(),
-            Ok(x) => match x.info().group {
-                "document" => result.bold().magenta(),
-                "executable" => result.bold().green(),
-                "archive" => result.bold().red(),
-                "audio" => result.yellow(),
-                "image" => result.yellow(),
-                "video" => result.yellow(),
-                "code" => result.bold().blue(),
-                _ => result.bold(),
+            // Errors deserve to be bold and red.
+            Err(_) => result.bold().truecolor(0xef, 0x29, 0x29),
+            Ok(x) => match x.info().label {
+                // Labels that deserve their own color.
+                "gif" => result.truecolor(0xcb, 0x8a, 0x1e),
+                _ => match x.info().group {
+                    // Groups that deserve their own color.
+                    "document" => result.bold().truecolor(0xad, 0x7f, 0xa8),
+                    "executable" => result.bold().truecolor(0x8a, 0xe2, 0x34),
+                    "archive" => result.bold().truecolor(0xcc, 0x00, 0x00),
+                    "audio" => result.truecolor(0xc4, 0xa0, 0x00),
+                    "image" => result.truecolor(0xc4, 0xa0, 0x00),
+                    "video" => result.truecolor(0xc4, 0xa0, 0x00),
+                    "code" => result.bold().truecolor(0x72, 0x9f, 0xcf),
+                    _ => result.bold().truecolor(0xff, 0xff, 0xff),
+                },
             },
         }
     }

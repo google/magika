@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4-dev
+
+### Minor
+
+- Use true colors
+
 ## 0.1.3
 
 ### Minor

@@ -25,7 +25,7 @@ PATH=$PWD/target/release:$PATH
 ( cd ../tests_data/basic
   set -x
   magika rust/code.rs
-  magika rust/code.rs --colors
+  env -u COLORTERM magika rust/code.rs --colors
   magika rust/code.rs --output-score
   magika rust/code.rs --json
   magika rust/code.rs python/code.py --json

@@ -555,28 +555,21 @@ impl Response {
 
     fn color(&self, result: ColoredString) -> ColoredString {
         use colored::Colorize as _;
-        // We only use true colors. If the terminal doesn't support true colors, the colored crate
-        // will automatically choose the closest one. For testing colors during development:
-        //
-        //     cargo run -- -r --format='%p: %l (%g)' PATH...
-        //
+        // We only use true colors (except for errors). If the terminal doesn't support true colors,
+        // the colored crate will automatically choose the closest one.
         match &self.result {
-            // Errors deserve to be bold and red.
-            Err(_) => result.bold().truecolor(0xef, 0x29, 0x29),
-            Ok(x) => match x.info().label {
-                // Labels that deserve their own color.
-                "gif" => result.truecolor(0xcb, 0x8a, 0x1e),
-                _ => match x.info().group {
-                    // Groups that deserve their own color.
-                    "document" => result.bold().truecolor(0xad, 0x7f, 0xa8),
-                    "executable" => result.bold().truecolor(0x8a, 0xe2, 0x34),
-                    "archive" => result.bold().truecolor(0xcc, 0x00, 0x00),
-                    "audio" => result.truecolor(0xc4, 0xa0, 0x00),
-                    "image" => result.truecolor(0xc4, 0xa0, 0x00),
-                    "video" => result.truecolor(0xc4, 0xa0, 0x00),
-                    "code" => result.bold().truecolor(0x72, 0x9f, 0xcf),
-                    _ => result.bold().truecolor(0xff, 0xff, 0xff),
-                },
+            Err(_) => result.bold().red(),
+            Ok(x) => match x.info().group {
+                // Tailwind Colors
+                "application" => result.truecolor(0xf4, 0x3f, 0x5e), // Rose 500
+                "archive" => result.truecolor(0xf5, 0x9e, 0x0b),     // Amber 500
+                "audio" => result.truecolor(0x84, 0xcc, 0x16),       // Lime 500
+                "code" => result.truecolor(0x8b, 0x5c, 0xf6),        // Violet 500
+                "document" => result.truecolor(0x3b, 0x82, 0xf6),    // Blue 500
+                "executable" => result.truecolor(0xec, 0x48, 0x99),  // Pink 500
+                "image" => result.truecolor(0x06, 0xb6, 0xd4),       // Cyan 500
+                "video" => result.truecolor(0x10, 0xb9, 0x81),       // Emerald 500
+                _ => result.bold().truecolor(0xcc, 0xcc, 0xcc),
             },
         }
     }

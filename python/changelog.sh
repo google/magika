@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
 

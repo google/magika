@@ -33,8 +33,9 @@ else
   git clone --recursive https://github.com/Microsoft/onnxruntime.git runtime
   cd runtime
 
-  info "Checkout v1.22.0 because that's what ort v2.0.0-rc.10 supports."
-  git checkout v1.22.0
+  info "Checkout v1.22.1 because ort v2.0.0-rc.10 needs v1.22.0 but it's broken."
+  # See https://github.com/microsoft/onnxruntime/issues/25098
+  git checkout v1.22.1
 
   # The build fails with GCC 14 due to warnings as errors.
   sed -i '/function(onnxruntime_set_compile_flags/a\

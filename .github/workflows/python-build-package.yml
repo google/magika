@@ -12,7 +12,8 @@ on:
       - "tests_data/**"
       - ".github/workflows/python-*"
   schedule:
-    - cron: "12 3 * * 4" # Refresh the cache weekly.
+    - cron: "12 3 * * 4" # Run everything once per week.
+    - cron: "12 3 * * 1" # Refresh the cache an additional time.
   release:
     types: [created]
 
@@ -71,6 +72,7 @@ jobs:
   test-wheels:
     needs: [build-wheels]
     runs-on: ${{ matrix.platform.runner }}
+    if: github.event.schedule != '12 3 * * 1'
     strategy:
       # We want to know in which exact situation the tests fail
       fail-fast: false
@@ -124,6 +126,7 @@ jobs:
 
   build-pure-python-wheel-and-sdist:
     runs-on: ubuntu-latest
+    if: github.event.schedule != '12 3 * * 1'
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -148,6 +151,7 @@ jobs:
   test-pure-python-wheel:
     needs: [build-pure-python-wheel-and-sdist]
     runs-on: ${{ matrix.platform.runner }}
+    if: github.event.schedule != '12 3 * * 1'
     strategy:
       # We want to know in which exact situation the tests fail
       fail-fast: false
@@ -207,6 +211,7 @@ jobs:
   test-sdist:
     needs: [build-pure-python-wheel-and-sdist]
     runs-on: ${{ matrix.platform.runner }}
+    if: github.event.schedule != '12 3 * * 1'
     strategy:
       # We want to know in which exact situation the tests fail
       fail-fast: false

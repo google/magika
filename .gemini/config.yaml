@@ -1,0 +1,3 @@
+code_review:
+  pull_request_opened:
+    summary: false

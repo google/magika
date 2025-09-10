@@ -501,7 +501,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "magika"
-version = "0.1.4-dev"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "async-channel",

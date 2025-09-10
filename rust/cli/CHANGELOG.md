@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.4-dev
+## 0.1.4
 
 ### Minor
 

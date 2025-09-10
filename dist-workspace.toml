@@ -1,0 +1,37 @@
+[workspace]
+members = ["cargo:rust/cli"]
+
+# Config for 'dist'
+[dist]
+# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.28.7"
+# CI backends to support
+ci = "github"
+# The installers to generate for each app
+installers = ["shell", "powershell"]
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+# Path that installers should place binaries in
+install-path = "CARGO_HOME"
+# Whether to install an updater program
+install-updater = true
+# Generate and dist a source tarball
+source-tarball = false
+# Whether to auto-include files like READMEs, LICENSEs, and CHANGELOGs (default true)
+auto-includes = false
+# A prefix git tags must include for dist to care about them
+tag-namespace = "cli"
+# Whether +crt-static should be used on msvc
+msvc-crt-static = false
+# Whether to enable GitHub Attestations
+github-attestations = true
+# Post-announce jobs to run in CI
+post-announce-jobs = ["./cli-latest"]
+
+[dist.github-custom-runners]
+global = "ubuntu-latest"
+aarch64-unknown-linux-gnu = "ubuntu-24.04-arm"
+x86_64-unknown-linux-gnu = "ubuntu-latest"
+aarch64-apple-darwin = "macos-latest"
+x86_64-apple-darwin = "macos-13"
+x86_64-pc-windows-msvc = "windows-latest"

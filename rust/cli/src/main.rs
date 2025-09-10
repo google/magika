@@ -22,9 +22,9 @@ use std::sync::Arc;
 use anyhow::{bail, ensure, Result};
 use clap::{Args, Parser};
 use colored::ColoredString;
-use magika::{
-    ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason, Session,
-    TypeInfo,
+use magika_lib::{
+    self as magika, ContentType, Features, FeaturesOrRuled, FileType, InferredType,
+    OverwriteReason, Session, TypeInfo,
 };
 use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;

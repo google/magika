@@ -1,0 +1,24 @@
+name: Update the trampoline release
+
+on:
+  # This is called by cli-release.yml but we don't use the input.
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+  # In case we want to run it manually (the workflow is idempotent).
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+      - run: ./latest.sh
+        working-directory: rust
+        env:
+          GH_TOKEN: ${{ github.token }}

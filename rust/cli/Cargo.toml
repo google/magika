@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "1.0.0-dev"
+version = "1.0.0"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -16,7 +16,7 @@ anyhow = "1.0.86"
 async-channel = "2.3.1"
 clap = { version = "4.5.9", features = ["cargo", "derive", "string"] }
 colored = "3.0.0"
-magika_lib = { package = "magika", version = "=0.2.2-dev", path = "../lib", features = ["serde"] }
+magika_lib = { package = "magika", version = "=0.2.2", path = "../lib", features = ["serde"] }
 num_cpus = "1.16.0"
 ort = "=2.0.0-rc.10"
 serde = { version = "1.0.204", features = ["derive"] }

@@ -21,7 +21,7 @@ use crate::config::ModelConfig;
 use crate::future::exec;
 use crate::{ContentType, Result};
 
-/// Features to identify a file with deep-learning.
+/// Features to identify a file using AI.
 pub struct Features(pub(crate) Vec<i32>);
 
 /// Synchronous abstraction over file content.
@@ -106,24 +106,24 @@ impl AsyncInputApi for tokio::fs::File {
 
 /// Result of features extraction.
 pub enum FeaturesOrRuled {
-    /// Features extracted for deep-learning.
+    /// Features extracted for identification using AI.
     Features(Features),
 
-    /// Content identified without deep-learning.
+    /// Content identified with rules.
     Ruled(ContentType),
 }
 
 impl FeaturesOrRuled {
     /// Extracts the features from a file (synchronously).
     ///
-    /// Returns the content type directly if the file is not suited for deep-learning.
+    /// Returns the content type directly if the file cannot be identified using AI.
     pub fn extract_sync(file: impl SyncInput) -> Result<Self> {
         exec(Self::extract(file))
     }
 
     /// Extracts the features from a file (asynchronously).
     ///
-    /// Returns the content type directly if the file is not suited for deep-learning.
+    /// Returns the content type directly if the file cannot be identified using AI.
     pub async fn extract_async(file: impl AsyncInput) -> Result<Self> {
         Self::extract(file).await
     }

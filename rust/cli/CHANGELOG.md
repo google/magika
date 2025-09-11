@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-dev
+
+### Patch
+
+- Change description
+- Update dependencies
+
 ## 0.1.4
 
 ### Minor

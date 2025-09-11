@@ -29,14 +29,14 @@ pub enum FileType {
     /// The file is a symbolic link.
     Symlink,
 
-    /// The file is a regular file and was identified with deep-learning.
+    /// The file is a regular file and was identified using AI.
     Inferred(InferredType),
 
-    /// The file is a regular file and was identified without deep-learning.
+    /// The file is a regular file and was identified using rules.
     Ruled(ContentType),
 }
 
-/// Content type identified with deep-learning.
+/// Content type identified using AI.
 #[derive(Debug, Clone)]
 pub struct InferredType {
     /// The content type.

@@ -1,10 +1,10 @@
 [package]
 name = "magika"
-version = "0.2.1"
+version = "0.2.2-dev"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
-description = "Determines the content type of a file with deep-learning"
+description = "Determines file content types using AI"
 repository = "https://github.com/google/magika"
 homepage = "https://google.github.io/magika/"
 keywords = ["file", "magic"]

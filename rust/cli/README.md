@@ -17,9 +17,31 @@ on [GitHub](https://github.com/google/magika/issues).
 
 ## Installation
 
-A recent version of the `magika` Rust client is included in the `magika` python package, which you can install with `pip install magika`.
+You can install the latest version from the `magika` python package:
 
-To install the latest version from crates.io:
+```shell
+pipx install magika
+```
+
+You can install the latest version from a shell using `curl`:
+
+```shell
+curl -LsSf https://securityresearch.google/magika/install.sh | sh
+```
+
+You can install the latest version from a shell using `wget`:
+
+```shell
+wget -qO- https://securityresearch.google/magika/install.sh | sh
+```
+
+You can install the latest version from a powershell:
+
+```shell
+powershell -ExecutionPolicy Bypass -c "irm https://securityresearch.google/magika/install.ps1 | iex"
+```
+
+You can install the latest version from crates.io:
 
 ```shell
 cargo install --locked magika-cli

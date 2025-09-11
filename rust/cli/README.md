@@ -1,7 +1,7 @@
 # Magika CLI
 
 This binary crate implements a command-line interface (CLI) to the library crate
-[magika](https://crates.io/crates/magika) which provides file type detection with deep-learning.
+[magika](https://crates.io/crates/magika) which provides file content type detection using AI.
 
 ## Disclaimer
 
@@ -46,7 +46,7 @@ cargo install --locked --path=rust/cli
 ## Examples
 
 ```shell
-$ cd tests_data/basic && magika -r *
+% cd tests_data/basic && magika -r * | head
 asm/code.asm: Assembly (code)
 batch/simple.bat: DOS batch file (code)
 c/code.c: C source (code)
@@ -54,24 +54,13 @@ css/code.css: CSS source (code)
 csv/magika_test.csv: CSV document (code)
 dockerfile/Dockerfile: Dockerfile (code)
 docx/doc.docx: Microsoft Word 2007+ document (document)
-epub/doc.epub: EPUB document (document)
-epub/magika_test.epub: EPUB document (document)
-flac/test.flac: FLAC audio bitstream data (audio)
-handlebars/example.handlebars: Handlebars source (code)
-html/doc.html: HTML document (code)
-ini/doc.ini: INI configuration file (text)
-javascript/code.js: JavaScript source (code)
-jinja/example.j2: Jinja template (code)
-jpeg/magika_test.jpg: JPEG image data (image)
-json/doc.json: JSON document (code)
-latex/sample.tex: LaTeX document (text)
-makefile/simple.Makefile: Makefile source (code)
-markdown/README.md: Markdown document (text)
-[...]
+docx/magika_test.docx: Microsoft Word 2007+ document (document)
+eml/sample.eml: RFC 822 mail (text)
+empty/empty_file: Empty file (inode)
 ```
 
 ```shell
-$ magika ./tests_data/basic/python/code.py --json
+% magika ./tests_data/basic/python/code.py --json
 [
   {
     "path": "./tests_data/basic/python/code.py",
@@ -100,7 +89,7 @@ $ magika ./tests_data/basic/python/code.py --json
           "label": "python",
           "mime_type": "text/x-python"
         },
-        "score": 0.753000020980835
+        "score": 0.996999979019165
       }
     }
   }
@@ -108,13 +97,13 @@ $ magika ./tests_data/basic/python/code.py --json
 ```
 
 ```shell
-$ cat doc.ini | magika -
+% cat tests_data/basic/ini/doc.ini | magika -
 -: INI configuration file (text)
 ```
 
-```help
-$ magika --help
-Determines the content type of files with deep-learning
+```shell
+% magika --help
+Determines file content types using AI
 
 Usage: magika [OPTIONS] [PATH]...
 

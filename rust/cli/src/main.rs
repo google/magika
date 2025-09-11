@@ -31,7 +31,7 @@ use serde::Serialize;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-/// Determines the content type of files with deep-learning.
+/// Determines file content types using AI.
 #[derive(Parser)]
 #[command(name = "magika", version = Version, arg_required_else_help = true)]
 struct Flags {

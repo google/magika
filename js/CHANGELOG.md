@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [1.0.0]
+
+- Exiting the experimental phase
+
 ## [0.3.2]
 
 - Upgrade to `standard_v3_3` model.

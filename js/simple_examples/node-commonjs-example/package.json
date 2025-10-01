@@ -1,5 +1,5 @@
 {
-  "name": "magikan",
+  "name": "magika-node-commonjs-example",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -7,9 +7,9 @@
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Luca Invernizzi <invernizzi@google.com>",
   "license": "ISC",
-  "description": "",
+  "description": "Magika node commonJS example",
   "dependencies": {
     "magika": "^0.3.2"
   }

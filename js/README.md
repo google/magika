@@ -14,7 +14,7 @@ Simple usage in Node:
 
 ```js
 import { readFile } from "fs/promises";
-import { MagikaNode as Magika } from "magika";
+import { MagikaNode as Magika } from "magika/node";
 
 const data = await readFile("some file");
 const magika = await Magika().create();

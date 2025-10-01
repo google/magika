@@ -1,0 +1,18 @@
+{
+  "name": "browser-esmodule-example",
+  "version": "1.0.0",
+  "description": "Magika browser esmodule example",
+  "scripts": {
+    "server": "vite --port 8000",
+    "start": "npx playwright test"
+  },
+  "author": "Luca Invernizzi <invernizzi@google.com>",
+  "license": "ISC",
+  "dependencies": {
+    "magika": "^0.3.2",
+    "vite": "^7.1.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "magika-typescript-esmodule-example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "nodeVersion": "node -v",
+    "start": "npx tsx index.ts"
+  },
+  "author": "Luca Invernizzi <invernizzi@google.com>",
+  "license": "ISC",
+  "description": "Using magika in node & typescript via imports",
+  "dependencies": {
+    "magika": "^0.3.2"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.4.5"
+  }
+}

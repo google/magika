@@ -7,7 +7,7 @@
     "nodeVersion": "node -v",
     "start": "npx tsx index.ts"
   },
-  "author": "",
+  "author": "Luca Invernizzi <invernizzi@google.com>",
   "license": "ISC",
   "description": "Using magika in node & typescript via imports",
   "dependencies": {

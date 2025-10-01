@@ -1,0 +1,20 @@
+{
+  "name": "magikan",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "nodeVersion": "node -v",
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "compilerOptions": {
+    "moduleResolution": "nodeNext"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "magika": "^0.3.2"
+  }
+}

@@ -8,9 +8,6 @@
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "compilerOptions": {
-    "moduleResolution": "nodeNext"
-  },
   "author": "",
   "license": "ISC",
   "description": "",

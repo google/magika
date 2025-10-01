@@ -6,7 +6,7 @@
     "server": "vite --port 8000",
     "start": "npx playwright test"
   },
-  "author": "",
+  "author": "Luca Invernizzi <invernizzi@google.com>",
   "license": "ISC",
   "dependencies": {
     "magika": "^0.3.2",

@@ -1,7 +1,5 @@
 import { Magika } from "magika";
 
-// Suppress TensorFlow logging messages.
-
 async function main() {
   const magika = await Magika.create();
   const data = new TextEncoder().encode("import os; print(os.uname())");

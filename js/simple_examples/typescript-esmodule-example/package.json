@@ -1,5 +1,5 @@
 {
-  "name": "magikan",
+  "name": "magika-typescript-esmodule-example",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
@@ -9,7 +9,7 @@
   },
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Using magika in node & typescript via imports",
   "dependencies": {
     "magika": "^0.3.2"
   },

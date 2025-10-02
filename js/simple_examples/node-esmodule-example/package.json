@@ -4,14 +4,12 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "nodeVersion": "node -v",
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "author": "Luca Invernizzi <invernizzi@google.com>",
   "license": "ISC",
   "description": "Using Magika in Node via imports",
   "dependencies": {
-    "magika": "^0.3.2"
+     "magika": "file:../../"
   }
 }

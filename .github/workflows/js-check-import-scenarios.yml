@@ -1,0 +1,66 @@
+# Tests that the Magika library can be used in various scenarios (e.g., commonjs/node, esmodule/node, esmodule/browse)
+name: JS - check import scenarios
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'js/simple_examples/**'
+      - '.github/workflows/run-js-examples.yml'
+
+jobs:
+  run-examples:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js/simple_examples
+    steps:
+      - name: Checkout
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+        with:
+          ref: js-imports
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # pin@v4
+        name: Set up Node.js
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+      
+      - name: Install Magika dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: js
+
+      - name: Build Magika
+        run: yarn build
+        working-directory: js
+
+      - name: Install dependencies for the node-commonjs-example
+        run: yarn install
+        working-directory: js/simple_examples/node-commonjs-example
+
+      - name: Test node-commonjs-example
+        run: yarn --silent start
+        working-directory: js/simple_examples/node-commonjs-example
+
+      - name: Install dependencies for the node-esmodule-example
+        run: yarn install
+        working-directory: js/simple_examples/node-esmodule-example
+
+      - name: Test node-esmodule-example
+        run: yarn --silent start
+        working-directory: js/simple_examples/node-esmodule-example
+
+      - name: Install dependencies for the browser-esmodule-example
+        run: yarn install
+        working-directory: js/simple_examples/browser-esmodule-example
+
+      - name: Test browser-esmodule-example
+        run: yarn --silent start
+        working-directory: js/simple_examples/browser-esmodule-example
+
+      - name: Install dependencies for the typescript-esmodule-example
+        run: yarn install
+        working-directory: js/simple_examples/typescript-esmodule-example
+
+      - name: Test typescript-esmodule-example
+        run: yarn --silent start
+        working-directory: js/simple_examples/typescript-esmodule-example

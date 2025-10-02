@@ -4,14 +4,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "nodeVersion": "node -v",
     "start": "npx tsx index.ts"
   },
   "author": "Luca Invernizzi <invernizzi@google.com>",
   "license": "ISC",
   "description": "Using magika in node & typescript via imports",
   "dependencies": {
-    "magika": "^0.3.2"
+     "magika": "file:../../"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",

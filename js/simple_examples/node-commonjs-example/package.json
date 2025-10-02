@@ -3,14 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "nodeVersion": "node -v",
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "author": "Luca Invernizzi <invernizzi@google.com>",
   "license": "ISC",
   "description": "Magika node commonJS example",
   "dependencies": {
-    "magika": "^0.3.2"
+    "magika": "file:../../"
   }
 }

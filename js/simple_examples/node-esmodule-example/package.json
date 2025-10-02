@@ -10,6 +10,6 @@
   "license": "ISC",
   "description": "Using Magika in Node via imports",
   "dependencies": {
-     "magika": "file:../../"
+    "magika": "file:../../"
   }
 }

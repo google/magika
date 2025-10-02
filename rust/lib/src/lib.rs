@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Determines the type of a file with deep-learning.
+//! Determines file content types using AI.
 //!
 //! # Examples
 //!

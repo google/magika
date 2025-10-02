@@ -1612,9 +1612,9 @@ extend@^3.0.0:
   integrity sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==
 
 fast-check@^4.1.0:
-  version "4.1.1"
-  resolved "https://registry.npmjs.org/fast-check/-/fast-check-4.1.1.tgz"
-  integrity sha512-8+yQYeNYqBfWem0Nmm7BUnh27wm+qwGvI0xln60c8RPM5rVekxZf/Ildng2GNBfjaG6utIebFmVBPlNtZlBLxg==
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-4.3.0.tgz#85d0a385e25699e12a07eba61558324a1eb4133f"
+  integrity sha512-JVw/DJSxVKl8uhCb7GrwanT9VWsCIdBkK3WpP37B/Au4pyaspriSjtrY2ApbSFwTg3ViPfniT13n75PhzE7VEQ==
   dependencies:
     pure-rand "^7.0.0"
 

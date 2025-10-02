@@ -10,7 +10,7 @@
   "license": "ISC",
   "description": "Using magika in node & typescript via imports",
   "dependencies": {
-     "magika": "file:../../"
+    "magika": "file:../../"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",

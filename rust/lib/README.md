@@ -1,7 +1,7 @@
 # Magika
 
-This library crate provides file type detection with deep-learning. A command-line interface (CLI)
-for this library is provided by the [magika-cli](https://crates.io/crates/magika-cli) binary crate.
+This library crate provides file content type detection using AI. A command-line interface (CLI) for
+this library is provided by the [magika-cli](https://crates.io/crates/magika-cli) binary crate.
 
 ## Disclaimer
 

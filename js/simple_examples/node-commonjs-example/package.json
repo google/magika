@@ -9,6 +9,6 @@
   "license": "ISC",
   "description": "Magika node commonJS example",
   "dependencies": {
-     "magika": "file:../../"
+    "magika": "file:../../"
   }
 }

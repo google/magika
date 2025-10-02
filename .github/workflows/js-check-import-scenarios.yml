@@ -50,7 +50,7 @@ jobs:
         working-directory: js/simple_examples/node-esmodule-example
 
       - name: Install dependencies for the browser-esmodule-example
-        run: yarn install
+        run: yarn install && yarn playwright install 
         working-directory: js/simple_examples/browser-esmodule-example
 
       - name: Test browser-esmodule-example

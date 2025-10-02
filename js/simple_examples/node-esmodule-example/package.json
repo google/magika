@@ -1,0 +1,15 @@
+{
+  "name": "magika-node-esmodule-example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Luca Invernizzi <invernizzi@google.com>",
+  "license": "ISC",
+  "description": "Using Magika in Node via imports",
+  "dependencies": {
+    "magika": "file:../../"
+  }
+}

@@ -81,6 +81,6 @@
         "prettier": "^3.5.3",
         "ts-jest": "^29.0.5",
         "typescript": "^5.0.2",
-         "commander": "^14.0.1"
+        "commander": "^14.0.1"
     }
 }

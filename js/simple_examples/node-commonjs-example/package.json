@@ -1,0 +1,14 @@
+{
+  "name": "magika-node-commonjs-example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Luca Invernizzi <invernizzi@google.com>",
+  "license": "ISC",
+  "description": "Magika node commonJS example",
+  "dependencies": {
+    "magika": "file:../../"
+  }
+}

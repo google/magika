@@ -11,7 +11,21 @@
   },
   "dependencies": {
     "@astrojs/starlight": "^0.36.0",
+    "@astrojs/vue": "^5.1.1",
+    "@mdi/font": "^7.4.47",
+    "@tensorflow/tfjs-node": "^4.22.0",
     "astro": "^5.6.1",
-    "sharp": "^0.34.2"
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
+    "sharp": "^0.34.2",
+    "vue": "^3.5.22",
+    "vue-router": "^4.5.1",
+    "vuetify": "^3.10.4"
+  },
+  "devDependencies": {
+    "magika": "^0.4.0",
+    "prettier": "^3.6.2",
+    "sass": "^1.93.2",
+    "vite-plugin-vuetify": "^2.1.2"
   }
 }

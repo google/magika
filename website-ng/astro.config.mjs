@@ -50,4 +50,7 @@ export default defineConfig({
       appEntrypoint: "/src/plugins/vue-entry.js",
     }),
   ],
+  redirects: {
+    "/": "/introduction/overview",
+  },
 });

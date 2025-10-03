@@ -1,14 +1,9 @@
 ---
-title: Magika Demo
+title: "Magika Demo"
 ---
+import { Card } from '@astrojs/starlight/components';
+import MagikaDemo from '@/components/MagikaDemo.svelte';
 
-import HackedFileClassifierDemo from '@/components/magika-demo/HackedFileClassifierDemo.vue';
+Magika is a novel AI-powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds. Magika has been trained and evaluated on a dataset of ~100M samples across 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set. Designed for efficiency, Magika runs quickly even on a single CPU. A similar model currently scans hundreds of billions of files every week at Google (see our announcment blog post).
 
-<style is:global>
-  @import 'vuetify/styles';
-  @import '@mdi/font/css/materialdesignicons.css';
-</style>
-
-Testing!
-<HackedFileClassifierDemo client:load />
-Test is over.
+<Card title="Try it in your browser!"><MagikaDemo client:only="svelte" /></Card>

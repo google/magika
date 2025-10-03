@@ -2,10 +2,16 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
-import vue from "@astrojs/vue";
+import svelte from "@astrojs/svelte";
+
+import tailwindcss from "@tailwindcss/vite";
 
 // https://astro.build/config
 export default defineConfig({
+  redirects: {
+    "/": "/demo/magika-demo/",
+  },
+
   integrations: [
     starlight({
       title: "Magika",
@@ -15,6 +21,9 @@ export default defineConfig({
           label: "GitHub",
           href: "https://github.com/google/magika",
         },
+      ],
+      customCss: [
+        './src/styles/global.css',
       ],
       sidebar: [
         {
@@ -29,14 +38,6 @@ export default defineConfig({
           label: "Demos (for debugging)",
           items: [
             // Each item here is one entry in the navigation menu.
-            {
-              label: "Counter Demo",
-              slug: "demo/vuetify-counter-demo",
-            },
-            {
-              label: "TextArea Demo",
-              slug: "demo/vuetify-textarea-demo",
-            },
             { label: "Magika Demo", slug: "demo/magika-demo" },
           ],
         },
@@ -45,9 +46,32 @@ export default defineConfig({
           autogenerate: { directory: "reference" },
         },
       ],
+
     }),
-    vue({
-      appEntrypoint: "/src/plugins/vue-entry.js",
-    }),
+    svelte(),
+
   ],
+  vite: {
+    plugins: [tailwindcss()],
+
+    // The following is necessary to fix the SSR issues with TFJS.
+    define: {
+      global: 'globalThis',
+      process: { env: {} },
+    },
+    optimizeDeps: {
+      include: ['buffer', 'stream-browserify', 'http-browserify', 'url-browserify', 'util', 'events']
+    },
+    resolve: {
+      alias: {
+        'whatwg-url': 'whatwg-url/lib/public-api.js',
+        stream: 'stream-browserify',
+        util: 'util',
+        url: 'url-browserify',
+        buffer: 'buffer',
+        http: 'http-browserify',
+        events: 'events',
+      }
+    }
+  }
 });

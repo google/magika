@@ -100,27 +100,31 @@ export default defineConfig({
           ],
         },
         {
-          label: "Resources",
+          label: "Additional Resources",
           items: [
             {
               label: "FAQ",
-              slug: "introduction/overview",
+              slug: "additional-resources/faq",
             },
             {
               label: "Research Papers and Citation",
-              slug: "introduction/overview",
+              slug: "additional-resources/research-papers-and-citation",
             },
             {
-              label: "Related Posts",
-              slug: "introduction/overview",
+              label: "Related Blog Posts",
+              slug: "additional-resources/related-blog-posts",
             },
             {
               label: "Changelog",
-              slug: "introduction/overview",
+              slug: "additional-resources/changelog",
             },
             {
-              label: "License & Disclaimer",
-              slug: "introduction/overview",
+              label: "License",
+              slug: "additional-resources/license",
+            },
+            {
+              label: "Disclaimer",
+              slug: "additional-resources/disclaimer",
             },
           ],
         },

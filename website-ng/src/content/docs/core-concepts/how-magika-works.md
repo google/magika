@@ -1,5 +1,5 @@
 ---
-title: How Magika works
+title: How Magika Works
 ---
 
 Magika's command-line tool and language bindings are essentially wrappers around a compact deep learning model, optimized for efficient inference on standard CPUs.

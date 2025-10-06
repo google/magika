@@ -7,25 +7,43 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.36.0",
-    "@astrojs/vue": "^5.1.1",
-    "@mdi/font": "^7.4.47",
+    "@astrojs/starlight-tailwind": "^4.0.1",
+    "@astrojs/svelte": "^7.2.0",
+    "@tailwindcss/cli": "^4.1.14",
+    "@tailwindcss/vite": "^4.1.14",
     "@tensorflow/tfjs-node": "^4.22.0",
-    "astro": "^5.6.1",
+    "astro": "^5.14.1",
+    "buffer": "^6.0.3",
+    "class-variance-authority": "^0.7.1",
+    "events": "^3.3.0",
     "highlight.js": "^11.11.1",
-    "markdown-it": "^14.1.0",
+    "http-browserify": "^1.7.0",
+    "lucide-vue-next": "^0.544.0",
+    "magika": "^0.4.0",
     "sharp": "^0.34.2",
-    "vue": "^3.5.22",
-    "vue-router": "^4.5.1",
-    "vuetify": "^3.10.4"
+    "stream-browserify": "^3.0.0",
+    "svelte": "^5.39.8",
+    "svelte-sonner": "^1.0.5",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.3",
+    "url-browserify": "^2.0.0",
+    "util": "^0.12.5"
   },
   "devDependencies": {
-    "magika": "^0.4.0",
+    "@internationalized/date": "^3.10.0",
+    "@lucide/svelte": "^0.544.0",
+    "bits-ui": "^2.11.4",
+    "clsx": "^2.1.1",
+    "patch-package": "^8.0.1",
     "prettier": "^3.6.2",
     "sass": "^1.93.2",
-    "vite-plugin-vuetify": "^2.1.2"
+    "tailwind-merge": "^3.3.1",
+    "tailwind-variants": "^3.1.1",
+    "tw-animate-css": "^1.4.0"
   }
 }

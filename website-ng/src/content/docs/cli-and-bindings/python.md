@@ -93,7 +93,7 @@ All `identify_*` methods return a `MagikaResult` object. This object acts as a w
 ```
 
 
-## Data Models
+### Data Models
 
 The `MagikaResult` object and its nested data classes provide detailed information about the scan.
 
@@ -170,7 +170,7 @@ The presence of a label in this enum **does not guarantee** it can be a predicti
 :::
 
 
-## Additional APIs
+### Additional APIs
 
 The `Magika` class also exposes a few helper methods:
 - `get_output_content_types()`: Returns a list of all possible content type labels that Magika can return in the `output.label` field. This is the recommended way to get a definitive list of Magika's possible outputs.

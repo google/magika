@@ -140,6 +140,7 @@ export default defineConfig({
   ],
   redirects: {
     "/": "/introduction/overview",
+    "/core-concepts": "/core-concepts/how-magika-works",
   },
   vite: {
     plugins: [tailwindcss()],

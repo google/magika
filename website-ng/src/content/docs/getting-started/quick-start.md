@@ -127,8 +127,7 @@ Options:
           Print version
 ```
 
-
-For more examples and documentation about the CLI, see [README](./rust/cli/README.md).
+For more examples and documentation about the CLI, see https://crates.io/crates/magika-cli.
 
 
 ### Python Examples

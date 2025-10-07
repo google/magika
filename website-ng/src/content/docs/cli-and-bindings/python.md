@@ -5,7 +5,7 @@ title: "Python `Magika` Module"
 This guide provides documentation on how to use the `magika` Python module to identify file types from your code.
 
 :::tip
-This section assumes you are familiar with the topics discussed in the [Core Concepts](/core-concepts/overview) section.
+This section assumes you are familiar with the topics discussed in the [Core Concepts](/core-concepts/) section.
 :::
 
 ## Quick Examples

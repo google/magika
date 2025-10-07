@@ -31,7 +31,7 @@
 //! # }
 //! ```
 
-#![cfg_attr(feature = "_doc", feature(doc_auto_cfg))]
+#![cfg_attr(feature = "_doc", feature(doc_cfg))]
 
 pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};

@@ -21,6 +21,7 @@ import click
 
 EXTENSIONS = (".py", ".sh", ".ts", ".rs")
 RELEVANT_DIRS = ("python/", "js/", "rust/")
+EXCLUDE_DIRS = ("js/simple_examples",)
 COPYRIGHT_PATTERN = re.compile(r"Copyright", re.IGNORECASE)
 
 
@@ -79,6 +80,7 @@ def get_relevant_files_paths() -> list[Path]:
                 and path.stat().st_size > 0
                 and path.suffix in EXTENSIONS
                 and rel_path_str.startswith(RELEVANT_DIRS)
+                and not rel_path_str.startswith(EXCLUDE_DIRS)
             ):
                 paths.append(path)
     except subprocess.CalledProcessError as e:

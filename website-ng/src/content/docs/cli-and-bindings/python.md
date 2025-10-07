@@ -46,7 +46,7 @@ ini
 
 First, create an instance of the `Magika` class. The constructor accepts several optional arguments to customize its behavior.
 
-```
+```python
 from magika import Magika, PredictionMode
 
 # Default instantiation

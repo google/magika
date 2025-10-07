@@ -53,6 +53,10 @@ jobs:
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} mypy src/magika tests
 
+      - name: Run copyright checks
+        working-directory: python
+        run: uv run ./scripts/check_copyright.py
+
       - name: Run the python tests suite
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} pytest tests -m "not slow"

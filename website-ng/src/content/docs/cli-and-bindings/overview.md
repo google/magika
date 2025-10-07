@@ -2,13 +2,15 @@
 title: CLI & Bindings Overview
 ---
 
-Placeholder for  CLI and bindings overview.
+Magika provides a native CLI for command-line use and official language bindings—including Python, JavaScript, and Rust—to enable seamless integration into diverse projects.
 
-| Artifact                                                                   | Status         | Latest version | Default model                                              |
-| -------------------------------------------------------------------------- | -------------- | -------------- | ---------------------------------------------------------- |
-| [Python `Magika` module](./python/README.md)                               | Stable         | `0.6.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| [Rust `magika` CLI](https://crates.io/crates/magika-cli)                   | Stable         | `0.1.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| [Rust `magika` library](https://docs.rs/magika)                            | Stable         | `0.2.0`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| [JavaScript / TypeScript package](./js/README.md)                          | Stable         | `0.3.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| [Demo Website](https://google.github.io/magika/)                           | Stable         | -              | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| [GoLang](./go/README.md)                                                   | WIP            | -              | -                                                          |
+
+| Artifact                                                       | Status         | Latest version | Default model                                              |
+| -------------------------------------------------------------- | -------------- | -------------- | ---------------------------------------------------------- |
+| [`magika` CLI](/cli-and-bindings/cli)                          | Stable         | `1.0.0`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Python `Magika` module](/cli-and-bindings/python)             | Stable         | `0.6.2`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [JavaScript / TypeScript package](/cli-and-bindings/js)        | Stable         | `0.4.0`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Rust `magika` library](/cli-and-bindings/rust)                | Stable         | `0.2.2`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Demo Website](/demo/magika-demo/)                             | Stable         | -              | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Other bindings](/cli-and-bindings/other-bindings)             | WIP            | -              | -                                                          |
+

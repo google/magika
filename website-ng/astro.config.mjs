@@ -64,19 +64,23 @@ export default defineConfig({
             },
             {
               label: "Command Line Interface (CLI)",
-              slug: "introduction/overview",
+              slug: "cli-and-bindings/cli",
             },
             {
-              label: "Python bindings",
-              slug: "introduction/overview",
+              label: "Python `Magika` module",
+              slug: "cli-and-bindings/python",
             },
             {
-              label: "Javascript bindings",
-              slug: "introduction/overview",
+              label: "Rust bindings",
+              slug: "cli-and-bindings/rust",
+            },
+            {
+              label: "JavaScript bindings",
+              slug: "cli-and-bindings/js",
             },
             {
               label: "Other bindings",
-              slug: "introduction/overview",
+              slug: "cli-and-bindings/other-bindings",
             },
           ],
         },

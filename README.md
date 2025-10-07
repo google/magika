@@ -28,8 +28,8 @@ You can try Magika without installing anything by using our [web demo](https://g
 
 > [!IMPORTANT]
 >
-> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `0.6.1`, and you can consult the associated documentation [here](https://github.com/google/magika/blob/python-v0.6.1/python/README.md). You can install the latest stable version with: `pip install magika`.
-> - A detailed changelog and migration guidelines from older versions are discussed [here](https://github.com/google/magika/blob/python-v0.6.1/python/CHANGELOG.md).
+> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `0.6.2`, and you can consult the associated documentation [here](https://github.com/google/magika/blob/python-v0.6.2/python/README.md). You can install the latest stable version with: `pip install magika`.
+> - A detailed changelog and migration guidelines from older versions are discussed [here](https://github.com/google/magika/blob/python-v0.6.2/python/CHANGELOG.md).
 > - Help testing the latest release candidate is very appreciated! See the available candidates [here](https://pypi.org/project/magika/#history) and the recent changes in the [CHANGELOG.md](./python/CHANGELOG.md). You can install the latest release candidate with `pip install --pre magika`.
 
 # Highlights
@@ -137,9 +137,9 @@ Please consult the [python documentation](./python/README.md) for details on the
 | Artifact                                                                   | Status         | Latest version | Default model                                              |
 | -------------------------------------------------------------------------- | -------------- | -------------- | ---------------------------------------------------------- |
 | [Python `Magika` module](./python/README.md)                               | Stable         | `0.6.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| [Rust `magika` CLI](https://crates.io/crates/magika-cli)                   | Stable         | `0.1.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| [Rust `magika` library](https://docs.rs/magika)                            | Stable         | `0.2.0`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
-| TypeScript / NPM package ([README](./js/README.md) & [docs](./docs/js.md)) | Stable         | `0.3.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
+| [Rust `magika` CLI](https://crates.io/crates/magika-cli)                   | Stable         | `1.0.0`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
+| [Rust `magika` library](https://docs.rs/magika)                            | Stable         | `0.2.2`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
+| TypeScript / NPM package ([README](./js/README.md) & [docs](./docs/js.md)) | Stable         | `0.4.0`        | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
 | [Demo Website](https://google.github.io/magika/)                           | Stable         | -              | [`standard_v3_3`](./assets/models/standard_v3_3/README.md) |
 | [GoLang](./go/README.md)                                                   | In development | -              | -                                                          |
 
@@ -167,7 +167,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 # Research Paper and Citation
 
-We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](./assets/2025_icse_magika.pdf). (A previous version of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).)
+We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](./assets/2025_icse_magika.pdf).
 
 If you use this software for your research, please cite it as:
 

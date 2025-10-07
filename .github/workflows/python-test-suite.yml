@@ -85,6 +85,5 @@ jobs:
         with:
           fetch-depth: 0
       - name: Check for undocumented changes
-        run: ./changelog.sh ${{ github.base_ref }}
+        run: ./scripts/check_changelog.sh ${{ github.base_ref }}
         working-directory: python
-       

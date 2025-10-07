@@ -158,5 +158,4 @@ ini
 ini
 ```
 
-For more examples and documentation about the Python module, see [README](./python/README.md).
-TODO fix link.
+For more examples and documentation about the Python module, see the [Python `Magika` module](/cli-and-bindings/python) section.

@@ -17,12 +17,12 @@ But please open GitHub issues on what you want! Getting this sort of feedback wa
 
 ### What is the use case for the javascript package?
 
-The main client we expect people to use for the first release is the Rust client and the python package / module. The javascript package, based on a TFJS version of the same model, was developed for our [web demo](https://google.github.io/magika/), which allows users to test Magika and report feedback without installing anything. The demo also showcases on-device capabilities. The javascript package could also be useful for integrations that require javascript bindings. For now it is not envisioned to be used as a standalone command line (the model loading phase is quite slow), but it could be useful for those deployments where you can load the model once, and keep using it for many inferences.
+The main client we expect people to use for the first release is the Rust client and the python package / module. The javascript package, based on a TFJS version of the same model, was developed for our [web demo](/demo/magika-demo), which allows users to test Magika and report feedback without installing anything. The demo also showcases on-device capabilities. The javascript package could also be useful for integrations that require javascript bindings. For now it is not envisioned to be used as a standalone command line (the model loading phase is quite slow), but it could be useful for those deployments where you can load the model once, and keep using it for many inferences.
 
 
 ### Where can I find more details about all this?
 
-Please consult our research paper, see details [here](../README.md#research-paper-and-citation).
+Please consult our research paper, see details [here](/additional-resources/research-papers-and-citation).
 
 
 ### The inference time is ~5ms but the Python CLI takes a few hundred ms to bootstrap?

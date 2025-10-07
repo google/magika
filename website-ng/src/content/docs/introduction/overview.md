@@ -12,7 +12,7 @@ Here is an example of what Magika command line output looks like:
 
 Magika is used at scale to help improve Google users' safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners, processing hundreds billions samples on a weekly basis. Magika has also been integrated with [VirusTotal](https://www.virustotal.com/) ([example](/magika-vt.png)) and [abuse.ch](https://bazaar.abuse.ch/) ([example](/magika-abusech.png)).
 
-For more context you can read our initial [announcement post on Google's OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html), and you can read more in our [research paper](#research-paper-and-citation), published at the IEEE/ACM International Conference on Software Engineering (ICSE) 2025.
+For more context you can read our initial [announcement post on Google's OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html), and you can read more in our [research paper](/additional-resources/research-papers-and-citation), published at the IEEE/ACM International Conference on Software Engineering (ICSE) 2025.
 
 You can try Magika without installing anything by using our [web demo](/demo/web-demo), which runs locally in your browser!
 

@@ -9,6 +9,9 @@
 *.md @reyammer
 /tests_data/ @reyammer
 
+# Julien still owns the Rust changelogs
+/rust/**/CHANGELOG.md @ia0
+
 # Luca owns the JS code, docs, and website
 /js/ @invernizzi
 /docs/js.md @invernizzi

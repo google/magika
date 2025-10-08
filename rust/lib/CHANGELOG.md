@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3-dev
+
+### Patch
+
+- Fix rustdoc nightly build by replacing deprecated `doc_auto_cfg` feature with `doc_cfg` (RFC 3631)
+
 ## 0.2.2
 
 ### Patch

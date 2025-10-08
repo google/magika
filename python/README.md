@@ -20,7 +20,7 @@ You can find more information on which content types are supported, extended doc
 
 > The `magika` Python package is suitable for production use. However, because it's currently in its zero major version (`0.x.y`), future `0.x+1.z` updates may include breaking changes (more in general, Magika adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)). For detailed information and migration guidance, please refer to the [`CHANGELOG.md`](https://github.com/google/magika/blob/main/python/CHANGELOG.md).
 
-> **IMPORTANT**: This latest 0.6.1 version has a few breaking changes from the latest stable version, 0.5.1. Please consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md#061---2025-03-19) and the [migration guide](https://github.com/google/magika/blob/main/python/CHANGELOG.md#breaking-changes-and-migration-guide).
+> **IMPORTANT**: Versions 0.6.x have a few breaking changes from the previous stable version, 0.5.1. Please consult the [CHANGELOG.md](https://github.com/google/magika/blob/main/python/CHANGELOG.md#061---2025-03-19) and the [migration guide](https://github.com/google/magika/blob/main/python/CHANGELOG.md#breaking-changes-and-migration-guide).
 
 ## Installing Magika
 
@@ -238,7 +238,7 @@ class MagikaResult:
     prediction: MagikaPrediction
     dl: ContentTypeInfo  # Shortcut for `prediction.dl`, valid only for `status == Status.OK`
     output: ContentTypeInfo  # Same as above, shortcut to `prediction.output`
-    score: float  # Same as above, shortcut to `prediction.float`
+    score: float  # Same as above, shortcut to `prediction.score`
 ```
 
 ```python
@@ -281,7 +281,7 @@ class ContentTypeLabel(StrEnum):
 
 ## Research Paper and Citation
 
-We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](https://github.com/google/magika/blob/main/assets/2025_icse_magika.pdf). (A previous version of our paper is available on arxiv: [https://arxiv.org/abs/2409.13768](https://arxiv.org/abs/2409.13768).)
+We describe how we developed Magika and the choices we made in our research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](https://github.com/google/magika/blob/main/assets/2025_icse_magika.pdf).
 
 If you use this software for your research, please cite it as:
 

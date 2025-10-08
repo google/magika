@@ -14,9 +14,10 @@
 
 # ruff: noqa: D100, D101, D102, D103, D107
 
-"""We use a StrEnum backport instead of relying on the newly introduced StrEnum
-as we want to support at least python 3.8; StrEnum was introduced in python
-3.11.
+"""Backport of StrEnum.
+
+StrEnum was introduced in python 3.11, but we do not rely on it because we aim
+at supporting python since version 3.8.
 
 The following code has been taken (and adapted) from:
 https://github.com/irgeek/StrEnum/blob/master/strenum/__init__.py#L21

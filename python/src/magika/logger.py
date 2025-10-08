@@ -26,9 +26,11 @@ _logger: Optional[SimpleLogger] = None
 
 
 class SimpleLogger:
-    """We implement a simple logger to not rely on additional python packages,
-    e.g., rich. This is written in way that, by default, log messages (e.g.,
-    debug/info/...) are sent to stderr.
+    """A simple, self-contained logger that writes output to stderr.
+
+    This implementation avoids reliance on external dependencies (e.g., `rich`)
+    by sending log messages (debug, info, warning, etc.) directly to standard
+    error (`sys.stderr`) by default.
     """
 
     def __init__(self, use_colors: bool = False):

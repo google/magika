@@ -139,10 +139,7 @@ def main(
     output_version: bool,
     model_dir: Optional[Path],
 ) -> None:
-    """
-    Magika - Determine type of FILEs with deep-learning.
-    """
-
+    """Magika - Determine type of FILEs with deep-learning."""
     # click uses the name of the variable to determine how it will show up in
     # the --help. Since we don't like to see "file_paths" in the help, we name
     # the argument "file" (which is ugly) and we re-assign it as soon as we can.

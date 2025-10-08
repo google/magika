@@ -26,8 +26,7 @@ _logger: Optional[SimpleLogger] = None
 
 
 class SimpleLogger:
-    """
-    We implement a simple logger to not rely on additional python packages,
+    """We implement a simple logger to not rely on additional python packages,
     e.g., rich. This is written in way that, by default, log messages (e.g.,
     debug/info/...) are sent to stderr.
     """

@@ -143,8 +143,8 @@ export default defineConfig({
     svelte(),
   ],
   redirects: {
-    "/": "/introduction/overview",
-    "/core-concepts": "/core-concepts/how-magika-works",
+    "/": "/magika/introduction/overview",
+    "/core-concepts": "/magika/core-concepts/how-magika-works",
   },
   vite: {
     plugins: [tailwindcss()],

@@ -9,6 +9,9 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+- Pin onnxruntime on Windows ([#1099](https://github.com/google/magika/pull/1099)).
+
 ## [0.6.2] - 2025-05-02
 
 - Mark python 3.13 as supported.

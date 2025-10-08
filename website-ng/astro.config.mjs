@@ -6,8 +6,12 @@ import svelte from "@astrojs/svelte";
 
 import tailwindcss from "@tailwindcss/vite";
 
+import node from "@astrojs/node";
+
 // https://astro.build/config
 export default defineConfig({
+  base: "/magika",
+  server: { port: 8080 },
   integrations: [
     starlight({
       title: "Magika",
@@ -141,35 +145,16 @@ export default defineConfig({
   redirects: {
     "/": "/introduction/overview",
     "/core-concepts": "/core-concepts/how-magika-works",
+    },
   },
   vite: {
     plugins: [tailwindcss()],
-
-    // The following is necessary to fix the SSR issues with TFJS.
-    define: {
-      global: "globalThis",
-      process: { env: {} },
-    },
-    optimizeDeps: {
-      include: [
-        "buffer",
-        "stream-browserify",
-        "http-browserify",
-        "url-browserify",
-        "util",
-        "events",
-      ],
-    },
-    resolve: {
-      alias: {
-        "whatwg-url": "whatwg-url/lib/public-api.js",
-        stream: "stream-browserify",
-        util: "util",
-        url: "url-browserify",
-        buffer: "buffer",
-        http: "http-browserify",
-        events: "events",
-      },
+    ssr: {
+      noExternal: "cookie",
     },
   },
+
+  adapter: node({
+    mode: "standalone",
+  }),
 });

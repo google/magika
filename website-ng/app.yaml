@@ -1,0 +1,18 @@
+# Appengine configuration.
+
+runtime: nodejs24
+service: magika
+instance_class: F2
+default_expiration: "30s"
+
+env_variables:
+  HOST: "0.0.0.0"
+
+handlers:
+  - url: /.*
+    script: auto
+    secure: always
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 100

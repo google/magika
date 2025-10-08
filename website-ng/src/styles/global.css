@@ -3,14 +3,13 @@
 @import url("https://fonts.googleapis.com/css?family=Google+Sans&display=swap");
 
 /* Starlight Global Styles */
-@import '@astrojs/starlight-tailwind';
-@import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities);
-
+@import "@astrojs/starlight-tailwind";
+@import "tailwindcss";
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 /* Shadcn UI + Tailwind CSS + Animate.css */
 @import "tw-animate-css";
-
 
 /* Shadcn UI Themeing */
 

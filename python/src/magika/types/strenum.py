@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: D100, D101, D102, D103, D107
 
 """
 We use a StrEnum backport instead of relying on the newly introduced StrEnum

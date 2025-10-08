@@ -53,7 +53,7 @@
 
 <style>
   :global(.progress-striped) {
-    background-color: #a142f4;
+    background-color: #87cf70;
     background-image: linear-gradient(
       135deg,
       hsla(0, 0%, 100%, 0.25) 25%,

@@ -16,10 +16,9 @@ For more context you can read our initial [announcement post on Google's OSS blo
 
 You can try Magika without installing anything by using our [web demo](/demo/web-demo), which runs locally in your browser!
 
-
 ### Highlights
 
-- Available as a command line tool written in Rust, a Python API, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package (which powers the [web demo](/demo/web-demo)), and GoLang (WIP).
+- Available as a command line tool written in Rust, a Python API, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package (which powers the [web demo](/demo/magika-demo)), and GoLang (WIP).
 - Trained and evaluated on a dataset of ~100M files across [200+ content types](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md).
 - On our test set, Magika achieves ~99% average precision and recall, outperforming existing approaches.
 - After the model is loaded (which is a one-off overhead), the inference time is about 5ms per file, even when run on a single CPU.

@@ -1,0 +1,66 @@
+---
+title: Installation
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+### Command Line Tool
+
+If you intend to use Magika only as a command line, you can install it in a number of ways:
+
+<Tabs>
+  <TabItem label="pipx">
+  ```shell
+  pipx install magika
+  ```
+  </TabItem>
+  <TabItem label="curl">
+  ```shell
+  curl -LsSf https://securityresearch.google/magika/install.sh | sh
+  ```
+  </TabItem>
+  <TabItem label="wget">
+  ```shell
+  wget -qO- https://securityresearch.google/magika/install.sh | sh
+  ```
+  </TabItem>
+  <TabItem label="powershell">
+  ```shell
+  powershell -ExecutionPolicy Bypass -c "irm https://securityresearch.google/magika/install.ps1 | iex"
+  ```
+  </TabItem>
+</Tabs>
+
+
+### Python package
+
+Magika python package is available as `magika` on PyPI:
+
+```shell
+pip install magika
+```
+
+If you want to test out the latest release candidate from pypi, you can install it with
+
+```shell
+pip install --pre magika
+```
+
+### JavaScript Package
+
+JavaScript / TypeScript bindings can be installed with npm:
+
+```shell
+npm install magika
+```
+
+### Docker
+
+If you want to test Magika's latest version (from git) within a Docker container, you can run:
+
+```shell
+git clone https://github.com/google/magika
+cd magika/
+docker build -t magika .
+docker run -it --rm -v $(pwd):/magika magika -r /magika/tests_data/basic
+```

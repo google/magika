@@ -7,10 +7,10 @@ Magika provides a native CLI for command-line use and official language bindings
 
 | Artifact                                                       | Status         | Latest version | Default model                                              |
 | -------------------------------------------------------------- | -------------- | -------------- | ---------------------------------------------------------- |
-| [`magika` CLI](/cli-and-bindings/cli)                          | Stable         | `1.0.0`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
-| [Python `Magika` module](/cli-and-bindings/python)             | Stable         | `0.6.2`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
-| [JavaScript / TypeScript package](/cli-and-bindings/js)        | Stable         | `0.4.0`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
-| [Rust `magika` library](/cli-and-bindings/rust)                | Stable         | `0.2.2`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
-| [Demo Website](/demo/magika-demo/)                             | Stable         | -              | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
-| [Other bindings](/cli-and-bindings/other-bindings)             | WIP            | -              | -                                                          |
+| [`magika` CLI](/magika/cli-and-bindings/cli)                          | Stable         | `1.0.0`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Python `Magika` module](/magika/cli-and-bindings/python)             | Stable         | `0.6.2`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [JavaScript / TypeScript package](/magika/cli-and-bindings/js)        | Stable         | `0.4.0`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Rust `magika` library](/magika/cli-and-bindings/rust)                | Stable         | `0.2.2`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Demo Website](/magika/demo/magika-demo/)                             | Stable         | -              | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Other bindings](/magika/cli-and-bindings/other-bindings)             | WIP            | -              | -                                                          |
 

@@ -4,7 +4,7 @@ title: Quick Start
 
 Here you can find a number of quick examples just to get you started.
 
-To learn about Magika's inner working, see the [Core Concepts](/core-concepts/how-magika-works) section.
+To learn about Magika's inner working, see the [Core Concepts](/magika/core-concepts/how-magika-works) section.
 
 ### Command Line Tool Examples
 
@@ -158,4 +158,4 @@ ini
 ini
 ```
 
-For more examples and documentation about the Python module, see the [Python `Magika` module](/cli-and-bindings/python) section.
+For more examples and documentation about the Python module, see the [Python `Magika` module](/magika/cli-and-bindings/python) section.

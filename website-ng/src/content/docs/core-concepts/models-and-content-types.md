@@ -14,7 +14,7 @@ The models' READMEs contain two lists: "the output space of the model" and "the 
 
 Details on the improvements and tradeoffs for each model can be found in the models' CHANGELOG on GitHub: [models/CHANGELOG.md](https://github.com/google/magika/blob/main/assets/models/CHANGELOG.md).
 
-Clients and bindings usually integrate the latest available model, but this may not always be the case. For more information, check the [bindings section](/cli-and-bindings/overview).
+Clients and bindings usually integrate the latest available model, but this may not always be the case. For more information, check the [bindings section](/magika/cli-and-bindings/overview).
 
 :::caution
 You may see a "content types knowledge base" (KB) in the GitHub source code. This is a comprehensive list of all content types we track internally for research and development. It should **not** be confused with the content types Magika currently supports. The KB is a superset of what any single model supports. To be certain which content types a specific model supports, always refer to its README file.

@@ -41,7 +41,7 @@ For more, see the API reference below.
 ## Command-line tool
 
 Please use the official CLI as it can perform batch processing and search for files recursively.
-Read more about that in the main the [Command Line Interface (CLI)](/cli-and-bindings/cli) section.
+Read more about that in the main the [Command Line Interface (CLI)](/magika/cli-and-bindings/cli/) section.
 This one is useful to load the TensorflowJS model and see that it works as expected.
 
 Install it with `npm install -g magika`. You can then run it by executing `magika-js <some files>`
@@ -128,4 +128,4 @@ yarn run test
 
 ## API Reference
 
-See the [JavaScript API Reference](/cli-and-bindings/js-api) section.
+See the [JavaScript API Reference](/magika/cli-and-bindings/js-api) section.

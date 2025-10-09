@@ -2,7 +2,7 @@
 title: Research Papers and Citation
 ---
 
-We describe how we developed Magika and the choices we made in a research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](/2025_icse_magika.pdf).
+We describe how we developed Magika and the choices we made in a research paper, which was accepted at the International Conference on Software Engineering (ICSE) 2025. You can find a copy of the paper [here](/magika/2025_icse_magika.pdf).
 
 If you use this software for your research, please cite it as:
 

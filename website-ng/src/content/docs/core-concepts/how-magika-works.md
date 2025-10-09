@@ -20,4 +20,4 @@ The model is not used in all situations. Specifically:
 - If the input is not a regular file, such as a **directory** or a **symlink**, Magika returns `directory` or `symlink`.
 - If the file is **too small** for the model (e.g., under ~8 bytes), Magika uses simple heuristics to return a generic answer like `txt` or `unknown`.
 
-In these cases, the model is not run, and its internal content type label is set to `undefined`. By default, users only see the final, processed prediction, but the model's raw output can be inspected for debugging. See the [Understanding the Output](/core-concepts/understanding-the-output) section for details.
+In these cases, the model is not run, and its internal content type label is set to `undefined`. By default, users only see the final, processed prediction, but the model's raw output can be inspected for debugging. See the [Understanding the Output](/magika/core-concepts/understanding-the-output/) section for details.

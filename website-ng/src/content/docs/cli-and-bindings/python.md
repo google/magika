@@ -5,7 +5,7 @@ title: "Python `Magika` Module"
 This guide provides documentation on how to use the `magika` Python module to identify file types from your code.
 
 :::tip
-This section assumes you are familiar with the topics discussed in the [Core Concepts](/core-concepts/) section.
+This section assumes you are familiar with the topics discussed in the [Core Concepts](/magika/core-concepts/) section.
 :::
 
 ## Quick Examples
@@ -97,7 +97,7 @@ All `identify_*` methods return a `MagikaResult` object. This object acts as a w
 
 The `MagikaResult` object and its nested data classes provide detailed information about the scan.
 
-Consult the [Understanding the Output](/core-concepts/understanding-the-output) section for more context.
+Consult the [Understanding the Output](/magika/core-concepts/understanding-the-output) section for more context.
 
 `MagikaResult`
 

@@ -74,4 +74,4 @@ As mentioned previously, when the model is not used (e.g., for empty files), `dl
 
 For most applications, you should use the `output.label` field, which is the default output of the CLI. The raw `dl` block is provided primarily for debugging and advanced use cases.
 
-See also the [FAQ](/resources/faq) for why it is best to integrate Magika's results by focusing on label rather than other fields like `mime_type`.
+See also the [FAQ](/magika/additional-resources/faq) for why it is best to integrate Magika's results by focusing on label rather than other fields like `mime_type`.

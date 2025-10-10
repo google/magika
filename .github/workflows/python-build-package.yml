@@ -21,7 +21,38 @@ permissions:
   contents: read
 
 jobs:
+  # This job acts as a gatekeeper for releases, which are triggered by a tag push.
+  # It performs critical pre-release checks, such as:
+  # - Verifying the Git tag version matches the package version.
+  # - Ensuring the version is a non-dev release.
+  # These checks are skipped for non-release pushes.
+  pre-release-checks:
+    name: Pre-release checks
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Verify tag and package versions (only runs on tag pushes)
+        id: get_version
+        # If this workflow was not triggered via a release tag, the checks are skipped.
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/test-release-tag-v')
+        run: |
+          echo "Running tag vs. package version check..."
+          TAG_VERSION="${{ github.ref#refs/tags/python-v }}"
+          PKG_VERSION=$(grep 'version = ' python/pyproject.toml | sed -n 's/version = "\(.*\)"/\1/p')
+          echo "TAG_VERSION=${TAG_VERSION}"
+          echo "PKG_VERSION=${PKG_VERSION}"
+
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package version ($PKG_VERSION)!"
+            exit 1
+          fi
+          echo "version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+
   build-wheels:
+    needs: [pre-release-checks]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -125,6 +156,7 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
 
   build-pure-python-wheel-and-sdist:
+    needs: [pre-release-checks]
     runs-on: ubuntu-latest
     if: github.event.schedule != '12 3 * * 1'
     steps:

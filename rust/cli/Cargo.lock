@@ -507,7 +507,7 @@ checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
 name = "magika"
-version = "1.0.0-dev"
+version = "1.0.0"
 dependencies = [
  "ndarray",
  "ort",
@@ -518,13 +518,13 @@ dependencies = [
 
 [[package]]
 name = "magika"
-version = "1.0.1-dev"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "async-channel",
  "clap",
  "colored",
- "magika 1.0.0-dev",
+ "magika 1.0.0",
  "num_cpus",
  "ort",
  "serde",

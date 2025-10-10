@@ -11,6 +11,7 @@ semver guidelines for more details about this.
 
 ## [Unreleased]
 - Pin onnxruntime on Windows ([#1099](https://github.com/google/magika/pull/1099)).
+- Add docstrings for all relevant modules, classes, and methods.
 
 ## [0.6.2] - 2025-05-02
 

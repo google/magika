@@ -1,4 +1,6 @@
 # CHANGELOG
+## [1.0.0]
+ - Mark end of experimental mode. No major changes.
 
 ## [0.3.2]
 

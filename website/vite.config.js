@@ -1,7 +1,5 @@
 // Plugins.
 import vue from "@vitejs/plugin-vue";
-import vuetify, { transformAssetUrls } from "vite-plugin-vuetify";
-import ViteFonts from "unplugin-fonts/vite";
 
 // Utilities.
 import { defineConfig } from "vite";
@@ -10,33 +8,22 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
   base: "/magika/",
   plugins: [
-    vue({ template: { transformAssetUrls } }),
-    vuetify({
-      autoImport: true,
-      styles: {
-        configFile: "assets/custom.scss",
+    vue(),
+    {
+      name: 'redirect-all',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url && req.url.includes('/magika/model')) {
+            next();
+            return;
+          }
+          res.writeHead(301, { Location: 'https://securityresearch.google/magika/' });
+          res.end();
+        });
       },
-    }),
-    ViteFonts({
-      google: {
-        families: [
-          {
-            name: "Google Sans Text",
-            styles: "wght@100;300;400;500;700;900",
-          },
-          {
-            name: "Google Sans",
-            styles: "wght@100;300;400;500;700;900",
-          },
-        ],
-      },
-    }),
+      apply: 'serve',
+    },
   ],
-  define: { "process.env": {} },
-  // https://github.com/vitejs/vite/issues/2433
-  build: {
-    sourcemap: false,
-  },
   resolve: {
     assetsInclude: ["**/*.md", "**/*.html"],
     alias: {

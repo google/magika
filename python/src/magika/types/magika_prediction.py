@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Module defining the MagikaPrediction dataclass."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,8 +28,6 @@ class MagikaPrediction:
 
     This dataclass holds both the raw Deep Learning model's prediction and the
     final, potentially modified, output prediction.
-
-    Consult the documentation for more context.
 
     Attributes:
         dl: The raw prediction from the Deep Learning (DL) model.

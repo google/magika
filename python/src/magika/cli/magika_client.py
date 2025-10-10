@@ -13,6 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Python-based command-line client for Magika.
+
+This client serves as a fallback and is maintained for backward compatibility.
+It is primarily useful for installations from the pure-Python wheel, especially
+on platforms where the Rust-based binary client is not yet available.
+
+For optimal performance, the Rust-based client is recommended.
+"""
+
 import importlib.metadata
 import json
 import logging

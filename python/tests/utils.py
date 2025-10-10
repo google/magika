@@ -17,7 +17,9 @@ import math
 import random
 import string
 from pathlib import Path
-from typing import List
+from typing import Any, List
+
+import pytest
 
 
 def get_repo_root_dir() -> Path:
@@ -170,3 +172,13 @@ def gzip_compress(content: bytes) -> bytes:
 
 def gzip_decompress(content: bytes) -> bytes:
     return gzip.decompress(content)
+
+
+def get_imported_objects_after_wildcard() -> dict[str, Any]:
+    # Execute 'from magika import *' in a new, clean namespace
+    namespace: dict[str, Any] = {}
+    try:
+        exec("from magika import *", globals(), namespace)
+    except ImportError as e:
+        pytest.fail(f"Could not import module 'magika': {e}")
+    return namespace

@@ -20,12 +20,26 @@ __version__ = "0.6.3-dev"
 
 import dotenv
 
-from magika import magika
-from magika.types import content_type_label, magika_error, prediction_mode
+from magika.magika import Magika
+from magika.types.content_type_info import ContentTypeInfo
+from magika.types.content_type_label import ContentTypeLabel
+from magika.types.magika_error import MagikaError
+from magika.types.magika_prediction import MagikaPrediction
+from magika.types.magika_result import MagikaResult
+from magika.types.overwrite_reason import OverwriteReason
+from magika.types.prediction_mode import PredictionMode
+from magika.types.status import Status
 
-Magika = magika.Magika
-MagikaError = magika_error.MagikaError
-ContentTypeLabel = content_type_label.ContentTypeLabel
-PredictionMode = prediction_mode.PredictionMode
+__all__ = [
+    "ContentTypeInfo",
+    "ContentTypeLabel",
+    "Magika",
+    "MagikaError",
+    "MagikaPrediction",
+    "MagikaResult",
+    "OverwriteReason",
+    "PredictionMode",
+    "Status",
+]
 
 dotenv.load_dotenv(dotenv.find_dotenv())

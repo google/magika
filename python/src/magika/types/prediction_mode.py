@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: D100
+
 from __future__ import annotations
 
 import enum
@@ -21,10 +23,16 @@ from magika.types.strenum import LowerCaseStrEnum
 
 
 class PredictionMode(LowerCaseStrEnum):
+    """Enum to represent the possible prediction modes.
+
+    Consult the documentation for additional context.
+    """
+
     BEST_GUESS = enum.auto()
     MEDIUM_CONFIDENCE = enum.auto()
     HIGH_CONFIDENCE = enum.auto()
 
     @staticmethod
     def get_valid_prediction_modes() -> List[str]:
+        """Get a list of valid prediction modes."""
         return [pm for pm in PredictionMode]

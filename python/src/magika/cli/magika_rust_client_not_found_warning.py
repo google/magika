@@ -13,10 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Placeholder script for the primary 'magika' command-line interface.
+
+This module serves as a fallback entry point for the 'magika' command. **It is
+included only in the pure-Python package.** If this script is executed, it
+indicates that the user has installed the pure-Python package and not the
+package that contains the native binary.
+
+The script explicitly notifies the user that they are not using the binary
+client and guides them to use the alternative Python client (`$
+magika-python-client`) or to seek support.
+"""
+
 import sys
 
 
-def main() -> None:
+def main() -> None:  # noqa:  D103
     message = """
 WARNING: you have attempted to run `$ magika` (the Rust client), but this is not
 available in the python package you installed, likely because magika pipeline

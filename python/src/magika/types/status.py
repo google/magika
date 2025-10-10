@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: D100
+
 import enum
 
 from magika.types.strenum import LowerCaseStrEnum
 
 
 class Status(LowerCaseStrEnum):
+    """Enum to represent the possible status outcomes of a content type inference result."""
+
     OK = enum.auto()
 
     # Used when a file path does not exist.

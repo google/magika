@@ -13,6 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Python-based command-line client for Magika.
+
+This client serves as a fallback and is maintained for backward compatibility.
+It is primarily useful for installations from the pure-Python wheel, especially
+on platforms where the Rust-based binary client is not yet available.
+
+For optimal performance, the Rust-based client is recommended.
+"""
+
 import importlib.metadata
 import json
 import logging
@@ -139,10 +148,7 @@ def main(
     output_version: bool,
     model_dir: Optional[Path],
 ) -> None:
-    """
-    Magika - Determine type of FILEs with deep-learning.
-    """
-
+    """Magika - Determine type of FILEs with deep-learning."""
     # click uses the name of the variable to determine how it will show up in
     # the --help. Since we don't like to see "file_paths" in the help, we name
     # the argument "file" (which is ugly) and we re-assign it as soon as we can.
@@ -262,8 +268,8 @@ def main(
             batch_idx * batch_size : (batch_idx + 1) * batch_size
         ]
 
-        if should_read_from_stdin(files_paths):
-            batch_predictions = [get_magika_result_from_stdin(magika)]
+        if _should_read_from_stdin(files_paths):
+            batch_predictions = [_get_magika_result_from_stdin(magika)]
         else:
             batch_predictions = magika.identify_paths(batch_files_paths)
 
@@ -330,11 +336,11 @@ def main(
         )
 
 
-def should_read_from_stdin(files_paths: List[Path]) -> bool:
+def _should_read_from_stdin(files_paths: List[Path]) -> bool:
     return len(files_paths) == 1 and str(files_paths[0]) == "-"
 
 
-def get_magika_result_from_stdin(magika: Magika) -> MagikaResult:
+def _get_magika_result_from_stdin(magika: Magika) -> MagikaResult:
     content = sys.stdin.buffer.read()
     result = magika.identify_bytes(content)
     return result

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: D100
+
 
 import enum
 
@@ -19,6 +21,11 @@ from magika.types.strenum import LowerCaseStrEnum
 
 
 class OverwriteReason(LowerCaseStrEnum):
+    """Enum to represent possible reasons for overriding the model's prediction.
+
+    Consult the documentation for additional context.
+    """
+
     NONE = enum.auto()
     LOW_CONFIDENCE = enum.auto()
     OVERWRITE_MAP = enum.auto()

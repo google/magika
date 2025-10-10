@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Enumeration of all known content type labels."""
 
 from magika.types.strenum import StrEnum
 
@@ -21,6 +22,12 @@ from magika.types.strenum import StrEnum
 # This is the list of all possible content types we know about; however, models
 # support a smaller subset of them. See model's README.md for details.
 class ContentTypeLabel(StrEnum):
+    """A string-based enumeration of all possible content type labels.
+
+    This enum provides a standardized set of identifiers for content types
+    recognized by Magika.
+    """
+
     _3DS = "3ds"
     _3DSM = "3dsm"
     _3DSX = "3dsx"

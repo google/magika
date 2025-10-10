@@ -84,8 +84,15 @@ locked = true
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F", "I001"]
-ignore = []
+select = ["D", "E4", "E7", "E9", "F", "I001"]
+ignore = ["D105"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["D"]
+"tests/*" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.format]
 docstring-code-format = true

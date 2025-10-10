@@ -17,7 +17,7 @@ import math
 import random
 import string
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Dict, List
 
 import pytest
 
@@ -174,9 +174,9 @@ def gzip_decompress(content: bytes) -> bytes:
     return gzip.decompress(content)
 
 
-def get_imported_objects_after_wildcard() -> dict[str, Any]:
+def get_imported_objects_after_wildcard() -> Dict[str, Any]:
     # Execute 'from magika import *' in a new, clean namespace
-    namespace: dict[str, Any] = {}
+    namespace: Dict[str, Any] = {}
     try:
         exec("from magika import *", globals(), namespace)
     except ImportError as e:

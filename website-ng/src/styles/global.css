@@ -132,3 +132,8 @@
 }
 
 @layer base, starlight, theme, components, utilities;
+
+/* Show lists correctly */
+ul {
+  list-style: disc !important;
+}

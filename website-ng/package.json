@@ -16,7 +16,7 @@
     "@astrojs/svelte": "^7.2.0",
     "@tailwindcss/cli": "^4.1.14",
     "@tailwindcss/vite": "^4.1.14",
-    "astro": "^5.14.1",
+    "astro": "^5.14.4",
     "class-variance-authority": "^0.7.1",
     "highlight.js": "^11.11.1",
     "magika": "^0.4.0",

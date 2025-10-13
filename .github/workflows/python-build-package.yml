@@ -123,6 +123,8 @@ jobs:
       - run: magika -r tests_data/basic
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      - name: Check pyproject.toml consistency
+        run: python scripts/check_pyproject_consistency.py
 
   build-pure-python-wheel-and-sdist:
     runs-on: ubuntu-latest
@@ -207,6 +209,8 @@ jobs:
       # Test the python module
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      - name: Check pyproject.toml consistency
+        run: python scripts/check_pyproject_consistency.py
 
   test-sdist:
     needs: [build-pure-python-wheel-and-sdist]
@@ -267,3 +271,5 @@ jobs:
       # Test the python module
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      - name: Check pyproject.toml consistency
+        run: python scripts/check_pyproject_consistency.py

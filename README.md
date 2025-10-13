@@ -194,3 +194,11 @@ Apache 2.0; see [`LICENSE`](LICENSE) for details.
 This project is not an official Google project. It is not supported by
 Google and Google specifically disclaims all warranties as to its quality,
 merchantability, or fitness for a particular purpose.
+
+## Supported Platforms and Python Versions
+
+Magika supports the following Python versions and platforms:
+- **Python Versions**: 3.8, 3.9, 3.10, 3.11, 3.12, 3.13
+- **Platforms**: Linux (and other Unix-like systems), macOS, Windows
+
+For more details, see the [Python package documentation](./python/README.md).

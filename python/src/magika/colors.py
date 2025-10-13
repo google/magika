@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: D100, D101, D102, D103, D107
+
 
 # Taken from https://en.wikipedia.org/wiki/ANSI_escape_code
 

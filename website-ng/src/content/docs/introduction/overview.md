@@ -20,7 +20,7 @@ You can try Magika without installing anything by using our [web demo](/magika/d
 
 - Available as a command line tool written in Rust, a Python API, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package (which powers the [web demo](/magika/demo/magika-demo)), and GoLang (WIP).
 - Trained and evaluated on a dataset of ~100M files across [200+ content types](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md).
-- On our test set, Magika achieves ~99% average precision and recall, outperforming existing approaches.
+- On our test set, Magika achieves ~99% average precision and recall, outperforming existing approaches -- especially on textual content types.
 - After the model is loaded (which is a one-off overhead), the inference time is about 5ms per file, even when run on a single CPU.
 - You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.
 - Near-constant inference time, independently from the file size; Magika only uses a limited subset of the file's content.

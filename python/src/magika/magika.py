@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Magika (the Python library).
+
+This module provides the `Magika` class, the main entry point for using Magika
+to identify file content types.
+"""
 
 import io
 import json
@@ -45,6 +50,12 @@ _DEFAULT_MODEL_NAME = "standard_v3_3"
 
 
 class Magika:
+    """Main Magika class for content type identification.
+
+    This class provides methods to identify the content type of files, bytes,
+    and streams.
+    """
+
     def __init__(
         self,
         model_dir: Optional[Path] = None,
@@ -54,6 +65,18 @@ class Magika:
         debug: bool = False,
         use_colors: bool = False,
     ) -> None:
+        """Initializes the Magika instance.
+
+        Args:
+            model_dir: Path to the directory containing the model and its
+                configuration. If None, the default model is used.
+            prediction_mode: The prediction mode to use.  Defaults to
+                PredictionMode.HIGH_CONFIDENCE.
+            no_dereference: If True, do not follow symlinks.  Defaults to False.
+            verbose: If True, enable verbose logging. Defaults to False.
+            debug: If True, enable debug logging. Defaults to False.
+            use_colors: If True, use colors in the logger.  Defaults to False.
+        """
         self._log = get_logger(use_colors=use_colors)
 
         if verbose:
@@ -108,14 +131,15 @@ class Magika:
         return f'Magika(module_version="{self.get_module_version()}", model_name="{self.get_model_name()}")'
 
     def get_module_version(self) -> str:
+        """Gets the version of the Magika Python module."""
         return str(__import__(self.__module__).__version__)
 
     def get_model_name(self) -> str:
+        """Gets the name of the loaded model."""
         return self._model_dir.name
 
     def identify_path(self, path: Union[str, os.PathLike]) -> MagikaResult:
         """Identify the content type of a file given its path."""
-
         if isinstance(path, str) or isinstance(path, os.PathLike):
             path = Path(path)
         else:
@@ -129,7 +153,6 @@ class Magika:
         self, paths: Sequence[Union[str, os.PathLike]]
     ) -> List[MagikaResult]:
         """Identify the content type of a list of files given their paths."""
-
         if not isinstance(paths, Sequence):
             raise TypeError("Input paths should be of type Sequence[Path]")
 
@@ -146,7 +169,6 @@ class Magika:
 
     def identify_bytes(self, content: bytes) -> MagikaResult:
         """Identify the content type of raw bytes."""
-
         if not isinstance(content, bytes):
             raise TypeError(
                 f"Input content should be of type 'bytes', not {type(content)}."
@@ -155,9 +177,13 @@ class Magika:
         return self._get_result_from_seekable(Seekable(io.BytesIO(content)))
 
     def identify_stream(self, stream: BinaryIO) -> MagikaResult:
-        """Identify the content type of a BinaryIO stream. Note that this method will
-        seek() around the stream."""
+        """Identify the content type of a BinaryIO stream.
 
+        Identifies the content type from an already-open binary file-like object
+        (e.g., the output of `open(file_path, 'rb')`). Note: 1) Magika will
+        `seek()` around the stream; 2) the stream _is not closed_ (closing it is
+        the responsibility of the caller).
+        """
         if not isinstance(stream, io.IOBase) or not stream.readable():  # type: ignore[unreachable]
             raise TypeError("Input stream must be a readable BinaryIO object.")
 
@@ -187,14 +213,15 @@ class Magika:
         return result
 
     def get_output_content_types(self) -> List[ContentTypeLabel]:
-        """This method returns the list of all possible output content types of
-        the module. I.e., all possible values for
-        `MagikaResult.prediction.output.label`.  This considers the list of
-        possible outputs from the model itself, but also keeps into account
-        additional configuration such as `override_map` and special content
-        types such as `ContentTypeLabel.EMPTY` or `ContentTypeLabel.SYMLINK`.
-        """
+        """This method returns the list of all possible output content types.
 
+        I.e., all possible values for `MagikaResult.prediction.output.label`.
+        This considers the list of possible outputs from the model itself, but
+        also keeps into account additional configuration such as `override_map`
+        and special content types such as `empty` or `symlink`.
+
+        Consult the documentation for more details.
+        """
         target_labels_space = self._model_config.target_labels_space
         overwrite_map = self._model_config.overwrite_map
 
@@ -214,15 +241,17 @@ class Magika:
         return sorted(output_content_types)
 
     def get_model_content_types(self) -> List[ContentTypeLabel]:
-        """This method returns the list of all possible output of the underlying
-        model. I.e., all possible values for `MagikaResult.prediction.dl.label`.
-        Note that, in general, the list of "model outputs" is different than the
+        """This method returns the list of all possible output of the model.
+
+        I.e., all possible values for `MagikaResult.prediction.dl.label`. Note
+        that, in general, the list of "model outputs" is different than the
         "tool outputs" as in some cases the model is not even used, or the
         model's output is overwritten due to a low-confidence score, or other
-        reasons.  This API is useful mostly for debugging purposes; the vast
+        reasons. This API is useful mostly for debugging purposes; the vast
         majority of client should use `get_output_content_types()`.
-        """
 
+        Consult the documentation for more details.
+        """
         model_content_types: Set[ContentTypeLabel] = {
             ContentTypeLabel.UNDEFINED,
         }
@@ -231,12 +260,11 @@ class Magika:
 
     @staticmethod
     def _get_default_model_name() -> str:
-        """This returns the default model name.
+        """Returns the default model name.
 
-        We make this method static so that it can be used by external
-        clients/tests without the need to instantiate a Magika object.
+        This method is static so that it can be used by external clients/tests
+        without the need to instantiate a Magika object.
         """
-
         return _DEFAULT_MODEL_NAME
 
     @staticmethod
@@ -319,12 +347,14 @@ class Magika:
         return self._cts_infos[content_type]
 
     def _get_results_from_paths(self, paths: List[Path]) -> List[MagikaResult]:
-        """Given a list of paths, returns a list of MagikaResult objects, which
+        """Get results for a list of paths.
+
+        Given a list of paths, returns a list of MagikaResult objects, which
         contain relevant information, such as: file path, the output of the DL
         model, the confidence score, the output of the tool, and associated
         metadata. The order of the predictions matches the order of the input
-        paths."""
-
+        paths.
+        """
         # We do a first pass on all files: we collect features for the files
         # that need to be analyzed with the DL model, and we already determine
         # the output for the remaining ones.
@@ -403,7 +433,6 @@ class Magika:
         NOTE: This implementation does not support extraction of `mid` features
         and `use_inputs_at_offsets`.
         """
-
         assert beg_size < block_size
         assert mid_size == 0
         assert end_size < block_size
@@ -456,11 +485,11 @@ class Magika:
         beg_content: bytes, beg_size: int, padding_token: int
     ) -> List[int]:
         """Take an (already-stripped) buffer as input and extract beg ints.
+
         This returns a list of integers whose length is exactly beg_size. If
         the buffer is bigger than required, take only the initial portion. If
         the buffer is shorter, add padding at the end.
         """
-
         if beg_size < len(beg_content):
             # we don't need so many bytes
             beg_content = beg_content[0:beg_size]
@@ -479,12 +508,12 @@ class Magika:
     def _get_end_ints_with_padding(
         end_content: bytes, end_size: int, padding_token: int
     ) -> List[int]:
-        """Take an (already-stripped) buffer as input and extract end ints. This
-        returns a list of integers whose length is exactly end_size.  If the
+        """Take an (already-stripped) buffer as input and extract end ints.
+
+        This returns a list of integers whose length is exactly end_size. If the
         buffer is bigger than required, take only the last portion. If the
         buffer is shorter, add padding at the beginning.
         """
-
         if end_size < len(end_content):
             # we don't need so many bytes
             end_content = end_content[len(end_content) - end_size : len(end_content)]
@@ -627,8 +656,7 @@ class Magika:
     def _get_result_or_features_from_path(
         self, path: Path
     ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
-        """
-        Given a path, we return either a MagikaOutput or a MagikaFeatures.
+        """Given a path, we return either a MagikaOutput or a MagikaFeatures.
 
         There are some files and corner cases for which we do not need to use
         deep learning to get the output; in these cases, we already return a
@@ -639,7 +667,6 @@ class Magika:
         features instead of already performing inference because we want to use
         batching.
         """
-
         if self._no_dereference and path.is_symlink():
             result = self._get_result_from_labels_and_score(
                 path=path,
@@ -687,7 +714,8 @@ class Magika:
     def _get_result_or_features_from_seekable(
         self, seekable: Seekable, path: Path = Path("-")
     ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
-        """
+        """Get result or features from a seekable object.
+
         Given a Seekable object (which is a wrapper of BinaryIO), we return
         either a MagikaOutput or a MagikaFeatures.
 
@@ -700,7 +728,6 @@ class Magika:
         features instead of already performing inference because we want to use
         batching.
         """
-
         if seekable.size == 0:
             result = self._get_result_from_labels_and_score(
                 path=path,
@@ -769,11 +796,11 @@ class Magika:
     def _get_raw_predictions(
         self, features: List[Tuple[Path, ModelFeatures]]
     ) -> npt.NDArray:
-        """
+        """Get raw predictions from features.
+
         Given a list of (path, features), return a (files_num, features_size)
         matrix encoding the predictions.
         """
-
         start_time = time.time()
         X_bytes = []
         for _, fs in features:

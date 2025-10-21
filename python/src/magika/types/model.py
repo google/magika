@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: D100, D101, D102, D103, D107
+
 
 from dataclasses import dataclass
 from typing import Dict, List

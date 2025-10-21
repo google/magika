@@ -761,6 +761,37 @@ def test_get_model_and_output_content_types() -> None:
     }.issubset(model_content_types_set)
 
 
+def test_magika_imports():
+    imported_modules = utils.get_imported_objects_after_wildcard()
+
+    # Check that Magika and other public classes are correctly imported
+    from magika import (
+        ContentTypeInfo,
+        ContentTypeLabel,
+        Magika,
+        MagikaError,
+        MagikaPrediction,
+        MagikaResult,
+        OverwriteReason,
+        PredictionMode,
+        Status,
+    )
+
+    assert imported_modules.get("ContentTypeInfo") == ContentTypeInfo
+    assert imported_modules.get("ContentTypeLabel") == ContentTypeLabel
+    assert imported_modules.get("Magika") == Magika
+    assert imported_modules.get("MagikaError") == MagikaError
+    assert imported_modules.get("MagikaPrediction") == MagikaPrediction
+    assert imported_modules.get("MagikaResult") == MagikaResult
+    assert imported_modules.get("OverwriteReason") == OverwriteReason
+    assert imported_modules.get("PredictionMode") == PredictionMode
+    assert imported_modules.get("Status") == Status
+
+    # Check that internal classes are not imported
+    assert imported_modules.get("ModelFeatures") is None
+    assert imported_modules.get("ModelOutput") is None
+
+
 def get_expected_content_type_label_from_test_file_path(
     test_path: Path,
 ) -> ContentTypeLabel:

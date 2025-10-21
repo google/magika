@@ -4,7 +4,7 @@ title: Quick Start
 
 Here you can find a number of quick examples just to get you started.
 
-To learn about Magika's inner working, see the [Core Concepts](/magika/core-concepts/how-magika-works) section.
+To learn about Magika's inner workings, see the [Core Concepts](/magika/core-concepts/how-magika-works) section.
 
 ### Command Line Tool Examples
 

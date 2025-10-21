@@ -12,28 +12,16 @@
     "preview": "vite preview",
     "lint": "eslint . --fix --ignore-path .gitignore",
     "code-format": "prettier --write ."
-  },
-  "dependencies": {
-    "@mdi/font": "7.0.96",
-    "highlight.js": "^11.9.0",
-    "lodash": "^4.17.21",
-    "markdown-it": "^14.0.0",
-    "roboto-fontface": "*",
+  },  "dependencies": {
     "vue": "^3.2.0",
-    "vue-router": "^4.0.0",
-    "vuetify": "^3.5.3"
-  },
-  "devDependencies": {
+    "vue-router": "^4.0.0"
+  },  "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.3",
     "eslint": "^8.53.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-vue": "^9.18.1",
-    "magika": "^0.3.1",
     "prettier": "^3.2.5",
-    "sass": "^1.60.0",
-    "unplugin-fonts": "^1.0.3",
-    "vite": "^6.2.7",
-    "vite-plugin-vuetify": "^2.0.1"
+    "vite": "^6.2.7"
   }
 }

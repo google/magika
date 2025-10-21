@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: D104
+
 
 from magika.types.content_type_info import ContentTypeInfo  # noqa: F401
 from magika.types.content_type_label import ContentTypeLabel  # noqa: F401

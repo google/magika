@@ -11,6 +11,7 @@ import node from "@astrojs/node";
 // https://astro.build/config
 export default defineConfig({
   base: "/magika",
+  site: "https://securityresearch.google/magika/",
   server: { port: 8080 },
   integrations: [
     starlight({

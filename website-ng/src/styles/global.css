@@ -141,3 +141,7 @@
 .sl-container ol {
   list-style: decimal;
 }
+
+.sl-container starlight-toc nav ul {
+  list-style: none;
+}

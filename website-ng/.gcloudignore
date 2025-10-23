@@ -15,3 +15,5 @@
 
 # Node.js dependencies:
 node_modules/
+.astro/
+dist/

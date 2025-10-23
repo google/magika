@@ -1,6 +1,6 @@
 # Appengine configuration.
 
-runtime: nodejs24
+runtime: nodejs22
 service: magika
 instance_class: F4
 default_expiration: "30s"

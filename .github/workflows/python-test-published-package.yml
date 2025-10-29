@@ -16,6 +16,9 @@ on:
 permissions:
   contents: read
 
+env:
+  UV_VERSION: "0.9.5"
+
 jobs:
   unit-testing:
     strategy:
@@ -29,24 +32,11 @@ jobs:
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
         with:
           python-version: "${{ matrix.python-version }}"
-      # uv's oneline below does not work on windows; uv add magika==0.5.1 is known to not work with python 3.8 and 3.9
-      - if: matrix.os != 'windows-latest' && matrix.python-version != '3.8' && matrix.python-version != '3.9'
-        name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
-      - if: matrix.os != 'windows-latest' && matrix.python-version != '3.8' && matrix.python-version != '3.9'
-        name: Check that magika can be installed with uv
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      - name: Check that `uv add magika` works
+        shell: bash
         run: mkdir /tmp/test-uv && cd /tmp/test-uv && uv init && uv add magika && cd - && rm -rf /tmp/test-uv
-      - if: matrix.platform.runner == 'windows-latest'
-        name: Check that magika install with uv works on Windows
-        shell: pwsh
-        run: |
-          mkdir C:\test-uv
-          Copy-Item -Path dist\*.whl -Destination C:\test-uv
-          cd C:\test-uv
-          $env:PATH += ";$HOME/.local/bin"
-          uv init
-          $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
-          uv add ".\$wheel"
       - name: Install magika with pip
         run: python3 -m pip install magika
       - run: python3 -c 'import magika; m = magika.Magika(); print(m)'

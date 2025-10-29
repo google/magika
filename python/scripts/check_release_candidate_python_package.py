@@ -13,6 +13,10 @@
 # limitations under the License.
 
 
+"""
+It performs a number of checks to determine whether the package is ready for release.
+"""
+
 import re
 import subprocess
 import sys
@@ -25,89 +29,84 @@ import magika
 @click.command()
 @click.argument("expected_version")
 @click.option(
-    "--python-client",
+    "--use-python-client",
     is_flag=True,
-    help="Use the Python client instead of CLI for validation.",
+    help="Use the Python client instead of Rust CLI.",
 )
-def main(expected_version, python_client):
+def main(expected_version: str, use_python_client: bool) -> None:
     """Checks version consistency for the `magika` package."""
-    module_version, instance_version, py_errors = check_python_module_version()
-    for error in py_errors:
-        click.echo(error, err=True)
-        sys.exit(1)
 
-    cli_version = instance_version if python_client else check_rust_cli_version()
+    with_errors = False
 
-    errors = validate_release_tag(module_version, expected_version)
-    errors += validate_release_tag(cli_version, expected_version)
-
-    if errors:
-        for error in errors:
-            click.echo(error, err=True)
-        sys.exit(1)
-
-    click.echo("✅ All versions match!")
-
-
-def validate_release_tag(extracted_version, release_tag):
-    """
-    Ensures the extracted version matches the expected release tag.
-
-    Args:
-        extracted_version (str or None): The version extracted from the package or CLI.
-        release_tag (str): The expected release tag version.
-
-    Returns:
-        list: A list of error messages if the extracted version does not match the release tag.
-    """
-    errors = []
-    normalized_release_tag = re.sub(r"^python-v", "", release_tag)
-    if extracted_version and extracted_version != normalized_release_tag:
-        errors.append(
-            f"ERROR: Extracted version {extracted_version} does not match release tag {release_tag}."
-        )
-    return errors
-
-
-def check_python_module_version():
-    """
-    Checks the version of the Python `magika` package and its instance version.
-
-    Returns:
-        tuple: A tuple containing:
-            - module_version (str or None): The `__version__` attribute of the `magika` package.
-            - instance_version (str or None): The version retrieved from `magika.Magika().get_version()`.
-            - errors (list): A list of error messages if any issues are found.
-    """
-    errors = []
-    module_version = getattr(magika, "__version__", None)
-
+    # Get the versions
+    module_version = getattr(magika, "__version__", "")
     try:
-        instance_version = magika.Magika().get_version()
-    except Exception as e:
-        click.echo(f"ERROR: Failed to get instance version: {e}", err=True)
+        instance_version = magika.Magika().get_module_version()
+    except Exception:
+        instance_version = ""
+
+    package_version = get_magika_package_version_via_pip_show()
+
+    if use_python_client:
+        cli_version = instance_version
+    else:
+        cli_version = get_rust_cli_version()
+
+    if module_version == "":
+        click.echo("ERROR: failed to get module_version.")
+        with_errors = True
+    if instance_version == "":
+        click.echo("ERROR: failed to get instance_version.")
+        with_errors = True
+    if package_version == "":
+        click.echo("ERROR: failed to get package_version.")
+        with_errors = True
+    if cli_version == "":
+        click.echo("ERROR: failed to get cli_version.")
+        with_errors = True
+
+    click.echo(
+        f"Versions: {expected_version=}, {module_version=}, {instance_version=}, {package_version=}, {cli_version=}"
+    )
+
+    if module_version != expected_version:
+        click.echo(f"ERROR: {module_version=} != {expected_version=}")
+        with_errors = True
+
+    if module_version != instance_version:
+        click.echo(f"ERROR: {instance_version=} != {module_version=}")
+        with_errors = True
+
+    if module_version != package_version:
+        click.echo(f"ERROR: {module_version=} != {package_version=}")
+        with_errors = True
+
+    # From now on, we assume all the python-related versions are the same. If
+    # they are not, we would have at least one error above.
+
+    if not is_valid_python_version(module_version):
+        click.echo(f"ERROR: {module_version=} is not a valid python version")
+        with_errors = True
+
+    if module_version.endswith("-dev") or cli_version.endswith("-dev"):
+        click.echo("ERROR: One of the versions is a -dev version.")
+        with_errors = True
+
+    if cli_version.endswith("-rc") and not module_version.endswith("-rc"):
+        click.echo("ERROR: The CLI has an -rc version, but the python module does not.")
+        with_errors = True
+
+    if with_errors:
+        click.echo("There was at least one error")
         sys.exit(1)
-
-    if module_version is None:
-        click.echo("ERROR: Could not retrieve Python package version.", err=True)
-        sys.exit(1)
-
-    if "-dev" in module_version:
-        errors.append(
-            f"ERROR: Python package version {module_version} contains '-dev'."
-        )
-
-    return module_version, instance_version, errors
+    else:
+        click.echo("All tests pass!")
 
 
-def check_rust_cli_version():
-    """
-    Checks the version of the Rust CLI `magika` and ensures it is non-dev.
+def get_rust_cli_version() -> str:
+    """Get the version of the Rust CLI `magika`.
 
-    Returns:
-        tuple: A tuple containing:
-            - cli_version (str or None): The version string extracted from `magika --version`.
-            - errors (list): A list of error messages if any issues are found.
+    Returns an empty string ("") if an error is encountered.
     """
     try:
         result = subprocess.run(
@@ -115,19 +114,72 @@ def check_rust_cli_version():
         )
         parts = result.stdout.strip().split()
         if len(parts) < 2:
-            click.echo("ERROR: Could not parse CLI version output.", err=True)
-            sys.exit(1)
-
+            click.echo("ERROR: Could not parse CLI version output.")
+            return ""
         cli_version = parts[1]
-        if "-dev" in cli_version:
-            click.echo(
-                f"ERROR: Rust CLI version {cli_version} contains '-dev'.", err=True
-            )
-            sys.exit(1)
         return cli_version
     except subprocess.CalledProcessError as e:
-        click.echo(f"ERROR: Could not retrieve CLI version: {e}", err=True)
-        sys.exit(1)
+        click.echo(f"ERROR: Could not retrieve CLI version: {e}")
+        return ""
+
+
+def get_magika_package_version_via_pip_show() -> str:
+    try:
+        r = subprocess.run(
+            ["python3", "-m", "pip", "show", "magika"], capture_output=True, text=True
+        )
+        lines = r.stdout.strip().split("\n")
+        for line in lines:
+            if line.startswith("Version: "):
+                return line.split(": ", 1)[1]
+        return ""
+    except subprocess.CalledProcessError as e:
+        click.echo(f"ERROR: Could not retrieve package version via pip show: {e}")
+        return ""
+
+
+def is_valid_python_version(version: str) -> bool:
+    # Regex from PEP440: '[N!]N(.N)*[{a|b|rc}N][.postN][.devN]'
+    PEP440_CANONICAL_REGEX = re.compile(
+        r"""
+^
+# Optional Epoch segment (e.g., 1!)
+(?P<epoch>\d+!)?
+
+# Required Release segment (e.g., 1.2.3)
+(?P<release>[0-9]+(?:\.[0-9]+)*)
+
+# Optional Pre-release segment (e.g., a1, b2, rc3)
+(?P<pre>
+    (?:a|b|rc)
+    [0-9]+
+)?
+
+# Optional Post-release segment (e.g., .post4)
+(?P<post>
+    (?:\.post[0-9]+)
+)?
+
+# Optional Development release segment (e.g., .dev5)
+(?P<dev>
+    (?:\.dev[0-9]+)
+)?
+$
+""",
+        re.VERBOSE | re.IGNORECASE,
+    )
+    return PEP440_CANONICAL_REGEX.fullmatch(version) is not None
+
+
+def test_is_valid_python_version() -> None:
+    assert is_valid_python_version("1.2.3") is True
+    assert is_valid_python_version("1.2.3.rc") is False
+    assert is_valid_python_version("1.2.3.rc0") is False
+    assert is_valid_python_version("1.2.3rc0") is True
+    assert is_valid_python_version("1.2.3rc1") is True
+    assert is_valid_python_version("1.2.3-dev") is False
+    assert is_valid_python_version("1.2.3.dev0") is True
+    assert is_valid_python_version("1.2.3-dev0") is False
 
 
 if __name__ == "__main__":

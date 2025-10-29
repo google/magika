@@ -34,9 +34,6 @@ jobs:
   pre-release-checks:
     name: Pre-release checks
     runs-on: ubuntu-latest
-    # Note: the env context is not available for jobs.if:
-    # https://github.com/actions/runner/issues/1189#issuecomment-1129307280.
-    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'test-python-v')
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -47,6 +44,7 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
       - name: Check package for release
+        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
         run: |
           FULL_TAG_REF="${{ github.ref }}"
           TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"

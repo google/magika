@@ -49,7 +49,7 @@ jobs:
           FULL_TAG_REF="${{ github.ref }}"
           TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
           # Note: this uses the magika python package installed via uv.
-          uv run ./scripts/check_release_candidate_python_package.py ${TAG_VERSION}
+          uv run ./scripts/check_release_candidate_python_package.py ${TAG_VERSION} --skip-pip-show-package-version
         working-directory: python
 
   build-wheels:

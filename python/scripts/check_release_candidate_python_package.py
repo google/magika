@@ -29,11 +29,18 @@ import magika
 @click.command()
 @click.argument("expected_version")
 @click.option(
+    "--skip-pip-show-package-version",
+    is_flag=True,
+    help="Do not attempt to get and validate the package version obtained via pip show.",
+)
+@click.option(
     "--use-python-client",
     is_flag=True,
     help="Use the Python client instead of Rust CLI.",
 )
-def main(expected_version: str, use_python_client: bool) -> None:
+def main(
+    expected_version: str, skip_pip_show_package_version: bool, use_python_client: bool
+) -> None:
     """Checks version consistency for the `magika` package."""
 
     with_errors = False
@@ -45,7 +52,10 @@ def main(expected_version: str, use_python_client: bool) -> None:
     except Exception:
         instance_version = ""
 
-    package_version = get_magika_package_version_via_pip_show()
+    if skip_pip_show_package_version:
+        pip_show_package_version = "skipped"
+    else:
+        pip_show_package_version = get_magika_package_version_via_pip_show()
 
     if use_python_client:
         cli_version = instance_version
@@ -58,15 +68,15 @@ def main(expected_version: str, use_python_client: bool) -> None:
     if instance_version == "":
         click.echo("ERROR: failed to get instance_version.")
         with_errors = True
-    if package_version == "":
-        click.echo("ERROR: failed to get package_version.")
+    if pip_show_package_version == "":
+        click.echo("ERROR: failed to get pip_show_package_version.")
         with_errors = True
     if cli_version == "":
         click.echo("ERROR: failed to get cli_version.")
         with_errors = True
 
     click.echo(
-        f"Versions: {expected_version=}, {module_version=}, {instance_version=}, {package_version=}, {cli_version=}"
+        f"Versions: {expected_version=}, {module_version=}, {instance_version=}, {pip_show_package_version=}, {cli_version=}"
     )
 
     if module_version != expected_version:
@@ -77,9 +87,10 @@ def main(expected_version: str, use_python_client: bool) -> None:
         click.echo(f"ERROR: {instance_version=} != {module_version=}")
         with_errors = True
 
-    if module_version != package_version:
-        click.echo(f"ERROR: {module_version=} != {package_version=}")
-        with_errors = True
+    if not skip_pip_show_package_version:
+        if module_version != pip_show_package_version:
+            click.echo(f"ERROR: {module_version=} != {pip_show_package_version=}")
+            with_errors = True
 
     # From now on, we assume all the python-related versions are the same. If
     # they are not, we would have at least one error above.

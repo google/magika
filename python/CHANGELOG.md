@@ -9,7 +9,7 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
-## [Unreleased]
+## [0.6.3rc0] - 2025-10-29
 - Pin onnxruntime on Windows ([#1099](https://github.com/google/magika/pull/1099)).
 - Add docstrings for all relevant modules, classes, and methods.
 

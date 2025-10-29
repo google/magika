@@ -10,7 +10,7 @@ on:
       - "python/**"
       - "rust/**"
       - "tests_data/**"
-      - ".github/workflows/python-*"
+      - ".github/workflows/python-test-suite.yml"
 
 permissions:
   contents: read

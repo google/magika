@@ -144,7 +144,7 @@ def get_magika_package_version_via_pip_show() -> str:
             if line.startswith("Version: "):
                 return line.split(": ", 1)[1]
         click.echo(
-            f"ERROR: Could not extract the package version via pip show. Output from pip show: {r.stdout}"
+            f"ERROR: Could not extract the package version via pip show. Output from pip show:\nstdout={r.stdout}\n\nstderr={r.stderr}"
         )
         return ""
     except subprocess.CalledProcessError as e:

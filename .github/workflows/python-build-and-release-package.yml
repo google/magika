@@ -332,6 +332,44 @@ jobs:
         working-directory: python
 
   # Adapted from https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs: [test-wheels, test-pure-python-wheel, test-sdist]
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/magika
+
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the artifacts (binary wheels, pure python wheel, sdist)
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Flatten artifacts structure
+        run: |
+          # List all files for debugging
+          ls -alR artifacts/
+
+          # Find all files inside the subdirectories and move them up
+          find artifacts/ -mindepth 2 -type f -exec mv -t artifacts/ {} +
+
+          # Remove the now-empty subdirectories
+          find artifacts/ -mindepth 1 -type d -empty -delete
+
+          # Check structure after flattening
+          ls -alR artifacts/
+
+      - name: Publish distribution to PyPI
+        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: artifacts/
+
   publish-to-testpypi:
     name: Publish to TestPyPI
     needs: [test-wheels, test-pure-python-wheel, test-sdist]

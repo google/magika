@@ -334,9 +334,6 @@ jobs:
   # Adapted from https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
   publish-to-testpypi:
     name: Publish to TestPyPI
-    # Note: the env context is not available for jobs.if:
-    # https://github.com/actions/runner/issues/1189#issuecomment-1129307280.
-    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'test-python-v')
     needs: [test-wheels, test-pure-python-wheel, test-sdist]
     runs-on: ubuntu-latest
 
@@ -353,8 +350,19 @@ jobs:
         with:
           path: artifacts/
 
-      - name: List all files
-        run: ls -alR artifacts/
+      - name: Flatten artifacts structure
+        run: |
+          # List all files for debugging
+          ls -alR artifacts/
+
+          # Find all files inside the subdirectories and move them up
+          find artifacts/ -mindepth 2 -type f -exec mv -t artifacts/ {} +
+
+          # Remove the now-empty subdirectories
+          find artifacts/ -mindepth 1 -type d -empty -delete
+
+          # Check structure after flattening
+          ls -alR artifacts/
 
       - name: Publish distribution to TestPyPI
         if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)

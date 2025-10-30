@@ -6,6 +6,8 @@ on:
     branches:
       - "main"
     tags:
+      # Note: These need to match what specified in env.[TEST_]RELEASE_TAG_PREFIX below.
+      - "python-v*"
       - "test-python-v*"
   pull_request:
     paths:
@@ -22,9 +24,11 @@ on:
 permissions:
   contents: read
 
-# Note: This needs to match what specified in the on.push.tags trigger.
 env:
-  RELEASE_TAG_PREFIX: "test-python-v"
+  # Trigger for strict pre-release checks and publishing to pypi
+  RELEASE_TAG_PREFIX: "python-v"
+  # Trigger for publishing to testpypi
+  TEST_RELEASE_TAG_PREFIX: "test-python-v"
   UV_VERSION: "0.9.5"
 
 jobs:
@@ -353,6 +357,7 @@ jobs:
         run: ls -alR artifacts/
 
       - name: Publish distribution to TestPyPI
+        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: artifacts/

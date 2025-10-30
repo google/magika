@@ -44,12 +44,19 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
       - name: Check package for release
-        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
         run: |
-          FULL_TAG_REF="${{ github.ref }}"
-          TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
-          # Note: this uses the magika python package installed via uv.
-          uv run ./scripts/check_release_candidate_python_package.py ${TAG_VERSION} --skip-pip-show-package-version
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
+          # Note: this uses the magika python package installed via uv. Also,
+          # pip is not available here, so we skip pip show check.
+          uv run ./scripts/pre_release_check.py $CHECKER_OPTIONS --no-check-pip-show-package-version
         working-directory: python
 
   build-wheels:
@@ -147,14 +154,20 @@ jobs:
       - run: magika -r tests_data/basic
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
-      - name: Check package for release (if this is a release push)
-        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
+      - name: Check package for release readiness
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
         shell: bash
         run: |
-          FULL_TAG_REF="${{ github.ref }}"
-          TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
           # Note: this uses the magika python package that was just built.
-          python3 ./scripts/check_release_candidate_python_package.py ${TAG_VERSION}
+          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS
         working-directory: python
 
   build-pure-python-wheel-and-sdist:
@@ -232,14 +245,20 @@ jobs:
       # Test the python module
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
-      - name: Check package for release (if this is a release push)
-        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
+      - name: Check package for release readiness
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
         shell: bash
         run: |
-          FULL_TAG_REF="${{ github.ref }}"
-          TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
           # Note: this uses the magika python package that was just built.
-          python3 ./scripts/check_release_candidate_python_package.py ${TAG_VERSION} --use-python-client
+          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS --use-python-client
         working-directory: python
 
   test-sdist:
@@ -292,14 +311,20 @@ jobs:
       # Test the python module
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
-      - name: Check package for release (if this is a release push)
-        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
+      - name: Check package for release readiness
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
         shell: bash
         run: |
-          FULL_TAG_REF="${{ github.ref }}"
-          TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
           # Note: this uses the magika python package that was just built.
-          python3 ./scripts/check_release_candidate_python_package.py ${TAG_VERSION} --use-python-client
+          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS --use-python-client
         working-directory: python
 
   release:

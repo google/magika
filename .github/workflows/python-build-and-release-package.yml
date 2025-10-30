@@ -6,13 +6,15 @@ on:
     branches:
       - "main"
     tags:
-      - "test-python-v*"
+      # Note: These need to match what specified in env.[TEST_]RELEASE_TAG_PREFIX below.
+      - "python-v*"
+      - "python-test-v*"
   pull_request:
     paths:
       - "python/**"
       - "rust/**"
       - "tests_data/**"
-      - ".github/workflows/python-build-package.yml"
+      - ".github/workflows/python-build-and-release-package.yml"
   schedule:
     - cron: "12 3 * * 4" # Run everything once per week.
     - cron: "12 3 * * 1" # Refresh the cache an additional time.
@@ -22,9 +24,11 @@ on:
 permissions:
   contents: read
 
-# Note: This needs to match what specified in the on.push.tags trigger.
 env:
-  RELEASE_TAG_PREFIX: "test-python-v"
+  # Trigger for publishing to pypi and testpypi (and for pre-release checks
+  # enforcement).
+  RELEASE_TAG_PREFIX: "python-v"
+  TEST_RELEASE_TAG_PREFIX: "python-test-v"
   UV_VERSION: "0.9.5"
 
 jobs:
@@ -45,11 +49,17 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
       - name: Check package for release
         env:
-          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         run: |
           if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
             FULL_TAG_REF="${{ github.ref }}"
-            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            TAG_NAME="${{ github.ref_name }}"
+            if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
+              PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
+            else
+              PREFIX_TO_REMOVE="refs/tags/${{ env.TEST_RELEASE_TAG_PREFIX }}"
+            fi
+            TAG_VERSION="${FULL_TAG_REF#${PREFIX_TO_REMOVE}}"
             CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
           else
             CHECKER_OPTIONS="--report-only"
@@ -156,12 +166,18 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Check package for release readiness
         env:
-          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         shell: bash
         run: |
           if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
             FULL_TAG_REF="${{ github.ref }}"
-            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            TAG_NAME="${{ github.ref_name }}"
+            if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
+              PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
+            else
+              PREFIX_TO_REMOVE="refs/tags/${{ env.TEST_RELEASE_TAG_PREFIX }}"
+            fi
+            TAG_VERSION="${FULL_TAG_REF#${PREFIX_TO_REMOVE}}"
             CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
           else
             CHECKER_OPTIONS="--report-only"
@@ -247,12 +263,18 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Check package for release readiness
         env:
-          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         shell: bash
         run: |
           if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
             FULL_TAG_REF="${{ github.ref }}"
-            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            TAG_NAME="${{ github.ref_name }}"
+            if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
+              PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
+            else
+              PREFIX_TO_REMOVE="refs/tags/${{ env.TEST_RELEASE_TAG_PREFIX }}"
+            fi
+            TAG_VERSION="${FULL_TAG_REF#${PREFIX_TO_REMOVE}}"
             CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
           else
             CHECKER_OPTIONS="--report-only"
@@ -313,12 +335,18 @@ jobs:
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
       - name: Check package for release readiness
         env:
-          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         shell: bash
         run: |
           if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
             FULL_TAG_REF="${{ github.ref }}"
-            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            TAG_NAME="${{ github.ref_name }}"
+            if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
+              PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
+            else
+              PREFIX_TO_REMOVE="refs/tags/${{ env.TEST_RELEASE_TAG_PREFIX }}"
+            fi
+            TAG_VERSION="${FULL_TAG_REF#${PREFIX_TO_REMOVE}}"
             CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
           else
             CHECKER_OPTIONS="--report-only"
@@ -328,12 +356,48 @@ jobs:
         working-directory: python
 
   # Adapted from https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+  # Note: The publishing is only done with pushes of release tags.
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs: [test-wheels, test-pure-python-wheel, test-sdist]
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/magika
+
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the artifacts (binary wheels, pure python wheel, sdist)
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Flatten artifacts structure
+        run: |
+          # List all files for debugging
+          ls -alR artifacts/
+
+          # Find all files inside the subdirectories and move them up
+          find artifacts/ -mindepth 2 -type f -exec mv -t artifacts/ {} +
+
+          # Remove the now-empty subdirectories
+          find artifacts/ -mindepth 1 -type d -empty -delete
+
+          # Check structure after flattening
+          ls -alR artifacts/
+
+      - name: Publish distribution to PyPI
+        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: artifacts/
+
+  # Note: The publishing is only done with pushes of test release tags.
   publish-to-testpypi:
     name: Publish to TestPyPI
-    # Note: the env context is not available for jobs.if:
-    # https://github.com/actions/runner/issues/1189#issuecomment-1129307280.
-    # TODO: re-enable the checker on the tag
-    # if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'test-python-v')
     needs: [test-wheels, test-pure-python-wheel, test-sdist]
     runs-on: ubuntu-latest
 
@@ -350,10 +414,23 @@ jobs:
         with:
           path: artifacts/
 
-      - name: List all files (for debugging)
-        run: ls -alR artifacts/
+      - name: Flatten artifacts structure
+        run: |
+          # List all files for debugging
+          ls -alR artifacts/
 
-      # - name: Publish distribution to TestPyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: https://test.pypi.org/legacy/
+          # Find all files inside the subdirectories and move them up
+          find artifacts/ -mindepth 2 -type f -exec mv -t artifacts/ {} +
+
+          # Remove the now-empty subdirectories
+          find artifacts/ -mindepth 1 -type d -empty -delete
+
+          # Check structure after flattening
+          ls -alR artifacts/
+
+      - name: Publish distribution to TestPyPI
+        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: artifacts/
+          repository-url: https://test.pypi.org/legacy/

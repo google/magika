@@ -8,7 +8,7 @@ on:
     tags:
       # Note: These need to match what specified in env.[TEST_]RELEASE_TAG_PREFIX below.
       - "python-v*"
-      - "test-python-v*"
+      - "python-test-v*"
   pull_request:
     paths:
       - "python/**"
@@ -28,7 +28,7 @@ env:
   # Trigger for publishing to pypi and testpypi (and for pre-release checks
   # enforcement).
   RELEASE_TAG_PREFIX: "python-v"
-  TEST_RELEASE_TAG_PREFIX: "test-python-v"
+  TEST_RELEASE_TAG_PREFIX: "python-test-v"
   UV_VERSION: "0.9.5"
 
 jobs:

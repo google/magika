@@ -332,8 +332,7 @@ jobs:
     name: Publish to TestPyPI
     # Note: the env context is not available for jobs.if:
     # https://github.com/actions/runner/issues/1189#issuecomment-1129307280.
-    # TODO: re-enable the checker on the tag
-    # if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'test-python-v')
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'test-python-v')
     needs: [test-wheels, test-pure-python-wheel, test-sdist]
     runs-on: ubuntu-latest
 
@@ -350,10 +349,11 @@ jobs:
         with:
           path: artifacts/
 
-      - name: List all files (for debugging)
+      - name: List all files
         run: ls -alR artifacts/
 
-      # - name: Publish distribution to TestPyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: https://test.pypi.org/legacy/
+      - name: Publish distribution to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: artifacts/
+          repository-url: https://test.pypi.org/legacy/

@@ -65,8 +65,22 @@ def patch_main_rs_with_version(rust_main_rs_path: Path, version: str) -> None:
 
 
 def patch_cargo_toml_with_version(cargo_toml_path: Path, version: str) -> None:
-    print(f'Patching {cargo_toml_path} with python version "{version}"')
-    patch_line_matching_prefix(cargo_toml_path, "version = ", f'version = "{version}"')
+    # We first need to adapt python's version to rust's acceptable versions. The
+    # accepted versions are similar, but not the same. E.g., python's 1.2.3rc0
+    # is not a valid version, it must be converted to 1.2.3-rc0. Same for -dev
+    # and other suffixes.
+    rust_python_version = (
+        version.replace("dev", "-dev")
+        .replace("rc", "-rc")
+        .replace("a", "-a")
+        .replace("b", "-b")
+    )
+    print(
+        f'Patching {cargo_toml_path} with version "{rust_python_version}" (python\'s version = {version})'
+    )
+    patch_line_matching_prefix(
+        cargo_toml_path, "version = ", f'version = "{rust_python_version}"'
+    )
 
 
 def extract_with_regex(file_path: Path, regex: str) -> str:

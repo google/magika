@@ -1,16 +1,18 @@
-name: Python - build package
+name: Python - build and release package
 
 on:
   workflow_dispatch:
   push:
     branches:
       - "main"
+    tags:
+      - "test-python-v*"
   pull_request:
     paths:
       - "python/**"
       - "rust/**"
       - "tests_data/**"
-      - ".github/workflows/python-*"
+      - ".github/workflows/python-build-package.yml"
   schedule:
     - cron: "12 3 * * 4" # Run everything once per week.
     - cron: "12 3 * * 1" # Refresh the cache an additional time.
@@ -20,8 +22,45 @@ on:
 permissions:
   contents: read
 
+# Note: This needs to match what specified in the on.push.tags trigger.
+env:
+  RELEASE_TAG_PREFIX: "test-python-v"
+  UV_VERSION: "0.9.5"
+
 jobs:
+  # This job acts as a gatekeeper for releases, which are triggered by a tag
+  # push. It performs critical pre-release checks. These checks are skipped for
+  # non-release pushes.
+  pre-release-checks:
+    name: Pre-release checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Setup python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      - name: Check package for release
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+        run: |
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
+          # Note: this uses the magika python package installed via uv. Also,
+          # pip is not available here, so we skip pip show check.
+          uv run ./scripts/pre_release_check.py $CHECKER_OPTIONS --no-check-pip-show-package-version
+        working-directory: python
+
   build-wheels:
+    needs: [pre-release-checks]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -39,7 +78,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
       - if: matrix.platform.runner == 'ubuntu-latest'
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
@@ -96,41 +135,49 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
-      - if: matrix.platform.runner != 'windows-latest'
-        name: Check that `uv add magika.whl` works
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      # Attempt "uv add magika.whl", in a temporary directory
+      - name: Check that `uv add magika.whl` works
+        shell: bash
         run: |
           mkdir /tmp/test-uv
           cp -vR dist/*.whl /tmp/test-uv
           cd /tmp/test-uv
           uv init
           uv add ./$(\ls -1 *.whl | head -n 1)
-      - if: matrix.platform.runner == 'windows-latest'
-        name: Check that `uv add magika.whl` works
-        shell: pwsh
-        run: |
-          mkdir C:\test-uv
-          Copy-Item -Path dist\*.whl -Destination C:\test-uv
-          cd C:\test-uv
-          $env:PATH += ";$HOME/.local/bin"
-          uv init
-          $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
-          uv add ".\$wheel"
-      - name: Install the wheel
+      # From now on, magika will be available in the global environment
+      - name: Install the wheel via pip
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+
       - run: magika --version
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: magika -r tests_data/basic
       - run: python3 ./python/scripts/run_quick_test_magika_cli.py
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      - name: Check package for release readiness
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+        shell: bash
+        run: |
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
+          # Note: this uses the magika python package that was just built.
+          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS
+        working-directory: python
 
   build-pure-python-wheel-and-sdist:
+    needs: [pre-release-checks]
     runs-on: ubuntu-latest
     if: github.event.schedule != '12 3 * * 1'
     steps:
       - uses: actions/checkout@v5
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
       - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
         working-directory: python
       - name: Build pure python wheel and source distribution
@@ -175,26 +222,17 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
-      - if: matrix.platform.runner != 'windows-latest'
-        name: Check that `uv add magika.whl` works
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      # Attempt "uv add magika.whl", in a temporary directory
+      - name: Check that `uv add magika.whl` works
+        shell: bash
         run: |
           mkdir /tmp/test-uv
           cp -vR dist/*.whl /tmp/test-uv
           cd /tmp/test-uv
           uv init
           uv add ./$(\ls -1 *.whl | head -n 1)
-      - if: matrix.platform.runner == 'windows-latest'
-        name: Check that `uv add magika.whl` works
-        shell: pwsh
-        run: |
-          mkdir C:\test-uv
-          Copy-Item -Path dist\*.whl -Destination C:\test-uv
-          cd C:\test-uv
-          $env:PATH += ";$HOME/.local/bin"
-          uv init
-          $wheel = Get-ChildItem -Filter *.whl | Select-Object -ExpandProperty Name
-          uv add ".\$wheel"
+      # From now on, magika will be available in the global environment
       - name: Install the wheel
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
 
@@ -207,6 +245,21 @@ jobs:
       # Test the python module
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      - name: Check package for release readiness
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+        shell: bash
+        run: |
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
+          # Note: this uses the magika python package that was just built.
+          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS --use-python-client
+        working-directory: python
 
   test-sdist:
     needs: [build-pure-python-wheel-and-sdist]
@@ -235,26 +288,17 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/0.5.22/install.sh | sh
-      - if: matrix.platform.runner != 'windows-latest'
-        name: Check that `uv add magika.tar.gz` works
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      # Attempt "uv add magika.whl", in a temporary directory
+      - name: Check that `uv add magika.tar.gz` works
+        shell: bash
         run: |
           mkdir /tmp/test-uv
           cp -vR dist/*.tar.gz /tmp/test-uv
           cd /tmp/test-uv
           uv init
           uv add ./$(\ls -1 *.tar.gz | head -n 1)
-      - if: matrix.platform.runner == 'windows-latest'
-        name: Check that `uv add magika.tar.gz` works
-        shell: pwsh
-        run: |
-          mkdir C:\test-uv
-          Copy-Item -Path dist\*.tar.gz -Destination C:\test-uv
-          cd C:\test-uv
-          $env:PATH += ";$HOME\.local\bin"
-          uv init
-          $sdist = Get-ChildItem -Filter *.tar.gz | Select-Object -ExpandProperty Name
-          uv add ".\$sdist"
+      # From now on, magika will be available in the global environment
       - name: Install the sdist
         run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.tar.gz')[0])")
 
@@ -267,3 +311,49 @@ jobs:
       # Test the python module
       - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
       - run: python3 ./python/scripts/run_quick_test_magika_module.py
+      - name: Check package for release readiness
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) }}
+        shell: bash
+        run: |
+          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
+            FULL_TAG_REF="${{ github.ref }}"
+            TAG_VERSION="${FULL_TAG_REF#refs/tags/${{ env.RELEASE_TAG_PREFIX}}}"
+            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
+          else
+            CHECKER_OPTIONS="--report-only"
+          fi
+          # Note: this uses the magika python package that was just built.
+          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS --use-python-client
+        working-directory: python
+
+  # Adapted from https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+  publish-to-testpypi:
+    name: Publish to TestPyPI
+    # Note: the env context is not available for jobs.if:
+    # https://github.com/actions/runner/issues/1189#issuecomment-1129307280.
+    # TODO: re-enable the checker on the tag
+    # if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'test-python-v')
+    needs: [test-wheels, test-pure-python-wheel, test-sdist]
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/magika
+
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the artifacts (binary wheels, pure python wheel, sdist)
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: List all files (for debugging)
+        run: ls -alR artifacts/
+
+      # - name: Publish distribution to TestPyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     repository-url: https://test.pypi.org/legacy/

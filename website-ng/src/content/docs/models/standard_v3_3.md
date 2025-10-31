@@ -7,7 +7,7 @@ This documents the `standard_v3_3` model.
 
 ## List of possible outputs
 
-This is the full list of all possible Magika's outputs (which is different than the list of possible outputs of the underlying model; see the following section for such list, and consult the [Core Concepts](https://securityresearch.google/magika/core-concepts/how-magika-works/) section for more context). E.g., this is the list of all possible values for Magika python module's `MagikaResult.prediction.output.label`.
+This is the full list of all possible Magika's outputs (which is different than the list of possible outputs of the underlying model; see the following section for such list, and consult the [Core Concepts](/magika/core-concepts/how-magika-works/) section for more context). E.g., this is the list of all possible values for Magika python module's `MagikaResult.prediction.output.label`.
 
 |      Content Type Label      | Description |
 |:-------------:|------|
@@ -231,7 +231,7 @@ This is the full list of all possible Magika's outputs (which is different than 
 
 ## List of possible model's outputs
 
-This is the full list of all possible model's output. E.g., this is the list of all possible values for Magika python module's `MagikaResult.prediction.dl.label`. Note that, in general, the list of "model outputs" is different than the "tool outputs" as in some cases the model is not even used. Consult the [Core Concepts](https://securityresearch.google/magika/core-concepts/how-magika-works/) section for more context. This list is useful mostly for debugging purposes; the vast majority of clients should just consult the table in the section above.
+This is the full list of all possible model's output. E.g., this is the list of all possible values for Magika python module's `MagikaResult.prediction.dl.label`. Note that, in general, the list of "model outputs" is different than the "tool outputs" as in some cases the model is not even used. Consult the [Core Concepts](/magika/core-concepts/how-magika-works/) section for more context. This list is useful mostly for debugging purposes; the vast majority of clients should just consult the table in the section above.
 
 |      Content Type Label      | Description |
 |:-------------:|------|

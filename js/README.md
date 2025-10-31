@@ -4,6 +4,7 @@ Magika is a novel AI-powered file type detection tool that relies on the recent 
 
 This npm package allows you to run Magika in the browser or in Node!
 
+Magika's website: [https://securityresearch.google/magika/](https://securityresearch.google/magika/).
 Magika on GitHub: [https://github.com/google/magika](https://github.com/google/magika).
 
 
@@ -39,7 +40,7 @@ const prediction = await magika.identifyBytes(fileBytes);
 console.log(prediction);
 ```
 
-For more, see our [documentation](https://github.com/google/magika/blob/main/docs/js.md).
+For more, see our [documentation](https://securityresearch.google/magika/cli-and-bindings/js/).
 
 # Command-line tool
 
@@ -52,16 +53,16 @@ Install it with `npm install -g magika`. You can then run it by executing `magik
 ```help
 Usage: magika-js [options] <paths...>
 
-Magika JS - file type detection with ML. https://google.github.io/magika
+Magika JS - file type detection with ML. https://securityresearch.google/magika/
 
 Arguments:
   paths                                    Paths of the files to detect
 
 Options:
   --json-output                            Format output in JSON
-  --model-url <model-url>                  Model URL (default: "https://google.github.io/magika/models/standard_v3_2/model.json")
+  --model-url <model-url>                  Model URL
   --model-path <model-path>                Modle file path
-  --model-config-url <model-config-url>    Model config URL (default: "https://google.github.io/magika/models/standard_v3_2/config.min.json")
+  --model-config-url <model-config-url>    Model config URL
   --model-config-path <model-config-path>  Model config file path
   --by-stream                              Identify file via stream, not via bytes
   --debug                                  Output debug information

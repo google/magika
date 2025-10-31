@@ -826,7 +826,7 @@ class Magika:
 
         for batch_idx in range(batches_num):
             self._log.debug(
-                f"Getting raw predictions for (internal) batch {batch_idx+1}/{batches_num}"
+                f"Getting raw predictions for (internal) batch {batch_idx + 1}/{batches_num}"
             )
             start_idx = batch_idx * max_internal_batch_size
             end_idx = min((batch_idx + 1) * max_internal_batch_size, samples_num)

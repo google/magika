@@ -111,9 +111,9 @@ def _dump_reference_features_extraction_examples(
         print(f"Wrote tests cases to {reference_features_extraction_examples_path}")
 
 
-def _generate_reference_features_extraction_tests_cases() -> (
-    List[FeaturesExtractionExample]
-):
+def _generate_reference_features_extraction_tests_cases() -> List[
+    FeaturesExtractionExample
+]:
     tests_cases_inputs: List[
         Tuple[FeaturesExtractionExampleArgs, FeaturesExtractionExampleMetadata, bytes]
     ] = _generate_reference_features_extraction_tests_cases_inputs()
@@ -142,9 +142,9 @@ def _generate_reference_features_extraction_tests_cases() -> (
     return tests_cases
 
 
-def _generate_reference_features_extraction_tests_cases_inputs() -> (
-    List[Tuple[FeaturesExtractionExampleArgs, FeaturesExtractionExampleMetadata, bytes]]
-):
+def _generate_reference_features_extraction_tests_cases_inputs() -> List[
+    Tuple[FeaturesExtractionExampleArgs, FeaturesExtractionExampleMetadata, bytes]
+]:
     beg_size = 128
     mid_size = 0
     end_size = 64

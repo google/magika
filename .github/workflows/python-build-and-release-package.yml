@@ -359,6 +359,7 @@ jobs:
   # Note: The publishing is only done with pushes of release tags.
   publish-to-pypi:
     name: Publish to PyPI
+    if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
     needs: [test-wheels, test-pure-python-wheel, test-sdist]
     runs-on: ubuntu-latest
 
@@ -398,6 +399,7 @@ jobs:
   # Note: The publishing is only done with pushes of test release tags.
   publish-to-testpypi:
     name: Publish to TestPyPI
+    if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
     needs: [test-wheels, test-pure-python-wheel, test-sdist]
     runs-on: ubuntu-latest
 

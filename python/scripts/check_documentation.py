@@ -41,8 +41,6 @@ IGNORE_PREFIX_PATTERNS = [
     "js/dist",
     "website-ng/node_modules",
     "website-ng/dist",
-    # Checking relative links in the new website is not supported yet.
-    "website-ng/src",
 ]
 
 
@@ -169,7 +167,7 @@ def check_markdown_links(verbose: bool) -> bool:
     with_errors = False
     for path in enumerate_markdown_files_in_dir(Path(".")):
         if verbose:
-            print(f"Analyzing {path}")
+            print(f"Analyzing file: {path}")
         for ui in extract_uris_infos_from_file(
             path,
             verbose=verbose,
@@ -239,9 +237,9 @@ def extract_uris_infos_from_file(path: Path, verbose: bool) -> list[UriInfo]:
             repo_main_prefix_url = "https://github.com/google/magika/blob/main/"
             if uri.startswith(repo_main_prefix_url):
                 rel_path = uri.removeprefix(repo_main_prefix_url)
-                assert (
-                    rel_path.find("#") == -1
-                ), "Local links with anchors not supported yet"
+                assert rel_path.find("#") == -1, (
+                    "Local links with anchors not supported yet"
+                )
                 abs_path = REPO_ROOT_DIR / rel_path
                 is_valid = abs_path.is_file()
             else:
@@ -262,7 +260,28 @@ def extract_uris_infos_from_file(path: Path, verbose: bool) -> list[UriInfo]:
             else:
                 is_pure_anchor = False
                 if Path(uri).is_absolute():
-                    is_valid = False
+                    website_files_dir = (
+                        REPO_ROOT_DIR
+                        / "website-ng"
+                        / "src"
+                        / "content"
+                        / "docs"
+                        / uri.removeprefix("/magika/")
+                    )
+                    md_path = website_files_dir.with_suffix(".md")
+                    mdx_path = website_files_dir.with_suffix(".mdx")
+                    public_path = (
+                        REPO_ROOT_DIR / "website-ng" / "public" / Path(uri).name
+                    )
+                    if (
+                        website_files_dir.is_dir()
+                        or md_path.is_file()
+                        or mdx_path.is_file()
+                        or public_path.is_file()
+                    ):
+                        is_valid = True
+                    else:
+                        is_valid = False
                 else:
                     if uri.find("#") >= 0:
                         # This URI is not a pure anchor, but it does have an

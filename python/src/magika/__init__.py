@@ -15,7 +15,7 @@
 # ruff: noqa: D104
 
 
-__version__ = "0.6.3"
+__version__ = "1.0.1"
 
 
 import dotenv

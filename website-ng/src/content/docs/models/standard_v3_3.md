@@ -449,4 +449,4 @@ This is the full list of all possible model's output. E.g., this is the list of 
 | yara | YARA rule |
 | zig | Zig source |
 | zip | Zip archive data |
-| zlibstream | zlib compressed data |>
+| zlibstream | zlib compressed data |

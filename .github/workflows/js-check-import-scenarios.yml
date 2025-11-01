@@ -18,7 +18,7 @@ jobs:
         working-directory: js/simple_examples
     steps:
       - name: Checkout
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
           ref: main
 

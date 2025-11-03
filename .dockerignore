@@ -31,3 +31,6 @@
 **/secrets.dev.yaml
 **/values.dev.yaml
 LICENSE
+
+# Keep this if the container wants it, this is a test file.
+!tests_data/basic/dockerfile/Dockerfile

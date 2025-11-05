@@ -187,5 +187,6 @@ Options:
 ```
 
 
-See the [docs on Magika's core concepts](../../docs/concepts.md) for more
-details about the output format and other important aspects.
+See the [docs on Magika's core
+concepts](https://securityresearch.google/magika/core-concepts/how-magika-works/) for more details
+about the output format and other important aspects.

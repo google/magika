@@ -28,6 +28,7 @@ def main() -> None:
     # Compute paths to files we'll need to restore at the end of the build
     rust_main_rs_path = rust_root_dir / "cli" / "src" / "main.rs"
     rust_cli_cargo_toml_path = rust_root_dir / "cli" / "Cargo.toml"
+    rust_lib_cargo_toml_path = rust_root_dir / "lib" / "Cargo.toml"
 
     # get the rust version from Cargo.toml and patch main.rs
     rust_version = get_rust_version(rust_root_dir)
@@ -36,6 +37,22 @@ def main() -> None:
     # get the python version from magika.__version__ and patch Cargo.toml
     python_version = get_python_version(python_root_dir)
     patch_cargo_toml_with_version(rust_cli_cargo_toml_path, python_version)
+
+    # rename the rust library
+    print(f"Patching {rust_lib_cargo_toml_path} with new name")
+    patch_line_matching_prefix(
+        rust_lib_cargo_toml_path, "name = ", 'name = "magika-lib"'
+    )
+    print(f"Patching {rust_cli_cargo_toml_path} with new library name")
+    rust_lib_dependency = extract_with_regex(
+        rust_cli_cargo_toml_path,
+        'magika_lib = { package = "magika", (.*) }',
+    )
+    patch_line_matching_prefix(
+        rust_cli_cargo_toml_path,
+        "magika_lib = ",
+        f"magika-lib = {{ {rust_lib_dependency} }}",
+    )
 
     # update Cargo.lock
     subprocess.run(["cargo", "check"], cwd=rust_root_dir / "cli", check=True)

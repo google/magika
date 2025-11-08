@@ -1,11 +1,11 @@
-class Greeter
-  def initialize(name = "World")
-    @name = name
+class Kalimat
+  def initialize(nama = "Dunia")
+    @nama = nama
   end
-  def say_hi
-    puts "Hi #{@name}!"
+  def sapaan
+    puts "Hai #{@nama}."
   end
-  def say_bye
-    puts "Bye #{@name}, come back soon."
+  def perpisahan
+    puts "Sampai jumpa #{@nama}."
   end
 end

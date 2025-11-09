@@ -201,6 +201,7 @@ export enum ContentTypeLabel {
   MHT = "mht",
   MIDI = "midi",
   MKV = "mkv",
+  MOBI = "mobi",
   MP2 = "mp2",
   MP3 = "mp3",
   MP4 = "mp4",

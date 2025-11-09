@@ -757,6 +757,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.MKV,
       is_text: false,
     },
+    [ContentTypeLabel.MOBI]: {
+      label: ContentTypeLabel.MOBI,
+      is_text: false,
+    },
     [ContentTypeLabel.MP2]: {
       label: ContentTypeLabel.MP2,
       is_text: false,

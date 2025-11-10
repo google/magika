@@ -8,7 +8,7 @@ requires [cgo](https://go.dev/blog/cgo) for interfacing with the ONNX Runtime
 
 ## Usage
 As illustrated in [`example/main.go`](./example/main.go), calling magika from go boils down
-to create a scanner associated with a given model, and scan bytes.
+to creating a scanner associated with a given model, and scanning the content.
 
 ```golang
 //go:build cgo && onnxruntime
@@ -42,12 +42,12 @@ func main() {
 	// Create a scanner.
 	s, err := magika.NewScanner(assetsDir, modelName)
 	if err != nil {
-		panic(err)
+		log.Fatalf("NewScanner failed: %v", err)
 	}
 	// Scan
 	ct, err := s.Scan(strings.NewReader("Hello world"), 11)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Scan failed: %v", err)
 	}
 	fmt.Printf("%+v\n", ct)
 }

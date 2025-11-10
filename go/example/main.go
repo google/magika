@@ -13,6 +13,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/google/magika/go/magika"
@@ -29,12 +30,12 @@ func main() {
 	// Create a scanner.
 	s, err := magika.NewScanner(assetsDir, modelName)
 	if err != nil {
-		panic(err)
+		log.Fatalf("NewScanner failed: %v", err)
 	}
 	// Scan
 	ct, err := s.Scan(strings.NewReader("Hello world"), 11)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Scan failed: %v", err)
 	}
 	fmt.Printf("%+v\n", ct)
 }

@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/google/magika/magika"
+	"github.com/google/magika/go/magika"
 )
 
 const (

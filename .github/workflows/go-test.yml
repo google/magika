@@ -1,0 +1,24 @@
+name: Go - build and run tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    paths:
+      - "go/**"
+      - "tests_data/**"
+      - ".github/workflows/go-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  unit-testing:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+
+      - name: Build the Go Docker image (which also runs tests)
+        run: docker build -f go/docker/Dockerfile .

@@ -26,7 +26,7 @@ There are three aspects that need to be implemented:
 We have a number of test cases that one can use to check that a new implementation matches the reference implementation.
 
 Testing that the output (e.g., model prediction, tool overall prediction, score) of the tool matches the expectations:
-- We have a number of test cases that cover normal situations as well as corner cases related to small files, content types with custom thresholds and ovewrite maps, and prediction modes. Note that these corner cases are model-specific (the actual weights). We use a fuzzing-like approach to generate them.
+- We have a number of test cases that cover normal situations as well as corner cases related to small files, content types with custom thresholds and overwrite maps, and prediction modes. Note that these corner cases are model-specific (the actual weights). We use a fuzzing-like approach to generate them.
 - These examples are stored in two formats, "examples by path" and "examples by content". They are stored at `tests_data/reference/<model-name>-inference_examples_by_content.json.gz` and `tests_data/reference/<model-name>-inference_examples_by_content.json.gz`. These store a list of `ExampleByPath` and `ExampleByContent` (defined in `python/tests/test_inference_vs_reference.py`), respectively.
 
 Testing the features extraction:

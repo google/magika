@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **What type of file would you like magika to detect?**
-Write the full name of the file format, followed by the file extention in parenthesis.
+Write the full name of the file format, followed by the file extension in parenthesis.
 Examples:
  - "Nintendo Binary Revolution RESource (.brres)"
  - "Valve Map Format file (.vmf)"
@@ -22,7 +22,7 @@ Examples:
 - Simply state the name of the software, and where it can be obtained:
   - "Valve Hammer Editor, included with any Source Engine game on Steam."
 - If the file is common enough, write a general description:
-  - "Many 3D modeling softwares."
+  - "Many 3D modeling software."
   - "Any text editor."
 - Link to the GitHub page:
   - "[BrawlCrate](https://github.com/soopercool101/BrawlCrate)"

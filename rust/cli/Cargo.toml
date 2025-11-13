@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "1.0.1"
+version = "1.0.2-dev"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -22,6 +22,10 @@ ort = "=2.0.0-rc.10"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 tokio = { version = "1.43.1", features = ["full"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
 
 [profile.dist]
 inherits = "release"

@@ -4,6 +4,7 @@
 [![NPM Version](https://img.shields.io/npm/v/magika)](https://npmjs.com/package/magika)
 [![image](https://img.shields.io/pypi/l/magika.svg)](https://pypi.python.org/pypi/magika)
 [![image](https://img.shields.io/pypi/pyversions/magika.svg)](https://pypi.python.org/pypi/magika)
+[![Go Version](https://img.shields.io/github/v/tag/google/magika?filter=go%2F*&label=go&sort=semver)](https://pkg.go.dev/github.com/google/magika/go)
 <!-- [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/google/magika/badge)](https://scorecard.dev/viewer/?uri=github.com/google/magika) -->
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706)
 ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)

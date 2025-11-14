@@ -589,7 +589,7 @@ class Magika:
 
         # The following code checks whether the score is "high enough", where
         # "high enough" depends on the selected prediction mode. If the score is
-        # high enough, we return the (potentially ovewritten) model prediction;
+        # high enough, we return the (potentially overwritten) model prediction;
         # if it is not, we return a generic content type, such as TXT or
         # UNKNOWN.
         if self._prediction_mode == PredictionMode.BEST_GUESS:

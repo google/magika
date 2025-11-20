@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackageId>MagikaNet</PackageId>
+        <Version>1.0.1</Version>
+        <Authors>arthrp</Authors>
+        <TargetFramework>net8.0</TargetFramework>
+        <Title>Magika.Net</Title>
+        <Description>.NET bindings for Magika library</Description>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/arthrp/MagikaNet</PackageProjectUrl>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <None Include="runtimes\osx-arm64\native\libmagika_ffi.dylib">
+          <Pack>true</Pack>
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <PackagePath>runtimes\osx-arm64\native</PackagePath>
+      </None>
+
+        <None Include="runtimes\linux-x64\native\libmagika_ffi.so">
+            <Pack>true</Pack>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <PackagePath>runtimes\linux-x64\native</PackagePath>
+        </None>
+
+        <None Include="runtimes\win-x64\native\magika_ffi.dll">
+            <Pack>true</Pack>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <PackagePath>runtimes\linux-x64\native</PackagePath>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="runtimes\win-x64\native\" />
+    </ItemGroup>
+
+</Project>

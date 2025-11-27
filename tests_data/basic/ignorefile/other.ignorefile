@@ -1,0 +1,14 @@
+# Standard build outputs
+/dist
+/build
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+node_modules/
+!package.json
+**/*.min.js
+cache/?lockfile
+temp-*/
+/log/*
+secret

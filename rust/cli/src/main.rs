@@ -18,8 +18,6 @@ use std::fmt::Write;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-#[cfg(feature = "_time")]
-use std::time::Instant;
 
 use anyhow::{bail, ensure, Result};
 use clap::{Args, Parser};
@@ -32,6 +30,8 @@ use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
+#[cfg(feature = "_time")]
+use tokio::time::Instant;
 
 /// Determines file content types using AI.
 #[derive(Parser)]
@@ -174,6 +174,8 @@ async fn main() -> Result<()> {
         std::cmp::max(2, num_cpus::get_physical())
     });
     ensure!(0 < num_tasks, "--num-tasks cannot be zero");
+    #[cfg(feature = "_time")]
+    ensure!(num_tasks == 1, "--num-tasks must be 1 for time measurements");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -243,7 +245,9 @@ async fn main() -> Result<()> {
         println!("]");
     }
     #[cfg(feature = "_time")]
-    println!("Average inference time: {:.2}ms", 1000. * time.0 / time.1);
+    if 0. < time.1 {
+        println!("Average inference time: {:.2}ms", 1000. * time.0 / time.1);
+    }
     if errors {
         std::process::exit(1);
     }
@@ -382,7 +386,7 @@ async fn infer_batch(
         let start = Instant::now();
         let batch = magika.identify_features_batch_async(&features).await?;
         #[cfg(feature = "_time")]
-        let time = Instant::now().duration_since(start).as_secs_f32();
+        let time = Instant::now().duration_since(start).as_secs_f64() / paths.len() as f64;
         assert_eq!(batch.len(), paths.len());
         for ((order, path), output) in paths.into_iter().zip(batch.into_iter()) {
             let result = Ok(output);
@@ -435,7 +439,7 @@ struct Response {
     path: PathBuf,
     result: Result<FileType, magika::Error>,
     #[cfg(feature = "_time")]
-    time: f32,
+    time: f64,
 }
 
 #[derive(Serialize)]

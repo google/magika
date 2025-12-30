@@ -2,7 +2,7 @@
 name: New content type request
 about: Suggest a new content type for Magika to detect
 title: "[NEW CONTENT TYPE REQUEST]"
-labels: missing content type, needs triage
+labels: ''
 assignees: ''
 
 ---
@@ -13,7 +13,7 @@ Examples:
  - "Nintendo Binary Revolution RESource (.brres)"
  - "Valve Map Format file (.vmf)"
  - "Blender save file (.blend)"
- - "RPG Maker 2000/2003 Lcf DataBase (.ldb)"
+-----‐|@tr4200812
  - "COLLADA file (.dae)"
  - "Unreal Engine Asset (.uasset)"
 

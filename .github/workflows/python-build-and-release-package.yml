@@ -64,9 +64,12 @@ jobs:
           else
             CHECKER_OPTIONS="--report-only"
           fi
-          # Note: this uses the magika python package installed via uv. Also,
-          # pip is not available here, so we skip pip show check.
-          uv run ./scripts/pre_release_check.py $CHECKER_OPTIONS --no-check-pip-show-package-version
+          # Note: at this point, the magika package is installed, but it is NOT
+          # available in the PATH (because that's not what `uv` does). And so,
+          # we use the `--run-magika-via-uv` option to let the script find the
+          # magika client via uv. Also, pip is not available here, so we skip
+          # pip show check.
+          uv run ./scripts/pre_release_check.py $CHECKER_OPTIONS --run-magika-via-uv --no-check-pip-show-package-version
         working-directory: python
 
   build-wheels:

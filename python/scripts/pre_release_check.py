@@ -38,6 +38,11 @@ import magika
     help="Print errors without failing. (Default: Fails on errors)",
 )
 @click.option(
+    "--run-magika-via-uv",
+    is_flag=True,
+    help="When running `magika`, prefix it with `uv run`.",
+)
+@click.option(
     "--check-pip-show-package-version/--no-check-pip-show-package-version",
     is_flag=True,
     default=True,
@@ -51,6 +56,7 @@ import magika
 def main(
     expected_version: str,
     report_only: bool,
+    run_magika_via_uv: bool,
     check_pip_show_package_version: bool,
     use_python_client: bool,
 ) -> None:
@@ -58,6 +64,8 @@ def main(
 
     if report_only:
         click.echo('Running in "report only" mode.')
+    if run_magika_via_uv:
+        click.echo("Running magika client via uv.")
     if not check_pip_show_package_version:
         click.echo("Skipping checking package version via pip show.")
     if use_python_client:
@@ -88,7 +96,7 @@ def main(
     if use_python_client:
         cli_version = instance_version
     else:
-        cli_version = get_rust_cli_version()
+        cli_version = get_rust_cli_version(run_magika_via_uv=run_magika_via_uv)
 
     if module_version == "":
         click.echo("ERROR: failed to get module_version.")
@@ -143,14 +151,25 @@ def main(
         click.secho("All tests pass!", fg="green")
 
 
-def get_rust_cli_version() -> str:
+def get_rust_cli_version(run_magika_via_uv: bool) -> str:
     """Get the version of the Rust CLI `magika`.
+
+    If run_magika_via_uv is True, then attempts to find the magika client via
+    `uv run`. Otherwise, assume magika is available in the PATH.
 
     Returns an empty string ("") if an error is encountered.
     """
+
+    cmd_parts = ["magika", "--version"]
+    if run_magika_via_uv:
+        cmd_parts = ["uv", "run"] + cmd_parts
+
     try:
         result = subprocess.run(
-            ["magika", "--version"], capture_output=True, text=True, check=True
+            cmd_parts,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         parts = result.stdout.strip().split()
         if len(parts) < 2:

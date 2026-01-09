@@ -1,0 +1,59 @@
+name: Python - build and release package simplified
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    tags:
+      # Note: These need to match what specified in env.[TEST_]RELEASE_TAG_PREFIX below.
+      - "python-v*"
+      - "python-test-v*"
+  pull_request:
+    paths:
+      - "python/**"
+      - "rust/**"
+      - "tests_data/**"
+      - ".github/workflows/python-build-and-release-package.yml"
+  schedule:
+    - cron: "12 3 * * 4" # Run everything once per week.
+    - cron: "12 3 * * 1" # Refresh the cache an additional time.
+  release:
+    types: [created]
+
+permissions:
+  contents: read
+
+env:
+  # Trigger for publishing to pypi and testpypi (and for pre-release checks
+  # enforcement).
+  RELEASE_TAG_PREFIX: "python-v"
+  TEST_RELEASE_TAG_PREFIX: "python-test-v"
+  UV_VERSION: "0.9.22"
+
+jobs:
+  # This job acts as a gatekeeper for releases, which are triggered by a tag
+  # push. It performs critical pre-release checks. These checks are skipped for
+  # non-release pushes.
+  pre-release-checks:
+    name: Pre-release checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Setup python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      - name: Check package for release
+        env:
+          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
+        run: |
+          uv run ./scripts/pre_release_check.py --report-only --run-magika-via-uv --no-check-pip-show-package-version
+        working-directory: python
+
+      - name: Run magika
+        run: uv run magika -V
+        working-directory: python

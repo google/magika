@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 env:
-  UV_VERSION: "0.9.5"
+  UV_VERSION: "0.9.22"
 
 jobs:
   unit-testing:

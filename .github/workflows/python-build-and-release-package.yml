@@ -29,7 +29,7 @@ env:
   # enforcement).
   RELEASE_TAG_PREFIX: "python-v"
   TEST_RELEASE_TAG_PREFIX: "python-test-v"
-  UV_VERSION: "0.9.5"
+  UV_VERSION: "0.9.22"
 
 jobs:
   # This job acts as a gatekeeper for releases, which are triggered by a tag

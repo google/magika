@@ -94,7 +94,6 @@ jobs:
         with:
           path: rust/onnx/runtime/build/Linux
           key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
-      - run: python3 ./python/scripts/fix_package_version.py
       - if: matrix.platform.runner == 'ubuntu-latest'
         name: Build wheels
         uses: PyO3/maturin-action@v1

@@ -30,7 +30,7 @@ from magika.types.prediction_mode import PredictionMode
 from magika.types.status import Status
 
 try:
-    __version__ = version("magika")
+    __version__ = version(__name__)
 except PackageNotFoundError:
     # Package is not installed (e.g., during development)
     __version__ = "unknown"

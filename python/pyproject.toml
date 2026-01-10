@@ -67,7 +67,7 @@ dev-dependencies = [
 ]
 
 [build-system]
-requires = ["maturin>=1.7,<=1.10.2"]
+requires = ["maturin>=1.7,<=1.10.2"] # Pinned to avoid a potential regression in newer versions.
 build-backend = "maturin"
 
 [tool.hatch.version]

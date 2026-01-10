@@ -31,7 +31,7 @@ classifiers = [
     "Topic :: Software Development",
     "Typing :: Typed",
 ]
-dynamic = ["version"]
+version = "1.0.2.dev0"
 
 dependencies = [
     "click>=8.1.7",

@@ -1,0 +1,18 @@
+[project]
+name = "magika-core"
+version = "0.0.1"
+description = "Stub for magika-core."
+readme = "README.md"
+authors = [
+    {name = "Magika Developers", email = "magika-dev@google.com"},
+]
+license = {"text" = "Apache-2.0"}
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.9.22,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "magika"

@@ -4,6 +4,7 @@
 
 ### Patch
 
+- Add internal `_time` feature for inference time measurement
 - Enable full LTO for the release profile
 
 ## 1.0.1

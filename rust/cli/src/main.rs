@@ -30,6 +30,8 @@ use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
+#[cfg(feature = "_time")]
+use tokio::time::Instant;
 
 /// Determines file content types using AI.
 #[derive(Parser)]
@@ -172,6 +174,8 @@ async fn main() -> Result<()> {
         std::cmp::max(2, num_cpus::get_physical())
     });
     ensure!(0 < num_tasks, "--num-tasks cannot be zero");
+    #[cfg(feature = "_time")]
+    ensure!(num_tasks == 1, "--num-tasks must be 1 for time measurements");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -213,10 +217,14 @@ async fn main() -> Result<()> {
     }
     let mut reorder = Reorder::default();
     let mut errors = false;
+    #[cfg(feature = "_time")]
+    let mut time = (0., 0.);
     while let Some(response) = result_receiver.recv().await {
         reorder.push(response?);
         while let Some(response) = reorder.pop() {
             errors |= response.result.is_err();
+            #[cfg(feature = "_time")]
+            (time = (time.0 + response.time, time.1 + 1.));
             if flags.format.json {
                 if reorder.next != 1 {
                     print!(",");
@@ -235,6 +243,10 @@ async fn main() -> Result<()> {
             println!();
         }
         println!("]");
+    }
+    #[cfg(feature = "_time")]
+    if 0. < time.1 {
+        println!("Average inference time: {:.2}ms", 1000. * time.0 / time.1);
     }
     if errors {
         std::process::exit(1);
@@ -260,7 +272,17 @@ async fn extract_features(
             Ok(ProcessPath::Features(x)) => features.push(x),
         };
         match result {
-            Some(result) => result_sender.send(Ok(Response { order, path, result })).await?,
+            Some(result) => {
+                result_sender
+                    .send(Ok(Response {
+                        order,
+                        path,
+                        result,
+                        #[cfg(feature = "_time")]
+                        time: 0.,
+                    }))
+                    .await?
+            }
             None => paths.push((order, path)),
         }
         order += 1;
@@ -360,11 +382,23 @@ async fn infer_batch(
     sender: &tokio::sync::mpsc::Sender<Result<Response>>,
 ) -> Result<()> {
     while let Ok(Batch { paths, features }) = receiver.recv().await {
+        #[cfg(feature = "_time")]
+        let start = Instant::now();
         let batch = magika.identify_features_batch_async(&features).await?;
+        #[cfg(feature = "_time")]
+        let time = Instant::now().duration_since(start).as_secs_f64() / paths.len() as f64;
         assert_eq!(batch.len(), paths.len());
         for ((order, path), output) in paths.into_iter().zip(batch.into_iter()) {
             let result = Ok(output);
-            sender.send(Ok(Response { order, path, result })).await?;
+            sender
+                .send(Ok(Response {
+                    order,
+                    path,
+                    result,
+                    #[cfg(feature = "_time")]
+                    time,
+                }))
+                .await?;
         }
     }
     Ok(())
@@ -404,6 +438,8 @@ struct Response {
     order: usize,
     path: PathBuf,
     result: Result<FileType, magika::Error>,
+    #[cfg(feature = "_time")]
+    time: f64,
 }
 
 #[derive(Serialize)]
@@ -483,6 +519,8 @@ impl Response {
                             )?;
                         }
                     }
+                    #[cfg(feature = "_time")]
+                    Some('t') => write!(&mut result, "{:.2}ms", 1000. * self.time)?,
                     Some(c) => result.push(c),
                     None => break,
                 },

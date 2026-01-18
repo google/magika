@@ -73,7 +73,7 @@ This release introduces several breaking changes. Please review this guide caref
       print(f"Error: {result.status}")
   ```
 
-1. **CLI Output Format Change (v0.6.0):** The JSON output format of the CLI has changed. Those changes are analogous to the changes to the Python APIs. The `score` field is now at the top level, alongside `dl` and `output`, and is no longer nested within `dl` or `output`. The output also includes `is_text` and `extensions` fields. The `magic` metadata has been removed as it was often either incorrect or redundant; use `description` instead. Moreover, similarly to what happens under the hood with the `StatusOr` pattern, `result.status` indicates whether the prediction was successful, and the prediction results are available under the `result.value` key.
+2. **CLI Output Format Change (v0.6.0):** The JSON output format of the CLI has changed. Those changes are analogous to the changes to the Python APIs. The `score` field is now at the top level, alongside `dl` and `output`, and is no longer nested within `dl` or `output`. The output also includes `is_text` and `extensions` fields. The `magic` metadata has been removed as it was often either incorrect or redundant; use `description` instead. Moreover, similarly to what happens under the hood with the `StatusOr` pattern, `result.status` indicates whether the prediction was successful, and the prediction results are available under the `result.value` key.
 
 - **Before (v0.5.x and earlier):** (Illustrative example - adapt to your specific output)
 
@@ -128,7 +128,7 @@ This release introduces several breaking changes. Please review this guide caref
   }
   ```
 
-1. **`dl.label == ContentTypeLabel.UNDEFINED` when the model is not used:** There are situations in which the deep learning model is not used, for example when the file is too small or empty. In these cases, `dl.label` is now set to `ContentTypeLabel.UNDEFINED` instead of having the full `dl` block being set to `None`.
+3. **`dl.label == ContentTypeLabel.UNDEFINED` when the model is not used:** There are situations in which the deep learning model is not used, for example when the file is too small or empty. In these cases, `dl.label` is now set to `ContentTypeLabel.UNDEFINED` instead of having the full `dl` block being set to `None`.
 
 - **Before (v0.5.x and earlier):**
 
@@ -145,11 +145,11 @@ This release introduces several breaking changes. Please review this guide caref
       print(prediction.dl.label)
   ```
 
-1. **Expanded List of Content Types:** The model now supports over 200 content types.
+4. **Expanded List of Content Types:** The model now supports over 200 content types.
 
 - **Migration:** Review the [updated list of supported content types](../assets/models/standard_v3_2/README.md) and adjust any code that relies on specific content type labels returned by previous versions. Labels have _not_ changed, but a file previously detected as `javascript` may not be detected as `typescript`. Consider using `get_output_content_types()` to dynamically retrieve the supported labels.
 
-1. **Pure Python Wheel and Rust Client Fallback:** If you are installing Magika on a platform _without_ pre-built wheels (e.g., Windows on ARM), you will automatically get the pure-python wheel. In this case, the package does _not_ include the Rust binary client, but it does include the old python client as fallback; you can use such old python client with `$ magika-python-client`.
+5. **Pure Python Wheel and Rust Client Fallback:** If you are installing Magika on a platform _without_ pre-built wheels (e.g., Windows on ARM), you will automatically get the pure-python wheel. In this case, the package does _not_ include the Rust binary client, but it does include the old python client as fallback; you can use such old python client with `$ magika-python-client`.
 
 ### Full Changelog
 

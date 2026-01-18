@@ -29,7 +29,7 @@ program
   )
   .option("--json-output", "Format output in JSON")
   .option("--model-url <model-url>", "Model URL", Magika.MODEL_URL)
-  .option("--model-path <model-path>", "Modle file path")
+  .option("--model-path <model-path>", "Model file path")
   .option(
     "--model-config-url <model-config-url>",
     "Model config URL",

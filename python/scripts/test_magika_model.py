@@ -59,12 +59,12 @@ def main(model_dir_or_name: str) -> None:
             mr = m.identify_path(test_path)
             assert mr.ok
 
-            predicated_content_type = mr.prediction.output.label
+            predicted_content_type = mr.prediction.output.label
             expected_content_type = test_path.parent.name
-            if predicated_content_type != expected_content_type:
+            if predicted_content_type != expected_content_type:
                 with_error = True
                 log_error(
-                    f'{test_path} predicted as "{predicated_content_type}" (score: {mr.prediction.score:.4f}), expected "{expected_content_type}".'
+                    f'{test_path} predicted as "{predicted_content_type}" (score: {mr.prediction.score:.4f}), expected "{expected_content_type}".'
                 )
 
     if with_error:

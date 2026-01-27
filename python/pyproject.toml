@@ -31,7 +31,7 @@ classifiers = [
     "Topic :: Software Development",
     "Typing :: Typed",
 ]
-dynamic = ["version"]
+version = "1.0.2.dev0"
 
 dependencies = [
     "click>=8.1.7",
@@ -67,7 +67,7 @@ dev-dependencies = [
 ]
 
 [build-system]
-requires = ["maturin>=1.7,<2.0"]
+requires = ["maturin>=1.7,<=1.10.2"] # Pinned to avoid a potential regression in newer versions.
 build-backend = "maturin"
 
 [tool.hatch.version]

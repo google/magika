@@ -36,12 +36,12 @@ semver guidelines for more details about this.
 Magika v0.6.1 is a significant update featuring a new model with 2x supported content types, a new command line client in Rust, performance improvements, API enhancements, and a few breaking changes. This changelog entry rolls up all changes from v0.5.1, the last stable release.
 
 > [!IMPORTANT]
-> There are a few breaking changes! After reading about the new key features and improvements, we suggest to consult the migration guide below and the [updated documention](./README.md).
+> There are a few breaking changes! After reading about the new key features and improvements, we suggest to consult the migration guide below and the [updated documentation](./README.md).
 
 ### Key Features and Improvements
 
 - **New deep learning model:** We introduce a new model, `standard_v3_2`, which supports 2x content types (200+ in total, see full list [here](../assets/models/standard_v3_2/README.md)), has a similar ~99% average accuracy, and is ~20% faster, with an inference speed of about ~2ms on CPUs (YMMV depending on your testing setup). See [models' CHANGELOG](../assets/models/CHANGELOG.md) for more information.
-- **New command line client, written in Rust:** We developed a new command line client, written in Rust, which is not affected by the one-time boostrap overhead caused by the python's interpreter itself. This new client is packaged, pre-compiled, into the `magika` python package. This new client replaces the old client written in Python (but the old Python one is still available as a fallback for those platforms for which we don't have precompiled rust binaries).
+- **New command line client, written in Rust:** We developed a new command line client, written in Rust, which is not affected by the one-time bootstrap overhead caused by the python's interpreter itself. This new client is packaged, pre-compiled, into the `magika` python package. This new client replaces the old client written in Python (but the old Python one is still available as a fallback for those platforms for which we don't have precompiled rust binaries).
 - **New stream-based identification:** Added `identify_stream(stream: typing.BinaryIO)` API to infer content types from open binary streams. ([#970](https://github.com/google/magika/issues/970))
 - **Improved path handling:** `identify_path` and `identify_paths` now accept `Union[str, os.PathLike]` objects. You no longer need to explicitly use `pathlib.Path`. ([#935](https://github.com/google/magika/issues/935))
 - **Improved python API:** The new Python APIs offer a number of improvements, including: the inference APIs now return a `MagikaResult`, which is a [`absl::StatusOr`](https://abseil.io/docs/cpp/guides/status)-like object that wraps `MagikaPrediction`, with a clear separation between valid predictions and error situations; the output content types (`label`) are not just `str` anymore, but of type `ContentTypeLabel`, making integrations more robust (`ContentTypeLabel` extends `StrEnum`: thus, they are not just `str`, but you can treat them as such). The `MagikaPrediction` object now has additional `is_text` and `extensions` fields (in addition to the existing `label`, `mime_type`, `group`, and `description`).
@@ -51,7 +51,7 @@ Magika v0.6.1 is a significant update featuring a new model with 2x supported co
 
 This release introduces several breaking changes. Please review this guide carefully to update your code:
 
-1. **New `identify_*` API output format:** The inference Python APIs now return a `MagikaResult` object, which is similar to `absl::StatusOr`; This provides a cleaner way to handle errors. `dl.ct_label` and `output.ct_label` are renamed to `dl.label` and `output.label`. `label`s are now of type `ContentTypeLabel`, which extends `StrEnum` (thus, they are not just `str`, but you can treat them as such). The `score` field is now at the top level, alongside `dl` and `output`. The `magic` field has been removed as it was often either incorrect or reduntant; use `description` instead.
+1. **New `identify_*` API output format:** The inference Python APIs now return a `MagikaResult` object, which is similar to `absl::StatusOr`; This provides a cleaner way to handle errors. `dl.ct_label` and `output.ct_label` are renamed to `dl.label` and `output.label`. `label`s are now of type `ContentTypeLabel`, which extends `StrEnum` (thus, they are not just `str`, but you can treat them as such). The `score` field is now at the top level, alongside `dl` and `output`. The `magic` field has been removed as it was often either incorrect or redundant; use `description` instead.
 
 - **Before (v0.5.x and earlier):**
 
@@ -73,7 +73,7 @@ This release introduces several breaking changes. Please review this guide caref
       print(f"Error: {result.status}")
   ```
 
-1. **CLI Output Format Change (v0.6.0):** The JSON output format of the CLI has changed. Those changes are analogous to the changes to the Python APIs. The `score` field is now at the top level, alongside `dl` and `output`, and is no longer nested within `dl` or `output`. The output also includes `is_text` and `extensions` fields. The `magic` metadata has been removed as it was often either incorrect or reduntant; use `description` instead. Moreover, similarly to what happens under the hood with the `StatusOr` pattern, `result.status` indicates whether the prediction was successful, and the prediction results are available under the `result.value` key.
+2. **CLI Output Format Change (v0.6.0):** The JSON output format of the CLI has changed. Those changes are analogous to the changes to the Python APIs. The `score` field is now at the top level, alongside `dl` and `output`, and is no longer nested within `dl` or `output`. The output also includes `is_text` and `extensions` fields. The `magic` metadata has been removed as it was often either incorrect or redundant; use `description` instead. Moreover, similarly to what happens under the hood with the `StatusOr` pattern, `result.status` indicates whether the prediction was successful, and the prediction results are available under the `result.value` key.
 
 - **Before (v0.5.x and earlier):** (Illustrative example - adapt to your specific output)
 
@@ -128,7 +128,7 @@ This release introduces several breaking changes. Please review this guide caref
   }
   ```
 
-1. **`dl.label == ContentTypeLabel.UNDEFINED` when the model is not used:** There are situations in which the deep learning model is not used, for example when the file is too small or empty. In these cases, `dl.label` is now set to `ContentTypeLabel.UNDEFINED` instead of having the full `dl` block being set to `None`.
+3. **`dl.label == ContentTypeLabel.UNDEFINED` when the model is not used:** There are situations in which the deep learning model is not used, for example when the file is too small or empty. In these cases, `dl.label` is now set to `ContentTypeLabel.UNDEFINED` instead of having the full `dl` block being set to `None`.
 
 - **Before (v0.5.x and earlier):**
 
@@ -145,11 +145,11 @@ This release introduces several breaking changes. Please review this guide caref
       print(prediction.dl.label)
   ```
 
-1. **Expanded List of Content Types:** The model now supports over 200 content types.
+4. **Expanded List of Content Types:** The model now supports over 200 content types.
 
 - **Migration:** Review the [updated list of supported content types](../assets/models/standard_v3_2/README.md) and adjust any code that relies on specific content type labels returned by previous versions. Labels have _not_ changed, but a file previously detected as `javascript` may not be detected as `typescript`. Consider using `get_output_content_types()` to dynamically retrieve the supported labels.
 
-1. **Pure Python Wheel and Rust Client Fallback:** If you are installing Magika on a platform _without_ pre-built wheels (e.g., Windows on ARM), you will automatically get the pure-python wheel. In this case, the package does _not_ include the Rust binary client, but it does include the old python client as fallback; you can use such old python client with `$ magika-python-client`.
+5. **Pure Python Wheel and Rust Client Fallback:** If you are installing Magika on a platform _without_ pre-built wheels (e.g., Windows on ARM), you will automatically get the pure-python wheel. In this case, the package does _not_ include the Rust binary client, but it does include the old python client as fallback; you can use such old python client with `$ magika-python-client`.
 
 ### Full Changelog
 

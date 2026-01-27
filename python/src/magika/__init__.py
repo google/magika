@@ -15,8 +15,7 @@
 # ruff: noqa: D104
 
 
-__version__ = "1.0.1"
-
+from importlib.metadata import PackageNotFoundError, version
 
 import dotenv
 
@@ -29,6 +28,12 @@ from magika.types.magika_result import MagikaResult
 from magika.types.overwrite_reason import OverwriteReason
 from magika.types.prediction_mode import PredictionMode
 from magika.types.status import Status
+
+try:
+    __version__ = version(__name__)
+except PackageNotFoundError:
+    # Package is not installed (e.g., during development)
+    __version__ = "unknown"
 
 __all__ = [
     "ContentTypeInfo",

@@ -17,6 +17,7 @@ set -e
 . ../color.sh
 
 x cargo check
+x cargo check --features=_time
 x cargo build --release
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings

@@ -36,10 +36,21 @@ version = "1.0.2.dev0"
 
 dependencies = [
     "click>=8.1.7",
+
+    # Python 3.14+: Min version 1.24.1
     "onnxruntime>=1.24.1 ; python_version >= '3.14'",
-    "onnxruntime>=1.17.0 ; python_version > '3.9' and python_version < '3.14'",
+    # Python 3.13: Min version 1.21.0
+    "onnxruntime>=1.21.0 ; python_version == '3.13'",
+    # Python 3.11 - 3.12: Min version 1.17.0
+    "onnxruntime>=1.17.0 ; python_version >= '3.11' and python_version < '3.13'",
+    # Python 3.10: Support dropped in 1.24.1 (use latest compatible)
+    "onnxruntime>=1.17.0, <1.24.1 ; python_version == '3.10'",
+    # Python 3.9: Support dropped in 1.20.0
     "onnxruntime>=1.17.0, <1.20.0 ; python_version <= '3.9'",
-    "onnxruntime<=1.20.1 ; sys_platform == 'win32' and python_version < '3.14'",
+
+    # Windows-specific cap for older Python versions (Ensure this is intentional!)
+    "onnxruntime<=1.20.1 ; sys_platform == 'win32' and python_version < '3.13'",
+
     "numpy>=1.24; python_version < '3.12'",
     "numpy>=1.26; python_version >= '3.12' and python_version < '3.13'",
     "numpy>=2.1.0; python_version >= '3.13' and python_version < '3.14'",

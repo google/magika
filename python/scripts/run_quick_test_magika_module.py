@@ -82,6 +82,7 @@ def main(print_inference_stats: bool, repeat: int) -> None:
         print(f"  Max: {max(latencies):.4f} ms")
         print(f"  Mean: {statistics.mean(latencies):.4f} ms")
         print(f"  Median: {statistics.median(latencies):.4f} ms")
+        print(f"  Total: {sum(latencies):.4f} ms")
 
 
 if __name__ == "__main__":

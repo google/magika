@@ -31,7 +31,8 @@ from magika import ContentTypeLabel, Magika, PredictionMode
 
 @click.command()
 @click.option("--print-inference-stats", is_flag=True, help="Print inference stats.")
-def main(print_inference_stats: bool) -> None:
+@click.option("--repeat", default=1, help="Number of times to run the test set.")
+def main(print_inference_stats: bool, repeat: int) -> None:
     m = Magika(prediction_mode=PredictionMode.HIGH_CONFIDENCE)
 
     print(f"Magika instance details: {m}")
@@ -55,18 +56,19 @@ def main(print_inference_stats: bool) -> None:
     latencies = []
 
     with_error = False
-    for file_path in files_paths:
-        start_time = time.perf_counter()
-        res = m.identify_path(file_path)
-        end_time = time.perf_counter()
-        latencies.append((end_time - start_time) * 1000)
-        output_label = res.output.label
-        expected_label = file_path.parent.name
-        if expected_label != output_label:
-            with_error = True
-            print(
-                f"ERROR: Misprediction for {file_path}: expected_label={expected_label}, output_label={output_label}"
-            )
+    for _ in range(repeat):
+        for file_path in files_paths:
+            start_time = time.perf_counter()
+            res = m.identify_path(file_path)
+            end_time = time.perf_counter()
+            latencies.append((end_time - start_time) * 1000)
+            output_label = res.output.label
+            expected_label = file_path.parent.name
+            if expected_label != output_label:
+                with_error = True
+                print(
+                    f"ERROR: Misprediction for {file_path}: expected_label={expected_label}, output_label={output_label}"
+                )
 
     if with_error:
         print("ERROR: There was at least one misprediction")
@@ -75,7 +77,7 @@ def main(print_inference_stats: bool) -> None:
     print("All examples were predicted correctly")
 
     if print_inference_stats and latencies:
-        print(f"Inference stats over {len(latencies)} files:")
+        print(f"Inference stats over {len(latencies)} files (repeat={repeat}):")
         print(f"  Min: {min(latencies):.4f} ms")
         print(f"  Max: {max(latencies):.4f} ms")
         print(f"  Mean: {statistics.mean(latencies):.4f} ms")

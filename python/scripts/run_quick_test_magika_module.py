@@ -56,19 +56,22 @@ def main(print_inference_stats: bool, repeat: int) -> None:
     latencies = []
 
     with_error = False
-    for _ in range(repeat):
+    for i in range(repeat):
         for file_path in files_paths:
             start_time = time.perf_counter()
             res = m.identify_path(file_path)
             end_time = time.perf_counter()
             latencies.append((end_time - start_time) * 1000)
-            output_label = res.output.label
-            expected_label = file_path.parent.name
-            if expected_label != output_label:
-                with_error = True
-                print(
-                    f"ERROR: Misprediction for {file_path}: expected_label={expected_label}, output_label={output_label}"
-                )
+
+            # Check for misprediction only on the first run.
+            if i == 0:
+                output_label = res.output.label
+                expected_label = file_path.parent.name
+                if expected_label != output_label:
+                    with_error = True
+                    print(
+                        f"ERROR: Misprediction for {file_path}: expected_label={expected_label}, output_label={output_label}"
+                    )
 
     if with_error:
         print("ERROR: There was at least one misprediction")

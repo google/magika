@@ -62,6 +62,11 @@ Via `magika` python package:
 pipx install magika
 ```
 
+Via brew (macOS / Linux)
+```shell
+brew install magika
+```
+
 Via installer script:
 ```shell
 curl -LsSf https://securityresearch.google/magika/install.sh | sh

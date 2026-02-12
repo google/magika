@@ -67,8 +67,8 @@ Issues = "https://github.com/google/magika/issues"
 Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
 
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "mypy>=1.11.2",
     "ipython>=8.12.3",
     "pytest>=8.3.2",

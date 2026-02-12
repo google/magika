@@ -11,6 +11,7 @@ semver guidelines for more details about this.
 
 ## [Unreleased]
 - Mark python 3.14 as supported.
+- Remove direct dependency on numpy.
 
 ## [1.0.1] - 2025-10-31
 - Mark end of experimental phase. No changes from last version.

@@ -81,6 +81,10 @@ jobs:
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py
 
+      - name: Run "magika module" quick tests + perf measurement
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py --print-inference-stats --repeat 10
+
   changelog-check:
     runs-on: ubuntu-latest
     steps:

@@ -32,7 +32,7 @@ classifiers = [
     "Topic :: Software Development",
     "Typing :: Typed",
 ]
-version = "1.0.2.dev0"
+version = "1.0.2"
 
 dependencies = [
     "click>=8.1.7",

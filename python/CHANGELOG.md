@@ -9,9 +9,9 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
-## [Unreleased]
-- Mark Python 3.14 as supported.
-- Remove direct dependency on NumPy.
+## [1.0.2] - 2026-02-16
+- Mark python 3.14 as supported.
+- Remove direct dependency on numpy.
 - Remove dependency on python-dotenv (note: .env files are no longer loaded automatically).
 
 ## [1.0.1] - 2025-10-31

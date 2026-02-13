@@ -17,8 +17,6 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
-import dotenv
-
 from magika.magika import Magika
 from magika.types.content_type_info import ContentTypeInfo
 from magika.types.content_type_label import ContentTypeLabel
@@ -46,5 +44,3 @@ __all__ = [
     "PredictionMode",
     "Status",
 ]
-
-dotenv.load_dotenv(dotenv.find_dotenv())

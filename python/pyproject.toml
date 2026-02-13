@@ -50,8 +50,6 @@ dependencies = [
 
     # Windows-specific cap for older Python versions (Ensure this is intentional!)
     "onnxruntime<=1.20.1 ; sys_platform == 'win32' and python_version < '3.13'",
-
-    "python-dotenv>=1.0.1",
 ]
 
 

@@ -26,8 +26,6 @@ import time
 from pathlib import Path
 from typing import BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
 
-import numpy as np
-import numpy.typing as npt
 import onnxruntime as rt
 
 from magika.logger import get_logger
@@ -109,8 +107,8 @@ class Magika:
             self._model_config_path
         )
 
-        self._target_labels_space_np = np.array(
-            list(map(str, self._model_config.target_labels_space))
+        self._target_labels_space = list(
+            map(str, self._model_config.target_labels_space)
         )
 
         self._prediction_mode = prediction_mode
@@ -532,16 +530,16 @@ class Magika:
         self, all_features: List[Tuple[Path, ModelFeatures]]
     ) -> List[Tuple[Path, ModelOutput]]:
         raw_preds = self._get_raw_predictions(all_features)
-        top_preds_idxs = np.argmax(raw_preds, axis=1)
-        preds_content_types_labels = self._target_labels_space_np[top_preds_idxs]
-        scores = np.max(raw_preds, axis=1)
 
-        return [
-            (path, ModelOutput(label=ContentTypeLabel(label), score=float(score)))
-            for (path, _), label, score in zip(
-                all_features, preds_content_types_labels, scores
+        outputs = []
+        for (path, _), preds in zip(all_features, raw_preds):
+            target_label_idx = max(range(len(preds)), key=preds.__getitem__)
+            score = preds[target_label_idx]
+            label = self._target_labels_space[target_label_idx]
+            outputs.append(
+                (path, ModelOutput(label=ContentTypeLabel(label), score=score))
             )
-        ]
+        return outputs
 
     def _get_results_from_features(
         self, all_features: List[Tuple[Path, ModelFeatures]]
@@ -795,7 +793,7 @@ class Magika:
 
     def _get_raw_predictions(
         self, features: List[Tuple[Path, ModelFeatures]]
-    ) -> npt.NDArray:
+    ) -> List[List[float]]:
         """Get raw predictions from features.
 
         Given a list of (path, features), return a (files_num, features_size)
@@ -812,12 +810,12 @@ class Magika:
             if self._model_config.end_size > 0:
                 sample_bytes.extend(fs.end[-self._model_config.end_size :])
             X_bytes.append(sample_bytes)
-        X = np.array(X_bytes, dtype=np.int32)
+
         elapsed_time = 1000 * (time.time() - start_time)
         self._log.debug(f"DL input prepared in {elapsed_time:.03f} ms")
 
         raw_predictions_list = []
-        samples_num = X.shape[0]
+        samples_num = len(X_bytes)
 
         max_internal_batch_size = 1000
         batches_num = samples_num // max_internal_batch_size
@@ -831,12 +829,19 @@ class Magika:
             start_idx = batch_idx * max_internal_batch_size
             end_idx = min((batch_idx + 1) * max_internal_batch_size, samples_num)
 
+            batch_features = X_bytes[start_idx:end_idx]
+
             start_time = time.time()
-            batch_raw_predictions = self._onnx_session.run(
-                ["target_label"], {"bytes": X[start_idx:end_idx, :]}
+            # onnxruntime accepts simple list of lists of ints/floats for input "bytes"
+            # It returns a list of numpy arrays (usually one per output node).
+            batch_raw_predictions_np = self._onnx_session.run(
+                ["target_label"], {"bytes": batch_features}
             )[0]
+            # Convert numpy array to list of lists of floats immediately
+            batch_raw_predictions = batch_raw_predictions_np.tolist()
+
             elapsed_time = 1000 * (time.time() - start_time)
             self._log.debug(f"DL raw prediction in {elapsed_time:.03f} ms")
 
-            raw_predictions_list.append(batch_raw_predictions)
-        return np.concatenate(raw_predictions_list)
+            raw_predictions_list.extend(batch_raw_predictions)
+        return raw_predictions_list

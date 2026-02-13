@@ -9,7 +9,7 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
-## [Unreleased]
+## [1.0.2] - 2026-02-13
 - Mark python 3.14 as supported.
 - Remove direct dependency on numpy.
 

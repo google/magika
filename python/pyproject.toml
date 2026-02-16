@@ -71,11 +71,16 @@ dev = [
     "tomli>=2.0.1",
     "tqdm>=4.67.1",
     "dacite>=1.9.2",
+    "requests>=2.32.4",
 ]
 
 [build-system]
 requires = ["maturin>=1.12.2"]
 build-backend = "maturin"
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
 
 [tool.maturin]
 python-source = "src"

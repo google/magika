@@ -67,7 +67,7 @@ dev = [
     "ipython>=8.12.3",
     "pytest>=8.3.2",
     "ruff>=0.14.0",
-    "twine==6.1.0",
+    "twine==6.2.0",
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
     "tqdm>=4.67.1",

@@ -67,7 +67,6 @@ dev = [
     "ipython>=8.12.3",
     "pytest>=8.3.2",
     "ruff>=0.14.0",
-    "twine==6.1.0",
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
     "tqdm>=4.67.1",
@@ -75,7 +74,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["maturin>=1.7,<=1.10.2"] # Pinned to avoid a potential regression in newer versions.
+requires = ["maturin>=1.12.2"]
 build-backend = "maturin"
 
 [tool.maturin]

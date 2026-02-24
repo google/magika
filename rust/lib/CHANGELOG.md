@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1-dev
+
+### Patch
+
+- Update dependencies
+
 ## 1.0.0
 
 ### Patch

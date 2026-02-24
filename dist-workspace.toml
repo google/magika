@@ -3,8 +3,10 @@ members = ["cargo:rust/cli"]
 
 # Config for 'dist'
 [dist]
+# Skip checking whether the specified configuration files are up to date
+allow-dirty = ["ci"]
 # The preferred dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.28.7"
+cargo-dist-version = "0.31.0"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app

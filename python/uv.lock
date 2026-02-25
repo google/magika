@@ -387,7 +387,7 @@ wheels = [
 
 [[package]]
 name = "magika"
-version = "1.0.2.dev0"
+version = "1.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -419,7 +419,6 @@ requires-dist = [
     { name = "onnxruntime", marker = "python_full_version >= '3.11' and python_full_version < '3.13'", specifier = ">=1.17.0" },
     { name = "onnxruntime", marker = "python_full_version == '3.13.*'", specifier = ">=1.21.0" },
     { name = "onnxruntime", marker = "python_full_version >= '3.14'", specifier = ">=1.24.1" },
-    { name = "onnxruntime", marker = "python_full_version < '3.13' and sys_platform == 'win32'", specifier = "<=1.20.1" },
 ]
 
 [package.metadata.requires-dev]

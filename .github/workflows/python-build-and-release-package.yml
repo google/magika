@@ -125,7 +125,7 @@ jobs:
       # We want to know in which exact situation the tests fail
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
           - runner: ubuntu-latest
             target: x86_64
@@ -218,7 +218,7 @@ jobs:
       # We want to know in which exact situation the tests fail
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
           - runner: ubuntu-latest
             target: x86_64
@@ -290,7 +290,7 @@ jobs:
       # We want to know in which exact situation the tests fail
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
           - runner: ubuntu-latest
             target: x86_64

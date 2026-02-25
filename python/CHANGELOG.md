@@ -9,10 +9,11 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
-## [1.0.2] - 2026-02-16
+## [1.0.2] - 2026-02-25
 - Mark python 3.14 as supported.
 - Remove direct dependency on numpy.
 - Remove dependency on python-dotenv (note: .env files are no longer loaded automatically).
+- Remove onnxruntime<=1.20.1 Windows pin.
 
 ## [1.0.1] - 2025-10-31
 - Mark end of experimental phase. No changes from last version.

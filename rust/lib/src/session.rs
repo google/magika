@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::io::{Read, Seek};
 use std::path::Path;
 
 use ndarray::Array2;
 
 use crate::future::{exec, AsyncEnv, Env, SyncEnv};
-use crate::input::AsyncInputApi;
+use crate::input::{AsyncInputApi, ReadSeek};
 use crate::{AsyncInput, Builder, Features, FeaturesOrRuled, FileType, Result, SyncInput};
 
 /// A Magika session to identify files.
@@ -67,6 +68,16 @@ impl Session {
     /// Identifies a single file from its content (asynchronously).
     pub async fn identify_content_async(&mut self, file: impl AsyncInput) -> Result<FileType> {
         self.identify_content::<AsyncEnv>(file).await
+    }
+
+    /// Identifies a single file from a [`Read`] + [`Seek`] source (synchronously).
+    pub fn identify_reader_sync(&mut self, reader: impl Read + Seek) -> Result<FileType> {
+        self.identify_content_sync(ReadSeek::new(reader)?)
+    }
+
+    /// Identifies a single file from a [`Read`] + [`Seek`] source (asynchronously).
+    pub async fn identify_reader_async(&mut self, reader: impl Read + Seek) -> Result<FileType> {
+        self.identify_content_async(ReadSeek::new(reader)?).await
     }
 
     async fn identify_content<E: Env>(&mut self, file: impl AsyncInputApi) -> Result<FileType> {

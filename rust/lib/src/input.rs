@@ -81,6 +81,31 @@ impl<T: SyncInputApi> SyncInputApi for &mut T {
     }
 }
 
+pub(crate) struct ReadSeek<T> {
+    inner: T,
+    len: usize,
+}
+
+impl<T: Read + Seek> ReadSeek<T> {
+    pub(crate) fn new(mut inner: T) -> Result<Self> {
+        let len = inner.seek(SeekFrom::End(0))? as usize;
+        Ok(Self { inner, len })
+    }
+}
+
+impl<T: Read + Seek> SyncInput for ReadSeek<T> {}
+impl<T: Read + Seek> SyncInputApi for ReadSeek<T> {
+    fn length(&self) -> Result<usize> {
+        Ok(self.len)
+    }
+
+    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
+        self.inner.seek(SeekFrom::Start(offset as u64))?;
+        Ok(self.inner.read_exact(buffer)?)
+    }
+}
+impl<T: Read + Seek> AsyncInput for ReadSeek<T> {}
+
 impl<T: SyncInputApi> AsyncInputApi for T {
     fn length(&self) -> impl Future<Output = Result<usize>> {
         std::future::ready(self.length())

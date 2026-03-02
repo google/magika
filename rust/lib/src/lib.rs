@@ -128,6 +128,35 @@ mod tests {
     }
 
     #[test]
+    fn identify_by_reader_reference() {
+        #[derive(Debug, Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Test {
+            prediction_mode: String,
+            content_base64: String,
+            status: String,
+            prediction: Option<Prediction>,
+        }
+        let path = format!(
+            "../../tests_data/reference/{MODEL_NAME}-inference_examples_by_content.json.gz"
+        );
+        let mut tests = String::new();
+        GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
+        let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
+        let mut session = Session::new().unwrap();
+        for test in tests {
+            if test.prediction_mode != "high-confidence" {
+                continue;
+            }
+            assert_eq!(test.status, "ok");
+            let expected = test.prediction.unwrap();
+            let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
+            let actual = session.identify_reader_sync(std::io::Cursor::new(content)).unwrap();
+            assert_prediction(actual, expected, &test.content_base64);
+        }
+    }
+
+    #[test]
     fn identify_by_content_reference() {
         #[derive(Debug, Deserialize)]
         #[serde(deny_unknown_fields)]

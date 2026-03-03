@@ -32,27 +32,33 @@ pub trait AsyncInput: AsyncInputApi {}
 
 pub trait SyncInputApi {
     /// Returns the size of the input.
-    fn length(&self) -> Result<usize>;
+    fn length(&self) -> Result<u64>;
 
     /// Reads from the input at the given offset to fill the buffer.
-    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()>;
+    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()>;
 }
 
 pub trait AsyncInputApi {
     /// Returns the size of the input.
-    fn length(&self) -> impl Future<Output = Result<usize>>;
+    fn length(&self) -> impl Future<Output = Result<u64>>;
 
     /// Reads from the input at the given offset to fill the buffer.
-    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> impl Future<Output = Result<()>>;
+    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>>;
 }
+
+const _: () = const {
+    // We assume in the rest of the file, that u64 holds any usize.
+    assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
+};
 
 impl SyncInput for &[u8] {}
 impl SyncInputApi for &[u8] {
-    fn length(&self) -> Result<usize> {
-        Ok(self.len())
+    fn length(&self) -> Result<u64> {
+        Ok(self.len() as u64)
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
+    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
+        let offset = offset.try_into().unwrap();
         buffer.copy_from_slice(&self[offset..][..buffer.len()]);
         Ok(())
     }
@@ -60,45 +66,45 @@ impl SyncInputApi for &[u8] {
 
 impl SyncInput for std::fs::File {}
 impl SyncInputApi for std::fs::File {
-    fn length(&self) -> Result<usize> {
-        Ok(self.metadata()?.len() as usize)
+    fn length(&self) -> Result<u64> {
+        Ok(self.metadata()?.len())
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
-        self.seek(SeekFrom::Start(offset as u64))?;
+    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
+        self.seek(SeekFrom::Start(offset))?;
         Ok(self.read_exact(buffer)?)
     }
 }
 
 impl<T: SyncInputApi> SyncInput for &mut T {}
 impl<T: SyncInputApi> SyncInputApi for &mut T {
-    fn length(&self) -> Result<usize> {
+    fn length(&self) -> Result<u64> {
         <T as SyncInputApi>::length(self)
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
+    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
         <T as SyncInputApi>::read_at(self, buffer, offset)
     }
 }
 
 impl<T: SyncInputApi> AsyncInputApi for T {
-    fn length(&self) -> impl Future<Output = Result<usize>> {
+    fn length(&self) -> impl Future<Output = Result<u64>> {
         std::future::ready(self.length())
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> impl Future<Output = Result<()>> {
+    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>> {
         std::future::ready(self.read_at(buffer, offset))
     }
 }
 
 impl AsyncInput for tokio::fs::File {}
 impl AsyncInputApi for tokio::fs::File {
-    async fn length(&self) -> Result<usize> {
-        Ok(self.metadata().await?.len() as usize)
+    async fn length(&self) -> Result<u64> {
+        Ok(self.metadata().await?.len())
     }
 
-    async fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
-        self.seek(SeekFrom::Start(offset as u64)).await?;
+    async fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
+        self.seek(SeekFrom::Start(offset)).await?;
         self.read_exact(buffer).await?;
         Ok(())
     }
@@ -148,16 +154,16 @@ impl FeaturesOrRuled {
 }
 
 async fn extract_features_async(
-    config: &ModelConfig, mut file: impl AsyncInputApi, file_len: usize,
+    config: &ModelConfig, mut file: impl AsyncInputApi, file_len: u64,
 ) -> Result<(Vec<u8>, Vec<i32>)> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
-    let buffer_size = std::cmp::min(config.block_size, file_len);
+    let buffer_size = std::cmp::min(config.block_size as u64, file_len) as usize;
     let mut content_beg = vec![0; buffer_size];
     file.read_at(&mut content_beg, 0).await?;
     let beg = strip_prefix(&content_beg);
     let mut end = vec![0; buffer_size];
-    file.read_at(&mut end, file_len - buffer_size).await?;
+    file.read_at(&mut end, file_len - buffer_size as u64).await?;
     let end = strip_suffix(&end);
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
@@ -276,7 +282,7 @@ mod tests {
             expected.extend_from_slice(&test.features.beg);
             expected.extend_from_slice(&test.features.end);
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
-            let actual = extract_features_async(&config, content.as_slice(), content.len());
+            let actual = extract_features_async(&config, content.as_slice(), content.len() as u64);
             let actual = exec(actual).unwrap().1;
             let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();
             assert_eq!(actual, expected, "{test:?}");

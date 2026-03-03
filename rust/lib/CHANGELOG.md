@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0-dev
+
+### Minor
+
+- Support files larger than 4GB on 32-bits architectures
+
 ## 1.0.2
 
 This version is not used by the `magika` crate. It has been yanked from `crates.io` because it

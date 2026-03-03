@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Unseal `SyncInput` and `AsyncInput` for custom file-like objects
 - Support files larger than 4GB on 32-bits architectures
 
 ## 1.0.2

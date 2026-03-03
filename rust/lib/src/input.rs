@@ -25,12 +25,7 @@ use crate::{ContentType, Result};
 pub struct Features(pub(crate) Vec<i32>);
 
 /// Synchronous abstraction over file content.
-pub trait SyncInput: SyncInputApi {}
-
-/// Asynchronous abstraction over file content.
-pub trait AsyncInput: AsyncInputApi {}
-
-pub trait SyncInputApi {
+pub trait SyncInput {
     /// Returns the size of the input.
     fn length(&self) -> Result<u64>;
 
@@ -38,7 +33,8 @@ pub trait SyncInputApi {
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()>;
 }
 
-pub trait AsyncInputApi {
+/// Asynchronous abstraction over file content.
+pub trait AsyncInput {
     /// Returns the size of the input.
     fn length(&self) -> impl Future<Output = Result<u64>>;
 
@@ -51,8 +47,7 @@ const _: () = const {
     assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
 };
 
-impl SyncInput for &[u8] {}
-impl SyncInputApi for &[u8] {
+impl SyncInput for &[u8] {
     fn length(&self) -> Result<u64> {
         Ok(self.len() as u64)
     }
@@ -64,8 +59,7 @@ impl SyncInputApi for &[u8] {
     }
 }
 
-impl SyncInput for std::fs::File {}
-impl SyncInputApi for std::fs::File {
+impl SyncInput for std::fs::File {
     fn length(&self) -> Result<u64> {
         Ok(self.metadata()?.len())
     }
@@ -76,18 +70,17 @@ impl SyncInputApi for std::fs::File {
     }
 }
 
-impl<T: SyncInputApi> SyncInput for &mut T {}
-impl<T: SyncInputApi> SyncInputApi for &mut T {
+impl<T: SyncInput> SyncInput for &mut T {
     fn length(&self) -> Result<u64> {
-        <T as SyncInputApi>::length(self)
+        <T as SyncInput>::length(self)
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        <T as SyncInputApi>::read_at(self, buffer, offset)
+        <T as SyncInput>::read_at(self, buffer, offset)
     }
 }
 
-impl<T: SyncInputApi> AsyncInputApi for T {
+impl<T: SyncInput> AsyncInput for T {
     fn length(&self) -> impl Future<Output = Result<u64>> {
         std::future::ready(self.length())
     }
@@ -97,8 +90,7 @@ impl<T: SyncInputApi> AsyncInputApi for T {
     }
 }
 
-impl AsyncInput for tokio::fs::File {}
-impl AsyncInputApi for tokio::fs::File {
+impl AsyncInput for tokio::fs::File {
     async fn length(&self) -> Result<u64> {
         Ok(self.metadata().await?.len())
     }
@@ -134,7 +126,7 @@ impl FeaturesOrRuled {
         Self::extract(file).await
     }
 
-    pub(crate) async fn extract(file: impl AsyncInputApi) -> Result<Self> {
+    pub(crate) async fn extract(file: impl AsyncInput) -> Result<Self> {
         let config = &crate::model::CONFIG;
         let file_len = file.length().await?;
         if file_len == 0 {
@@ -154,7 +146,7 @@ impl FeaturesOrRuled {
 }
 
 async fn extract_features_async(
-    config: &ModelConfig, mut file: impl AsyncInputApi, file_len: u64,
+    config: &ModelConfig, mut file: impl AsyncInput, file_len: u64,
 ) -> Result<(Vec<u8>, Vec<i32>)> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);

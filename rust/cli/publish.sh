@@ -16,7 +16,7 @@
 set -e
 . ../color.sh
 
-# This script rename the package to magika-cli to publish to crates.io.
+# This script renames the package to magika-cli and publishes to crates.io.
 
 [ -z "$(git status -s)" ] || error "Repository is not clean"
 
@@ -34,4 +34,11 @@ cargo fmt -- src/main.rs
 info "Run tests"
 ./test.sh
 
-todo "Create a temporary commit and run cargo publish"
+info "Create a temporary commit"
+git commit -aqm'Temporary commit to publish magika-cli'
+
+info "Publish to crates.io"
+cargo publish
+
+info "Revert the temporary commit"
+git reset --hard HEAD~

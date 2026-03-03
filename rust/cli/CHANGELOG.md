@@ -4,6 +4,7 @@
 
 ### Patch
 
+- Update dependencies
 - Fix new clippy lints
 
 ## 1.0.2

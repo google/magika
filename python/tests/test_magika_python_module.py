@@ -274,7 +274,7 @@ def test_magika_module_with_whitespaces() -> None:
     )
 
     for ws_num in ws_nums:
-        print(f"Calling indentify_bytes with {ws_num} whitespaces")
+        print(f"Calling identify_bytes with {ws_num} whitespaces")
         content = b" " * ws_num
         res = m.identify_bytes(content)
         assert (

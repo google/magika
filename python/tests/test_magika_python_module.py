@@ -761,6 +761,37 @@ def test_get_model_and_output_content_types() -> None:
     }.issubset(model_content_types_set)
 
 
+def test_get_content_type_info() -> None:
+    """Test Magika.get_content_type_info() — fixes #826.
+
+    Verifies that the public API correctly exposes ContentTypeInfo metadata
+    (mime_type, group, description, extensions, is_text) for every
+    ContentTypeLabel that is part of the content type knowledge base.
+    """
+    m = Magika()
+
+    # Every output content type must be queryable and return valid metadata.
+    for label in m.get_output_content_types():
+        info = m.get_content_type_info(label)
+        assert isinstance(info, ContentTypeInfo)
+        assert info.label == label
+        assert isinstance(info.mime_type, str) and info.mime_type != ""
+        assert isinstance(info.group, str) and info.group != ""
+        assert isinstance(info.description, str) and info.description != ""
+        assert isinstance(info.extensions, list)
+        assert isinstance(info.is_text, bool)
+
+    # Spot-check a well-known content type's metadata.
+    pdf_info = m.get_content_type_info(ContentTypeLabel.PDF)
+    assert pdf_info.mime_type == "application/pdf"
+    assert pdf_info.group == "document"
+    assert pdf_info.is_text is False
+
+    # Text-based type should report is_text=True.
+    py_info = m.get_content_type_info(ContentTypeLabel.PYTHON)
+    assert py_info.is_text is True
+
+
 def test_magika_imports():
     imported_modules = utils.get_imported_objects_after_wildcard()
 

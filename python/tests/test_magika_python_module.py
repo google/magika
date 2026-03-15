@@ -20,7 +20,7 @@ from typing import Any, List, Optional
 
 import pytest
 
-from magika import Magika, PredictionMode
+from magika import Magika, MagikaError, PredictionMode
 from magika.types import (
     ContentTypeInfo,
     ContentTypeLabel,
@@ -790,6 +790,10 @@ def test_get_content_type_info() -> None:
     # Text-based type should report is_text=True.
     py_info = m.get_content_type_info(ContentTypeLabel.PYTHON)
     assert py_info.is_text is True
+
+    # An unknown label must raise MagikaError.
+    with pytest.raises(MagikaError, match="is not in the content type knowledge base"):
+        m.get_content_type_info("this_is_not_a_real_label")  # type: ignore[arg-type]
 
 
 def test_magika_imports():

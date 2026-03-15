@@ -272,13 +272,14 @@ class Magika:
 
         Raises:
             MagikaError: If the label is not present in the content type
-                knowledge base (e.g., ContentTypeLabel.UNDEFINED).
+                knowledge base.
         """
-        if label not in self._cts_infos:
+        try:
+            return self._cts_infos[label]
+        except KeyError:
             raise MagikaError(
                 f"Content type '{label}' is not in the content type knowledge base."
-            )
-        return self._cts_infos[label]
+            ) from None
 
     @staticmethod
     def _get_default_model_name() -> str:

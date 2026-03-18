@@ -362,7 +362,7 @@ async fn infer_batch(
     while let Ok(Batch { paths, features }) = receiver.recv().await {
         let batch = magika.identify_features_batch_async(&features).await?;
         assert_eq!(batch.len(), paths.len());
-        for ((order, path), output) in paths.into_iter().zip(batch) {
+        for ((order, path), output) in paths.into_iter().zip(batch.into_iter()) {
             let result = Ok(output);
             sender.send(Ok(Response { order, path, result })).await?;
         }

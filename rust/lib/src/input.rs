@@ -25,78 +25,80 @@ use crate::{ContentType, Result};
 pub struct Features(pub(crate) Vec<i32>);
 
 /// Synchronous abstraction over file content.
-pub trait SyncInput {
-    /// Returns the size of the input.
-    fn length(&self) -> Result<u64>;
-
-    /// Reads from the input at the given offset to fill the buffer.
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()>;
-}
+pub trait SyncInput: SyncInputApi {}
 
 /// Asynchronous abstraction over file content.
-pub trait AsyncInput {
+pub trait AsyncInput: AsyncInputApi {}
+
+pub trait SyncInputApi {
     /// Returns the size of the input.
-    fn length(&self) -> impl Future<Output = Result<u64>>;
+    fn length(&self) -> Result<usize>;
 
     /// Reads from the input at the given offset to fill the buffer.
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>>;
+    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()>;
 }
 
-const _: () = const {
-    // We assume in the rest of the file, that u64 holds any usize.
-    assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
-};
+pub trait AsyncInputApi {
+    /// Returns the size of the input.
+    fn length(&self) -> impl Future<Output = Result<usize>>;
 
-impl SyncInput for &[u8] {
-    fn length(&self) -> Result<u64> {
-        Ok(self.len() as u64)
+    /// Reads from the input at the given offset to fill the buffer.
+    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> impl Future<Output = Result<()>>;
+}
+
+impl SyncInput for &[u8] {}
+impl SyncInputApi for &[u8] {
+    fn length(&self) -> Result<usize> {
+        Ok(self.len())
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        let offset = offset.try_into().unwrap();
+    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
         buffer.copy_from_slice(&self[offset..][..buffer.len()]);
         Ok(())
     }
 }
 
-impl SyncInput for std::fs::File {
-    fn length(&self) -> Result<u64> {
-        Ok(self.metadata()?.len())
+impl SyncInput for std::fs::File {}
+impl SyncInputApi for std::fs::File {
+    fn length(&self) -> Result<usize> {
+        Ok(self.metadata()?.len() as usize)
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        self.seek(SeekFrom::Start(offset))?;
+    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
+        self.seek(SeekFrom::Start(offset as u64))?;
         Ok(self.read_exact(buffer)?)
     }
 }
 
-impl<T: SyncInput> SyncInput for &mut T {
-    fn length(&self) -> Result<u64> {
-        <T as SyncInput>::length(self)
+impl<T: SyncInputApi> SyncInput for &mut T {}
+impl<T: SyncInputApi> SyncInputApi for &mut T {
+    fn length(&self) -> Result<usize> {
+        <T as SyncInputApi>::length(self)
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        <T as SyncInput>::read_at(self, buffer, offset)
+    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
+        <T as SyncInputApi>::read_at(self, buffer, offset)
     }
 }
 
-impl<T: SyncInput> AsyncInput for T {
-    fn length(&self) -> impl Future<Output = Result<u64>> {
+impl<T: SyncInputApi> AsyncInputApi for T {
+    fn length(&self) -> impl Future<Output = Result<usize>> {
         std::future::ready(self.length())
     }
 
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>> {
+    fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> impl Future<Output = Result<()>> {
         std::future::ready(self.read_at(buffer, offset))
     }
 }
 
-impl AsyncInput for tokio::fs::File {
-    async fn length(&self) -> Result<u64> {
-        Ok(self.metadata().await?.len())
+impl AsyncInput for tokio::fs::File {}
+impl AsyncInputApi for tokio::fs::File {
+    async fn length(&self) -> Result<usize> {
+        Ok(self.metadata().await?.len() as usize)
     }
 
-    async fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        self.seek(SeekFrom::Start(offset)).await?;
+    async fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<()> {
+        self.seek(SeekFrom::Start(offset as u64)).await?;
         self.read_exact(buffer).await?;
         Ok(())
     }
@@ -126,7 +128,7 @@ impl FeaturesOrRuled {
         Self::extract(file).await
     }
 
-    pub(crate) async fn extract(file: impl AsyncInput) -> Result<Self> {
+    pub(crate) async fn extract(file: impl AsyncInputApi) -> Result<Self> {
         let config = &crate::model::CONFIG;
         let file_len = file.length().await?;
         if file_len == 0 {
@@ -146,16 +148,16 @@ impl FeaturesOrRuled {
 }
 
 async fn extract_features_async(
-    config: &ModelConfig, mut file: impl AsyncInput, file_len: u64,
+    config: &ModelConfig, mut file: impl AsyncInputApi, file_len: usize,
 ) -> Result<(Vec<u8>, Vec<i32>)> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
-    let buffer_size = std::cmp::min(config.block_size as u64, file_len) as usize;
+    let buffer_size = std::cmp::min(config.block_size, file_len);
     let mut content_beg = vec![0; buffer_size];
     file.read_at(&mut content_beg, 0).await?;
     let beg = strip_prefix(&content_beg);
     let mut end = vec![0; buffer_size];
-    file.read_at(&mut end, file_len - buffer_size as u64).await?;
+    file.read_at(&mut end, file_len - buffer_size).await?;
     let end = strip_suffix(&end);
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
@@ -274,7 +276,7 @@ mod tests {
             expected.extend_from_slice(&test.features.beg);
             expected.extend_from_slice(&test.features.end);
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
-            let actual = extract_features_async(&config, content.as_slice(), content.len() as u64);
+            let actual = extract_features_async(&config, content.as_slice(), content.len());
             let actual = exec(actual).unwrap().1;
             let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();
             assert_eq!(actual, expected, "{test:?}");

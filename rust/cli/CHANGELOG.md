@@ -1,12 +1,5 @@
 # Changelog
 
-## 1.0.3-dev
-
-### Patch
-
-- Update dependencies
-- Fix new clippy lints
-
 ## 1.0.2
 
 ### Patch

@@ -13,7 +13,6 @@ on:
       - "js/**/*.md"
       - "python/**/*.md"
       - "rust/**/*.md"
-      - "website-ng/**/*.md"
   schedule:
     - cron: "42 7 * * 4" # Run weekly
 

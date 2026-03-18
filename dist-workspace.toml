@@ -29,6 +29,8 @@ msvc-crt-static = false
 github-attestations = true
 # Post-announce jobs to run in CI
 post-announce-jobs = ["./cli-latest"]
+# Which actions to run on pull requests
+pr-run-mode = "upload"
 
 [dist.github-custom-runners]
 global = "ubuntu-latest"

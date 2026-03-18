@@ -23,7 +23,8 @@ use ndarray::Array2;
 use ort::session::{NoSelectedOutputs, RunOptions};
 use ort::value::Tensor;
 
-use crate::{AsyncInput, Result};
+use crate::input::AsyncInputApi;
+use crate::Result;
 
 pub(crate) fn exec<T>(mut future: impl Future<Output = T>) -> T {
     let future = unsafe { Pin::new_unchecked(&mut future) };
@@ -36,7 +37,7 @@ pub(crate) fn exec<T>(mut future: impl Future<Output = T>) -> T {
 }
 
 pub(crate) trait Env {
-    type File: AsyncInput;
+    type File: AsyncInputApi;
     async fn symlink_metadata(path: &Path) -> Result<Metadata>;
     async fn open(path: &Path) -> Result<Self::File>;
     async fn ort_session_run(

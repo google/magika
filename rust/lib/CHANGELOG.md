@@ -7,6 +7,10 @@
 - Unseal `SyncInput` and `AsyncInput` for custom file-like objects
 - Support files larger than 4GB on 32-bits architectures
 
+### Patch
+
+- Document how to handle ONNX Runtime in the final binary
+
 ## 1.0.2
 
 This version is not used by the `magika` crate. It has been yanked from `crates.io` because it

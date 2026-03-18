@@ -14,6 +14,17 @@
 
 //! Determines file content types using AI.
 //!
+//! This library indirectly depends on the ONNX Runtime through the `ort` [crate][ort-crate]. The
+//! final user is responsible to make sure the ONNX Runtime is available. The `ort` crate provides
+//! [many options][ort-linking] in this regard. The simplest option is to enable the default [cargo
+//! features][ort-features] of the `ort` crate by adding the following dependency to the
+//! `Cargo.toml` file of the final binary:
+//!
+//! ```toml
+//! [dependencies]
+//! ort = "=2.0.0-rc.11"
+//! ```
+//!
 //! # Examples
 //!
 //! ```rust
@@ -30,6 +41,10 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! [ort-crate]: https://crates.io/crates/ort
+//! [ort-linking]: https://ort.pyke.io/setup/linking
+//! [ort-features]: https://ort.pyke.io/setup/cargo-features
 
 #![cfg_attr(feature = "_doc", feature(doc_cfg))]
 

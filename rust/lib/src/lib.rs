@@ -22,7 +22,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! ort = "=2.0.0-rc.11"
+//! ort = "=2.0.0-rc.12"
 //! ```
 //!
 //! # Examples

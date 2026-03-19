@@ -9,6 +9,7 @@
 
 ### Patch
 
+- Update dependencies
 - Document how to handle ONNX Runtime in the final binary
 
 ## 1.0.2

@@ -72,12 +72,15 @@ Via installer script:
 curl -LsSf https://securityresearch.google/magika/install.sh | sh
 ```
 
-or
-
+or:
 ```shell
 powershell -ExecutionPolicy Bypass -c "irm https://securityresearch.google/magika/install.ps1 | iex"
 ```
 
+Via `magika-cli` Rust package:
+```shell
+cargo install --locked magika-cli
+```
 
 ### Python package
 

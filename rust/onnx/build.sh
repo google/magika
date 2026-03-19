@@ -33,11 +33,12 @@ else
   git clone --recursive https://github.com/Microsoft/onnxruntime.git runtime
   cd runtime
 
-  info "Checkout v1.23.2 because that's what ort v2.0.0-rc.11 supports."
-  git checkout v1.23.2
+  info "Checkout v1.24.2 because that's what ort v2.0.0-rc.12 supports."
+  git checkout v1.24.2
 
   # The build fails with GCC 14 due to warnings as errors.
   sed -i '/function(onnxruntime_set_compile_flags/a\
+    target_compile_options(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Wno-array-bounds>")\
     target_compile_options(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Wno-maybe-uninitialized>")\
     target_compile_options(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Wno-uninitialized>")' \
     cmake/CMakeLists.txt
@@ -55,5 +56,5 @@ cd ../..
 cat >> .cargo/config.toml <<EOF
 
 [env]
-ORT_LIB_LOCATION = "$PWD/rust/onnx/runtime/build/Linux"
+ORT_LIB_PATH = "$PWD/rust/onnx/runtime/build/Linux/Release"
 EOF

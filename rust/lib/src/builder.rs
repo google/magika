@@ -52,6 +52,10 @@ impl Builder {
 
     /// Consumes the builder to create a Magika session.
     pub fn build(self) -> Result<Session> {
+        Ok(self.build_()?)
+    }
+
+    fn build_(self) -> ort::Result<Session> {
         let mut session = ort::session::Session::builder()?;
         let Builder { inter_threads, intra_threads, optimization_level, parallel_execution } = self;
         if let Some(num_threads) = inter_threads {

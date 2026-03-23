@@ -436,16 +436,8 @@ class Magika:
         assert end_size < block_size
         assert not use_inputs_at_offsets
 
-        # we read at most block_size bytes
-        bytes_num_to_read = min(block_size, seekable.size)
-
         if beg_size > 0:
-            # Read at most `block_size` bytes from the beginning; `lstrip()``
-            # them (or `strip()` them if the file size is less or equal than
-            # `block_size`); take at most `beg_size` bytes, and optionally pad
-            # them with `padding_token` to get to a list of `beg_size` integers.
-            beg_content = seekable.read_at(0, bytes_num_to_read)
-            beg_content = beg_content.lstrip()
+            beg_content = Magika._read_beg_content(seekable, block_size)
             beg_ints = Magika._get_beg_ints_with_padding(
                 beg_content, beg_size, padding_token
             )
@@ -453,15 +445,7 @@ class Magika:
             beg_ints = []
 
         if end_size > 0:
-            # Read at most `block_size` bytes from the end; `rstrip()`` them (or
-            # `strip()` them if the file size is less or equal than
-            # `block_size`); take at most `end_size` bytes (from the end), and
-            # optionally pad them (at the beginning) with `padding_token` to get
-            # to a list of `end_size` integers.
-            end_content = seekable.read_at(
-                seekable.size - bytes_num_to_read, bytes_num_to_read
-            )
-            end_content = end_content.rstrip()
+            end_content = Magika._read_end_content(seekable, block_size)
             end_ints = Magika._get_end_ints_with_padding(
                 end_content, end_size, padding_token
             )
@@ -477,6 +461,29 @@ class Magika:
             offset_0x9000_0x9007=[],
             offset_0x9800_0x9807=[],
         )
+
+    @staticmethod
+    def _read_beg_content(seekable: Seekable, block_size: int) -> bytes:
+        offset = 0
+        while offset < seekable.size:
+            chunk = seekable.read_at(offset, min(block_size, seekable.size - offset))
+            stripped = chunk.lstrip()
+            if stripped:
+                return stripped
+            offset += block_size
+        return b""
+
+    @staticmethod
+    def _read_end_content(seekable: Seekable, block_size: int) -> bytes:
+        offset = seekable.size
+        while offset > 0:
+            read_size = min(block_size, offset)
+            offset -= read_size
+            chunk = seekable.read_at(offset, read_size)
+            stripped = chunk.rstrip()
+            if stripped:
+                return stripped
+        return b""
 
     @staticmethod
     def _get_beg_ints_with_padding(
@@ -759,8 +766,9 @@ class Magika:
                 # If the n-th token is padding, then it means that,
                 # post-stripping, we do not have enough meaningful
                 # bytes.
-                bytes_to_read = min(seekable.size, self._model_config.block_size)
-                content = seekable.read_at(0, bytes_to_read)
+                content = Magika._read_beg_content(
+                    seekable, self._model_config.block_size
+                )
                 result = self._get_result_from_few_bytes(content, path=path)
                 return result, None
 

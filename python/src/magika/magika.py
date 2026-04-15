@@ -757,10 +757,41 @@ class Magika:
                 == self._model_config.padding_token
             ):
                 # If the n-th token is padding, then it means that,
-                # post-stripping, we do not have enough meaningful
-                # bytes.
-                bytes_to_read = min(seekable.size, self._model_config.block_size)
-                content = seekable.read_at(0, bytes_to_read)
+                # post-stripping, we do not have enough meaningful bytes
+                # in the first block.
+                #
+                # Security note: this path is also reachable when an attacker
+                # prepends ≥block_size bytes of ASCII whitespace to a binary
+                # payload (e.g. ELF, PE, PHP webshell).  In that scenario,
+                # re-reading the same first block (all whitespace) and feeding
+                # it to _get_result_from_few_bytes would return TXT, because
+                # the UTF-8 check passes for whitespace — completely ignoring
+                # the actual payload hidden beyond offset block_size.
+                #
+                # To prevent this bypass we strip the leading whitespace from
+                # the first block.  If the result is empty (i.e. the entire
+                # first block was whitespace) *and* the seekable has content
+                # beyond block_size, we advance past the whitespace prefix and
+                # read the next block, which contains the actual payload.
+                first_block = seekable.read_at(
+                    0, min(seekable.size, self._model_config.block_size)
+                )
+                stripped_first_block = first_block.lstrip()
+
+                if (
+                    len(stripped_first_block) == 0
+                    and seekable.size > self._model_config.block_size
+                ):
+                    # The entire first block was whitespace.  Read the next
+                    # block to examine the actual non-whitespace content.
+                    payload_offset = self._model_config.block_size
+                    bytes_to_read = min(
+                        seekable.size - payload_offset, self._model_config.block_size
+                    )
+                    content = seekable.read_at(payload_offset, bytes_to_read)
+                else:
+                    content = first_block
+
                 result = self._get_result_from_few_bytes(content, path=path)
                 return result, None
 

@@ -299,6 +299,69 @@ def test_magika_module_with_whitespaces() -> None:
             )
 
 
+def test_magika_module_whitespace_prefix_does_not_bypass_binary_detection() -> None:
+    """Regression test for the whitespace-padding bypass.
+
+    An attacker can prepend >= block_size bytes of ASCII whitespace to any
+    binary payload.  Before the fix, lstrip() on the first block produced an
+    empty buffer, which caused the fallback path to re-read the same whitespace
+    block, decode it as valid UTF-8, and return ContentTypeLabel.TXT for
+    arbitrary binary content — effectively bypassing file-type detection.
+
+    After the fix, when the entire first block is whitespace but more content
+    exists beyond it, Magika advances past the whitespace and inspects the
+    actual payload block, correctly identifying the binary content.
+    """
+    m = Magika(prediction_mode=PredictionMode.BEST_GUESS)
+
+    block_size = m._model_config.block_size
+    # A prefix of exactly block_size whitespace bytes forces the bypass path.
+    ws_prefix = b" " * block_size
+
+    # Binary payloads that must NOT be classified as TXT after the prefix.
+    # We use the raw magic bytes / headers that are unambiguously non-text.
+    binary_payloads = [
+        # ELF header (Linux binary)
+        b"\x7fELF\x02\x01\x01\x00" + b"\x00" * 200,
+        # PE/MZ header (Windows executable)
+        b"MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00" + b"\x00" * 100,
+        # Generic non-UTF-8 binary bytes
+        b"\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f"
+        * 64,
+    ]
+
+    for payload in binary_payloads:
+        crafted = ws_prefix + payload
+
+        # Verify via bytes interface
+        res = m.identify_bytes(crafted)
+        assert res.ok
+        assert res.output.label != ContentTypeLabel.TXT, (
+            f"Bypass detected via identify_bytes: "
+            f"payload starting with {payload[:8]!r} was misclassified as TXT"
+        )
+
+        # Verify via stream interface
+        res = m.identify_stream(io.BytesIO(crafted))
+        assert res.ok
+        assert res.output.label != ContentTypeLabel.TXT, (
+            f"Bypass detected via identify_stream: "
+            f"payload starting with {payload[:8]!r} was misclassified as TXT"
+        )
+
+        # Verify via path interface
+        with tempfile.TemporaryDirectory() as td:
+            tf_path = Path(td) / "crafted.bin"
+            tf_path.write_bytes(crafted)
+            res = m.identify_path(tf_path)
+            assert res.ok
+            assert res.output.label != ContentTypeLabel.TXT, (
+                f"Bypass detected via identify_path: "
+                f"payload starting with {payload[:8]!r} was misclassified as TXT"
+            )
+
+
+
 def test_magika_module_with_different_prediction_modes() -> None:
     model_dir = utils.get_default_model_dir()
     m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)

@@ -133,7 +133,15 @@ impl FeaturesOrRuled {
             return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
         }
         let (first_block, features) = extract_features_async(config, file, file_len).await?;
-        if features[config.min_file_size_for_dl - 1] != config.padding_token {
+        // Check both beg and end features: if either side has enough real
+        // (non-padding) bytes after stripping, the model should still be
+        // consulted. This prevents whitespace-prefixed binary files from
+        // being misdetected as TXT.
+        let beg_idx = config.min_file_size_for_dl - 1;
+        let end_idx = config.beg_size + config.min_file_size_for_dl - 1;
+        if features[beg_idx] != config.padding_token
+            || features[end_idx] != config.padding_token
+        {
             return Ok(FeaturesOrRuled::Features(Features(features)));
         }
         debug_assert!(first_block.len() <= config.block_size);

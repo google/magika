@@ -751,22 +751,28 @@ class Magika:
                 self._model_config.use_inputs_at_offsets,
             )
             # Check whether we have enough bytes for a meaningful
-            # detection, and not just padding.
-            if (
+            # detection, and not just padding. We check both beg and
+            # end features: if either side has enough real (non-padding)
+            # bytes after stripping, the model should still be consulted.
+            beg_has_content = (
                 file_features.beg[self._model_config.min_file_size_for_dl - 1]
-                == self._model_config.padding_token
-            ):
-                # If the n-th token is padding, then it means that,
-                # post-stripping, we do not have enough meaningful
-                # bytes.
+                != self._model_config.padding_token
+            )
+            end_has_content = (
+                file_features.end[self._model_config.min_file_size_for_dl - 1]
+                != self._model_config.padding_token
+            )
+            if not beg_has_content and not end_has_content:
+                # Post-stripping, neither beg nor end has enough
+                # meaningful bytes. Fall back to simple UTF-8 check.
                 bytes_to_read = min(seekable.size, self._model_config.block_size)
                 content = seekable.read_at(0, bytes_to_read)
                 result = self._get_result_from_few_bytes(content, path=path)
                 return result, None
 
             else:
-                # We have enough bytes, return the features for a model
-                # prediction.
+                # We have enough bytes (in beg, end, or both), return
+                # the features for a model prediction.
                 return None, file_features
 
         raise Exception("unreachable")

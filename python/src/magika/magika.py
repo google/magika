@@ -24,6 +24,7 @@ import logging
 import os
 import time
 from pathlib import Path
+import re
 from typing import BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import onnxruntime as rt
@@ -785,11 +786,22 @@ class Magika:
 
     def _get_label_from_few_bytes(self, content: bytes) -> ContentTypeLabel:
         try:
-            label = ContentTypeLabel.TXT
-            _ = content.decode("utf-8")
+            decoded_content = content.decode("utf-8")
+
+            # Fallback logika untuk file kecil (Heuristik)
+            # 1. Deteksi pola .env (KEY=VALUE)
+            if re.search(r'^[A-Za-z0-9_]+=[^\n]*', decoded_content, re.MULTILINE):
+                return ContentTypeLabel.SHELL
+
+            # 2. Deteksi JSON sederhana
+            stripped = decoded_content.strip()
+            if (stripped.startswith('{') and stripped.endswith('}')) or \
+               (stripped.startswith('[') and stripped.endswith(']')):
+                return ContentTypeLabel.JSON
+
+            return ContentTypeLabel.TXT
         except UnicodeDecodeError:
-            label = ContentTypeLabel.UNKNOWN
-        return label
+            return ContentTypeLabel.UNKNOWN
 
     def _get_raw_predictions(
         self, features: List[Tuple[Path, ModelFeatures]]

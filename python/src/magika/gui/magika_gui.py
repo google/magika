@@ -216,12 +216,19 @@ class MagikaGUI:
     def setup_drag_and_drop(self) -> None:
         """Setup drag and drop functionality for files."""
         try:
-            from tkinterdnd2 import DND_FILES, TkinterDnD
-            # If tkinterdnd2 is available, upgrade the window
-            # This requires reinstalling with: pip install tkinterdnd2
-            pass
-        except ImportError:
+            from tkinterdnd2 import DND_FILES
+
+            def drop(event):
+                files = self.root.tk.splitlist(event.data)
+                self.analyze_files(files)
+
+            # Register drop target
+            self.drop_zone.drop_target_register(DND_FILES)
+            self.drop_zone.dnd_bind('<<Drop>>', drop)
+
+        except (ImportError, AttributeError):
             # Fallback: just use file dialog
+            # tkinterdnd2 not available or not properly configured
             pass
 
     def browse_file(self, event=None) -> None:
@@ -259,20 +266,40 @@ class MagikaGUI:
         def analyze():
             try:
                 results = []
-                for file_path in file_paths:
-                    path = Path(file_path)
-                    result = self.magika.identify_path(path)
+                total = len(file_paths)
 
-                    results.append({
-                        'path': path.name,
-                        'type': result.output.description,
-                        'label': result.output.label,
-                        'mime': result.output.mime_type,
-                        'score': result.score
-                    })
+                for i, file_path in enumerate(file_paths, 1):
+                    try:
+                        path = Path(file_path)
+
+                        # Update progress
+                        progress_msg = f"Analyzing {i}/{total}: {path.name}"
+                        self.root.after(0, self.update_status,
+                                      progress_msg, "#2196F3")
+
+                        result = self.magika.identify_path(path)
+
+                        results.append({
+                            'path': path.name,
+                            'full_path': str(path),
+                            'type': result.output.description,
+                            'label': result.output.label,
+                            'mime': result.output.mime_type,
+                            'score': result.score,
+                            'error': None
+                        })
+                    except Exception as file_error:
+                        # Handle individual file errors gracefully
+                        results.append({
+                            'path': Path(file_path).name,
+                            'full_path': str(file_path),
+                            'error': str(file_error)
+                        })
 
                 self.root.after(0, self.display_results, results)
-                self.root.after(0, self.update_status, "Complete", "#4CAF50")
+                success_count = sum(1 for r in results if r.get('error') is None)
+                status_msg = f"Complete: {success_count}/{total} files"
+                self.root.after(0, self.update_status, status_msg, "#4CAF50")
             except Exception as e:
                 self.root.after(0, messagebox.showerror,
                               "Error", str(e), self.root)
@@ -296,17 +323,42 @@ class MagikaGUI:
             if i > 0:
                 self.results_text.insert(tk.END, "\n" + "─" * 50 + "\n\n")
 
-            self.results_text.insert(tk.END, f"📄 {result['path']}\n", 'filename')
-            self.results_text.insert(tk.END, f"\nType: {result['type']}\n")
-            self.results_text.insert(tk.END, f"Label: {result['label']}\n")
-            self.results_text.insert(tk.END, f"MIME: {result['mime']}\n")
-            self.results_text.insert(tk.END,
-                                    f"Confidence: {result['score']:.1%}\n")
+            # Check if there was an error for this file
+            if result.get('error'):
+                self.results_text.insert(tk.END,
+                                        f"❌ {result['path']}\n",
+                                        'error_filename')
+                self.results_text.insert(tk.END,
+                                        f"\nError: {result['error']}\n",
+                                        'error_text')
+            else:
+                self.results_text.insert(tk.END,
+                                        f"📄 {result['path']}\n",
+                                        'filename')
+                self.results_text.insert(tk.END, f"\nType: {result['type']}\n")
+                self.results_text.insert(tk.END, f"Label: {result['label']}\n")
+                self.results_text.insert(tk.END, f"MIME: {result['mime']}\n")
+                self.results_text.insert(tk.END,
+                                        f"Confidence: {result['score']:.1%}\n")
+
+                # Add full path on hover (as a tooltip effect)
+                if result.get('full_path'):
+                    self.results_text.insert(tk.END,
+                                            f"Path: {result['full_path']}\n",
+                                            'path')
 
         # Configure tags for styling
         self.results_text.tag_config('filename',
                                      font=('Consolas', 10, 'bold'),
                                      foreground='#64B5F6')
+        self.results_text.tag_config('error_filename',
+                                     font=('Consolas', 10, 'bold'),
+                                     foreground='#f44336')
+        self.results_text.tag_config('error_text',
+                                     foreground='#f44336')
+        self.results_text.tag_config('path',
+                                     font=('Consolas', 8),
+                                     foreground='#888888')
 
         self.results_text.config(state=tk.DISABLED)
 

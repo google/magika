@@ -49,6 +49,11 @@ dependencies = [
     "onnxruntime>=1.17.0, <1.20.0 ; python_version <= '3.9'",
 ]
 
+[project.optional-dependencies]
+gui = [
+    "tkinterdnd2>=0.3.0",
+]
+
 
 [project.urls]
 Homepage = "https://github.com/google/magika"
@@ -56,6 +61,9 @@ Documentation = "https://github.com/google/magika/blob/main/python/README.md"
 Repository = "https://github.com/google/magika/"
 Issues = "https://github.com/google/magika/issues"
 Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
+
+[project.scripts]
+magika-gui = "magika.gui:main"
 
 
 [dependency-groups]

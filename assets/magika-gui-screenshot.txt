@@ -1,0 +1,9 @@
+Placeholder for Magika Windows GUI screenshot.
+The actual screenshot should show the semi-transparent floating window interface.
+
+Recommended screenshot specifications:
+- Show the GUI window with a file being analyzed
+- Display the results panel with file information
+- Demonstrate the modern, semi-transparent design
+- Resolution: 600x750px or similar
+- Format: PNG with transparency support

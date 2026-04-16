@@ -29,7 +29,7 @@ You can try Magika without installing anything by using our [web demo](https://s
 
 # Highlights
 
-- Available as a command line tool written in Rust, a Python API, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package, which powers our [web demo](https://securityresearch.google/magika/demo/magika-demo/)), and GoLang (WIP).
+- Available as a command line tool written in Rust, a Python API, a Windows GUI application, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package, which powers our [web demo](https://securityresearch.google/magika/demo/magika-demo/)), and GoLang (WIP).
 - Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/standard_v3_3/README.md).
 - On our test set, Magika achieves ~99% average precision and recall, outperforming existing approaches -- especially on textual content types.
 - After the model is loaded (which is a one-off overhead), the inference time is about 5ms per file, even when run on a single CPU.
@@ -93,6 +93,17 @@ pip install magika
 ```shell
 npm install magika
 ```
+
+### Windows GUI (Optional)
+
+For Windows users, a graphical interface is available:
+
+```shell
+pip install magika tkinterdnd2
+python -m magika.gui
+```
+
+See [GUI_WINDOWS.md](./docs/GUI_WINDOWS.md) for detailed documentation.
 
 
 ## Quick Start

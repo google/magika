@@ -205,6 +205,23 @@ def test_magika_module_with_short_content() -> None:
             assert res.prediction.score == 1.0
 
 
+def test_magika_module_with_ascii_armored_pgp_key_path() -> None:
+    source_path = utils.get_basic_tests_files_dir() / "pem" / "doc.pem"
+
+    with tempfile.TemporaryDirectory() as td:
+        tf_path = Path(td) / "mullvad-code-signing.asc"
+        tf_path.write_bytes(source_path.read_bytes())
+
+        m = Magika()
+        res = m.identify_path(tf_path)
+
+        assert res.path == tf_path
+        assert res.ok
+        assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+        assert res.prediction.output.label == ContentTypeLabel.PGP
+        assert res.prediction.score == 1.0
+
+
 def test_magika_module_with_python_and_non_python_content() -> None:
     python_content = (
         b"import flask\nimport requests\n\ndef foo(a):\n    print(f'Test {a}')\n"
@@ -465,6 +482,11 @@ def test_magika_module_overwrite_reason() -> None:
         assert m_medium._get_output_label_from_dl_label_and_score(
             generic_ct, medium_confidence_threshold - 0.01
         ) == (generic_ct, OverwriteReason.NONE)
+
+
+def test_magika_module_output_content_types_include_path_based_pgp() -> None:
+    m = Magika()
+    assert ContentTypeLabel.PGP in m.get_output_content_types()
 
 
 def test_magika_module_with_directory() -> None:

@@ -226,6 +226,7 @@ class Magika:
         output_content_types: Set[ContentTypeLabel] = {
             ContentTypeLabel.DIRECTORY,
             ContentTypeLabel.EMPTY,
+            ContentTypeLabel.PGP,
             ContentTypeLabel.SYMLINK,
             ContentTypeLabel.TXT,
             ContentTypeLabel.UNKNOWN,
@@ -399,6 +400,19 @@ class Magika:
             return result
         assert features is not None
         return self._get_results_from_features([(Path("-"), features)])["-"]
+
+    @staticmethod
+    def _get_label_from_path_and_content_prefix(
+        path: Path, content: bytes
+    ) -> Optional[ContentTypeLabel]:
+        if path.suffix.lower() != ".asc":
+            return None
+
+        stripped_content = content.lstrip()
+        if stripped_content.startswith(b"-----BEGIN PGP PUBLIC KEY BLOCK-----"):
+            return ContentTypeLabel.PGP
+
+        return None
 
     @staticmethod
     def _extract_features_from_seekable(
@@ -735,41 +749,48 @@ class Magika:
             )
             return result, None
 
-        elif seekable.size < self._model_config.min_file_size_for_dl:
+        bytes_to_read = min(seekable.size, self._model_config.block_size)
+        label = self._get_label_from_path_and_content_prefix(
+            path, seekable.read_at(0, bytes_to_read)
+        )
+        if label is not None:
+            result = self._get_result_from_labels_and_score(
+                path=path,
+                dl_label=ContentTypeLabel.UNDEFINED,
+                output_label=label,
+                score=1.0,
+            )
+            return result, None
+
+        if seekable.size < self._model_config.min_file_size_for_dl:
             content = seekable.read_at(0, seekable.size)
             result = self._get_result_from_few_bytes(content, path=path)
             return result, None
 
-        else:
-            file_features = Magika._extract_features_from_seekable(
-                seekable,
-                self._model_config.beg_size,
-                self._model_config.mid_size,
-                self._model_config.end_size,
-                self._model_config.padding_token,
-                self._model_config.block_size,
-                self._model_config.use_inputs_at_offsets,
-            )
-            # Check whether we have enough bytes for a meaningful
-            # detection, and not just padding.
-            if (
-                file_features.beg[self._model_config.min_file_size_for_dl - 1]
-                == self._model_config.padding_token
-            ):
-                # If the n-th token is padding, then it means that,
-                # post-stripping, we do not have enough meaningful
-                # bytes.
-                bytes_to_read = min(seekable.size, self._model_config.block_size)
-                content = seekable.read_at(0, bytes_to_read)
-                result = self._get_result_from_few_bytes(content, path=path)
-                return result, None
+        file_features = Magika._extract_features_from_seekable(
+            seekable,
+            self._model_config.beg_size,
+            self._model_config.mid_size,
+            self._model_config.end_size,
+            self._model_config.padding_token,
+            self._model_config.block_size,
+            self._model_config.use_inputs_at_offsets,
+        )
+        # Check whether we have enough bytes for a meaningful
+        # detection, and not just padding.
+        if (
+            file_features.beg[self._model_config.min_file_size_for_dl - 1]
+            == self._model_config.padding_token
+        ):
+            # If the n-th token is padding, then it means that,
+            # post-stripping, we do not have enough meaningful
+            # bytes.
+            content = seekable.read_at(0, bytes_to_read)
+            result = self._get_result_from_few_bytes(content, path=path)
+            return result, None
 
-            else:
-                # We have enough bytes, return the features for a model
-                # prediction.
-                return None, file_features
-
-        raise Exception("unreachable")
+        # We have enough bytes, return the features for a model prediction.
+        return None, file_features
 
     def _get_result_from_few_bytes(
         self, content: bytes, path: Path = Path("-")

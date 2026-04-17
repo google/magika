@@ -40,6 +40,6 @@ info "Publishing the library"
 ( cd lib && cargo publish )
 
 info "Publishing the CLI"
-( cd cli && ./publish.sh )
+( cd cli && cargo publish )
 
 success 'All crates have been published'

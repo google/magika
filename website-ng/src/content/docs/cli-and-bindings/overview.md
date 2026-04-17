@@ -12,4 +12,5 @@ Magika provides a native CLI for command-line use and official language bindings
 | [JavaScript / TypeScript package](/magika/cli-and-bindings/js)        | Stable         | `1.0.0`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
 | [Rust `magika` library](/magika/cli-and-bindings/rust)                | Stable         | `1.0.1`        | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
 | [Demo Website](/magika/demo/magika-demo/)                             | Stable         | -              | [`standard_v3_3`](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md) |
+| [Go `magika` library](/magika/cli-and-bindings/go)                    | Experimental   | -              | -                                                          |
 | [Other bindings](/magika/cli-and-bindings/other-bindings)             | WIP            | -              | -                                                          |

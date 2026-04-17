@@ -15,8 +15,9 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::io::ErrorKind;
+use std::io::{self, ErrorKind, Write as _};
 use std::path::{Path, PathBuf};
+use std::process::{ExitCode, Termination};
 use std::sync::Arc;
 
 use anyhow::{bail, ensure, Result};
@@ -157,7 +158,15 @@ struct Experimental {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> ExitCode {
+    match try_main().await {
+        Ok(code) => code,
+        Err(error) if is_broken_pipe(&error) => ExitCode::SUCCESS,
+        Err(error) => Result::<(), anyhow::Error>::Err(error).report(),
+    }
+}
+
+async fn try_main() -> Result<ExitCode> {
     let mut flags = Flags::parse();
     ensure!(0 < flags.experimental.batch_size, "--batch-size cannot be zero");
     // If --num-tasks is set, we don't do any guessing.
@@ -209,7 +218,7 @@ async fn main() -> Result<()> {
     }
     drop(result_sender);
     if flags.format.json {
-        print!("[");
+        write_stdout("[")?;
     }
     let mut reorder = Reorder::default();
     let mut errors = false;
@@ -218,28 +227,48 @@ async fn main() -> Result<()> {
         while let Some(response) = reorder.pop() {
             errors |= response.result.is_err();
             if flags.format.json {
-                if reorder.next != 1 {
-                    print!(",");
-                }
-                for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
-                    print!("\n  {line}");
-                }
+                write_stdout(&format_json_output(response, reorder.next != 1)?)?;
             } else {
-                println!("{}", response.format(&flags)?);
+                write_stdout(&format!("{}\n", response.format(&flags)?))?;
             }
         }
     }
     debug_assert!(reorder.is_empty());
     if flags.format.json {
         if reorder.next != 0 {
-            println!();
+            write_stdout("\n")?;
         }
-        println!("]");
+        write_stdout("]\n")?;
     }
     if errors {
-        std::process::exit(1);
+        return Ok(ExitCode::FAILURE);
     }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn is_broken_pipe(error: &anyhow::Error) -> bool {
+    error.chain().any(|cause| {
+        cause
+            .downcast_ref::<io::Error>()
+            .is_some_and(|io_error| io_error.kind() == ErrorKind::BrokenPipe)
+    })
+}
+
+fn write_stdout(output: &str) -> Result<()> {
+    io::stdout().lock().write_all(output.as_bytes())?;
     Ok(())
+}
+
+fn format_json_output(response: Response, needs_comma: bool) -> Result<String> {
+    let mut output = String::new();
+    if needs_comma {
+        output.push(',');
+    }
+    for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
+        output.push_str("\n  ");
+        output.push_str(line);
+    }
+    Ok(output)
 }
 
 async fn extract_features(

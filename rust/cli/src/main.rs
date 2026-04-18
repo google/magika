@@ -15,6 +15,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::io::{self, Write as IoWrite};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -208,8 +209,12 @@ async fn main() -> Result<()> {
         });
     }
     drop(result_sender);
+    let stdout = io::stdout();
+    let mut stdout = stdout.lock();
     if flags.format.json {
-        print!("[");
+        if write_stdout(&mut stdout, format_args!("["))? {
+            return Ok(());
+        }
     }
     let mut reorder = Reorder::default();
     let mut errors = false;
@@ -219,27 +224,81 @@ async fn main() -> Result<()> {
             errors |= response.result.is_err();
             if flags.format.json {
                 if reorder.next != 1 {
-                    print!(",");
+                    if write_stdout(&mut stdout, format_args!(","))? {
+                        return Ok(());
+                    }
                 }
                 for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
-                    print!("\n  {line}");
+                    if write_stdout(&mut stdout, format_args!("\n  {line}"))? {
+                        return Ok(());
+                    }
                 }
             } else {
-                println!("{}", response.format(&flags)?);
+                if write_stdout(&mut stdout, format_args!("{}\n", response.format(&flags)?))? {
+                    return Ok(());
+                }
             }
         }
     }
     debug_assert!(reorder.is_empty());
     if flags.format.json {
         if reorder.next != 0 {
-            println!();
+            if write_stdout(&mut stdout, format_args!("\n"))? {
+                return Ok(());
+            }
         }
-        println!("]");
+        if write_stdout(&mut stdout, format_args!("]\n"))? {
+            return Ok(());
+        }
     }
     if errors {
         std::process::exit(1);
     }
     Ok(())
+}
+
+fn write_stdout(writer: &mut impl IoWrite, args: std::fmt::Arguments<'_>) -> Result<bool> {
+    match writer.write_fmt(args) {
+        Ok(()) => Ok(false),
+        Err(err) if err.kind() == ErrorKind::BrokenPipe => Ok(true),
+        Err(err) => Err(err.into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::write_stdout;
+    use std::fmt::Arguments;
+    use std::io::{Error, ErrorKind, Result as IoResult, Write};
+
+    struct BrokenPipeWriter;
+
+    impl Write for BrokenPipeWriter {
+        fn write(&mut self, _buf: &[u8]) -> IoResult<usize> {
+            Err(Error::from(ErrorKind::BrokenPipe))
+        }
+
+        fn flush(&mut self) -> IoResult<()> {
+            Ok(())
+        }
+
+        fn write_fmt(&mut self, _fmt: Arguments<'_>) -> IoResult<()> {
+            Err(Error::from(ErrorKind::BrokenPipe))
+        }
+    }
+
+    #[test]
+    fn treats_broken_pipe_as_clean_exit_signal() {
+        let mut writer = BrokenPipeWriter;
+        assert!(write_stdout(&mut writer, format_args!("hello")).unwrap());
+    }
+
+    #[test]
+    fn writes_to_stdout_when_no_error_occurs() {
+        let mut writer = Vec::new();
+        assert!(!write_stdout(&mut writer, format_args!("hello")).unwrap());
+        assert_eq!(writer, b"hello");
+    }
 }
 
 async fn extract_features(

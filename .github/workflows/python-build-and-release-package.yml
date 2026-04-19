@@ -111,7 +111,7 @@ jobs:
           args: --release --out=../dist
           working-directory: python
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheel-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
           path: dist
@@ -199,12 +199,12 @@ jobs:
         run: uv build --out-dir ../dist
         working-directory: python
       - name: Upload pure python wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheel-pure-python
           path: dist/*.whl
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sdist
           path: dist/*.tar.gz

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <rect x="10" y="10" width="50" height="50" fill="blue" />
+  <circle cx="100" cy="100" r="40" stroke="green" stroke-width="4" fill="yellow" />
+  <text x="100" y="180" font-size="14" text-anchor="middle" fill="black">Complex SVG</text>
+</svg>

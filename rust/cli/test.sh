@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,3 +54,7 @@ test_error '/etc/shadow' "\
 test_error 'non_existent src/main.rs' "\
 non_existent: No such file or directory (os error 2) (error)
 src/main.rs: Rust source (code)"
+
+info "Test exit code with broken pipe"
+magika -r ../../tests_data | head -n1 >/dev/null
+[ "${PIPESTATUS[0]}" -eq 0 ] || error "non-zero exit code with broken pipe"

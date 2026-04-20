@@ -135,7 +135,7 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           name: wheel-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
           path: dist
@@ -228,7 +228,7 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           name: wheel-pure-python
           path: dist
@@ -300,7 +300,7 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           name: sdist
           path: dist
@@ -371,7 +371,7 @@ jobs:
 
     steps:
       - name: Download all the artifacts (binary wheels, pure python wheel, sdist)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts/
 
@@ -411,7 +411,7 @@ jobs:
 
     steps:
       - name: Download all the artifacts (binary wheels, pure python wheel, sdist)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts/
 

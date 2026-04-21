@@ -735,7 +735,20 @@ class Magika:
             )
             return result, None
 
-        elif seekable.size < self._model_config.min_file_size_for_dl:
+        bytes_to_read = min(seekable.size, self._model_config.block_size)
+        label = Magika._get_label_from_dotenv_path_and_content(
+            path, seekable.read_at(0, bytes_to_read)
+        )
+        if label is not None:
+            result = self._get_result_from_labels_and_score(
+                path=path,
+                dl_label=ContentTypeLabel.UNDEFINED,
+                output_label=label,
+                score=1.0,
+            )
+            return result, None
+
+        if seekable.size < self._model_config.min_file_size_for_dl:
             content = seekable.read_at(0, seekable.size)
             result = self._get_result_from_few_bytes(content, path=path)
             return result, None
@@ -790,6 +803,33 @@ class Magika:
         except UnicodeDecodeError:
             label = ContentTypeLabel.UNKNOWN
         return label
+
+    @staticmethod
+    def _get_label_from_dotenv_path_and_content(
+        path: Path, content: bytes
+    ) -> Optional[ContentTypeLabel]:
+        if path.name != ".env" and not path.name.startswith(".env."):
+            return None
+
+        try:
+            text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            return None
+
+        for line in text.splitlines():
+            stripped_line = line.strip()
+            if (
+                not stripped_line
+                or stripped_line.startswith("#")
+                or "=" not in stripped_line
+            ):
+                continue
+
+            key, _ = stripped_line.split("=", 1)
+            if key and all(c.isalnum() or c == "_" for c in key):
+                return ContentTypeLabel.TXT
+
+        return None
 
     def _get_raw_predictions(
         self, features: List[Tuple[Path, ModelFeatures]]

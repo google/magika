@@ -205,6 +205,27 @@ def test_magika_module_with_short_content() -> None:
             assert res.prediction.score == 1.0
 
 
+def test_magika_module_with_env_file_containing_html_values() -> None:
+    env_content = (
+        b'text="<html><head></head><body></body></html>"\n'
+        b'value="1234"\n'
+        b'body="<h1>kokot</h1>"\n'
+    )
+
+    with tempfile.TemporaryDirectory() as td:
+        tf_path = Path(td) / ".env"
+        tf_path.write_bytes(env_content)
+
+        m = Magika()
+        res = m.identify_path(tf_path)
+
+        assert res.path == tf_path
+        assert res.ok
+        assert res.prediction.dl.label == ContentTypeLabel.UNDEFINED
+        assert res.prediction.output.label == ContentTypeLabel.TXT
+        assert res.prediction.score == 1.0
+
+
 def test_magika_module_with_python_and_non_python_content() -> None:
     python_content = (
         b"import flask\nimport requests\n\ndef foo(a):\n    print(f'Test {a}')\n"

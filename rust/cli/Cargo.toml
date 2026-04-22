@@ -1,6 +1,6 @@
 [package]
-name = "magika"
-version = "1.0.3-dev"
+name = "magika-cli"
+version = "1.1.0-dev"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -11,12 +11,16 @@ keywords = ["cli", "file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
 include = ["/LICENSE", "/src"]
 
+[[bin]]
+name = "magika"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0.86"
 async-channel = "2.3.1"
 clap = { version = "4.5.9", features = ["cargo", "derive", "string"] }
 colored = "3.0.0"
-magika_lib = { package = "magika", version = "=1.1.0-dev", path = "../lib", features = ["serde"] }
+magika = { version = "=1.1.0-dev", path = "../lib", features = ["serde"] }
 num_cpus = "1.16.0"
 ort = "=2.0.0-rc.12"
 serde = { version = "1.0.204", features = ["derive"] }

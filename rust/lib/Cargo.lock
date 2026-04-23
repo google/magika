@@ -262,7 +262,7 @@ checksum = "1670343e58806300d87950e3401e820b519b9384281bbabfb15e3636689ffd69"
 
 [[package]]
 name = "magika"
-version = "1.1.0-dev"
+version = "1.1.0"
 dependencies = [
  "data-encoding",
  "flate2",

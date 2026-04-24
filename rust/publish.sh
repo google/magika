@@ -16,7 +16,7 @@
 set -e
 . ./color.sh
 
-# This script removes all -dev version suffixes and creates a commit.
+# This script publishes all crates.
 
 [ -z "$(git status -s)" ] || error "Repository is not clean"
 
@@ -26,7 +26,20 @@ sed -i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
 if [ -n "$(git status -s)" ]; then
   info "Creating a commit with those changes"
   git commit -aqm'Release Rust crates'
-  todo "Create a PR with this commit, merge it, and publish from the PR commit"
-else
-  success 'No change since last release'
+  todo "Create a PR with this commit"
+  success "Then re-run from the merged PR"
 fi
+
+info "Making sure we run from a merged PR"
+git log -1 --pretty=%s | grep -q '^Release Rust crates (#[0-9]*)$' \
+  || error "This is not a merged release PR"
+
+[ "$1" = --no-dry-run ] || success "Run with --no-dry-run to actually publish"
+
+info "Publishing the library"
+( cd lib && cargo publish )
+
+info "Publishing the CLI"
+( cd cli && cargo publish )
+
+success 'All crates have been published'

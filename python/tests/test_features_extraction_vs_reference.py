@@ -83,7 +83,7 @@ def test_reference_generation() -> None:
 
 
 def _generate_reference_features_extraction(test_mode: bool) -> None:
-    print("Genearting reference features extraction tests cases...")
+    print("Generating reference features extraction tests cases...")
     tests_cases = _generate_reference_features_extraction_tests_cases()
     print(f"Generated {len(tests_cases)} tests cases")
     _dump_reference_features_extraction_examples(tests_cases, test_mode=test_mode)

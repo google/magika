@@ -1,9 +1,22 @@
 # Changelog
 
-## 1.0.2-dev
+## 1.1.0
+
+### Minor
+
+- Exit successfully when the standard output is closed by the user
 
 ### Patch
 
+- Join all threads before shutdown to avoid segmentation faults in ONNX Runtime
+- Update dependencies
+- Fix new clippy lints
+
+## 1.0.2
+
+### Patch
+
+- Update dependencies
 - Enable full LTO for the release profile
 
 ## 1.0.1

@@ -11,7 +11,7 @@
 /* Shadcn UI + Tailwind CSS + Animate.css */
 @import "tw-animate-css";
 
-/* Shadcn UI Themeing */
+/* Shadcn UI Theming */
 
 @custom-variant dark (&:is(.dark *));
 

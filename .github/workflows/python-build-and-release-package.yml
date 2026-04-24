@@ -51,9 +51,9 @@ jobs:
         env:
           IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         run: |
-          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
-            FULL_TAG_REF="${{ github.ref }}"
-            TAG_NAME="${{ github.ref_name }}"
+          if [[ "${IS_RELEASE_TAG}" == 'true' ]]; then
+            FULL_TAG_REF="${GITHUB_REF}"
+            TAG_NAME="${GITHUB_REF_NAME}"
             if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
               PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
             else
@@ -94,7 +94,6 @@ jobs:
         with:
           path: rust/onnx/runtime/build/Linux
           key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
-      - run: python3 ./python/scripts/fix_package_version.py
       - if: matrix.platform.runner == 'ubuntu-latest'
         name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -126,7 +125,7 @@ jobs:
       # We want to know in which exact situation the tests fail
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
           - runner: ubuntu-latest
             target: x86_64
@@ -169,9 +168,9 @@ jobs:
           IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         shell: bash
         run: |
-          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
-            FULL_TAG_REF="${{ github.ref }}"
-            TAG_NAME="${{ github.ref_name }}"
+          if [[ "${IS_RELEASE_TAG}" == 'true' ]]; then
+            FULL_TAG_REF="${GITHUB_REF}"
+            TAG_NAME="${GITHUB_REF_NAME}"
             if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
               PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
             else
@@ -219,7 +218,7 @@ jobs:
       # We want to know in which exact situation the tests fail
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
           - runner: ubuntu-latest
             target: x86_64
@@ -266,9 +265,9 @@ jobs:
           IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         shell: bash
         run: |
-          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
-            FULL_TAG_REF="${{ github.ref }}"
-            TAG_NAME="${{ github.ref_name }}"
+          if [[ "${IS_RELEASE_TAG}" == 'true' ]]; then
+            FULL_TAG_REF="${GITHUB_REF}"
+            TAG_NAME="${GITHUB_REF_NAME}"
             if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
               PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
             else
@@ -291,7 +290,7 @@ jobs:
       # We want to know in which exact situation the tests fail
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
           - runner: ubuntu-latest
             target: x86_64
@@ -338,9 +337,9 @@ jobs:
           IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         shell: bash
         run: |
-          if [[ "${{ env.IS_RELEASE_TAG }}" == 'true' ]]; then
-            FULL_TAG_REF="${{ github.ref }}"
-            TAG_NAME="${{ github.ref_name }}"
+          if [[ "${IS_RELEASE_TAG}" == 'true' ]]; then
+            FULL_TAG_REF="${GITHUB_REF}"
+            TAG_NAME="${GITHUB_REF_NAME}"
             if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
               PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
             else

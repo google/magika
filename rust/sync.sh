@@ -48,6 +48,11 @@ info "Updating CLI output in README.md"
   sed -i 's/ \+$//' README.md
 )
 
+info "Updating ort version in library documentation"
+( cd lib
+  VERSION=$(sed -n '/^\[dependencies.ort\]$/,/^$/{s/^version = //p}' Cargo.toml)
+  sed -Ei 's#^(//! ort =) .*$#\1 '"$VERSION"'#' src/lib.rs
+)
 
 if [ "$1" = --check ]; then
   if ! git diff --exit-code; then

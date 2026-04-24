@@ -61,7 +61,7 @@ Arguments:
 Options:
   --json-output                            Format output in JSON
   --model-url <model-url>                  Model URL
-  --model-path <model-path>                Modle file path
+  --model-path <model-path>                Model file path
   --model-config-url <model-config-url>    Model config URL
   --model-config-path <model-config-path>  Model config file path
   --by-stream                              Identify file via stream, not via bytes
@@ -91,7 +91,7 @@ If you use this software for your research, please cite it as:
 
 MagikaJS is designed to be flexible in how you provide the model and configuration file to it.
 
-Both the Node and browser versions accept URLs to asyncronously load these two assets.
+Both the Node and browser versions accept URLs to asynchronously load these two assets.
 
 ```js
 const magika = await magika.create({

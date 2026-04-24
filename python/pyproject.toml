@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: Unix",
@@ -31,17 +32,21 @@ classifiers = [
     "Topic :: Software Development",
     "Typing :: Typed",
 ]
-dynamic = ["version"]
+version = "1.0.2"
 
 dependencies = [
     "click>=8.1.7",
-    "onnxruntime>=1.17.0 ; python_version > '3.9'",
+
+    # Python 3.14+: Min version 1.24.1
+    "onnxruntime>=1.24.1 ; python_version >= '3.14'",
+    # Python 3.13: Min version 1.21.0
+    "onnxruntime>=1.21.0 ; python_version == '3.13'",
+    # Python 3.11 - 3.12: Min version 1.17.0
+    "onnxruntime>=1.17.0 ; python_version >= '3.11' and python_version < '3.13'",
+    # Python 3.10: Support dropped in 1.24.1 (use latest compatible)
+    "onnxruntime>=1.17.0, <1.24.1 ; python_version == '3.10'",
+    # Python 3.9: Support dropped in 1.20.0
     "onnxruntime>=1.17.0, <1.20.0 ; python_version <= '3.9'",
-    "onnxruntime<=1.20.1 ; sys_platform == 'win32'",
-    "numpy>=1.24; python_version < '3.12'",
-    "numpy>=1.26; python_version >= '3.12' and python_version < '3.13'",
-    "numpy>=2.1.0; python_version >= '3.13'",
-    "python-dotenv>=1.0.1",
 ]
 
 
@@ -53,25 +58,26 @@ Issues = "https://github.com/google/magika/issues"
 Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
 
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "mypy>=1.11.2",
     "ipython>=8.12.3",
     "pytest>=8.3.2",
     "ruff>=0.14.0",
-    "twine==6.1.0",
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
     "tqdm>=4.67.1",
     "dacite>=1.9.2",
+    "requests>=2.32.4",
 ]
 
 [build-system]
-requires = ["maturin>=1.7,<2.0"]
+requires = ["maturin>=1.12.2"]
 build-backend = "maturin"
 
-[tool.hatch.version]
-path = "src/magika/__init__.py"
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
 
 [tool.maturin]
 python-source = "src"

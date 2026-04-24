@@ -17,7 +17,6 @@ use std::path::Path;
 use ndarray::Array2;
 
 use crate::future::{exec, AsyncEnv, Env, SyncEnv};
-use crate::input::AsyncInputApi;
 use crate::{AsyncInput, Builder, Features, FeaturesOrRuled, FileType, Result, SyncInput};
 
 /// A Magika session to identify files.
@@ -69,7 +68,7 @@ impl Session {
         self.identify_content::<AsyncEnv>(file).await
     }
 
-    async fn identify_content<E: Env>(&mut self, file: impl AsyncInputApi) -> Result<FileType> {
+    async fn identify_content<E: Env>(&mut self, file: impl AsyncInput) -> Result<FileType> {
         match FeaturesOrRuled::extract(file).await? {
             FeaturesOrRuled::Ruled(content_type) => Ok(FileType::Ruled(content_type)),
             FeaturesOrRuled::Features(features) => self.identify_features::<E>(&features).await,

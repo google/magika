@@ -22,7 +22,7 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         os: ["ubuntu-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:
@@ -80,6 +80,10 @@ jobs:
       - name: Run "magika module" quick tests
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py
+
+      - name: Run "magika module" quick tests + perf measurement
+        working-directory: python
+        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py --print-inference-stats --repeat 10
 
   changelog-check:
     runs-on: ubuntu-latest

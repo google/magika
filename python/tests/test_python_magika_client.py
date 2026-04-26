@@ -13,19 +13,39 @@
 # limitations under the License.
 
 import subprocess
+import sys
 from pathlib import Path
+
+CLIENT = (
+    Path(__file__).parent.parent / "src" / "magika" / "cli" / "magika_client.py"
+).resolve()
+
+
+def _run(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(CLIENT), *args], capture_output=True, text=True
+    )
 
 
 def test_python_magika_client() -> None:
-    python_root_dir = Path(__file__).parent.parent
-    python_magika_client_path = (
-        python_root_dir / "src" / "magika" / "cli" / "magika_client.py"
-    ).resolve()
-
     # quick test to check there are no obvious problems
-    cmd = [str(python_magika_client_path), "--help"]
-    subprocess.run(cmd, capture_output=True, check=True)
+    subprocess.run([sys.executable, str(CLIENT), "--help"], capture_output=True, check=True)
 
     # quick test to check there are no crashes
-    cmd = [str(python_magika_client_path), str(python_magika_client_path)]
-    subprocess.run(cmd, capture_output=True, check=True)
+    subprocess.run([sys.executable, str(CLIENT), str(CLIENT)], capture_output=True, check=True)
+
+
+def test_compatibility_mode_removed() -> None:
+    result = _run("--compatibility-mode", str(CLIENT))
+    assert result.returncode != 0, "--compatibility-mode should no longer be accepted"
+
+
+def test_no_colors_flag() -> None:
+    result = _run("--no-colors", str(CLIENT))
+    assert result.returncode == 0
+    assert "\x1b[" not in result.stdout, "--no-colors should produce no ANSI escape codes"
+
+
+def test_colors_flag() -> None:
+    result = _run("--colors", str(CLIENT))
+    assert result.returncode == 0

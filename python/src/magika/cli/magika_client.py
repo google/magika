@@ -84,13 +84,6 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     help="Output a simple label instead of a verbose content type description. Use --list-output-content-types for the list of supported output.",
 )
 @click.option(
-    "-c",
-    "--compatibility-mode",
-    "magic_compatibility_mode",
-    is_flag=True,
-    help="Compatibility mode: output is as close as possible to `file` and colors are disabled.",
-)
-@click.option(
     "-s",
     "--output-score",
     is_flag=True,
@@ -112,11 +105,18 @@ Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
     help="This option causes symlinks not to be followed. By default, symlinks are dereferenced.",
 )
 @click.option(
-    "--colors/--no-colors",
-    "with_colors",
+    "--colors",
+    "force_colors",
     is_flag=True,
-    default=True,
-    help="Enable/disable use of colors.",
+    default=False,
+    help="Force color output regardless of terminal support.",
+)
+@click.option(
+    "--no-colors",
+    "no_colors",
+    is_flag=True,
+    default=False,
+    help="Disable color output regardless of terminal support.",
 )
 @click.option("-v", "--verbose", is_flag=True, help="Enable more verbose output.")
 @click.option("-vv", "--debug", is_flag=True, help="Enable debug logging.")
@@ -137,12 +137,12 @@ def main(
     jsonl_output: bool,
     mime_output: bool,
     label_output: bool,
-    magic_compatibility_mode: bool,
     output_score: bool,
     prediction_mode_str: str,
     batch_size: int,
     no_dereference: bool,
-    with_colors: bool,
+    force_colors: bool,
+    no_colors: bool,
     verbose: bool,
     debug: bool,
     output_version: bool,
@@ -154,9 +154,16 @@ def main(
     # the argument "file" (which is ugly) and we re-assign it as soon as we can.
     files_paths = file
 
-    if magic_compatibility_mode:
-        # In compatibility mode we disable colors.
+    if force_colors and no_colors:
+        click.echo("Error: --colors and --no-colors are mutually exclusive.", err=True)
+        sys.exit(1)
+
+    if force_colors:
+        with_colors = True
+    elif no_colors:
         with_colors = False
+    else:
+        with_colors = sys.stdout.isatty()
 
     _l = get_logger(use_colors=with_colors)
 
@@ -198,8 +205,8 @@ def main(
         _l.error("You should use either --json or --jsonl, not both.")
         sys.exit(1)
 
-    if int(mime_output) + int(label_output) + int(magic_compatibility_mode) > 1:
-        _l.error("You should use only one of --mime, --label, --compatibility-mode.")
+    if int(mime_output) + int(label_output) > 1:
+        _l.error("You should use only one of --mime-type, --label.")
         sys.exit(1)
 
     if recursive:
@@ -283,8 +290,6 @@ def main(
             for file_path, result in zip(batch_files_paths, batch_predictions):
                 if result.ok:
                     if mime_output:
-                        # If the user requested the MIME type, we use the mime type
-                        # regardless of the compatibility mode.
                         output = result.prediction.output.mime_type
                     elif label_output:
                         output = str(result.prediction.output.label)

@@ -32,6 +32,9 @@ from magika.types.overwrite_reason import OverwriteReason
 from tests import utils
 
 
+HAS_SIGALRM = hasattr(signal, "SIGALRM") and hasattr(signal, "alarm")
+
+
 @pytest.mark.smoketest
 def test_magika_module_check_version() -> None:
     import magika as magika_module
@@ -585,6 +588,10 @@ def test_magika_module_with_really_many_files() -> None:
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(
+    not HAS_SIGALRM,
+    reason="SIGALRM-based timeout test is only available on platforms that support signal.alarm",
+)
 def test_magika_module_with_big_file() -> None:
     def signal_handler(signum: int, frame: Any) -> None:
         raise Exception("Timeout")

@@ -1,0 +1,18 @@
+{{#if condition}}
+  {{#each items}}
+    <div>{{this}}</div>
+  {{else}}
+    <p>No items found.</p>
+  {{/each}}
+{{else}}
+  <p>Condition not met.</p>
+{{/if}}
+
+{{#if user.isAdmin}}
+  <h1>Welcome, Admin!</h1>
+  {{#each user.permissions}}
+    <p>Permission: {{this}}</p>
+  {{/each}}
+{{else}}
+  <p>Access Denied</p>
+{{/if}}

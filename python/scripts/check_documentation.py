@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import quote
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -79,12 +80,32 @@ def check_versions_are_up_to_date() -> bool:
     demo_model_name = get_demo_model_name()
 
     expected_table = [
-        (rust_cli_latest_stable_version, rust_default_model_name),
-        (python_latest_stable_version, python_default_model_name),
-        (javascript_latest_stable_version, javascript_default_model_name),
-        (rust_lib_latest_stable_version, rust_default_model_name),
-        ("-", demo_model_name),
-        ("-", "-"),
+        (
+            rust_cli_latest_stable_version,
+            get_latest_release_tag_url_if_exists(f"cli/v{rust_cli_latest_stable_version}"),
+            rust_default_model_name,
+        ),
+        (
+            python_latest_stable_version,
+            get_latest_release_tag_url_if_exists(
+                f"python-v{python_latest_stable_version}"
+            ),
+            python_default_model_name,
+        ),
+        (
+            javascript_latest_stable_version,
+            get_latest_release_tag_url_if_exists(f"js-v{javascript_latest_stable_version}"),
+            javascript_default_model_name,
+        ),
+        (
+            rust_lib_latest_stable_version,
+            get_latest_release_tag_url_if_exists(
+                f"rust-v{rust_lib_latest_stable_version}"
+            ),
+            rust_default_model_name,
+        ),
+        ("-", None, demo_model_name),
+        ("-", None, "-"),
     ]
 
     # Extract documented last versions and models
@@ -106,11 +127,11 @@ def check_versions_are_up_to_date() -> bool:
         # notice immediately if things break.
         if line.startswith("| ["):
             cols = line.split("|")
-            latest_version = cols[3].strip(" `")
-            default_model = cols[4].strip()
-            if default_model != "-":
-                default_model = default_model.split("]")[0].split("[")[1].strip(" `")
-            parsed_table.append((latest_version, default_model))
+            latest_version, latest_version_url = extract_markdown_text_and_url(
+                cols[3].strip()
+            )
+            default_model, _ = extract_markdown_text_and_url(cols[4].strip())
+            parsed_table.append((latest_version, latest_version_url, default_model))
 
     if expected_table == parsed_table:
         return True
@@ -119,6 +140,31 @@ def check_versions_are_up_to_date() -> bool:
             f"ERROR: Found stale information in binding's overview table:\n{expected_table=}\n{parsed_table=}"
         )
         return False
+
+
+def extract_markdown_text_and_url(cell: str) -> tuple[str, str | None]:
+    if cell == "-":
+        return "-", None
+
+    md_link_match = re.fullmatch(r"\[(.+)\]\((.+)\)", cell)
+    if md_link_match is not None:
+        text = md_link_match.group(1).strip(" `")
+        url = md_link_match.group(2)
+        return text, url
+
+    return cell.strip(" `"), None
+
+
+def get_latest_release_tag_url_if_exists(tag_name: str) -> str | None:
+    api_url = (
+        "https://api.github.com/repos/google/magika/releases/tags/"
+        f"{quote(tag_name, safe='')}"
+    )
+    res = requests.get(api_url)
+    if res.status_code == 404:
+        return None
+    assert res.status_code == 200
+    return f"https://github.com/google/magika/releases/tag/{tag_name}"
 
 
 def get_python_latest_stable_version() -> str:

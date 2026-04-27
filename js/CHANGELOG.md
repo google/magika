@@ -1,4 +1,8 @@
 # CHANGELOG
+## [1.1.0] - 2026-04-27
+
+- Breaking change: package now requires Node.js `>=20`, as Node 18 reached end of life.
+
 ## [1.0.0]
  - Mark end of experimental mode. No major changes.
 

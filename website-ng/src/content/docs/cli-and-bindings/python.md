@@ -187,4 +187,6 @@ This section is for contributors to the `magika` Python package.
 
 - **Testing:** To run the test suite, use `pytest`. You can exclude slow tests for faster runs: `cd python; uv run pytest tests -m "not slow"`. Refer to the GitHub Actions workflows for more testing examples.
 
-- **Packaging:** We use `maturin` to build the Python package, which combines the Rust-based CLI with the Python source code. This process is automated in our [Build Python Package GitHub Action](https://github.com/google/magika/blob/main/.github/workflows/python-build-package.yml).
+- **Packaging:** We use `maturin` to build the Python package, which combines the Rust-based CLI with the Python source code. This process is automated in our [Build and Release Python Package GitHub Action](https://github.com/google/magika/blob/main/.github/workflows/python-build-and-release-package.yml).
+
+- **Publishing:** We publish to PyPI via GitHub Trusted Publishing. This is automated by the [Build and Release Python Package GitHub Action](https://github.com/google/magika/blob/main/.github/workflows/python-build-and-release-package.yml), which publishes packages (binary wheels, pure-python wheels, and source distribution) to PyPI (or TestPyPI) after pushing a tag with `python-v*` (or `python-test-v*`) as prefix. This also takes care of attestation.

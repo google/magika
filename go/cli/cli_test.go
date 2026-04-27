@@ -22,10 +22,10 @@ func TestCLI(t *testing.T) {
 	if err := cli(&b, files...); err != nil {
 		t.Fatal(err)
 	}
-	if d := cmp.Diff(strings.TrimSpace(b.String()), strings.Join([]string{
+	if d := cmp.Diff(strings.Join([]string{
 		"../../tests_data/basic/python/code.py: python",
 		"../../tests_data/basic/zip/magika_test.zip: zip",
-	}, "\n")); d != "" {
+	}, "\n"), strings.TrimSpace(b.String())); d != "" {
 		t.Errorf("mismatch (-want +got):\n%s", d)
 	}
 }

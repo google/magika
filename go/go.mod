@@ -1,4 +1,4 @@
-module github.com/google/magika
+module github.com/google/magika/go
 
 go 1.22.3
 

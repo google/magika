@@ -6,14 +6,14 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/google/magika/magika"
-	"github.com/google/magika/onnx"
+	"github.com/google/magika/go/magika"
+	"github.com/google/magika/go/onnx"
 )
 
 func TestONNXRuntime(t *testing.T) {
 	const (
 		assetsDir = "../../assets"
-		modelName = "standard_v2_1"
+		modelName = "standard_v3_3"
 		modelPath = "../../assets/models/" + modelName + "/model.onnx"
 	)
 

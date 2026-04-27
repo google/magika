@@ -6,7 +6,7 @@
 [![image](https://img.shields.io/pypi/pyversions/magika.svg)](https://pypi.python.org/pypi/magika)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706)
 ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)
-[![Actions status](https://github.com/google/magika/actions/workflows/python-build-package.yml/badge.svg)](https://github.com/google/magika/actions)
+[![Actions status](https://github.com/google/magika/actions/workflows/python-build-and-release-package.yml/badge.svg)](https://github.com/google/magika/actions)
 [![PyPI Monthly Downloads](https://static.pepy.tech/badge/magika/month)](https://pepy.tech/projects/magika)
 [![PyPI Downloads](https://static.pepy.tech/badge/magika)](https://pepy.tech/projects/magika)
 
@@ -26,10 +26,10 @@ Magika is available as `magika` on [PyPI](https://pypi.org/project/magika):
 To install the most recent stable version:
 
 ```shell
-$ pip install magika
+pip install magika
 ```
 
-If you intend to use Magika only as a command line, you may want to use `$ pipx install magika` instead.
+If you intend to use Magika only as a command line, you may want to use `pipx install magika` instead.
 
 If you want to test out the latest release candidate, you can install it with `pip install --pre magika`.
 

@@ -3,6 +3,9 @@ name: JS - check import scenarios
 on:
   workflow_dispatch:
   push:
+    branches:
+      - "main"
+  pull_request:
     paths:
       - 'js/simple_examples/**'
       - '.github/workflows/run-js-examples.yml'
@@ -24,7 +27,7 @@ jobs:
         with:
           node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
-      
+
       - name: Install Magika dependencies
         run: yarn install --frozen-lockfile
         working-directory: js

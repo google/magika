@@ -39,31 +39,21 @@ IGNORE_PREFIX_PATTERNS = [
     "website/dist",
     "js/node_modules",
     "js/dist",
-]
-
-# List of (prefix) of urls that return non-200 even if they are valid; for
-# simplicity, we just skip checking them.
-URLS_ALLOWLIST_PREFIXES = [
-    "https://api.securityscorecards.dev/projects/github.com/google/magika/badge",
-    "https://crates.io/crates/magika",
-    "https://crates.io/crates/magika-cli",
-    "https://www.unrealengine.com/en-US",
-    "https://www.unrealengine.com/marketplace/en-US/store",
-    "https://www.virustotal.com/",
+    "website-ng/node_modules",
+    "website-ng/dist",
 ]
 
 
 @click.command()
-@click.option("--skip-external-validity-check", is_flag=True)
 @click.option("-v", "--verbose", is_flag=True)
-def main(skip_external_validity_check: bool, verbose: bool) -> None:
+def main(verbose: bool) -> None:
     with_errors = False
 
     success = check_versions_are_up_to_date()
     if not success:
         with_errors = True
 
-    success = check_markdown_links(skip_external_validity_check, verbose)
+    success = check_markdown_links(verbose)
     if not success:
         with_errors = True
 
@@ -78,39 +68,57 @@ def check_versions_are_up_to_date() -> bool:
     """Checks that the mentioned latest versions and models are up to date.
     Returns True if everything is good, False otherwise."""
 
-    # Check that the versions mentioned in the READMEs are up to date
+    # Actual last versions and models
+    rust_cli_latest_stable_version = get_max_stable_version_for_crate("magika-cli")
+    rust_lib_latest_stable_version = get_max_stable_version_for_crate("magika")
+    rust_default_model_name = get_rust_default_model_name()
     python_latest_stable_version = get_python_latest_stable_version()
     python_default_model_name = get_python_default_model_name()
-    rust_default_model_name = get_rust_default_model_name()
+    javascript_latest_stable_version = get_latest_version_for_npm_package("magika")
+    javascript_default_model_name = get_javascript_default_model_name()
+    demo_model_name = get_demo_model_name()
 
-    print(
-        f"INFO: {python_latest_stable_version=} {python_default_model_name=} {rust_default_model_name=}"
-    )
-
-    expected_lines = [
-        f"> - The documentation on GitHub refers to the latest, potentially unreleased and unstable version of Magika. The latest stable release of the `magika` Python package is `{python_latest_stable_version}`, and you can consult the associated documentation [here](https://github.com/google/magika/blob/python-v{python_latest_stable_version}/python/README.md). You can install the latest stable version with: `pip install magika`.",
-        f"- Trained and evaluated on a dataset of ~100M files across [200+ content types](./assets/models/{python_default_model_name}/README.md).",
-        f"- [List of supported content types by the latest model, `{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md)",
-        # TODO(#1039): currently the script checks for "what's on main", not
-        # "what's on pip/npm".  Until we clean this up, we skip these automated
-        # checks.
-        # f"| [Python `Magika` module](./python/README.md) | Stable enough for prod use cases | [`{python_default_model_name}`](./assets/models/{python_default_model_name}/README.md) |",
-        # f"| [Rust `magika` CLI](https://crates.io/crates/magika-cli) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
-        # f"| [Rust `magika` library](https://docs.rs/magika) | Stable enough for prod use cases | [`{rust_default_model_name}`](./assets/models/{rust_default_model_name}/README.md) |",
+    expected_table = [
+        (rust_cli_latest_stable_version, rust_default_model_name),
+        (python_latest_stable_version, python_default_model_name),
+        (javascript_latest_stable_version, javascript_default_model_name),
+        (rust_lib_latest_stable_version, rust_default_model_name),
+        ("-", demo_model_name),
+        ("-", "-"),
     ]
 
-    readme_content_lines_set = set(
-        (REPO_ROOT_DIR / "README.md").read_text().split("\n")
+    # Extract documented last versions and models
+    bindings_overview_path = (
+        REPO_ROOT_DIR
+        / "website-ng"
+        / "src"
+        / "content"
+        / "docs"
+        / "cli-and-bindings"
+        / "overview.md"
     )
+    assert bindings_overview_path.is_file()
+    lines = bindings_overview_path.read_text().splitlines()
+    parsed_table = []
+    for line in lines:
+        # This is a hack to parse the table in the binding's overview, but it is
+        # simple and self-contained enough to not cause problems. And we'll
+        # notice immediately if things break.
+        if line.startswith("| ["):
+            cols = line.split("|")
+            latest_version = cols[3].strip(" `")
+            default_model = cols[4].strip()
+            if default_model != "-":
+                default_model = default_model.split("]")[0].split("[")[1].strip(" `")
+            parsed_table.append((latest_version, default_model))
 
-    with_errors = False
-    for expected_line in expected_lines:
-        if expected_line not in readme_content_lines_set:
-            print(f'ERROR: could not find the following line: "{expected_line}"')
-            with_errors = True
-
-    success = with_errors is False
-    return success
+    if expected_table == parsed_table:
+        return True
+    else:
+        print(
+            f"ERROR: Found stale information in binding's overview table:\n{expected_table=}\n{parsed_table=}"
+        )
+        return False
 
 
 def get_python_latest_stable_version() -> str:
@@ -122,17 +130,28 @@ def get_python_latest_stable_version() -> str:
 
 
 def get_python_default_model_name() -> str:
-    default_model_name = None
     magika_path = REPO_ROOT_DIR / "python" / "src" / "magika" / "magika.py"
-    assert magika_path.is_file()
-    for line in magika_path.read_text().split("\n"):
-        m = re.fullmatch('_DEFAULT_MODEL_NAME = "([a-zA-Z0-9_]+)"', line)
-        if m:
-            # If we already found something, there is a bug somewhere
-            assert default_model_name is None
-            default_model_name = m.group(1)
+    return extract_one_match_with_regex_from_file(
+        magika_path, '_DEFAULT_MODEL_NAME = "([a-zA-Z0-9_]+)"'
+    )
 
-    return default_model_name
+
+def get_javascript_default_model_name() -> str:
+    magika_path = REPO_ROOT_DIR / "js" / "magika.ts"
+    return extract_one_match_with_regex_from_file(
+        magika_path, 'static MODEL_VERSION = "([a-zA-Z0-9_]+)";'
+    )
+
+
+def get_demo_model_name() -> str:
+    """Get the model name used by the demo."""
+
+    demo_path = (
+        REPO_ROOT_DIR / "website-ng" / "src" / "components" / "MagikaDemo.svelte"
+    )
+    return extract_one_match_with_regex_from_file(
+        demo_path, 'const MAGIKA_MODEL_VERSION = "([a-zA-Z0-9_]+)";'
+    )
 
 
 def get_rust_default_model_name() -> str:
@@ -141,17 +160,16 @@ def get_rust_default_model_name() -> str:
     return model_symlink_path.readlink().name
 
 
-def check_markdown_links(skip_external_validity_check: bool, verbose: bool) -> bool:
+def check_markdown_links(verbose: bool) -> bool:
     """Checks that links in Markdown files are OK. Returns True if everything is
     good, False otherwise."""
 
     with_errors = False
     for path in enumerate_markdown_files_in_dir(Path(".")):
         if verbose:
-            print(f"Analyzing {path}")
+            print(f"Analyzing file: {path}")
         for ui in extract_uris_infos_from_file(
             path,
-            skip_external_validity_check=skip_external_validity_check,
             verbose=verbose,
         ):
             if not ui.is_valid:
@@ -199,9 +217,7 @@ def enumerate_markdown_files_in_dir(rel_dir: Path) -> list[Path]:
     return paths
 
 
-def extract_uris_infos_from_file(
-    path: Path, skip_external_validity_check: bool, verbose: bool
-) -> list[UriInfo]:
+def extract_uris_infos_from_file(path: Path, verbose: bool) -> list[UriInfo]:
     uri_regex = r"\[.*?\]\((.*?)\)"
     uris: list[str] = re.findall(uri_regex, path.read_text())
 
@@ -216,30 +232,26 @@ def extract_uris_infos_from_file(
         is_insecure = None
 
         if is_external:
+            # We treat links pointing to our own repo in a special way. For
+            # simplicity, we only deal with links pointing to the main branch.
+            repo_main_prefix_url = "https://github.com/google/magika/blob/main/"
+            if uri.startswith(repo_main_prefix_url):
+                rel_path = uri.removeprefix(repo_main_prefix_url)
+                assert rel_path.find("#") == -1, (
+                    "Local links with anchors not supported yet"
+                )
+                abs_path = REPO_ROOT_DIR / rel_path
+                is_valid = abs_path.is_file()
+            else:
+                # We mark any other external link as valid, as actually checking
+                # it's too much of a pain.
+                is_valid = True
             is_pure_anchor = False
             if uri.startswith("http://"):
                 is_insecure = True
                 print(f"WARNING: {uri} is not using https")
             else:
                 is_insecure = False
-
-            if skip_external_validity_check:
-                print(f"WARNING: skipping check for {uri}")
-                is_valid = True
-            else:
-                for url_allowlist_prefix in URLS_ALLOWLIST_PREFIXES:
-                    if uri.startswith(url_allowlist_prefix):
-                        is_valid = True
-                        break
-                if is_valid is not True:
-                    r = requests.head(uri, allow_redirects=True, timeout=5)
-                    if r.status_code == 200:
-                        is_valid = True
-                    else:
-                        print(
-                            f"ERROR: Got non-200 response status code for {uri}: {r.status_code}"
-                        )
-                        is_valid = False
         else:
             is_insecure = False
             if uri.startswith("#"):
@@ -248,7 +260,28 @@ def extract_uris_infos_from_file(
             else:
                 is_pure_anchor = False
                 if Path(uri).is_absolute():
-                    is_valid = False
+                    website_files_dir = (
+                        REPO_ROOT_DIR
+                        / "website-ng"
+                        / "src"
+                        / "content"
+                        / "docs"
+                        / uri.removeprefix("/magika/")
+                    )
+                    md_path = website_files_dir.with_suffix(".md")
+                    mdx_path = website_files_dir.with_suffix(".mdx")
+                    public_path = (
+                        REPO_ROOT_DIR / "website-ng" / "public" / Path(uri).name
+                    )
+                    if (
+                        website_files_dir.is_dir()
+                        or md_path.is_file()
+                        or mdx_path.is_file()
+                        or public_path.is_file()
+                    ):
+                        is_valid = True
+                    else:
+                        is_valid = False
                 else:
                     if uri.find("#") >= 0:
                         # This URI is not a pure anchor, but it does have an
@@ -275,6 +308,39 @@ def extract_uris_infos_from_file(
         )
 
     return uris_infos
+
+
+def get_max_stable_version_for_crate(crate_name: str) -> str:
+    url = f"https://crates.io/api/v1/crates/{crate_name}"
+    r = requests.get(url)
+    crate_info = r.json()
+    return crate_info["crate"]["max_stable_version"]
+
+
+def get_latest_version_for_npm_package(package_name: str) -> str:
+    url = f"https://registry.npmjs.org/{package_name}/latest"
+    r = requests.get(url)
+    crate_info = r.json()
+    return crate_info["version"]
+
+
+def extract_one_match_with_regex_from_file(path: Path, regex: str) -> str:
+    """Extract one (and only one!) match with a regex from a file.
+
+    Raises an error in case of zero or more than one hits.
+    """
+
+    assert path.is_file()
+    matching_str = None
+    for line in path.read_text().splitlines():
+        m = re.fullmatch(regex, line.strip())
+        if m:
+            # If we already found something, there is a bug somewhere
+            assert matching_str is None
+            matching_str = m.group(1)
+
+    assert matching_str is not None
+    return matching_str
 
 
 @dataclass(kw_only=True)

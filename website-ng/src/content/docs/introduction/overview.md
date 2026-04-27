@@ -12,14 +12,14 @@ Here is an example of what Magika command line output looks like:
 
 Magika is used at scale to help improve Google users' safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners, processing hundreds billions samples on a weekly basis. Magika has also been integrated with [VirusTotal](https://www.virustotal.com/) ([example](/magika/magika-vt.png)) and [abuse.ch](https://bazaar.abuse.ch/) ([example](/magika/magika-abusech.png)).
 
-For more context you can read our initial [announcement post on Google's OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html), and you can read more in our [research paper](../../additional-resources/research-papers-and-citation), published at the IEEE/ACM International Conference on Software Engineering (ICSE) 2025.
+For more context you can read our initial [announcement post on Google's OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html), and you can read more in our [research paper](/magika/additional-resources/research-papers-and-citation), published at the IEEE/ACM International Conference on Software Engineering (ICSE) 2025.
 
 You can try Magika without installing anything by using our [web demo](/magika/demo/magika-demo), which runs locally in your browser!
 
 ### Highlights
 
 - Available as a command line tool written in Rust, a Python API, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package (which powers the [web demo](/magika/demo/magika-demo)), and GoLang (WIP).
-- Trained and evaluated on a dataset of ~100M files across [200+ content types](https://github.com/google/magika/blob/main/assets/models/standard_v3_3/README.md).
+- Trained and evaluated on a dataset of ~100M files across [200+ content types](/magika/models/standard_v3_3).
 - On our test set, Magika achieves ~99% average precision and recall, outperforming existing approaches -- especially on textual content types.
 - After the model is loaded (which is a one-off overhead), the inference time is about 5ms per file, even when run on a single CPU.
 - You can invoke Magika with even thousands of files at the same time. You can also use `-r` for recursively scanning a directory.

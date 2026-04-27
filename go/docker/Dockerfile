@@ -34,7 +34,7 @@ RUN curl -sL -O https://github.com/microsoft/${ONNX_NAME}/releases/download/v${O
 COPY go go/
 COPY tests_data tests_data/
 COPY assets/content_types_kb.min.json assets/content_types_kb.min.json
-COPY assets/models/standard_v2_1 assets/models/standard_v2_1/
+COPY assets/models/standard_v3_3 assets/models/standard_v3_3/
 
 ARG CGO_ENABLED=1
 ARG CGO_CFLAGS=-I/opt/onnxruntime/include
@@ -43,8 +43,8 @@ ARG LD_LIBRARY_PATH=/opt/onnxruntime/lib
 # Run the tests.
 WORKDIR go
 RUN MAGIKA_ASSETS_DIR=../../assets \
-    MAGIKA_MODEL=standard_v2_1 \
-    go test -tags onnxruntime -ldflags="-linkmode=external -extldflags=-L/opt/onnxruntime/lib" ./...
+    MAGIKA_MODEL=standard_v3_3 \
+    go test -v -tags onnxruntime -ldflags="-linkmode=external -extldflags=-L/opt/onnxruntime/lib" ./...
 
 # Build the CLI.
 WORKDIR cli
@@ -60,7 +60,7 @@ COPY --from=build /opt/onnxruntime/lib ${LD_LIBRARY_PATH}
 
 # Magika model.
 ENV MAGIKA_ASSETS_DIR=/opt/magika/assets
-ENV MAGIKA_MODEL=standard_v2_1
+ENV MAGIKA_MODEL=standard_v3_3
 COPY assets/models/${MAGIKA_MODEL} ${MAGIKA_ASSETS_DIR}/models/${MAGIKA_MODEL}/
 COPY assets/content_types_kb.min.json ${MAGIKA_ASSETS_DIR}/content_types_kb.min.json
 

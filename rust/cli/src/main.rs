@@ -15,21 +15,22 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write as _};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{bail, ensure, Result};
 use clap::{Args, Parser};
 use colored::ColoredString;
-use magika_lib::{
-    self as magika, ContentType, Features, FeaturesOrRuled, FileType, InferredType,
-    OverwriteReason, Session, TypeInfo,
+use magika::{
+    self, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason, Session,
+    TypeInfo,
 };
 use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
+use tokio::task::JoinSet;
 
 /// Determines file content types using AI.
 #[derive(Parser)]
@@ -158,6 +159,13 @@ struct Experimental {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let mut tasks = JoinSet::new();
+    let result = start(&mut tasks).await;
+    while tasks.join_next().await.is_some() {}
+    result
+}
+
+async fn start(tasks: &mut JoinSet<()>) -> Result<()> {
     let mut flags = Flags::parse();
     ensure!(0 < flags.experimental.batch_size, "--batch-size cannot be zero");
     // If --num-tasks is set, we don't do any guessing.
@@ -183,33 +191,49 @@ async fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    let (result_sender, mut result_receiver) =
+    let (result_sender, result_receiver) =
         tokio::sync::mpsc::channel::<Result<Response>>(num_tasks * flags.experimental.batch_size);
     let (batch_sender, batch_receiver) = async_channel::bounded::<Batch>(num_tasks);
-    tokio::spawn({
+    tasks.spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
         async move {
             if let Err(e) = extract_features(&flags, &batch_sender, &result_sender).await {
-                result_sender.send(Err(e)).await.unwrap();
+                let _ = result_sender.send(Err(e)).await;
             }
         }
     });
     for _ in 0..num_tasks {
         let mut magika = build_session(&flags)?;
-        tokio::spawn({
+        tasks.spawn({
             let batch_receiver = batch_receiver.clone();
             let result_sender = result_sender.clone();
             async move {
                 if let Err(e) = infer_batch(&mut magika, &batch_receiver, &result_sender).await {
-                    result_sender.send(Err(e)).await.unwrap();
+                    let _ = result_sender.send(Err(e)).await;
                 }
             }
         });
     }
     drop(result_sender);
+    match print(&flags, result_receiver).await {
+        Err(e)
+            if e.root_cause()
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|x| x.kind() == std::io::ErrorKind::BrokenPipe) =>
+        {
+            Ok(())
+        }
+        x => x,
+    }
+}
+
+async fn print(
+    flags: &Flags, mut result_receiver: tokio::sync::mpsc::Receiver<Result<Response>>,
+) -> Result<()> {
+    let mut stdout = std::io::stdout().lock();
     if flags.format.json {
-        print!("[");
+        write!(stdout, "[")?;
     }
     let mut reorder = Reorder::default();
     let mut errors = false;
@@ -219,22 +243,22 @@ async fn main() -> Result<()> {
             errors |= response.result.is_err();
             if flags.format.json {
                 if reorder.next != 1 {
-                    print!(",");
+                    write!(stdout, ",")?;
                 }
                 for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
-                    print!("\n  {line}");
+                    write!(stdout, "\n  {line}")?;
                 }
             } else {
-                println!("{}", response.format(&flags)?);
+                writeln!(stdout, "{}", response.format(flags)?)?;
             }
         }
     }
     debug_assert!(reorder.is_empty());
     if flags.format.json {
         if reorder.next != 0 {
-            println!();
+            writeln!(stdout)?;
         }
-        println!("]");
+        writeln!(stdout, "]")?;
     }
     if errors {
         std::process::exit(1);
@@ -328,7 +352,7 @@ async fn process_path(
 }
 
 fn build_session(flags: &Flags) -> Result<Session> {
-    ort::init().with_telemetry(false).commit()?;
+    ort::init().with_telemetry(false).commit();
     let mut magika = Session::builder();
     if let Some(inter_threads) = flags.experimental.inter_threads {
         magika = magika.with_inter_threads(inter_threads);
@@ -362,7 +386,7 @@ async fn infer_batch(
     while let Ok(Batch { paths, features }) = receiver.recv().await {
         let batch = magika.identify_features_batch_async(&features).await?;
         assert_eq!(batch.len(), paths.len());
-        for ((order, path), output) in paths.into_iter().zip(batch.into_iter()) {
+        for ((order, path), output) in paths.into_iter().zip(batch) {
             let result = Ok(output);
             sender.send(Ok(Response { order, path, result })).await?;
         }

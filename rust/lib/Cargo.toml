@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Magika Developers <magika-dev@google.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -18,16 +18,16 @@ features = ["_doc"]
 serde = ["dep:serde"]
 # Internal features.
 _doc = ["serde"]
-_test = ["ort/download-binaries"]
+_test = ["ort/download-binaries", "ort/tls-native"]
 
 [dependencies]
-ndarray = "0.16.1"
+ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }
 thiserror = "1.0.63"
 tokio = { version = "1.43.1", features = ["fs", "io-util"] }
 
 [dependencies.ort]
-version = "=2.0.0-rc.10"
+version = "=2.0.0-rc.12"
 default-features = false
 features = ["ndarray", "std"]
 

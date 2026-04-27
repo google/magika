@@ -27,6 +27,7 @@ type Config struct {
 	BlockSize                 int                `json:"block_size"`
 	TargetLabelsSpace         []string           `json:"target_labels_space"`
 	Thresholds                map[string]float32 `json:"thresholds"`
+	Overwrite                 map[string]string  `json:"overwrite_map"`
 }
 
 // ReadConfig is a helper that reads and unmarshal a Config, given an assets

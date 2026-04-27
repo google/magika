@@ -10,7 +10,7 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/node": "^9.4.4",
+    "@astrojs/node": "^9.5.4",
     "@astrojs/starlight": "^0.36.0",
     "@astrojs/starlight-tailwind": "^4.0.1",
     "@astrojs/svelte": "^7.2.0",
@@ -21,7 +21,7 @@
     "highlight.js": "^11.11.1",
     "magika": "^0.4.0",
     "sharp": "^0.34.2",
-    "svelte": "^5.39.8",
+    "svelte": "^5.54.0",
     "svelte-sonner": "^1.0.5",
     "tailwindcss": "^4.1.14",
     "typescript": "^5.9.3"

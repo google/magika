@@ -37,7 +37,7 @@ def main():
             "generate-tests",
         ]
 
-        print(f'Running CMD: {" ".join(cmd)}')
+        print(f"Running CMD: {' '.join(cmd)}")
         subprocess.run(
             cmd,
             cwd=python_root_dir,

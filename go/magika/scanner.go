@@ -6,7 +6,7 @@ import (
 	"io"
 	"unicode/utf8"
 
-	"github.com/google/magika/onnx"
+	"github.com/google/magika/go/onnx"
 )
 
 // Scanner represents a Magika scanner that returns the content type
@@ -49,27 +49,35 @@ func NewScanner(assetsDir, name string) (*Scanner, error) {
 // returns the inferred content type.
 // It is safe for concurrent use.
 func (s *Scanner) Scan(r io.ReaderAt, size int) (ContentType, error) {
+	ct, _, err := s.scanScore(r, size)
+	return ct, err
+}
+
+// scanScore scans the given reader containing the given size of bytes, and
+// returns the inferred content type and its score.
+// It is safe for concurrent use.
+func (s *Scanner) scanScore(r io.ReaderAt, size int) (ContentType, float32, error) {
 	if size == 0 {
-		return s.ckb[contentTypeLabelEmpty], nil
+		return s.ckb[contentTypeLabelEmpty], 1, nil
 	}
 	ft, err := ExtractFeatures(s.cfg, r, size)
 	if err != nil {
-		return ContentType{}, fmt.Errorf("extract features: %w", err)
+		return ContentType{}, 0, fmt.Errorf("extract features: %w", err)
 	}
 	// Do not use the model for small files.
 	if ft.Beg[s.cfg.MinFileSizeForDl-1] == int32(s.cfg.PaddingToken) {
 		if utf8.Valid(ft.firstBlock) {
-			return s.ckb[contentTypeLabelTxt], nil
+			return s.ckb[contentTypeLabelTxt], 1, nil
 		} else {
-			return s.ckb[contentTypeLabelUnknown], nil
+			return s.ckb[contentTypeLabelUnknown], 1, nil
 		}
 	}
 	scores, err := s.onnx.Run(ft.Flatten())
 	if err != nil {
-		return ContentType{}, fmt.Errorf("run onnx: %w", err)
+		return ContentType{}, 0, fmt.Errorf("run onnx: %w", err)
 	}
 	if len(scores) == 0 {
-		return ContentType{}, errors.New("run onnx: empty result")
+		return ContentType{}, 0, errors.New("run onnx: empty result")
 	}
 	best := 0
 	for i, v := range scores {
@@ -77,7 +85,11 @@ func (s *Scanner) Scan(r io.ReaderAt, size int) (ContentType, error) {
 			best = i
 		}
 	}
-	return s.contentType(best, scores[best])
+	ct, err := s.contentType(best, scores[best])
+	if err != nil {
+		return ContentType{}, 0, fmt.Errorf("get content type: %w", err)
+	}
+	return ct, scores[best], nil
 }
 
 func (s *Scanner) contentType(best int, score float32) (ContentType, error) {
@@ -94,10 +106,19 @@ func (s *Scanner) contentType(best int, score float32) (ContentType, error) {
 	// falls back to a relevant default.
 	switch {
 	case score >= th:
-		return ct, nil
 	case ct.IsText:
-		return s.ckb[contentTypeLabelTxt], nil
+		l = contentTypeLabelTxt
 	default:
-		return s.ckb[contentTypeLabelUnknown], nil
+		l = contentTypeLabelUnknown
 	}
+	ct, ok = s.ckb[l]
+	if !ok {
+		return ContentType{}, fmt.Errorf("no content type found for %q", l)
+	}
+	if l, ok = s.cfg.Overwrite[l]; ok {
+		if ct, ok = s.ckb[l]; !ok {
+			return ContentType{}, fmt.Errorf("no content type found for %q", l)
+		}
+	}
+	return ct, nil
 }

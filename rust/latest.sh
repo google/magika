@@ -16,9 +16,14 @@
 set -e
 . ./color.sh
 
-# This script updates (or creates if it does not exist) the trampoline release for the website. The
-# trampoline release is a "fake" release (which commits doesn't matter) containing a copy of the
-# bash and powershell scripts from the latest cli/vX.Y.Z release.
+# This script updates (or creates if it does not exist) the `cli-latest` release.
+#
+# The `cli-latest` release replicates the assets and commit hash of the latest `cli/vX.Y.Z` release.
+# The website uses this release for the install scripts. Other tools may also use this release to
+# reference the latest CLI release. This is necessary because the `latest` release is not
+# necessarily a CLI release due to Python.
+#
+# This script relies on the repository disabling release immutability since this release is mutated.
 
 REPO=google/magika
 RELEASES=$(gh release list --repo=$REPO --json=tagName |
@@ -27,23 +32,24 @@ info "Found the following releases"
 echo "$RELEASES"
 
 TAG=$(echo "$RELEASES" | grep cli/ | head -n1)
+COMMIT=$(git rev-parse $TAG)
 LATEST=cli-latest
 [ -n "$TAG" ] || error "No CLI release found"
 info "The latest CLI release is $TAG"
 
-x gh release download --repo=$REPO $TAG --pattern='magika-installer.*'
+x gh release download $TAG --repo=$REPO --dir=assets
 
-info "Delete the previous trampoline release, if any"
-echo "$RELEASES" | grep -q $LATEST && x gh release delete --repo=$REPO --yes $LATEST
+info "Delete the previous $LATEST release, if any"
+echo "$RELEASES" | grep -q $LATEST && x gh release delete $LATEST --repo=$REPO --yes --cleanup-tag
 
 cat >> notes.txt <<EOF
-The latest CLI release is [$TAG](https://github.com/$REPO/releases/tag/$TAG).
+This moving release simply replicates the assets and commit hash of the latest CLI release.
 
-This moving release is just a trampoline for the website, to provide stable URLs for the latest
-install scripts.
+The latest CLI release is [$TAG](https://github.com/$REPO/releases/tag/$TAG).
 EOF
 
-info "Create the trampoline release"
-x gh release create --repo=$REPO $LATEST --latest=false \
-  --title="Trampoline to the latest CLI release" --notes-file=notes.txt \
-  magika-installer.*
+info "Create the $LATEST release"
+x gh release create $LATEST --repo=$REPO --target=$COMMIT --latest=false \
+  --title="Latest CLI release" --notes-file=notes.txt assets/*
+
+x rm -r notes.txt assets

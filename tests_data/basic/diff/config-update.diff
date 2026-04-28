@@ -1,0 +1,14 @@
+diff --git a/config/app.ini b/config/app.ini
+index 8273d9c..f4a21bb 100644
+--- a/config/app.ini
++++ b/config/app.ini
+@@ -1,6 +1,7 @@
+ [server]
+ host = 127.0.0.1
+-port = 8000
++port = 8080
++workers = 4
+ 
+ [logging]
+-level = warning
++level = info

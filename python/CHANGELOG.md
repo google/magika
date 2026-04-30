@@ -9,6 +9,10 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+- Python fallback client: removed `--compatibility-mode` / `-c` flag. Its original purpose (output mimicking Unix `file`) was lost when the `magic` field was removed in v0.6.1; it had since been a no-op alias for `--no-colors`.
+- Python fallback client: colors are now auto-disabled when stdout is not a TTY, matching Rust client behavior. Use `--colors` to force them on, `--no-colors` to force them off.
+
 ## [1.0.2] - 2026-02-25
 - Mark python 3.14 as supported.
 - Remove direct dependency on numpy.

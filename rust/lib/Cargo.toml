@@ -1,7 +1,6 @@
 [package]
 name = "magika"
-version = "1.1.0"
-authors = ["Magika Developers <magika-dev@google.com>"]
+version = "1.1.1-dev"
 license = "Apache-2.0"
 edition = "2021"
 description = "Determines file content types using AI"

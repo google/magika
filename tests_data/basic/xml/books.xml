@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<library>
+    <book id="1">
+        <title>The Pragmatic Programmer</title>
+        <author>Andrew Hunt</author>
+        <year>1999</year>
+        <genre>Technology</genre>
+    </book>
+    <book id="2">
+        <title>Clean Code</title>
+        <author>Robert C. Martin</author>
+        <year>2008</year>
+        <genre>Technology</genre>
+    </book>
+    <book id="3">
+        <title>Design Patterns</title>
+        <author>Gang of Four</author>
+        <year>1994</year>
+        <genre>Technology</genre>
+    </book>
+</library>

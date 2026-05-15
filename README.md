@@ -252,6 +252,10 @@ ini
 ini
 ```
 
+`Magika` instances can be reused for concurrent identification calls. When
+using `identify_stream`, pass a distinct stream object to each concurrent call:
+Magika seeks and reads the provided stream, then restores its original position.
+
 For more examples and documentation about the Python module, see the [Python `Magika` module](https://securityresearch.google/magika/cli-and-bindings/python/) section.
 
 

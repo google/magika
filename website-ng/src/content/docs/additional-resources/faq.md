@@ -15,6 +15,47 @@ See previous question.
 But please open GitHub issues on what you want! Getting this sort of feedback was one main reason to open source an early version.
 
 
+### Can I add my own custom content type?
+
+Not by editing the content type metadata files alone.
+
+Magika's labels are backed by the model it ships with. Adding a new content
+type, or making an existing unsupported extension return a new label, requires
+training or fine-tuning a model that can recognize that type. We are interested
+in making this easier over time, but the current project does not provide a
+simple "register this extension" configuration switch.
+
+
+### Can I identify files by sending only the first few bytes?
+
+Usually, prefer passing a path or seekable stream to Magika instead of slicing
+the file yourself.
+
+Magika extracts the byte ranges expected by the active model. The exact ranges
+are model-specific and are described by the bundled model configuration; recent
+models use bytes from the beginning and end of the file, and do not necessarily
+use a middle segment. Sending only a file header may work for some formats, but
+it can reduce accuracy and may behave differently from `identify_path` or
+`identify_stream`.
+
+If your files live in a virtual file system or behind a service boundary, try to
+preserve path-like or seekable-stream semantics on the Magika side. If you must
+transport snippets, make sure they match the active model's feature extraction
+configuration exactly.
+
+
+### Can I use Magika from .NET?
+
+There are no official .NET bindings at the moment.
+
+Some users have successfully called the Python package from .NET using
+[CSnakes](https://tonybaloney.github.io/CSnakes/). The Rust library can also be
+integrated into other runtimes through FFI-style approaches, and future C
+bindings would make this easier for .NET and other languages. Until official
+bindings exist, treat these approaches as integration patterns rather than
+stable public Magika APIs.
+
+
 ### What is the use case for the javascript package?
 
 The main client we expect people to use for the first release is the Rust client and the python package / module. The javascript package, based on a TFJS version of the same model, was developed for our [web demo](/magika/demo/magika-demo), which allows users to test Magika and report feedback without installing anything. The demo also showcases on-device capabilities. The javascript package could also be useful for integrations that require javascript bindings. For now it is not envisioned to be used as a standalone command line (the model loading phase is quite slow), but it could be useful for those deployments where you can load the model once, and keep using it for many inferences.

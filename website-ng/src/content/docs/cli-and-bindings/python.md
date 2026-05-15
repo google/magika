@@ -150,6 +150,11 @@ class ContentTypeInfo:
     is_text: bool           # e.g., True
 ```
 
+Older Python releases exposed compatibility names such as `magic` for
+`description` and stored `score` on `ContentTypeInfo`. These names are
+deprecated or unsupported in current releases; use `description` and the
+`MagikaResult.score` field instead.
+
 `ContentTypeLabel`
 
 A string enum (`StrEnum`) of all possible content type labels. Because it's a `StrEnum`, its members can be used and compared just like regular strings.

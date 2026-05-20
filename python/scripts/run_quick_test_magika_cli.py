@@ -23,12 +23,35 @@ magika`; this script is used as part of "build & test package" github action,
 and the dev dependencies are not available.
 """
 
+import os
+import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import click
+
+
+def get_execute_cmd(client_path: Path) -> List[str]:
+    if os.name == "nt" and not client_path.is_absolute():
+        candidate = Path(sysconfig.get_path("scripts")) / client_path.name
+        if candidate.is_file():
+            client_path = candidate
+            print(f"Manually resolved {client_path.name} to {client_path}")
+
+    if os.name == "nt" and client_path.is_file() and client_path.suffix == "":
+        try:
+            with open(client_path, "r", encoding="utf-8", errors="replace") as f:
+                if "python" in f.readline():
+                    print(
+                        f"Windows workaround: running Python script with {sys.executable}"
+                    )
+                    return [sys.executable, str(client_path)]
+        except Exception as e:
+            print(f"Failed to check if file is script: {e}")
+    return [str(client_path)]
 
 
 @click.command()
@@ -49,14 +72,25 @@ def main(client_path: Optional[Path]) -> None:
     assert basic_tests_dir.is_dir()
 
     if client_path is None:
-        client_path = Path("magika")
-    print(f'Testing client: "{client_path}"')
+        client_path_str = "magika"
+    else:
+        client_path_str = str(client_path)
 
-    p = subprocess.run([str(client_path), "--version"], capture_output=True, text=True)
-    print(f'Output of "magika --version": {p.stdout.strip()}')
+    resolved_path = shutil.which(client_path_str)
+    if resolved_path:
+        client_path = Path(resolved_path)
+    else:
+        client_path = Path(client_path_str)
+
+    print(f'Testing client: "{client_path_str}" (resolved to: "{client_path}")')
+
+    cmd = get_execute_cmd(client_path)
+
+    p = subprocess.run(cmd + ["--version"], capture_output=True, text=True)
+    print(f'Output of "{client_path_str} --version": {p.stdout.strip()}')
 
     p = subprocess.run(
-        [str(client_path), "-r", "--label", "--no-colors", str(basic_tests_dir)],
+        cmd + ["-r", "--label", "--no-colors", str(basic_tests_dir)],
         capture_output=True,
         text=True,
     )

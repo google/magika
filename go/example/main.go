@@ -4,10 +4,11 @@
 //
 // It requires the onnxruntime and the Magika assets to be accessible.
 // onnxruntime is available on https://github.com/microsoft/onnxruntime/releases
-// Magika asserts are available on https://github.com/google/magika/tree/main/assets
+// Magika assets are available on https://github.com/google/magika/tree/main/assets
 //
-// Tag and link directives must be provided a build or run time:
-// go run -tags onnxruntime -ldflags="-linkmode=external -extldflags=-L/opt/onnxruntime/lib" .
+// Tag, cgo, and link directives must be provided at build or run time, e.g.:
+// CGO_CFLAGS=-I/opt/onnxruntime/include CGO_LDFLAGS=-L/opt/onnxruntime/lib \
+//   go run -tags onnxruntime .
 
 package main
 

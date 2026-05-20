@@ -19,10 +19,10 @@ WORKDIR /tmp
 # We need the SDK (/include) for compiling, and the library (/lib) for inference.
 ARG ONNX_NAME=onnxruntime
 ARG ONNX_ARCH=linux-x64
-ARG ONNX_VERSION=1.19.2
+ARG ONNX_VERSION=1.24.4
 ARG ONNX_FULLNAME=${ONNX_NAME}-${ONNX_ARCH}-${ONNX_VERSION}
 ARG ONNX_TARBALL=${ONNX_FULLNAME}.tgz
-ARG ONNX_DIGEST=eb00c64e0041f719913c4080e0fed7d9963dc3aa9b54664df6036d8308dbcd33
+ARG ONNX_DIGEST=3a211fbea252c1e66290658f1b735b772056149f28321e71c308942cdb54b747
 
 RUN curl -sL -O https://github.com/microsoft/${ONNX_NAME}/releases/download/v${ONNX_VERSION}/${ONNX_TARBALL} \
     && echo "${ONNX_DIGEST}  ${ONNX_TARBALL}" > checksum.txt \

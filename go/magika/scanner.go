@@ -49,35 +49,48 @@ func NewScanner(assetsDir, name string) (*Scanner, error) {
 // returns the inferred content type.
 // It is safe for concurrent use.
 func (s *Scanner) Scan(r io.ReaderAt, size int) (ContentType, error) {
-	ct, _, err := s.scanScore(r, size)
-	return ct, err
+	_, out, _, err := s.ScanDetails(r, size)
+	return out, err
 }
 
-// scanScore scans the given reader containing the given size of bytes, and
-// returns the inferred content type and its score.
+// ScanScore scans the given reader containing the given size of bytes, and
+// returns the inferred content type and its score (between 0 and 1).
 // It is safe for concurrent use.
-func (s *Scanner) scanScore(r io.ReaderAt, size int) (ContentType, float32, error) {
+func (s *Scanner) ScanScore(r io.ReaderAt, size int) (ContentType, float32, error) {
+	_, out, score, err := s.ScanDetails(r, size)
+	return out, score, err
+}
+
+// ScanDetails returns the raw deep-learning prediction (dl), the final
+// content type after low-confidence and Overwrite remaps (output), and the
+// model score. For inputs that bypass the model (empty or smaller than
+// MinFileSizeForDl) dl equals output.
+// It is safe for concurrent use.
+func (s *Scanner) ScanDetails(r io.ReaderAt, size int) (ContentType, ContentType, float32, error) {
 	if size == 0 {
-		return s.ckb[contentTypeLabelEmpty], 1, nil
+		ct := s.ckb[contentTypeLabelEmpty]
+		return ct, ct, 1, nil
 	}
 	ft, err := ExtractFeatures(s.cfg, r, size)
 	if err != nil {
-		return ContentType{}, 0, fmt.Errorf("extract features: %w", err)
+		return ContentType{}, ContentType{}, 0, fmt.Errorf("extract features: %w", err)
 	}
 	// Do not use the model for small files.
 	if ft.Beg[s.cfg.MinFileSizeForDl-1] == int32(s.cfg.PaddingToken) {
+		var ct ContentType
 		if utf8.Valid(ft.firstBlock) {
-			return s.ckb[contentTypeLabelTxt], 1, nil
+			ct = s.ckb[contentTypeLabelTxt]
 		} else {
-			return s.ckb[contentTypeLabelUnknown], 1, nil
+			ct = s.ckb[contentTypeLabelUnknown]
 		}
+		return ct, ct, 1, nil
 	}
 	scores, err := s.onnx.Run(ft.Flatten())
 	if err != nil {
-		return ContentType{}, 0, fmt.Errorf("run onnx: %w", err)
+		return ContentType{}, ContentType{}, 0, fmt.Errorf("run onnx: %w", err)
 	}
 	if len(scores) == 0 {
-		return ContentType{}, 0, errors.New("run onnx: empty result")
+		return ContentType{}, ContentType{}, 0, errors.New("run onnx: empty result")
 	}
 	best := 0
 	for i, v := range scores {
@@ -85,40 +98,42 @@ func (s *Scanner) scanScore(r io.ReaderAt, size int) (ContentType, float32, erro
 			best = i
 		}
 	}
-	ct, err := s.contentType(best, scores[best])
+	dl, output, err := s.contentType(best, scores[best])
 	if err != nil {
-		return ContentType{}, 0, fmt.Errorf("get content type: %w", err)
+		return ContentType{}, ContentType{}, 0, fmt.Errorf("get content type: %w", err)
 	}
-	return ct, scores[best], nil
+	return dl, output, scores[best], nil
 }
 
-func (s *Scanner) contentType(best int, score float32) (ContentType, error) {
+// contentType resolves the model's top index into (dl, output). dl is the raw
+// label the model picked; output applies the low-confidence fallback and
+// cfg.Overwrite remap.
+func (s *Scanner) contentType(best int, score float32) (ContentType, ContentType, error) {
 	l := s.cfg.TargetLabelsSpace[best]
-	ct, ok := s.ckb[l]
+	dl, ok := s.ckb[l]
 	if !ok {
-		return ContentType{}, fmt.Errorf("no content type found for %q", l)
+		return ContentType{}, ContentType{}, fmt.Errorf("no content type found for %q", l)
 	}
 	th := s.cfg.MediumConfidenceThreshold
 	if t, ok := s.cfg.Thresholds[l]; ok {
 		th = t
 	}
-	// Return the inferred content type if the threshold is met, otherwise
-	// falls back to a relevant default.
+	outLabel := l
 	switch {
 	case score >= th:
-	case ct.IsText:
-		l = contentTypeLabelTxt
+	case dl.IsText:
+		outLabel = contentTypeLabelTxt
 	default:
-		l = contentTypeLabelUnknown
+		outLabel = contentTypeLabelUnknown
 	}
-	ct, ok = s.ckb[l]
+	output, ok := s.ckb[outLabel]
 	if !ok {
-		return ContentType{}, fmt.Errorf("no content type found for %q", l)
+		return ContentType{}, ContentType{}, fmt.Errorf("no content type found for %q", outLabel)
 	}
-	if l, ok = s.cfg.Overwrite[l]; ok {
-		if ct, ok = s.ckb[l]; !ok {
-			return ContentType{}, fmt.Errorf("no content type found for %q", l)
+	if remap, ok := s.cfg.Overwrite[outLabel]; ok {
+		if output, ok = s.ckb[remap]; !ok {
+			return ContentType{}, ContentType{}, fmt.Errorf("no content type found for %q", remap)
 		}
 	}
-	return ct, nil
+	return dl, output, nil
 }

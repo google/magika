@@ -43,8 +43,9 @@ class MagikaResult:
         self._path = path
         self._status = status
         self._prediction = prediction
+        self._validate()
 
-    def __post_init__(self) -> None:
+    def _validate(self) -> None:
         assert self._path is not None
         if self._status == Status.OK:
             if self._prediction is None:

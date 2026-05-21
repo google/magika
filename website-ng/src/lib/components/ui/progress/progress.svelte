@@ -44,7 +44,7 @@
   ></div>
   {#if showPercentage}
     <div
-      class="absolute inset-0 flex mt-0-important font-size sl-markdown-content items-center justify-center text-xs font-medium text-foreground z-10 text-2xl mix-blend-difference text-white"
+      class="absolute inset-0 z-10 mt-0-important flex items-center justify-center sl-markdown-content text-2xl text-xs font-medium text-white [text-shadow:0_1px_2px_rgb(0_0_0_/_0.75)]"
     >
       {percentage}%
     </div>

@@ -50,7 +50,6 @@ Default model: "{Magika._get_default_model_name()}"
 Send any feedback to {CONTACT_EMAIL} or via GitHub issues.
 """
 
-
 @click.command(
     context_settings=CONTEXT_SETTINGS,
     epilog=HELP_EPILOG,
@@ -247,16 +246,6 @@ def main(
     start_color = ""
     end_color = ""
 
-    color_by_group = {
-        "document": colors.LIGHT_PURPLE,
-        "executable": colors.LIGHT_GREEN,
-        "archive": colors.LIGHT_RED,
-        "audio": colors.YELLOW,
-        "image": colors.YELLOW,
-        "video": colors.YELLOW,
-        "code": colors.LIGHT_BLUE,
-    }
-
     # updated only when we need to output in JSON format
     all_predictions: List[Tuple[Path, MagikaResult]] = []
 
@@ -308,8 +297,8 @@ def main(
                             )
 
                     if with_colors:
-                        start_color = color_by_group.get(
-                            result.prediction.output.group, colors.WHITE
+                        start_color = colors.color_for_group(
+                            result.prediction.output.group
                         )
                         end_color = colors.RESET
                 else:

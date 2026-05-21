@@ -255,6 +255,8 @@ def main(
         "image": colors.YELLOW,
         "video": colors.YELLOW,
         "code": colors.LIGHT_BLUE,
+        "text": colors.DARK_GRAY,
+        "unknown": colors.DARK_GRAY,
     }
 
     # updated only when we need to output in JSON format
@@ -309,7 +311,7 @@ def main(
 
                     if with_colors:
                         start_color = color_by_group.get(
-                            result.prediction.output.group, colors.WHITE
+                            result.prediction.output.group, colors.DARK_GRAY
                         )
                         end_color = colors.RESET
                 else:

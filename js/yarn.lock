@@ -1612,11 +1612,11 @@ extend@^3.0.0:
   integrity sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==
 
 fast-check@^4.1.0:
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-4.3.0.tgz#85d0a385e25699e12a07eba61558324a1eb4133f"
-  integrity sha512-JVw/DJSxVKl8uhCb7GrwanT9VWsCIdBkK3WpP37B/Au4pyaspriSjtrY2ApbSFwTg3ViPfniT13n75PhzE7VEQ==
+  version "4.7.0"
+  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-4.7.0.tgz#36c0051b9c968965e8970e88e63eee946fe45f8f"
+  integrity sha512-NsZRtqvSSoCP0HbNjUD+r1JH8zqZalyp6gLY9e7OYs7NK9b6AHOs2baBFeBG7bVNsuoukh89x2Yg3rPsul8ziQ==
   dependencies:
-    pure-rand "^7.0.0"
+    pure-rand "^8.0.0"
 
 fast-json-stable-stringify@2.x, fast-json-stable-stringify@^2.1.0:
   version "2.1.0"
@@ -3507,10 +3507,10 @@ pure-rand@^6.0.0:
   resolved "https://registry.npmjs.org/pure-rand/-/pure-rand-6.1.0.tgz"
   integrity sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==
 
-pure-rand@^7.0.0:
-  version "7.0.1"
-  resolved "https://registry.npmjs.org/pure-rand/-/pure-rand-7.0.1.tgz"
-  integrity sha512-oTUZM/NAZS8p7ANR3SHh30kXB+zK2r2BPcEn/awJIbOvq82WoMN4p62AWWp3Hhw50G0xMsw1mhIBLqHw64EcNQ==
+pure-rand@^8.0.0:
+  version "8.4.0"
+  resolved "https://registry.yarnpkg.com/pure-rand/-/pure-rand-8.4.0.tgz#1d9e26e9c0555486e08ae300d02796af8dec1cd0"
+  integrity sha512-IoM8YF/jY0hiugFo/wOWqfmarlE6J0wc6fDK1PhftMk7MGhVZl88sZimmqBBFomLOCSmcCCpsfj7wXASCpvK9A==
 
 react-is@^18.0.0:
   version "18.2.0"

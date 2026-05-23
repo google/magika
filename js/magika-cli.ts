@@ -22,6 +22,7 @@ import { CommanderError, program } from "commander";
 import * as fs from "fs";
 import { readFile } from "fs/promises";
 import { MagikaNode as Magika } from "./magika-node.js";
+import { getMagikaOptionsFromFlags } from "./src/magika-cli-options.js";
 
 program
   .description(
@@ -65,12 +66,7 @@ try {
 const flags = program.opts();
 
 (async () => {
-  const magika = await Magika.create({
-    modelURL: flags.modelUrl,
-    modelPath: flags.modelPath,
-    modelConfigURL: flags.configUrl,
-    modelConfigPath: flags.configPath,
-  });
+  const magika = await Magika.create(getMagikaOptionsFromFlags(flags));
   await Promise.all(
     program.args.map(async (path) => {
       let data = null;

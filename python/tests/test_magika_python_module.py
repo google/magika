@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import builtins
 import io
+import os
 import signal
 import tempfile
 from pathlib import Path
@@ -521,6 +523,45 @@ def test_magika_module_with_symlink() -> None:
         assert res.prediction.output.label == ContentTypeLabel.TXT
         res = m.identify_path(symlink_path)
         assert res.path == symlink_path
+        assert res.ok
+        assert res.prediction.output.label == ContentTypeLabel.SYMLINK
+
+
+def test_magika_module_no_dereference_blocks_symlink_swap_race(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with tempfile.TemporaryDirectory() as td:
+        victim_path = Path(td) / "victim.txt"
+        victim_path.write_text("benign content")
+
+        secret_path = Path(td) / "secret.txt"
+        secret_path.write_text("attacker selected content")
+
+        m = Magika(no_dereference=True)
+
+        original_open = builtins.open
+        original_os_open = os.open
+
+        def swap_path() -> None:
+            if victim_path.exists() or victim_path.is_symlink():
+                victim_path.unlink()
+            victim_path.symlink_to(secret_path)
+
+        def race_open(file: Any, *args: Any, **kwargs: Any) -> Any:
+            if isinstance(file, (str, os.PathLike)) and Path(file) == victim_path:
+                swap_path()
+            return original_open(file, *args, **kwargs)
+
+        def race_os_open(file: Any, flags: int, *args: Any, **kwargs: Any) -> int:
+            if isinstance(file, (str, os.PathLike)) and Path(file) == victim_path:
+                swap_path()
+            return original_os_open(file, flags, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "open", race_open)
+        monkeypatch.setattr(os, "open", race_os_open)
+
+        res = m.identify_path(victim_path)
+        assert res.path == victim_path
         assert res.ok
         assert res.prediction.output.label == ContentTypeLabel.SYMLINK
 

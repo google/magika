@@ -17,6 +17,7 @@ import signal
 import tempfile
 from pathlib import Path
 from typing import Any, List, Optional
+from unittest.mock import patch
 
 import pytest
 
@@ -523,6 +524,25 @@ def test_magika_module_with_symlink() -> None:
         assert res.path == symlink_path
         assert res.ok
         assert res.prediction.output.label == ContentTypeLabel.SYMLINK
+
+
+def test_magika_module_with_symlink_race_condition() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        test_path = Path(td) / "test.txt"
+        test_path.write_text("test")
+
+        symlink_path = Path(td) / "symlink-test.txt"
+        symlink_path.symlink_to(test_path)
+
+        m = Magika(no_dereference=True)
+
+        # Mock is_symlink to return False to simulate that it was not a symlink
+        # when checked, but it is a symlink when opened.
+        with patch.object(Path, "is_symlink", return_value=False):
+            res = m.identify_path(symlink_path)
+            assert res.path == symlink_path
+            assert res.ok
+            assert res.prediction.output.label == ContentTypeLabel.SYMLINK
 
 
 def test_magika_module_with_non_existing_file() -> None:

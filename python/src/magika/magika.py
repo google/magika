@@ -684,7 +684,29 @@ class Magika:
             else:
                 # There are no additional path-specific corner cases, we can
                 # treat the input path as a stream.
-                with open(path, "rb") as stream:
+                try:
+                    if self._no_dereference:
+                        # Open the file without following symlinks to prevent TOCTOU race conditions.
+                        # getattr is used to safely fallback to 0 on platforms where O_NOFOLLOW is not defined.
+                        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+                        stream = open(fd, "rb")
+                    else:
+                        stream = open(path, "rb")
+                except OSError as e:
+                    # If O_NOFOLLOW is triggered, it raises OSError with ELOOP
+                    import errno
+
+                    if e.errno == errno.ELOOP:
+                        result = self._get_result_from_labels_and_score(
+                            path=path,
+                            dl_label=ContentTypeLabel.UNDEFINED,
+                            output_label=ContentTypeLabel.SYMLINK,
+                            score=1.0,
+                        )
+                        return result, None
+                    raise
+
+                with stream:
                     return self._get_result_or_features_from_seekable(
                         Seekable(stream), path
                     )

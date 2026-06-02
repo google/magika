@@ -22,9 +22,8 @@ import io
 import json
 import logging
 import os
-import stat
 import time
-from errno import EACCES, ELOOP, ENOENT, ENOTDIR, EPERM
+from errno import ELOOP, ENOENT, ENOTDIR
 from pathlib import Path
 from typing import BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
 
@@ -667,8 +666,8 @@ class Magika:
         features instead of already performing inference because we want to use
         batching.
         """
-        if self._no_dereference:
-            return self._get_result_or_features_from_path_no_dereference(path)
+        if self._no_dereference and path.is_symlink():
+            return self._get_path_result(path, ContentTypeLabel.SYMLINK), None
 
         if not path.exists():
             return MagikaResult(path=path, status=Status.FILE_NOT_FOUND_ERROR), None
@@ -680,133 +679,50 @@ class Magika:
             else:
                 # There are no additional path-specific corner cases, we can
                 # treat the input path as a stream.
-                with open(path, "rb") as stream:
-                    return self._get_result_or_features_from_seekable(
-                        Seekable(stream), path
-                    )
+                try:
+                    with self._open_path(path) as stream:
+                        return self._get_result_or_features_from_seekable(
+                            Seekable(stream), path
+                        )
+                except OSError as exc:
+                    if self._no_dereference and exc.errno == ELOOP:
+                        return self._get_path_result(path, ContentTypeLabel.SYMLINK), None
+                    if exc.errno in (ENOENT, ENOTDIR):
+                        return (
+                            MagikaResult(
+                                path=path, status=Status.FILE_NOT_FOUND_ERROR
+                            ),
+                            None,
+                        )
+                    raise
 
         elif path.is_dir():
-            result = self._get_result_from_labels_and_score(
-                path=path,
-                dl_label=ContentTypeLabel.UNDEFINED,
-                output_label=ContentTypeLabel.DIRECTORY,
-                score=1.0,
-            )
-            return result, None
+            return self._get_path_result(path, ContentTypeLabel.DIRECTORY), None
 
         else:
-            result = self._get_result_from_labels_and_score(
-                path=path,
-                dl_label=ContentTypeLabel.UNDEFINED,
-                output_label=ContentTypeLabel.UNKNOWN,
-                score=1.0,
-            )
-            return result, None
+            return self._get_path_result(path, ContentTypeLabel.UNKNOWN), None
 
         raise Exception("unreachable")
 
-    def _get_result_or_features_from_path_no_dereference(
-        self, path: Path
-    ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
-        fd: Optional[int] = None
-        path_stat = None
-        open_flags = os.O_RDONLY
+    def _get_path_result(
+        self, path: Path, output_label: ContentTypeLabel
+    ) -> MagikaResult:
+        return self._get_result_from_labels_and_score(
+            path=path,
+            dl_label=ContentTypeLabel.UNDEFINED,
+            output_label=output_label,
+            score=1.0,
+        )
+
+    def _open_path(self, path: Path) -> BinaryIO:
+        if not self._no_dereference or not hasattr(os, "O_NOFOLLOW"):
+            return open(path, "rb")
+
+        open_flags = os.O_RDONLY | os.O_NOFOLLOW
         if hasattr(os, "O_CLOEXEC"):
             open_flags |= os.O_CLOEXEC
-        has_o_nofollow = hasattr(os, "O_NOFOLLOW")
-        if has_o_nofollow:
-            open_flags |= os.O_NOFOLLOW
-        else:
-            try:
-                path_stat = os.stat(path, follow_symlinks=False)
-            except OSError as exc:
-                return self._get_result_or_features_from_path_open_error(path, exc)
-
-            if stat.S_ISLNK(path_stat.st_mode):
-                result = self._get_result_from_labels_and_score(
-                    path=path,
-                    dl_label=ContentTypeLabel.UNDEFINED,
-                    output_label=ContentTypeLabel.SYMLINK,
-                    score=1.0,
-                )
-                return result, None
-
-        try:
-            fd = os.open(path, open_flags)
-        except OSError as exc:
-            return self._get_result_or_features_from_path_open_error(path, exc)
-
-        try:
-            fd_stat = os.fstat(fd)
-            if path_stat is not None and not os.path.samestat(path_stat, fd_stat):
-                try:
-                    current_path_stat = os.stat(path, follow_symlinks=False)
-                except OSError as exc:
-                    return self._get_result_or_features_from_path_open_error(path, exc)
-
-                if stat.S_ISLNK(current_path_stat.st_mode):
-                    result = self._get_result_from_labels_and_score(
-                        path=path,
-                        dl_label=ContentTypeLabel.UNDEFINED,
-                        output_label=ContentTypeLabel.SYMLINK,
-                        score=1.0,
-                    )
-                    return result, None
-
-                result = self._get_result_from_labels_and_score(
-                    path=path,
-                    dl_label=ContentTypeLabel.UNDEFINED,
-                    output_label=ContentTypeLabel.UNKNOWN,
-                    score=1.0,
-                )
-                return result, None
-
-            if stat.S_ISDIR(fd_stat.st_mode):
-                result = self._get_result_from_labels_and_score(
-                    path=path,
-                    dl_label=ContentTypeLabel.UNDEFINED,
-                    output_label=ContentTypeLabel.DIRECTORY,
-                    score=1.0,
-                )
-                return result, None
-
-            if not stat.S_ISREG(fd_stat.st_mode):
-                result = self._get_result_from_labels_and_score(
-                    path=path,
-                    dl_label=ContentTypeLabel.UNDEFINED,
-                    output_label=ContentTypeLabel.UNKNOWN,
-                    score=1.0,
-                )
-                return result, None
-
-            with os.fdopen(fd, "rb") as stream:
-                fd = None
-                return self._get_result_or_features_from_seekable(
-                    Seekable(stream), path
-                )
-        finally:
-            if fd is not None:
-                os.close(fd)
-
-    def _get_result_or_features_from_path_open_error(
-        self, path: Path, exc: OSError
-    ) -> Tuple[Optional[MagikaResult], Optional[ModelFeatures]]:
-        if exc.errno == ELOOP:
-            result = self._get_result_from_labels_and_score(
-                path=path,
-                dl_label=ContentTypeLabel.UNDEFINED,
-                output_label=ContentTypeLabel.SYMLINK,
-                score=1.0,
-            )
-            return result, None
-
-        if exc.errno in (ENOENT, ENOTDIR):
-            return MagikaResult(path=path, status=Status.FILE_NOT_FOUND_ERROR), None
-
-        if exc.errno in (EACCES, EPERM):
-            return MagikaResult(path=path, status=Status.PERMISSION_ERROR), None
-
-        raise exc
+        fd = os.open(path, open_flags)
+        return os.fdopen(fd, "rb")
 
     def _get_result_or_features_from_seekable(
         self, seekable: Seekable, path: Path = Path("-")

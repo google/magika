@@ -527,6 +527,10 @@ def test_magika_module_with_symlink() -> None:
         assert res.prediction.output.label == ContentTypeLabel.SYMLINK
 
 
+@pytest.mark.skipif(
+    not hasattr(os, "O_NOFOLLOW"),
+    reason="This regression test requires os.O_NOFOLLOW",
+)
 def test_magika_module_no_dereference_blocks_symlink_swap_race(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

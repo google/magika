@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import time
+from errno import ELOOP, ENOENT, ENOTDIR
 from pathlib import Path
 from typing import BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
 
@@ -666,13 +667,7 @@ class Magika:
         batching.
         """
         if self._no_dereference and path.is_symlink():
-            result = self._get_result_from_labels_and_score(
-                path=path,
-                dl_label=ContentTypeLabel.UNDEFINED,
-                output_label=ContentTypeLabel.SYMLINK,
-                score=1.0,
-            )
-            return result, None
+            return self._get_path_result(path, ContentTypeLabel.SYMLINK), None
 
         if not path.exists():
             return MagikaResult(path=path, status=Status.FILE_NOT_FOUND_ERROR), None
@@ -684,30 +679,50 @@ class Magika:
             else:
                 # There are no additional path-specific corner cases, we can
                 # treat the input path as a stream.
-                with open(path, "rb") as stream:
-                    return self._get_result_or_features_from_seekable(
-                        Seekable(stream), path
-                    )
+                try:
+                    with self._open_path(path) as stream:
+                        return self._get_result_or_features_from_seekable(
+                            Seekable(stream), path
+                        )
+                except OSError as exc:
+                    if self._no_dereference and exc.errno == ELOOP:
+                        return self._get_path_result(path, ContentTypeLabel.SYMLINK), None
+                    if exc.errno in (ENOENT, ENOTDIR):
+                        return (
+                            MagikaResult(
+                                path=path, status=Status.FILE_NOT_FOUND_ERROR
+                            ),
+                            None,
+                        )
+                    raise
 
         elif path.is_dir():
-            result = self._get_result_from_labels_and_score(
-                path=path,
-                dl_label=ContentTypeLabel.UNDEFINED,
-                output_label=ContentTypeLabel.DIRECTORY,
-                score=1.0,
-            )
-            return result, None
+            return self._get_path_result(path, ContentTypeLabel.DIRECTORY), None
 
         else:
-            result = self._get_result_from_labels_and_score(
-                path=path,
-                dl_label=ContentTypeLabel.UNDEFINED,
-                output_label=ContentTypeLabel.UNKNOWN,
-                score=1.0,
-            )
-            return result, None
+            return self._get_path_result(path, ContentTypeLabel.UNKNOWN), None
 
         raise Exception("unreachable")
+
+    def _get_path_result(
+        self, path: Path, output_label: ContentTypeLabel
+    ) -> MagikaResult:
+        return self._get_result_from_labels_and_score(
+            path=path,
+            dl_label=ContentTypeLabel.UNDEFINED,
+            output_label=output_label,
+            score=1.0,
+        )
+
+    def _open_path(self, path: Path) -> BinaryIO:
+        if not self._no_dereference or not hasattr(os, "O_NOFOLLOW"):
+            return open(path, "rb")
+
+        open_flags = os.O_RDONLY | os.O_NOFOLLOW
+        if hasattr(os, "O_CLOEXEC"):
+            open_flags |= os.O_CLOEXEC
+        fd = os.open(path, open_flags)
+        return os.fdopen(fd, "rb")
 
     def _get_result_or_features_from_seekable(
         self, seekable: Seekable, path: Path = Path("-")

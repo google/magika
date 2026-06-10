@@ -5,7 +5,7 @@ export const prerender = false;
 export async function GET({ redirect }: APIContext) {
   console.log("Redirecting to latest installer script");
   return redirect(
-    "https://github.com/google/magika/releases/latest/download/magika-cli-installer.ps1",
+    "https://github.com/google/magika/releases/download/cli-latest/magika-cli-installer.ps1",
     302
   );
 }

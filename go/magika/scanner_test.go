@@ -124,7 +124,7 @@ func TestScannerReference(t *testing.T) {
 						}
 						c.Content = b
 					}
-					ct, score, err := s.scanScore(bytes.NewReader(c.Content), len(c.Content))
+					ct, score, err := s.ScanScore(bytes.NewReader(c.Content), len(c.Content))
 					if err != nil {
 						t.Errorf("scan [%d]: %v", i, err)
 						continue

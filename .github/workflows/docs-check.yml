@@ -32,3 +32,8 @@ jobs:
       - name: "Run check_documentation.py script"
         working-directory: python
         run: uv run ./scripts/check_documentation.py
+
+      - name: Make sure install.sh is downloadable
+        run: curl -LsSf https://securityresearch.google/magika/install.sh > /dev/null
+      - name: Make sure install.ps1 is downloadable
+        run: curl -LsSf https://securityresearch.google/magika/install.ps1 > /dev/null

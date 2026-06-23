@@ -1393,7 +1393,7 @@ pub(crate) static RANDOMTXT: TypeInfo = TypeInfo {
 
 pub(crate) static RAR: TypeInfo = TypeInfo {
     label: "rar",
-    mime_type: "application/x-rar",
+    mime_type: "application/vnd.rar",
     group: "archive",
     description: "RAR archive data",
     extensions: &["rar"],

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+    <book id="1">
+        <title>Introduction to Programming</title>
+        <author>Jane Doe</author>
+        <year>2022</year>
+        <price>39.99</price>
+    </book>
+    <book id="2">
+        <title>Data Structures and Algorithms</title>
+        <author>John Smith</author>
+        <year>2021</year>
+        <price>49.99</price>
+    </book>
+</catalog>

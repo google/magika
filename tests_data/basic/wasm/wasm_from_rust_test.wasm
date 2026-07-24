@@ -1,0 +1,11 @@
+(module $playground.wasm
+  (table (;0;) 1 1 funcref)
+  (memory (;0;) 16)
+  (global $__stack_pointer (;0;) (mut i32) i32.const 1048576)
+  (export "memory" (memory 0))
+  (@producers
+    (language "Rust" "")
+    (processed-by "rustc" "1.97.1 (8bab26f4f 2026-07-14)")
+  )
+  (@custom "target_features" (after export) "\08+\0bbulk-memory+\0fbulk-memory-opt+\16call-indirect-overlong+\0amultivalue+\0fmutable-globals+\13nontrapping-fptoint+\0freference-types+\08sign-ext")
+)

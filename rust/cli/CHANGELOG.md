@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1-dev
+
+### Patch
+
+- Remove deprecated `package.authors` field in `Cargo.toml`
+- Update dependencies
+
 ## 1.1.0
 
 ### Minor

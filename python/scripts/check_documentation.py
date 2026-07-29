@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from pathlib import Path
 
 import click
 import requests
+from packaging.version import Version
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent
 assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
@@ -311,10 +313,22 @@ def extract_uris_infos_from_file(path: Path, verbose: bool) -> list[UriInfo]:
 
 
 def get_max_stable_version_for_crate(crate_name: str) -> str:
-    url = f"https://crates.io/api/v1/crates/{crate_name}"
+    url = f"https://index.crates.io/{crate_name[0:2]}/{crate_name[2:4]}/{crate_name}"
     r = requests.get(url)
-    crate_info = r.json()
-    return crate_info["crate"]["max_stable_version"]
+    assert r.status_code == 200
+    stable_versions = []
+    for line in r.text.strip().split("\n"):
+        if not line:
+            continue
+        data = json.loads(line)
+        if data.get("yanked", False):
+            continue
+        v = Version(data["vers"])
+        if not v.is_prerelease:
+            stable_versions.append(v)
+    assert stable_versions
+    stable_versions.sort()
+    return str(stable_versions[-1])
 
 
 def get_latest_version_for_npm_package(package_name: str) -> str:

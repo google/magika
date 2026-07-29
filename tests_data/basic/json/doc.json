@@ -3352,7 +3352,7 @@
         "extensions": [
             "rar"
         ],
-        "mime_type": "application/x-rar",
+        "mime_type": "application/vnd.rar",
         "group": "archive",
         "magic": "RAR archive data",
         "description": "RAR archive data",

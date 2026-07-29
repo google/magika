@@ -16,7 +16,7 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        node-version: ["18", "20"]
+        node-version: ["20"]
         os: ["ubuntu-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:

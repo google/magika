@@ -9,6 +9,9 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [1.0.3] - 2026-05-04
+- Update magika CLI binary.
+
 ## [1.0.2] - 2026-02-25
 - Mark python 3.14 as supported.
 - Remove direct dependency on numpy.

@@ -18,6 +18,7 @@ It performs a number of checks to determine whether the package is ready for rel
 """
 
 import re
+import shutil
 import subprocess
 import sys
 
@@ -148,9 +149,36 @@ def get_rust_cli_version() -> str:
 
     Returns an empty string ("") if an error is encountered.
     """
+    import os
+    import sysconfig
+    from pathlib import Path
+
+    client_path = shutil.which("magika")
+    cmd = []
+    if client_path:
+        cmd = [client_path]
+    else:
+        # Try manual resolution on Windows if shutil.which failed
+        if os.name == "nt":
+            candidate = Path(sysconfig.get_path("scripts")) / "magika"
+            if candidate.is_file():
+                cmd = [str(candidate)]
+                # Check if it is a python script
+                try:
+                    with open(candidate, "r", encoding="utf-8", errors="replace") as f:
+                        if "python" in f.readline():
+                            cmd = [sys.executable, str(candidate)]
+                            click.echo(
+                                f"Windows workaround in pre-release check: running Python script with {sys.executable}"
+                            )
+                except Exception:
+                    pass
+        if not cmd:
+            cmd = ["magika"]  # fallback
+
     try:
         result = subprocess.run(
-            ["magika", "--version"], capture_output=True, text=True, check=True
+            cmd + ["--version"], capture_output=True, text=True, check=True
         )
         parts = result.stdout.strip().split()
         if len(parts) < 2:

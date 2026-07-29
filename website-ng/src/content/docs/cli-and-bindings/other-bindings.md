@@ -13,6 +13,8 @@ Official bindings for other languages are not yet available. However, since Magi
 
 - Java (JVM): Integration should be possible using the Java Native Interface (JNI).
 
-- .NET: Integration can be achieved using P/Invoke.
+- .NET: Integration can be achieved using P/Invoke. Some users have also called
+  the Python package from .NET with [CSnakes](https://tonybaloney.github.io/CSnakes/)
+  when they want to reuse the Python API directly.
 
 We encourage community contributions to create and maintain new bindings. If you are interested in developing one, please feel free to contact us to discuss it.

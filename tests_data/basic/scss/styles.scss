@@ -1,0 +1,40 @@
+$primary-color: #3498db;
+$secondary-color: #2ecc71;
+$font-size-base: 16px;
+
+@mixin flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body {
+    font-size: $font-size-base;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+
+    &__header {
+        color: $primary-color;
+        font-size: $font-size-base * 2;
+    }
+
+    &__button {
+        background-color: $secondary-color;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        @include flex-center;
+
+        &:hover {
+            opacity: 0.9;
+        }
+    }
+}

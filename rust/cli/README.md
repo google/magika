@@ -72,13 +72,13 @@ cargo install --locked --path=rust/cli
 asm/code.asm: Assembly (code)
 batch/simple.bat: DOS batch file (code)
 c/code.c: C source (code)
+cmake/CMakeLists.txt: CMake build file (code)
+cpp/vector_stats.cpp: C++ source (code)
 css/code.css: CSS source (code)
 csv/magika_test.csv: CSV document (code)
+diff/config-update.diff: Diff file (text)
 dockerfile/Dockerfile: Dockerfile (code)
 docx/doc.docx: Microsoft Word 2007+ document (document)
-docx/magika_test.docx: Microsoft Word 2007+ document (document)
-eml/sample.eml: RFC 822 mail (text)
-empty/empty_file: Empty file (inode)
 ```
 
 ```shell

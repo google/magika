@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog generated="manual">
+  <book id="bk-001">
+    <title>Practical File Detection</title>
+    <author>Example Author</author>
+    <published>2026-04-15</published>
+  </book>
+  <book id="bk-002">
+    <title>Structured Text Samples</title>
+    <author>Sample Writer</author>
+    <published>2026-04-16</published>
+  </book>
+</catalog>

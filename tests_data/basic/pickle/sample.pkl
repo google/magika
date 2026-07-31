@@ -1,0 +1,15 @@
+(dp0
+Vproject
+p1
+Vmagika
+p2
+sVsample
+p3
+I01
+sVvalues
+p4
+(lp5
+I1
+aI2
+aI3
+as.

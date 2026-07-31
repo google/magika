@@ -1,0 +1,32 @@
+# Configuration for the typos spell checker.
+# See https://github.com/crate-ci/typos
+
+[files]
+# Exclude generated, binary, and data files that produce false positives.
+extend-exclude = [
+    "*.json",
+    "*.lock",
+    "tests_data/",
+    "assets/models/",
+]
+
+[default.extend-words]
+# Domain-specific terms or intentional spellings kept to avoid false positives.
+
+# "hve" appears in ONNX model internals referenced in comments.
+hve = "hve"
+
+# "afterall" is used as a variable/identifier name in test scripts.
+afterall = "afterall"
+
+# "Hashi" is the first half of "HashiCorp" (vendor name in content type descriptions).
+hashi = "hashi"
+
+# "Harc" is the first half of "LHarc" (a legacy archive format name).
+harc = "harc"
+
+# "cpy" / "CPY" are standard file extensions for COBOL copybook files.
+cpy = "cpy"
+
+# "LICENSEs" is the plural of "LICENSE" (used in dist-workspace.toml comments).
+licens = "licens"

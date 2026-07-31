@@ -70,6 +70,11 @@ Within both `dl` and `output`, you will find:
 - `is_text`: A boolean indicating if the content is textual.
 - `extensions`: A list of common file extensions for this content type.
 
+In current Magika versions these are the supported metadata fields. Older Python
+releases exposed compatibility names such as `magic` for the human-readable
+description and stored `score` on the content type object itself. Use
+`description` and the top-level `score` field instead.
+
 As mentioned previously, when the model is not used (e.g., for empty files), `dl.label` is set to `undefined`, and the output block will contain a generic content type like `txt` or `unknown`.
 
 For most applications, you should use the `output.label` field, which is the default output of the CLI. The raw `dl` block is provided primarily for debugging and advanced use cases.

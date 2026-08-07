@@ -15,6 +15,7 @@ dist/*
 .vscode
 
 scratchpad/
+.sprinty/
 
 */node_modules/*
 docs/dist

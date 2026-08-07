@@ -27,21 +27,34 @@ use tract_onnx::prelude::*;
 const EMBEDDING_MATMUL: &str = "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/Dense_0/einsum/Einsum";
 
 fn main() -> Result<()> {
-    let mut args = std::env::args_os().skip(1).map(PathBuf::from);
+    let mut args = std::env::args_os().skip(1).map(PathBuf::from).peekable();
+    let batch = if args.peek().is_some_and(|arg| arg == std::path::Path::new("--batch")) {
+        let _flag = args.next();
+        let value = args.next().context("--batch needs a positive integer")?;
+        let value = value
+            .to_str()
+            .context("--batch must be valid UTF-8")?
+            .parse::<usize>()
+            .context("--batch must be a positive integer")?;
+        ensure!(value > 0, "--batch must be greater than zero");
+        Some(value)
+    } else {
+        None
+    };
     let Some(source) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz");
+        bail!("usage: convert-model [--batch N] SOURCE.onnx DESTINATION.nnef.tgz");
     };
     let Some(destination) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz");
+        bail!("usage: convert-model [--batch N] SOURCE.onnx DESTINATION.nnef.tgz");
     };
     if args.next().is_some() {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz");
+        bail!("usage: convert-model [--batch N] SOURCE.onnx DESTINATION.nnef.tgz");
     }
 
     let mut model = tract_onnx::onnx()
         .model_for_path(&source)
         .with_context(|| format!("loading {}", source.display()))?;
-    let batch = model.sym("N").to_dim();
+    let batch = batch.map_or_else(|| model.sym("N").to_dim(), |batch| batch.to_dim());
     model
         .set_input_fact(
             0,
@@ -58,11 +71,9 @@ fn main() -> Result<()> {
         "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/Conv_0/strided_slice_2",
     )?;
     rewrite_symbolic_shapes(&mut model, batch)?;
-    let model = model
-        .into_typed()
-        .context("resolving the ONNX graph")?
-        .into_decluttered()
-        .context("decluttering the typed graph")?;
+    let mut model = model.into_typed().context("resolving the ONNX graph")?;
+    rewrite_gelu_approximations(&mut model)?;
+    let model = model.into_decluttered().context("decluttering the typed graph")?;
 
     let file = File::create(&destination)
         .with_context(|| format!("creating {}", destination.display()))?;
@@ -72,6 +83,32 @@ fn main() -> Result<()> {
         .context("serializing the model as deterministic NNEF/tract-OPL")?;
     gzip.finish().context("finishing the NNEF gzip stream")?;
 
+    Ok(())
+}
+
+fn rewrite_gelu_approximations(model: &mut TypedModel) -> Result<()> {
+    const GELUS: &[&str] = &[
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/ApplyActivation_0/Mul_5",
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/ApplyActivation_1/Mul_5",
+    ];
+
+    for output_name in GELUS {
+        let output_node =
+            model.node_by_name(output_name).with_context(|| format!("finding {output_name}"))?;
+        ensure!(output_node.inputs.len() == 2, "{output_name} is not the expected final GELU mul");
+        let input = output_node.inputs[0];
+        let output = OutletId::new(output_node.id, 0);
+        let mut patch = TypedModelPatch::default();
+        let input = patch.tap_model(model, input)?;
+        let gelu = patch.wire_node(
+            format!("{output_name}.fused-gelu"),
+            tract_core::ops::nn::gelu_approximate::gelu_approximate(false),
+            &[input],
+        )?;
+        patch.shunt_outside(model, output, gelu[0])?;
+        patch.apply(model).with_context(|| format!("fusing GELU ending at {output_name}"))?;
+        model.compact().with_context(|| format!("compacting after fusing {output_name}"))?;
+    }
     Ok(())
 }
 

@@ -59,10 +59,12 @@ its standalone harness can feed the exact same feature tensors to both engines f
 Upstream inspected at commit `876a0296aaa9a103a577674d1f7fd7b180f4debe` (2026-08-06); the latest
 published crate observed during the spike is `tract 0.23.4`.
 
-- tract loads ONNX into an inference model, resolves it into a typed model, then lets a named
-  runtime prepare the optimized runnable form.
-- `tract::runtime_for_name("default")` selects the CPU runtime. On Apple targets,
-  `tract::runtime_for_name("metal")` selects the Metal runtime when the Metal crate is linked.
+- tract loads ONNX into an inference model, resolves it into a typed model, then lets a runtime
+  prepare the target-specific optimized runnable form. The canonical stages and serialization
+  boundary are documented in tract's
+  [`pipeline.md`](https://github.com/sonos/tract/blob/main/doc/pipeline.md).
+- `DefaultRuntime` runs `into_optimized()` and builds the CPU plan. On Apple targets,
+  `MetalRuntime` first applies `MetalTransform`, then runs `into_optimized()` and builds its plan.
 - tract reads and writes NNEF. Its recommended small-runtime deployment is a one-time ONNX-to-NNEF
   translation followed by runtime loading with only the NNEF/core pieces required by the graph.
 - tract-OPL extends standard NNEF when a typed tract operator has no portable NNEF equivalent.
@@ -73,8 +75,9 @@ published crate observed during the spike is `tract 0.23.4`.
   but may not deliver the smallest binary. A successful follow-up should compare the supported
   facade with the minimal `tract-core` + `tract-nnef` deployment described upstream before choosing
   dependencies for production.
-- Runtime preparation is backend-specific. The serialized model remains platform-independent;
-  CPU or Metal optimization happens after loading it.
+- Runtime preparation is backend-specific. Portable NNEF serializes the decluttered typed graph;
+  target-specific LIR, fusion, kernel choice, planning, and state are deliberately not serialized.
+  CPU or Metal optimization happens after loading it and after binding a fixed batch shape.
 
 The expected conversion is performed once, not at application startup:
 
@@ -86,11 +89,13 @@ The original graph does not resolve in tract 0.23.4 with a symbolic batch: its o
 reported as variable-rank, several exporter-generated shape subgraphs cast the symbol through
 `i32`, and two full-range slices use one billion as an end sentinel that tract propagates as a
 literal dimension. The checked converter fixes these before typed-graph resolution by replacing
-one-hot-plus-matmul with a gather, supplying equivalent symbolic `TDim` shapes, and removing the
-identity slices. The resulting NNEF input is `[N, 2048]`; the same prepared tract state passes parity
-for changing batches `1, 2, 3, 8, 16`. CLI output is not a stable scripting API, so the durable
-conversion step pins tract and validates the generated artifact instead of parsing human-readable
-dumps.
+one-hot-plus-matmul with a gather, supplying equivalent `TDim` shapes, removing the identity slices,
+and replacing both exporter-expanded GELU chains with tract's fused `GeluApproximate` op. The
+portable NNEF input is `[N, 2048]`; throughput plans bind `N` to a concrete compute class before
+runtime preparation. The converter can also emit a physically fixed NNEF with `--batch N`; its
+optimized plan is the same as binding the portable artifact before preparation. CLI output is not a
+stable scripting API, so the durable conversion step pins tract and validates the generated artifact
+instead of parsing human-readable dumps.
 
 ## Benchmark design
 
@@ -228,3 +233,41 @@ Dynamic Metal improves over ORT only once batches become fairly large: roughly 4
 batch 32, 14% at batch 64, and 17% at batch 128 in a directional sweep. Only batch 128 crosses the
 15% threshold, while preparation costs around 71-84 ms and first use of a new shape can be expensive.
 That does not justify Metal for the normal CLI path.
+
+## Fixed-plan, fusion, and sustained-load follow-up
+
+The earlier symbolic-plan benchmark was the wrong performance architecture. The checked NNEF may
+stay symbolic to avoid embedding one copy per compute class, but CPU and Metal now bind `N` before
+tract optimization. At fixed batch 128 the CPU plan replaces generic elementwise nodes with
+`Opt*ByScalar` and `Opt*Unicast` kernels. Metal explicitly selects `MetalMlxGemm`, `MetalMfaGemm`, or
+`MetalGgmlGemm` for comparison.
+
+Conversion-time GELU recognition is also required. tract's automatic pattern begins at a `Pow`
+node, while the exported Magika graph spells `x³` as two multiplies, so automatic decluttering cannot
+match it. Replacing the two exact exporter subgraphs with `GeluApproximate` changes the fixed CPU
+plan from 88 to 68 nodes and the Metal plan from 136 to 100 nodes. Metal cast nodes fall from 49 to
+33. Batch-128 maximum score differences remain `2.3841858e-7` on CPU and `1.5199184e-5` on Metal,
+with identical winning labels. A similar fused-softmax experiment reduced node count but regressed
+CPU throughput from roughly 626 to 478 files/s, so it was removed.
+
+In a paired ten-call, batch-128 release run (1,280 files), ORT delivered 683 files/s, fixed/fused
+tract CPU 586 files/s, and fixed/fused tract Metal 972 files/s. Longer isolated Metal sweeps were
+frequency- and thermally-sensitive: loaded samples were roughly 790-852 files/s, with a cold sample
+near 977. A single fixed batch 1,280 delivered about 799 files/s with MLX and 757 with GGML, so
+collapsing ten bounded compute calls into one giant tensor did not improve throughput. Metal is
+therefore a real large-queue compute class, not a batch-one default; the accumulator should emit
+fixed batch 128 while enough work is queued and flush tails to a CPU class.
+
+The CPU plan profiler identifies the next boundary. At fixed batch 128, eager `Im2col` plus its
+`OptMatMul` consume about 57% of execution and max reduction another 15%. tract's lazy-im2col source
+explicitly excludes batch greater than one because its offset tables are single-batch. At fixed
+batch one, lowering `TRACT_LAZY_IM2COL_MIN_KERNEL` from 6 to Magika's width 5 selects `LazyIm2col`:
+the profiled inference falls from 2.90 ms to 1.71 ms. In two alternating 1,000-iteration runs, tuned
+tract CPU delivered 636-652 files/s versus ORT's 414-418. CPU should therefore use fixed batch-one
+or small owner classes until tract supports batched lazy im2col; copying ORT's large in-state batch
+architecture leaves the eager-im2col bandwidth tax in place.
+
+ONNX Runtime's Level-3 optimizer was also exported and fed into the tract converter. ORT already
+uses this optimization level online by default. Its serialized ONNX grew from 3,163,737 to 3,163,953
+bytes, and the fixed/fused NNEF produced from it was 65 bytes larger than the same NNEF produced
+directly from the original ONNX. ORT preprocessing is not a useful tract deployment stage.

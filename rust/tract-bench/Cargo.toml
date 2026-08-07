@@ -15,9 +15,14 @@ name = "convert-model"
 path = "src/bin/convert_model.rs"
 required-features = ["convert"]
 
+[[bin]]
+name = "optimize-onnx"
+path = "src/bin/optimize_onnx.rs"
+required-features = ["ort-runtime"]
+
 [features]
 default = ["ort-runtime", "tract-runtime"]
-convert = ["dep:flate2", "dep:tract-hir", "dep:tract-nnef", "dep:tract-onnx"]
+convert = ["dep:flate2", "dep:tract-core", "dep:tract-hir", "dep:tract-nnef", "dep:tract-onnx"]
 metal = ["tract-runtime", "dep:tract-metal"]
 ort-runtime = ["dep:ndarray", "dep:ort"]
 tract-runtime = ["dep:tract-core", "dep:tract-linalg", "dep:tract-nnef"]

@@ -14,7 +14,7 @@
 
 //! Compares Magika inference runtimes during the tract feasibility spike.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
@@ -23,7 +23,8 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 use ndarray::Array2;
 #[cfg(feature = "tract-runtime")]
 use tract_core::prelude::{
-    Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, tvec,
+    Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, ToDim as _, TypedModel,
+    TypedSimplePlan, TypedSimpleState, tvec,
 };
 #[cfg(feature = "tract-runtime")]
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, State};
@@ -31,10 +32,15 @@ use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, State};
 use tract_core::tract_linalg::multithread::Executor;
 
 #[cfg(all(feature = "metal", target_vendor = "apple"))]
-use tract_metal as _;
+use tract_core::transform::ModelTransform as _;
+
+#[cfg(all(feature = "metal", target_vendor = "apple"))]
+use tract_metal::{MetalGemmImplKind, MetalTransform};
 
 const FEATURE_SIZE: usize = 2048;
 const PADDING_TOKEN: i32 = 256;
+#[cfg(feature = "tract-runtime")]
+const MAGIKA_LAZY_IM2COL_MIN_KERNEL: &str = "5";
 
 #[cfg(feature = "ort-runtime")]
 const ONNX_MODEL: &[u8] = include_bytes!("../../../assets/models/standard_v3_3/model.onnx");
@@ -44,6 +50,14 @@ const NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
 trait Backend {
     fn name(&self) -> &'static str;
     fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>>;
+    fn plan_op_counts(&self) -> Option<std::collections::BTreeMap<String, usize>> {
+        None
+    }
+    fn profile_plan(
+        &mut self, _input: &[i32], _batch: usize,
+    ) -> Result<Option<Vec<(String, String, Duration)>>> {
+        Ok(None)
+    }
 }
 
 #[cfg(feature = "ort-runtime")]
@@ -86,33 +100,33 @@ struct TractBackend {
 
 #[cfg(feature = "tract-runtime")]
 impl TractBackend {
-    fn load_cpu(threads: usize) -> Result<Self> {
-        let runnable = Self::prepare_cpu(threads)?;
+    fn load_cpu(
+        threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>,
+    ) -> Result<Self> {
+        let runnable = Self::prepare_cpu(threads, fixed_batch, nnef_model)?;
         Self::spawn("tract-cpu", runnable.as_ref())
     }
 
-    fn prepare_cpu(threads: usize) -> Result<std::sync::Arc<dyn Runnable>> {
+    fn prepare_cpu(
+        threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>,
+    ) -> Result<std::sync::Arc<dyn Runnable>> {
         static CPU: DefaultRuntime = DefaultRuntime;
         let options =
             RunOptions { executor: Some(Executor::multithread(threads)), ..RunOptions::default() };
-        Self::prepare_with_runtime_and_options("tract-cpu", &CPU, Some(&options))
-    }
-
-    #[cfg(all(feature = "metal", target_vendor = "apple"))]
-    fn load_with_runtime(
-        name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
-    ) -> Result<Self> {
-        let runnable = Self::prepare_with_runtime_and_options(name, runtime, None)?;
-        Self::spawn(name, runnable.as_ref())
+        Self::prepare_with_runtime_and_options(
+            "tract-cpu",
+            &CPU,
+            Some(&options),
+            fixed_batch,
+            nnef_model,
+        )
     }
 
     fn prepare_with_runtime_and_options(
         name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
-        options: Option<&RunOptions>,
+        options: Option<&RunOptions>, fixed_batch: Option<usize>, nnef_model: Option<&Path>,
     ) -> Result<std::sync::Arc<dyn Runnable>> {
-        let model = tract_nnef::nnef()
-            .model_for_read(&mut std::io::Cursor::new(NNEF_MODEL))
-            .context("loading the embedded NNEF model")?;
+        let model = Self::load_model(fixed_batch, nnef_model)?;
         let runnable = match options {
             Some(options) => runtime.prepare_with_options(model, options),
             None => runtime.prepare(model),
@@ -126,11 +140,44 @@ impl TractBackend {
         Ok(Self { name, state })
     }
 
+    fn load_model(fixed_batch: Option<usize>, nnef_model: Option<&Path>) -> Result<TypedModel> {
+        let model = match nnef_model {
+            Some(path) => tract_nnef::nnef()
+                .model_for_path(path)
+                .with_context(|| format!("loading {}", path.display()))?,
+            None => tract_nnef::nnef()
+                .model_for_read(&mut std::io::Cursor::new(NNEF_MODEL))
+                .context("loading the embedded NNEF model")?,
+        };
+        let Some(batch) = fixed_batch else { return Ok(model) };
+        let Some(symbol) = model.symbols.get("N") else {
+            ensure!(
+                model.input_fact(0)?.shape[0] == batch.to_dim(),
+                "fixed NNEF batch does not match --batch {batch}"
+            );
+            return Ok(model);
+        };
+        let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
+        model.set_symbols(&symbols).context("binding the NNEF batch symbol")
+    }
+
     #[cfg(all(feature = "metal", target_vendor = "apple"))]
-    fn load_metal() -> Result<Self> {
-        let runtime = tract_core::runtime::runtime_for_name("metal")?
-            .context("the tract Metal runtime was not registered")?;
-        Self::load_with_runtime("tract-metal", runtime)
+    fn load_metal(
+        fixed_batch: Option<usize>, gemm: Option<&str>, nnef_model: Option<&Path>,
+    ) -> Result<Self> {
+        let gemm_impl = match gemm {
+            None | Some("auto") => None,
+            Some("mlx") => Some(MetalGemmImplKind::Mlx),
+            Some("mfa") => Some(MetalGemmImplKind::Mfa),
+            Some("ggml") => Some(MetalGemmImplKind::Ggml),
+            Some(gemm) => bail!("unknown Metal GEMM implementation: {gemm}"),
+        };
+        let mut model = Self::load_model(fixed_batch, nnef_model)?;
+        MetalTransform { gemm_impl }.transform(&mut model).context("transforming for Metal")?;
+        let model = model.into_optimized().context("optimizing the Metal model")?;
+        let options = RunOptions { skip_order_opt_ram: true, ..RunOptions::default() };
+        let runnable = TypedSimplePlan::build(model, &options).context("preparing tract-metal")?;
+        Self::spawn("tract-metal", &std::sync::Arc::new(runnable))
     }
 }
 
@@ -146,14 +193,52 @@ impl Backend for TractBackend {
         let output = output.remove(0).into_tensor();
         Ok(output.to_plain_array_view::<f32>()?.iter().copied().collect())
     }
+
+    fn plan_op_counts(&self) -> Option<std::collections::BTreeMap<String, usize>> {
+        let model = self.state.runnable().typed_model()?;
+        let mut counts = std::collections::BTreeMap::new();
+        for node in &model.nodes {
+            *counts.entry(node.op.name().to_string()).or_default() += 1;
+        }
+        Some(counts)
+    }
+
+    fn profile_plan(
+        &mut self, input: &[i32], batch: usize,
+    ) -> Result<Option<Vec<(String, String, Duration)>>> {
+        if self.name != "tract-cpu" {
+            return Ok(None);
+        }
+        let state = self
+            .state
+            .downcast_mut::<TypedSimpleState>()
+            .context("tract CPU state is not a typed simple state")?;
+        let input = Tensor::from_shape(&[batch, FEATURE_SIZE], input)?.into_tvalue();
+        let mut samples = Vec::new();
+        let _outputs =
+            state.run_plan_with_eval(tvec!(input), |session, op_state, node, inputs| {
+                let start = Instant::now();
+                let result = tract_core::plan::eval(session, op_state, node, inputs);
+                samples.push((node.name.clone(), node.op.name().to_string(), start.elapsed()));
+                result
+            })?;
+        samples.sort_by_key(|(_, _, elapsed)| std::cmp::Reverse(*elapsed));
+        Ok(Some(samples))
+    }
 }
 
 #[derive(Debug)]
 struct Options {
+    backend: Option<String>,
     batch: usize,
     batch_sweep: bool,
     compute_owners: Option<usize>,
+    fixed_batch: bool,
     iterations: usize,
+    metal_gemm: Option<String>,
+    nnef_model: Option<PathBuf>,
+    plan_summary: bool,
+    profile_plan: bool,
     reverse: bool,
     tract_threads: usize,
     verify_batches: bool,
@@ -162,8 +247,13 @@ struct Options {
 
 fn main() -> Result<()> {
     let options = parse_options()?;
+    configure_tract_codegen();
     ensure!(options.batch > 0, "--batch must be greater than zero");
     ensure!(options.iterations > 0, "--iterations must be greater than zero");
+    ensure!(
+        !(options.fixed_batch && (options.batch_sweep || options.verify_batches)),
+        "--fixed-batch cannot be combined with a multi-shape sweep"
+    );
     #[cfg(feature = "ort-runtime")]
     ort::init().with_telemetry(false).commit();
 
@@ -174,11 +264,32 @@ fn main() -> Result<()> {
     let mut backends: Vec<(Box<dyn Backend>, Duration)> = Vec::new();
 
     #[cfg(feature = "ort-runtime")]
-    load_backend(&mut backends, OrtBackend::load)?;
+    if wants_backend(&options, "ort") {
+        load_backend(&mut backends, OrtBackend::load)?;
+    }
     #[cfg(feature = "tract-runtime")]
-    load_backend(&mut backends, || TractBackend::load_cpu(options.tract_threads))?;
+    if wants_backend(&options, "cpu") {
+        load_backend(&mut backends, || {
+            TractBackend::load_cpu(
+                options.tract_threads,
+                options.fixed_batch.then_some(options.batch),
+                options.nnef_model.as_deref(),
+            )
+        })?;
+    }
     #[cfg(all(feature = "metal", target_vendor = "apple"))]
-    load_backend(&mut backends, TractBackend::load_metal)?;
+    if wants_backend(&options, "metal") {
+        load_backend(&mut backends, || {
+            TractBackend::load_metal(
+                options.fixed_batch.then_some(options.batch),
+                options.metal_gemm.as_deref(),
+                options.nnef_model.as_deref(),
+            )
+        })?;
+    }
+    if options.plan_summary {
+        print_plan_summaries(&backends);
+    }
     if options.reverse {
         backends.reverse();
     }
@@ -186,8 +297,7 @@ fn main() -> Result<()> {
     ensure!(!backends.is_empty(), "enable at least one runtime feature");
     if options.batch_sweep {
         print_header(&backends);
-        #[cfg(feature = "tract-runtime")]
-        println!("tract_cpu_threads\t{}", options.tract_threads);
+        print_runtime_options(&options);
         for batch in [1, 2, 4, 8, 16, 32] {
             let corpus = load_corpus(batch)?;
             let (outputs, first_runs) = verify(&mut backends, &corpus, batch)?;
@@ -210,8 +320,7 @@ fn main() -> Result<()> {
     }
     if options.verify_batches {
         print_header(&backends);
-        #[cfg(feature = "tract-runtime")]
-        println!("tract_cpu_threads\t{}", options.tract_threads);
+        print_runtime_options(&options);
         for batch in [1, 2, 3, 8, 16] {
             let corpus = load_corpus(batch)?;
             let (outputs, _) = verify(&mut backends, &corpus, batch)?;
@@ -222,9 +331,17 @@ fn main() -> Result<()> {
     }
     let corpus = load_corpus(options.batch)?;
     let (outputs, first_runs) = verify(&mut backends, &corpus, options.batch)?;
+    if options.profile_plan {
+        print_plan_profiles(&mut backends, &corpus, options.batch)?;
+    }
     print_header(&backends);
-    #[cfg(feature = "tract-runtime")]
-    println!("tract_cpu_threads\t{}", options.tract_threads);
+    print_runtime_options(&options);
+    println!(
+        "workload\tbatch={}\titerations={}\ttotal_files={}",
+        options.batch,
+        options.iterations,
+        options.batch * options.iterations
+    );
     print_verification(&backends, &outputs);
 
     if !options.verify_only {
@@ -278,7 +395,11 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
     let run_tract = || -> Result<()> {
         #[cfg(feature = "tract-runtime")]
         {
-            let runnable = TractBackend::prepare_cpu(options.tract_threads)?;
+            let runnable = TractBackend::prepare_cpu(
+                options.tract_threads,
+                options.fixed_batch.then_some(options.batch),
+                options.nnef_model.as_deref(),
+            )?;
             bench_compute_owners(
                 "tract-cpu",
                 owners,
@@ -461,14 +582,17 @@ fn bench_backend(
     let mean_per_item_us = total.as_secs_f64() * 1_000_000.0 / iterations as f64 / batch as f64;
     let items_per_second = batch as f64 * iterations as f64 / total.as_secs_f64();
     println!(
-        "result\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{mean_per_item_us:.3}\t{items_per_second:.3}",
+        "result\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{mean_per_item_us:.3}\t{items_per_second:.3}\t{}\t{}\t{}",
         batch,
         backend.name(),
         micros(cold),
         micros(first),
         micros(mean),
         micros(p50),
-        micros(p95)
+        micros(p95),
+        iterations,
+        batch * iterations,
+        micros(total)
     );
     Ok(())
 }
@@ -489,7 +613,30 @@ fn print_header(backends: &[(Box<dyn Backend>, Duration)]) {
         backends.iter().map(|(backend, _)| backend.name()).collect::<Vec<_>>().join(",")
     );
     println!(
-        "columns\tbatch\tbackend\tcold_us\tfirst_us\tmean_us\tp50_us\tp95_us\tmean_per_item_us\titems_per_second"
+        "columns\tbatch\tbackend\tcold_us\tfirst_us\tmean_us\tp50_us\tp95_us\tmean_per_item_us\titems_per_second\titerations\ttotal_files\ttotal_us"
+    );
+}
+
+fn print_runtime_options(options: &Options) {
+    #[cfg(feature = "tract-runtime")]
+    {
+        println!("tract_cpu_threads\t{}", options.tract_threads);
+        println!("tract_batch_plan\t{}", if options.fixed_batch { "fixed" } else { "symbolic" });
+        println!(
+            "tract_lazy_im2col_min_kernel\t{}",
+            std::env::var("TRACT_LAZY_IM2COL_MIN_KERNEL")
+                .unwrap_or_else(|_| MAGIKA_LAZY_IM2COL_MIN_KERNEL.to_string())
+        );
+    }
+    #[cfg(all(feature = "metal", target_vendor = "apple"))]
+    println!("metal_gemm\t{}", options.metal_gemm.as_deref().unwrap_or("auto"));
+    #[cfg(feature = "tract-runtime")]
+    println!(
+        "nnef_source\t{}",
+        options
+            .nnef_model
+            .as_deref()
+            .map_or("embedded", |path| path.to_str().unwrap_or("non-utf8"))
     );
 }
 
@@ -567,10 +714,16 @@ fn argmax(values: &[f32]) -> usize {
 
 fn parse_options() -> Result<Options> {
     let mut options = Options {
+        backend: None,
         batch: 1,
         batch_sweep: false,
         compute_owners: None,
+        fixed_batch: false,
         iterations: 100,
+        metal_gemm: None,
+        nnef_model: None,
+        plan_summary: false,
+        profile_plan: false,
         reverse: false,
         tract_threads: default_tract_threads(),
         verify_batches: false,
@@ -579,6 +732,14 @@ fn parse_options() -> Result<Options> {
     let mut args = std::env::args().skip(1);
     while let Some(argument) = args.next() {
         match argument.as_str() {
+            "--backend" => {
+                let backend = args.next().context("--backend needs a value")?;
+                ensure!(
+                    matches!(backend.as_str(), "ort" | "cpu" | "metal"),
+                    "--backend must be one of ort, cpu, or metal"
+                );
+                options.backend = Some(backend);
+            }
             "--batch" => {
                 options.batch = args.next().context("--batch needs a value")?.parse()?;
             }
@@ -587,9 +748,24 @@ fn parse_options() -> Result<Options> {
                 options.compute_owners =
                     Some(args.next().context("--compute-owners needs a value")?.parse()?);
             }
+            "--fixed-batch" => options.fixed_batch = true,
             "--iterations" => {
                 options.iterations = args.next().context("--iterations needs a value")?.parse()?;
             }
+            "--metal-gemm" => {
+                let gemm = args.next().context("--metal-gemm needs a value")?;
+                ensure!(
+                    matches!(gemm.as_str(), "auto" | "mlx" | "mfa" | "ggml"),
+                    "--metal-gemm must be one of auto, mlx, mfa, or ggml"
+                );
+                options.metal_gemm = Some(gemm);
+            }
+            "--nnef-model" => {
+                options.nnef_model =
+                    Some(PathBuf::from(args.next().context("--nnef-model needs a path")?));
+            }
+            "--plan-summary" => options.plan_summary = true,
+            "--profile-plan" => options.profile_plan = true,
             "--tract-threads" => {
                 options.tract_threads =
                     args.next().context("--tract-threads needs a value")?.parse()?;
@@ -600,8 +776,11 @@ fn parse_options() -> Result<Options> {
             "--verify" => options.verify_only = true,
             "-h" | "--help" => {
                 println!(
-                    "usage: magika-runtime-bench [--verify] [--reverse] [--batch N] \
-                     [--batch-sweep] [--compute-owners N] [--iterations N] \
+                    "usage: magika-runtime-bench [--verify] [--reverse] \
+                     [--backend ort|cpu|metal] [--batch N] \
+                     [--batch-sweep] [--compute-owners N] [--fixed-batch] [--iterations N] \
+                     [--metal-gemm auto|mlx|mfa|ggml] [--nnef-model PATH] [--plan-summary] \
+                     [--profile-plan] \
                      [--tract-threads N] [--verify-batches]"
                 );
                 std::process::exit(0);
@@ -612,9 +791,56 @@ fn parse_options() -> Result<Options> {
     Ok(options)
 }
 
+fn wants_backend(options: &Options, name: &str) -> bool {
+    options.backend.as_deref().is_none_or(|selected| selected == name)
+}
+
+fn print_plan_summaries(backends: &[(Box<dyn Backend>, Duration)]) {
+    for (backend, _) in backends {
+        let Some(counts) = backend.plan_op_counts() else { continue };
+        println!("plan_nodes\t{}\t{}", backend.name(), counts.values().sum::<usize>());
+        for (op, count) in counts {
+            println!("plan_op\t{}\t{op}\t{count}", backend.name());
+        }
+    }
+}
+
+fn print_plan_profiles(
+    backends: &mut [(Box<dyn Backend>, Duration)], input: &[i32], batch: usize,
+) -> Result<()> {
+    for (backend, _) in backends {
+        let Some(samples) = backend.profile_plan(input, batch)? else { continue };
+        let total = samples.iter().map(|(_, _, elapsed)| *elapsed).sum::<Duration>();
+        println!("profile_total\t{}\t{}", backend.name(), micros(total));
+        for (name, op, elapsed) in samples.into_iter().take(12) {
+            let share = elapsed.as_secs_f64() / total.as_secs_f64() * 100.0;
+            println!(
+                "profile_node\t{}\t{}\t{share:.2}\t{op}\t{name}",
+                backend.name(),
+                micros(elapsed)
+            );
+        }
+    }
+    Ok(())
+}
+
 fn default_tract_threads() -> usize {
     std::thread::available_parallelism().map_or(1, |parallelism| parallelism.get().min(2))
 }
+
+#[cfg(feature = "tract-runtime")]
+fn configure_tract_codegen() {
+    if std::env::var_os("TRACT_LAZY_IM2COL_MIN_KERNEL").is_none() {
+        // No worker threads exist yet, and tract reads this process-wide codegen knob only while
+        // preparing a model. Users can still override it before launching the benchmark.
+        unsafe {
+            std::env::set_var("TRACT_LAZY_IM2COL_MIN_KERNEL", MAGIKA_LAZY_IM2COL_MIN_KERNEL);
+        }
+    }
+}
+
+#[cfg(not(feature = "tract-runtime"))]
+fn configure_tract_codegen() {}
 
 fn micros(duration: Duration) -> u128 {
     duration.as_micros()

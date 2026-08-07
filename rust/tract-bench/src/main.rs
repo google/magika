@@ -16,6 +16,8 @@
 
 #[cfg(feature = "tract-runtime")]
 mod direct_conv;
+#[cfg(feature = "tract-runtime")]
+mod plan_pool;
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -24,6 +26,8 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 
 #[cfg(feature = "ort-runtime")]
 use ndarray::Array2;
+#[cfg(feature = "tract-runtime")]
+use plan_pool::PlanPoolBackend;
 #[cfg(all(feature = "metal", target_vendor = "apple"))]
 use tract_core::prelude::TypedSimplePlan;
 #[cfg(feature = "tract-runtime")]
@@ -55,6 +59,9 @@ const NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
 trait Backend {
     fn name(&self) -> &'static str;
     fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>>;
+    fn selected_classes(&self, _batch: usize) -> Option<Vec<usize>> {
+        None
+    }
     fn plan_op_counts(&self) -> Option<std::collections::BTreeMap<String, usize>> {
         None
     }
@@ -249,6 +256,13 @@ impl Backend for TractBackend {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+enum PoolRouting {
+    Ceil,
+    #[default]
+    Exact,
+}
+
 #[derive(Debug)]
 struct Options {
     backend: Option<String>,
@@ -260,6 +274,8 @@ struct Options {
     iterations: usize,
     metal_gemm: Option<String>,
     nnef_model: Option<PathBuf>,
+    plan_pool: Option<Vec<usize>>,
+    pool_routing: PoolRouting,
     plan_summary: bool,
     profile_plan: bool,
     reverse: bool,
@@ -277,6 +293,14 @@ fn main() -> Result<()> {
         !(options.fixed_batch && (options.batch_sweep || options.verify_batches)),
         "--fixed-batch cannot be combined with a multi-shape sweep"
     );
+    ensure!(
+        !(options.fixed_batch && options.plan_pool.is_some()),
+        "--fixed-batch and --plan-pool are alternative fixed-shape modes"
+    );
+    ensure!(
+        !(options.compute_owners.is_some() && options.plan_pool.is_some()),
+        "--compute-owners does not yet support a resident plan pool"
+    );
     #[cfg(feature = "ort-runtime")]
     ort::init().with_telemetry(false).commit();
 
@@ -292,24 +316,47 @@ fn main() -> Result<()> {
     }
     #[cfg(feature = "tract-runtime")]
     if wants_backend(&options, "cpu") {
-        load_backend(&mut backends, || {
-            TractBackend::load_cpu(
-                options.tract_threads,
-                options.fixed_batch.then_some(options.batch),
-                options.nnef_model.as_deref(),
-                options.direct_fused_conv,
-            )
-        })?;
+        if let Some(classes) = options.plan_pool.as_deref() {
+            load_backend(&mut backends, || {
+                PlanPoolBackend::load_cpu(
+                    classes,
+                    options.tract_threads,
+                    options.nnef_model.as_deref(),
+                    options.direct_fused_conv,
+                    options.pool_routing,
+                )
+            })?;
+        } else {
+            load_backend(&mut backends, || {
+                TractBackend::load_cpu(
+                    options.tract_threads,
+                    options.fixed_batch.then_some(options.batch),
+                    options.nnef_model.as_deref(),
+                    options.direct_fused_conv,
+                )
+            })?;
+        }
     }
     #[cfg(all(feature = "metal", target_vendor = "apple"))]
     if wants_backend(&options, "metal") {
-        load_backend(&mut backends, || {
-            TractBackend::load_metal(
-                options.fixed_batch.then_some(options.batch),
-                options.metal_gemm.as_deref(),
-                options.nnef_model.as_deref(),
-            )
-        })?;
+        if let Some(classes) = options.plan_pool.as_deref() {
+            load_backend(&mut backends, || {
+                PlanPoolBackend::load_metal(
+                    classes,
+                    options.metal_gemm.as_deref(),
+                    options.nnef_model.as_deref(),
+                    options.pool_routing,
+                )
+            })?;
+        } else {
+            load_backend(&mut backends, || {
+                TractBackend::load_metal(
+                    options.fixed_batch.then_some(options.batch),
+                    options.metal_gemm.as_deref(),
+                    options.nnef_model.as_deref(),
+                )
+            })?;
+        }
     }
     if options.plan_summary {
         print_plan_summaries(&backends);
@@ -322,8 +369,14 @@ fn main() -> Result<()> {
     if options.batch_sweep {
         print_header(&backends);
         print_runtime_options(&options);
-        for batch in [1, 2, 4, 8, 16, 32] {
+        let batches: Vec<usize> = if options.plan_pool.is_some() {
+            (1..=10).chain([16, 32, 64]).collect()
+        } else {
+            vec![1, 2, 4, 8, 16, 32]
+        };
+        for batch in batches {
             let corpus = load_corpus(batch)?;
+            print_routes(&backends, batch);
             let (outputs, first_runs) = verify(&mut backends, &corpus, batch)?;
             println!("verification_batch\t{batch}");
             print_verification(&backends, &outputs);
@@ -354,6 +407,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let corpus = load_corpus(options.batch)?;
+    print_routes(&backends, options.batch);
     let (outputs, first_runs) = verify(&mut backends, &corpus, options.batch)?;
     if options.profile_plan {
         print_plan_profiles(&mut backends, &corpus, options.batch)?;
@@ -642,11 +696,23 @@ fn print_header(backends: &[(Box<dyn Backend>, Duration)]) {
     );
 }
 
+#[cfg_attr(not(feature = "tract-runtime"), allow(unused_variables))]
 fn print_runtime_options(options: &Options) {
     #[cfg(feature = "tract-runtime")]
     {
         println!("tract_cpu_threads\t{}", options.tract_threads);
-        println!("tract_batch_plan\t{}", if options.fixed_batch { "fixed" } else { "symbolic" });
+        let batch_plan = match &options.plan_pool {
+            Some(classes) => format!(
+                "pool:{}",
+                classes.iter().map(usize::to_string).collect::<Vec<_>>().join(",")
+            ),
+            None if options.fixed_batch => "fixed".to_string(),
+            None => "symbolic".to_string(),
+        };
+        println!("tract_batch_plan\t{batch_plan}");
+        if options.plan_pool.is_some() {
+            println!("tract_pool_routing\t{:?}", options.pool_routing);
+        }
         println!(
             "tract_lazy_im2col_min_kernel\t{}",
             std::env::var("TRACT_LAZY_IM2COL_MIN_KERNEL")
@@ -748,6 +814,8 @@ fn parse_options() -> Result<Options> {
         iterations: 100,
         metal_gemm: None,
         nnef_model: None,
+        plan_pool: None,
+        pool_routing: PoolRouting::default(),
         plan_summary: false,
         profile_plan: false,
         reverse: false,
@@ -791,6 +859,26 @@ fn parse_options() -> Result<Options> {
                 options.nnef_model =
                     Some(PathBuf::from(args.next().context("--nnef-model needs a path")?));
             }
+            "--plan-pool" => {
+                let value = args.next().context("--plan-pool needs comma-separated classes")?;
+                let mut classes = value
+                    .split(',')
+                    .map(str::parse::<usize>)
+                    .collect::<std::result::Result<Vec<_>, _>>()?;
+                ensure!(!classes.is_empty(), "--plan-pool needs at least one class");
+                ensure!(classes.iter().all(|class| *class > 0), "plan classes must be positive");
+                classes.sort_unstable();
+                classes.dedup();
+                options.plan_pool = Some(classes);
+            }
+            "--pool-routing" => {
+                options.pool_routing = match args.next().as_deref() {
+                    Some("ceil") => PoolRouting::Ceil,
+                    Some("exact") => PoolRouting::Exact,
+                    Some(value) => bail!("unknown pool routing: {value}"),
+                    None => bail!("--pool-routing needs ceil or exact"),
+                };
+            }
             "--plan-summary" => options.plan_summary = true,
             "--profile-plan" => options.profile_plan = true,
             "--tract-threads" => {
@@ -808,7 +896,7 @@ fn parse_options() -> Result<Options> {
                      [--batch-sweep] [--compute-owners N] [--direct-fused-conv] \
                      [--fixed-batch] [--iterations N] \
                      [--metal-gemm auto|mlx|mfa|ggml] [--nnef-model PATH] [--plan-summary] \
-                     [--profile-plan] \
+                     [--plan-pool 1,8,16,32,64] [--pool-routing exact|ceil] [--profile-plan] \
                      [--tract-threads N] [--verify-batches]"
                 );
                 std::process::exit(0);
@@ -829,6 +917,15 @@ fn print_plan_summaries(backends: &[(Box<dyn Backend>, Duration)]) {
         println!("plan_nodes\t{}\t{}", backend.name(), counts.values().sum::<usize>());
         for (op, count) in counts {
             println!("plan_op\t{}\t{op}\t{count}", backend.name());
+        }
+    }
+}
+
+fn print_routes(backends: &[(Box<dyn Backend>, Duration)], batch: usize) {
+    for (backend, _) in backends {
+        if let Some(classes) = backend.selected_classes(batch) {
+            let classes = classes.iter().map(usize::to_string).collect::<Vec<_>>().join("+");
+            println!("plan_route\t{}\trequest={batch}\tclasses={classes}", backend.name());
         }
     }
 }

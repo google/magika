@@ -255,8 +255,8 @@ tract CPU 586 files/s, and fixed/fused tract Metal 972 files/s. Longer isolated 
 frequency- and thermally-sensitive: loaded samples were roughly 790-852 files/s, with a cold sample
 near 977. A single fixed batch 1,280 delivered about 799 files/s with MLX and 757 with GGML, so
 collapsing ten bounded compute calls into one giant tensor did not improve throughput. Metal is
-therefore a real large-queue compute class, not a batch-one default; the accumulator should emit
-fixed batch 128 while enough work is queued and flush tails to a CPU class.
+therefore a real fixed-shape compute backend. The resident-plan experiment below supersedes the
+batch-128-only routing recommendation.
 
 ## Direct CPU convolution follow-up
 
@@ -278,6 +278,25 @@ queue sizes that benchmarks justify: small/tail work goes to the built-in lazy p
 128-file CPU batch can use direct fusion when Metal is unavailable or already occupied. The next
 kernel step is to fuse the following max-over-position reduction into bounded output tiles; that
 would avoid materializing the `[batch, 508, 512]` activation entirely.
+
+## Resident Metal plan pool
+
+To leave CPU capacity available for other work, the clean macOS design is a Metal-only owner holding
+all fixed classes `1, 8, 16, 32, 64`. Every class is bound and passed independently through
+`MetalTransform` and target optimization, then spawned and warmed during startup. Request-time
+switching only selects an existing state; there is no dynamic model or compilation path.
+
+Routing must compose exact classes rather than pad to the next ceiling. Request 10 is `8+1+1`, not
+a padded class 16; request 7 is seven class-1 calls. In the release sweep this Metal-only pool is
+within 2% of ORT or faster for every request from 1 through 7, then leads by 63% at 8, 32% at 9, and
+28% at 10. Exact Metal classes 16, 32, and 64 deliver 913-928 files/s. Maximum score error remains
+`1.5199184e-5` with identical labels.
+
+The cost of making every class genuinely ready is about 327 ms of startup including warm-up. The
+isolated pool uses 67.6 MB maximum RSS and 169.7 MB macOS peak memory footprint. This deliberately
+eliminates deferred first-use work: without warm-up, the first class-16 call took 572 ms. CPU plans
+are not involved in this route; CPU remains available for input extraction, I/O, and unrelated
+application work.
 
 The CPU plan profiler identifies the next boundary. At fixed batch 128, eager `Im2col` plus its
 `OptMatMul` consume about 57% of execution and max reduction another 15%. tract's lazy-im2col source

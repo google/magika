@@ -99,6 +99,25 @@ Use release mode for this comparison: full LTO materially improves the custom pa
 loop. The direct path is not the batch-one default; tract's built-in batch-one `LazyIm2col` remains
 faster for that compute class.
 
+Prepare and warm every fixed class up front with a resident plan pool:
+
+```sh
+cargo run --manifest-path rust/tract-bench/Cargo.toml --release --features metal -- \
+  --backend metal --plan-pool 1,8,16,32,64 --pool-routing exact \
+  --batch-sweep --iterations 5
+```
+
+Each class is independently bound, transformed with `MetalTransform`, optimized, spawned, and
+warmed. Switching classes is then only a lookup of an already resident mutable state; no model
+conversion, optimization, or pipeline compilation occurs on the request path. Exact routing avoids
+padding by composing classes in descending order: request 10 becomes `8+1+1`, while 16 uses the
+single class-16 state. `--pool-routing ceil` retains the padded single-plan comparison.
+
+This Metal-only mode does not use the custom CPU convolution and does not send tails to CPU. It
+keeps CPU capacity available for extraction and unrelated work. The CPU pool remains available as a
+separate fallback benchmark; with `--direct-fused-conv`, it uses built-in `LazyIm2col` for class 1
+and direct fused convolution for classes 8 and larger.
+
 Measure the compute stage after accumulating representative CLI batches. The harness constructs
 each contiguous `[batch, 2048]` input before timing and reports batch latency, mean latency per
 file, and files per second:

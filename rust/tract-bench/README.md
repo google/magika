@@ -65,6 +65,14 @@ model preparation the harness defaults `TRACT_LAZY_IM2COL_MIN_KERNEL` to `5`, se
 lazy convolution lowering for Magika's width-five kernel at batch one. An environment value set by
 the caller takes precedence. tract 0.23.4 cannot use this lowering when batch is greater than one.
 
+For fixed large CPU batches, `--direct-fused-conv` replaces Magika's exact
+Conv1D -> transpose -> GELU chain with a benchmark-only `DirectFusedConv1D` operator. It packs the
+constant weights once, generates batched convolution panels on demand, adds bias inside tract's
+optimized matrix-multiplication kernel, and runs the SIMD GELU in place in the same output tensor.
+It therefore has no eager `Im2col` allocation or intermediate transpose/GELU tensor. This path uses
+the current tract executor, so its matrix multiplication remains multithreaded. It deliberately
+requires `--fixed-batch`; it is not a new dynamic execution path.
+
 Collect cold preparation, first inference, and warm timing samples:
 
 ```sh
@@ -78,6 +86,18 @@ Inspect the target-specific optimized operator plan and profile one CPU inferenc
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
   --backend cpu --batch 128 --fixed-batch --plan-summary --profile-plan --verify
 ```
+
+Compare the direct large-batch CPU kernel with tract's built-in eager-im2col lowering:
+
+```sh
+cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
+  --backend cpu --batch 128 --fixed-batch --direct-fused-conv \
+  --iterations 10 --plan-summary --verify
+```
+
+Use release mode for this comparison: full LTO materially improves the custom panel-generation hot
+loop. The direct path is not the batch-one default; tract's built-in batch-one `LazyIm2col` remains
+faster for that compute class.
 
 Measure the compute stage after accumulating representative CLI batches. The harness constructs
 each contiguous `[batch, 2048]` input before timing and reports batch latency, mean latency per

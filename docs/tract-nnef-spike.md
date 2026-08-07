@@ -258,6 +258,27 @@ collapsing ten bounded compute calls into one giant tensor did not improve throu
 therefore a real large-queue compute class, not a batch-one default; the accumulator should emit
 fixed batch 128 while enough work is queued and flush tails to a CPU class.
 
+## Direct CPU convolution follow-up
+
+The fixed batch-128 CPU deficit came from tract's lowering, not from an inherent CPU limit. The
+benchmark now has a fixed-shape `DirectFusedConv1D` operator that preserves tract's optimized packed
+matrix microkernel but replaces eager `Im2col` with on-demand batched panels. Bias is part of the
+MMM fused-spec program and GELU runs in place in the same output allocation. The resulting plan has
+no `Im2col` node and no separate transpose or second GELU node.
+
+Across two counter-ordered release trials of five batch-128 calls, the direct path delivered
+549-646 files/s versus 303-326 for tract's eager-im2col plan. It also beat its paired ORT execution
+in both orders (ORT ranged from 404 to 576 files/s under the same large thermal drift). Labels are
+identical and maximum absolute score error remains `2.3841858e-7`. Full LTO matters for the custom
+panel loop; optimized dev builds understate this result.
+
+This is a large-batch compute class, not a universal CPU replacement. At batch one, tract's existing
+`LazyIm2col` path is still faster. The accumulator should therefore prepare fixed CPU plans for the
+queue sizes that benchmarks justify: small/tail work goes to the built-in lazy plan, while a full
+128-file CPU batch can use direct fusion when Metal is unavailable or already occupied. The next
+kernel step is to fuse the following max-over-position reduction into bounded output tiles; that
+would avoid materializing the `[batch, 508, 512]` activation entirely.
+
 The CPU plan profiler identifies the next boundary. At fixed batch 128, eager `Im2col` plus its
 `OptMatMul` consume about 57% of execution and max reduction another 15%. tract's lazy-im2col source
 explicitly excludes batch greater than one because its offset tables are single-batch. At fixed

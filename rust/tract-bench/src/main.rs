@@ -14,6 +14,9 @@
 
 //! Compares Magika inference runtimes during the tract feasibility spike.
 
+#[cfg(feature = "tract-runtime")]
+mod direct_conv;
+
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -21,10 +24,12 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 
 #[cfg(feature = "ort-runtime")]
 use ndarray::Array2;
+#[cfg(all(feature = "metal", target_vendor = "apple"))]
+use tract_core::prelude::TypedSimplePlan;
 #[cfg(feature = "tract-runtime")]
 use tract_core::prelude::{
     Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, ToDim as _, TypedModel,
-    TypedSimplePlan, TypedSimpleState, tvec,
+    TypedSimpleState, tvec,
 };
 #[cfg(feature = "tract-runtime")]
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, State};
@@ -101,14 +106,14 @@ struct TractBackend {
 #[cfg(feature = "tract-runtime")]
 impl TractBackend {
     fn load_cpu(
-        threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>,
+        threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>, direct_fused: bool,
     ) -> Result<Self> {
-        let runnable = Self::prepare_cpu(threads, fixed_batch, nnef_model)?;
+        let runnable = Self::prepare_cpu(threads, fixed_batch, nnef_model, direct_fused)?;
         Self::spawn("tract-cpu", runnable.as_ref())
     }
 
     fn prepare_cpu(
-        threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>,
+        threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>, direct_fused: bool,
     ) -> Result<std::sync::Arc<dyn Runnable>> {
         static CPU: DefaultRuntime = DefaultRuntime;
         let options =
@@ -119,14 +124,16 @@ impl TractBackend {
             Some(&options),
             fixed_batch,
             nnef_model,
+            direct_fused,
         )
     }
 
     fn prepare_with_runtime_and_options(
         name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
         options: Option<&RunOptions>, fixed_batch: Option<usize>, nnef_model: Option<&Path>,
+        direct_fused: bool,
     ) -> Result<std::sync::Arc<dyn Runnable>> {
-        let model = Self::load_model(fixed_batch, nnef_model)?;
+        let model = Self::load_model(fixed_batch, nnef_model, direct_fused)?;
         let runnable = match options {
             Some(options) => runtime.prepare_with_options(model, options),
             None => runtime.prepare(model),
@@ -140,8 +147,10 @@ impl TractBackend {
         Ok(Self { name, state })
     }
 
-    fn load_model(fixed_batch: Option<usize>, nnef_model: Option<&Path>) -> Result<TypedModel> {
-        let model = match nnef_model {
+    fn load_model(
+        fixed_batch: Option<usize>, nnef_model: Option<&Path>, direct_fused: bool,
+    ) -> Result<TypedModel> {
+        let mut model = match nnef_model {
             Some(path) => tract_nnef::nnef()
                 .model_for_path(path)
                 .with_context(|| format!("loading {}", path.display()))?,
@@ -149,16 +158,29 @@ impl TractBackend {
                 .model_for_read(&mut std::io::Cursor::new(NNEF_MODEL))
                 .context("loading the embedded NNEF model")?,
         };
-        let Some(batch) = fixed_batch else { return Ok(model) };
+        let Some(batch) = fixed_batch else {
+            ensure!(!direct_fused, "--direct-fused-conv requires --fixed-batch");
+            return Ok(model);
+        };
         let Some(symbol) = model.symbols.get("N") else {
             ensure!(
                 model.input_fact(0)?.shape[0] == batch.to_dim(),
                 "fixed NNEF batch does not match --batch {batch}"
             );
+            if direct_fused {
+                model =
+                    model.into_decluttered().context("decluttering before direct Conv1D fusion")?;
+                direct_conv::fuse_magika_conv(&mut model, batch)?;
+            }
             return Ok(model);
         };
         let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
-        model.set_symbols(&symbols).context("binding the NNEF batch symbol")
+        let mut model = model.set_symbols(&symbols).context("binding the NNEF batch symbol")?;
+        if direct_fused {
+            model = model.into_decluttered().context("decluttering before direct Conv1D fusion")?;
+            direct_conv::fuse_magika_conv(&mut model, batch)?;
+        }
+        Ok(model)
     }
 
     #[cfg(all(feature = "metal", target_vendor = "apple"))]
@@ -172,7 +194,7 @@ impl TractBackend {
             Some("ggml") => Some(MetalGemmImplKind::Ggml),
             Some(gemm) => bail!("unknown Metal GEMM implementation: {gemm}"),
         };
-        let mut model = Self::load_model(fixed_batch, nnef_model)?;
+        let mut model = Self::load_model(fixed_batch, nnef_model, false)?;
         MetalTransform { gemm_impl }.transform(&mut model).context("transforming for Metal")?;
         let model = model.into_optimized().context("optimizing the Metal model")?;
         let options = RunOptions { skip_order_opt_ram: true, ..RunOptions::default() };
@@ -233,6 +255,7 @@ struct Options {
     batch: usize,
     batch_sweep: bool,
     compute_owners: Option<usize>,
+    direct_fused_conv: bool,
     fixed_batch: bool,
     iterations: usize,
     metal_gemm: Option<String>,
@@ -274,6 +297,7 @@ fn main() -> Result<()> {
                 options.tract_threads,
                 options.fixed_batch.then_some(options.batch),
                 options.nnef_model.as_deref(),
+                options.direct_fused_conv,
             )
         })?;
     }
@@ -399,6 +423,7 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
                 options.tract_threads,
                 options.fixed_batch.then_some(options.batch),
                 options.nnef_model.as_deref(),
+                options.direct_fused_conv,
             )?;
             bench_compute_owners(
                 "tract-cpu",
@@ -718,6 +743,7 @@ fn parse_options() -> Result<Options> {
         batch: 1,
         batch_sweep: false,
         compute_owners: None,
+        direct_fused_conv: false,
         fixed_batch: false,
         iterations: 100,
         metal_gemm: None,
@@ -748,6 +774,7 @@ fn parse_options() -> Result<Options> {
                 options.compute_owners =
                     Some(args.next().context("--compute-owners needs a value")?.parse()?);
             }
+            "--direct-fused-conv" => options.direct_fused_conv = true,
             "--fixed-batch" => options.fixed_batch = true,
             "--iterations" => {
                 options.iterations = args.next().context("--iterations needs a value")?.parse()?;
@@ -778,7 +805,8 @@ fn parse_options() -> Result<Options> {
                 println!(
                     "usage: magika-runtime-bench [--verify] [--reverse] \
                      [--backend ort|cpu|metal] [--batch N] \
-                     [--batch-sweep] [--compute-owners N] [--fixed-batch] [--iterations N] \
+                     [--batch-sweep] [--compute-owners N] [--direct-fused-conv] \
+                     [--fixed-batch] [--iterations N] \
                      [--metal-gemm auto|mlx|mfa|ggml] [--nnef-model PATH] [--plan-summary] \
                      [--profile-plan] \
                      [--tract-threads N] [--verify-batches]"

@@ -177,7 +177,9 @@ impl TractBackend {
             if direct_fused {
                 model =
                     model.into_decluttered().context("decluttering before direct Conv1D fusion")?;
-                direct_conv::fuse_magika_conv(&mut model, batch)?;
+                if !direct_conv::fuse_magika_conv_max(&mut model, batch)? {
+                    eprintln!("direct_fusion\tfallback\tbatch={batch}");
+                }
             }
             return Ok(model);
         };
@@ -185,7 +187,9 @@ impl TractBackend {
         let mut model = model.set_symbols(&symbols).context("binding the NNEF batch symbol")?;
         if direct_fused {
             model = model.into_decluttered().context("decluttering before direct Conv1D fusion")?;
-            direct_conv::fuse_magika_conv(&mut model, batch)?;
+            if !direct_conv::fuse_magika_conv_max(&mut model, batch)? {
+                eprintln!("direct_fusion\tfallback\tbatch={batch}");
+            }
         }
         Ok(model)
     }

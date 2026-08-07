@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Benchmark-only direct Conv1D + bias + GELU operator for Magika's fixed shape.
+//! Benchmark-only tiled Conv1D + bias + GELU + max operator for Magika models.
 
 use std::alloc::Layout;
 use std::fmt::{Debug, Display};
@@ -25,63 +25,182 @@ use tract_linalg::WeightType;
 use tract_linalg::mmm::{AsInputValue, FusedSpec, MMMInputFormat, MMMInputValue, MatMatMul};
 use tract_linalg::pack::{PackedFormat, PackingWriter};
 
-const INPUT_CHANNELS: usize = 256;
-const INPUT_LENGTH: usize = 512;
-const OUTPUT_CHANNELS: usize = 512;
-const KERNEL_LENGTH: usize = 5;
-const OUTPUT_LENGTH: usize = INPUT_LENGTH - KERNEL_LENGTH + 1;
-const REDUCTION: usize = INPUT_CHANNELS * KERNEL_LENGTH;
+/// Keep the default temporary activation bounded while preserving enough columns for an efficient
+/// MMM. The benchmark can override this at model-preparation time to tune the memory/dispatch
+/// tradeoff without rebuilding.
+const DEFAULT_TILE_BATCHES: usize = 4;
+const TILE_BATCHES_ENV: &str = "MAGIKA_DIRECT_TILE_BATCHES";
 
-const CONV_NODE: &str = "jax2tf_get_logits__pjit_get_logits__MagikaV2_Conv_0_Conv2D_conv";
-const GELU_NODE: &str =
-    "jax2tf_get_logits__pjit_get_logits__MagikaV2_ApplyActivation_1_Mul_5_fused_gelu";
-
-/// Replace Magika's exact Conv1D -> transpose -> GELU chain with one direct operator.
-pub(crate) fn fuse_magika_conv(model: &mut TypedModel, batch: usize) -> TractResult<()> {
-    let conv = model.node_by_name(CONV_NODE)?;
-    ensure!(conv.inputs.len() == 3, "unexpected Magika Conv1D input count");
-    let input = conv.inputs[0];
-    let input_shape = model
-        .outlet_fact(input)?
-        .shape
-        .as_concrete()
-        .context("direct Conv1D requires a concrete input shape")?;
-    let channels_last = match input_shape {
-        [n, INPUT_CHANNELS, INPUT_LENGTH] if *n == batch => false,
-        [n, INPUT_LENGTH, INPUT_CHANNELS] if *n == batch => true,
-        shape => bail!("unexpected direct Conv1D input shape {shape:?}"),
+/// Replace a supported Conv1D -> transpose -> GELU -> max-over-position chain.
+///
+/// A model that does not have the exact supported topology is deliberately left unchanged. This
+/// makes the optimization safe to enable for model pools that may contain a newer architecture.
+pub(crate) fn fuse_magika_conv_max(model: &mut TypedModel, batch: usize) -> TractResult<bool> {
+    let Some(pattern) = FusionPattern::find(model, batch)? else {
+        return Ok(false);
     };
-    let kernel = model
-        .outlet_fact(conv.inputs[1])?
-        .konst
-        .clone()
-        .context("Magika Conv1D kernel is not constant")?;
-    let bias = model
-        .outlet_fact(conv.inputs[2])?
-        .konst
-        .clone()
-        .context("Magika Conv1D bias is not constant")?;
-
-    let gelu = model.node_by_name(GELU_NODE)?;
-    let gelu_source = model.node(gelu.inputs[0].node);
-    ensure!(
-        gelu_source.id == conv.id || (gelu_source.inputs.as_slice() == [OutletId::new(conv.id, 0)]),
-        "unexpected node {} between Magika Conv1D and GELU",
-        gelu_source.name
-    );
-
-    let op = DirectFusedConv1D::new(batch, channels_last, kernel, bias)?;
+    let op = DirectFusedConvMax1D::new(pattern.dimensions, pattern.kernel, pattern.bias)?;
     let mut patch = TypedModelPatch::default();
-    let input = patch.tap_model(model, input)?;
-    let output = patch.wire_node("magika.direct_fused_conv1d", op, &[input])?[0];
-    patch.shunt_outside(model, OutletId::new(gelu.id, 0), output)?;
-    patch.apply(model)
+    let input = patch.tap_model(model, pattern.input)?;
+    let output = patch.wire_node("magika.direct_fused_conv_max1d", op, &[input])?[0];
+    patch.shunt_outside(model, OutletId::new(pattern.max_node, 0), output)?;
+    patch.apply(model)?;
+    Ok(true)
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+struct ConvDimensions {
+    batch: usize,
+    input_channels: usize,
+    input_length: usize,
+    output_channels: usize,
+    kernel_length: usize,
+    output_length: usize,
+    channels_last: bool,
+}
+
+impl ConvDimensions {
+    fn reduction(self) -> usize {
+        self.input_channels * self.kernel_length
+    }
+
+    fn columns(self) -> usize {
+        self.batch * self.output_length
+    }
+}
+
+struct FusionPattern {
+    input: OutletId,
+    max_node: usize,
+    kernel: Arc<Tensor>,
+    bias: Arc<Tensor>,
+    dimensions: ConvDimensions,
+}
+
+impl FusionPattern {
+    fn find(model: &TypedModel, batch: usize) -> TractResult<Option<Self>> {
+        use tract_core::ops::change_axes::AxisOp;
+        use tract_core::ops::cnn::{Conv, KernelFormat};
+        use tract_core::ops::element_wise::ElementWiseOp;
+        use tract_core::ops::nn::{DataFormat, GeluApproximate, Reduce, Reducer};
+
+        for max in &model.nodes {
+            let Some(reduce) = max.op.downcast_ref::<Reduce>() else { continue };
+            if reduce.reducer != Reducer::Max || reduce.axes.as_slice() != [1] {
+                continue;
+            }
+            let [gelu_input] = max.inputs.as_slice() else { continue };
+            if gelu_input.slot != 0 {
+                continue;
+            }
+            let gelu = model.node(gelu_input.node);
+            let Some(element_wise) = gelu.op.downcast_ref::<ElementWiseOp>() else { continue };
+            let Some(gelu_op) = element_wise.0.downcast_ref::<GeluApproximate>() else { continue };
+            if gelu_op.fast_impl {
+                continue;
+            }
+            let [transpose_input] = gelu.inputs.as_slice() else { continue };
+            if transpose_input.slot != 0 {
+                continue;
+            }
+            let activation_source = model.node(transpose_input.node);
+            let conv = if activation_source.op.downcast_ref::<Conv>().is_some() {
+                activation_source
+            } else {
+                let Some(axis_op) = activation_source.op.downcast_ref::<AxisOp>() else {
+                    continue;
+                };
+                if !matches!(axis_op, AxisOp::Move(1, 2) | AxisOp::Move(2, 1)) {
+                    continue;
+                }
+                let [conv_input] = activation_source.inputs.as_slice() else { continue };
+                if conv_input.slot != 0 {
+                    continue;
+                }
+                model.node(conv_input.node)
+            };
+            let Some(conv_op) = conv.op.downcast_ref::<Conv>() else { continue };
+            if conv.inputs.len() != 3
+                || conv_op.group != 1
+                || conv_op.q_params.is_some()
+                || conv_op.kernel_fmt != KernelFormat::OIHW
+                || !matches!(conv_op.pool_spec.data_format, DataFormat::NCHW | DataFormat::NHWC)
+                || conv_op.pool_spec.kernel_shape.len() != 1
+                || conv_op.pool_spec.stride(0) != 1
+                || conv_op.pool_spec.dilation(0) != 1
+                || !conv_op.pool_spec.padding.valid_dim(0, true)
+            {
+                continue;
+            }
+
+            let input = conv.inputs[0];
+            let Some(input_shape) = model.outlet_fact(input)?.shape.as_concrete() else {
+                continue;
+            };
+            let (n, input_channels, input_length, channels_last) =
+                match (conv_op.pool_spec.data_format, input_shape) {
+                    (DataFormat::NCHW, [n, input_channels, input_length]) => {
+                        (*n, *input_channels, *input_length, false)
+                    }
+                    (DataFormat::NHWC, [n, input_length, input_channels]) => {
+                        (*n, *input_channels, *input_length, true)
+                    }
+                    _ => continue,
+                };
+            if n != batch || input_channels != conv_op.pool_spec.input_channels {
+                continue;
+            }
+            let Some(kernel) = model.outlet_fact(conv.inputs[1])?.konst.clone() else {
+                continue;
+            };
+            let Some(bias) = model.outlet_fact(conv.inputs[2])?.konst.clone() else {
+                continue;
+            };
+            let kernel_shape = kernel.shape();
+            let [output_channels, kernel_input_channels, kernel_length] = kernel_shape else {
+                continue;
+            };
+            if *kernel_input_channels != input_channels
+                || *output_channels != conv_op.pool_spec.output_channels
+                || bias.shape() != [*output_channels]
+                || input_length < *kernel_length
+            {
+                continue;
+            }
+            let output_length = input_length - *kernel_length + 1;
+            let dimensions = ConvDimensions {
+                batch,
+                input_channels,
+                input_length,
+                output_channels: *output_channels,
+                kernel_length: *kernel_length,
+                output_length,
+                channels_last,
+            };
+            let expected_conv_output = if channels_last {
+                [batch, output_length, *output_channels]
+            } else {
+                [batch, *output_channels, output_length]
+            };
+            if model.outlet_fact(OutletId::new(conv.id, 0))?.shape.as_concrete()
+                != Some(&expected_conv_output)
+                || model.outlet_fact(OutletId::new(gelu.id, 0))?.shape.as_concrete()
+                    != Some(&[batch, output_length, *output_channels])
+                || model.outlet_fact(OutletId::new(max.id, 0))?.shape.as_concrete()
+                    != Some(&[batch, 1, *output_channels])
+            {
+                continue;
+            }
+            return Ok(Some(Self { input, max_node: max.id, kernel, bias, dimensions }));
+        }
+        Ok(None)
+    }
 }
 
 #[derive(Clone, Debug)]
-struct DirectFusedConv1D {
-    batch: usize,
-    channels_last: bool,
+struct DirectFusedConvMax1D {
+    dimensions: ConvDimensions,
+    tile_batches: usize,
     mmm: Box<dyn MatMatMul>,
     packing: usize,
     packed_kernel: Box<dyn MMMInputValue>,
@@ -89,10 +208,10 @@ struct DirectFusedConv1D {
     input_format: Arc<DirectConvInputFormat>,
 }
 
-impl PartialEq for DirectFusedConv1D {
+impl PartialEq for DirectFusedConvMax1D {
     fn eq(&self, other: &Self) -> bool {
-        self.batch == other.batch
-            && self.channels_last == other.channels_last
+        self.dimensions == other.dimensions
+            && self.tile_batches == other.tile_batches
             && self.mmm.name() == other.mmm.name()
             && self.packing == other.packing
             && Arc::ptr_eq(&self.bias, &other.bias)
@@ -100,20 +219,40 @@ impl PartialEq for DirectFusedConv1D {
     }
 }
 
-impl Eq for DirectFusedConv1D {}
+impl Eq for DirectFusedConvMax1D {}
 
-impl DirectFusedConv1D {
+impl DirectFusedConvMax1D {
     fn new(
-        batch: usize, channels_last: bool, kernel: Arc<Tensor>, bias: Arc<Tensor>,
+        dimensions: ConvDimensions, kernel: Arc<Tensor>, bias: Arc<Tensor>,
     ) -> TractResult<Self> {
         ensure!(kernel.datum_type() == DatumType::F32, "Conv1D kernel must be f32");
-        ensure!(kernel.shape() == [OUTPUT_CHANNELS, INPUT_CHANNELS, KERNEL_LENGTH]);
+        ensure!(
+            kernel.shape()
+                == [
+                    dimensions.output_channels,
+                    dimensions.input_channels,
+                    dimensions.kernel_length,
+                ]
+        );
         ensure!(bias.datum_type() == DatumType::F32, "Conv1D bias must be f32");
-        ensure!(bias.shape() == [OUTPUT_CHANNELS]);
+        ensure!(bias.shape() == [dimensions.output_channels]);
 
-        let columns = batch * OUTPUT_LENGTH;
+        let tile_batches = std::env::var(TILE_BATCHES_ENV)
+            .ok()
+            .map(|value| value.parse::<usize>())
+            .transpose()
+            .with_context(|| format!("{TILE_BATCHES_ENV} must be a positive integer"))?
+            .unwrap_or(DEFAULT_TILE_BATCHES)
+            .min(dimensions.batch);
+        ensure!(tile_batches > 0, "{TILE_BATCHES_ENV} must be greater than zero");
+        let tile_columns = dimensions.output_length * tile_batches;
         let mmm = tract_linalg::ops()
-            .mmm(DatumType::F32, Some(OUTPUT_CHANNELS), Some(REDUCTION), Some(columns))
+            .mmm(
+                DatumType::F32,
+                Some(dimensions.output_channels),
+                Some(dimensions.reduction()),
+                Some(tile_columns),
+            )
             .context("no f32 matmul implementation for direct Magika Conv1D")?;
         let packing = mmm
             .packings()
@@ -125,7 +264,10 @@ impl DirectFusedConv1D {
             })
             .context("matmul implementation has no plain-f32 packed input pair")?;
         let packed_kernel = mmm.packings()[packing].0.prepare_one(
-            &kernel.as_ref().clone().into_shape(&[OUTPUT_CHANNELS, REDUCTION])?,
+            &kernel
+                .as_ref()
+                .clone()
+                .into_shape(&[dimensions.output_channels, dimensions.reduction()])?,
             1,
             0,
         )?;
@@ -134,54 +276,53 @@ impl DirectFusedConv1D {
             .downcast_ref::<PackedFormat>()
             .context("direct Conv1D input packer is not a PackedFormat")?
             .clone();
-        let column_offsets = (0..columns)
+        let column_offsets = (0..dimensions.columns())
             .map(|column| {
-                let batch = column / OUTPUT_LENGTH;
-                let position = column % OUTPUT_LENGTH;
-                if channels_last {
-                    (batch * INPUT_LENGTH + position) * INPUT_CHANNELS
+                let batch = column / dimensions.output_length;
+                let position = column % dimensions.output_length;
+                if dimensions.channels_last {
+                    (batch * dimensions.input_length + position) * dimensions.input_channels
                 } else {
-                    batch * INPUT_CHANNELS * INPUT_LENGTH + position
+                    batch * dimensions.input_channels * dimensions.input_length + position
                 }
             })
             .collect();
-        let reduction_offsets = (0..REDUCTION)
+        let reduction_offsets = (0..dimensions.reduction())
             .map(|k| {
-                if channels_last {
-                    let channel = k / KERNEL_LENGTH;
-                    let kernel_position = k % KERNEL_LENGTH;
-                    kernel_position * INPUT_CHANNELS + channel
+                let channel = k / dimensions.kernel_length;
+                let kernel_position = k % dimensions.kernel_length;
+                if dimensions.channels_last {
+                    kernel_position * dimensions.input_channels + channel
                 } else {
-                    let channel = k / KERNEL_LENGTH;
-                    let kernel_position = k % KERNEL_LENGTH;
-                    channel * INPUT_LENGTH + kernel_position
+                    channel * dimensions.input_length + kernel_position
                 }
             })
             .collect();
         let input_format = Arc::new(DirectConvInputFormat {
             packer: input_packer,
-            batch,
-            channels_last,
+            dimensions,
+            tile_batches,
             column_offsets,
             reduction_offsets,
         });
-        Ok(Self { batch, channels_last, mmm, packing, packed_kernel, bias, input_format })
+        Ok(Self { dimensions, tile_batches, mmm, packing, packed_kernel, bias, input_format })
     }
 }
 
-impl Op for DirectFusedConv1D {
+impl Op for DirectFusedConvMax1D {
     fn name(&self) -> StaticName {
-        "DirectFusedConv1D".into()
+        "DirectFusedConvMax1D".into()
     }
 
     fn info(&self) -> TractResult<Vec<String>> {
         Ok(vec![format!(
-            "batch={} input_layout={} m={} k={} n={} kernel={} eager_im2col=false bias=mmm gelu=in_place",
-            self.batch,
-            if self.channels_last { "NLC" } else { "NCL" },
-            OUTPUT_CHANNELS,
-            REDUCTION,
-            self.batch * OUTPUT_LENGTH,
+            "batch={} input_layout={} m={} k={} n={} tile_batches={} kernel={} eager_im2col=false bias=mmm gelu=in_place max=tiled",
+            self.dimensions.batch,
+            if self.dimensions.channels_last { "NLC" } else { "NCL" },
+            self.dimensions.output_channels,
+            self.dimensions.reduction(),
+            self.dimensions.columns(),
+            self.tile_batches,
             self.mmm.name()
         )])
     }
@@ -189,67 +330,111 @@ impl Op for DirectFusedConv1D {
     op_as_typed_op!();
 }
 
-impl EvalOp for DirectFusedConv1D {
+impl EvalOp for DirectFusedConvMax1D {
     fn is_stateless(&self) -> bool {
         true
     }
 
     fn eval(&self, inputs: TVec<TValue>) -> TractResult<TVec<TValue>> {
         let input = args_1!(inputs);
-        let expected = if self.channels_last {
-            [self.batch, INPUT_LENGTH, INPUT_CHANNELS]
+        let d = self.dimensions;
+        let expected = if d.channels_last {
+            [d.batch, d.input_length, d.input_channels]
         } else {
-            [self.batch, INPUT_CHANNELS, INPUT_LENGTH]
+            [d.batch, d.input_channels, d.input_length]
         };
         ensure!(
             input.shape() == expected,
             "unexpected direct Conv1D input shape {:?}",
             input.shape()
         );
-        let direct_input = DirectConvInput { tensor: input, format: self.input_format.clone() };
-        // The MMM Store covers every output element before GELU reads it.
-        let mut output = unsafe {
-            Tensor::uninitialized_dt(DatumType::F32, &[self.batch, OUTPUT_LENGTH, OUTPUT_CHANNELS])?
-        };
-        let output_spec = unsafe {
-            self.mmm.c_from_data_and_strides(
-                std::mem::size_of::<f32>(),
-                1,
-                OUTPUT_CHANNELS as isize,
-            )
-        };
+        let mut maxima = Tensor::from_shape(
+            &[d.batch, 1, d.output_channels],
+            &vec![f32::NEG_INFINITY; d.batch * d.output_channels],
+        )?;
         {
-            let output_view = output.view();
-            let store = unsafe { output_spec.wrap(&output_view) };
-            let specs = [
-                FusedSpec::AddMatMul {
-                    a: AsInputValue::Borrowed(&*self.packed_kernel),
-                    b: AsInputValue::Borrowed(&direct_input),
-                    packing: self.packing,
-                },
-                FusedSpec::BinPerRow(self.bias.view(), BinOp::Add),
-                FusedSpec::Store(store),
-            ];
-            unsafe {
-                self.mmm.run(OUTPUT_CHANNELS, self.batch * OUTPUT_LENGTH, &specs)?;
+            let mut maxima_plain = maxima.try_as_plain_mut()?;
+            let maxima_values = maxima_plain.as_slice_mut::<f32>()?;
+            for batch_start in (0..d.batch).step_by(self.tile_batches) {
+                let tile_batches = (d.batch - batch_start).min(self.tile_batches);
+                let tile_columns = tile_batches * d.output_length;
+                let direct_input = DirectConvInput {
+                    tensor: input.clone(),
+                    format: self.input_format.clone(),
+                    column_start: batch_start * d.output_length,
+                    columns: tile_columns,
+                };
+                // Store covers every tile element before GELU and max read it.
+                let mut tile = unsafe {
+                    Tensor::uninitialized_dt(
+                        DatumType::F32,
+                        &[tile_batches, d.output_length, d.output_channels],
+                    )?
+                };
+                let output_spec = unsafe {
+                    self.mmm.c_from_data_and_strides(
+                        std::mem::size_of::<f32>(),
+                        1,
+                        d.output_channels as isize,
+                    )
+                };
+                {
+                    let tile_view = tile.view();
+                    let store = unsafe { output_spec.wrap(&tile_view) };
+                    let specs = [
+                        FusedSpec::AddMatMul {
+                            a: AsInputValue::Borrowed(&*self.packed_kernel),
+                            b: AsInputValue::Borrowed(&direct_input),
+                            packing: self.packing,
+                        },
+                        FusedSpec::BinPerRow(self.bias.view(), BinOp::Add),
+                        FusedSpec::Store(store),
+                    ];
+                    unsafe {
+                        self.mmm.run(d.output_channels, tile_columns, &specs)?;
+                    }
+                }
+                let mut tile_plain = tile.try_as_plain_mut()?;
+                let tile_values = tile_plain.as_slice_mut::<f32>()?;
+                (tract_linalg::ops().gelu_f32)().run(tile_values)?;
+                for tile_batch in 0..tile_batches {
+                    let maxima_start = (batch_start + tile_batch) * d.output_channels;
+                    let item_maxima =
+                        &mut maxima_values[maxima_start..maxima_start + d.output_channels];
+                    let item_start = tile_batch * d.output_length * d.output_channels;
+                    for position in 0..d.output_length {
+                        let row_start = item_start + position * d.output_channels;
+                        update_maxima(
+                            item_maxima,
+                            &tile_values[row_start..row_start + d.output_channels],
+                        );
+                    }
+                }
             }
         }
-        (tract_linalg::ops().gelu_f32)().run(output.try_as_plain_mut()?.as_slice_mut::<f32>()?)?;
-        Ok(tvec!(output.into_tvalue()))
+        Ok(tvec!(maxima.into_tvalue()))
     }
 }
 
-impl TypedOp for DirectFusedConv1D {
+#[inline]
+fn update_maxima(maxima: &mut [f32], row: &[f32]) {
+    for (maximum, value) in maxima.iter_mut().zip(row) {
+        *maximum = maximum.max(*value);
+    }
+}
+
+impl TypedOp for DirectFusedConvMax1D {
     fn output_facts(&self, inputs: &[&TypedFact]) -> TractResult<TVec<TypedFact>> {
         ensure!(inputs.len() == 1);
         ensure!(inputs[0].datum_type == DatumType::F32);
-        let expected = if self.channels_last {
-            [self.batch, INPUT_LENGTH, INPUT_CHANNELS]
+        let d = self.dimensions;
+        let expected = if d.channels_last {
+            [d.batch, d.input_length, d.input_channels]
         } else {
-            [self.batch, INPUT_CHANNELS, INPUT_LENGTH]
+            [d.batch, d.input_channels, d.input_length]
         };
         ensure!(inputs[0].shape.as_concrete() == Some(&expected[..]));
-        Ok(tvec!(DatumType::F32.fact([self.batch, OUTPUT_LENGTH, OUTPUT_CHANNELS])))
+        Ok(tvec!(DatumType::F32.fact([d.batch, 1, d.output_channels])))
     }
 
     as_op!();
@@ -258,8 +443,8 @@ impl TypedOp for DirectFusedConv1D {
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 struct DirectConvInputFormat {
     packer: PackedFormat,
-    batch: usize,
-    channels_last: bool,
+    dimensions: ConvDimensions,
+    tile_batches: usize,
     column_offsets: Vec<usize>,
     reduction_offsets: Vec<usize>,
 }
@@ -272,7 +457,11 @@ impl Display for DirectConvInputFormat {
 
 impl ExoticFact for DirectConvInputFormat {
     fn buffer_sizes(&self) -> TVec<TDim> {
-        tvec!((REDUCTION * self.batch * OUTPUT_LENGTH * std::mem::size_of::<f32>()).to_dim())
+        let d = self.dimensions;
+        tvec!(
+            (d.reduction() * d.output_length * self.tile_batches * std::mem::size_of::<f32>())
+                .to_dim()
+        )
     }
 }
 
@@ -282,7 +471,7 @@ impl MMMInputFormat for DirectConvInputFormat {
     }
 
     fn prepare_one(&self, _: &Tensor, _: usize, _: usize) -> TractResult<Box<dyn MMMInputValue>> {
-        bail!("DirectConvInputFormat is created by DirectFusedConv1D")
+        bail!("DirectConvInputFormat is created by DirectFusedConvMax1D")
     }
 
     fn precursor(&self) -> WeightType {
@@ -318,6 +507,8 @@ impl MMMInputFormat for DirectConvInputFormat {
 struct DirectConvInput {
     tensor: TValue,
     format: Arc<DirectConvInputFormat>,
+    column_start: usize,
+    columns: usize,
 }
 
 impl Display for DirectConvInput {
@@ -330,6 +521,8 @@ impl Hash for DirectConvInput {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.tensor.as_bytes().hash(state);
         self.format.hash(state);
+        self.column_start.hash(state);
+        self.columns.hash(state);
     }
 }
 
@@ -352,8 +545,11 @@ impl DirectConvInput {
     }
 
     fn write_tail_panel(&self, start: usize, end: usize, buffer: *mut u8) -> *const u8 {
-        let mut writer =
-            self.format.packer.write_with_k_outer(buffer.cast::<f32>(), REDUCTION, end - start);
+        let mut writer = self.format.packer.write_with_k_outer(
+            buffer.cast::<f32>(),
+            self.format.dimensions.reduction(),
+            end - start,
+        );
         self.write_columns(&mut writer, start, end);
         buffer
     }
@@ -361,6 +557,8 @@ impl DirectConvInput {
     #[inline]
     fn write_columns(&self, writer: &mut impl PackingWriter<f32>, start: usize, end: usize) {
         let input = unsafe { self.tensor.as_slice_unchecked::<f32>() };
+        let start = self.column_start + start;
+        let end = self.column_start + end;
         let columns = &self.format.column_offsets[start..end];
         match columns {
             &[c0, c1, c2, c3, c4, c5, c6, c7] => {
@@ -416,7 +614,12 @@ impl MMMInputValue for DirectConvInput {
     }
 
     fn scratch_panel_buffer_layout(&self) -> Option<Layout> {
-        Some(self.format.packer.single_panel_layout(REDUCTION, std::mem::size_of::<f32>()))
+        Some(
+            self.format.packer.single_panel_layout(
+                self.format.dimensions.reduction(),
+                std::mem::size_of::<f32>(),
+            ),
+        )
     }
 
     fn panel_bytes(&self, panel: usize, buffer: Option<*mut u8>) -> TractResult<*const u8> {
@@ -424,11 +627,11 @@ impl MMMInputValue for DirectConvInput {
     }
 
     fn mn(&self) -> usize {
-        self.format.batch * OUTPUT_LENGTH
+        self.columns
     }
 
     fn k(&self) -> usize {
-        REDUCTION
+        self.format.dimensions.reduction()
     }
 
     fn exotic_fact(&self) -> &dyn ExoticFact {
@@ -441,12 +644,32 @@ impl MMMInputValue for DirectConvInput {
 
     fn extract_at_mn_f32(&self, column: usize, output: &mut [f32]) -> TractResult<()> {
         ensure!(column < self.mn());
-        ensure!(output.len() == REDUCTION);
+        ensure!(output.len() == self.format.dimensions.reduction());
         let input = unsafe { self.tensor.as_slice_unchecked::<f32>() };
         for (k, value) in output.iter_mut().enumerate() {
-            let offset = self.format.column_offsets[column] + self.format.reduction_offsets[k];
+            let offset = self.format.column_offsets[self.column_start + column]
+                + self.format.reduction_offsets[k];
             *value = input[offset];
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unmatched_model_uses_tract_fallback() {
+        let mut model = TypedModel::default();
+        assert!(!fuse_magika_conv_max(&mut model, 8).unwrap());
+    }
+
+    #[test]
+    fn tiled_max_accumulates_each_channel() {
+        let mut maxima = [f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY];
+        update_maxima(&mut maxima, &[1.0, 4.0, -2.0]);
+        update_maxima(&mut maxima, &[3.0, 2.0, -1.0]);
+        assert_eq!(maxima, [3.0, 4.0, -1.0]);
     }
 }

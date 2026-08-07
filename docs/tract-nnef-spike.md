@@ -261,10 +261,9 @@ batch-128-only routing recommendation.
 ## Direct CPU convolution follow-up
 
 The fixed batch-128 CPU deficit came from tract's lowering, not from an inherent CPU limit. The
-benchmark now has a fixed-shape `DirectFusedConv1D` operator that preserves tract's optimized packed
-matrix microkernel but replaces eager `Im2col` with on-demand batched panels. Bias is part of the
-MMM fused-spec program and GELU runs in place in the same output allocation. The resulting plan has
-no `Im2col` node and no separate transpose or second GELU node.
+benchmark first added a fixed-shape `DirectFusedConv1D` operator that preserves tract's optimized
+packed matrix microkernel but replaces eager `Im2col` with on-demand batched panels. Bias is part of
+the MMM fused-spec program and GELU runs in place in the same output allocation.
 
 Across two counter-ordered release trials of five batch-128 calls, the direct path delivered
 549-646 files/s versus 303-326 for tract's eager-im2col plan. It also beat its paired ORT execution
@@ -272,12 +271,23 @@ in both orders (ORT ranged from 404 to 576 files/s under the same large thermal 
 identical and maximum absolute score error remains `2.3841858e-7`. Full LTO matters for the custom
 panel loop; optimized dev builds understate this result.
 
-This is a large-batch compute class, not a universal CPU replacement. At batch one, tract's existing
-`LazyIm2col` path is still faster. The accumulator should therefore prepare fixed CPU plans for the
-queue sizes that benchmarks justify: small/tail work goes to the built-in lazy plan, while a full
-128-file CPU batch can use direct fusion when Metal is unavailable or already occupied. The next
-kernel step is to fuse the following max-over-position reduction into bounded output tiles; that
-would avoid materializing the `[batch, 508, 512]` activation entirely.
+The follow-up `DirectFusedConvMax1D` now also owns the following max-over-position reduction. It
+computes four batch items at a time, applies GELU, updates `[batch, 1, channels]` running maxima, and
+releases the tile instead of materializing the full `[batch, 508, 512]` activation. The optimized
+plan drops from 68 to 62 nodes and contains neither the convolution `Im2col` nor its second GELU and
+position reduction. Maximum score error remains `2.3841858e-7`.
+
+In counter-ordered ten-call batch-128 runs, this bounded fused-max path delivered 953 files/s in
+both orders versus ORT's 621-646 files/s. A tile-depth sweep from 4 through 64 showed equivalent
+batch-64 throughput, about 974-1,051 files/s outside one thermal outlier, so four is retained as the
+roughly 4 MiB bounded default. A fixed batch-128 CPU-only process measured 178.1 MB maximum RSS and
+164.3 MB macOS peak memory footprint. The resident pool still keeps batch one on tract's existing
+`LazyIm2col`; fixed classes 8 and larger use this direct fused-max operator.
+
+The graph matcher derives dimensions and safely falls back to ordinary tract for an unmatched new
+model. This is runtime compatibility, not universal converter support: historical
+`standard_v2_1` and `fast_v2_1` currently fail the JAX-v3-specific ONNX-to-NNEF converter and use
+exact-erf GELU, so accelerated support for those artifacts remains separate work.
 
 ## Resident Metal plan pool
 

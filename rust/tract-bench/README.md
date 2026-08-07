@@ -66,12 +66,25 @@ lazy convolution lowering for Magika's width-five kernel at batch one. An enviro
 the caller takes precedence. tract 0.23.4 cannot use this lowering when batch is greater than one.
 
 For fixed large CPU batches, `--direct-fused-conv` replaces Magika's exact
-Conv1D -> transpose -> GELU chain with a benchmark-only `DirectFusedConv1D` operator. It packs the
-constant weights once, generates batched convolution panels on demand, adds bias inside tract's
-optimized matrix-multiplication kernel, and runs the SIMD GELU in place in the same output tensor.
-It therefore has no eager `Im2col` allocation or intermediate transpose/GELU tensor. This path uses
-the current tract executor, so its matrix multiplication remains multithreaded. It deliberately
+Conv1D -> GELU -> max-over-position chain with a benchmark-only `DirectFusedConvMax1D` operator. It
+packs the constant weights once, generates batched convolution panels on demand, adds bias inside
+tract's optimized matrix-multiplication kernel, applies SIMD GELU in place, and updates the final
+per-channel maxima before releasing each bounded tile. It therefore has no eager `Im2col`
+allocation and never materializes the full `[batch, positions, channels]` activation. This path
+uses the current tract executor, so its matrix multiplication remains multithreaded. It deliberately
 requires `--fixed-batch`; it is not a new dynamic execution path.
+
+The default tile contains four batch items, about 4 MiB for `standard_v3_3`, regardless of the
+fixed plan's full batch. `MAGIKA_DIRECT_TILE_BATCHES=N` is a preparation-time benchmark knob.
+Values from 4 through 64 produced equivalent batch-64 throughput on the M5 Max, so four remains the
+memory-bounded default. The rewrite derives sequence and channel dimensions from the typed graph
+and activates only after checking the exact convolution, canonical approximate GELU, reduction
+axis, constants, layouts, and concrete facts. A non-matching future model remains on ordinary tract
+rather than failing model preparation.
+
+The checked-in converter currently targets the JAX-exported `standard_v3_3` graph. Historical
+`standard_v2_1` and `fast_v2_1` use different converter node names and exact-erf GELU graphs; they
+need a separate conversion/fusion adapter before this benchmark can claim accelerated NNEF support.
 
 Collect cold preparation, first inference, and warm timing samples:
 
@@ -116,7 +129,7 @@ single class-16 state. `--pool-routing ceil` retains the padded single-plan comp
 This Metal-only mode does not use the custom CPU convolution and does not send tails to CPU. It
 keeps CPU capacity available for extraction and unrelated work. The CPU pool remains available as a
 separate fallback benchmark; with `--direct-fused-conv`, it uses built-in `LazyIm2col` for class 1
-and direct fused convolution for classes 8 and larger.
+and direct fused convolution/max reduction for classes 8 and larger.
 
 Measure the compute stage after accumulating representative CLI batches. The harness constructs
 each contiguous `[batch, 2048]` input before timing and reports batch latency, mean latency per

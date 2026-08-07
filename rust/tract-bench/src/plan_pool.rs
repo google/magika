@@ -50,7 +50,7 @@ impl PlanPoolBackend {
         Ok(pool)
     }
 
-    #[cfg(all(feature = "metal", target_vendor = "apple"))]
+    #[cfg(all(feature = "metal", target_os = "macos"))]
     pub(super) fn load_metal(
         classes: &[usize], gemm: Option<&str>, nnef_model: Option<&Path>, routing: PoolRouting,
     ) -> Result<Self> {

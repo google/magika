@@ -28,7 +28,7 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 use ndarray::Array2;
 #[cfg(feature = "tract-runtime")]
 use plan_pool::PlanPoolBackend;
-#[cfg(all(feature = "metal", target_vendor = "apple"))]
+#[cfg(all(feature = "metal", target_os = "macos"))]
 use tract_core::prelude::TypedSimplePlan;
 #[cfg(feature = "tract-runtime")]
 use tract_core::prelude::{
@@ -40,10 +40,10 @@ use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, State};
 #[cfg(feature = "tract-runtime")]
 use tract_core::tract_linalg::multithread::Executor;
 
-#[cfg(all(feature = "metal", target_vendor = "apple"))]
+#[cfg(all(feature = "metal", target_os = "macos"))]
 use tract_core::transform::ModelTransform as _;
 
-#[cfg(all(feature = "metal", target_vendor = "apple"))]
+#[cfg(all(feature = "metal", target_os = "macos"))]
 use tract_metal::{MetalGemmImplKind, MetalTransform};
 
 const FEATURE_SIZE: usize = 2048;
@@ -194,7 +194,7 @@ impl TractBackend {
         Ok(model)
     }
 
-    #[cfg(all(feature = "metal", target_vendor = "apple"))]
+    #[cfg(all(feature = "metal", target_os = "macos"))]
     fn load_metal(
         fixed_batch: Option<usize>, gemm: Option<&str>, nnef_model: Option<&Path>,
     ) -> Result<Self> {
@@ -341,7 +341,7 @@ fn main() -> Result<()> {
             })?;
         }
     }
-    #[cfg(all(feature = "metal", target_vendor = "apple"))]
+    #[cfg(all(feature = "metal", target_os = "macos"))]
     if wants_backend(&options, "metal") {
         if let Some(classes) = options.plan_pool.as_deref() {
             load_backend(&mut backends, || {
@@ -723,7 +723,7 @@ fn print_runtime_options(options: &Options) {
                 .unwrap_or_else(|_| MAGIKA_LAZY_IM2COL_MIN_KERNEL.to_string())
         );
     }
-    #[cfg(all(feature = "metal", target_vendor = "apple"))]
+    #[cfg(all(feature = "metal", target_os = "macos"))]
     println!("metal_gemm\t{}", options.metal_gemm.as_deref().unwrap_or("auto"));
     #[cfg(feature = "tract-runtime")]
     println!(
@@ -894,21 +894,46 @@ fn parse_options() -> Result<Options> {
             "--verify-batches" => options.verify_batches = true,
             "--verify" => options.verify_only = true,
             "-h" | "--help" => {
-                println!(
-                    "usage: magika-runtime-bench [--verify] [--reverse] \
-                     [--backend ort|cpu|metal] [--batch N] \
-                     [--batch-sweep] [--compute-owners N] [--direct-fused-conv] \
-                     [--fixed-batch] [--iterations N] \
-                     [--metal-gemm auto|mlx|mfa|ggml] [--nnef-model PATH] [--plan-summary] \
-                     [--plan-pool 1,8,16,32,64] [--pool-routing exact|ceil] [--profile-plan] \
-                     [--tract-threads N] [--verify-batches]"
-                );
+                print_help();
                 std::process::exit(0);
             }
             _ => bail!("unknown argument: {argument}"),
         }
     }
+    #[cfg(not(target_os = "macos"))]
+    {
+        ensure!(
+            options.backend.as_deref() != Some("metal"),
+            "the Metal backend is available only on macOS"
+        );
+        ensure!(options.metal_gemm.is_none(), "--metal-gemm is available only on macOS");
+    }
+    #[cfg(all(target_os = "macos", not(feature = "metal")))]
+    ensure!(
+        options.backend.as_deref() != Some("metal"),
+        "the Metal backend requires building with --features metal"
+    );
     Ok(options)
+}
+
+fn print_help() {
+    #[cfg(target_os = "macos")]
+    const BACKENDS: &str = "ort|cpu|metal";
+    #[cfg(not(target_os = "macos"))]
+    const BACKENDS: &str = "ort|cpu";
+    #[cfg(target_os = "macos")]
+    const METAL: &str = " [--metal-gemm auto|mlx|mfa|ggml]";
+    #[cfg(not(target_os = "macos"))]
+    const METAL: &str = "";
+
+    println!(
+        "usage: magika-runtime-bench [--verify] [--reverse] \
+         [--backend {BACKENDS}] [--batch N] \
+         [--batch-sweep] [--compute-owners N] [--direct-fused-conv] \
+         [--fixed-batch] [--iterations N]{METAL} [--nnef-model PATH] [--plan-summary] \
+         [--plan-pool 1,8,16,32,64] [--pool-routing exact|ceil] [--profile-plan] \
+         [--tract-threads N] [--verify-batches]"
+    );
 }
 
 fn wants_backend(options: &Options, name: &str) -> bool {

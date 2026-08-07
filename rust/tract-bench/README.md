@@ -1,16 +1,43 @@
 # Magika runtime feasibility benchmark
 
-This standalone, non-production crate measures the existing ONNX Runtime path against a minimal
-tract NNEF path. It intentionally does not change the published `magika` library or CLI.
+This standalone, non-production crate measures the existing ONNX Runtime path against a tract NNEF
+path. It intentionally does not change the published `magika` library or CLI.
 
-The converter is pinned to tract `0.23.4` and writes a deterministic gzip-compressed NNEF/tract-OPL
-archive. During conversion it replaces the model's one-hot-plus-matmul embedding with an equivalent
-gather and replaces both exporter-expanded GELU chains with tract's fused `GeluApproximate` op:
+## Model release process
+
+`convert-model` has one contract: it accepts an ONNX file and writes a portable, optimized NNEF
+archive that the Rust tract runtime can load directly. It is pinned to tract `0.23.4`, performs
+tract's typed portable-graph optimization, restores a symbolic leading batch dimension, and writes
+a deterministic gzip-compressed tar archive. It does not depend on ONNX exporter node names.
+Semantic graph matching replaces one-hot matrix multiplication with `Gather`, fuses canonical
+tanh-GELU math, and lowers dynamic BatchNorm to portable arithmetic so both the v2 fast/standard
+models and the v3 standard models pass through the same converter.
+
+Convert any compatible Magika ONNX model:
+
+```sh
+cargo run --manifest-path rust/tract-bench/Cargo.toml \
+  --no-default-features --features convert --bin convert-model -- \
+  path/to/model.onnx path/to/model.nnef.tgz
+```
+
+The `.nnef.tgz` output is the release artifact. Gzip is used because
+`tract_nnef::nnef().model_for_path(...)` consumes the compressed archive directly. The size-analysis
+script also recompresses the unpacked NNEF tar with zstd-19 for an equal-codec comparison; that
+zstd file is a measurement artifact, not the Rust runtime package.
+
+For the checked Magika model, regenerate or verify the artifact and then run the release gate:
 
 ```sh
 rust/tract-bench/scripts/convert-model.sh
 rust/tract-bench/scripts/convert-model.sh --check
+rust/tract-bench/scripts/verify-model-conversion.sh
 ```
+
+The release gate converts every bundled standard, fast, and beginning-only model twice, requires
+byte-identical output, validates each gzip/tar, and reloads and prepares each artifact through the
+Rust CPU path. For the current deployment model it also compares scores and winning labels with
+ONNX Runtime at fixed batch classes 1, 8, 16, 32, and 64.
 
 Compare ONNX and NNEF model sizes using identical raw, gzip, and zstd representations:
 
@@ -18,21 +45,26 @@ Compare ONNX and NNEF model sizes using identical raw, gzip, and zstd representa
 rust/tract-bench/scripts/measure-size.sh
 ```
 
-The checked NNEF artifact retains a symbolic batch dimension only as a portable storage artifact.
-Performance runs use `--fixed-batch`, which binds that symbol before tract's target-specific
-optimization/codegen phase. This produces a concrete CPU or Metal plan; there is no symbolic shape
-on the hot path. A concrete artifact can also be exported for inspection:
+The NNEF artifact retains a symbolic batch dimension only for portable storage. Rust binds `N` to
+the selected fixed class before tract performs target-specific optimization and kernel selection,
+so there is no symbolic shape on the inference hot path. The same archive therefore supplies the
+prebuilt 1, 8, 16, 32, and 64 plans instead of shipping five duplicate copies of the weights.
 
-```sh
-cargo run --manifest-path rust/tract-bench/Cargo.toml \
-  --no-default-features --features convert --bin convert-model -- \
-  --batch 128 assets/models/standard_v3_3/model.onnx /tmp/model.fixed-128.nnef.tgz
+The corresponding Rust loading sequence is:
+
+```rust
+use tract_core::prelude::{Framework as _, ToDim as _};
+use tract_core::runtime::{DefaultRuntime, Runtime as _};
+
+let mut model = tract_nnef::nnef().model_for_path("model.nnef.tgz")?;
+let n = model.symbols.get("N").expect("converter emits batch symbol N");
+model = model.set_symbols(&std::collections::HashMap::from([(n, 8.to_dim())]))?;
+let runnable = tract_core::runtime::DefaultRuntime.prepare(model)?;
+let mut state = runnable.spawn()?;
 ```
 
-The converter performs the embedding and GELU rewrites before serialization, replaces
-exporter-generated shape inputs with equivalent tract dimensions, and removes two full-range
-slices. `--check` verifies deterministic conversion. tract's portable NNEF stores the decluttered
-typed graph; CPU/Metal kernel selection is intentionally performed after load and is not serialized.
+NNEF stores the optimized portable graph. CPU and Metal code generation deliberately happens in
+Rust after binding the concrete batch, because those target-specific kernels are not portable NNEF.
 
 Export ONNX Runtime's Level-3 CPU-optimized ONNX for comparison with the tract input pipeline:
 
@@ -81,10 +113,6 @@ memory-bounded default. The rewrite derives sequence and channel dimensions from
 and activates only after checking the exact convolution, canonical approximate GELU, reduction
 axis, constants, layouts, and concrete facts. A non-matching future model remains on ordinary tract
 rather than failing model preparation.
-
-The checked-in converter currently targets the JAX-exported `standard_v3_3` graph. Historical
-`standard_v2_1` and `fast_v2_1` use different converter node names and exact-erf GELU graphs; they
-need a separate conversion/fusion adapter before this benchmark can claim accelerated NNEF support.
 
 Collect cold preparation, first inference, and warm timing samples:
 
@@ -155,7 +183,7 @@ Treat owner count and tract threads per owner as one CPU budget. Compare combina
 Repeat some trials with `--reverse` so backend order does not systematically favor the first or
 second runtime through cache, thermal, or sustained-load effects.
 
-On Apple platforms, compile Metal into the comparison explicitly:
+On macOS, compile Metal into the comparison explicitly:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release \
@@ -166,6 +194,10 @@ Use `--backend metal` for isolated runs and `--metal-gemm mlx|mfa|ggml` to compa
 GEMM kernels. Ten iterations at batch 128 represent ten consecutive accumulated compute calls and
 1,280 classified files; a single fixed batch 1,280 can be measured separately rather than assumed
 to have equivalent throughput.
+
+`tract-metal`, the Metal loader, and Metal CLI execution are all compiled only when
+`target_os = "macos"`. Other operating systems build the portable CPU runtime without the Metal
+dependency; selecting `--backend metal` there returns an explicit platform error.
 
 Build runtime-specific binaries with `--no-default-features` plus either `ort-runtime` or
 `tract-runtime` when comparing deployable executable size. The default features compile both

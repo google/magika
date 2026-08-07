@@ -659,6 +659,83 @@ impl MMMInputValue for DirectConvInput {
 mod tests {
     use super::*;
 
+    fn gelu(value: f32) -> f32 {
+        0.5 * value
+            * (1.0
+                + f32::tanh(
+                    (2.0 / std::f32::consts::PI).sqrt() * (value + 0.044715 * value.powi(3)),
+                ))
+    }
+
+    fn direct_matches_reference(channels_last: bool) -> TractResult<()> {
+        let dimensions = ConvDimensions {
+            batch: 5,
+            input_channels: 2,
+            input_length: 6,
+            output_channels: 3,
+            kernel_length: 3,
+            output_length: 4,
+            channels_last,
+        };
+        let input = (0..dimensions.batch * dimensions.input_channels * dimensions.input_length)
+            .map(|index| (index as f32 % 17.0 - 8.0) * 0.1)
+            .collect::<Vec<_>>();
+        let kernel =
+            (0..dimensions.output_channels * dimensions.input_channels * dimensions.kernel_length)
+                .map(|index| (index as f32 % 7.0 - 3.0) * 0.05)
+                .collect::<Vec<_>>();
+        let bias = vec![0.1, -0.2, 0.3];
+        let kernel_tensor = Arc::new(Tensor::from_shape(
+            &[dimensions.output_channels, dimensions.input_channels, dimensions.kernel_length],
+            &kernel,
+        )?);
+        let bias_tensor = Arc::new(Tensor::from_shape(&[dimensions.output_channels], &bias)?);
+        let mut op = DirectFusedConvMax1D::new(dimensions, kernel_tensor, bias_tensor)?;
+        op.tile_batches = 2;
+        Arc::make_mut(&mut op.input_format).tile_batches = 2;
+        let input_shape = if channels_last {
+            [dimensions.batch, dimensions.input_length, dimensions.input_channels]
+        } else {
+            [dimensions.batch, dimensions.input_channels, dimensions.input_length]
+        };
+        let mut outputs =
+            op.eval(tvec!(Tensor::from_shape(&input_shape, &input)?.into_tvalue()))?;
+        let output = outputs.remove(0).into_tensor();
+        let output = output.to_plain_array_view::<f32>()?;
+
+        for batch in 0..dimensions.batch {
+            for output_channel in 0..dimensions.output_channels {
+                let mut expected = f32::NEG_INFINITY;
+                for position in 0..dimensions.output_length {
+                    let mut convolution = bias[output_channel];
+                    for input_channel in 0..dimensions.input_channels {
+                        for kernel_position in 0..dimensions.kernel_length {
+                            let input_position = position + kernel_position;
+                            let input_index = if channels_last {
+                                (batch * dimensions.input_length + input_position)
+                                    * dimensions.input_channels
+                                    + input_channel
+                            } else {
+                                (batch * dimensions.input_channels + input_channel)
+                                    * dimensions.input_length
+                                    + input_position
+                            };
+                            let kernel_index = (output_channel * dimensions.input_channels
+                                + input_channel)
+                                * dimensions.kernel_length
+                                + kernel_position;
+                            convolution += input[input_index] * kernel[kernel_index];
+                        }
+                    }
+                    expected = expected.max(gelu(convolution));
+                }
+                let actual = output[[batch, 0, output_channel]];
+                ensure!((actual - expected).abs() <= 1e-5, "{actual} != {expected}");
+            }
+        }
+        Ok(())
+    }
+
     #[test]
     fn unmatched_model_uses_tract_fallback() {
         let mut model = TypedModel::default();
@@ -671,5 +748,11 @@ mod tests {
         update_maxima(&mut maxima, &[1.0, 4.0, -2.0]);
         update_maxima(&mut maxima, &[3.0, 2.0, -1.0]);
         assert_eq!(maxima, [3.0, 4.0, -1.0]);
+    }
+
+    #[test]
+    fn direct_operator_matches_reference_for_both_layouts() -> TractResult<()> {
+        direct_matches_reference(false)?;
+        direct_matches_reference(true)
     }
 }

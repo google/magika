@@ -285,9 +285,10 @@ roughly 4 MiB bounded default. A fixed batch-128 CPU-only process measured 178.1
 `LazyIm2col`; fixed classes 8 and larger use this direct fused-max operator.
 
 The graph matcher derives dimensions and safely falls back to ordinary tract for an unmatched new
-model. This is runtime compatibility, not universal converter support: historical
-`standard_v2_1` and `fast_v2_1` currently fail the JAX-v3-specific ONNX-to-NNEF converter and use
-exact-erf GELU, so accelerated support for those artifacts remains separate work.
+model. The standalone converter now produces deterministic, Rust-loadable NNEF for every bundled
+v2 and v3 artifact without exporter-name matching. Historical `standard_v2_1` and `fast_v2_1`
+still use exact-erf GELU, so the v3-specific direct fused runtime acceleration does not apply to
+those graphs.
 
 ## Resident Metal plan pool
 

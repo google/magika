@@ -16,7 +16,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail, ensure};
 use flate2::{Compression, GzBuilder};
@@ -42,9 +42,19 @@ fn main() -> Result<()> {
         bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz");
     }
 
-    let mut model = tract_onnx::onnx()
+    let model = tract_onnx::onnx()
         .model_for_path(&source)
         .with_context(|| format!("loading ONNX model {}", source.display()))?;
+    let model = prepare_nnef(model)
+        .with_context(|| format!("optimizing ONNX model {}", source.display()))?;
+
+    write_nnef(&model, &destination)?;
+    verify_rust_round_trip(&destination)?;
+
+    Ok(())
+}
+
+fn prepare_nnef(mut model: InferenceModel) -> Result<TypedModel> {
     rewrite_one_hot_embeddings(&mut model).context("replacing one-hot embeddings with gathers")?;
     rewrite_dynamic_batch_norms(&mut model).context("lowering dynamic batch normalization")?;
     for input in 0..model.input_outlets()?.len() {
@@ -52,24 +62,26 @@ fn main() -> Result<()> {
         fact.shape.set_dim(0, 1.to_dim());
         model.set_input_fact(input, fact)?;
     }
-    let mut model =
-        model.into_typed().with_context(|| format!("resolving ONNX model {}", source.display()))?;
+    let mut model = model.into_typed().context("resolving the ONNX model")?;
     fuse_gelu_approximations(&mut model).context("fusing canonical GELU approximations")?;
-    let model = model
-        .into_decluttered()
-        .with_context(|| format!("optimizing portable model {}", source.display()))?;
-    let model = symbolize_batch(model).context("restoring a symbolic batch dimension")?;
+    let model = model.into_decluttered().context("optimizing the portable model")?;
+    symbolize_batch(model).context("restoring a symbolic batch dimension")
+}
 
-    let file = File::create(&destination)
+fn write_nnef(model: &TypedModel, destination: &Path) -> Result<()> {
+    let file = File::create(destination)
         .with_context(|| format!("creating NNEF archive {}", destination.display()))?;
     let gzip = GzBuilder::new().mtime(0).write(file, Compression::best());
     let gzip = tract_nnef::nnef()
-        .write_to_tar_with_config(&model, gzip, false, true)
+        .write_to_tar_with_config(model, gzip, false, true)
         .context("serializing deterministic optimized NNEF")?;
     gzip.finish().context("finishing compressed NNEF archive")?;
+    Ok(())
+}
 
+fn verify_rust_round_trip(destination: &Path) -> Result<()> {
     let round_trip = tract_nnef::nnef()
-        .model_for_path(&destination)
+        .model_for_path(destination)
         .with_context(|| format!("reloading NNEF archive {}", destination.display()))?;
     let batch = round_trip.symbols.get("N").context("converted NNEF has no batch symbol N")?;
     let symbols = HashMap::from([(batch, 1.to_dim())]);
@@ -78,7 +90,6 @@ fn main() -> Result<()> {
         .context("binding batch one in converted NNEF")?
         .into_optimized()
         .context("preparing converted NNEF for the Rust CPU runtime")?;
-
     Ok(())
 }
 
@@ -136,6 +147,8 @@ fn rewrite_dynamic_batch_norms(model: &mut InferenceModel) -> TractResult<()> {
 }
 
 fn batch_norm_epsilon(debug: &str) -> TractResult<f32> {
+    // tract-onnx keeps BatchNorm's fields private. Its exact version is pinned, so parse the
+    // operator's stable Debug representation rather than hard-coding Magika's epsilon.
     let marker = "epsilon: ";
     let start = debug.find(marker).context("BatchNorm epsilon is missing")? + marker.len();
     let value = debug[start..].split([',', ' ']).next().context("BatchNorm epsilon is empty")?;
@@ -410,4 +423,52 @@ fn symbolize_batch(model: TypedModel) -> TractResult<TypedModel> {
         .collect::<TractResult<TVec<_>>>()?;
     target.select_output_outlets(&outputs)?;
     Ok(target)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bundled_model(name: &str) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join("assets/models")
+            .join(name)
+            .join("model.onnx")
+    }
+
+    #[test]
+    fn v3_semantic_rewrites_survive_nnef_preparation() {
+        let model = tract_onnx::onnx().model_for_path(bundled_model("standard_v3_3")).unwrap();
+        let model = prepare_nnef(model).unwrap();
+
+        assert_eq!(model.nodes().iter().filter(|node| node.op.name() == "Gather").count(), 1);
+        assert_eq!(
+            model.nodes().iter().filter(|node| node.op.name() == "GeluApproximate").count(),
+            2
+        );
+
+        let batch = model.symbols.get("N").unwrap();
+        for size in [1, 8, 16, 32, 64] {
+            let symbols = HashMap::from([(batch.clone(), size.to_dim())]);
+            model.clone().set_symbols(&symbols).unwrap().into_optimized().unwrap();
+        }
+    }
+
+    #[test]
+    fn fast_v2_dynamic_batch_norm_lowers_to_portable_math() {
+        let mut model = tract_onnx::onnx().model_for_path(bundled_model("fast_v2_1")).unwrap();
+        assert!(model.nodes().iter().any(|node| node.op.name().as_ref() == "BatchNorm"));
+
+        rewrite_dynamic_batch_norms(&mut model).unwrap();
+
+        assert!(!model.nodes().iter().any(|node| node.op.name().as_ref() == "BatchNorm"));
+        prepare_nnef(model).unwrap();
+    }
+
+    #[test]
+    fn batch_norm_epsilon_comes_from_the_pinned_operator() {
+        let debug = "BatchNorm { data_format: NCHW, epsilon: 0.001, spatial: true }";
+        assert_eq!(batch_norm_epsilon(debug).unwrap(), 0.001);
+    }
 }

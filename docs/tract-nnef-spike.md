@@ -167,3 +167,17 @@ measurement that could still justify an opt-in Metal path.
 
 See `rust/tract-bench/results/2026-08-07-m5-max.md` for the complete environment, methodology,
 measurements, and next recommendation.
+
+## CPU optimization follow-up
+
+The bounded CPU follow-up is favorable enough to continue the experiment. Reusing one tract state,
+using a two-thread matrix-multiplication executor, and converting one-hot-plus-matmul into an
+equivalent embedding gather moves tract from about 20% slower at warm p50 to 3.63% faster in ten
+alternating-order 1,000-iteration trials. Warm mean is effectively tied (-0.74%), p95 is 3.32%
+slower, and score parity remains `2.4883775e-9` with identical winning labels.
+
+Rayon increases the optimized tract CPU-only executable to 16,900,704 bytes, still 14.54% smaller
+than the 19,776,896-byte ORT executable. The optimized NNEF is 2,917,379 bytes (-7.79%). This is not
+yet a production-integration decision: the fixed batch-one model remains the largest blocker, and
+the next experiment should move the gather rewrite before typed-graph resolution so a symbolic
+batch can survive conversion and representative CLI batches can be measured.

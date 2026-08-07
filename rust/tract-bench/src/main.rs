@@ -26,7 +26,9 @@ use tract_core::prelude::{
     Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, tvec,
 };
 #[cfg(feature = "tract-runtime")]
-use tract_core::runtime::{DefaultRuntime, Runnable};
+use tract_core::runtime::{DefaultRuntime, RunOptions, State};
+#[cfg(feature = "tract-runtime")]
+use tract_core::tract_linalg::multithread::Executor;
 
 #[cfg(all(feature = "metal", target_vendor = "apple"))]
 use tract_metal as _;
@@ -79,24 +81,39 @@ impl Backend for OrtBackend {
 #[cfg(feature = "tract-runtime")]
 struct TractBackend {
     name: &'static str,
-    runnable: Box<dyn Runnable>,
+    state: Box<dyn State>,
 }
 
 #[cfg(feature = "tract-runtime")]
 impl TractBackend {
-    fn load_cpu() -> Result<Self> {
+    fn load_cpu(threads: usize) -> Result<Self> {
         static CPU: DefaultRuntime = DefaultRuntime;
-        Self::load_with_runtime("tract-cpu", &CPU)
+        let options =
+            RunOptions { executor: Some(Executor::multithread(threads)), ..RunOptions::default() };
+        Self::load_with_runtime_and_options("tract-cpu", &CPU, Some(&options))
     }
 
+    #[cfg(all(feature = "metal", target_vendor = "apple"))]
     fn load_with_runtime(
         name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
+    ) -> Result<Self> {
+        Self::load_with_runtime_and_options(name, runtime, None)
+    }
+
+    fn load_with_runtime_and_options(
+        name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
+        options: Option<&RunOptions>,
     ) -> Result<Self> {
         let model = tract_nnef::nnef()
             .model_for_read(&mut std::io::Cursor::new(NNEF_MODEL))
             .context("loading the embedded NNEF model")?;
-        let runnable = runtime.prepare(model).with_context(|| format!("preparing {name}"))?;
-        Ok(Self { name, runnable })
+        let runnable = match options {
+            Some(options) => runtime.prepare_with_options(model, options),
+            None => runtime.prepare(model),
+        }
+        .with_context(|| format!("preparing {name}"))?;
+        let state = runnable.spawn().with_context(|| format!("spawning {name} state"))?;
+        Ok(Self { name, state })
     }
 
     #[cfg(all(feature = "metal", target_vendor = "apple"))]
@@ -115,7 +132,7 @@ impl Backend for TractBackend {
 
     fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>> {
         let input = Tensor::from_shape(&[batch, FEATURE_SIZE], input)?.into_tvalue();
-        let mut output: TVec<TValue> = self.runnable.run(tvec!(input))?;
+        let mut output: TVec<TValue> = self.state.run(tvec!(input))?;
         let output = output.remove(0).into_tensor();
         Ok(output.to_plain_array_view::<f32>()?.iter().copied().collect())
     }
@@ -126,6 +143,7 @@ struct Options {
     batch: usize,
     iterations: usize,
     reverse: bool,
+    tract_threads: usize,
     verify_only: bool,
 }
 
@@ -145,7 +163,7 @@ fn main() -> Result<()> {
     #[cfg(feature = "ort-runtime")]
     load_backend(&mut backends, OrtBackend::load)?;
     #[cfg(feature = "tract-runtime")]
-    load_backend(&mut backends, TractBackend::load_cpu)?;
+    load_backend(&mut backends, || TractBackend::load_cpu(options.tract_threads))?;
     #[cfg(all(feature = "metal", target_vendor = "apple"))]
     load_backend(&mut backends, TractBackend::load_metal)?;
     if options.reverse {
@@ -153,13 +171,22 @@ fn main() -> Result<()> {
     }
 
     ensure!(!backends.is_empty(), "enable at least one runtime feature");
-    let outputs = verify(&mut backends, &corpus, options.batch)?;
+    let (outputs, first_runs) = verify(&mut backends, &corpus, options.batch)?;
     print_header(&backends);
+    #[cfg(feature = "tract-runtime")]
+    println!("tract_cpu_threads\t{}", options.tract_threads);
     print_verification(&backends, &outputs);
 
     if !options.verify_only {
-        for (backend, cold) in &mut backends {
-            bench_backend(backend.as_mut(), *cold, &corpus, options.batch, options.iterations)?;
+        for ((backend, cold), first) in backends.iter_mut().zip(first_runs) {
+            bench_backend(
+                backend.as_mut(),
+                *cold,
+                first,
+                &corpus,
+                options.batch,
+                options.iterations,
+            )?;
         }
     }
 
@@ -177,10 +204,13 @@ fn load_backend<B: Backend + 'static>(
 
 fn verify(
     backends: &mut [(Box<dyn Backend>, Duration)], input: &[i32], batch: usize,
-) -> Result<Vec<Vec<f32>>> {
+) -> Result<(Vec<Vec<f32>>, Vec<Duration>)> {
     let mut outputs = Vec::with_capacity(backends.len());
+    let mut first_runs = Vec::with_capacity(backends.len());
     for (backend, _) in backends.iter_mut() {
+        let start = Instant::now();
         let output = backend.run(input, batch)?;
+        first_runs.push(start.elapsed());
         ensure!(output.len() % batch == 0, "{} returned an invalid output shape", backend.name());
         outputs.push(output);
     }
@@ -215,16 +245,13 @@ fn verify(
             );
         }
     }
-    Ok(outputs)
+    Ok((outputs, first_runs))
 }
 
 fn bench_backend(
-    backend: &mut dyn Backend, cold: Duration, input: &[i32], batch: usize, iterations: usize,
+    backend: &mut dyn Backend, cold: Duration, first: Duration, input: &[i32], batch: usize,
+    iterations: usize,
 ) -> Result<()> {
-    let first_start = Instant::now();
-    let _ = std::hint::black_box(backend.run(input, batch)?);
-    let first = first_start.elapsed();
-
     for _ in 0..10 {
         let _ = std::hint::black_box(backend.run(input, batch)?);
     }
@@ -342,7 +369,13 @@ fn argmax(values: &[f32]) -> usize {
 }
 
 fn parse_options() -> Result<Options> {
-    let mut options = Options { batch: 1, iterations: 100, reverse: false, verify_only: false };
+    let mut options = Options {
+        batch: 1,
+        iterations: 100,
+        reverse: false,
+        tract_threads: default_tract_threads(),
+        verify_only: false,
+    };
     let mut args = std::env::args().skip(1);
     while let Some(argument) = args.next() {
         match argument.as_str() {
@@ -352,11 +385,17 @@ fn parse_options() -> Result<Options> {
             "--iterations" => {
                 options.iterations = args.next().context("--iterations needs a value")?.parse()?;
             }
+            "--tract-threads" => {
+                options.tract_threads =
+                    args.next().context("--tract-threads needs a value")?.parse()?;
+                ensure!(options.tract_threads > 0, "--tract-threads must be greater than zero");
+            }
             "--reverse" => options.reverse = true,
             "--verify" => options.verify_only = true,
             "-h" | "--help" => {
                 println!(
-                    "usage: magika-runtime-bench [--verify] [--reverse] [--batch N] [--iterations N]"
+                    "usage: magika-runtime-bench [--verify] [--reverse] [--batch N] \
+                     [--iterations N] [--tract-threads N]"
                 );
                 std::process::exit(0);
             }
@@ -364,6 +403,10 @@ fn parse_options() -> Result<Options> {
         }
     }
     Ok(options)
+}
+
+fn default_tract_threads() -> usize {
+    std::thread::available_parallelism().map_or(1, |parallelism| parallelism.get().min(2))
 }
 
 fn micros(duration: Duration) -> u128 {

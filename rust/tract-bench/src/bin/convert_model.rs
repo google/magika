@@ -20,6 +20,9 @@ use std::path::PathBuf;
 use anyhow::{Context, Result, bail};
 use flate2::{Compression, GzBuilder};
 use tract_onnx::prelude::*;
+use tract_onnx::tract_core::ops::array::Gather;
+
+const EMBEDDING_MATMUL: &str = "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/Dense_0/einsum/Einsum";
 
 fn main() -> Result<()> {
     let mut args = std::env::args_os().skip(1).map(PathBuf::from);
@@ -42,11 +45,13 @@ fn main() -> Result<()> {
             InferenceFact::dt_shape(i32::datum_type(), tvec!(1.to_dim(), 2048.to_dim())),
         )
         .context("setting the [1, 2048] i32 input fact")?;
-    let model = model
+    let mut model = model
         .into_typed()
         .context("resolving the ONNX graph")?
         .into_decluttered()
         .context("decluttering the typed graph")?;
+    rewrite_one_hot_embedding(&mut model)?;
+    let model = model.into_decluttered().context("decluttering the embedding rewrite")?;
 
     let file = File::create(&destination)
         .with_context(|| format!("creating {}", destination.display()))?;
@@ -56,5 +61,26 @@ fn main() -> Result<()> {
         .context("serializing the model as deterministic NNEF/tract-OPL")?;
     gzip.finish().context("finishing the NNEF gzip stream")?;
 
+    Ok(())
+}
+
+fn rewrite_one_hot_embedding(model: &mut TypedModel) -> Result<()> {
+    let bytes = model.input_outlets().context("finding the model input")?[0];
+    let embedding =
+        model.node_by_name(EMBEDDING_MATMUL).context("finding the one-hot embedding matmul")?;
+    let embedding_output = OutletId::new(embedding.id, 0);
+    let weights = embedding.inputs[1];
+
+    let mut patch = TypedModelPatch::new("replace one-hot embedding with gather");
+    let bytes = patch.tap_model(model, bytes)?;
+    let bytes = patch.wire_node(
+        "embedding.indices",
+        tract_onnx::tract_core::ops::cast::cast(i64::datum_type()),
+        &[bytes],
+    )?[0];
+    let weights = patch.tap_model(model, weights)?;
+    let gathered = patch.wire_node("embedding.gather", Gather::new(0), &[weights, bytes])?[0];
+    patch.shunt_outside(model, embedding_output, gathered)?;
+    patch.apply(model).context("applying the embedding gather rewrite")?;
     Ok(())
 }

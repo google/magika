@@ -4,7 +4,8 @@ This standalone, non-production crate measures the existing ONNX Runtime path ag
 tract NNEF path. It intentionally does not change the published `magika` library or CLI.
 
 The converter is pinned to tract `0.23.4` and writes a deterministic gzip-compressed NNEF/tract-OPL
-archive:
+archive. During conversion it replaces the model's one-hot-plus-matmul embedding with an equivalent
+gather, avoiding a large temporary tensor in tract's CPU path:
 
 ```sh
 rust/tract-bench/scripts/convert-model.sh
@@ -20,6 +21,15 @@ Verify score and winning-label parity without collecting timings:
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- --verify
 ```
+
+The crate sets development builds to `opt-level = 3`, so an ordinary `cargo run` is suitable for
+fast iteration. Recorded comparisons still use `--release`, which additionally enables full LTO,
+one codegen unit, and stripping.
+
+The CPU backend reuses one tract execution state and defaults its matrix-multiplication executor to
+the smaller of two threads and the host's available parallelism. Four threads made the operators
+faster in isolation on the M5 Max, but two gave the best end-to-end latency and tail behavior for
+this batch-one harness. Use `--tract-threads N` to reproduce the thread-count comparison.
 
 Collect cold preparation, first inference, and warm timing samples:
 

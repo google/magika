@@ -17,7 +17,7 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 
 #[cfg(feature = "ort-runtime")]
 use ndarray::Array2;
@@ -26,7 +26,7 @@ use tract_core::prelude::{
     Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, tvec,
 };
 #[cfg(feature = "tract-runtime")]
-use tract_core::runtime::{DefaultRuntime, RunOptions, State};
+use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, State};
 #[cfg(feature = "tract-runtime")]
 use tract_core::tract_linalg::multithread::Executor;
 
@@ -87,23 +87,29 @@ struct TractBackend {
 #[cfg(feature = "tract-runtime")]
 impl TractBackend {
     fn load_cpu(threads: usize) -> Result<Self> {
+        let runnable = Self::prepare_cpu(threads)?;
+        Self::spawn("tract-cpu", runnable.as_ref())
+    }
+
+    fn prepare_cpu(threads: usize) -> Result<std::sync::Arc<dyn Runnable>> {
         static CPU: DefaultRuntime = DefaultRuntime;
         let options =
             RunOptions { executor: Some(Executor::multithread(threads)), ..RunOptions::default() };
-        Self::load_with_runtime_and_options("tract-cpu", &CPU, Some(&options))
+        Self::prepare_with_runtime_and_options("tract-cpu", &CPU, Some(&options))
     }
 
     #[cfg(all(feature = "metal", target_vendor = "apple"))]
     fn load_with_runtime(
         name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
     ) -> Result<Self> {
-        Self::load_with_runtime_and_options(name, runtime, None)
+        let runnable = Self::prepare_with_runtime_and_options(name, runtime, None)?;
+        Self::spawn(name, runnable.as_ref())
     }
 
-    fn load_with_runtime_and_options(
+    fn prepare_with_runtime_and_options(
         name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
         options: Option<&RunOptions>,
-    ) -> Result<Self> {
+    ) -> Result<std::sync::Arc<dyn Runnable>> {
         let model = tract_nnef::nnef()
             .model_for_read(&mut std::io::Cursor::new(NNEF_MODEL))
             .context("loading the embedded NNEF model")?;
@@ -112,6 +118,10 @@ impl TractBackend {
             None => runtime.prepare(model),
         }
         .with_context(|| format!("preparing {name}"))?;
+        Ok(std::sync::Arc::from(runnable))
+    }
+
+    fn spawn(name: &'static str, runnable: &dyn Runnable) -> Result<Self> {
         let state = runnable.spawn().with_context(|| format!("spawning {name} state"))?;
         Ok(Self { name, state })
     }
@@ -141,9 +151,12 @@ impl Backend for TractBackend {
 #[derive(Debug)]
 struct Options {
     batch: usize,
+    batch_sweep: bool,
+    compute_owners: Option<usize>,
     iterations: usize,
     reverse: bool,
     tract_threads: usize,
+    verify_batches: bool,
     verify_only: bool,
 }
 
@@ -151,13 +164,13 @@ fn main() -> Result<()> {
     let options = parse_options()?;
     ensure!(options.batch > 0, "--batch must be greater than zero");
     ensure!(options.iterations > 0, "--iterations must be greater than zero");
-    #[cfg(feature = "tract-runtime")]
-    ensure!(options.batch == 1, "the spike's NNEF model is specialized to --batch 1");
-
     #[cfg(feature = "ort-runtime")]
     ort::init().with_telemetry(false).commit();
 
-    let corpus = load_corpus(options.batch)?;
+    if let Some(owners) = options.compute_owners {
+        return bench_compute_owner_backends(&options, owners);
+    }
+
     let mut backends: Vec<(Box<dyn Backend>, Duration)> = Vec::new();
 
     #[cfg(feature = "ort-runtime")]
@@ -171,6 +184,43 @@ fn main() -> Result<()> {
     }
 
     ensure!(!backends.is_empty(), "enable at least one runtime feature");
+    if options.batch_sweep {
+        print_header(&backends);
+        #[cfg(feature = "tract-runtime")]
+        println!("tract_cpu_threads\t{}", options.tract_threads);
+        for batch in [1, 2, 4, 8, 16, 32] {
+            let corpus = load_corpus(batch)?;
+            let (outputs, first_runs) = verify(&mut backends, &corpus, batch)?;
+            println!("verification_batch\t{batch}");
+            print_verification(&backends, &outputs);
+            if !options.verify_only {
+                for ((backend, cold), first) in backends.iter_mut().zip(first_runs) {
+                    bench_backend(
+                        backend.as_mut(),
+                        *cold,
+                        first,
+                        &corpus,
+                        batch,
+                        options.iterations,
+                    )?;
+                }
+            }
+        }
+        return Ok(());
+    }
+    if options.verify_batches {
+        print_header(&backends);
+        #[cfg(feature = "tract-runtime")]
+        println!("tract_cpu_threads\t{}", options.tract_threads);
+        for batch in [1, 2, 3, 8, 16] {
+            let corpus = load_corpus(batch)?;
+            let (outputs, _) = verify(&mut backends, &corpus, batch)?;
+            println!("verification_batch\t{batch}");
+            print_verification(&backends, &outputs);
+        }
+        return Ok(());
+    }
+    let corpus = load_corpus(options.batch)?;
     let (outputs, first_runs) = verify(&mut backends, &corpus, options.batch)?;
     print_header(&backends);
     #[cfg(feature = "tract-runtime")]
@@ -199,6 +249,148 @@ fn load_backend<B: Backend + 'static>(
     let start = Instant::now();
     let backend = load()?;
     backends.push((Box::new(backend), start.elapsed()));
+    Ok(())
+}
+
+fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> {
+    ensure!(owners > 0, "--compute-owners must be greater than zero");
+    ensure!(
+        cfg!(feature = "ort-runtime") || cfg!(feature = "tract-runtime"),
+        "enable at least one CPU runtime feature"
+    );
+    let input = load_corpus(options.batch)?;
+    println!(
+        "owner_columns\tbackend\towners\tbatch\titerations_per_owner\twall_us\tfiles_per_second"
+    );
+
+    let run_ort = || -> Result<()> {
+        #[cfg(feature = "ort-runtime")]
+        bench_compute_owners(
+            "onnx-runtime",
+            owners,
+            options.batch,
+            options.iterations,
+            &input,
+            OrtBackend::load,
+        )?;
+        Ok(())
+    };
+    let run_tract = || -> Result<()> {
+        #[cfg(feature = "tract-runtime")]
+        {
+            let runnable = TractBackend::prepare_cpu(options.tract_threads)?;
+            bench_compute_owners(
+                "tract-cpu",
+                owners,
+                options.batch,
+                options.iterations,
+                &input,
+                || TractBackend::spawn("tract-cpu", runnable.as_ref()),
+            )?;
+        }
+        Ok(())
+    };
+    if options.reverse {
+        run_tract()?;
+        run_ort()?;
+    } else {
+        run_ort()?;
+        run_tract()?;
+    }
+    Ok(())
+}
+
+fn bench_compute_owners<B: Backend>(
+    name: &'static str, owners: usize, batch: usize, iterations: usize, input: &[i32],
+    load: impl Fn() -> Result<B> + Sync,
+) -> Result<()> {
+    let elapsed = std::thread::scope(|scope| -> Result<Duration> {
+        let (ready_sender, ready_receiver) = std::sync::mpsc::channel();
+        let (done_sender, done_receiver) = std::sync::mpsc::channel();
+        let mut job_senders = Vec::with_capacity(owners);
+        let mut handles = Vec::with_capacity(owners);
+
+        for owner in 0..owners {
+            let (job_sender, job_receiver) = std::sync::mpsc::sync_channel::<()>(1);
+            job_senders.push(job_sender);
+            let ready_sender = ready_sender.clone();
+            let done_sender = done_sender.clone();
+            let load = &load;
+            handles.push(scope.spawn(move || {
+                let mut backend = match load() {
+                    Ok(backend) => backend,
+                    Err(error) => {
+                        let _ = ready_sender.send(Err(format!("{error:#}")));
+                        return;
+                    }
+                };
+                for _ in 0..10 {
+                    if let Err(error) = backend.run(input, batch) {
+                        let _ = ready_sender.send(Err(format!("{error:#}")));
+                        return;
+                    }
+                }
+                if ready_sender.send(Ok(())).is_err() {
+                    return;
+                }
+                while job_receiver.recv().is_ok() {
+                    let result =
+                        backend.run(input, batch).map(|_| ()).map_err(|e| format!("{e:#}"));
+                    let failed = result.is_err();
+                    if done_sender.send((owner, result)).is_err() || failed {
+                        return;
+                    }
+                }
+            }));
+        }
+        drop(ready_sender);
+        drop(done_sender);
+
+        let mut readiness_error = None;
+        for _ in 0..owners {
+            if let Err(error) =
+                ready_receiver.recv().context("a compute owner exited before ready")?
+            {
+                readiness_error.get_or_insert(error);
+            }
+        }
+        if let Some(error) = readiness_error {
+            drop(job_senders);
+            for handle in handles {
+                handle.join().map_err(|_| anyhow!("a compute owner panicked"))?;
+            }
+            bail!("preparing a {name} compute owner: {error}");
+        }
+
+        let total_jobs = owners * iterations;
+        let start = Instant::now();
+        let mut dispatched = 0;
+        for sender in job_senders.iter().take(total_jobs.min(owners)) {
+            sender.send(()).context("starting a compute owner")?;
+            dispatched += 1;
+        }
+        for _ in 0..total_jobs {
+            let (owner, result) = done_receiver.recv().context("a compute owner exited early")?;
+            result.map_err(|error| anyhow!(error))?;
+            if dispatched < total_jobs {
+                job_senders[owner].send(()).context("queueing accumulated compute")?;
+                dispatched += 1;
+            }
+        }
+        let elapsed = start.elapsed();
+        drop(job_senders);
+        for handle in handles {
+            handle.join().map_err(|_| anyhow!("a compute owner panicked"))?;
+        }
+        Ok(elapsed)
+    })?;
+
+    let files = owners * iterations * batch;
+    println!(
+        "owner_result\t{name}\t{owners}\t{batch}\t{iterations}\t{}\t{:.3}",
+        micros(elapsed),
+        files as f64 / elapsed.as_secs_f64()
+    );
     Ok(())
 }
 
@@ -266,8 +458,11 @@ fn bench_backend(
     let mean = total / iterations as u32;
     let p50 = samples[iterations / 2];
     let p95 = samples[(iterations * 95 / 100).min(iterations - 1)];
+    let mean_per_item_us = total.as_secs_f64() * 1_000_000.0 / iterations as f64 / batch as f64;
+    let items_per_second = batch as f64 * iterations as f64 / total.as_secs_f64();
     println!(
-        "result\t{}\t{}\t{}\t{}\t{}\t{}",
+        "result\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{mean_per_item_us:.3}\t{items_per_second:.3}",
+        batch,
         backend.name(),
         micros(cold),
         micros(first),
@@ -293,7 +488,9 @@ fn print_header(backends: &[(Box<dyn Backend>, Duration)]) {
         "backends\t{}",
         backends.iter().map(|(backend, _)| backend.name()).collect::<Vec<_>>().join(",")
     );
-    println!("columns\tbackend\tcold_us\tfirst_us\tmean_us\tp50_us\tp95_us");
+    println!(
+        "columns\tbatch\tbackend\tcold_us\tfirst_us\tmean_us\tp50_us\tp95_us\tmean_per_item_us\titems_per_second"
+    );
 }
 
 fn print_verification(backends: &[(Box<dyn Backend>, Duration)], outputs: &[Vec<f32>]) {
@@ -371,9 +568,12 @@ fn argmax(values: &[f32]) -> usize {
 fn parse_options() -> Result<Options> {
     let mut options = Options {
         batch: 1,
+        batch_sweep: false,
+        compute_owners: None,
         iterations: 100,
         reverse: false,
         tract_threads: default_tract_threads(),
+        verify_batches: false,
         verify_only: false,
     };
     let mut args = std::env::args().skip(1);
@@ -381,6 +581,11 @@ fn parse_options() -> Result<Options> {
         match argument.as_str() {
             "--batch" => {
                 options.batch = args.next().context("--batch needs a value")?.parse()?;
+            }
+            "--batch-sweep" => options.batch_sweep = true,
+            "--compute-owners" => {
+                options.compute_owners =
+                    Some(args.next().context("--compute-owners needs a value")?.parse()?);
             }
             "--iterations" => {
                 options.iterations = args.next().context("--iterations needs a value")?.parse()?;
@@ -391,11 +596,13 @@ fn parse_options() -> Result<Options> {
                 ensure!(options.tract_threads > 0, "--tract-threads must be greater than zero");
             }
             "--reverse" => options.reverse = true,
+            "--verify-batches" => options.verify_batches = true,
             "--verify" => options.verify_only = true,
             "-h" | "--help" => {
                 println!(
                     "usage: magika-runtime-bench [--verify] [--reverse] [--batch N] \
-                     [--iterations N] [--tract-threads N]"
+                     [--batch-sweep] [--compute-owners N] [--iterations N] \
+                     [--tract-threads N] [--verify-batches]"
                 );
                 std::process::exit(0);
             }

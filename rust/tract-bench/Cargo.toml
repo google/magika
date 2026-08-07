@@ -17,7 +17,7 @@ required-features = ["convert"]
 
 [features]
 default = ["ort-runtime", "tract-runtime"]
-convert = ["dep:flate2", "dep:tract-nnef", "dep:tract-onnx"]
+convert = ["dep:flate2", "dep:tract-hir", "dep:tract-nnef", "dep:tract-onnx"]
 metal = ["tract-runtime", "dep:tract-metal"]
 ort-runtime = ["dep:ndarray", "dep:ort"]
 tract-runtime = ["dep:tract-core", "dep:tract-linalg", "dep:tract-nnef"]
@@ -27,6 +27,7 @@ anyhow = "1.0.104"
 flate2 = { version = "1.1.9", optional = true }
 ndarray = { version = "0.17.2", optional = true }
 tract-core = { version = "=0.23.4", optional = true }
+tract-hir = { version = "=0.23.4", optional = true }
 tract-linalg = { version = "=0.23.4", optional = true, features = ["multithread-mm"] }
 tract-nnef = { version = "=0.23.4", optional = true }
 tract-onnx = { version = "=0.23.4", optional = true }

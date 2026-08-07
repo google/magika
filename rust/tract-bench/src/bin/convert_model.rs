@@ -17,10 +17,12 @@
 use std::fs::File;
 use std::path::PathBuf;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use flate2::{Compression, GzBuilder};
+use tract_hir::infer::InferenceModelPatch;
+use tract_hir::ops::array::Gather;
+use tract_hir::ops::expandable::expand;
 use tract_onnx::prelude::*;
-use tract_onnx::tract_core::ops::array::Gather;
 
 const EMBEDDING_MATMUL: &str = "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/Dense_0/einsum/Einsum";
 
@@ -39,19 +41,28 @@ fn main() -> Result<()> {
     let mut model = tract_onnx::onnx()
         .model_for_path(&source)
         .with_context(|| format!("loading {}", source.display()))?;
+    let batch = model.sym("N").to_dim();
     model
         .set_input_fact(
             0,
-            InferenceFact::dt_shape(i32::datum_type(), tvec!(1.to_dim(), 2048.to_dim())),
+            InferenceFact::dt_shape(i32::datum_type(), tvec!(batch.clone(), 2048.to_dim())),
         )
-        .context("setting the [1, 2048] i32 input fact")?;
-    let mut model = model
+        .context("setting the [N, 2048] i32 input fact")?;
+    rewrite_one_hot_embedding(&mut model)?;
+    remove_full_slice(
+        &mut model,
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/Conv_0/strided_slice",
+    )?;
+    remove_full_slice(
+        &mut model,
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/Conv_0/strided_slice_2",
+    )?;
+    rewrite_symbolic_shapes(&mut model, batch)?;
+    let model = model
         .into_typed()
         .context("resolving the ONNX graph")?
         .into_decluttered()
         .context("decluttering the typed graph")?;
-    rewrite_one_hot_embedding(&mut model)?;
-    let model = model.into_decluttered().context("decluttering the embedding rewrite")?;
 
     let file = File::create(&destination)
         .with_context(|| format!("creating {}", destination.display()))?;
@@ -64,23 +75,74 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn rewrite_one_hot_embedding(model: &mut TypedModel) -> Result<()> {
+fn remove_full_slice(model: &mut InferenceModel, node_name: &str) -> Result<()> {
+    let node = model.node_by_name(node_name).with_context(|| format!("finding {node_name}"))?;
+    let input = node.inputs[0];
+    let output = OutletId::new(node.id, 0);
+    let mut patch = InferenceModelPatch::new("remove full-range slice");
+    let input = patch.tap_model(model, input)?;
+    patch.shunt_outside(model, output, input)?;
+    patch.apply(model).with_context(|| format!("removing {node_name}"))?;
+    model.compact().with_context(|| format!("compacting after removing {node_name}"))?;
+    Ok(())
+}
+
+fn rewrite_symbolic_shapes(model: &mut InferenceModel, batch: TDim) -> Result<()> {
+    replace_shape_input(
+        model,
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/Reshape",
+        tvec!(batch.clone(), 512.to_dim(), 256.to_dim()),
+    )?;
+    for name in [
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_0/Reshape",
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_0/BroadcastTo",
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_0/Reshape_1",
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_0/BroadcastTo_1",
+    ] {
+        replace_shape_input(model, name, tvec!(batch.clone(), 1.to_dim(), 256.to_dim()))?;
+    }
+    for name in [
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_1/Reshape",
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_1/BroadcastTo",
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_1/Reshape_1",
+        "jax2tf_get_logits_/pjit_get_logits_/MagikaV2/LayerNorm_1/BroadcastTo_1",
+        "jax2tf_get_logits_/pjit_get_logits_/Reshape",
+        "jax2tf_get_logits_/pjit_get_logits_/BroadcastTo",
+        "jax2tf_get_logits_/pjit_get_logits_/Reshape_1",
+        "jax2tf_get_logits_/pjit_get_logits_/BroadcastTo_1",
+    ] {
+        replace_shape_input(model, name, tvec!(batch.clone(), 1.to_dim()))?;
+    }
+    Ok(())
+}
+
+fn replace_shape_input(
+    model: &mut InferenceModel, node_name: &str, shape: TVec<TDim>,
+) -> Result<()> {
+    let node = model.node_by_name(node_name).with_context(|| format!("finding {node_name}"))?;
+    ensure!(node.inputs.len() == 2, "{node_name} does not have a shape input");
+    let inlet = InletId::new(node.id, 1);
+    let shape = model.add_const(format!("{node_name}.symbolic-shape"), tensor1(&shape))?;
+    model
+        .add_edge(shape, inlet)
+        .with_context(|| format!("replacing the shape input for {node_name}"))?;
+    Ok(())
+}
+
+fn rewrite_one_hot_embedding(model: &mut InferenceModel) -> Result<()> {
     let bytes = model.input_outlets().context("finding the model input")?[0];
     let embedding =
         model.node_by_name(EMBEDDING_MATMUL).context("finding the one-hot embedding matmul")?;
     let embedding_output = OutletId::new(embedding.id, 0);
     let weights = embedding.inputs[1];
 
-    let mut patch = TypedModelPatch::new("replace one-hot embedding with gather");
+    let mut patch = InferenceModelPatch::new("replace one-hot embedding with gather");
     let bytes = patch.tap_model(model, bytes)?;
-    let bytes = patch.wire_node(
-        "embedding.indices",
-        tract_onnx::tract_core::ops::cast::cast(i64::datum_type()),
-        &[bytes],
-    )?[0];
     let weights = patch.tap_model(model, weights)?;
-    let gathered = patch.wire_node("embedding.gather", Gather::new(0), &[weights, bytes])?[0];
+    let gathered =
+        patch.wire_node("embedding.gather", expand(Gather::new(0)), &[weights, bytes])?[0];
     patch.shunt_outside(model, embedding_output, gathered)?;
     patch.apply(model).context("applying the embedding gather rewrite")?;
+    model.compact().context("removing the replaced one-hot subgraph")?;
     Ok(())
 }

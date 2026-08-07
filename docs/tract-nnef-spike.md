@@ -82,13 +82,15 @@ The expected conversion is performed once, not at application startup:
 tract assets/models/standard_v3_3/model.onnx dump --nnef model.nnef.tgz
 ```
 
-tract 0.23.4 cannot currently resolve this ONNX graph when the batch dimension remains dynamic:
-the one-hot `BroadcastTo` shape is reported as variable-rank during ONNX-to-typed translation.
-The first benchmark therefore specializes the NNEF artifact to `[1, 2048]`. This is enough to
-compare common single-file CLI latency, footprint, and numerical parity, but dynamic or batched
-execution remains an explicit integration blocker. CLI output is not a stable scripting API, so a
-durable conversion step pins the tract version and validates the resulting artifact rather than
-parsing human-readable dumps.
+The original graph does not resolve in tract 0.23.4 with a symbolic batch: its one-hot broadcast is
+reported as variable-rank, several exporter-generated shape subgraphs cast the symbol through
+`i32`, and two full-range slices use one billion as an end sentinel that tract propagates as a
+literal dimension. The checked converter fixes these before typed-graph resolution by replacing
+one-hot-plus-matmul with a gather, supplying equivalent symbolic `TDim` shapes, and removing the
+identity slices. The resulting NNEF input is `[N, 2048]`; the same prepared tract state passes parity
+for changing batches `1, 2, 3, 8, 16`. CLI output is not a stable scripting API, so the durable
+conversion step pins tract and validates the generated artifact instead of parsing human-readable
+dumps.
 
 ## Benchmark design
 
@@ -133,12 +135,11 @@ artificially large batch is not sufficient.
 ## Known risks and questions to resolve with evidence
 
 - Whether the current graph converts without ONNX-specific tract-OPL extensions.
-- Whether tract supports the model's dynamic batch dimension without specializing one binary per
-  batch size.
+- Why tract CPU does not amortize work over this model's batch dimension as effectively as ORT.
 - Whether tract's latest public facade can be trimmed enough without relying on unstable internal
   crates.
-- Whether the CLI's asynchronous pipeline needs real asynchronous model execution or can invoke a
-  synchronous tract plan inside its existing single inference task.
+- How many dedicated tract compute owners maximize throughput without oversubscribing tract's own
+  matrix-multiplication threads.
 - Whether Metal supports the graph's important operators, and whether such a small model benefits
   after CPU/GPU synchronization.
 - Cross-platform build and behavior on Linux, Windows, macOS, and the Rust library's supported
@@ -158,12 +159,13 @@ artificially large batch is not sufficient.
 
 The first Apple M5 Max result is a no-go for immediate integration. Numerical parity is excellent,
 and the minimal tract CPU executable is 19.15% smaller, but its median warm inference is about 20%
-slower and its mean is 23.28% slower than ONNX Runtime. The NNEF model itself is 7.76% smaller.
+slower and its mean is 23.28% slower than ONNX Runtime. Its original 7.76% model-size claim compared
+raw ONNX with gzip NNEF and is superseded by the codec-equivalent measurements below.
 
 Metal improves tract CPU warm mean by only 5.14% and p50 by 6.14% at batch 1 while adding 12.75%
 to the tract CPU executable and making preparation roughly 3.7 times as expensive. It should not
-be enabled by default. The current dynamic-batch conversion failure prevents the larger-batch
-measurement that could still justify an opt-in Metal path.
+be enabled by default. The dynamic model now permits the larger-batch measurement needed to decide
+whether any opt-in Metal path is justified.
 
 See `rust/tract-bench/results/2026-08-07-m5-max.md` for the complete environment, methodology,
 measurements, and next recommendation.
@@ -177,7 +179,52 @@ alternating-order 1,000-iteration trials. Warm mean is effectively tied (-0.74%)
 slower, and score parity remains `2.4883775e-9` with identical winning labels.
 
 Rayon increases the optimized tract CPU-only executable to 16,900,704 bytes, still 14.54% smaller
-than the 19,776,896-byte ORT executable. The optimized NNEF is 2,917,379 bytes (-7.79%). This is not
-yet a production-integration decision: the fixed batch-one model remains the largest blocker, and
-the next experiment should move the gather rewrite before typed-graph resolution so a symbolic
-batch can survive conversion and representative CLI batches can be measured.
+than the 19,776,896-byte ORT executable. Equal-codec comparison shows that format size is a wash:
+raw NNEF is 0.0619% larger, gzip-9 NNEF is 0.0738% smaller, and zstd-19 NNEF is 0.0698% smaller.
+
+## Dynamic batching follow-up
+
+Symbolic conversion is now solved and deterministic. One prepared state accepts changing and final
+partial batches, with identical winning labels and maximum absolute score difference
+`2.3841858e-7`. The compute-stage harness accumulates each input before timing and reports both
+batch latency and per-file throughput.
+
+The CPU evidence is unfavorable for production integration: across three alternating-order sweeps,
+four-thread tract delivers roughly 450-470 files/s while ORT rises from 587 files/s at batch one to
+737 files/s at batch 32. tract is 29-38% behind for batches 2-32. Eight threads improve the best
+batch-32 tract sample only to 465 files/s, while 16 and 18 threads regress. The competitive tuned
+batch-one result therefore does not predict batched CLI performance.
+
+### Tokio accumulate/compute ownership
+
+tract should not reuse the existing ORT execution architecture. In particular, it should not map
+the CLI's `num_tasks` default onto replicated tract sessions and should not wrap synchronous tract
+work in the existing async inference call. Build a separate accumulate/compute path:
+
+1. An accumulator owns pending features, emits full batches, and explicitly flushes the final partial
+   batch.
+2. A bounded queue between accumulation and compute supplies backpressure.
+3. Dedicated owner threads construct and retain their mutable, non-`Send` tract states.
+4. Owners run synchronous inference outside Tokio and return ordered result messages to the async
+   I/O/output boundary.
+5. Owner count and tract-internal threads form one measured CPU budget (`1 x 8`, `2 x 4`, `4 x 2`,
+   and so on), rather than copying the ORT session-per-task policy.
+
+The benchmark harness implements this owner/queue model without editing production code. It exists
+to determine the topology first; production integration remains gated on those measurements.
+
+The first topology sweep validates the design. At batch 8, moving from `1 x 8` to `4 x 2` and
+`8 x 1` raises tract from roughly 453 files/s to 1,391 and 2,110 files/s in the initial run.
+Alternating-order medians put tract about 5.2% behind ORT at `4 x 2` and 7.2% behind at `8 x 1`, a
+much smaller gap than the single-state batch sweep. Twelve and sixteen owners regress.
+
+The runnable/state distinction matters: tract's prepared runnable is `Send + Sync`, so it is
+prepared once and shared, while each owner spawns a private non-`Send` state. Sharing reduces the
+eight-owner tract peak from about 449 MB to 406 MB. One owner uses about 75 MB; an equivalent
+eight-owner ORT-only process reaches about 541 MB. Topology selection therefore needs both throughput
+and a memory budget rather than a CPU-count default.
+
+Dynamic Metal improves over ORT only once batches become fairly large: roughly 4% at batch 8, 9% at
+batch 32, 14% at batch 64, and 17% at batch 128 in a directional sweep. Only batch 128 crosses the
+15% threshold, while preparation costs around 71-84 ms and first use of a new shape can be expensive.
+That does not justify Metal for the normal CLI path.

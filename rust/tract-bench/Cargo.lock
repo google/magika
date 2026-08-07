@@ -499,6 +499,7 @@ dependencies = [
  "ndarray",
  "ort",
  "tract-core",
+ "tract-hir",
  "tract-linalg",
  "tract-metal",
  "tract-nnef",

@@ -12,14 +12,27 @@ rust/tract-bench/scripts/convert-model.sh
 rust/tract-bench/scripts/convert-model.sh --check
 ```
 
-The current NNEF artifact is specialized to a batch of one. tract 0.23.4 cannot resolve the ONNX
-graph's one-hot broadcast while retaining the symbolic batch dimension, so this first harness
-measures the common single-file path and treats dynamic batching as an integration blocker.
+Compare ONNX and NNEF model sizes using identical raw, gzip, and zstd representations:
+
+```sh
+rust/tract-bench/scripts/measure-size.sh
+```
+
+The checked NNEF artifact retains a symbolic batch dimension. The converter performs the embedding
+gather rewrite before tract resolves the graph, replaces exporter-generated dynamic shape inputs
+with equivalent symbolic shapes, and removes two full-range slices whose sentinel end value would
+otherwise become a literal batch dimension. `--check` verifies that conversion stays deterministic.
 
 Verify score and winning-label parity without collecting timings:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- --verify
+```
+
+Verify changing and partial batch shapes through the same prepared runtime state:
+
+```sh
+cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- --verify-batches
 ```
 
 The crate sets development builds to `opt-level = 3`, so an ordinary `cargo run` is suitable for
@@ -37,6 +50,27 @@ Collect cold preparation, first inference, and warm timing samples:
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
   --batch 1 --iterations 100
 ```
+
+Measure the compute stage after accumulating representative CLI batches. The harness constructs
+each contiguous `[batch, 2048]` input before timing and reports batch latency, mean latency per
+file, and files per second:
+
+```sh
+cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
+  --batch-sweep --iterations 200
+```
+
+Benchmark the new bounded accumulate/compute design with dedicated owner threads. tract prepares one
+immutable runnable shared by the owners, while every owner constructs and retains its own mutable
+state; inference never runs on a Tokio executor thread:
+
+```sh
+cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
+  --compute-owners 2 --batch 8 --iterations 200 --tract-threads 4
+```
+
+Treat owner count and tract threads per owner as one CPU budget. Compare combinations such as
+`1 x 8`, `2 x 4`, and `4 x 2`; do not derive owner count from the ORT CLI's task default.
 
 Repeat some trials with `--reverse` so backend order does not systematically favor the first or
 second runtime through cache, thermal, or sustained-load effects.

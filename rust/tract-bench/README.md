@@ -1,8 +1,9 @@
 # Magika runtime feasibility benchmark
 
-This standalone release-candidate crate measures the existing ONNX Runtime path against a tract
-NNEF path and contains the conversion and verification gates needed to ship that backend. It does
-not yet change the published `magika` library or CLI.
+This release-engineering crate measures the former ONNX Runtime path against the tract NNEF runtime
+used by the Rust `magika` library and CLI. The shared fixed-plan implementation lives in
+`rust/tract-runtime`; this crate retains the ONNX parity harness, converter, profiling controls, and
+release gates.
 
 ## Model release process
 
@@ -37,8 +38,8 @@ rust/tract-bench/scripts/verify-model-conversion.sh
 
 The release gate converts every bundled standard, fast, and beginning-only model twice, requires
 byte-identical output, validates each gzip/tar, reloads each artifact through Rust, and compares
-every model's scores and winning labels with its source ONNX at fixed batch classes 1, 8, 16, 32,
-and 64. It additionally requires the release model's direct CPU and LayerNorm fusions to match and
+every model's scores and winning labels with its source ONNX at fixed batch classes 1, 4, 8, 16,
+32, and 64. It additionally requires the release model's direct CPU and LayerNorm fusions to match and
 execute.
 
 Compare ONNX and NNEF model sizes using identical raw, gzip, and zstd representations:
@@ -50,7 +51,7 @@ rust/tract-bench/scripts/measure-size.sh
 The NNEF artifact retains a symbolic batch dimension only for portable storage. Rust binds `N` to
 the selected fixed class before tract performs target-specific optimization and kernel selection,
 so there is no symbolic shape on the inference hot path. The same archive therefore supplies the
-prebuilt 1, 8, 16, 32, and 64 plans instead of shipping five duplicate copies of the weights.
+prebuilt 1, 4, 8, 16, 32, and 64 plans instead of shipping duplicate copies of the weights.
 
 The corresponding Rust loading sequence is:
 
@@ -119,11 +120,12 @@ and activates only after checking the exact convolution, canonical approximate G
 axis, constants, layouts, and concrete facts. Requesting this release optimization is fail-closed:
 a non-matching model fails preparation instead of silently running the slower graph.
 
-`--fused-layer-norm` independently replaces the release model's primary true-LayerNorm expansion
-with one safe CPU operator. It validates the complete mean, variance clamp, epsilon, normalization,
-scale, and bias graph before rewriting it, and requires a concrete fixed-batch plan. The operator
-uses two contiguous activation passes and no `unsafe`; requesting it is fail-closed if the expected
-graph is absent. It is CPU-only and does not change Metal plans.
+`--fused-layer-norm` independently replaces the release model's true-LayerNorm expansion with one
+safe CPU operator. It validates the complete mean, variance clamp, epsilon, normalization, scale,
+and bias graph before rewriting it, and requires a concrete fixed-batch plan. The operator uses two
+contiguous activation passes and no `unsafe`; requesting it is fail-closed if the expected graph is
+absent. The production GPU preparation path uses the same structural validation to lower both
+LayerNorm forms to tract's GPU RMS-normalization primitive.
 
 The high-performance release artifact is `standard_v3_3`. The v2 models remain conversion and
 compatibility test inputs, but their exact-erf GELU does not match the approximate-GELU fused
@@ -173,9 +175,9 @@ single class-16 state. `--pool-routing ceil` retains the padded single-plan comp
 Before `MetalTransform`, the loader replaces the exact supported NHWC width-five convolution with
 five spatial slices and five `PrefixMatMul` nodes. tract then selects its tiled Metal GEMM instead
 of the generic direct-convolution kernel, whose threads repeatedly loaded the same 256-by-5 input
-window. The release gate fails if this graph lowering no longer matches. `auto` uses GGML for fixed
-class 1 and tract's default MLX selection for larger classes; an explicit `--metal-gemm` overrides
-that measured policy.
+window. The release gate fails if this graph lowering no longer matches. Production uses tract's
+default Metal GEMM for every class. GGML remains an explicit benchmark choice only: real class-1
+feature vectors exposed a correctness failure that the synthetic benchmark vector did not.
 
 The macOS throughput baseline is batch 8 with four Metal owners. The runnable for every resident
 class is prepared once and shared; each owner spawns and warms its own private mutable state and
@@ -189,7 +191,7 @@ cargo run --manifest-path rust/tract-bench/Cargo.toml --release --features metal
 
 A 60-cell release grid covered batches 1, 4, 8, 16, and 32; owners 1, 2, and 4; and all four GEMM
 choices. A sustained three-pass follow-up covered batches 4 and 8 with 2, 4, 6, and 8 owners. The
-batch-8/four-owner Metal median was 4,683 files/s, versus 2,865 for the identically configured fused
+batch-8/four-owner Metal median was 4,683 files/s, versus 2,880 for the identically configured fused
 CPU harness. Batch 4 favored six Metal owners at a 4,813 files/s median, but four remains the
 normal-operation setting because it is the batch-8 winner and consumes fewer host resources. These
 are M5 Max measurements, not portable constants. The combined four-owner, six-class process used

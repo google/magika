@@ -1,6 +1,19 @@
 # tract/NNEF feasibility spike
 
-Status: active exploration on branch `tract`.
+Status: accepted for the Rust release path on branch `tract`.
+
+## Release outcome
+
+The Rust library and CLI now use the checked NNEF artifact through `rust/tract-runtime`; ONNX
+Runtime remains only in the parity/conversion benchmark. The runtime prepares fixed classes
+`1, 4, 8, 16, 32, 64` once, shares immutable plans, and spawns private state inside each synchronous
+inference thread. The CLI exposes `--backend auto|cpu|gpu`, `--batch-size`, and `--threads`; Tokio is
+limited to file extraction, accumulation, and ordered result coordination. `-v` reports the resolved
+implementation (for example, `tract-metal`). Metal is compiled only on macOS, while optional CUDA
+features provide the same generic GPU contract on supported builds.
+
+The sections below preserve the original investigation map and measurements that led to this
+decision.
 
 ## Decision to make
 
@@ -14,7 +27,7 @@ The portable baseline is tract CPU. Metal is an optional, separately measured ba
 than a requirement: Magika's network and small inputs may not contain enough work to amortize GPU
 setup, synchronization, and transfer costs.
 
-## Current Magika map
+## Original Magika map
 
 The relevant production path is the Rust library and CLI:
 
@@ -185,7 +198,7 @@ slower, and score parity remains `2.4883775e-9` with identical winning labels.
 
 Rayon increases the optimized tract CPU-only executable to 16,900,704 bytes, still 14.54% smaller
 than the 19,776,896-byte ORT executable. Equal-codec comparison shows that format size is a wash:
-raw NNEF is 0.0619% larger, gzip-9 NNEF is 0.0738% smaller, and zstd-19 NNEF is 0.0698% smaller.
+raw NNEF is 0.0837% smaller, gzip-9 NNEF is 0.0856% smaller, and zstd-19 NNEF is 0.0835% smaller.
 
 ## Dynamic batching follow-up
 
@@ -342,15 +355,17 @@ while letting `MetalTransform` select its tiled GEMM kernels. A packed one-GEMM 
 measured and removed because it regressed practical batch 1 and 8 operation and increased scratch.
 
 A bounded release grid covered five batches, three owner counts, and all four GEMM choices. A
-three-pass sustained follow-up found 4,683 files/s at batch 8 with four Metal owners, versus 2,865
+three-pass sustained follow-up found 4,683 files/s at batch 8 with four Metal owners, versus 2,880
 for the identical four-owner fused CPU harness. Six owners won batch 4 at 4,813 files/s but not
 batch 8, so four owners and accumulation class 8 remain the normal M5 Max baseline. The old
 one-owner 817 files/s result measured the superseded kernel and topology.
 
 The resident pool now includes `1, 4, 8, 16, 32, 64` and composes with `--compute-owners`: each
 class runnable is prepared once, each owner spawns private mutable states, and every owner uses its
-thread-local Metal stream. Fixed class 1 uses GGML under `auto`; larger classes retain tract's MLX
-default. Plan-pool parity versus ORT has worst maximum absolute error `1.3887882e-5` with identical
+thread-local Metal stream. The release runtime uses tract's default Metal GEMM for every class.
+Although the synthetic benchmark favored GGML at class 1, a real-feature release test exposed a
+wrong classification, so GGML remains an explicit benchmark experiment rather than an automatic
+policy. Plan-pool parity versus ORT has worst maximum absolute error `1.3887882e-5` with identical
 labels. The combined four-owner, six-class process measured 80.6 MB maximum RSS and a 181.4 MB
 macOS peak memory footprint.
 

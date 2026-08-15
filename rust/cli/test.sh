@@ -23,6 +23,17 @@ x cargo clippy -- --deny=warnings
 
 PATH=$(dirname $PWD)/target/release:$PATH
 
+info "Test inference backend CLI"
+help=$(magika --help)
+grep -F '[possible values: auto, cpu, gpu]' <<<"$help" >/dev/null
+grep -F '[default: auto]' <<<"$help" >/dev/null
+backend=$(magika --backend cpu -v src/main.rs 2>&1)
+grep -F 'backend: cpu (tract-cpu)' <<<"$backend" >/dev/null
+( set +e
+  magika --backend metal src/main.rs >/dev/null 2>&1
+  [ $? -eq 2 ] || error "invalid backend should be rejected by argument parsing"
+)
+
 TEST_SUITES='basic previous_missdetections'
 info "Test against the test suites: $TEST_SUITES"
 ( cd ../../tests_data

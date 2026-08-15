@@ -123,6 +123,19 @@ empty/empty_file: Empty file (inode)
 -: INI configuration file (text)
 ```
 
+Magika accumulates eight files per inference by default and runs four resident inference threads.
+Both values can be changed for a specific workload. `--backend auto` prefers a compiled and
+available GPU implementation, then falls back to CPU; `--backend gpu` requires GPU initialization
+to succeed, while `--backend cpu` never initializes a GPU. Implementation names such as Metal or
+CUDA are intentionally not user-facing choices. Use `-v` to report the resolved implementation.
+For example, on macOS with a usable GPU:
+
+```shell
+magika --backend auto --batch-size 8 --threads 4 -v README.md
+backend: gpu (tract-metal)
+README.md: Markdown document (text)
+```
+
 ```shell
 % magika --help
 Determines file content types using AI
@@ -178,6 +191,25 @@ Options:
             %S  The score of the content type for the file in percent
             %b  The model output if overruled (empty otherwise)
             %%  A literal %
+
+      --backend <BACKEND>
+          Selects the inference device
+
+          [default: auto]
+          [possible values: auto, cpu, gpu]
+
+      --batch-size <BATCH_SIZE>
+          Number of files to accumulate before dispatching inference
+
+          [default: 8]
+
+      --threads <THREADS>
+          Number of resident inference threads
+
+          [default: 4]
+
+  -v, --verbose
+          Reports the selected inference device and implementation
 
   -h, --help
           Print help (see a summary with '-h')

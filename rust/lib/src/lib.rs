@@ -14,22 +14,15 @@
 
 //! Determines file content types using AI.
 //!
-//! This library indirectly depends on the ONNX Runtime through the `ort` [crate][ort-crate]. The
-//! final user is responsible to make sure the ONNX Runtime is available. The `ort` crate provides
-//! [many options][ort-linking] in this regard. The simplest option is to enable the default [cargo
-//! features][ort-features] of the `ort` crate by adding the following dependency to the
-//! `Cargo.toml` file of the final binary:
-//!
-//! ```toml
-//! [dependencies]
-//! ort = "=2.0.0-rc.12"
-//! ```
+//! Inference uses fixed-shape tract plans embedded in the Rust binary. No external inference
+//! runtime is required.
 //!
 //! # Examples
 //!
 //! ```rust
 //! # fn main() -> magika::Result<()> {
-//! // A Magika session can be used multiple times across multiple threads.
+//! // A Magika session can be reused on one thread. Share a Runtime to create one session per
+//! // inference thread when processing batches concurrently.
 //! let mut magika = magika::Session::new()?;
 //!
 //! // Files can be identified from their path.
@@ -41,10 +34,6 @@
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! [ort-crate]: https://crates.io/crates/ort
-//! [ort-linking]: https://ort.pyke.io/setup/linking
-//! [ort-features]: https://ort.pyke.io/setup/cargo-features
 
 #![cfg_attr(feature = "_doc", feature(doc_cfg))]
 
@@ -53,7 +42,9 @@ pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::error::{Error, Result};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{AsyncInput, Features, FeaturesOrRuled, SyncInput};
+pub use crate::runtime::Runtime;
 pub use crate::session::Session;
+pub use magika_tract_runtime::{Backend, BackendInfo, BackendRequest};
 
 mod builder;
 mod config;
@@ -63,6 +54,7 @@ mod file;
 mod future;
 mod input;
 mod model;
+mod runtime;
 mod session;
 
 #[cfg(test)]
@@ -169,5 +161,30 @@ mod tests {
             let actual = session.identify_content_sync(content.as_slice()).unwrap();
             assert_prediction(actual, expected, &test.content_base64);
         }
+    }
+
+    #[test]
+    fn every_fixed_batch_class_matches_on_cpu_and_auto() {
+        let features =
+            match FeaturesOrRuled::extract_sync(File::open("../../README.md").unwrap()).unwrap() {
+                FeaturesOrRuled::Features(features) => features,
+                FeaturesOrRuled::Ruled(_) => panic!("README must exercise model inference"),
+            };
+        for backend in [BackendRequest::Cpu, BackendRequest::Auto] {
+            let runtime = Session::builder().with_backend(backend).build_runtime().unwrap();
+            let mut session = runtime.session().unwrap();
+            for batch in [1, 4, 8, 16, 32, 64] {
+                let results =
+                    session.identify_features_batch_sync(&vec![features.clone(); batch]).unwrap();
+                assert_eq!(results.len(), batch);
+                assert!(results.iter().all(|result| result.info().label == "markdown"));
+            }
+        }
+    }
+
+    #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
+    #[test]
+    fn forced_gpu_fails_when_no_gpu_backend_is_compiled() {
+        assert!(Session::builder().with_backend(BackendRequest::Gpu).build_runtime().is_err());
     }
 }

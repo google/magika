@@ -25,7 +25,7 @@ use tract_core::ops::nn::RmsNorm;
 use tract_core::ops::nn::{Reduce, Reducer};
 
 /// Replace supported mean/variance/normalize/affine chains.
-pub(crate) fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usize> {
+pub fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usize> {
     let mut fused = 0;
     while let Some(pattern) = FusionPattern::find(model)? {
         let op = FusedLayerNorm::new(
@@ -46,15 +46,15 @@ pub(crate) fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usiz
     Ok(fused)
 }
 
-/// Rewrite true LayerNorm as mean-centering plus tract's Metal-fused RMSNorm.
-pub(crate) fn fuse_magika_layer_norm_for_metal(model: &mut TypedModel) -> TractResult<usize> {
+/// Rewrite true LayerNorm as mean-centering plus tract's GPU-fused RMSNorm.
+pub fn fuse_magika_layer_norm_for_gpu(model: &mut TypedModel) -> TractResult<usize> {
     let mut fused = 0;
     while let Some(pattern) = FusionPattern::find(model)? {
         let epsilon = pattern.epsilon.as_ref().clone().into_shape(&[])?.into_arc_tensor();
         let mut patch = TypedModelPatch::default();
         let centered = patch.tap_model(model, pattern.centered)?;
         let normalized = patch.wire_node(
-            "magika.metal_rms_norm",
+            "magika.gpu_rms_norm",
             RmsNorm { axis: pattern.axis, eps: epsilon },
             &[centered],
         )?[0];

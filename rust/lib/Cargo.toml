@@ -15,20 +15,17 @@ features = ["_doc"]
 
 [features]
 serde = ["dep:serde"]
+cuda = ["magika-tract-runtime/cuda"]
 # Internal features.
 _doc = ["serde"]
-_test = ["ort/download-binaries", "ort/tls-native"]
+_test = []
 
 [dependencies]
+magika-tract-runtime = { version = "=1.1.1-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }
 thiserror = "1.0.63"
 tokio = { version = "1.43.1", features = ["fs", "io-util"] }
-
-[dependencies.ort]
-version = "=2.0.0-rc.12"
-default-features = false
-features = ["ndarray", "std"]
 
 [dev-dependencies]
 data-encoding = "2.6.0"

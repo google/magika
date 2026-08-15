@@ -12,65 +12,56 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use ort::session::builder::GraphOptimizationLevel;
-
-use crate::{Result, Session};
+use crate::{BackendRequest, Result, Runtime, Session};
 
 /// Configures and creates a Magika session.
-#[derive(Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Builder {
-    inter_threads: Option<usize>,
-    intra_threads: Option<usize>,
-    optimization_level: Option<GraphOptimizationLevel>,
-    parallel_execution: Option<bool>,
+    backend: BackendRequest,
 }
 
 impl Builder {
-    /// Configures the number of threads to parallelize the execution of the graph.
-    pub fn with_inter_threads(mut self, num_threads: usize) -> Self {
-        self.inter_threads = Some(num_threads);
+    /// Retained for source compatibility; tract inference threads use one CPU executor each.
+    #[deprecated(
+        note = "tract manages execution threads; configure application inference threads instead"
+    )]
+    pub fn with_inter_threads(self, _num_threads: usize) -> Self {
         self
     }
 
-    /// Configures the number of threads to parallelize the execution within nodes.
-    pub fn with_intra_threads(mut self, num_threads: usize) -> Self {
-        self.intra_threads = Some(num_threads);
+    /// Retained for source compatibility; tract inference threads use one CPU executor each.
+    #[deprecated(
+        note = "tract manages execution threads; configure application inference threads instead"
+    )]
+    pub fn with_intra_threads(self, _num_threads: usize) -> Self {
         self
     }
 
-    /// Configures the session optimization level.
-    pub fn with_optimization_level(mut self, opt_level: GraphOptimizationLevel) -> Self {
-        self.optimization_level = Some(opt_level);
+    /// Retained for source compatibility; tract always prepares its optimized fixed-shape graph.
+    #[deprecated(note = "tract always applies its release graph optimization pipeline")]
+    pub fn with_optimization_level<T>(self, _optimization_level: T) -> Self {
         self
     }
 
-    /// Configures the session parallel execution.
-    pub fn with_parallel_execution(mut self, parallel_execution: bool) -> Self {
-        self.parallel_execution = Some(parallel_execution);
+    /// Retained for source compatibility; each tract session executes synchronously.
+    #[deprecated(note = "use one Magika session per application inference thread")]
+    pub fn with_parallel_execution(self, _parallel_execution: bool) -> Self {
         self
     }
 
-    /// Consumes the builder to create a Magika session.
+    /// Selects automatic, CPU-only, or GPU-required inference.
+    pub fn with_backend(mut self, backend: BackendRequest) -> Self {
+        self.backend = backend;
+        self
+    }
+
+    /// Prepares the model and creates one thread-private Magika session.
     pub fn build(self) -> Result<Session> {
-        Ok(self.build_()?)
+        self.build_runtime()?.session()
     }
 
-    fn build_(self) -> ort::Result<Session> {
-        let mut session = ort::session::Session::builder()?;
-        let Builder { inter_threads, intra_threads, optimization_level, parallel_execution } = self;
-        if let Some(num_threads) = inter_threads {
-            session = session.with_inter_threads(num_threads)?;
-        }
-        if let Some(num_threads) = intra_threads {
-            session = session.with_intra_threads(num_threads)?;
-        }
-        if let Some(opt_level) = optimization_level {
-            session = session.with_optimization_level(opt_level)?;
-        }
-        if let Some(parallel_execution) = parallel_execution {
-            session = session.with_parallel_execution(parallel_execution)?;
-        }
-        let session = session.commit_from_memory(include_bytes!("model.onnx"))?;
-        Ok(Session { session })
+    /// Prepares shared fixed-shape plans for spawning multiple inference sessions.
+    pub fn build_runtime(self) -> Result<Runtime> {
+        Runtime::new(self.backend)
     }
 }

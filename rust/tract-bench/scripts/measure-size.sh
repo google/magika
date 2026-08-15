@@ -24,7 +24,7 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 bench_dir=$(dirname -- "$script_dir")
 repo_dir=$(CDPATH= cd -- "$bench_dir/../.." && pwd)
 onnx="$repo_dir/assets/models/standard_v3_3/model.onnx"
-nnef_gzip="$bench_dir/models/model.nnef.tgz"
+nnef_gzip="$repo_dir/rust/tract-runtime/models/model.nnef.tgz"
 candidate_dir=$(mktemp -d)
 trap 'rm -rf "$candidate_dir"' EXIT HUP INT TERM
 

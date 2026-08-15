@@ -19,7 +19,7 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 bench_dir=$(dirname -- "$script_dir")
 repo_dir=$(CDPATH= cd -- "$bench_dir/../.." && pwd)
 source_model="$repo_dir/assets/models/standard_v3_3/model.onnx"
-checked_model="$bench_dir/models/model.nnef.tgz"
+checked_model="$repo_dir/rust/tract-runtime/models/model.nnef.tgz"
 
 convert() {
   cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" \

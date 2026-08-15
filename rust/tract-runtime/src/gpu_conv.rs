@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Metal-friendly lowering for Magika's valid Conv1D.
+//! GPU-friendly lowering for Magika's valid Conv1D.
 
 use std::sync::Arc;
 
@@ -30,7 +30,7 @@ use tract_core::ops::nn::DataFormat;
 /// tract-metal's generic direct convolution gives every output element its own thread, which
 /// repeatedly reads the same input and weights. Magika's width-five convolution is faster as five
 /// large GEMMs; the Metal transform then selects its tuned matrix kernel.
-pub(crate) fn lower_magika_conv_to_matmul(model: &mut TypedModel) -> TractResult<usize> {
+pub fn lower_magika_conv_to_matmul(model: &mut TypedModel) -> TractResult<usize> {
     let mut lowered = 0;
     while let Some(pattern) = ConvPattern::find(model)? {
         pattern.apply(model)?;
@@ -126,12 +126,12 @@ impl ConvPattern {
         let mut products = TVec::with_capacity(self.kernel_length);
         for kernel_index in 0..self.kernel_length {
             let slice = patch.wire_node(
-                format!("magika.metal_conv.slice_{kernel_index}"),
+                format!("magika.gpu_conv.slice_{kernel_index}"),
                 Slice::new(1, kernel_index, kernel_index + output_length),
                 &[input],
             )?[0];
             let matrix = patch.wire_node(
-                format!("magika.metal_conv.flatten_{kernel_index}"),
+                format!("magika.gpu_conv.flatten_{kernel_index}"),
                 AxisOp::Reshape(
                     0,
                     tvec![self.batch.to_dim(), output_length.to_dim()],
@@ -140,11 +140,11 @@ impl ConvPattern {
                 &[slice],
             )?[0];
             let weights = patch.add_const(
-                format!("magika.metal_conv.weights_{kernel_index}"),
+                format!("magika.gpu_conv.weights_{kernel_index}"),
                 self.kernel_matrix(kernel_index)?,
             )?;
             let product = patch.wire_node(
-                format!("magika.metal_conv.gemm_{kernel_index}"),
+                format!("magika.gpu_conv.gemm_{kernel_index}"),
                 PrefixMatMul {
                     transpose_a: false,
                     transpose_b: true,
@@ -155,7 +155,7 @@ impl ConvPattern {
                 &[matrix, weights],
             )?[0];
             let product = patch.wire_node(
-                format!("magika.metal_conv.unflatten_{kernel_index}"),
+                format!("magika.gpu_conv.unflatten_{kernel_index}"),
                 AxisOp::Reshape(
                     0,
                     tvec![rows.to_dim()],
@@ -171,7 +171,7 @@ impl ConvPattern {
             for pair in products.chunks(2) {
                 next.push(if let [left, right] = pair {
                     let output = patch.wire_node(
-                        format!("magika.metal_conv.sum_{sum_index}"),
+                        format!("magika.gpu_conv.sum_{sum_index}"),
                         TypedBinOp(Box::new(Add), None),
                         &[*left, *right],
                     )?[0];
@@ -185,9 +185,9 @@ impl ConvPattern {
         }
 
         let bias = self.bias.as_ref().clone().into_shape(&[1, 1, self.output_channels])?;
-        let bias = patch.add_const("magika.metal_conv.bias", bias)?;
+        let bias = patch.add_const("magika.gpu_conv.bias", bias)?;
         let output = patch.wire_node(
-            "magika.metal_conv.bias_add",
+            "magika.gpu_conv.bias_add",
             TypedBinOp(Box::new(Add), None),
             &[products.pop().context("zero-length convolution kernel")?, bias],
         )?[0];

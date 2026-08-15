@@ -38,20 +38,17 @@ info "Updating CLI output in README.md"
 ( cd cli
   for i in $(seq 1 $(grep '^% ' README.md | wc -l)); do
     grep -n '^% ' README.md | cut -f1 -d: | head -n$i | tail -n1 | while read line; do
-      sed -i $line',/```/{'$line'p;/```/!d}' README.md
+      sed -i.bak -e "$line,"'/```/{' -e "${line}p" -e '/```/!d' -e '}' README.md
+      rm README.md.bak
       cmd="$(head -n$line README.md | tail -n1 | sed 's/^% //')"
       ( cd ../..; eval "$cmd"; ) 2>/dev/null > tmp
-      sed -i $line'r tmp' README.md
+      sed -i.bak $line'r tmp' README.md
+      rm README.md.bak
     done
   done
   rm tmp
-  sed -i 's/ \+$//' README.md
-)
-
-info "Updating ort version in library documentation"
-( cd lib
-  VERSION=$(sed -n '/^\[dependencies.ort\]$/,/^$/{s/^version = //p}' Cargo.toml)
-  sed -Ei 's#^(//! ort =) .*$#\1 '"$VERSION"'#' src/lib.rs
+  sed -i.bak 's/[[:space:]]*$//' README.md
+  rm README.md.bak
 )
 
 if [ "$1" = --check ]; then

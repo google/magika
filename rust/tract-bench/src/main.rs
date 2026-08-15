@@ -15,18 +15,17 @@
 //! Compares Magika inference runtimes during the tract feasibility spike.
 
 #[cfg(feature = "tract-runtime")]
-mod direct_conv;
-#[cfg(feature = "tract-runtime")]
-mod layer_norm;
-#[cfg(all(feature = "metal", target_os = "macos"))]
-mod metal_conv;
-#[cfg(feature = "tract-runtime")]
 mod plan_pool;
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
+
+#[cfg(feature = "tract-runtime")]
+use magika_tract_runtime::bench::{fuse_magika_conv_max, fuse_magika_layer_norm};
+#[cfg(all(feature = "metal", target_os = "macos"))]
+use magika_tract_runtime::bench::{fuse_magika_layer_norm_for_gpu, lower_magika_conv_to_matmul};
 
 #[cfg(feature = "ort-runtime")]
 use ndarray::Array2;
@@ -60,7 +59,7 @@ const MAGIKA_LAZY_IM2COL_MIN_KERNEL: &str = "5";
 #[cfg(feature = "ort-runtime")]
 const ONNX_MODEL: &[u8] = include_bytes!("../../../assets/models/standard_v3_3/model.onnx");
 #[cfg(feature = "tract-runtime")]
-const NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
+const NNEF_MODEL: &[u8] = magika_tract_runtime::EMBEDDED_NNEF_MODEL;
 
 trait Backend {
     fn name(&self) -> &'static str;
@@ -208,11 +207,11 @@ impl TractBackend {
             model = model.into_decluttered().context("decluttering before CPU graph fusion")?;
         }
         if fused_layer_norm {
-            let fused = layer_norm::fuse_magika_layer_norm(&mut model)?;
+            let fused = fuse_magika_layer_norm(&mut model)?;
             ensure!(fused > 0, "required LayerNorm fusion did not match the batch-{batch} model");
         }
         if direct_fused {
-            let fused = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
+            let fused = fuse_magika_conv_max(&mut model, batch)?;
             ensure!(
                 fused > 0,
                 "required direct Conv1D fusion did not match the batch-{batch} model"
@@ -237,12 +236,12 @@ impl TractBackend {
         let mut model = Self::load_model(fixed_batch, nnef_model, false, false)?
             .into_decluttered()
             .context("decluttering before Metal graph fusion")?;
-        let fused_layer_norm = layer_norm::fuse_magika_layer_norm_for_metal(&mut model)?;
+        let fused_layer_norm = fuse_magika_layer_norm_for_gpu(&mut model)?;
         ensure!(
             fused_layer_norm == 2,
             "required both Metal LayerNorm fusions, matched {fused_layer_norm}"
         );
-        let lowered = metal_conv::lower_magika_conv_to_matmul(&mut model)?;
+        let lowered = lower_magika_conv_to_matmul(&mut model)?;
         ensure!(lowered > 0, "required Metal Conv1D lowering did not match the model");
         MetalTransform { gemm_impl }.transform(&mut model).context("transforming for Metal")?;
         let model = model.into_optimized().context("optimizing the Metal model")?;
@@ -254,10 +253,9 @@ impl TractBackend {
 
 #[cfg(all(feature = "metal", target_os = "macos"))]
 fn metal_gemm_impl(
-    selected: Option<&str>, fixed_batch: Option<usize>,
+    selected: Option<&str>, _fixed_batch: Option<usize>,
 ) -> Result<Option<MetalGemmImplKind>> {
     Ok(match selected {
-        None | Some("auto") if fixed_batch == Some(1) => Some(MetalGemmImplKind::Ggml),
         None | Some("auto") => None,
         Some("mlx") => Some(MetalGemmImplKind::Mlx),
         Some("mfa") => Some(MetalGemmImplKind::Mfa),
@@ -1226,7 +1224,7 @@ fn micros(duration: Duration) -> u128 {
 mod tests {
     use super::owner_backend_order;
     #[cfg(all(feature = "metal", target_os = "macos"))]
-    use super::{MetalGemmImplKind, TractBackend, layer_norm, metal_gemm_impl};
+    use super::{MetalGemmImplKind, TractBackend, fuse_magika_layer_norm_for_gpu, metal_gemm_impl};
 
     #[test]
     fn compute_owner_backend_selection_is_honored() {
@@ -1241,8 +1239,8 @@ mod tests {
 
     #[cfg(all(feature = "metal", target_os = "macos"))]
     #[test]
-    fn metal_auto_uses_ggml_only_for_batch_one() {
-        assert_eq!(metal_gemm_impl(Some("auto"), Some(1)).unwrap(), Some(MetalGemmImplKind::Ggml));
+    fn metal_auto_uses_the_default_gemm_for_every_batch() {
+        assert_eq!(metal_gemm_impl(Some("auto"), Some(1)).unwrap(), None);
         assert_eq!(metal_gemm_impl(None, Some(4)).unwrap(), None);
         assert_eq!(metal_gemm_impl(Some("mlx"), Some(1)).unwrap(), Some(MetalGemmImplKind::Mlx));
     }
@@ -1254,6 +1252,6 @@ mod tests {
             .unwrap()
             .into_decluttered()
             .unwrap();
-        assert_eq!(layer_norm::fuse_magika_layer_norm_for_metal(&mut model).unwrap(), 2);
+        assert_eq!(fuse_magika_layer_norm_for_gpu(&mut model).unwrap(), 2);
     }
 }

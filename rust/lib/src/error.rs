@@ -22,11 +22,17 @@ pub enum Error {
     #[error("{0}")]
     IOError(#[from] std::io::Error),
 
-    /// Errors reported by the ONNX Runtime.
+    /// Errors reported while preparing or running inference.
     #[error("{0}")]
-    OrtError(#[from] ort::Error),
+    InferenceError(String),
 
     /// Shape errors reported by the ndarray library.
     #[error("{0}")]
     ShapeError(#[from] ndarray::ShapeError),
+}
+
+impl Error {
+    pub(crate) fn inference(error: impl std::fmt::Display) -> Self {
+        Self::InferenceError(error.to_string())
+    }
 }

@@ -30,6 +30,7 @@ tract-runtime = ["dep:tract-core", "dep:tract-linalg", "dep:tract-nnef"]
 [dependencies]
 anyhow = "1.0.104"
 flate2 = { version = "1.1.9", optional = true }
+magika-tract-runtime = { path = "../tract-runtime" }
 ndarray = { version = "0.17.2", optional = true }
 tract-core = { version = "=0.23.4", optional = true }
 tract-hir = { version = "=0.23.4", optional = true }

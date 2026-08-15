@@ -22,6 +22,7 @@ use crate::future::exec;
 use crate::{ContentType, Result};
 
 /// Features to identify a file using AI.
+#[derive(Clone)]
 pub struct Features(pub(crate) Vec<i32>);
 
 /// Synchronous abstraction over file content.

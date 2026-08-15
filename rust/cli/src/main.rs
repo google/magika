@@ -20,12 +20,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
-use anyhow::{ensure, Result};
-use clap::{Args, Parser};
+use anyhow::{ensure, Context as _, Result};
+use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
-    self, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason, Session,
-    TypeInfo,
+    self, Backend, BackendRequest, ContentType, Features, FeaturesOrRuled, FileType, InferredType,
+    OverwriteReason, Runtime, Session, TypeInfo,
 };
 use serde::Serialize;
 use tokio::fs::File;
@@ -59,6 +59,10 @@ struct Flags {
 
     #[clap(flatten)]
     compute: Compute,
+
+    /// Reports the selected inference device and implementation.
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 struct Version;
@@ -129,6 +133,10 @@ struct Format {
 
 #[derive(Args)]
 struct Compute {
+    /// Selects the inference device.
+    #[arg(long, value_enum, default_value_t = BackendChoice::Auto)]
+    backend: BackendChoice,
+
     /// Number of files to accumulate before dispatching inference.
     #[arg(long, default_value = "8")]
     batch_size: usize,
@@ -136,6 +144,24 @@ struct Compute {
     /// Number of resident inference threads.
     #[arg(long, default_value = "4", alias = "num-tasks")]
     threads: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+enum BackendChoice {
+    #[default]
+    Auto,
+    Cpu,
+    Gpu,
+}
+
+impl From<BackendChoice> for BackendRequest {
+    fn from(backend: BackendChoice) -> Self {
+        match backend {
+            BackendChoice::Auto => BackendRequest::Auto,
+            BackendChoice::Cpu => BackendRequest::Cpu,
+            BackendChoice::Gpu => BackendRequest::Gpu,
+        }
+    }
 }
 
 #[tokio::main]
@@ -158,7 +184,21 @@ async fn start() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    let result_capacity = flags.compute.threads * flags.compute.batch_size;
+    let runtime =
+        Arc::new(Session::builder().with_backend(flags.compute.backend.into()).build_runtime()?);
+    if flags.verbose {
+        let info = runtime.backend_info();
+        let backend = match info.backend() {
+            Backend::Cpu => "cpu",
+            Backend::Gpu => "gpu",
+        };
+        eprintln!("backend: {backend} ({})", info.implementation());
+    }
+    let result_capacity = flags
+        .compute
+        .threads
+        .checked_mul(flags.compute.batch_size)
+        .context("--threads times --batch-size is too large")?;
     let (result_sender, result_receiver) =
         tokio::sync::mpsc::channel::<Result<Response>>(result_capacity);
     let (batch_sender, batch_receiver) =
@@ -173,7 +213,7 @@ async fn start() -> Result<()> {
         }
     });
     let inference_threads =
-        spawn_inference_threads(flags.compute.threads, &batch_receiver, &result_sender)?;
+        spawn_inference_threads(flags.compute.threads, runtime, &batch_receiver, &result_sender)?;
     drop(batch_receiver);
     drop(result_sender);
     let print_result = match print(&flags, result_receiver).await {
@@ -313,22 +353,21 @@ async fn process_path(
     Ok(FeaturesOrRuled::extract_async(file).await?.into())
 }
 
-fn build_session() -> Result<Session> {
-    Ok(Session::builder().with_intra_threads(1).build()?)
-}
-
 fn spawn_inference_threads(
-    threads: usize, receiver: &async_channel::Receiver<InferenceBatch>,
+    threads: usize, runtime: Arc<Runtime>, receiver: &async_channel::Receiver<InferenceBatch>,
     sender: &tokio::sync::mpsc::Sender<Result<Response>>,
 ) -> Result<Vec<JoinHandle<()>>> {
     (0..threads)
         .map(|index| {
             let receiver = receiver.clone();
             let sender = sender.clone();
+            let runtime = runtime.clone();
             std::thread::Builder::new()
                 .name(format!("magika-inference-{index}"))
                 .spawn(move || {
-                    let result = build_session()
+                    let result: Result<()> = runtime
+                        .session()
+                        .map_err(Into::into)
                         .and_then(|mut session| infer_batches(&mut session, &receiver, &sender));
                     if let Err(error) = result {
                         let _ = sender.blocking_send(Err(error));

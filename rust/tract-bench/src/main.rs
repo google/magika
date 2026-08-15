@@ -237,6 +237,11 @@ impl TractBackend {
         let mut model = Self::load_model(fixed_batch, nnef_model, false, false)?
             .into_decluttered()
             .context("decluttering before Metal graph fusion")?;
+        let fused_layer_norm = layer_norm::fuse_magika_layer_norm_for_metal(&mut model)?;
+        ensure!(
+            fused_layer_norm == 2,
+            "required both Metal LayerNorm fusions, matched {fused_layer_norm}"
+        );
         let lowered = metal_conv::lower_magika_conv_to_matmul(&mut model)?;
         ensure!(lowered > 0, "required Metal Conv1D lowering did not match the model");
         MetalTransform { gemm_impl }.transform(&mut model).context("transforming for Metal")?;
@@ -1221,7 +1226,7 @@ fn micros(duration: Duration) -> u128 {
 mod tests {
     use super::owner_backend_order;
     #[cfg(all(feature = "metal", target_os = "macos"))]
-    use super::{MetalGemmImplKind, metal_gemm_impl};
+    use super::{MetalGemmImplKind, TractBackend, layer_norm, metal_gemm_impl};
 
     #[test]
     fn compute_owner_backend_selection_is_honored() {
@@ -1240,5 +1245,15 @@ mod tests {
         assert_eq!(metal_gemm_impl(Some("auto"), Some(1)).unwrap(), Some(MetalGemmImplKind::Ggml));
         assert_eq!(metal_gemm_impl(None, Some(4)).unwrap(), None);
         assert_eq!(metal_gemm_impl(Some("mlx"), Some(1)).unwrap(), Some(MetalGemmImplKind::Mlx));
+    }
+
+    #[cfg(all(feature = "metal", target_os = "macos"))]
+    #[test]
+    fn metal_rewrite_fuses_both_layer_norm_shapes() {
+        let mut model = TractBackend::load_model(Some(8), None, false, false)
+            .unwrap()
+            .into_decluttered()
+            .unwrap();
+        assert_eq!(layer_norm::fuse_magika_layer_norm_for_metal(&mut model).unwrap(), 2);
     }
 }

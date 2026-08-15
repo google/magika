@@ -18,8 +18,10 @@ use std::sync::Arc;
 
 use tract_core::internal::*;
 use tract_core::ops::binary::TypedBinOp;
+use tract_core::ops::change_axes::AxisOp;
 use tract_core::ops::element_wise::ElementWiseOp;
 use tract_core::ops::math::{Add, Max, Mul, Rsqrt, Square, Sub};
+use tract_core::ops::nn::RmsNorm;
 use tract_core::ops::nn::{Reduce, Reducer};
 
 /// Replace supported mean/variance/normalize/affine chains.
@@ -44,8 +46,41 @@ pub(crate) fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usiz
     Ok(fused)
 }
 
+/// Rewrite true LayerNorm as mean-centering plus tract's Metal-fused RMSNorm.
+pub(crate) fn fuse_magika_layer_norm_for_metal(model: &mut TypedModel) -> TractResult<usize> {
+    let mut fused = 0;
+    while let Some(pattern) = FusionPattern::find(model)? {
+        let epsilon = pattern.epsilon.as_ref().clone().into_shape(&[])?.into_arc_tensor();
+        let mut patch = TypedModelPatch::default();
+        let centered = patch.tap_model(model, pattern.centered)?;
+        let normalized = patch.wire_node(
+            "magika.metal_rms_norm",
+            RmsNorm { axis: pattern.axis, eps: epsilon },
+            &[centered],
+        )?[0];
+        let scale = patch.add_const("magika.layer_norm_scale", pattern.scale)?;
+        let scaled = patch.wire_node(
+            "magika.layer_norm_scale_mul",
+            TypedBinOp(Box::new(Mul), None),
+            &[normalized, scale],
+        )?[0];
+        let bias = patch.add_const("magika.layer_norm_bias", pattern.bias)?;
+        let output = patch.wire_node(
+            "magika.layer_norm_bias_add",
+            TypedBinOp(Box::new(Add), None),
+            &[scaled, bias],
+        )?[0];
+        patch.shunt_outside(model, OutletId::new(pattern.output_node, 0), output)?;
+        patch.apply(model)?;
+        model.compact()?;
+        fused += 1;
+    }
+    Ok(fused)
+}
+
 struct FusionPattern {
     input: OutletId,
+    centered: OutletId,
     output_node: usize,
     axis: usize,
     epsilon: Arc<Tensor>,
@@ -110,7 +145,55 @@ impl FusionPattern {
         else {
             return Ok(None);
         };
-        let clamped_variance = model.node(clamped_variance_outlet.node);
+
+        let statistics = if let Some(statistics) =
+            Self::match_direct_statistics(model, input, mean, clamped_variance_outlet)?
+        {
+            statistics
+        } else if let Some(statistics) =
+            Self::match_squeezed_statistics(model, input, mean, clamped_variance_outlet)?
+        {
+            statistics
+        } else {
+            return Ok(None);
+        };
+
+        let axis = statistics.axis;
+        let reciprocal = statistics.reciprocal;
+        let input_fact = model.outlet_fact(input)?;
+        let Some(input_shape) = input_fact.shape.as_concrete() else {
+            return Ok(None);
+        };
+        if input_fact.datum_type != DatumType::F32
+            || axis >= input_shape.len()
+            || input_shape[axis] == 0
+            || scalar_f32(&reciprocal)
+                .is_none_or(|value| (value - 1.0 / input_shape[axis] as f32).abs() > 1.0e-7)
+            || scalar_f32(&epsilon).is_none_or(|value| !value.is_finite() || value < 0.0)
+            || !is_axis_parameter(&scale, input_shape, axis)
+            || !is_axis_parameter(&bias, input_shape, axis)
+            || model.outlet_fact(OutletId::new(output.id, 0))?.shape.as_concrete()
+                != Some(input_shape)
+        {
+            return Ok(None);
+        }
+
+        Ok(Some(Self {
+            input,
+            centered: centered_outlet,
+            output_node: output.id,
+            axis,
+            epsilon,
+            scale,
+            bias,
+            input_shape: input_shape.into(),
+        }))
+    }
+
+    fn match_direct_statistics(
+        model: &TypedModel, input: OutletId, mean: OutletId, clamped_variance: OutletId,
+    ) -> TractResult<Option<StatisticsPattern>> {
+        let clamped_variance = model.node(clamped_variance.node);
         if !is_max(clamped_variance) {
             return Ok(None);
         }
@@ -157,34 +240,125 @@ impl FusionPattern {
             return Ok(None);
         }
 
-        let input_fact = model.outlet_fact(input)?;
-        let Some(input_shape) = input_fact.shape.as_concrete() else {
+        Ok(Some(StatisticsPattern { axis, reciprocal }))
+    }
+
+    fn match_squeezed_statistics(
+        model: &TypedModel, input: OutletId, broadcast_mean: OutletId,
+        broadcast_clamped_variance: OutletId,
+    ) -> TractResult<Option<StatisticsPattern>> {
+        let Some((axis, mean)) = axis_op_input(model, broadcast_mean, AxisOpKind::Add) else {
             return Ok(None);
         };
-        if input_fact.datum_type != DatumType::F32
-            || axis >= input_shape.len()
-            || input_shape[axis] == 0
-            || scalar_f32(&reciprocal)
-                .is_none_or(|value| (value - 1.0 / input_shape[axis] as f32).abs() > 1.0e-7)
-            || scalar_f32(&epsilon).is_none_or(|value| !value.is_finite() || value < 0.0)
-            || !is_axis_parameter(&scale, input_shape, axis)
-            || !is_axis_parameter(&bias, input_shape, axis)
-            || model.outlet_fact(OutletId::new(output.id, 0))?.shape.as_concrete()
-                != Some(input_shape)
+        let Some((variance_axis, clamped_variance)) =
+            axis_op_input(model, broadcast_clamped_variance, AxisOpKind::Add)
+        else {
+            return Ok(None);
+        };
+        if variance_axis != axis {
+            return Ok(None);
+        }
+
+        let clamped_variance = model.node(clamped_variance.node);
+        if !is_max(clamped_variance) {
+            return Ok(None);
+        }
+        let Some((zero, variance)) = const_and_dynamic(model, clamped_variance)? else {
+            return Ok(None);
+        };
+        if scalar_f32(&zero) != Some(0.0) {
+            return Ok(None);
+        }
+
+        let variance = model.node(variance.node);
+        if !is_sub(variance) || variance.inputs.len() != 2 {
+            return Ok(None);
+        }
+        let mean_square = model.node(variance.inputs[1].node);
+        if !is_square(mean_square) || mean_square.inputs.as_slice() != [mean] {
+            return Ok(None);
+        }
+
+        let mean = model.node(mean.node);
+        if !is_mul(mean) {
+            return Ok(None);
+        }
+        let Some((reciprocal, squeezed_sum)) = const_and_dynamic(model, mean)? else {
+            return Ok(None);
+        };
+        if !matches_squeezed_sum(model, squeezed_sum, input, axis, false) {
+            return Ok(None);
+        }
+
+        let mean_squares = model.node(variance.inputs[0].node);
+        if !is_mul(mean_squares) {
+            return Ok(None);
+        }
+        let Some((squares_reciprocal, squeezed_sum_squares)) =
+            const_and_dynamic(model, mean_squares)?
+        else {
+            return Ok(None);
+        };
+        if scalar_f32(&reciprocal) != scalar_f32(&squares_reciprocal)
+            || !matches_squeezed_sum(model, squeezed_sum_squares, input, axis, true)
         {
             return Ok(None);
         }
 
-        Ok(Some(Self {
-            input,
-            output_node: output.id,
-            axis,
-            epsilon,
-            scale,
-            bias,
-            input_shape: input_shape.into(),
-        }))
+        Ok(Some(StatisticsPattern { axis, reciprocal }))
     }
+}
+
+struct StatisticsPattern {
+    axis: usize,
+    reciprocal: Arc<Tensor>,
+}
+
+#[derive(Clone, Copy)]
+enum AxisOpKind {
+    Add,
+    Remove,
+}
+
+fn axis_op_input(
+    model: &TypedModel, outlet: OutletId, kind: AxisOpKind,
+) -> Option<(usize, OutletId)> {
+    let node = model.node(outlet.node);
+    if node.inputs.len() != 1 {
+        return None;
+    }
+    let axis = match (kind, node.op_as::<AxisOp>()) {
+        (AxisOpKind::Add, Some(AxisOp::Add(axis)))
+        | (AxisOpKind::Remove, Some(AxisOp::Rm(axis))) => *axis,
+        _ => return None,
+    };
+    Some((axis, node.inputs[0]))
+}
+
+fn matches_squeezed_sum(
+    model: &TypedModel, squeezed_sum: OutletId, input: OutletId, axis: usize, squares: bool,
+) -> bool {
+    let Some((removed_axis, sum)) = axis_op_input(model, squeezed_sum, AxisOpKind::Remove) else {
+        return false;
+    };
+    if removed_axis != axis {
+        return false;
+    }
+    let sum = model.node(sum.node);
+    let Some(sum_op) = sum.op_as::<Reduce>() else {
+        return false;
+    };
+    if sum_op.reducer != Reducer::Sum || sum_op.axes.as_slice() != [axis] {
+        return false;
+    }
+    if !squares {
+        return sum.inputs.as_slice() == [input];
+    }
+    let [square] = sum.inputs.as_slice() else {
+        return false;
+    };
+    let square = model.node(square.node);
+    is_square(square) && square.inputs.as_slice() == [input]
 }
 
 fn const_and_dynamic(

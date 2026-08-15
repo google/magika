@@ -305,8 +305,8 @@ profile; direct fused convolution is now the dominant 72-74%.
 
 ## Resident Metal plan pool
 
-To leave CPU capacity available for other work, the clean macOS design is a Metal-only owner holding
-all fixed classes `1, 8, 16, 32, 64`. Every class is bound and passed independently through
+The initial Metal experiment used one owner holding fixed classes `1, 8, 16, 32, 64`; its
+performance conclusion is superseded below. Every class is bound and passed independently through
 `MetalTransform` and target optimization, then spawned and warmed during startup. Request-time
 switching only selects an existing state; there is no dynamic model or compilation path.
 
@@ -332,6 +332,27 @@ isolated pool uses 67.6 MB maximum RSS and 169.7 MB macOS peak memory footprint.
 eliminates deferred first-use work: without warm-up, the first class-16 call took 572 ms. CPU plans
 are not involved in this route; CPU remains available for input extraction, I/O, and unrelated
 application work.
+
+### Corrected Metal convolution and owner topology
+
+Synchronized profiling found tract-metal's generic direct Conv1D consuming 52.5% of batch-8 time.
+The release loader now fail-closed lowers Magika's supported channels-last width-five convolution
+to five spatial slices and five `PrefixMatMul` operations. This preserves the fixed NNEF artifact
+while letting `MetalTransform` select its tiled GEMM kernels. A packed one-GEMM im2col version was
+measured and removed because it regressed practical batch 1 and 8 operation and increased scratch.
+
+A bounded release grid covered five batches, three owner counts, and all four GEMM choices. A
+three-pass sustained follow-up found 4,683 files/s at batch 8 with four Metal owners, versus 2,865
+for the identical four-owner fused CPU harness. Six owners won batch 4 at 4,813 files/s but not
+batch 8, so four owners and accumulation class 8 remain the normal M5 Max baseline. The old
+one-owner 817 files/s result measured the superseded kernel and topology.
+
+The resident pool now includes `1, 4, 8, 16, 32, 64` and composes with `--compute-owners`: each
+class runnable is prepared once, each owner spawns private mutable states, and every owner uses its
+thread-local Metal stream. Fixed class 1 uses GGML under `auto`; larger classes retain tract's MLX
+default. Plan-pool parity versus ORT has worst maximum absolute error `1.3887882e-5` with identical
+labels. The combined four-owner, six-class process measured 80.6 MB maximum RSS and a 181.4 MB
+macOS peak memory footprint.
 
 The CPU plan profiler identifies the next boundary. At fixed batch 128, eager `Im2col` plus its
 `OptMatMul` consume about 57% of execution and max reduction another 15%. tract's lazy-im2col source

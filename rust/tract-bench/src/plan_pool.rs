@@ -15,8 +15,12 @@
 //! Resident fixed-shape tract plan ownership and request routing.
 
 use std::path::Path;
+#[cfg(all(feature = "metal", target_os = "macos"))]
+use std::sync::Arc;
 
 use anyhow::{Context as _, Result, ensure};
+#[cfg(all(feature = "metal", target_os = "macos"))]
+use tract_core::prelude::TypedSimplePlan;
 
 use crate::{Backend, FEATURE_SIZE, PADDING_TOKEN, PoolRouting, TractBackend};
 
@@ -26,6 +30,36 @@ pub(super) struct PlanPoolBackend {
     name: &'static str,
     plans: Vec<(usize, TractBackend)>,
     routing: PoolRouting,
+}
+
+#[cfg(all(feature = "metal", target_os = "macos"))]
+pub(super) struct PreparedMetalPlanPool {
+    plans: Vec<(usize, Arc<TypedSimplePlan>)>,
+    routing: PoolRouting,
+}
+
+#[cfg(all(feature = "metal", target_os = "macos"))]
+impl PreparedMetalPlanPool {
+    pub(super) fn prepare(
+        classes: &[usize], gemm: Option<&str>, nnef_model: Option<&Path>, routing: PoolRouting,
+    ) -> Result<Self> {
+        let mut plans = Vec::with_capacity(classes.len());
+        for &class in classes {
+            plans.push((class, TractBackend::prepare_metal(Some(class), gemm, nnef_model)?));
+        }
+        Ok(Self { plans, routing })
+    }
+
+    pub(super) fn spawn(&self) -> Result<PlanPoolBackend> {
+        let plans = self
+            .plans
+            .iter()
+            .map(|(class, runnable)| Ok((*class, TractBackend::spawn("tract-metal", runnable)?)))
+            .collect::<Result<_>>()?;
+        let mut pool = PlanPoolBackend { name: "tract-metal-pool", plans, routing: self.routing };
+        pool.warm_all()?;
+        Ok(pool)
+    }
 }
 
 impl PlanPoolBackend {
@@ -55,13 +89,7 @@ impl PlanPoolBackend {
     pub(super) fn load_metal(
         classes: &[usize], gemm: Option<&str>, nnef_model: Option<&Path>, routing: PoolRouting,
     ) -> Result<Self> {
-        let mut plans = Vec::with_capacity(classes.len());
-        for &class in classes {
-            plans.push((class, TractBackend::load_metal(Some(class), gemm, nnef_model)?));
-        }
-        let mut pool = Self { name: "tract-metal-pool", plans, routing };
-        pool.warm_all()?;
-        Ok(pool)
+        PreparedMetalPlanPool::prepare(classes, gemm, nnef_model, routing)?.spawn()
     }
 
     fn plan_for_class(&mut self, class: usize) -> Result<&mut TractBackend> {

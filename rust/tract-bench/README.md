@@ -160,7 +160,7 @@ Prepare and warm every fixed class up front with a resident plan pool:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release --features metal -- \
-  --backend metal --plan-pool 1,8,16,32,64 --pool-routing exact \
+  --backend metal --plan-pool 1,4,8,16,32,64 --pool-routing exact \
   --batch-sweep --iterations 5
 ```
 
@@ -170,17 +170,30 @@ conversion, optimization, or pipeline compilation occurs on the request path. Ex
 padding by composing classes in descending order: request 10 becomes `8+1+1`, while 16 uses the
 single class-16 state. `--pool-routing ceil` retains the padded single-plan comparison.
 
-The macOS baseline is one dedicated Metal owner. Its accumulator targets class 8 for normal work,
-uses the larger resident class directly when 16, 32, or 64 inputs are already available, and flushes
-smaller tails exactly through class 1. `--plan-pool` controls the available classes. The CPU
-`--compute-owners 4` baseline does not apply to Metal; additional Metal owners would need a separate
-GPU-contention and memory grid before adoption.
+Before `MetalTransform`, the loader replaces the exact supported NHWC width-five convolution with
+five spatial slices and five `PrefixMatMul` nodes. tract then selects its tiled Metal GEMM instead
+of the generic direct-convolution kernel, whose threads repeatedly loaded the same 256-by-5 input
+window. The release gate fails if this graph lowering no longer matches. `auto` uses GGML for fixed
+class 1 and tract's default MLX selection for larger classes; an explicit `--metal-gemm` overrides
+that measured policy.
 
-A short three-trial release rerun measured the four-owner CPU baseline at a median 2,654 files/s
-and the one-owner Metal baseline at 817 files/s. Metal's warm batch-8 latency was about 9.8 ms, and
-preparing and warming all five plans took 299-352 ms. Metal is therefore the CPU-offload topology,
-not the maximum aggregate-throughput topology. Its batch-8 throughput is already within 7% of the
-measured class-64 throughput, supporting 8 as the normal accumulation target.
+The macOS throughput baseline is batch 8 with four Metal owners. The runnable for every resident
+class is prepared once and shared; each owner spawns and warms its own private mutable state and
+thread-local Metal command stream. The owner and resident-pool modes can be combined directly:
+
+```sh
+cargo run --manifest-path rust/tract-bench/Cargo.toml --release --features metal -- \
+  --backend metal --compute-owners 4 --plan-pool 1,4,8,16,32,64 \
+  --pool-routing exact --batch 8 --iterations 100
+```
+
+A 60-cell release grid covered batches 1, 4, 8, 16, and 32; owners 1, 2, and 4; and all four GEMM
+choices. A sustained three-pass follow-up covered batches 4 and 8 with 2, 4, 6, and 8 owners. The
+batch-8/four-owner Metal median was 4,683 files/s, versus 2,865 for the identically configured fused
+CPU harness. Batch 4 favored six Metal owners at a 4,813 files/s median, but four remains the
+normal-operation setting because it is the batch-8 winner and consumes fewer host resources. These
+are M5 Max measurements, not portable constants. The combined four-owner, six-class process used
+80.6 MB maximum RSS and a 181.4 MB macOS peak memory footprint in an isolated batch-8 run.
 
 This Metal-only mode does not use the custom CPU convolution and does not send tails to CPU. It
 keeps CPU capacity available for extraction and unrelated work. The CPU pool remains available as a

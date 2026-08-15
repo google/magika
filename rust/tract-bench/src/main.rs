@@ -18,6 +18,8 @@
 mod direct_conv;
 #[cfg(feature = "tract-runtime")]
 mod layer_norm;
+#[cfg(all(feature = "metal", target_os = "macos"))]
+mod metal_conv;
 #[cfg(feature = "tract-runtime")]
 mod plan_pool;
 
@@ -30,6 +32,8 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 use ndarray::Array2;
 #[cfg(feature = "tract-runtime")]
 use plan_pool::PlanPoolBackend;
+#[cfg(all(feature = "metal", target_os = "macos"))]
+use plan_pool::PreparedMetalPlanPool;
 #[cfg(all(feature = "metal", target_os = "macos"))]
 use tract_core::prelude::TypedSimplePlan;
 #[cfg(feature = "tract-runtime")]
@@ -221,20 +225,40 @@ impl TractBackend {
     fn load_metal(
         fixed_batch: Option<usize>, gemm: Option<&str>, nnef_model: Option<&Path>,
     ) -> Result<Self> {
-        let gemm_impl = match gemm {
-            None | Some("auto") => None,
-            Some("mlx") => Some(MetalGemmImplKind::Mlx),
-            Some("mfa") => Some(MetalGemmImplKind::Mfa),
-            Some("ggml") => Some(MetalGemmImplKind::Ggml),
-            Some(gemm) => bail!("unknown Metal GEMM implementation: {gemm}"),
-        };
-        let mut model = Self::load_model(fixed_batch, nnef_model, false, false)?;
+        let runnable = Self::prepare_metal(fixed_batch, gemm, nnef_model)?;
+        Self::spawn("tract-metal", &runnable)
+    }
+
+    #[cfg(all(feature = "metal", target_os = "macos"))]
+    fn prepare_metal(
+        fixed_batch: Option<usize>, gemm: Option<&str>, nnef_model: Option<&Path>,
+    ) -> Result<std::sync::Arc<TypedSimplePlan>> {
+        let gemm_impl = metal_gemm_impl(gemm, fixed_batch)?;
+        let mut model = Self::load_model(fixed_batch, nnef_model, false, false)?
+            .into_decluttered()
+            .context("decluttering before Metal graph fusion")?;
+        let lowered = metal_conv::lower_magika_conv_to_matmul(&mut model)?;
+        ensure!(lowered > 0, "required Metal Conv1D lowering did not match the model");
         MetalTransform { gemm_impl }.transform(&mut model).context("transforming for Metal")?;
         let model = model.into_optimized().context("optimizing the Metal model")?;
         let options = RunOptions { skip_order_opt_ram: true, ..RunOptions::default() };
         let runnable = TypedSimplePlan::build(model, &options).context("preparing tract-metal")?;
-        Self::spawn("tract-metal", &std::sync::Arc::new(runnable))
+        Ok(std::sync::Arc::new(runnable))
     }
+}
+
+#[cfg(all(feature = "metal", target_os = "macos"))]
+fn metal_gemm_impl(
+    selected: Option<&str>, fixed_batch: Option<usize>,
+) -> Result<Option<MetalGemmImplKind>> {
+    Ok(match selected {
+        None | Some("auto") if fixed_batch == Some(1) => Some(MetalGemmImplKind::Ggml),
+        None | Some("auto") => None,
+        Some("mlx") => Some(MetalGemmImplKind::Mlx),
+        Some("mfa") => Some(MetalGemmImplKind::Mfa),
+        Some("ggml") => Some(MetalGemmImplKind::Ggml),
+        Some(gemm) => bail!("unknown Metal GEMM implementation: {gemm}"),
+    })
 }
 
 #[cfg(feature = "tract-runtime")]
@@ -269,13 +293,13 @@ impl Backend for TractBackend {
     fn profile_plan(
         &mut self, input: &[i32], batch: usize,
     ) -> Result<Option<Vec<(String, String, Duration)>>> {
-        if self.name != "tract-cpu" {
+        if self.name != "tract-cpu" && self.name != "tract-metal" {
             return Ok(None);
         }
         let state = self
             .state
             .downcast_mut::<TypedSimpleState>()
-            .context("tract CPU state is not a typed simple state")?;
+            .context("tract state is not a typed simple state")?;
         ensure!(input.len().is_multiple_of(batch), "input length is not divisible by batch");
         let input = Tensor::from_shape(&[batch, input.len() / batch], input)?.into_tvalue();
         let mut samples = Vec::new();
@@ -283,6 +307,10 @@ impl Backend for TractBackend {
             state.run_plan_with_eval(tvec!(input), |session, op_state, node, inputs| {
                 let start = Instant::now();
                 let result = tract_core::plan::eval(session, op_state, node, inputs);
+                #[cfg(all(feature = "metal", target_os = "macos"))]
+                if self.name == "tract-metal" && result.is_ok() {
+                    tract_metal::with_metal_stream(|stream| stream.wait_until_completed())?;
+                }
                 samples.push((node.name.clone(), node.op.name().to_string(), start.elapsed()));
                 result
             })?;
@@ -338,8 +366,9 @@ fn main() -> Result<()> {
         "--fixed-batch and --plan-pool are alternative fixed-shape modes"
     );
     ensure!(
-        !(options.compute_owners.is_some() && options.plan_pool.is_some()),
-        "--compute-owners does not yet support a resident plan pool"
+        !(options.compute_owners.is_some() && options.plan_pool.is_some())
+            || options.backend.as_deref() == Some("metal"),
+        "--compute-owners with --plan-pool currently requires --backend metal"
     );
     #[cfg(feature = "ort-runtime")]
     ort::init().with_telemetry(false).commit();
@@ -506,8 +535,12 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
         options.reverse,
         cfg!(feature = "ort-runtime"),
         cfg!(feature = "tract-runtime"),
+        cfg!(all(feature = "metal", target_os = "macos")),
     );
-    ensure!(!backends.is_empty(), "--compute-owners supports an enabled ort or cpu backend");
+    ensure!(
+        !backends.is_empty(),
+        "--compute-owners supports an enabled ort, cpu, or metal backend"
+    );
     let input = load_corpus(options.batch, options.feature_size)?;
     println!(
         "owner_columns\tbackend\towners\tbatch\titerations_per_owner\twall_us\tfiles_per_second"
@@ -554,10 +587,48 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
         }
         Ok(())
     };
+    let run_metal = || -> Result<()> {
+        #[cfg(all(feature = "metal", target_os = "macos"))]
+        {
+            if let Some(classes) = options.plan_pool.as_deref() {
+                let prepared = PreparedMetalPlanPool::prepare(
+                    classes,
+                    options.metal_gemm.as_deref(),
+                    options.nnef_model.as_deref(),
+                    options.pool_routing,
+                )?;
+                bench_compute_owners(
+                    "tract-metal-pool",
+                    owners,
+                    options.batch,
+                    options.iterations,
+                    &input,
+                    || prepared.spawn(),
+                )?;
+            } else {
+                ensure!(options.fixed_batch, "Metal compute owners require --fixed-batch");
+                let runnable = TractBackend::prepare_metal(
+                    Some(options.batch),
+                    options.metal_gemm.as_deref(),
+                    options.nnef_model.as_deref(),
+                )?;
+                bench_compute_owners(
+                    "tract-metal",
+                    owners,
+                    options.batch,
+                    options.iterations,
+                    &input,
+                    || TractBackend::spawn("tract-metal", &runnable),
+                )?;
+            }
+        }
+        Ok(())
+    };
     for backend in backends {
         match backend {
             "ort" => run_ort()?,
             "cpu" => run_tract()?,
+            "metal" => run_metal()?,
             _ => unreachable!("owner_backend_order returned an unknown backend"),
         }
     }
@@ -566,13 +637,17 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
 
 fn owner_backend_order(
     selected: Option<&str>, reverse: bool, ort_available: bool, tract_available: bool,
+    metal_available: bool,
 ) -> Vec<&'static str> {
-    let mut backends = Vec::with_capacity(2);
+    let mut backends = Vec::with_capacity(3);
     if selected.is_none_or(|backend| backend == "ort") && ort_available {
         backends.push("ort");
     }
     if selected.is_none_or(|backend| backend == "cpu") && tract_available {
         backends.push("cpu");
+    }
+    if selected.is_none_or(|backend| backend == "metal") && metal_available {
+        backends.push("metal");
     }
     if reverse {
         backends.reverse();
@@ -1072,7 +1147,7 @@ fn print_help() {
          [--fixed-batch] [--feature-size N] [--fused-layer-norm] [--iterations N]{METAL} \
          [--nnef-model PATH] [--onnx-model PATH] \
          [--ort-intra-threads N] [--ort-inter-threads N] [--plan-summary] \
-         [--plan-pool 1,8,16,32,64] [--pool-routing exact|ceil] [--profile-plan] \
+         [--plan-pool 1,4,8,16,32,64] [--pool-routing exact|ceil] [--profile-plan] \
          [--tract-threads N] [--verify-batches]"
     );
 }
@@ -1145,14 +1220,25 @@ fn micros(duration: Duration) -> u128 {
 #[cfg(test)]
 mod tests {
     use super::owner_backend_order;
+    #[cfg(all(feature = "metal", target_os = "macos"))]
+    use super::{MetalGemmImplKind, metal_gemm_impl};
 
     #[test]
     fn compute_owner_backend_selection_is_honored() {
-        assert_eq!(owner_backend_order(Some("ort"), false, true, true), ["ort"]);
-        assert_eq!(owner_backend_order(Some("cpu"), false, true, true), ["cpu"]);
-        assert_eq!(owner_backend_order(None, false, true, true), ["ort", "cpu"]);
-        assert_eq!(owner_backend_order(None, true, true, true), ["cpu", "ort"]);
-        assert!(owner_backend_order(Some("metal"), false, true, true).is_empty());
-        assert_eq!(owner_backend_order(None, false, false, true), ["cpu"]);
+        assert_eq!(owner_backend_order(Some("ort"), false, true, true, true), ["ort"]);
+        assert_eq!(owner_backend_order(Some("cpu"), false, true, true, true), ["cpu"]);
+        assert_eq!(owner_backend_order(Some("metal"), false, true, true, true), ["metal"]);
+        assert_eq!(owner_backend_order(None, false, true, true, true), ["ort", "cpu", "metal"]);
+        assert_eq!(owner_backend_order(None, true, true, true, true), ["metal", "cpu", "ort"]);
+        assert!(owner_backend_order(Some("metal"), false, true, true, false).is_empty());
+        assert_eq!(owner_backend_order(None, false, false, true, false), ["cpu"]);
+    }
+
+    #[cfg(all(feature = "metal", target_os = "macos"))]
+    #[test]
+    fn metal_auto_uses_ggml_only_for_batch_one() {
+        assert_eq!(metal_gemm_impl(Some("auto"), Some(1)).unwrap(), Some(MetalGemmImplKind::Ggml));
+        assert_eq!(metal_gemm_impl(None, Some(4)).unwrap(), None);
+        assert_eq!(metal_gemm_impl(Some("mlx"), Some(1)).unwrap(), Some(MetalGemmImplKind::Mlx));
     }
 }

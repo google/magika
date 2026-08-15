@@ -18,19 +18,18 @@ use std::fmt::Write;
 use std::io::{ErrorKind, Write as _};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::thread::JoinHandle;
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{ensure, Result};
 use clap::{Args, Parser};
 use colored::ColoredString;
 use magika::{
     self, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason, Session,
     TypeInfo,
 };
-use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
-use tokio::task::JoinSet;
 
 /// Determines file content types using AI.
 #[derive(Parser)]
@@ -59,7 +58,7 @@ struct Flags {
     format: Format,
 
     #[clap(flatten)]
-    experimental: Experimental,
+    compute: Compute,
 }
 
 struct Version;
@@ -129,57 +128,25 @@ struct Format {
 }
 
 #[derive(Args)]
-struct Experimental {
-    /// Number of files to identify in a single inference.
-    #[arg(hide = true, long, default_value = "1")]
+struct Compute {
+    /// Number of files to accumulate before dispatching inference.
+    #[arg(long, default_value = "8")]
     batch_size: usize,
 
-    /// Number of tasks for batch parallelism.
-    #[arg(hide = true, long)]
-    num_tasks: Option<usize>,
-
-    /// Number of threads for graph parallelism (ONNX Runtime configuration).
-    ///
-    /// This has no effect if --parallel-execution is false or unset.
-    #[arg(hide = true, long)]
-    inter_threads: Option<usize>,
-
-    /// Number of threads for node parallelism (ONNX Runtime configuration).
-    #[arg(hide = true, long)]
-    intra_threads: Option<usize>,
-
-    /// Graph optimization level, from 0 to 3 (ONNX Runtime configuration).
-    #[arg(hide = true, long)]
-    optimization_level: Option<usize>,
-
-    /// Whether to enable parallel execution (ONNX Runtime configuration).
-    #[arg(hide = true, long)]
-    parallel_execution: Option<bool>,
+    /// Number of resident inference threads.
+    #[arg(long, default_value = "4", alias = "num-tasks")]
+    threads: usize,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut tasks = JoinSet::new();
-    let result = start(&mut tasks).await;
-    while tasks.join_next().await.is_some() {}
-    result
+    start().await
 }
 
-async fn start(tasks: &mut JoinSet<()>) -> Result<()> {
-    let mut flags = Flags::parse();
-    ensure!(0 < flags.experimental.batch_size, "--batch-size cannot be zero");
-    // If --num-tasks is set, we don't do any guessing.
-    let num_tasks = flags.experimental.num_tasks.unwrap_or_else(|| {
-        // Otherwise, if --intra-thread is set, we use a single task.
-        if flags.experimental.intra_threads.is_some() {
-            return 1;
-        }
-        // Otherwise, we use the minimum number of intra threads (which is 2).
-        flags.experimental.intra_threads = Some(2);
-        // And as many tasks as physical CPUs with a minimum of 2.
-        std::cmp::max(2, num_cpus::get_physical())
-    });
-    ensure!(0 < num_tasks, "--num-tasks cannot be zero");
+async fn start() -> Result<()> {
+    let flags = Flags::parse();
+    ensure!(0 < flags.compute.batch_size, "--batch-size cannot be zero");
+    ensure!(0 < flags.compute.threads, "--threads cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -191,10 +158,12 @@ async fn start(tasks: &mut JoinSet<()>) -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
+    let result_capacity = flags.compute.threads * flags.compute.batch_size;
     let (result_sender, result_receiver) =
-        tokio::sync::mpsc::channel::<Result<Response>>(num_tasks * flags.experimental.batch_size);
-    let (batch_sender, batch_receiver) = async_channel::bounded::<Batch>(num_tasks);
-    tasks.spawn({
+        tokio::sync::mpsc::channel::<Result<Response>>(result_capacity);
+    let (batch_sender, batch_receiver) =
+        async_channel::bounded::<InferenceBatch>(flags.compute.threads);
+    let extractor = tokio::spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
         async move {
@@ -203,20 +172,11 @@ async fn start(tasks: &mut JoinSet<()>) -> Result<()> {
             }
         }
     });
-    for _ in 0..num_tasks {
-        let mut magika = build_session(&flags)?;
-        tasks.spawn({
-            let batch_receiver = batch_receiver.clone();
-            let result_sender = result_sender.clone();
-            async move {
-                if let Err(e) = infer_batch(&mut magika, &batch_receiver, &result_sender).await {
-                    let _ = result_sender.send(Err(e)).await;
-                }
-            }
-        });
-    }
+    let inference_threads =
+        spawn_inference_threads(flags.compute.threads, &batch_receiver, &result_sender)?;
+    drop(batch_receiver);
     drop(result_sender);
-    match print(&flags, result_receiver).await {
+    let print_result = match print(&flags, result_receiver).await {
         Err(e)
             if e.root_cause()
                 .downcast_ref::<std::io::Error>()
@@ -225,7 +185,12 @@ async fn start(tasks: &mut JoinSet<()>) -> Result<()> {
             Ok(())
         }
         x => x,
+    };
+    extractor.await?;
+    for thread in inference_threads {
+        thread.join().map_err(|_| anyhow::anyhow!("inference thread panicked"))?;
     }
+    print_result
 }
 
 async fn print(
@@ -267,11 +232,10 @@ async fn print(
 }
 
 async fn extract_features(
-    flags: &Flags, batch_sender: &async_channel::Sender<Batch>,
+    flags: &Flags, batch_sender: &async_channel::Sender<InferenceBatch>,
     result_sender: &tokio::sync::mpsc::Sender<Result<Response>>,
 ) -> Result<()> {
-    let mut paths = Vec::new();
-    let mut features = Vec::new();
+    let mut accumulator = Accumulator::new(flags.compute.batch_size);
     let mut flags_paths = flags.path.clone();
     flags_paths.reverse();
     let mut order = 0;
@@ -281,21 +245,19 @@ async fn extract_features(
             Err(x) => result = Some(Err(x)),
             Ok(ProcessPath::Recursive) => continue,
             Ok(ProcessPath::Ruled(x)) => result = Some(Ok(x)),
-            Ok(ProcessPath::Features(x)) => features.push(x),
+            Ok(ProcessPath::Features(features)) => {
+                if let Some(batch) = accumulator.push(order, path.clone(), features) {
+                    batch_sender.send(batch).await?;
+                }
+            }
         };
-        match result {
-            Some(result) => result_sender.send(Ok(Response { order, path, result })).await?,
-            None => paths.push((order, path)),
+        if let Some(result) = result {
+            result_sender.send(Ok(Response { order, path, result })).await?;
         }
         order += 1;
-        if features.len() == flags.experimental.batch_size {
-            batch_sender.send(Batch { paths, features }).await?;
-            paths = Vec::new();
-            features = Vec::new();
-        }
     }
-    if !paths.is_empty() {
-        batch_sender.send(Batch { paths, features }).await?;
+    if let Some(batch) = accumulator.finish() {
+        batch_sender.send(batch).await?;
     }
     Ok(())
 }
@@ -351,44 +313,42 @@ async fn process_path(
     Ok(FeaturesOrRuled::extract_async(file).await?.into())
 }
 
-fn build_session(flags: &Flags) -> Result<Session> {
-    ort::init().with_telemetry(false).commit();
-    let mut magika = Session::builder();
-    if let Some(inter_threads) = flags.experimental.inter_threads {
-        magika = magika.with_inter_threads(inter_threads);
-    }
-    // Apparently, SetIntraOpNumThreads must be called on MacOS, otherwise we get the following
-    // error: intra op thread pool must have at least one thread for RunAsync.
-    let intra_threads_default = cfg!(target_os = "macos").then_some(4);
-    if let Some(intra_threads) = flags.experimental.intra_threads.or(intra_threads_default) {
-        magika = magika.with_intra_threads(intra_threads);
-    }
-    if let Some(opt_level) = flags.experimental.optimization_level {
-        let opt_level = match opt_level {
-            0 => GraphOptimizationLevel::Disable,
-            1 => GraphOptimizationLevel::Level1,
-            2 => GraphOptimizationLevel::Level2,
-            3 => GraphOptimizationLevel::Level3,
-            _ => bail!("--optimization-level must be 0, 1, 2, or 3"),
-        };
-        magika = magika.with_optimization_level(opt_level);
-    }
-    if let Some(parallel_execution) = flags.experimental.parallel_execution {
-        magika = magika.with_parallel_execution(parallel_execution);
-    }
-    Ok(magika.build()?)
+fn build_session() -> Result<Session> {
+    Ok(Session::builder().with_intra_threads(1).build()?)
 }
 
-async fn infer_batch(
-    magika: &mut Session, receiver: &async_channel::Receiver<Batch>,
+fn spawn_inference_threads(
+    threads: usize, receiver: &async_channel::Receiver<InferenceBatch>,
+    sender: &tokio::sync::mpsc::Sender<Result<Response>>,
+) -> Result<Vec<JoinHandle<()>>> {
+    (0..threads)
+        .map(|index| {
+            let receiver = receiver.clone();
+            let sender = sender.clone();
+            std::thread::Builder::new()
+                .name(format!("magika-inference-{index}"))
+                .spawn(move || {
+                    let result = build_session()
+                        .and_then(|mut session| infer_batches(&mut session, &receiver, &sender));
+                    if let Err(error) = result {
+                        let _ = sender.blocking_send(Err(error));
+                    }
+                })
+                .map_err(Into::into)
+        })
+        .collect()
+}
+
+fn infer_batches(
+    magika: &mut Session, receiver: &async_channel::Receiver<InferenceBatch>,
     sender: &tokio::sync::mpsc::Sender<Result<Response>>,
 ) -> Result<()> {
-    while let Ok(Batch { paths, features }) = receiver.recv().await {
-        let batch = magika.identify_features_batch_async(&features).await?;
+    while let Ok(InferenceBatch { paths, features }) = receiver.recv_blocking() {
+        let batch = magika.identify_features_batch_sync(&features)?;
         assert_eq!(batch.len(), paths.len());
         for ((order, path), output) in paths.into_iter().zip(batch) {
             let result = Ok(output);
-            sender.send(Ok(Response { order, path, result })).await?;
+            sender.blocking_send(Ok(Response { order, path, result }))?;
         }
     }
     Ok(())
@@ -418,9 +378,42 @@ impl Reorder {
     }
 }
 
-struct Batch {
+struct InferenceBatch {
     paths: Vec<(usize, PathBuf)>,
     features: Vec<Features>,
+}
+
+struct Accumulator {
+    batch_size: usize,
+    paths: Vec<(usize, PathBuf)>,
+    features: Vec<Features>,
+}
+
+impl Accumulator {
+    fn new(batch_size: usize) -> Self {
+        Self {
+            batch_size,
+            paths: Vec::with_capacity(batch_size),
+            features: Vec::with_capacity(batch_size),
+        }
+    }
+
+    fn push(&mut self, order: usize, path: PathBuf, features: Features) -> Option<InferenceBatch> {
+        self.paths.push((order, path));
+        self.features.push(features);
+        (self.features.len() == self.batch_size).then(|| self.take())
+    }
+
+    fn finish(mut self) -> Option<InferenceBatch> {
+        (!self.features.is_empty()).then(|| self.take())
+    }
+
+    fn take(&mut self) -> InferenceBatch {
+        InferenceBatch {
+            paths: std::mem::replace(&mut self.paths, Vec::with_capacity(self.batch_size)),
+            features: std::mem::replace(&mut self.features, Vec::with_capacity(self.batch_size)),
+        }
+    }
 }
 
 #[derive(Debug)]

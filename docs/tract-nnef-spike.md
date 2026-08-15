@@ -315,6 +315,12 @@ work is already queued and flushes smaller tails through class 1. The CPU four-o
 reused for Metal: multiple owners would submit competing work to one GPU and require independent
 contention and memory evidence before becoming a supported topology.
 
+A fresh three-trial release comparison measured the four-owner CPU baseline at a median 2,654
+files/s and the one-owner Metal pool at 817 files/s. Metal's warm batch-8 latency was about 9.8 ms;
+pool preparation and warm-up took 299-352 ms. A 20-iteration exact-routing sweep reached 846 files/s
+at class 8 and 901 at class 64, so batch 8 is already within 7% of the largest resident class.
+Metal should be selected to preserve CPU capacity, not to maximize aggregate files/s.
+
 Routing must compose exact classes rather than pad to the next ceiling. Request 10 is `8+1+1`, not
 a padded class 16; request 7 is seven class-1 calls. In the release sweep this Metal-only pool is
 within 2% of ORT or faster for every request from 1 through 7, then leads by 63% at 8, 32% at 9, and

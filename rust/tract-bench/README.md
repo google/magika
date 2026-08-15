@@ -176,6 +176,12 @@ smaller tails exactly through class 1. `--plan-pool` controls the available clas
 `--compute-owners 4` baseline does not apply to Metal; additional Metal owners would need a separate
 GPU-contention and memory grid before adoption.
 
+A short three-trial release rerun measured the four-owner CPU baseline at a median 2,654 files/s
+and the one-owner Metal baseline at 817 files/s. Metal's warm batch-8 latency was about 9.8 ms, and
+preparing and warming all five plans took 299-352 ms. Metal is therefore the CPU-offload topology,
+not the maximum aggregate-throughput topology. Its batch-8 throughput is already within 7% of the
+measured class-64 throughput, supporting 8 as the normal accumulation target.
+
 This Metal-only mode does not use the custom CPU convolution and does not send tails to CPU. It
 keeps CPU capacity available for extraction and unrelated work. The CPU pool remains available as a
 separate fallback benchmark; with `--direct-fused-conv`, it uses built-in `LazyIm2col` for class 1

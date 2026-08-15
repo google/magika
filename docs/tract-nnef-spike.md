@@ -218,16 +218,20 @@ work in the existing async inference call. Build a separate accumulate/compute p
 The benchmark harness implements this owner/queue model without editing production code. It exists
 to determine the topology first; production integration remains gated on those measurements.
 
-The first topology sweep validates the design. At batch 8, moving from `1 x 8` to `4 x 2` and
-`8 x 1` raises tract from roughly 453 files/s to 1,391 and 2,110 files/s in the initial run.
-Alternating-order medians put tract about 5.2% behind ORT at `4 x 2` and 7.2% behind at `8 x 1`, a
-much smaller gap than the single-state batch sweep. Twelve and sixteen owners regress.
+Backend-isolated release sweeps validate the design. With one thread per owner at fixed batch 32,
+tract rises from 1,085-1,204 files/s with one owner to 2,812-2,919 with eight and 2,945-3,023 with
+twelve. Sixteen and eighteen regress under sustained load. ORT's best corresponding sample is
+1,849 files/s, so tract's best is 1.64x faster in that spot sweep. A subsequent three-pass tract
+grid covered every owner count 1-18 and every fixed batch class. It supersedes the spot-sweep default:
+the stable sustained region is four to six owners, and six is the conservative cross-class choice.
+The host reports six performance-level-0 cores and twelve performance-level-1 cores; other machines
+must tune rather than inherit this number.
 
 The runnable/state distinction matters: tract's prepared runnable is `Send + Sync`, so it is
-prepared once and shared, while each owner spawns a private non-`Send` state. Sharing reduces the
-eight-owner tract peak from about 449 MB to 406 MB. One owner uses about 75 MB; an equivalent
-eight-owner ORT-only process reaches about 541 MB. Topology selection therefore needs both throughput
-and a memory budget rather than a CPU-count default.
+prepared once and shared, while each owner spawns a private non-`Send` state. Backend-isolated
+eight-owner processes use about 98 MiB maximum RSS at batch 8 and 330 MiB at batch 32. Equivalent
+ORT processes use about 515 MiB and 1.75 GiB. The earlier 406 MiB tract claim came from a harness
+bug that ran both selected backends in one process and is not release evidence.
 
 Dynamic Metal improves over ORT only once batches become fairly large: roughly 4% at batch 8, 9% at
 batch 32, 14% at batch 64, and 17% at batch 128 in a directional sweep. Only batch 128 crosses the
@@ -284,11 +288,18 @@ roughly 4 MiB bounded default. A fixed batch-128 CPU-only process measured 178.1
 164.3 MB macOS peak memory footprint. The resident pool still keeps batch one on tract's existing
 `LazyIm2col`; fixed classes 8 and larger use this direct fused-max operator.
 
-The graph matcher derives dimensions and safely falls back to ordinary tract for an unmatched new
-model. The standalone converter now produces deterministic, Rust-loadable NNEF for every bundled
+The graph matcher derives dimensions and leaves ordinary tract unchanged unless fusion is requested;
+the release gate requests it and therefore fails if a model no longer matches. The standalone
+converter now produces deterministic, Rust-loadable NNEF for every bundled
 v2 and v3 artifact without exporter-name matching. Historical `standard_v2_1` and `fast_v2_1`
 still use exact-erf GELU, so the v3-specific direct fused runtime acceleration does not apply to
 those graphs.
+
+The remaining primary LayerNorm expansion is also fused on CPU after exact structural validation.
+The safe two-pass `FusedLayerNorm` lowers the fixed plan from 62 to 46 nodes and retains maximum
+ORT score error of `2.3841858e-7`. Across two alternating eight-owner trials it improves throughput
+by about 11%, 4%, 7%, and 14% at batches 1, 8, 16, and 32. It takes about 4.5% of the resulting
+profile; direct fused convolution is now the dominant 72-74%.
 
 ## Resident Metal plan pool
 

@@ -38,7 +38,8 @@ rust/tract-bench/scripts/verify-model-conversion.sh
 The release gate converts every bundled standard, fast, and beginning-only model twice, requires
 byte-identical output, validates each gzip/tar, reloads each artifact through Rust, and compares
 every model's scores and winning labels with its source ONNX at fixed batch classes 1, 8, 16, 32,
-and 64. It additionally requires the release model's direct CPU fusion to match and execute.
+and 64. It additionally requires the release model's direct CPU and LayerNorm fusions to match and
+execute.
 
 Compare ONNX and NNEF model sizes using identical raw, gzip, and zstd representations:
 
@@ -118,6 +119,12 @@ and activates only after checking the exact convolution, canonical approximate G
 axis, constants, layouts, and concrete facts. Requesting this release optimization is fail-closed:
 a non-matching model fails preparation instead of silently running the slower graph.
 
+`--fused-layer-norm` independently replaces the release model's primary true-LayerNorm expansion
+with one safe CPU operator. It validates the complete mean, variance clamp, epsilon, normalization,
+scale, and bias graph before rewriting it, and requires a concrete fixed-batch plan. The operator
+uses two contiguous activation passes and no `unsafe`; requesting it is fail-closed if the expected
+graph is absent. It is CPU-only and does not change Metal plans.
+
 The high-performance release artifact is `standard_v3_3`. The v2 models remain conversion and
 compatibility test inputs, but their exact-erf GELU does not match the approximate-GELU fused
 kernel. They are deliberately not presented as the same CPU performance tier.
@@ -133,14 +140,15 @@ Inspect the target-specific optimized operator plan and profile one CPU inferenc
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
-  --backend cpu --batch 128 --fixed-batch --plan-summary --profile-plan --verify
+  --backend cpu --batch 8 --fixed-batch --direct-fused-conv --fused-layer-norm \
+  --plan-summary --profile-plan --verify
 ```
 
 Compare the direct large-batch CPU kernel with tract's built-in eager-im2col lowering:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
-  --backend cpu --batch 128 --fixed-batch --direct-fused-conv \
+  --backend cpu --batch 32 --fixed-batch --direct-fused-conv --fused-layer-norm \
   --iterations 10 --plan-summary --verify
 ```
 
@@ -183,11 +191,16 @@ state; inference never runs on a Tokio executor thread:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
-  --compute-owners 2 --batch 8 --iterations 200 --tract-threads 4
+  --backend cpu --compute-owners 6 --batch 8 --fixed-batch --iterations 200 \
+  --tract-threads 1 --direct-fused-conv --fused-layer-norm
 ```
 
-Treat owner count and tract threads per owner as one CPU budget. Compare combinations such as
-`1 x 8`, `2 x 4`, and `4 x 2`; do not derive owner count from the ORT CLI's task default.
+`--backend` is honored in owner mode, so CPU and ORT throughput and RSS can be measured in separate
+processes. An exhaustive three-pass grid across owners 1-18 and fixed batches 1, 8, 16, 32, and 64
+puts the sustained optimum between four and six owners on the measured M5 Max. Six single-thread
+owners are the conservative cross-class setting; the host reports six performance-level-0 cores.
+Treat this as a measured platform default, not a mathematical constant, and repeat the grid on other
+CPU topologies.
 
 Repeat some trials with `--reverse` so backend order does not systematically favor the first or
 second runtime through cache, thermal, or sustained-load effects.

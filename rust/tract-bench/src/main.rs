@@ -17,6 +17,8 @@
 #[cfg(feature = "tract-runtime")]
 mod direct_conv;
 #[cfg(feature = "tract-runtime")]
+mod layer_norm;
+#[cfg(feature = "tract-runtime")]
 mod plan_pool;
 
 use std::path::{Path, PathBuf};
@@ -127,13 +129,16 @@ struct TractBackend {
 impl TractBackend {
     fn load_cpu(
         threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>, direct_fused: bool,
+        fused_layer_norm: bool,
     ) -> Result<Self> {
-        let runnable = Self::prepare_cpu(threads, fixed_batch, nnef_model, direct_fused)?;
+        let runnable =
+            Self::prepare_cpu(threads, fixed_batch, nnef_model, direct_fused, fused_layer_norm)?;
         Self::spawn("tract-cpu", runnable.as_ref())
     }
 
     fn prepare_cpu(
         threads: usize, fixed_batch: Option<usize>, nnef_model: Option<&Path>, direct_fused: bool,
+        fused_layer_norm: bool,
     ) -> Result<std::sync::Arc<dyn Runnable>> {
         static CPU: DefaultRuntime = DefaultRuntime;
         let options =
@@ -145,15 +150,16 @@ impl TractBackend {
             fixed_batch,
             nnef_model,
             direct_fused,
+            fused_layer_norm,
         )
     }
 
     fn prepare_with_runtime_and_options(
         name: &'static str, runtime: &'static dyn tract_core::runtime::Runtime,
         options: Option<&RunOptions>, fixed_batch: Option<usize>, nnef_model: Option<&Path>,
-        direct_fused: bool,
+        direct_fused: bool, fused_layer_norm: bool,
     ) -> Result<std::sync::Arc<dyn Runnable>> {
-        let model = Self::load_model(fixed_batch, nnef_model, direct_fused)?;
+        let model = Self::load_model(fixed_batch, nnef_model, direct_fused, fused_layer_norm)?;
         let runnable = match options {
             Some(options) => runtime.prepare_with_options(model, options),
             None => runtime.prepare(model),
@@ -169,6 +175,7 @@ impl TractBackend {
 
     fn load_model(
         fixed_batch: Option<usize>, nnef_model: Option<&Path>, direct_fused: bool,
+        fused_layer_norm: bool,
     ) -> Result<TypedModel> {
         let model = match nnef_model {
             Some(path) => tract_nnef::nnef()
@@ -180,6 +187,7 @@ impl TractBackend {
         };
         let Some(batch) = fixed_batch else {
             ensure!(!direct_fused, "--direct-fused-conv requires --fixed-batch");
+            ensure!(!fused_layer_norm, "--fused-layer-norm requires --fixed-batch");
             return Ok(model);
         };
         let mut model = if let Some(symbol) = model.symbols.get("N") {
@@ -192,8 +200,14 @@ impl TractBackend {
             );
             model
         };
+        if direct_fused || fused_layer_norm {
+            model = model.into_decluttered().context("decluttering before CPU graph fusion")?;
+        }
+        if fused_layer_norm {
+            let fused = layer_norm::fuse_magika_layer_norm(&mut model)?;
+            ensure!(fused > 0, "required LayerNorm fusion did not match the batch-{batch} model");
+        }
         if direct_fused {
-            model = model.into_decluttered().context("decluttering before direct Conv1D fusion")?;
             let fused = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
             ensure!(
                 fused > 0,
@@ -214,7 +228,7 @@ impl TractBackend {
             Some("ggml") => Some(MetalGemmImplKind::Ggml),
             Some(gemm) => bail!("unknown Metal GEMM implementation: {gemm}"),
         };
-        let mut model = Self::load_model(fixed_batch, nnef_model, false)?;
+        let mut model = Self::load_model(fixed_batch, nnef_model, false, false)?;
         MetalTransform { gemm_impl }.transform(&mut model).context("transforming for Metal")?;
         let model = model.into_optimized().context("optimizing the Metal model")?;
         let options = RunOptions { skip_order_opt_ram: true, ..RunOptions::default() };
@@ -293,6 +307,7 @@ struct Options {
     direct_fused_conv: bool,
     fixed_batch: bool,
     feature_size: usize,
+    fused_layer_norm: bool,
     iterations: usize,
     metal_gemm: Option<String>,
     nnef_model: Option<PathBuf>,
@@ -354,6 +369,7 @@ fn main() -> Result<()> {
                     options.tract_threads,
                     options.nnef_model.as_deref(),
                     options.direct_fused_conv,
+                    options.fused_layer_norm,
                     options.pool_routing,
                 )
             })?;
@@ -364,6 +380,7 @@ fn main() -> Result<()> {
                     options.fixed_batch.then_some(options.batch),
                     options.nnef_model.as_deref(),
                     options.direct_fused_conv,
+                    options.fused_layer_norm,
                 )
             })?;
         }
@@ -484,10 +501,19 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
         cfg!(feature = "ort-runtime") || cfg!(feature = "tract-runtime"),
         "enable at least one CPU runtime feature"
     );
+    let backends = owner_backend_order(
+        options.backend.as_deref(),
+        options.reverse,
+        cfg!(feature = "ort-runtime"),
+        cfg!(feature = "tract-runtime"),
+    );
+    ensure!(!backends.is_empty(), "--compute-owners supports an enabled ort or cpu backend");
     let input = load_corpus(options.batch, options.feature_size)?;
     println!(
         "owner_columns\tbackend\towners\tbatch\titerations_per_owner\twall_us\tfiles_per_second"
     );
+    println!("owner_backends\t{}", backends.join(","));
+    print_runtime_options(options);
 
     let run_ort = || -> Result<()> {
         #[cfg(feature = "ort-runtime")]
@@ -515,6 +541,7 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
                 options.fixed_batch.then_some(options.batch),
                 options.nnef_model.as_deref(),
                 options.direct_fused_conv,
+                options.fused_layer_norm,
             )?;
             bench_compute_owners(
                 "tract-cpu",
@@ -527,13 +554,6 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
         }
         Ok(())
     };
-    let backends = owner_backend_order(
-        options.backend.as_deref(),
-        options.reverse,
-        cfg!(feature = "ort-runtime"),
-        cfg!(feature = "tract-runtime"),
-    );
-    ensure!(!backends.is_empty(), "--compute-owners supports an enabled ort or cpu backend");
     for backend in backends {
         match backend {
             "ort" => run_ort()?,
@@ -792,6 +812,7 @@ fn print_runtime_options(options: &Options) {
     {
         println!("tract_cpu_threads\t{}", options.tract_threads);
         println!("feature_size\t{}", options.feature_size);
+        println!("tract_fused_layer_norm\t{}", options.fused_layer_norm);
         let batch_plan = match &options.plan_pool {
             Some(classes) => format!(
                 "pool:{}",
@@ -903,6 +924,7 @@ fn parse_options() -> Result<Options> {
         direct_fused_conv: false,
         fixed_batch: false,
         feature_size: FEATURE_SIZE,
+        fused_layer_norm: false,
         iterations: 100,
         metal_gemm: None,
         nnef_model: None,
@@ -944,6 +966,7 @@ fn parse_options() -> Result<Options> {
                     args.next().context("--feature-size needs a value")?.parse()?;
                 ensure!(options.feature_size > 0, "--feature-size must be greater than zero");
             }
+            "--fused-layer-norm" => options.fused_layer_norm = true,
             "--iterations" => {
                 options.iterations = args.next().context("--iterations needs a value")?.parse()?;
             }
@@ -1046,7 +1069,8 @@ fn print_help() {
         "usage: magika-runtime-bench [--verify] [--reverse] \
          [--backend {BACKENDS}] [--batch N] \
          [--batch-sweep] [--compute-owners N] [--direct-fused-conv] \
-         [--fixed-batch] [--feature-size N] [--iterations N]{METAL} [--nnef-model PATH] [--onnx-model PATH] \
+         [--fixed-batch] [--feature-size N] [--fused-layer-norm] [--iterations N]{METAL} \
+         [--nnef-model PATH] [--onnx-model PATH] \
          [--ort-intra-threads N] [--ort-inter-threads N] [--plan-summary] \
          [--plan-pool 1,8,16,32,64] [--pool-routing exact|ceil] [--profile-plan] \
          [--tract-threads N] [--verify-batches]"

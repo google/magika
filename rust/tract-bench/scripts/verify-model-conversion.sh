@@ -58,5 +58,6 @@ done
 
 current="$candidate_dir/standard_v3_3.first.nnef.tgz"
 "$benchmark" --onnx-model "$repo_dir/assets/models/standard_v3_3/model.onnx" \
-  --nnef-model "$current" --fixed-batch --batch 8 --direct-fused-conv --verify --plan-summary
+  --nnef-model "$current" --fixed-batch --batch 8 --direct-fused-conv \
+  --fused-layer-norm --verify --plan-summary
 printf 'verified_release_fusion\t%s\n' "$current"

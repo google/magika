@@ -31,7 +31,7 @@ pub(super) struct PlanPoolBackend {
 impl PlanPoolBackend {
     pub(super) fn load_cpu(
         classes: &[usize], threads: usize, nnef_model: Option<&Path>, direct_fused: bool,
-        routing: PoolRouting,
+        fused_layer_norm: bool, routing: PoolRouting,
     ) -> Result<Self> {
         let mut plans = Vec::with_capacity(classes.len());
         for &class in classes {
@@ -42,6 +42,7 @@ impl PlanPoolBackend {
                     Some(class),
                     nnef_model,
                     direct_fused && class >= DIRECT_FUSED_POOL_MIN_BATCH,
+                    fused_layer_norm,
                 )?,
             ));
         }

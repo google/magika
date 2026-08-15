@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Benchmark-only tiled Conv1D + bias + GELU + max operator for Magika models.
+//! Tiled Conv1D + bias + GELU + max operator for Magika models.
 
 use std::alloc::Layout;
 use std::fmt::{Debug, Display};
@@ -33,19 +33,20 @@ const TILE_BATCHES_ENV: &str = "MAGIKA_DIRECT_TILE_BATCHES";
 
 /// Replace a supported Conv1D -> transpose -> GELU -> max-over-position chain.
 ///
-/// A model that does not have the exact supported topology is deliberately left unchanged. This
-/// makes the optimization safe to enable for model pools that may contain a newer architecture.
-pub(crate) fn fuse_magika_conv_max(model: &mut TypedModel, batch: usize) -> TractResult<bool> {
-    let Some(pattern) = FusionPattern::find(model, batch)? else {
-        return Ok(false);
-    };
-    let op = DirectFusedConvMax1D::new(pattern.dimensions, pattern.kernel, pattern.bias)?;
-    let mut patch = TypedModelPatch::default();
-    let input = patch.tap_model(model, pattern.input)?;
-    let output = patch.wire_node("magika.direct_fused_conv_max1d", op, &[input])?[0];
-    patch.shunt_outside(model, OutletId::new(pattern.max_node, 0), output)?;
-    patch.apply(model)?;
-    Ok(true)
+/// Returns the number of independent chains replaced.
+pub(crate) fn fuse_magika_conv_max(model: &mut TypedModel, batch: usize) -> TractResult<usize> {
+    let mut fused = 0;
+    while let Some(pattern) = FusionPattern::find(model, batch)? {
+        let op = DirectFusedConvMax1D::new(pattern.dimensions, pattern.kernel, pattern.bias)?;
+        let mut patch = TypedModelPatch::default();
+        let input = patch.tap_model(model, pattern.input)?;
+        let output = patch.wire_node("magika.direct_fused_conv_max1d", op, &[input])?[0];
+        patch.shunt_outside(model, OutletId::new(pattern.max_node, 0), output)?;
+        patch.apply(model)?;
+        model.compact()?;
+        fused += 1;
+    }
+    Ok(fused)
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -204,6 +205,7 @@ struct DirectFusedConvMax1D {
     mmm: Box<dyn MatMatMul>,
     packing: usize,
     packed_kernel: Box<dyn MMMInputValue>,
+    kernel: Arc<Tensor>,
     bias: Arc<Tensor>,
     input_format: Arc<DirectConvInputFormat>,
 }
@@ -214,7 +216,8 @@ impl PartialEq for DirectFusedConvMax1D {
             && self.tile_batches == other.tile_batches
             && self.mmm.name() == other.mmm.name()
             && self.packing == other.packing
-            && Arc::ptr_eq(&self.bias, &other.bias)
+            && self.kernel == other.kernel
+            && self.bias == other.bias
             && self.input_format == other.input_format
     }
 }
@@ -305,7 +308,16 @@ impl DirectFusedConvMax1D {
             column_offsets,
             reduction_offsets,
         });
-        Ok(Self { dimensions, tile_batches, mmm, packing, packed_kernel, bias, input_format })
+        Ok(Self {
+            dimensions,
+            tile_batches,
+            mmm,
+            packing,
+            packed_kernel,
+            kernel,
+            bias,
+            input_format,
+        })
     }
 }
 
@@ -348,6 +360,9 @@ impl EvalOp for DirectFusedConvMax1D {
             "unexpected direct Conv1D input shape {:?}",
             input.shape()
         );
+        ensure!(input.datum_type() == DatumType::F32, "direct Conv1D input must be f32");
+        let input_ptr = input.as_ptr::<f32>()?;
+        let input_len = input.len();
         let mut maxima = Tensor::from_shape(
             &[d.batch, 1, d.output_channels],
             &vec![f32::NEG_INFINITY; d.batch * d.output_channels],
@@ -358,11 +373,17 @@ impl EvalOp for DirectFusedConvMax1D {
             for batch_start in (0..d.batch).step_by(self.tile_batches) {
                 let tile_batches = (d.batch - batch_start).min(self.tile_batches);
                 let tile_columns = tile_batches * d.output_length;
-                let direct_input = DirectConvInput {
-                    tensor: input.clone(),
-                    format: self.input_format.clone(),
-                    column_start: batch_start * d.output_length,
-                    columns: tile_columns,
+                // SAFETY: `input` remains alive and immutable on this eval stack until the
+                // synchronous MMM call below returns. The input value is borrowed only by that
+                // call, whose worker scratch buffers are thread-local and joined before return.
+                let direct_input = unsafe {
+                    DirectConvInput::new(
+                        input_ptr,
+                        input_len,
+                        self.input_format.clone(),
+                        batch_start * d.output_length,
+                        tile_columns,
+                    )
                 };
                 // Store covers every tile element before GELU and max read it.
                 let mut tile = unsafe {
@@ -505,7 +526,8 @@ impl MMMInputFormat for DirectConvInputFormat {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct DirectConvInput {
-    tensor: TValue,
+    input: *const f32,
+    input_len: usize,
     format: Arc<DirectConvInputFormat>,
     column_start: usize,
     columns: usize,
@@ -513,23 +535,42 @@ struct DirectConvInput {
 
 impl Display for DirectConvInput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "DirectConvInput({:?})", self.tensor.shape())
+        write!(f, "DirectConvInput(len={})", self.input_len)
     }
 }
 
 impl Hash for DirectConvInput {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.tensor.as_bytes().hash(state);
+        self.input.hash(state);
+        self.input_len.hash(state);
         self.format.hash(state);
         self.column_start.hash(state);
         self.columns.hash(state);
     }
 }
 
+// SAFETY: values are created only from an immutable f32 slice that remains live until the
+// synchronous MMM invocation and all of its worker threads return. Clones share only that immutable
+// allocation; panel writes target caller-provided thread-local scratch buffers.
 unsafe impl Send for DirectConvInput {}
+// SAFETY: see the `Send` justification above; shared access only reads the live input allocation.
 unsafe impl Sync for DirectConvInput {}
 
 impl DirectConvInput {
+    /// The caller must keep `input` alive and immutable until this value and all clones are dropped.
+    unsafe fn new(
+        input: *const f32, input_len: usize, format: Arc<DirectConvInputFormat>,
+        column_start: usize, columns: usize,
+    ) -> Self {
+        Self { input, input_len, format, column_start, columns }
+    }
+
+    #[inline]
+    fn input(&self) -> &[f32] {
+        // SAFETY: upheld by `new`; the MMM call cannot outlive the eval-stack tensor owner.
+        unsafe { std::slice::from_raw_parts(self.input, self.input_len) }
+    }
+
     fn write_panel(&self, panel: usize, buffer: *mut u8) -> *const u8 {
         let r = self.format.packer.r;
         let column_start = panel * r;
@@ -556,7 +597,7 @@ impl DirectConvInput {
 
     #[inline]
     fn write_columns(&self, writer: &mut impl PackingWriter<f32>, start: usize, end: usize) {
-        let input = unsafe { self.tensor.as_slice_unchecked::<f32>() };
+        let input = self.input();
         let start = self.column_start + start;
         let end = self.column_start + end;
         let columns = &self.format.column_offsets[start..end];
@@ -645,7 +686,7 @@ impl MMMInputValue for DirectConvInput {
     fn extract_at_mn_f32(&self, column: usize, output: &mut [f32]) -> TractResult<()> {
         ensure!(column < self.mn());
         ensure!(output.len() == self.format.dimensions.reduction());
-        let input = unsafe { self.tensor.as_slice_unchecked::<f32>() };
+        let input = self.input();
         for (k, value) in output.iter_mut().enumerate() {
             let offset = self.format.column_offsets[self.column_start + column]
                 + self.format.reduction_offsets[k];
@@ -737,9 +778,9 @@ mod tests {
     }
 
     #[test]
-    fn unmatched_model_uses_tract_fallback() {
+    fn unmatched_model_reports_zero_fusions() {
         let mut model = TypedModel::default();
-        assert!(!fuse_magika_conv_max(&mut model, 8).unwrap());
+        assert_eq!(fuse_magika_conv_max(&mut model, 8).unwrap(), 0);
     }
 
     #[test]

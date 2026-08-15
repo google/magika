@@ -1,17 +1,18 @@
 # Magika runtime feasibility benchmark
 
-This standalone, non-production crate measures the existing ONNX Runtime path against a tract NNEF
-path. It intentionally does not change the published `magika` library or CLI.
+This standalone release-candidate crate measures the existing ONNX Runtime path against a tract
+NNEF path and contains the conversion and verification gates needed to ship that backend. It does
+not yet change the published `magika` library or CLI.
 
 ## Model release process
 
 `convert-model` has one contract: it accepts an ONNX file and writes a portable, optimized NNEF
 archive that the Rust tract runtime can load directly. It is pinned to tract `0.23.4`, performs
 tract's typed portable-graph optimization, restores a symbolic leading batch dimension, and writes
-a deterministic gzip-compressed tar archive. It does not depend on ONNX exporter node names.
-Semantic graph matching replaces one-hot matrix multiplication with `Gather`, fuses canonical
-tanh-GELU math, and lowers dynamic BatchNorm to portable arithmetic so both the v2 fast/standard
-models and the v3 standard models pass through the same converter.
+a deterministic gzip-compressed tar archive. Semantic graph matching replaces one-hot matrix
+multiplication with `Gather`, fuses canonical tanh-GELU math, and lowers dynamic BatchNorm to
+portable arithmetic so both the v2 fast/standard models and the v3 standard models pass through the
+same converter.
 
 Convert any compatible Magika ONNX model:
 
@@ -35,9 +36,9 @@ rust/tract-bench/scripts/verify-model-conversion.sh
 ```
 
 The release gate converts every bundled standard, fast, and beginning-only model twice, requires
-byte-identical output, validates each gzip/tar, and reloads and prepares each artifact through the
-Rust CPU path. For the current deployment model it also compares scores and winning labels with
-ONNX Runtime at fixed batch classes 1, 8, 16, 32, and 64.
+byte-identical output, validates each gzip/tar, reloads each artifact through Rust, and compares
+every model's scores and winning labels with its source ONNX at fixed batch classes 1, 8, 16, 32,
+and 64. It additionally requires the release model's direct CPU fusion to match and execute.
 
 Compare ONNX and NNEF model sizes using identical raw, gzip, and zstd representations:
 
@@ -92,13 +93,16 @@ one codegen unit, and stripping.
 The CPU backend reuses one tract execution state and defaults its matrix-multiplication executor to
 the smaller of two threads and the host's available parallelism. Four threads made the operators
 faster in isolation on the M5 Max, but two gave the best end-to-end latency and tail behavior for
-this batch-one harness. Use `--tract-threads N` to reproduce the thread-count comparison. Before
+this batch-one harness. Use `--tract-threads N` to reproduce the thread-count comparison. ONNX
+Runtime is pinned independently with `--ort-intra-threads N` (default: the same as tract) and
+`--ort-inter-threads N` (default: 1), so owner-topology measurements never hide an unbounded ORT
+thread pool. Before
 model preparation the harness defaults `TRACT_LAZY_IM2COL_MIN_KERNEL` to `5`, selecting tract's
 lazy convolution lowering for Magika's width-five kernel at batch one. An environment value set by
 the caller takes precedence. tract 0.23.4 cannot use this lowering when batch is greater than one.
 
-For fixed large CPU batches, `--direct-fused-conv` replaces Magika's exact
-Conv1D -> GELU -> max-over-position chain with a benchmark-only `DirectFusedConvMax1D` operator. It
+For fixed large CPU batches, `--direct-fused-conv` replaces Magika's
+Conv1D -> GELU -> max-over-position chain with a `DirectFusedConvMax1D` operator. It
 packs the constant weights once, generates batched convolution panels on demand, adds bias inside
 tract's optimized matrix-multiplication kernel, applies SIMD GELU in place, and updates the final
 per-channel maxima before releasing each bounded tile. It therefore has no eager `Im2col`
@@ -111,8 +115,12 @@ fixed plan's full batch. `MAGIKA_DIRECT_TILE_BATCHES=N` is a preparation-time be
 Values from 4 through 64 produced equivalent batch-64 throughput on the M5 Max, so four remains the
 memory-bounded default. The rewrite derives sequence and channel dimensions from the typed graph
 and activates only after checking the exact convolution, canonical approximate GELU, reduction
-axis, constants, layouts, and concrete facts. A non-matching future model remains on ordinary tract
-rather than failing model preparation.
+axis, constants, layouts, and concrete facts. Requesting this release optimization is fail-closed:
+a non-matching model fails preparation instead of silently running the slower graph.
+
+The high-performance release artifact is `standard_v3_3`. The v2 models remain conversion and
+compatibility test inputs, but their exact-erf GELU does not match the approximate-GELU fused
+kernel. They are deliberately not presented as the same CPU performance tier.
 
 Collect cold preparation, first inference, and warm timing samples:
 
@@ -160,8 +168,9 @@ separate fallback benchmark; with `--direct-fused-conv`, it uses built-in `LazyI
 and direct fused convolution/max reduction for classes 8 and larger.
 
 Measure the compute stage after accumulating representative CLI batches. The harness constructs
-each contiguous `[batch, 2048]` input before timing and reports batch latency, mean latency per
-file, and files per second:
+each contiguous input before timing and reports batch latency, mean latency per file, and files per
+second. `--feature-size` defaults to the current model's 2048 values; the release verification
+passes 1024 or 4096 for historical models whose checked configs require it:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \

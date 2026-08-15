@@ -59,8 +59,8 @@ const NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
 trait Backend {
     fn name(&self) -> &'static str;
     fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>>;
-    fn selected_classes(&self, _batch: usize) -> Option<Vec<usize>> {
-        None
+    fn selected_classes(&self, _batch: usize) -> Result<Option<Vec<usize>>> {
+        Ok(None)
     }
     fn plan_op_counts(&self) -> Option<std::collections::BTreeMap<String, usize>> {
         None
@@ -79,10 +79,22 @@ struct OrtBackend {
 
 #[cfg(feature = "ort-runtime")]
 impl OrtBackend {
-    fn load() -> Result<Self> {
-        let session = ort::session::Session::builder()?
-            .commit_from_memory(ONNX_MODEL)
-            .context("loading the embedded ONNX model")?;
+    fn load(model: Option<&Path>, intra_threads: usize, inter_threads: usize) -> Result<Self> {
+        let builder = ort::session::Session::builder()?;
+        let builder = builder
+            .with_intra_threads(intra_threads)
+            .map_err(|error| anyhow!(error.to_string()))?;
+        let mut builder = builder
+            .with_inter_threads(inter_threads)
+            .map_err(|error| anyhow!(error.to_string()))?;
+        let session = match model {
+            Some(path) => builder
+                .commit_from_file(path)
+                .with_context(|| format!("loading ONNX model {}", path.display()))?,
+            None => {
+                builder.commit_from_memory(ONNX_MODEL).context("loading the embedded ONNX model")?
+            }
+        };
         Ok(Self { session })
     }
 }
@@ -94,7 +106,8 @@ impl Backend for OrtBackend {
     }
 
     fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>> {
-        let input = Array2::from_shape_vec([batch, FEATURE_SIZE], input.to_vec())?;
+        ensure!(input.len().is_multiple_of(batch), "input length is not divisible by batch");
+        let input = Array2::from_shape_vec([batch, input.len() / batch], input.to_vec())?;
         let input = ort::value::Tensor::from_array(input)?;
         let mut output = self.session.run(ort::inputs!("bytes" => input))?;
         let output =
@@ -157,7 +170,7 @@ impl TractBackend {
     fn load_model(
         fixed_batch: Option<usize>, nnef_model: Option<&Path>, direct_fused: bool,
     ) -> Result<TypedModel> {
-        let mut model = match nnef_model {
+        let model = match nnef_model {
             Some(path) => tract_nnef::nnef()
                 .model_for_path(path)
                 .with_context(|| format!("loading {}", path.display()))?,
@@ -169,27 +182,23 @@ impl TractBackend {
             ensure!(!direct_fused, "--direct-fused-conv requires --fixed-batch");
             return Ok(model);
         };
-        let Some(symbol) = model.symbols.get("N") else {
+        let mut model = if let Some(symbol) = model.symbols.get("N") {
+            let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
+            model.set_symbols(&symbols).context("binding the NNEF batch symbol")?
+        } else {
             ensure!(
                 model.input_fact(0)?.shape[0] == batch.to_dim(),
                 "fixed NNEF batch does not match --batch {batch}"
             );
-            if direct_fused {
-                model =
-                    model.into_decluttered().context("decluttering before direct Conv1D fusion")?;
-                if !direct_conv::fuse_magika_conv_max(&mut model, batch)? {
-                    eprintln!("direct_fusion\tfallback\tbatch={batch}");
-                }
-            }
-            return Ok(model);
+            model
         };
-        let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
-        let mut model = model.set_symbols(&symbols).context("binding the NNEF batch symbol")?;
         if direct_fused {
             model = model.into_decluttered().context("decluttering before direct Conv1D fusion")?;
-            if !direct_conv::fuse_magika_conv_max(&mut model, batch)? {
-                eprintln!("direct_fusion\tfallback\tbatch={batch}");
-            }
+            let fused = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
+            ensure!(
+                fused > 0,
+                "required direct Conv1D fusion did not match the batch-{batch} model"
+            );
         }
         Ok(model)
     }
@@ -221,9 +230,16 @@ impl Backend for TractBackend {
     }
 
     fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>> {
-        let input = Tensor::from_shape(&[batch, FEATURE_SIZE], input)?.into_tvalue();
+        ensure!(input.len().is_multiple_of(batch), "input length is not divisible by batch");
+        let input = Tensor::from_shape(&[batch, input.len() / batch], input)?.into_tvalue();
         let mut output: TVec<TValue> = self.state.run(tvec!(input))?;
         let output = output.remove(0).into_tensor();
+        ensure!(
+            output.rank() > 0 && output.shape()[0] == batch,
+            "{} returned output shape {:?} for batch {batch}",
+            self.name,
+            output.shape()
+        );
         Ok(output.to_plain_array_view::<f32>()?.iter().copied().collect())
     }
 
@@ -246,7 +262,8 @@ impl Backend for TractBackend {
             .state
             .downcast_mut::<TypedSimpleState>()
             .context("tract CPU state is not a typed simple state")?;
-        let input = Tensor::from_shape(&[batch, FEATURE_SIZE], input)?.into_tvalue();
+        ensure!(input.len().is_multiple_of(batch), "input length is not divisible by batch");
+        let input = Tensor::from_shape(&[batch, input.len() / batch], input)?.into_tvalue();
         let mut samples = Vec::new();
         let _outputs =
             state.run_plan_with_eval(tvec!(input), |session, op_state, node, inputs| {
@@ -275,9 +292,13 @@ struct Options {
     compute_owners: Option<usize>,
     direct_fused_conv: bool,
     fixed_batch: bool,
+    feature_size: usize,
     iterations: usize,
     metal_gemm: Option<String>,
     nnef_model: Option<PathBuf>,
+    onnx_model: Option<PathBuf>,
+    ort_inter_threads: usize,
+    ort_intra_threads: usize,
     plan_pool: Option<Vec<usize>>,
     pool_routing: PoolRouting,
     plan_summary: bool,
@@ -316,7 +337,13 @@ fn main() -> Result<()> {
 
     #[cfg(feature = "ort-runtime")]
     if wants_backend(&options, "ort") {
-        load_backend(&mut backends, OrtBackend::load)?;
+        load_backend(&mut backends, || {
+            OrtBackend::load(
+                options.onnx_model.as_deref(),
+                options.ort_intra_threads,
+                options.ort_inter_threads,
+            )
+        })?;
     }
     #[cfg(feature = "tract-runtime")]
     if wants_backend(&options, "cpu") {
@@ -371,7 +398,7 @@ fn main() -> Result<()> {
 
     ensure!(!backends.is_empty(), "enable at least one runtime feature");
     if options.batch_sweep {
-        print_header(&backends);
+        print_header(&backends, &options);
         print_runtime_options(&options);
         let batches: Vec<usize> = if options.plan_pool.is_some() {
             (1..=10).chain([16, 32, 64]).collect()
@@ -379,8 +406,8 @@ fn main() -> Result<()> {
             vec![1, 2, 4, 8, 16, 32]
         };
         for batch in batches {
-            let corpus = load_corpus(batch)?;
-            print_routes(&backends, batch);
+            let corpus = load_corpus(batch, options.feature_size)?;
+            print_routes(&backends, batch)?;
             let (outputs, first_runs) = verify(&mut backends, &corpus, batch)?;
             println!("verification_batch\t{batch}");
             print_verification(&backends, &outputs);
@@ -400,23 +427,23 @@ fn main() -> Result<()> {
         return Ok(());
     }
     if options.verify_batches {
-        print_header(&backends);
+        print_header(&backends, &options);
         print_runtime_options(&options);
         for batch in [1, 2, 3, 8, 16] {
-            let corpus = load_corpus(batch)?;
+            let corpus = load_corpus(batch, options.feature_size)?;
             let (outputs, _) = verify(&mut backends, &corpus, batch)?;
             println!("verification_batch\t{batch}");
             print_verification(&backends, &outputs);
         }
         return Ok(());
     }
-    let corpus = load_corpus(options.batch)?;
-    print_routes(&backends, options.batch);
+    let corpus = load_corpus(options.batch, options.feature_size)?;
+    print_routes(&backends, options.batch)?;
     let (outputs, first_runs) = verify(&mut backends, &corpus, options.batch)?;
     if options.profile_plan {
         print_plan_profiles(&mut backends, &corpus, options.batch)?;
     }
-    print_header(&backends);
+    print_header(&backends, &options);
     print_runtime_options(&options);
     println!(
         "workload\tbatch={}\titerations={}\ttotal_files={}",
@@ -457,7 +484,7 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
         cfg!(feature = "ort-runtime") || cfg!(feature = "tract-runtime"),
         "enable at least one CPU runtime feature"
     );
-    let input = load_corpus(options.batch)?;
+    let input = load_corpus(options.batch, options.feature_size)?;
     println!(
         "owner_columns\tbackend\towners\tbatch\titerations_per_owner\twall_us\tfiles_per_second"
     );
@@ -470,7 +497,13 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
             options.batch,
             options.iterations,
             &input,
-            OrtBackend::load,
+            || {
+                OrtBackend::load(
+                    options.onnx_model.as_deref(),
+                    options.ort_intra_threads,
+                    options.ort_inter_threads,
+                )
+            },
         )?;
         Ok(())
     };
@@ -494,14 +527,37 @@ fn bench_compute_owner_backends(options: &Options, owners: usize) -> Result<()> 
         }
         Ok(())
     };
-    if options.reverse {
-        run_tract()?;
-        run_ort()?;
-    } else {
-        run_ort()?;
-        run_tract()?;
+    let backends = owner_backend_order(
+        options.backend.as_deref(),
+        options.reverse,
+        cfg!(feature = "ort-runtime"),
+        cfg!(feature = "tract-runtime"),
+    );
+    ensure!(!backends.is_empty(), "--compute-owners supports an enabled ort or cpu backend");
+    for backend in backends {
+        match backend {
+            "ort" => run_ort()?,
+            "cpu" => run_tract()?,
+            _ => unreachable!("owner_backend_order returned an unknown backend"),
+        }
     }
     Ok(())
+}
+
+fn owner_backend_order(
+    selected: Option<&str>, reverse: bool, ort_available: bool, tract_available: bool,
+) -> Vec<&'static str> {
+    let mut backends = Vec::with_capacity(2);
+    if selected.is_none_or(|backend| backend == "ort") && ort_available {
+        backends.push("ort");
+    }
+    if selected.is_none_or(|backend| backend == "cpu") && tract_available {
+        backends.push("cpu");
+    }
+    if reverse {
+        backends.reverse();
+    }
+    backends
 }
 
 fn bench_compute_owners<B: Backend>(
@@ -607,7 +663,11 @@ fn verify(
         let start = Instant::now();
         let output = backend.run(input, batch)?;
         first_runs.push(start.elapsed());
-        ensure!(output.len() % batch == 0, "{} returned an invalid output shape", backend.name());
+        ensure!(
+            output.len().is_multiple_of(batch),
+            "{} returned an invalid output shape",
+            backend.name()
+        );
         outputs.push(output);
     }
 
@@ -680,7 +740,7 @@ fn bench_backend(
     Ok(())
 }
 
-fn print_header(backends: &[(Box<dyn Backend>, Duration)]) {
+fn print_header(backends: &[(Box<dyn Backend>, Duration)], options: &Options) {
     let executable_bytes = std::env::current_exe()
         .and_then(std::fs::metadata)
         .map(|metadata| metadata.len())
@@ -688,9 +748,23 @@ fn print_header(backends: &[(Box<dyn Backend>, Duration)]) {
     println!("host\t{}\t{}", std::env::consts::OS, std::env::consts::ARCH);
     println!("executable_bytes\t{executable_bytes}");
     #[cfg(feature = "ort-runtime")]
-    println!("model_bytes\tonnx\t{}", ONNX_MODEL.len());
+    println!(
+        "model_bytes\tonnx\t{}",
+        options
+            .onnx_model
+            .as_deref()
+            .and_then(|path| std::fs::metadata(path).ok())
+            .map_or(ONNX_MODEL.len() as u64, |metadata| metadata.len())
+    );
     #[cfg(feature = "tract-runtime")]
-    println!("model_bytes\tnnef\t{}", NNEF_MODEL.len());
+    println!(
+        "model_bytes\tnnef\t{}",
+        options
+            .nnef_model
+            .as_deref()
+            .and_then(|path| std::fs::metadata(path).ok())
+            .map_or(NNEF_MODEL.len() as u64, |metadata| metadata.len())
+    );
     println!(
         "backends\t{}",
         backends.iter().map(|(backend, _)| backend.name()).collect::<Vec<_>>().join(",")
@@ -702,9 +776,22 @@ fn print_header(backends: &[(Box<dyn Backend>, Duration)]) {
 
 #[cfg_attr(not(feature = "tract-runtime"), allow(unused_variables))]
 fn print_runtime_options(options: &Options) {
+    #[cfg(feature = "ort-runtime")]
+    {
+        println!("ort_intra_threads\t{}", options.ort_intra_threads);
+        println!("ort_inter_threads\t{}", options.ort_inter_threads);
+        println!(
+            "onnx_source\t{}",
+            options
+                .onnx_model
+                .as_deref()
+                .map_or("embedded", |path| path.to_str().unwrap_or("non-utf8"))
+        );
+    }
     #[cfg(feature = "tract-runtime")]
     {
         println!("tract_cpu_threads\t{}", options.tract_threads);
+        println!("feature_size\t{}", options.feature_size);
         let batch_plan = match &options.plan_pool {
             Some(classes) => format!(
                 "pool:{}",
@@ -754,7 +841,7 @@ fn print_verification(backends: &[(Box<dyn Backend>, Duration)], outputs: &[Vec<
     }
 }
 
-fn load_corpus(batch: usize) -> Result<Vec<i32>> {
+fn load_corpus(batch: usize, feature_size: usize) -> Result<Vec<i32>> {
     const FILES: &[&str] = &[
         "README.md",
         "rust/lib/src/lib.rs",
@@ -763,25 +850,25 @@ fn load_corpus(batch: usize) -> Result<Vec<i32>> {
         "assets/models/standard_v3_3/model.onnx",
         "tests_data/mitra/elf/elf64.elf",
     ];
-    let mut rows = Vec::with_capacity(batch * FEATURE_SIZE);
+    let mut rows = Vec::with_capacity(batch * feature_size);
     for row in 0..batch {
         let path = Path::new(FILES[row % FILES.len()]);
         let content = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
-        rows.extend(extract_features(&content));
+        rows.extend(extract_features(&content, feature_size));
     }
     Ok(rows)
 }
 
-fn extract_features(content: &[u8]) -> [i32; FEATURE_SIZE] {
+fn extract_features(content: &[u8], feature_size: usize) -> Vec<i32> {
     let content = strip_ascii_whitespace(content);
-    let mut features = [PADDING_TOKEN; FEATURE_SIZE];
-    let beginning = &content[..content.len().min(FEATURE_SIZE / 2)];
-    let end_start = content.len().saturating_sub(FEATURE_SIZE / 2);
+    let mut features = vec![PADDING_TOKEN; feature_size];
+    let beginning = &content[..content.len().min(feature_size / 2)];
+    let end_start = content.len().saturating_sub(feature_size / 2);
     let end = &content[end_start..];
     for (destination, source) in features.iter_mut().zip(beginning) {
         *destination = i32::from(*source);
     }
-    let destination_start = FEATURE_SIZE - end.len();
+    let destination_start = feature_size - end.len();
     for (destination, source) in features[destination_start..].iter_mut().zip(end) {
         *destination = i32::from(*source);
     }
@@ -815,9 +902,13 @@ fn parse_options() -> Result<Options> {
         compute_owners: None,
         direct_fused_conv: false,
         fixed_batch: false,
+        feature_size: FEATURE_SIZE,
         iterations: 100,
         metal_gemm: None,
         nnef_model: None,
+        onnx_model: None,
+        ort_inter_threads: 1,
+        ort_intra_threads: default_tract_threads(),
         plan_pool: None,
         pool_routing: PoolRouting::default(),
         plan_summary: false,
@@ -848,6 +939,11 @@ fn parse_options() -> Result<Options> {
             }
             "--direct-fused-conv" => options.direct_fused_conv = true,
             "--fixed-batch" => options.fixed_batch = true,
+            "--feature-size" => {
+                options.feature_size =
+                    args.next().context("--feature-size needs a value")?.parse()?;
+                ensure!(options.feature_size > 0, "--feature-size must be greater than zero");
+            }
             "--iterations" => {
                 options.iterations = args.next().context("--iterations needs a value")?.parse()?;
             }
@@ -862,6 +958,26 @@ fn parse_options() -> Result<Options> {
             "--nnef-model" => {
                 options.nnef_model =
                     Some(PathBuf::from(args.next().context("--nnef-model needs a path")?));
+            }
+            "--onnx-model" => {
+                options.onnx_model =
+                    Some(PathBuf::from(args.next().context("--onnx-model needs a path")?));
+            }
+            "--ort-inter-threads" => {
+                options.ort_inter_threads =
+                    args.next().context("--ort-inter-threads needs a value")?.parse()?;
+                ensure!(
+                    options.ort_inter_threads > 0,
+                    "--ort-inter-threads must be greater than zero"
+                );
+            }
+            "--ort-intra-threads" => {
+                options.ort_intra_threads =
+                    args.next().context("--ort-intra-threads needs a value")?.parse()?;
+                ensure!(
+                    options.ort_intra_threads > 0,
+                    "--ort-intra-threads must be greater than zero"
+                );
             }
             "--plan-pool" => {
                 let value = args.next().context("--plan-pool needs comma-separated classes")?;
@@ -930,7 +1046,8 @@ fn print_help() {
         "usage: magika-runtime-bench [--verify] [--reverse] \
          [--backend {BACKENDS}] [--batch N] \
          [--batch-sweep] [--compute-owners N] [--direct-fused-conv] \
-         [--fixed-batch] [--iterations N]{METAL} [--nnef-model PATH] [--plan-summary] \
+         [--fixed-batch] [--feature-size N] [--iterations N]{METAL} [--nnef-model PATH] [--onnx-model PATH] \
+         [--ort-intra-threads N] [--ort-inter-threads N] [--plan-summary] \
          [--plan-pool 1,8,16,32,64] [--pool-routing exact|ceil] [--profile-plan] \
          [--tract-threads N] [--verify-batches]"
     );
@@ -950,13 +1067,14 @@ fn print_plan_summaries(backends: &[(Box<dyn Backend>, Duration)]) {
     }
 }
 
-fn print_routes(backends: &[(Box<dyn Backend>, Duration)], batch: usize) {
+fn print_routes(backends: &[(Box<dyn Backend>, Duration)], batch: usize) -> Result<()> {
     for (backend, _) in backends {
-        if let Some(classes) = backend.selected_classes(batch) {
+        if let Some(classes) = backend.selected_classes(batch)? {
             let classes = classes.iter().map(usize::to_string).collect::<Vec<_>>().join("+");
             println!("plan_route\t{}\trequest={batch}\tclasses={classes}", backend.name());
         }
     }
+    Ok(())
 }
 
 fn print_plan_profiles(
@@ -998,4 +1116,19 @@ fn configure_tract_codegen() {}
 
 fn micros(duration: Duration) -> u128 {
     duration.as_micros()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::owner_backend_order;
+
+    #[test]
+    fn compute_owner_backend_selection_is_honored() {
+        assert_eq!(owner_backend_order(Some("ort"), false, true, true), ["ort"]);
+        assert_eq!(owner_backend_order(Some("cpu"), false, true, true), ["cpu"]);
+        assert_eq!(owner_backend_order(None, false, true, true), ["ort", "cpu"]);
+        assert_eq!(owner_backend_order(None, true, true, true), ["cpu", "ort"]);
+        assert!(owner_backend_order(Some("metal"), false, true, true).is_empty());
+        assert_eq!(owner_backend_order(None, false, false, true), ["cpu"]);
+    }
 }

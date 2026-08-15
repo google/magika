@@ -150,8 +150,8 @@ impl Backend for PlanPoolBackend {
         Ok(outputs)
     }
 
-    fn selected_classes(&self, batch: usize) -> Option<Vec<usize>> {
-        self.route(batch).ok().map(|route| route.into_iter().map(|(class, _)| class).collect())
+    fn selected_classes(&self, batch: usize) -> Result<Option<Vec<usize>>> {
+        Ok(Some(self.route(batch)?.into_iter().map(|(class, _)| class).collect()))
     }
 
     fn plan_op_counts(&self) -> Option<std::collections::BTreeMap<String, usize>> {

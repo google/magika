@@ -223,9 +223,11 @@ tract rises from 1,085-1,204 files/s with one owner to 2,812-2,919 with eight an
 twelve. Sixteen and eighteen regress under sustained load. ORT's best corresponding sample is
 1,849 files/s, so tract's best is 1.64x faster in that spot sweep. A subsequent three-pass tract
 grid covered every owner count 1-18 and every fixed batch class. It supersedes the spot-sweep default:
-the stable sustained region is four to six owners, and six is the conservative cross-class choice.
-The host reports six performance-level-0 cores and twelve performance-level-1 cores; other machines
-must tune rather than inherit this number.
+the stable sustained region is four to six owners. Normal operation should start at batch 8 with
+four single-thread owners, the measured batch-8 winner, while `--batch` and `--compute-owners` allow
+larger explicit settings. Six owners remain the cross-class throughput option. The host reports six
+performance-level-0 cores and twelve performance-level-1 cores; other machines must tune rather
+than inherit either number.
 
 The runnable/state distinction matters: tract's prepared runnable is `Send + Sync`, so it is
 prepared once and shared, while each owner spawns a private non-`Send` state. Backend-isolated
@@ -307,6 +309,11 @@ To leave CPU capacity available for other work, the clean macOS design is a Meta
 all fixed classes `1, 8, 16, 32, 64`. Every class is bound and passed independently through
 `MetalTransform` and target optimization, then spawned and warmed during startup. Request-time
 switching only selects an existing state; there is no dynamic model or compilation path.
+
+Normal Metal accumulation targets class 8. The same owner selects class 16, 32, or 64 when enough
+work is already queued and flushes smaller tails through class 1. The CPU four-owner setting is not
+reused for Metal: multiple owners would submit competing work to one GPU and require independent
+contention and memory evidence before becoming a supported topology.
 
 Routing must compose exact classes rather than pad to the next ceiling. Request 10 is `8+1+1`, not
 a padded class 16; request 7 is seven class-1 calls. In the release sweep this Metal-only pool is

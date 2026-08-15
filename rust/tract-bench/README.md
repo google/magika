@@ -170,6 +170,12 @@ conversion, optimization, or pipeline compilation occurs on the request path. Ex
 padding by composing classes in descending order: request 10 becomes `8+1+1`, while 16 uses the
 single class-16 state. `--pool-routing ceil` retains the padded single-plan comparison.
 
+The macOS baseline is one dedicated Metal owner. Its accumulator targets class 8 for normal work,
+uses the larger resident class directly when 16, 32, or 64 inputs are already available, and flushes
+smaller tails exactly through class 1. `--plan-pool` controls the available classes. The CPU
+`--compute-owners 4` baseline does not apply to Metal; additional Metal owners would need a separate
+GPU-contention and memory grid before adoption.
+
 This Metal-only mode does not use the custom CPU convolution and does not send tails to CPU. It
 keeps CPU capacity available for extraction and unrelated work. The CPU pool remains available as a
 separate fallback benchmark; with `--direct-fused-conv`, it uses built-in `LazyIm2col` for class 1
@@ -191,16 +197,17 @@ state; inference never runs on a Tokio executor thread:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml --release -- \
-  --backend cpu --compute-owners 6 --batch 8 --fixed-batch --iterations 200 \
+  --backend cpu --compute-owners 4 --batch 8 --fixed-batch --iterations 200 \
   --tract-threads 1 --direct-fused-conv --fused-layer-norm
 ```
 
 `--backend` is honored in owner mode, so CPU and ORT throughput and RSS can be measured in separate
 processes. An exhaustive three-pass grid across owners 1-18 and fixed batches 1, 8, 16, 32, and 64
-puts the sustained optimum between four and six owners on the measured M5 Max. Six single-thread
-owners are the conservative cross-class setting; the host reports six performance-level-0 cores.
-Treat this as a measured platform default, not a mathematical constant, and repeat the grid on other
-CPU topologies.
+puts the sustained optimum between four and six owners on the measured M5 Max. Normal operation uses
+batch 8 with four single-thread owners: that is the measured batch-8 winner and leaves CPU capacity
+for extraction and other work. Larger workloads can raise both values explicitly with `--batch` and
+`--compute-owners`; six owners remain a measured cross-class throughput option. Treat these as
+platform measurements, not mathematical constants, and repeat the grid on other CPU topologies.
 
 Repeat some trials with `--reverse` so backend order does not systematically favor the first or
 second runtime through cache, thermal, or sustained-load effects.

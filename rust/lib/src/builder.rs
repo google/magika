@@ -18,6 +18,7 @@ use crate::{BackendRequest, Result, Runtime, Session};
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Builder {
     backend: BackendRequest,
+    max_batch: Option<usize>,
 }
 
 impl Builder {
@@ -55,6 +56,17 @@ impl Builder {
         self
     }
 
+    /// Declares the largest batch this session will ever be asked to identify.
+    ///
+    /// Plans are prepared and warmed per batch class at build time, so declaring a smaller maximum
+    /// skips the classes that can never be reached and makes startup proportionally cheaper.
+    /// Passing a batch larger than this later still works: it is decomposed over the resident
+    /// classes.
+    pub fn with_max_batch(mut self, max_batch: usize) -> Self {
+        self.max_batch = Some(max_batch);
+        self
+    }
+
     /// Prepares the model and creates one thread-private Magika session.
     pub fn build(self) -> Result<Session> {
         self.build_runtime()?.session()
@@ -62,6 +74,9 @@ impl Builder {
 
     /// Prepares shared fixed-shape plans for spawning multiple inference sessions.
     pub fn build_runtime(self) -> Result<Runtime> {
-        Runtime::new(self.backend)
+        match self.max_batch {
+            Some(max_batch) => Runtime::with_max_batch(self.backend, max_batch),
+            None => Runtime::new(self.backend),
+        }
     }
 }

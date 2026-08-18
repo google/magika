@@ -191,8 +191,14 @@ async fn start() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    let runtime =
-        Arc::new(Session::builder().with_backend(flags.compute.backend.into()).build_runtime()?);
+    // The accumulator never emits more than one batch worth of files, so the larger resident
+    // classes are unreachable and preparing them would only cost startup.
+    let runtime = Arc::new(
+        Session::builder()
+            .with_backend(flags.compute.backend.into())
+            .with_max_batch(flags.compute.batch_size)
+            .build_runtime()?,
+    );
     if flags.verbose {
         let info = runtime.backend_info();
         let backend = match info.backend() {

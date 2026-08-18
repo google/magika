@@ -28,6 +28,12 @@ impl Runtime {
         Ok(Self { inner })
     }
 
+    pub(crate) fn with_max_batch(backend: BackendRequest, max_batch: usize) -> Result<Self> {
+        let inner = magika_tract_runtime::Runtime::with_max_batch(backend, max_batch)
+            .map_err(Error::inference)?;
+        Ok(Self { inner })
+    }
+
     /// Returns the resolved CPU or GPU implementation.
     pub fn backend_info(&self) -> BackendInfo {
         self.inner.backend_info()

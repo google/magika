@@ -97,12 +97,29 @@ struct PreparedPlan {
 }
 
 impl Runtime {
-    /// Prepares all fixed batch plans for the requested device class.
+    /// Prepares every fixed batch plan for the requested device class.
     pub fn new(request: BackendRequest) -> Result<Self> {
+        Self::with_max_batch(request, BATCH_CLASSES[BATCH_CLASSES.len() - 1])
+    }
+
+    /// Prepares only the plans reachable for requests of at most `max_batch` items.
+    ///
+    /// Requests are decomposed over the resident classes largest first, so a caller that never
+    /// submits more than `max_batch` items can never reach a larger class. Preparing those anyway
+    /// costs startup twice over, once to build the plan and once to warm it, and warming the
+    /// largest class runs a full inference at that size. At the command line default of eight,
+    /// three of the six classes are unreachable and were about two thirds of startup.
+    pub fn with_max_batch(request: BackendRequest, max_batch: usize) -> Result<Self> {
+        ensure!(max_batch > 0, "the maximum batch cannot be zero");
+        let classes: Vec<usize> =
+            BATCH_CLASSES.iter().copied().filter(|class| *class <= max_batch).collect();
+        ensure!(!classes.is_empty(), "no resident plan can serve a batch of {max_batch}");
         match request {
-            BackendRequest::Cpu => Self::prepare_cpu(),
-            BackendRequest::Gpu => Self::prepare_gpu(),
-            BackendRequest::Auto => Self::prepare_gpu().or_else(|_| Self::prepare_cpu()),
+            BackendRequest::Cpu => Self::prepare_cpu(&classes),
+            BackendRequest::Gpu => Self::prepare_gpu(&classes),
+            BackendRequest::Auto => {
+                Self::prepare_gpu(&classes).or_else(|_| Self::prepare_cpu(&classes))
+            }
         }
     }
 
@@ -131,12 +148,12 @@ impl Runtime {
         Ok(session)
     }
 
-    fn prepare_cpu() -> Result<Self> {
+    fn prepare_cpu(classes: &[usize]) -> Result<Self> {
         static CPU: DefaultRuntime = DefaultRuntime;
         let options =
             RunOptions { executor: Some(Executor::SingleThread), ..RunOptions::default() };
-        let mut plans = Vec::with_capacity(BATCH_CLASSES.len());
-        for batch in BATCH_CLASSES {
+        let mut plans = Vec::with_capacity(classes.len());
+        for &batch in classes {
             let mut model = load_model(batch)?;
             let fused_layer_norm = layer_norm::fuse_magika_layer_norm(&mut model)?;
             ensure!(
@@ -156,9 +173,9 @@ impl Runtime {
     }
 
     #[cfg(target_os = "macos")]
-    fn prepare_gpu() -> Result<Self> {
-        let mut plans = Vec::with_capacity(BATCH_CLASSES.len());
-        for batch in BATCH_CLASSES {
+    fn prepare_gpu(classes: &[usize]) -> Result<Self> {
+        let mut plans = Vec::with_capacity(classes.len());
+        for &batch in classes {
             let mut model = load_model(batch)?;
             prepare_gpu_graph(&mut model, batch)?;
             let gemm_impl = None;
@@ -179,9 +196,9 @@ impl Runtime {
     }
 
     #[cfg(all(not(target_os = "macos"), feature = "cuda"))]
-    fn prepare_gpu() -> Result<Self> {
-        let mut plans = Vec::with_capacity(BATCH_CLASSES.len());
-        for batch in BATCH_CLASSES {
+    fn prepare_gpu(classes: &[usize]) -> Result<Self> {
+        let mut plans = Vec::with_capacity(classes.len());
+        for &batch in classes {
             let mut model = load_model(batch)?;
             prepare_gpu_graph(&mut model, batch)?;
             tract_cuda::CudaTransform
@@ -201,7 +218,7 @@ impl Runtime {
     }
 
     #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
-    fn prepare_gpu() -> Result<Self> {
+    fn prepare_gpu(_classes: &[usize]) -> Result<Self> {
         bail!("this build does not include a GPU backend")
     }
 }
@@ -254,18 +271,23 @@ impl Session {
     pub fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>> {
         ensure!(batch > 0, "inference batch cannot be empty");
         ensure!(input.len() == batch * FEATURE_SIZE, "invalid feature tensor length");
-        let route = route_classes(batch);
         let mut input_offset = 0;
+        let mut remaining = batch;
         let mut outputs = Vec::new();
-        for class in route {
+        while remaining > 0 {
+            // Plans are resident in increasing batch order, so the last one that fits is the
+            // largest that fits. A session prepared for a smaller maximum simply takes more turns.
+            let index = self
+                .plans
+                .iter()
+                .rposition(|plan| plan.batch <= remaining)
+                .context("no resident plan can serve a single item")?;
+            let plan = &mut self.plans[index];
+            let class = plan.batch;
             let input_len = class * FEATURE_SIZE;
             let chunk = &input[input_offset..input_offset + input_len];
             input_offset += input_len;
-            let plan = self
-                .plans
-                .iter_mut()
-                .find(|plan| plan.batch == class)
-                .with_context(|| format!("batch-{class} plan is not resident"))?;
+            remaining -= class;
             outputs.extend(run_plan(plan.state.as_mut(), chunk, class)?);
         }
         ensure!(input_offset == input.len());
@@ -290,16 +312,6 @@ fn run_plan(state: &mut dyn State, input: &[i32], batch: usize) -> Result<Vec<f3
     Ok(output.to_plain_array_view::<f32>()?.iter().copied().collect())
 }
 
-fn route_classes(mut batch: usize) -> Vec<usize> {
-    let mut route = Vec::new();
-    while batch > 0 {
-        let class = BATCH_CLASSES.iter().rev().copied().find(|class| *class <= batch).unwrap();
-        route.push(class);
-        batch -= class;
-    }
-    route
-}
-
 /// Low-level graph rewrites used by the benchmark and conversion release gate.
 #[doc(hidden)]
 pub mod bench {
@@ -312,10 +324,32 @@ pub mod bench {
 mod tests {
     use super::*;
 
+    /// Mirrors the routing loop of [`Session::run`] without preparing any plan.
+    fn route_classes(classes: &[usize], mut batch: usize) -> Vec<usize> {
+        let mut route = Vec::new();
+        while batch > 0 {
+            let index = classes.iter().rposition(|class| *class <= batch).unwrap();
+            route.push(classes[index]);
+            batch -= classes[index];
+        }
+        route
+    }
+
     #[test]
     fn routes_requests_over_fixed_classes() {
-        assert_eq!(route_classes(1), [1]);
-        assert_eq!(route_classes(10), [8, 1, 1]);
-        assert_eq!(route_classes(100), [64, 32, 4]);
+        let all = &BATCH_CLASSES;
+        assert_eq!(route_classes(all, 1), [1]);
+        assert_eq!(route_classes(all, 10), [8, 1, 1]);
+        assert_eq!(route_classes(all, 100), [64, 32, 4]);
+    }
+
+    #[test]
+    fn routes_requests_over_the_resident_classes_only() {
+        // A session prepared for a maximum of eight must still serve a larger request rather than
+        // reaching for a class it never prepared.
+        let resident = &[1, 4, 8];
+        assert_eq!(route_classes(resident, 20), [8, 8, 4]);
+        assert_eq!(route_classes(resident, 64), [8; 8]);
+        assert_eq!(route_classes(&[1], 3), [1, 1, 1]);
     }
 }

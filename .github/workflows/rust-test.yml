@@ -47,7 +47,6 @@ jobs:
       - run: cargo fmt --manifest-path rust/tract-bench/Cargo.toml -- --check
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
       - run: cargo clippy --manifest-path rust/tract-bench/Cargo.toml --all-features --all-targets -- --deny=warnings
-      - run: rust/tract-bench/scripts/verify-model-conversion.sh
   tract-metal-build:
     runs-on: macos-latest
     steps:
@@ -56,6 +55,22 @@ jobs:
       - run: rustup component add rustfmt clippy
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
       - run: cargo clippy --manifest-path rust/tract-bench/Cargo.toml --all-features --all-targets -- --deny=warnings
+  # tract picks different kernels per architecture, and the GPU path uses different kernels again,
+  # so ONNX Runtime parity has to be proven on every shipped target rather than inferred from one.
+  # Keep this matrix aligned with the targets in dist-workspace.toml. This is the only place the
+  # conversion is verified; the tract job above covers the source, not the numbers it produces.
+  tract-parity:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # ubuntu-24.04-arm covers aarch64-unknown-linux-gnu; the rest map onto the other triples.
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+      - run: rustup default stable
+      - run: rust/tract-bench/scripts/verify-model-conversion.sh
+        shell: bash
   run:
     runs-on: ${{ matrix.os }}-latest
     strategy:

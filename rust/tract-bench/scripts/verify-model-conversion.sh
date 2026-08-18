@@ -22,9 +22,22 @@ candidate_dir=$(mktemp -d)
 trap 'rm -rf "$candidate_dir"' EXIT HUP INT TERM
 cd "$repo_dir"
 
+# Cargo appends .exe on Windows, where this script runs under the runner's bash.
+executable_suffix=""
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*) executable_suffix=".exe" ;;
+esac
+
+# The GPU path has its own graph rewrites and its own kernels, so it needs its own parity check.
+# It is only checked where a GPU backend exists.
+verify_gpu=false
+if [ "$(uname -s)" = "Darwin" ]; then
+  verify_gpu=true
+fi
+
 cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" \
   --no-default-features --features convert --bin convert-model
-converter="$repo_dir/rust/target/debug/convert-model"
+converter="$repo_dir/rust/target/debug/convert-model$executable_suffix"
 for source_model in "$repo_dir"/assets/models/*/model.onnx; do
   model_name=$(basename "$(dirname "$source_model")")
   first="$candidate_dir/$model_name.first.nnef.tgz"
@@ -38,7 +51,7 @@ for source_model in "$repo_dir"/assets/models/*/model.onnx; do
 done
 
 cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" --bin magika-runtime-bench
-benchmark="$repo_dir/rust/target/debug/magika-runtime-bench"
+benchmark="$repo_dir/rust/target/debug/magika-runtime-bench$executable_suffix"
 for source_model in "$repo_dir"/assets/models/*/model.onnx; do
   model_name=$(basename "$(dirname "$source_model")")
   candidate="$candidate_dir/$model_name.first.nnef.tgz"
@@ -61,3 +74,17 @@ current="$candidate_dir/standard_v3_3.first.nnef.tgz"
   --nnef-model "$current" --fixed-batch --batch 8 --direct-fused-conv \
   --fused-layer-norm --verify --plan-summary
 printf 'verified_release_fusion\t%s\n' "$current"
+
+if [ "$verify_gpu" = true ]; then
+  # The GPU lowering replaces the convolution and both layer normalizations, so its scores are not
+  # the CPU's and the gate above does not cover it. Only the deployment model is checked: the GPU
+  # rewrites require the current architecture and deliberately refuse to load anything else, so
+  # building the GPU backend into the loop over every historical model would fail by design.
+  cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" --features metal \
+    --bin magika-runtime-bench
+  for batch in 1 8 32; do
+    "$benchmark" --onnx-model "$repo_dir/assets/models/standard_v3_3/model.onnx" \
+      --nnef-model "$current" --fixed-batch --batch "$batch" --verify
+  done
+  printf 'verified_gpu\t%s\n' "$current"
+fi

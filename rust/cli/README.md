@@ -208,6 +208,9 @@ Options:
 
           [default: 4]
 
+      --trace-utilization
+          Prints per-stage busy and waiting time to standard error when the run finishes
+
       --readers <READERS>
           Number of tasks reading files and extracting features.
 

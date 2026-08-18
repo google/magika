@@ -144,6 +144,13 @@ struct Compute {
     /// Number of resident inference threads.
     #[arg(long, default_value = "4", alias = "num-tasks")]
     threads: usize,
+
+    /// Number of tasks reading files and extracting features.
+    ///
+    /// Reading is I/O bound and inference is not, so this defaults to twice --threads, which is
+    /// enough to keep every inference thread supplied.
+    #[arg(long)]
+    readers: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
@@ -203,15 +210,48 @@ async fn start() -> Result<()> {
         tokio::sync::mpsc::channel::<Result<Response>>(result_capacity);
     let (batch_sender, batch_receiver) =
         async_channel::bounded::<InferenceBatch>(flags.compute.threads);
-    let extractor = tokio::spawn({
+    let readers = flags.compute.readers.unwrap_or(2 * flags.compute.threads);
+    ensure!(0 < readers, "--readers cannot be zero");
+    // Keep enough paths queued that no reader waits on traversal.
+    let (work_sender, work_receiver) =
+        async_channel::bounded::<Work>(readers * flags.compute.batch_size * 2);
+    let (ready_sender, ready_receiver) =
+        async_channel::bounded::<(usize, PathBuf, Features)>(readers);
+    let walker = tokio::spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
         async move {
-            if let Err(e) = extract_features(&flags, &batch_sender, &result_sender).await {
+            if let Err(e) = walk_paths(&flags, &work_sender, &ready_sender, &result_sender).await {
                 let _ = result_sender.send(Err(e)).await;
             }
         }
     });
+    let mut read_tasks = Vec::with_capacity(readers);
+    for _ in 0..readers {
+        read_tasks.push(tokio::spawn({
+            let work_receiver = work_receiver.clone();
+            let ready_receiver = ready_receiver.clone();
+            let batch_sender = batch_sender.clone();
+            let result_sender = result_sender.clone();
+            let batch_size = flags.compute.batch_size;
+            async move {
+                if let Err(e) = read_files(
+                    batch_size,
+                    &work_receiver,
+                    &ready_receiver,
+                    &batch_sender,
+                    &result_sender,
+                )
+                .await
+                {
+                    let _ = result_sender.send(Err(e)).await;
+                }
+            }
+        }));
+    }
+    drop(work_receiver);
+    drop(ready_receiver);
+    drop(batch_sender);
     let inference_threads =
         spawn_inference_threads(flags.compute.threads, runtime, &batch_receiver, &result_sender)?;
     drop(batch_receiver);
@@ -226,7 +266,10 @@ async fn start() -> Result<()> {
         }
         x => x,
     };
-    extractor.await?;
+    walker.await?;
+    for task in read_tasks {
+        task.await?;
+    }
     for thread in inference_threads {
         thread.join().map_err(|_| anyhow::anyhow!("inference thread panicked"))?;
     }
@@ -271,30 +314,78 @@ async fn print(
     Ok(())
 }
 
-async fn extract_features(
-    flags: &Flags, batch_sender: &async_channel::Sender<InferenceBatch>,
+/// Walks the requested paths and hands regular files to the read tasks.
+///
+/// This task only traverses and stats. Reading file content is left to [`read_files`] so that it
+/// happens on several tasks at once instead of serializing behind traversal.
+async fn walk_paths(
+    flags: &Flags, work_sender: &async_channel::Sender<Work>,
+    ready_sender: &async_channel::Sender<(usize, PathBuf, Features)>,
     result_sender: &tokio::sync::mpsc::Sender<Result<Response>>,
 ) -> Result<()> {
-    let mut accumulator = Accumulator::new(flags.compute.batch_size);
-    let mut flags_paths = flags.path.clone();
-    flags_paths.reverse();
+    let mut flags_paths: Vec<(PathBuf, Option<std::fs::FileType>)> =
+        flags.path.iter().rev().map(|path| (path.clone(), None)).collect();
     let mut order = 0;
-    while let Some(path) = flags_paths.pop() {
-        let mut result = None;
-        match process_path(flags, &mut flags_paths, &path).await {
-            Err(x) => result = Some(Err(x)),
+    while let Some((path, file_type)) = flags_paths.pop() {
+        match process_path(flags, &mut flags_paths, &path, file_type).await {
             Ok(ProcessPath::Recursive) => continue,
-            Ok(ProcessPath::Ruled(x)) => result = Some(Ok(x)),
+            Ok(ProcessPath::Content) => work_sender.send(Work { order, path }).await?,
+            // Standard input is already extracted and must not reach a read task.
             Ok(ProcessPath::Features(features)) => {
-                if let Some(batch) = accumulator.push(order, path.clone(), features) {
+                ready_sender.send((order, path, features)).await?
+            }
+            Ok(ProcessPath::Ruled(x)) => {
+                result_sender.send(Ok(Response { order, path, result: Ok(x) })).await?
+            }
+            Err(x) => result_sender.send(Ok(Response { order, path, result: Err(x) })).await?,
+        }
+        order += 1;
+    }
+    Ok(())
+}
+
+/// Reads files, extracts their features, and accumulates inference batches.
+async fn read_files(
+    batch_size: usize, work_receiver: &async_channel::Receiver<Work>,
+    ready_receiver: &async_channel::Receiver<(usize, PathBuf, Features)>,
+    batch_sender: &async_channel::Sender<InferenceBatch>,
+    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>,
+) -> Result<()> {
+    let mut accumulator = Accumulator::new(batch_size);
+    loop {
+        // Pre-extracted work is rare and must not be starved by the file queue.
+        let (order, path, extracted) = tokio::select! {
+            biased;
+            ready = ready_receiver.recv() => match ready {
+                Ok((order, path, features)) => (order, path, Ok(FeaturesOrRuled::Features(features))),
+                Err(_) => match work_receiver.recv().await {
+                    Ok(Work { order, path }) => {
+                        let extracted = extract_path(path.clone()).await;
+                        (order, path, extracted)
+                    }
+                    Err(_) => break,
+                },
+            },
+            work = work_receiver.recv() => match work {
+                Ok(Work { order, path }) => {
+                    let extracted = extract_path(path.clone()).await;
+                    (order, path, extracted)
+                }
+                Err(_) => break,
+            },
+        };
+        match extracted {
+            Ok(FeaturesOrRuled::Features(features)) => {
+                if let Some(batch) = accumulator.push(order, path, features) {
                     batch_sender.send(batch).await?;
                 }
             }
-        };
-        if let Some(result) = result {
-            result_sender.send(Ok(Response { order, path, result })).await?;
+            Ok(FeaturesOrRuled::Ruled(x)) => {
+                let result = Ok(FileType::Ruled(x));
+                result_sender.send(Ok(Response { order, path, result })).await?
+            }
+            Err(x) => result_sender.send(Ok(Response { order, path, result: Err(x) })).await?,
         }
-        order += 1;
     }
     if let Some(batch) = accumulator.finish() {
         batch_sender.send(batch).await?;
@@ -302,10 +393,24 @@ async fn extract_features(
     Ok(())
 }
 
+/// Reads a file and extracts its features.
+async fn extract_path(path: PathBuf) -> magika::Result<FeaturesOrRuled> {
+    let file = File::open(&path).await?;
+    FeaturesOrRuled::extract_async(file).await
+}
+
 enum ProcessPath {
     Recursive,
+    /// A regular file whose content still has to be read.
+    Content,
     Features(Features),
     Ruled(FileType),
+}
+
+/// A path handed to a read task.
+struct Work {
+    order: usize,
+    path: PathBuf,
 }
 
 impl From<FeaturesOrRuled> for ProcessPath {
@@ -318,26 +423,35 @@ impl From<FeaturesOrRuled> for ProcessPath {
 }
 
 async fn process_path(
-    flags: &Flags, paths: &mut Vec<PathBuf>, path: &Path,
+    flags: &Flags, paths: &mut Vec<(PathBuf, Option<std::fs::FileType>)>, path: &Path,
+    known: Option<std::fs::FileType>,
 ) -> magika::Result<ProcessPath> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         tokio::io::stdin().read_to_end(&mut stdin).await?;
         return Ok(FeaturesOrRuled::extract_sync(&stdin[..])?.into());
     }
-    let metadata = if flags.no_dereference {
-        tokio::fs::symlink_metadata(&path).await?
-    } else {
-        tokio::fs::metadata(&path).await?
+    // `read_dir` already reported the type of every entry it produced, so reading its metadata
+    // again would be one extra system call per file on the one task that feeds every reader. Only
+    // a symlink still needs a lookup, and only when it is being followed.
+    let metadata = match known {
+        Some(known) if flags.no_dereference || !known.is_symlink() => known,
+        _ => {
+            if flags.no_dereference {
+                tokio::fs::symlink_metadata(&path).await?.file_type()
+            } else {
+                tokio::fs::metadata(&path).await?.file_type()
+            }
+        }
     };
     if metadata.is_dir() {
         return Ok(if flags.recursive {
             let mut entries = tokio::fs::read_dir(&path).await?;
             let mut dir_paths = Vec::new();
             while let Some(entry) = entries.next_entry().await? {
-                dir_paths.push(entry.path());
+                dir_paths.push((entry.path(), entry.file_type().await.ok()));
             }
-            dir_paths.sort();
+            dir_paths.sort_by(|a, b| a.0.cmp(&b.0));
             while let Some(path) = dir_paths.pop() {
                 paths.push(path);
             }
@@ -349,8 +463,7 @@ async fn process_path(
     if metadata.is_symlink() {
         return Ok(ProcessPath::Ruled(FileType::Symlink));
     }
-    let file = File::open(&path).await?;
-    Ok(FeaturesOrRuled::extract_async(file).await?.into())
+    Ok(ProcessPath::Content)
 }
 
 fn spawn_inference_threads(

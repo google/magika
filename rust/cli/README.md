@@ -208,6 +208,11 @@ Options:
 
           [default: 4]
 
+      --readers <READERS>
+          Number of tasks reading files and extracting features.
+
+          Reading is I/O bound and inference is not, so this defaults to twice --threads, which is enough to keep every inference thread supplied.
+
   -v, --verbose
           Reports the selected inference device and implementation
 

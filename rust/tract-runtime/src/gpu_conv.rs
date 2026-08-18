@@ -17,7 +17,7 @@
 use std::sync::Arc;
 
 use tract_core::internal::*;
-use tract_core::ops::array::Slice;
+use tract_core::ops::array::{Slice, TypedConcat};
 use tract_core::ops::binary::TypedBinOp;
 use tract_core::ops::change_axes::AxisOp;
 use tract_core::ops::cnn::{Conv, KernelFormat};
@@ -25,11 +25,11 @@ use tract_core::ops::einsum::prefix_matmul::PrefixMatMul;
 use tract_core::ops::math::Add;
 use tract_core::ops::nn::DataFormat;
 
-/// Lower a supported channels-last Conv1D to five tiled matrix products.
+/// Lowers a supported channels-last Conv1D to a single matrix multiplication.
 ///
 /// tract-metal's generic direct convolution gives every output element its own thread, which
-/// repeatedly reads the same input and weights. Magika's width-five convolution is faster as five
-/// large GEMMs; the Metal transform then selects its tuned matrix kernel.
+/// repeatedly reads the same input and weights. Folding the kernel window into the reduction axis
+/// instead leaves one large GEMM, for which the Metal transform selects its tuned matrix kernel.
 pub fn lower_magika_conv_to_matmul(model: &mut TypedModel) -> TractResult<usize> {
     let mut lowered = 0;
     while let Some(pattern) = ConvPattern::find(model)? {
@@ -121,94 +121,91 @@ impl ConvPattern {
     fn apply(self, model: &mut TypedModel) -> TractResult<()> {
         let output_length = self.input_length - self.kernel_length + 1;
         let rows = self.batch * output_length;
+
         let mut patch = TypedModelPatch::default();
         let input = patch.tap_model(model, self.channels_last_input)?;
-        let mut products = TVec::with_capacity(self.kernel_length);
+
+        // Every kernel position is the input shifted along the position axis. Concatenating the
+        // shifts on the channel axis turns the whole convolution into one matrix multiplication,
+        // which is the classic im2col expansion written with ordinary operators.
+        //
+        // One product per position and a sum tree computes the same thing, but each product
+        // materializes a full `[batch, output_length, output_channels]` activation that the tree
+        // then reads back. At batch 32 that is about 33 MB written and re-read five times over,
+        // against a single 83 MB concatenation here, and it measured about 30% of throughput.
+        let mut shifts = TVec::with_capacity(self.kernel_length);
         for kernel_index in 0..self.kernel_length {
-            let slice = patch.wire_node(
-                format!("magika.gpu_conv.slice_{kernel_index}"),
-                Slice::new(1, kernel_index, kernel_index + output_length),
-                &[input],
-            )?[0];
-            let matrix = patch.wire_node(
-                format!("magika.gpu_conv.flatten_{kernel_index}"),
-                AxisOp::Reshape(
-                    0,
-                    tvec![self.batch.to_dim(), output_length.to_dim()],
-                    tvec![rows.to_dim()],
-                ),
-                &[slice],
-            )?[0];
-            let weights = patch.add_const(
-                format!("magika.gpu_conv.weights_{kernel_index}"),
-                self.kernel_matrix(kernel_index)?,
-            )?;
-            let product = patch.wire_node(
-                format!("magika.gpu_conv.gemm_{kernel_index}"),
-                PrefixMatMul {
-                    transpose_a: false,
-                    transpose_b: true,
-                    transpose_c: false,
-                    quantize_output: None,
-                    operating_dt: Some(DatumType::F32),
-                },
-                &[matrix, weights],
-            )?[0];
-            let product = patch.wire_node(
-                format!("magika.gpu_conv.unflatten_{kernel_index}"),
-                AxisOp::Reshape(
-                    0,
-                    tvec![rows.to_dim()],
-                    tvec![self.batch.to_dim(), output_length.to_dim()],
-                ),
-                &[product],
-            )?[0];
-            products.push(product);
+            shifts.push(
+                patch.wire_node(
+                    format!("magika.gpu_conv.slice_{kernel_index}"),
+                    Slice::new(1, kernel_index, kernel_index + output_length),
+                    &[input],
+                )?[0],
+            );
         }
-        let mut sum_index = 0;
-        while products.len() > 1 {
-            let mut next = TVec::with_capacity(products.len().div_ceil(2));
-            for pair in products.chunks(2) {
-                next.push(if let [left, right] = pair {
-                    let output = patch.wire_node(
-                        format!("magika.gpu_conv.sum_{sum_index}"),
-                        TypedBinOp(Box::new(Add), None),
-                        &[*left, *right],
-                    )?[0];
-                    sum_index += 1;
-                    output
-                } else {
-                    pair[0]
-                });
-            }
-            products = next;
-        }
+        let gathered =
+            patch.wire_node("magika.gpu_conv.gather", TypedConcat { axis: 2 }, &shifts)?[0];
+        let matrix = patch.wire_node(
+            "magika.gpu_conv.flatten",
+            AxisOp::Reshape(
+                0,
+                tvec![self.batch.to_dim(), output_length.to_dim()],
+                tvec![rows.to_dim()],
+            ),
+            &[gathered],
+        )?[0];
+        let weights = patch.add_const("magika.gpu_conv.weights", self.kernel_matrix_all()?)?;
+        let product = patch.wire_node(
+            "magika.gpu_conv.gemm",
+            PrefixMatMul {
+                transpose_a: false,
+                transpose_b: true,
+                transpose_c: false,
+                quantize_output: None,
+                operating_dt: Some(DatumType::F32),
+            },
+            &[matrix, weights],
+        )?[0];
+        let product = patch.wire_node(
+            "magika.gpu_conv.unflatten",
+            AxisOp::Reshape(
+                0,
+                tvec![rows.to_dim()],
+                tvec![self.batch.to_dim(), output_length.to_dim()],
+            ),
+            &[product],
+        )?[0];
 
         let bias = self.bias.as_ref().clone().into_shape(&[1, 1, self.output_channels])?;
         let bias = patch.add_const("magika.gpu_conv.bias", bias)?;
         let output = patch.wire_node(
             "magika.gpu_conv.bias_add",
             TypedBinOp(Box::new(Add), None),
-            &[products.pop().context("zero-length convolution kernel")?, bias],
+            &[product, bias],
         )?[0];
         patch.shunt_outside(model, self.channels_last_output, output)?;
         patch.apply(model)
     }
 
-    fn kernel_matrix(&self, kernel_index: usize) -> TractResult<Tensor> {
-        ensure!(kernel_index < self.kernel_length);
+    /// Returns the kernel as one `[output_channels, kernel_length * input_channels]` matrix.
+    ///
+    /// The column order is position major, matching the concatenation of the shifted inputs.
+    fn kernel_matrix_all(&self) -> TractResult<Tensor> {
         let source_plain = self.kernel.as_ref().try_as_plain()?;
         let source = source_plain.as_slice::<f32>()?;
-        let mut values = Vec::with_capacity(self.output_channels * self.input_channels);
+        let reduction = self.kernel_length * self.input_channels;
+        let mut values = Vec::with_capacity(self.output_channels * reduction);
         for output_channel in 0..self.output_channels {
-            for input_channel in 0..self.input_channels {
-                let offset = (output_channel * self.input_channels + input_channel)
-                    * self.kernel_length
-                    + kernel_index;
-                values.push(source[offset]);
+            for kernel_index in 0..self.kernel_length {
+                for input_channel in 0..self.input_channels {
+                    let offset = (output_channel * self.input_channels + input_channel)
+                        * self.kernel_length
+                        + kernel_index;
+                    values.push(source[offset]);
+                }
             }
         }
-        Tensor::from_shape(&[self.output_channels, self.input_channels], &values)
+        Tensor::from_shape(&[self.output_channels, reduction], &values)
     }
 }
 
@@ -217,7 +214,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn splits_oik_kernel_into_one_matrix_per_position() -> TractResult<()> {
+    fn flattens_oik_kernel_into_one_position_major_matrix() -> TractResult<()> {
         let kernel =
             Tensor::from_shape(&[2, 2, 3], &(0..12).map(|value| value as f32).collect::<Vec<_>>())?
                 .into_arc_tensor();
@@ -233,19 +230,13 @@ mod tests {
             kernel_length: 3,
         };
 
+        // Rows are output channels; columns are position major, matching the concatenated shifts.
+        let matrix = pattern.kernel_matrix_all()?;
+        assert_eq!(matrix.shape(), &[2, 6]);
         assert_eq!(
-            pattern.kernel_matrix(0)?.try_as_plain()?.as_slice::<f32>()?,
-            &[0.0, 3.0, 6.0, 9.0]
+            matrix.try_as_plain()?.as_slice::<f32>()?,
+            &[0.0, 3.0, 1.0, 4.0, 2.0, 5.0, 6.0, 9.0, 7.0, 10.0, 8.0, 11.0]
         );
-        assert_eq!(
-            pattern.kernel_matrix(1)?.try_as_plain()?.as_slice::<f32>()?,
-            &[1.0, 4.0, 7.0, 10.0]
-        );
-        assert_eq!(
-            pattern.kernel_matrix(2)?.try_as_plain()?.as_slice::<f32>()?,
-            &[2.0, 5.0, 8.0, 11.0]
-        );
-        assert!(pattern.kernel_matrix(3).is_err());
         Ok(())
     }
 }

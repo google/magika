@@ -212,9 +212,9 @@ Options:
           Prints per-stage busy and waiting time to standard error when the run finishes
 
       --readers <READERS>
-          Number of tasks reading files and extracting features.
+          Number of resident threads reading files and extracting features.
 
-          Reading is I/O bound and inference is not, so this defaults to twice --threads, which is enough to keep every inference thread supplied.
+          A read thread blocks on storage while inference does not, so this defaults to twice --threads, which keeps every inference thread supplied even when reads are slow.
 
   -v, --verbose
           Reports the selected inference device and implementation

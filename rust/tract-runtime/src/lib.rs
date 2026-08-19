@@ -23,9 +23,12 @@ use std::sync::Arc;
 #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
 use anyhow::bail;
 use anyhow::{Context as _, Result, ensure};
+// Only the GPU preparers build a plan by hand; the CPU one goes through the runtime.
+#[cfg(any(target_os = "macos", feature = "cuda"))]
+use tract_core::prelude::TypedSimplePlan;
 use tract_core::prelude::{
     Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, ToDim as _, TypedModel,
-    TypedSimplePlan, tvec,
+    tvec,
 };
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, Runtime as _, State};
 use tract_core::tract_linalg::multithread::Executor;

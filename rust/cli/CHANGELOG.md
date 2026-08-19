@@ -1,6 +1,19 @@
 # Changelog
 
-## 1.1.1-dev
+## 1.2.0-dev
+
+### Minor
+
+- Replace the ONNX Runtime backend with an embedded tract runtime, so the binary no longer needs
+  an external inference runtime
+- Add `--backend` to select automatic, CPU-only or GPU-required inference
+- Add `--verbose` to report the selected inference device and implementation
+- Add `--readers` to size the pool of threads reading files and extracting features
+- Add `--trace-utilization` to report busy and waiting time per pipeline stage
+- Rename `--num-tasks` to `--threads` and document it, keeping `--num-tasks` as an alias
+- Document `--batch-size` and raise its default from one to eight
+- Remove `--intra-threads`, `--inter-threads`, `--optimization-level` and `--parallel-execution`,
+  which configured the ONNX Runtime
 
 ### Patch
 

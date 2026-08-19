@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "1.1.1-dev"
+version = "1.2.0-dev"
 license = "Apache-2.0"
 edition = "2021"
 description = "Determines file content types using AI"
@@ -21,7 +21,7 @@ _doc = ["serde"]
 _test = []
 
 [dependencies]
-magika-tract-runtime = { version = "=1.1.1-dev", path = "../tract-runtime" }
+magika-tract-runtime = { version = "=1.2.0-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }
 thiserror = "1.0.63"

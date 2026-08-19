@@ -1,6 +1,21 @@
 # Changelog
 
-## 1.1.1-dev
+## 1.2.0-dev
+
+### Minor
+
+- Replace the ONNX Runtime backend with an embedded tract runtime, so a binary depending on this
+  crate no longer needs an external inference runtime
+- Add `Runtime` to prepare the model once and create one `Session` per inference thread
+- Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference
+- Add `Builder::with_max_batch()` to prepare only the batch classes a caller can reach
+- Add `Session::backend_info()` and re-export `Backend`, `BackendInfo` and `BackendRequest`
+- Add a `cuda` feature for GPU inference on CUDA; Metal is used automatically on macOS
+- Replace `Error::OrtError` with `Error::InferenceError`
+- Deprecate `Builder::with_inter_threads()`, `Builder::with_intra_threads()`,
+  `Builder::with_optimization_level()` and `Builder::with_parallel_execution()`, which tract
+  manages itself. They are kept as no-ops for source compatibility.
+- A `Session` is now used by a single thread. Share a `Runtime` to identify files concurrently.
 
 ### Patch
 

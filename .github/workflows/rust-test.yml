@@ -47,7 +47,10 @@ jobs:
       - run: cargo fmt --manifest-path rust/tract-bench/Cargo.toml -- --check
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
       - run: cargo clippy --manifest-path rust/tract-bench/Cargo.toml --all-features --all-targets -- --deny=warnings
-  tract-metal-build:
+  # macOS is the only target that resolves to a GPU by default, and until this job existed nothing
+  # ran the shipped command line there against known answers: the ubuntu test job never reaches the
+  # Metal path, and a backend that computes the wrong thing still exits successfully.
+  tract-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
@@ -55,6 +58,9 @@ jobs:
       - run: rustup component add rustfmt clippy
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
       - run: cargo clippy --manifest-path rust/tract-bench/Cargo.toml --all-features --all-targets -- --deny=warnings
+      - run: rust/tract-runtime/test.sh
+      - run: ./test.sh
+        working-directory: rust/cli
   # tract picks different kernels per architecture, and the GPU path uses different kernels again,
   # so ONNX Runtime parity has to be proven on every shipped target rather than inferred from one.
   # Keep this matrix aligned with the targets in dist-workspace.toml. This is the only place the

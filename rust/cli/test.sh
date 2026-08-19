@@ -35,16 +35,21 @@ grep -F 'backend: cpu (tract-cpu)' <<<"$backend" >/dev/null
 )
 
 TEST_SUITES='basic previous_missdetections'
-info "Test against the test suites: $TEST_SUITES"
-( cd ../../tests_data
-  magika --format='%p: %l' --recursive $TEST_SUITES | while read line; do
-    file=${line%: *}
-    directory=${file%/*}
-    expected=${directory##*/}
-    actual=${line#*: }
-    [ "$expected" = "$actual" ] || error "$file is detected as $actual"
-  done
-)
+# Both backends, not just whichever one auto picks here. They run different graphs through
+# different kernels, and a backend that computes the wrong thing still exits successfully, so
+# checking only one leaves the other free to be silently wrong.
+for BACKEND in auto cpu; do
+  info "Test against the test suites with --backend $BACKEND: $TEST_SUITES"
+  ( cd ../../tests_data
+    magika --backend $BACKEND --format='%p: %l' --recursive $TEST_SUITES | while read line; do
+      file=${line%: *}
+      directory=${file%/*}
+      expected=${directory##*/}
+      actual=${line#*: }
+      [ "$expected" = "$actual" ] || error "$file is detected as $actual with --backend $BACKEND"
+    done
+  )
+done
 
 [ $(id -u) -eq 0 ] && success "No more tests in Docker"
 

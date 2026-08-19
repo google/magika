@@ -204,9 +204,9 @@ Options:
           [default: 8]
 
       --threads <THREADS>
-          Number of resident inference threads
+          Number of resident inference threads.
 
-          [default: 4]
+          Inference on a GPU is bound by the device rather than by the host, so a handful of threads keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every thread is one more core doing the work. This defaults accordingly: four on a GPU, and one less than the available parallelism on a CPU.
 
       --trace-utilization
           Prints per-stage busy and waiting time to standard error when the run finishes
@@ -214,7 +214,7 @@ Options:
       --readers <READERS>
           Number of resident threads reading files and extracting features.
 
-          A read thread blocks on storage while inference does not, so this defaults to twice --threads, which keeps every inference thread supplied even when reads are slow.
+          Reading costs far less than inference, so this defaults to one per inference thread, which is already more than a run makes use of.
 
   -v, --verbose
           Reports the selected inference device and implementation

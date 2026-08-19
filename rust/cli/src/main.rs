@@ -141,8 +141,13 @@ struct Compute {
     batch_size: usize,
 
     /// Number of resident inference threads.
-    #[arg(long, default_value = "4", alias = "num-tasks")]
-    threads: usize,
+    ///
+    /// Inference on a GPU is bound by the device rather than by the host, so a handful of threads
+    /// keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every
+    /// thread is one more core doing the work. This defaults accordingly: four on a GPU, and one
+    /// less than the available parallelism on a CPU.
+    #[arg(long, alias = "num-tasks")]
+    threads: Option<usize>,
 
     /// Prints per-stage busy and waiting time to standard error when the run finishes.
     #[arg(long)]
@@ -150,8 +155,8 @@ struct Compute {
 
     /// Number of resident threads reading files and extracting features.
     ///
-    /// A read thread blocks on storage while inference does not, so this defaults to twice
-    /// --threads, which keeps every inference thread supplied even when reads are slow.
+    /// Reading costs far less than inference, so this defaults to one per inference thread, which
+    /// is already more than a run makes use of.
     #[arg(long)]
     readers: Option<usize>,
 }
@@ -240,6 +245,31 @@ impl From<BackendChoice> for BackendRequest {
     }
 }
 
+/// Inference threads it takes to keep a GPU queued.
+///
+/// The device is the bottleneck there, and it is already busy well before the host runs out of
+/// cores, so further threads only queue behind each other. Measured on an M5 Max, throughput is
+/// flat from four threads to sixteen.
+const GPU_INFERENCE_THREADS: usize = 4;
+
+/// Returns how many inference threads it takes to keep the resolved backend busy.
+///
+/// `available_parallelism` is the portable answer on every target magika ships to, and it reports
+/// what this process may use rather than what the machine is built from, so a container's CPU quota
+/// and a restricted affinity mask both count.
+fn default_inference_threads(backend: Backend) -> usize {
+    let available = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    match backend {
+        // The device is the limit, not the host, so never ask the host for more than it takes to
+        // keep the device queued, nor for more than it has.
+        Backend::Gpu => available.min(GPU_INFERENCE_THREADS),
+        // Every thread is one more core identifying files, so take the machine and leave one core.
+        // The rest of the pipeline walks and prints on single threads of its own whatever the
+        // machine size, and a run this long should not make the machine stop answering.
+        Backend::Cpu => available.saturating_sub(1).max(1),
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     start().await
@@ -248,12 +278,8 @@ async fn main() -> Result<()> {
 async fn start() -> Result<()> {
     let flags = Flags::parse();
     ensure!(0 < flags.compute.batch_size, "--batch-size cannot be zero");
-    ensure!(0 < flags.compute.threads, "--threads cannot be zero");
-    let readers = match flags.compute.readers {
-        Some(readers) => readers,
-        None => flags.compute.threads.saturating_mul(2),
-    };
-    ensure!(0 < readers, "--readers cannot be zero");
+    ensure!(flags.compute.threads != Some(0), "--threads cannot be zero");
+    ensure!(flags.compute.readers != Some(0), "--readers cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -273,6 +299,11 @@ async fn start() -> Result<()> {
             .with_max_batch(flags.compute.batch_size)
             .build_runtime()?,
     );
+    let threads = match flags.compute.threads {
+        Some(threads) => threads,
+        None => default_inference_threads(runtime.backend_info().backend()),
+    };
+    let readers = flags.compute.readers.unwrap_or(threads);
     if flags.verbose {
         let info = runtime.backend_info();
         let backend = match info.backend() {
@@ -281,20 +312,17 @@ async fn start() -> Result<()> {
         };
         eprintln!("backend: {backend} ({})", info.implementation());
     }
-    let result_capacity = flags
-        .compute
-        .threads
+    let result_capacity = threads
         .checked_mul(flags.compute.batch_size)
         .context("--threads times --batch-size is too large")?;
     let (result_sender, result_receiver) =
         tokio::sync::mpsc::channel::<Result<Response>>(result_capacity);
-    let (batch_sender, batch_receiver) =
-        async_channel::bounded::<InferenceBatch>(flags.compute.threads);
+    let (batch_sender, batch_receiver) = async_channel::bounded::<InferenceBatch>(threads);
     let trace = Arc::new(Trace::new(
         flags.compute.trace_utilization,
         std::iter::once("walk".to_string())
             .chain((0..readers).map(|i| format!("read[{i}]")))
-            .chain((0..flags.compute.threads).map(|i| format!("infer[{i}]"))),
+            .chain((0..threads).map(|i| format!("infer[{i}]"))),
     ));
     let reader_stage = 1;
     let infer_stage = reader_stage + readers;
@@ -327,7 +355,7 @@ async fn start() -> Result<()> {
     drop(work_receiver);
     drop(batch_sender);
     let inference_threads = spawn_inference_threads(
-        flags.compute.threads,
+        threads,
         runtime,
         &batch_receiver,
         &result_sender,
@@ -596,11 +624,7 @@ fn spawn_inference_threads(
             std::thread::Builder::new()
                 .name(format!("magika-inference-{index}"))
                 .spawn(move || {
-                    let result: Result<()> =
-                        runtime.session().map_err(Into::into).and_then(|mut session| {
-                            infer_batches(&mut session, &receiver, &sender, &trace, stage)
-                        });
-                    if let Err(error) = result {
+                    if let Err(error) = infer_batches(&runtime, &receiver, &sender, &trace, stage) {
                         let _ = sender.blocking_send(Err(error));
                     }
                 })
@@ -610,15 +634,23 @@ fn spawn_inference_threads(
 }
 
 fn infer_batches(
-    magika: &mut Session, receiver: &async_channel::Receiver<InferenceBatch>,
+    runtime: &Runtime, receiver: &async_channel::Receiver<InferenceBatch>,
     sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Trace, stage: usize,
 ) -> Result<()> {
+    // The session is created on the first batch rather than up front. A run holding fewer files
+    // than there are threads never reaches most of them, and a session that identifies nothing is
+    // paid for all the same: it spawns state for every resident plan and warms each one.
+    let mut session = None;
     loop {
         let waiting = trace.start();
         let Ok(InferenceBatch { paths, features }) = receiver.recv_blocking() else { break };
         trace.add(stage, waiting, false);
 
         let running = trace.start();
+        let magika = match &mut session {
+            Some(session) => session,
+            slot => slot.insert(runtime.session()?),
+        };
         let batch = magika.identify_features_batch_sync(&features)?;
         trace.add(stage, running, true);
         assert_eq!(batch.len(), paths.len());

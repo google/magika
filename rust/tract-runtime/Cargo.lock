@@ -480,6 +480,7 @@ dependencies = [
  "anyhow",
  "tract-core",
  "tract-cuda",
+ "tract-gpu",
  "tract-linalg",
  "tract-metal",
  "tract-nnef",

@@ -186,6 +186,8 @@ impl Runtime {
             let options = RunOptions { skip_order_opt_ram: true, ..RunOptions::default() };
             let runnable = TypedSimplePlan::build(model, &options)
                 .with_context(|| format!("preparing Metal batch-{batch} plan"))?;
+            let runnable = with_memory_arena(runnable)
+                .with_context(|| format!("sizing the Metal batch-{batch} memory arena"))?;
             let runnable: Arc<dyn Runnable> = Arc::new(Arc::new(runnable));
             plans.push(PreparedPlan { batch, runnable });
         }
@@ -208,6 +210,8 @@ impl Runtime {
             let options = RunOptions { skip_order_opt_ram: true, ..RunOptions::default() };
             let runnable = TypedSimplePlan::build(model, &options)
                 .with_context(|| format!("preparing CUDA batch-{batch} plan"))?;
+            let runnable = with_memory_arena(runnable)
+                .with_context(|| format!("sizing the CUDA batch-{batch} memory arena"))?;
             let runnable: Arc<dyn Runnable> = Arc::new(Arc::new(runnable));
             plans.push(PreparedPlan { batch, runnable });
         }
@@ -221,6 +225,20 @@ impl Runtime {
     fn prepare_gpu(_classes: &[usize]) -> Result<Self> {
         bail!("this build does not include a GPU backend")
     }
+}
+
+/// Gives a GPU plan the arena that lets it reuse device buffers between nodes.
+///
+/// Without it every intermediate allocates a fresh device buffer on every node of every inference,
+/// which is a system call each time. tract installs this itself only when a caller passes memory
+/// sizing hints, and building a plan directly bypasses that.
+#[cfg(any(target_os = "macos", feature = "cuda"))]
+fn with_memory_arena(runnable: TypedSimplePlan) -> Result<TypedSimplePlan> {
+    // Every batch is bound to a concrete value before the plan is built, so the graph has no free
+    // symbols left and the arena can be sized without hints.
+    let hints = Default::default();
+    let handler = tract_gpu::session_handler::DeviceSessionHandler::from_plan(&runnable, &hints)?;
+    Ok(runnable.with_session_handler(handler))
 }
 
 #[cfg(any(target_os = "macos", feature = "cuda"))]

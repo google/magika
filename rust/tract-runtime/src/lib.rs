@@ -133,18 +133,14 @@ impl Runtime {
         let plans = self
             .plans
             .iter()
-            .map(|plan| {
-                Ok(SessionPlan {
-                    batch: plan.batch,
-                    state: plan
-                        .runnable
-                        .spawn()
-                        .with_context(|| format!("spawning batch-{} state", plan.batch))?,
-                })
+            .map(|plan| SessionPlan {
+                batch: plan.batch,
+                runnable: plan.runnable.clone(),
+                state: None,
             })
-            .collect::<Result<_>>()?;
+            .collect();
         let mut session = Session { info: self.info, plans };
-        session.warm_all()?;
+        session.warm_largest()?;
         Ok(session)
     }
 
@@ -276,7 +272,30 @@ pub struct Session {
 
 struct SessionPlan {
     batch: usize,
-    state: Box<dyn State>,
+    runnable: Arc<dyn Runnable>,
+    state: Option<Box<dyn State>>,
+}
+
+impl SessionPlan {
+    /// Returns the execution state, spawning it the first time this class is reached.
+    ///
+    /// A session holds one plan per resident batch class, but a caller that accumulates full
+    /// batches only ever routes to the largest. Spawning every class up front made a session cost
+    /// the sum of all of them: the execution state is negligible until the plan runs once, and
+    /// then it holds that plan's intermediate tensors for good. On this model the classes below
+    /// eight are the expensive ones, because only eight and above carry the fused convolution and
+    /// the rest still expand the input before multiplying.
+    fn state(&mut self) -> Result<&mut dyn State> {
+        let state = match &mut self.state {
+            Some(state) => state,
+            slot => slot.insert(
+                self.runnable
+                    .spawn()
+                    .with_context(|| format!("spawning batch-{} state", self.batch))?,
+            ),
+        };
+        Ok(state.as_mut())
+    }
 }
 
 impl Session {
@@ -306,18 +325,22 @@ impl Session {
             let chunk = &input[input_offset..input_offset + input_len];
             input_offset += input_len;
             remaining -= class;
-            outputs.extend(run_plan(plan.state.as_mut(), chunk, class)?);
+            outputs.extend(run_plan(plan.state()?, chunk, class)?);
         }
         ensure!(input_offset == input.len());
         Ok(outputs)
     }
 
-    fn warm_all(&mut self) -> Result<()> {
-        for plan in &mut self.plans {
-            let input = vec![PADDING_TOKEN; plan.batch * FEATURE_SIZE];
-            run_plan(plan.state.as_mut(), &input, plan.batch)
-                .with_context(|| format!("warming batch-{} plan", plan.batch))?;
-        }
+    /// Runs the largest resident plan once so the first real request does not pay for it.
+    ///
+    /// Only the largest: a caller that accumulates batches reaches it first and stays there, and
+    /// every other class stays uninstantiated until something actually routes to it.
+    fn warm_largest(&mut self) -> Result<()> {
+        let Some(plan) = self.plans.last_mut() else { return Ok(()) };
+        let batch = plan.batch;
+        let input = vec![PADDING_TOKEN; batch * FEATURE_SIZE];
+        run_plan(plan.state()?, &input, batch)
+            .with_context(|| format!("warming batch-{batch} plan"))?;
         Ok(())
     }
 }

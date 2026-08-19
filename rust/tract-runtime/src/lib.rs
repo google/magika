@@ -43,6 +43,11 @@ pub const BATCH_CLASSES: [usize; 6] = [1, 4, 8, 16, 32, 64];
 const FEATURE_SIZE: usize = 2048;
 const PADDING_TOKEN: i32 = 256;
 const DIRECT_FUSED_MIN_BATCH: usize = 8;
+/// Largest score difference tolerated between a GPU and the CPU on the same input.
+///
+/// They run different kernels and do not agree to the bit: the release gate measures about 1.4e-5
+/// between them. This sits far above that and far below a different answer.
+const GPU_AGREEMENT_EPSILON: f32 = 1e-3;
 /// Embedded release model bytes used by the benchmark's parity and size gates.
 #[doc(hidden)]
 pub const EMBEDDED_NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
@@ -118,11 +123,41 @@ impl Runtime {
         ensure!(!classes.is_empty(), "no resident plan can serve a batch of {max_batch}");
         match request {
             BackendRequest::Cpu => Self::prepare_cpu(&classes),
-            BackendRequest::Gpu => Self::prepare_gpu(&classes),
-            BackendRequest::Auto => {
-                Self::prepare_gpu(&classes).or_else(|_| Self::prepare_cpu(&classes))
+            BackendRequest::Gpu => {
+                let gpu = Self::prepare_gpu(&classes)?;
+                ensure!(
+                    gpu.agrees_with_cpu()?,
+                    "the GPU does not identify files correctly on this machine"
+                );
+                Ok(gpu)
             }
+            BackendRequest::Auto => match Self::prepare_gpu(&classes) {
+                Ok(gpu) if gpu.agrees_with_cpu().unwrap_or(true) => Ok(gpu),
+                _ => Self::prepare_cpu(&classes),
+            },
         }
+    }
+
+    /// Reports whether this runtime identifies a known input the way the CPU does.
+    ///
+    /// A GPU backend that loads is not a GPU backend that computes. A driver can accept every
+    /// kernel, report a device and return answers that are simply wrong, and nothing downstream
+    /// can tell: a wrong content type is a content type, and the command line exits successfully
+    /// having mislabelled everything. So the answer is checked against the CPU, which is the
+    /// backend the release gate proves against ONNX Runtime on every target, before this runtime
+    /// is handed to anyone.
+    ///
+    /// The reference is one batch-1 CPU plan, about fifteen milliseconds to prepare and two to
+    /// run, paid once per process and only when a GPU is in play.
+    fn agrees_with_cpu(&self) -> Result<bool> {
+        if self.info.backend == Backend::Cpu {
+            return Ok(true);
+        }
+        let input: Vec<i32> =
+            (0..FEATURE_SIZE).map(|index| (index % (PADDING_TOKEN as usize + 1)) as i32).collect();
+        let reference = Self::prepare_cpu(&[1])?.session()?.run(&input, 1)?;
+        let candidate = self.session()?.run(&input, 1)?;
+        Ok(scores_agree(&reference, &candidate))
     }
 
     /// Returns the resolved backend.
@@ -355,6 +390,15 @@ fn run_plan(state: &mut dyn State, input: &[i32], batch: usize) -> Result<Vec<f3
     Ok(output.to_plain_array_view::<f32>()?.iter().copied().collect())
 }
 
+/// Reports whether two backends produced the same scores for the same input.
+fn scores_agree(reference: &[f32], candidate: &[f32]) -> bool {
+    reference.len() == candidate.len()
+        && reference
+            .iter()
+            .zip(candidate)
+            .all(|(reference, candidate)| (reference - candidate).abs() <= GPU_AGREEMENT_EPSILON)
+}
+
 /// Low-level graph rewrites used by the benchmark and conversion release gate.
 #[doc(hidden)]
 pub mod bench {
@@ -376,6 +420,17 @@ mod tests {
             batch -= classes[index];
         }
         route
+    }
+
+    #[test]
+    fn scores_agree_within_the_gap_between_backends_but_not_beyond_it() {
+        let reference = [0.5, 0.25, 0.25];
+        assert!(scores_agree(&reference, &reference));
+        // The release gate measures about 1.4e-5 between a GPU and the CPU, which has to pass.
+        assert!(scores_agree(&reference, &[0.500014, 0.249987, 0.250001]));
+        // A different answer has to fail, and so does a truncated one.
+        assert!(!scores_agree(&reference, &[0.25, 0.5, 0.25]));
+        assert!(!scores_agree(&reference, &[0.5, 0.25]));
     }
 
     #[test]

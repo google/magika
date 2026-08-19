@@ -14,6 +14,9 @@
 # limitations under the License.
 
 set -e
+# The workflow runs this from the repository root, but the commands below and color.sh are relative
+# to the crate, so resolve where this script lives rather than assuming the caller's directory.
+cd -- "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 . ../color.sh
 
 x cargo check

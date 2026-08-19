@@ -17,7 +17,8 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result, anyhow, bail};
-use ort::session::{Session, builder::GraphOptimizationLevel};
+use ort::session::Session;
+use ort::session::builder::GraphOptimizationLevel;
 
 fn main() -> Result<()> {
     let mut args = std::env::args_os().skip(1).map(PathBuf::from);

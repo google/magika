@@ -32,7 +32,6 @@ use tract_core::prelude::{
 };
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, Runtime as _, State};
 use tract_core::tract_linalg::multithread::Executor;
-
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 use tract_core::transform::ModelTransform as _;
 #[cfg(target_os = "macos")]

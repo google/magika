@@ -20,10 +20,9 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use tract_core::internal::*;
-use tract_linalg::BinOp;
-use tract_linalg::WeightType;
 use tract_linalg::mmm::{AsInputValue, FusedSpec, MMMInputFormat, MMMInputValue, MatMatMul};
 use tract_linalg::pack::{PackedFormat, PackingWriter};
+use tract_linalg::{BinOp, WeightType};
 
 /// Keep the default temporary activation bounded while preserving enough columns for an efficient
 /// MMM. The benchmark can override this at model-preparation time to tune the memory/dispatch

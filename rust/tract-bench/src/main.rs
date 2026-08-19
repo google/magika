@@ -21,12 +21,10 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
-
 #[cfg(feature = "tract-runtime")]
 use magika_tract_runtime::bench::{fuse_magika_conv_max, fuse_magika_layer_norm};
 #[cfg(all(feature = "metal", target_os = "macos"))]
 use magika_tract_runtime::bench::{fuse_magika_layer_norm_for_gpu, lower_magika_conv_to_matmul};
-
 #[cfg(feature = "ort-runtime")]
 use ndarray::Array2;
 #[cfg(feature = "tract-runtime")]
@@ -44,10 +42,8 @@ use tract_core::prelude::{
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, State};
 #[cfg(feature = "tract-runtime")]
 use tract_core::tract_linalg::multithread::Executor;
-
 #[cfg(all(feature = "metal", target_os = "macos"))]
 use tract_core::transform::ModelTransform as _;
-
 #[cfg(all(feature = "metal", target_os = "macos"))]
 use tract_metal::{MetalGemmImplKind, MetalTransform};
 

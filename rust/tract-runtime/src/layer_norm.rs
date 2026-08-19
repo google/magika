@@ -21,8 +21,7 @@ use tract_core::ops::binary::TypedBinOp;
 use tract_core::ops::change_axes::AxisOp;
 use tract_core::ops::element_wise::ElementWiseOp;
 use tract_core::ops::math::{Add, Max, Mul, Rsqrt, Square, Sub};
-use tract_core::ops::nn::RmsNorm;
-use tract_core::ops::nn::{Reduce, Reducer};
+use tract_core::ops::nn::{Reduce, Reducer, RmsNorm};
 
 /// Replace supported mean/variance/normalize/affine chains.
 pub fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usize> {

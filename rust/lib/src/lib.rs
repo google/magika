@@ -37,6 +37,8 @@
 
 #![cfg_attr(feature = "_doc", feature(doc_cfg))]
 
+pub use magika_tract_runtime::{Backend, BackendInfo, BackendRequest};
+
 pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::error::{Error, Result};
@@ -44,7 +46,6 @@ pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{AsyncInput, Features, FeaturesOrRuled, SyncInput};
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
-pub use magika_tract_runtime::{Backend, BackendInfo, BackendRequest};
 
 mod builder;
 mod config;

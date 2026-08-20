@@ -14,9 +14,9 @@
 - Replace `Error::OrtError` with `Error::InferenceError`
 - Spawn the execution state of a batch class the first time a session reaches it, rather than every
   class up front
-- Check that a GPU identifies a known input the way the CPU does before using it. `BackendRequest`
-  `Auto` falls back to the CPU when it does not, and `Gpu` reports an error rather than returning
-  wrong content types
+- Check a GPU's scores for a known input against the release CPU reference before using it.
+  `BackendRequest::Auto` falls back to the CPU when they disagree, and `Gpu` reports an error
+  rather than returning wrong content types
 - Deprecate `Builder::with_inter_threads()`, `Builder::with_intra_threads()`,
   `Builder::with_optimization_level()` and `Builder::with_parallel_execution()`, which tract
   manages itself. They are kept as no-ops for source compatibility.

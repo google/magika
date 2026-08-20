@@ -501,8 +501,6 @@ dependencies = [
  "ort",
  "tract-core",
  "tract-hir",
- "tract-linalg",
- "tract-metal",
  "tract-nnef",
  "tract-onnx",
 ]

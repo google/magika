@@ -19,6 +19,7 @@
 
 ### Patch
 
+- Accumulate features from every reader into one global inference batch and bound ordered results
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

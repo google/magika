@@ -22,21 +22,12 @@ candidate_dir=$(mktemp -d)
 trap 'rm -rf "$candidate_dir"' EXIT HUP INT TERM
 cd "$repo_dir"
 
-# Cargo appends .exe on Windows, where this script runs under the runner's bash.
 executable_suffix=""
 case "$(uname -s)" in
   MINGW* | MSYS* | CYGWIN*) executable_suffix=".exe" ;;
 esac
 
-# The GPU path has its own graph rewrites and its own kernels, so it needs its own parity check.
-# It is only checked where a GPU backend exists.
-verify_gpu=false
-if [ "$(uname -s)" = "Darwin" ]; then
-  verify_gpu=true
-fi
-
-cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" \
-  --no-default-features --features convert --bin convert-model
+cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model
 converter="$repo_dir/rust/target/debug/convert-model$executable_suffix"
 for source_model in "$repo_dir"/assets/models/*/model.onnx; do
   model_name=$(basename "$(dirname "$source_model")")
@@ -50,8 +41,8 @@ for source_model in "$repo_dir"/assets/models/*/model.onnx; do
   printf 'round_trip\t%s\t%s bytes\n' "$model_name" "$(wc -c <"$first" | tr -d ' ')"
 done
 
-cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" --bin magika-runtime-bench
-benchmark="$repo_dir/rust/target/debug/magika-runtime-bench$executable_suffix"
+cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" --features verify --bin verify-model
+verifier="$repo_dir/rust/target/debug/verify-model$executable_suffix"
 for source_model in "$repo_dir"/assets/models/*/model.onnx; do
   model_name=$(basename "$(dirname "$source_model")")
   candidate="$candidate_dir/$model_name.first.nnef.tgz"
@@ -62,29 +53,19 @@ for source_model in "$repo_dir"/assets/models/*/model.onnx; do
     *) printf 'unknown feature size for %s\n' "$model_name" >&2; exit 1 ;;
   esac
   for batch in 1 8 16 32 64; do
-    "$benchmark" --onnx-model "$source_model" --nnef-model "$candidate" \
-      --fixed-batch --feature-size "$feature_size" --batch "$batch" --verify
+    "$verifier" --onnx-model "$source_model" --nnef-model "$candidate" --feature-size "$feature_size" --batch "$batch"
   done
-  printf 'verified_model\t%s\t%s bytes\n' \
-    "$model_name" "$(wc -c <"$candidate" | tr -d ' ')"
+  printf 'verified_model\t%s\t%s bytes\n' "$model_name" "$(wc -c <"$candidate" | tr -d ' ')"
 done
 
 current="$candidate_dir/standard_v3_3.first.nnef.tgz"
-"$benchmark" --onnx-model "$repo_dir/assets/models/standard_v3_3/model.onnx" \
-  --nnef-model "$current" --fixed-batch --batch 8 --direct-fused-conv \
-  --fused-layer-norm --verify --plan-summary
-printf 'verified_release_fusion\t%s\n' "$current"
+cmp "$repo_dir/rust/tract-runtime/models/model.nnef.tgz" "$current"
+cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" release_cpu_graph_has_every_required_fusion
+cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
+printf 'verified_release_artifacts\t%s\t%s\n' "$current" "$repo_dir/rust/tract-runtime/models/model.probe.f32le"
 
-if [ "$verify_gpu" = true ]; then
-  # The GPU lowering replaces the convolution and both layer normalizations, so its scores are not
-  # the CPU's and the gate above does not cover it. Only the deployment model is checked: the GPU
-  # rewrites require the current architecture and deliberately refuse to load anything else, so
-  # building the GPU backend into the loop over every historical model would fail by design.
-  cargo build --quiet --manifest-path "$bench_dir/Cargo.toml" --features metal \
-    --bin magika-runtime-bench
-  for batch in 1 8 32; do
-    "$benchmark" --onnx-model "$repo_dir/assets/models/standard_v3_3/model.onnx" \
-      --nnef-model "$current" --fixed-batch --batch "$batch" --verify
-  done
-  printf 'verified_gpu\t%s\n' "$current"
+if [ "$(uname -s)" = "Darwin" ]; then
+  # This is the production runtime, including its fail-closed score probe and graph contracts.
+  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features -- --backend gpu --batch 8 --threads 1 --iterations 1
+  printf 'verified_production_gpu\t%s\n' "$current"
 fi

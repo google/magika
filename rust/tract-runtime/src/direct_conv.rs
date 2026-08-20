@@ -33,7 +33,7 @@ const TILE_BATCHES_ENV: &str = "MAGIKA_DIRECT_TILE_BATCHES";
 /// Replace a supported Conv1D -> transpose -> GELU -> max-over-position chain.
 ///
 /// Returns the number of independent chains replaced.
-pub fn fuse_magika_conv_max(model: &mut TypedModel, batch: usize) -> TractResult<usize> {
+pub(crate) fn fuse_magika_conv_max(model: &mut TypedModel, batch: usize) -> TractResult<usize> {
     let mut fused = 0;
     while let Some(pattern) = FusionPattern::find(model, batch)? {
         let op = DirectFusedConvMax1D::new(pattern.dimensions, pattern.kernel, pattern.bias)?;

@@ -41,8 +41,11 @@ use tract_metal::MetalTransform;
 pub const BATCH_CLASSES: [usize; 6] = [1, 4, 8, 16, 32, 64];
 
 const FEATURE_SIZE: usize = 2048;
+const NUM_LABELS: usize = 214;
 const PADDING_TOKEN: i32 = 256;
 const DIRECT_FUSED_MIN_BATCH: usize = 8;
+const EXPECTED_CONVOLUTIONS: usize = 1;
+const EXPECTED_LAYER_NORMS: usize = 2;
 /// Largest score difference tolerated between a GPU and the CPU on the same input.
 ///
 /// They run different kernels and do not agree to the bit: the release gate measures about 1.4e-5
@@ -51,6 +54,7 @@ const GPU_AGREEMENT_EPSILON: f32 = 1e-3;
 /// Embedded release model bytes used by the benchmark's parity and size gates.
 #[doc(hidden)]
 pub const EMBEDDED_NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
+const EMBEDDED_GPU_PROBE: &[u8] = include_bytes!("../models/model.probe.f32le");
 
 /// User-facing runtime preference.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -126,38 +130,34 @@ impl Runtime {
             BackendRequest::Gpu => {
                 let gpu = Self::prepare_gpu(&classes)?;
                 ensure!(
-                    gpu.agrees_with_cpu()?,
+                    gpu.passes_gpu_probe()?,
                     "the GPU does not identify files correctly on this machine"
                 );
                 Ok(gpu)
             }
             BackendRequest::Auto => match Self::prepare_gpu(&classes) {
-                Ok(gpu) if gpu.agrees_with_cpu().unwrap_or(true) => Ok(gpu),
+                Ok(gpu) if gpu_agreement_passes(gpu.passes_gpu_probe()) => Ok(gpu),
                 _ => Self::prepare_cpu(&classes),
             },
         }
     }
 
-    /// Reports whether this runtime identifies a known input the way the CPU does.
+    /// Reports whether this runtime identifies a known input like the release CPU reference.
     ///
     /// A GPU backend that loads is not a GPU backend that computes. A driver can accept every
     /// kernel, report a device and return answers that are simply wrong, and nothing downstream
     /// can tell: a wrong content type is a content type, and the command line exits successfully
-    /// having mislabelled everything. So the answer is checked against the CPU, which is the
-    /// backend the release gate proves against ONNX Runtime on every target, before this runtime
-    /// is handed to anyone.
-    ///
-    /// The reference is one batch-1 CPU plan, about fifteen milliseconds to prepare and two to
-    /// run, paid once per process and only when a GPU is in play.
-    fn agrees_with_cpu(&self) -> Result<bool> {
+    /// having mislabelled everything. The converter records the batch-one CPU scores for this
+    /// exact embedded model, and the release gate regenerates them. Comparing against those bytes
+    /// keeps the check fail-closed without building a CPU plan on every GPU process startup.
+    fn passes_gpu_probe(&self) -> Result<bool> {
         if self.info.backend == Backend::Cpu {
             return Ok(true);
         }
         let input: Vec<i32> =
             (0..FEATURE_SIZE).map(|index| (index % (PADDING_TOKEN as usize + 1)) as i32).collect();
-        let reference = Self::prepare_cpu(&[1])?.session()?.run(&input, 1)?;
         let candidate = self.session()?.run(&input, 1)?;
-        Ok(scores_agree(&reference, &candidate))
+        Ok(scores_agree_with_bytes(EMBEDDED_GPU_PROBE, &candidate))
     }
 
     /// Returns the resolved backend.
@@ -190,12 +190,15 @@ impl Runtime {
             let mut model = load_model(batch)?;
             let fused_layer_norm = layer_norm::fuse_magika_layer_norm(&mut model)?;
             ensure!(
-                fused_layer_norm > 0,
-                "required CPU LayerNorm fusion did not match batch {batch}"
+                fused_layer_norm == EXPECTED_LAYER_NORMS,
+                "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
             );
             if batch >= DIRECT_FUSED_MIN_BATCH {
                 let fused_conv = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
-                ensure!(fused_conv > 0, "required CPU Conv1D fusion did not match batch {batch}");
+                ensure!(
+                    fused_conv == EXPECTED_CONVOLUTIONS,
+                    "required {EXPECTED_CONVOLUTIONS} CPU Conv1D fusion for batch {batch}, matched {fused_conv}"
+                );
             }
             let runnable = CPU
                 .prepare_with_options(model, &options)
@@ -260,6 +263,10 @@ impl Runtime {
     }
 }
 
+fn gpu_agreement_passes(agreement: Result<bool>) -> bool {
+    matches!(agreement, Ok(true))
+}
+
 /// Gives a GPU plan the arena that lets it reuse device buffers between nodes.
 ///
 /// Without it every intermediate allocates a fresh device buffer on every node of every inference,
@@ -278,11 +285,14 @@ fn with_memory_arena(runnable: TypedSimplePlan) -> Result<TypedSimplePlan> {
 fn prepare_gpu_graph(model: &mut TypedModel, batch: usize) -> Result<()> {
     let fused_layer_norm = layer_norm::fuse_magika_layer_norm_for_gpu(model)?;
     ensure!(
-        fused_layer_norm == 2,
-        "required both GPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
+        fused_layer_norm == EXPECTED_LAYER_NORMS,
+        "required {EXPECTED_LAYER_NORMS} GPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
     );
     let lowered = gpu_conv::lower_magika_conv_to_matmul(model)?;
-    ensure!(lowered > 0, "required GPU Conv1D lowering did not match batch {batch}");
+    ensure!(
+        lowered == EXPECTED_CONVOLUTIONS,
+        "required {EXPECTED_CONVOLUTIONS} GPU Conv1D lowering for batch {batch}, matched {lowered}"
+    );
     Ok(())
 }
 
@@ -344,7 +354,7 @@ impl Session {
     /// Runs one accumulated request, routing it across resident fixed plans.
     pub fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>> {
         ensure!(batch > 0, "inference batch cannot be empty");
-        ensure!(input.len() == batch * FEATURE_SIZE, "invalid feature tensor length");
+        ensure!(input.len() == expected_input_len(batch)?, "invalid feature tensor length");
         let mut input_offset = 0;
         let mut remaining = batch;
         let mut outputs = Vec::new();
@@ -384,13 +394,26 @@ impl Session {
 
 fn run_plan(state: &mut dyn State, input: &[i32], batch: usize) -> Result<Vec<f32>> {
     let input = Tensor::from_shape(&[batch, FEATURE_SIZE], input)?.into_tvalue();
-    let mut output: TVec<TValue> = state.run(tvec!(input))?;
+    decode_output(state.run(tvec!(input))?, batch)
+}
+
+fn expected_input_len(batch: usize) -> Result<usize> {
+    batch.checked_mul(FEATURE_SIZE).context("inference batch is too large")
+}
+
+fn decode_output(mut output: TVec<TValue>, batch: usize) -> Result<Vec<f32>> {
+    ensure!(output.len() == 1, "model returned {} outputs instead of one", output.len());
     let output = output.remove(0).into_tensor();
-    ensure!(output.rank() > 0 && output.shape()[0] == batch, "invalid model output shape");
+    ensure!(
+        output.shape() == [batch, NUM_LABELS],
+        "invalid model output shape {:?}",
+        output.shape()
+    );
     Ok(output.to_plain_array_view::<f32>()?.iter().copied().collect())
 }
 
 /// Reports whether two backends produced the same scores for the same input.
+#[cfg(test)]
 fn scores_agree(reference: &[f32], candidate: &[f32]) -> bool {
     reference.len() == candidate.len()
         && reference
@@ -399,12 +422,12 @@ fn scores_agree(reference: &[f32], candidate: &[f32]) -> bool {
             .all(|(reference, candidate)| (reference - candidate).abs() <= GPU_AGREEMENT_EPSILON)
 }
 
-/// Low-level graph rewrites used by the benchmark and conversion release gate.
-#[doc(hidden)]
-pub mod bench {
-    pub use crate::direct_conv::fuse_magika_conv_max;
-    pub use crate::gpu_conv::lower_magika_conv_to_matmul;
-    pub use crate::layer_norm::{fuse_magika_layer_norm, fuse_magika_layer_norm_for_gpu};
+fn scores_agree_with_bytes(reference: &[u8], candidate: &[f32]) -> bool {
+    reference.len() == std::mem::size_of_val(candidate)
+        && reference.chunks_exact(4).zip(candidate).all(|(reference, candidate)| {
+            let reference = f32::from_le_bytes(reference.try_into().unwrap());
+            (reference - candidate).abs() <= GPU_AGREEMENT_EPSILON
+        })
 }
 
 #[cfg(test)]
@@ -434,6 +457,24 @@ mod tests {
     }
 
     #[test]
+    fn embedded_gpu_probe_matches_the_release_cpu_model() -> Result<()> {
+        let input = (0..FEATURE_SIZE)
+            .map(|index| (index % (PADDING_TOKEN as usize + 1)) as i32)
+            .collect::<Vec<_>>();
+        let output = Runtime::prepare_cpu(&[1])?.session()?.run(&input, 1)?;
+        assert!(scores_agree_with_bytes(EMBEDDED_GPU_PROBE, &output));
+        assert!(!scores_agree_with_bytes(&EMBEDDED_GPU_PROBE[..4], &output));
+        Ok(())
+    }
+
+    #[test]
+    fn backend_selection_falls_back_when_the_gpu_probe_errors() {
+        assert!(!gpu_agreement_passes(Err(anyhow::anyhow!("probe failed"))));
+        assert!(!gpu_agreement_passes(Ok(false)));
+        assert!(gpu_agreement_passes(Ok(true)));
+    }
+
+    #[test]
     fn routes_requests_over_fixed_classes() {
         let all = &BATCH_CLASSES;
         assert_eq!(route_classes(all, 1), [1]);
@@ -449,5 +490,33 @@ mod tests {
         assert_eq!(route_classes(resident, 20), [8, 8, 4]);
         assert_eq!(route_classes(resident, 64), [8; 8]);
         assert_eq!(route_classes(&[1], 3), [1, 1, 1]);
+    }
+
+    #[test]
+    fn rejects_an_output_with_the_wrong_number_of_classes() {
+        let output = Tensor::zero::<f32>(&[2, NUM_LABELS - 1]).unwrap().into_tvalue();
+        assert!(decode_output(tvec!(output), 2).is_err());
+    }
+
+    #[test]
+    fn rejects_more_than_one_model_output() {
+        let output = Tensor::zero::<f32>(&[2, NUM_LABELS]).unwrap().into_tvalue();
+        assert!(decode_output(tvec!(output.clone(), output), 2).is_err());
+    }
+
+    #[test]
+    fn rejects_an_input_length_that_overflows() {
+        assert!(expected_input_len(usize::MAX).is_err());
+    }
+
+    #[test]
+    fn release_cpu_graph_has_every_required_fusion() -> Result<()> {
+        let mut model = load_model(DIRECT_FUSED_MIN_BATCH)?;
+        assert_eq!(layer_norm::fuse_magika_layer_norm(&mut model)?, EXPECTED_LAYER_NORMS);
+        assert_eq!(
+            direct_conv::fuse_magika_conv_max(&mut model, DIRECT_FUSED_MIN_BATCH)?,
+            EXPECTED_CONVOLUTIONS
+        );
+        Ok(())
     }
 }

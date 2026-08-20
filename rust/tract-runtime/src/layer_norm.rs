@@ -24,7 +24,7 @@ use tract_core::ops::math::{Add, Max, Mul, Rsqrt, Square, Sub};
 use tract_core::ops::nn::{Reduce, Reducer, RmsNorm};
 
 /// Replace supported mean/variance/normalize/affine chains.
-pub fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usize> {
+pub(crate) fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usize> {
     let mut fused = 0;
     while let Some(pattern) = FusionPattern::find(model)? {
         let op = FusedLayerNorm::new(
@@ -46,7 +46,7 @@ pub fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usize> {
 }
 
 /// Rewrite true LayerNorm as mean-centering plus tract's GPU-fused RMSNorm.
-pub fn fuse_magika_layer_norm_for_gpu(model: &mut TypedModel) -> TractResult<usize> {
+pub(crate) fn fuse_magika_layer_norm_for_gpu(model: &mut TypedModel) -> TractResult<usize> {
     let mut fused = 0;
     while let Some(pattern) = FusionPattern::find(model)? {
         let epsilon = pattern.epsilon.as_ref().clone().into_shape(&[])?.into_arc_tensor();

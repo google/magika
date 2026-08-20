@@ -6,7 +6,7 @@ edition = "2024"
 rust-version = "1.91"
 description = "Internal tract inference runtime for Magika"
 repository = "https://github.com/google/magika"
-include = ["/src", "/models", "/README.md"]
+include = ["/LICENSE", "/src", "/models", "/README.md"]
 
 [features]
 cuda = ["dep:tract-cuda", "dep:tract-gpu"]

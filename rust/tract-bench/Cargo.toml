@@ -20,12 +20,16 @@ name = "optimize-onnx"
 path = "src/bin/optimize_onnx.rs"
 required-features = ["ort-runtime"]
 
+[[bin]]
+name = "verify-model"
+path = "src/bin/verify_model.rs"
+required-features = ["verify"]
+
 [features]
-default = ["ort-runtime", "tract-runtime"]
+default = ["ort-runtime"]
 convert = ["dep:flate2", "dep:tract-core", "dep:tract-hir", "dep:tract-nnef", "dep:tract-onnx"]
-metal = ["tract-runtime", "dep:tract-metal"]
 ort-runtime = ["dep:ndarray", "dep:ort"]
-tract-runtime = ["dep:tract-core", "dep:tract-linalg", "dep:tract-nnef"]
+verify = ["ort-runtime", "dep:tract-core", "dep:tract-nnef"]
 
 [dependencies]
 anyhow = "1.0.104"
@@ -34,16 +38,12 @@ magika-tract-runtime = { path = "../tract-runtime" }
 ndarray = { version = "0.17.2", optional = true }
 tract-core = { version = "=0.23.4", optional = true }
 tract-hir = { version = "=0.23.4", optional = true }
-tract-linalg = { version = "=0.23.4", optional = true, features = ["multithread-mm"] }
 tract-nnef = { version = "=0.23.4", optional = true }
 tract-onnx = { version = "=0.23.4", optional = true }
 
 [dependencies.ort]
 version = "=2.0.0-rc.12"
 optional = true
-
-[target.'cfg(target_os = "macos")'.dependencies]
-tract-metal = { version = "=0.23.4", optional = true }
 
 [profile.release]
 codegen-units = 1

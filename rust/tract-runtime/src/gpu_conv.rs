@@ -30,7 +30,7 @@ use tract_core::ops::nn::DataFormat;
 /// tract-metal's generic direct convolution gives every output element its own thread, which
 /// repeatedly reads the same input and weights. Folding the kernel window into the reduction axis
 /// instead leaves one large GEMM, for which the Metal transform selects its tuned matrix kernel.
-pub fn lower_magika_conv_to_matmul(model: &mut TypedModel) -> TractResult<usize> {
+pub(crate) fn lower_magika_conv_to_matmul(model: &mut TypedModel) -> TractResult<usize> {
     let mut lowered = 0;
     while let Some(pattern) = ConvPattern::find(model)? {
         pattern.apply(model)?;

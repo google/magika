@@ -20,19 +20,19 @@ bench_dir=$(dirname -- "$script_dir")
 repo_dir=$(CDPATH= cd -- "$bench_dir/../.." && pwd)
 source_model="$repo_dir/assets/models/standard_v3_3/model.onnx"
 checked_model="$repo_dir/rust/tract-runtime/models/model.nnef.tgz"
+checked_probe="$repo_dir/rust/tract-runtime/models/model.probe.f32le"
 
-convert() {
-  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" \
-    --no-default-features --features convert --bin convert-model -- \
-    "$source_model" "$1"
+convert_model() {
+  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$1"
 }
 
 if [ "${1:-}" = "--check" ]; then
   candidate_dir=$(mktemp -d)
   trap 'rm -rf "$candidate_dir"' EXIT HUP INT TERM
   candidate_model="$candidate_dir/model.nnef.tgz"
-  convert "$candidate_model"
+  convert_model "$candidate_model"
   cmp "$checked_model" "$candidate_model"
+  cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
   exit 0
 fi
 
@@ -41,4 +41,4 @@ if [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-convert "$checked_model"
+cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$checked_model" "$checked_probe"

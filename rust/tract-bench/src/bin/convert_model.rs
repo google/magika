@@ -24,6 +24,7 @@ use tract_core::internal::DimLike as _;
 use tract_core::ops::binary::TypedBinOp;
 use tract_core::ops::element_wise::ElementWiseOp;
 use tract_core::ops::math::{Add, Mul, Pow, Tanh};
+use tract_core::runtime::{DefaultRuntime, Runtime as _};
 use tract_hir::infer::{Factoid, InferenceModelPatch};
 use tract_hir::ops::array::Gather;
 use tract_hir::ops::binary::BinIntoHir;
@@ -34,13 +35,14 @@ use tract_onnx::prelude::*;
 fn main() -> Result<()> {
     let mut args = std::env::args_os().skip(1).map(PathBuf::from);
     let Some(source) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz");
+        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
     };
     let Some(destination) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz");
+        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
     };
+    let probe = args.next();
     if args.next().is_some() {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz");
+        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
     }
 
     let onnx = tract_onnx::onnx();
@@ -56,8 +58,38 @@ fn main() -> Result<()> {
 
     write_nnef(&model, &destination)?;
     verify_rust_round_trip(&destination)?;
+    if let Some(probe) = probe {
+        write_probe_reference(&destination, &probe)?;
+    }
 
     Ok(())
+}
+
+/// Writes the release probe's batch-one CPU scores as deterministic little-endian f32 values.
+fn write_probe_reference(model: &Path, destination: &Path) -> Result<()> {
+    let model = tract_nnef::nnef()
+        .model_for_path(model)
+        .with_context(|| format!("reloading NNEF archive for probe {}", model.display()))?;
+    let batch = model.symbols.get("N").context("converted NNEF has no batch symbol N")?;
+    let symbols = HashMap::from([(batch, 1.to_dim())]);
+    let model = model.set_symbols(&symbols).context("binding batch one for the release probe")?;
+    let feature_size = model.input_fact(0)?.shape[1].to_usize()?;
+    let model = model.into_optimized().context("preparing the release probe model")?;
+    let runnable = DefaultRuntime.prepare(model).context("preparing the CPU release probe")?;
+    let mut state = runnable.spawn().context("spawning the CPU release probe")?;
+    let input = (0..feature_size).map(|index| (index % 257) as i32).collect::<Vec<_>>();
+    let input = Tensor::from_shape(&[1, feature_size], &input)?.into_tvalue();
+    let mut outputs: TVec<TValue> = state.run(tvec!(input))?;
+    ensure!(outputs.len() == 1, "release probe model must have one output");
+    let output = outputs.remove(0).into_tensor();
+    ensure!(output.rank() == 2 && output.shape()[0] == 1, "invalid release probe output shape");
+    let output = output.to_plain_array_view::<f32>()?;
+    let mut bytes = Vec::with_capacity(output.len() * std::mem::size_of::<f32>());
+    for score in output.iter() {
+        bytes.extend_from_slice(&score.to_le_bytes());
+    }
+    std::fs::write(destination, bytes)
+        .with_context(|| format!("writing release probe scores {}", destination.display()))
 }
 
 fn prepare_nnef(

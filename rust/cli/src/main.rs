@@ -322,37 +322,60 @@ async fn start() -> Result<()> {
         flags.compute.trace_utilization,
         std::iter::once("walk".to_string())
             .chain((0..readers).map(|i| format!("read[{i}]")))
+            .chain(std::iter::once("batch".to_string()))
             .chain((0..threads).map(|i| format!("infer[{i}]"))),
     ));
     let reader_stage = 1;
-    let infer_stage = reader_stage + readers;
+    let accumulator_stage = reader_stage + readers;
+    let infer_stage = accumulator_stage + 1;
     // Keep enough paths queued that no reader ever waits on traversal: one batch being filled and
     // one waiting behind it, for every reader.
     let work_capacity = readers
         .checked_mul(flags.compute.batch_size)
         .and_then(|x| x.checked_mul(2))
         .context("--readers times --batch-size is too large")?;
+    // A permit follows each non-recursive path until its ordered response is printed. This bounds
+    // the reorder buffer without starving the accumulator before it can fill a complete batch.
+    let result_window = Arc::new(tokio::sync::Semaphore::new(work_capacity));
     let (work_sender, work_receiver) = async_channel::bounded::<Work>(work_capacity);
+    let (read_sender, read_receiver) = async_channel::bounded::<ReadItem>(work_capacity);
     let walker = tokio::spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
+        let result_window = result_window.clone();
         let trace = trace.clone();
         async move {
-            if let Err(e) = walk_paths(&flags, &work_sender, &result_sender, &trace).await {
+            if let Err(e) =
+                walk_paths(&flags, &work_sender, &result_sender, result_window, &trace).await
+            {
                 let _ = result_sender.send(Err(e)).await;
             }
         }
     });
-    let read_threads = spawn_read_threads(
-        readers,
-        flags.compute.batch_size,
-        &work_receiver,
-        &batch_sender,
-        &result_sender,
-        &trace,
-        reader_stage,
-    )?;
+    let batch_size = flags.compute.batch_size;
+    let accumulator = tokio::spawn({
+        let batch_sender = batch_sender.clone();
+        let result_sender = result_sender.clone();
+        let trace = trace.clone();
+        async move {
+            if let Err(error) = accumulate_files(
+                batch_size,
+                &read_receiver,
+                &batch_sender,
+                &result_sender,
+                &trace,
+                accumulator_stage,
+            )
+            .await
+            {
+                let _ = result_sender.send(Err(error)).await;
+            }
+        }
+    });
+    let read_threads =
+        spawn_read_threads(readers, &work_receiver, &read_sender, &trace, reader_stage)?;
     drop(work_receiver);
+    drop(read_sender);
     drop(batch_sender);
     let inference_threads = spawn_inference_threads(
         threads,
@@ -375,6 +398,7 @@ async fn start() -> Result<()> {
         x => x,
     };
     walker.await?;
+    accumulator.await?;
     for thread in read_threads {
         thread.join().map_err(|_| anyhow::anyhow!("read thread panicked"))?;
     }
@@ -429,7 +453,8 @@ async fn print(
 /// happens on several threads at once instead of serializing behind traversal.
 async fn walk_paths(
     flags: &Flags, work_sender: &async_channel::Sender<Work>,
-    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Trace,
+    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>,
+    result_window: Arc<tokio::sync::Semaphore>, trace: &Trace,
 ) -> Result<()> {
     let mut flags_paths: Vec<(PathBuf, Option<std::fs::FileType>)> =
         flags.path.iter().rev().map(|path| (path.clone(), None)).collect();
@@ -441,16 +466,26 @@ async fn walk_paths(
         let started = trace.start();
         match processed {
             Ok(ProcessPath::Recursive) => continue,
-            Ok(ProcessPath::Content) => work_sender.send(Work::Content { order, path }).await?,
-            // Standard input is already consumed and cannot be read again, so it travels with its
-            // features instead of its path.
-            Ok(ProcessPath::Features(features)) => {
-                work_sender.send(Work::Extracted { order, path, features }).await?
+            processed => {
+                let permit =
+                    result_window.clone().acquire_owned().await.context("result window closed")?;
+                let pending = Pending { order, path, permit };
+                match processed {
+                    Ok(ProcessPath::Content) => work_sender.send(Work::Content(pending)).await?,
+                    // Standard input is already consumed and cannot be read again, so it travels with its
+                    // features instead of its path.
+                    Ok(ProcessPath::Features(features)) => {
+                        work_sender.send(Work::Extracted { pending, features }).await?
+                    }
+                    Ok(ProcessPath::Ruled(file_type)) => {
+                        result_sender.send(Ok(Response::new(pending, Ok(file_type)))).await?
+                    }
+                    Err(error) => {
+                        result_sender.send(Ok(Response::new(pending, Err(error)))).await?
+                    }
+                    Ok(ProcessPath::Recursive) => unreachable!(),
+                }
             }
-            Ok(ProcessPath::Ruled(x)) => {
-                result_sender.send(Ok(Response { order, path, result: Ok(x) })).await?
-            }
-            Err(x) => result_sender.send(Ok(Response { order, path, result: Err(x) })).await?,
         }
         trace.add(0, started, false);
         order += 1;
@@ -458,79 +493,95 @@ async fn walk_paths(
     Ok(())
 }
 
-/// Spawns the threads that read files and accumulate inference batches.
+/// Spawns the threads that read files and extract features.
 fn spawn_read_threads(
-    readers: usize, batch_size: usize, receiver: &async_channel::Receiver<Work>,
-    batch_sender: &async_channel::Sender<InferenceBatch>,
-    sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Arc<Trace>, first_stage: usize,
+    readers: usize, receiver: &async_channel::Receiver<Work>,
+    sender: &async_channel::Sender<ReadItem>, trace: &Arc<Trace>, first_stage: usize,
 ) -> Result<Vec<JoinHandle<()>>> {
     (0..readers)
         .map(|index| {
             let receiver = receiver.clone();
-            let batch_sender = batch_sender.clone();
             let sender = sender.clone();
             let trace = trace.clone();
             let stage = first_stage + index;
             std::thread::Builder::new()
                 .name(format!("magika-read-{index}"))
                 .spawn(move || {
-                    let result =
-                        read_files(batch_size, &receiver, &batch_sender, &sender, &trace, stage);
-                    if let Err(error) = result {
-                        let _ = sender.blocking_send(Err(error));
-                    }
+                    read_files(&receiver, &sender, &trace, stage);
                 })
                 .map_err(Into::into)
         })
         .collect()
 }
 
-/// Reads files, extracts their features, and accumulates inference batches.
+/// Reads files and extracts their features.
 ///
 /// Extraction reads two small blocks per file, which the asynchronous file API turns into a
 /// handful of round trips through the blocking pool each time. Reading straight from a plain file
 /// on a dedicated thread costs a system call per block instead, and there is nothing else for the
 /// thread to interleave anyway.
 fn read_files(
-    batch_size: usize, work_receiver: &async_channel::Receiver<Work>,
-    batch_sender: &async_channel::Sender<InferenceBatch>,
-    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Trace, stage: usize,
-) -> Result<()> {
-    let mut accumulator = Accumulator::new(batch_size);
+    work_receiver: &async_channel::Receiver<Work>, sender: &async_channel::Sender<ReadItem>,
+    trace: &Trace, stage: usize,
+) {
     loop {
         let waiting = trace.start();
         let Ok(work) = work_receiver.recv_blocking() else { break };
         trace.add(stage, waiting, false);
 
         let reading = trace.start();
-        let (order, path, extracted) = match work {
-            Work::Content { order, path } => {
-                let extracted = extract_path(&path);
-                (order, path, extracted)
+        let (pending, extracted) = match work {
+            Work::Content(pending) => {
+                let extracted = extract_path(&pending.path);
+                (pending, extracted)
             }
-            Work::Extracted { order, path, features } => {
-                (order, path, Ok(FeaturesOrRuled::Features(features)))
+            Work::Extracted { pending, features } => {
+                (pending, Ok(FeaturesOrRuled::Features(features)))
             }
         };
         trace.add(stage, reading, true);
 
         let handing = trace.start();
-        match extracted {
-            Ok(FeaturesOrRuled::Features(features)) => {
-                if let Some(batch) = accumulator.push(order, path, features) {
-                    batch_sender.send_blocking(batch)?;
-                }
-            }
-            Ok(FeaturesOrRuled::Ruled(x)) => {
-                let result = Ok(FileType::Ruled(x));
-                result_sender.blocking_send(Ok(Response { order, path, result }))?
-            }
-            Err(x) => result_sender.blocking_send(Ok(Response { order, path, result: Err(x) }))?,
+        if sender.send_blocking(ReadItem { pending, extracted }).is_err() {
+            break;
         }
         trace.add(stage, handing, false);
     }
+}
+
+/// Accumulates every reader's output into one global inference batch stream.
+async fn accumulate_files(
+    batch_size: usize, receiver: &async_channel::Receiver<ReadItem>,
+    batch_sender: &async_channel::Sender<InferenceBatch>,
+    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Trace, stage: usize,
+) -> Result<()> {
+    let mut accumulator = Accumulator::new(batch_size);
+    loop {
+        let waiting = trace.start();
+        let Ok(ReadItem { pending, extracted }) = receiver.recv().await else {
+            break;
+        };
+        trace.add(stage, waiting, false);
+
+        let handling = trace.start();
+        match extracted {
+            Ok(FeaturesOrRuled::Features(features)) => {
+                if let Some(batch) = accumulator.push(pending, features) {
+                    batch_sender.send(batch).await?;
+                }
+            }
+            Ok(FeaturesOrRuled::Ruled(content_type)) => {
+                let result = Ok(FileType::Ruled(content_type));
+                result_sender.send(Ok(Response::new(pending, result))).await?;
+            }
+            Err(error) => {
+                result_sender.send(Ok(Response::new(pending, Err(error)))).await?;
+            }
+        }
+        trace.add(stage, handling, true);
+    }
     if let Some(batch) = accumulator.finish() {
-        batch_sender.send_blocking(batch)?;
+        batch_sender.send(batch).await?;
     }
     Ok(())
 }
@@ -551,10 +602,23 @@ enum ProcessPath {
 /// An item of work handed to a read thread.
 enum Work {
     /// A regular file whose content still has to be read.
-    Content { order: usize, path: PathBuf },
+    Content(Pending),
 
     /// Standard input, whose features the walk already extracted.
-    Extracted { order: usize, path: PathBuf, features: Features },
+    Extracted { pending: Pending, features: Features },
+}
+
+/// Feature extraction result produced by any reader and consumed by the single accumulator.
+struct ReadItem {
+    pending: Pending,
+    extracted: magika::Result<FeaturesOrRuled>,
+}
+
+/// A path and its permit in the bounded, ordered result window.
+struct Pending {
+    order: usize,
+    path: PathBuf,
+    permit: tokio::sync::OwnedSemaphorePermit,
 }
 
 impl From<FeaturesOrRuled> for ProcessPath {
@@ -643,7 +707,7 @@ fn infer_batches(
     let mut session = None;
     loop {
         let waiting = trace.start();
-        let Ok(InferenceBatch { paths, features }) = receiver.recv_blocking() else { break };
+        let Ok(InferenceBatch { pending, features }) = receiver.recv_blocking() else { break };
         trace.add(stage, waiting, false);
 
         let running = trace.start();
@@ -653,12 +717,12 @@ fn infer_batches(
         };
         let batch = magika.identify_features_batch_sync(&features)?;
         trace.add(stage, running, true);
-        assert_eq!(batch.len(), paths.len());
+        assert_eq!(batch.len(), pending.len());
 
         let sending = trace.start();
-        for ((order, path), output) in paths.into_iter().zip(batch) {
+        for (pending, output) in pending.into_iter().zip(batch) {
             let result = Ok(output);
-            sender.blocking_send(Ok(Response { order, path, result }))?;
+            sender.blocking_send(Ok(Response::new(pending, result)))?;
         }
         trace.add(stage, sending, false);
     }
@@ -690,13 +754,13 @@ impl Reorder {
 }
 
 struct InferenceBatch {
-    paths: Vec<(usize, PathBuf)>,
+    pending: Vec<Pending>,
     features: Vec<Features>,
 }
 
 struct Accumulator {
     batch_size: usize,
-    paths: Vec<(usize, PathBuf)>,
+    pending: Vec<Pending>,
     features: Vec<Features>,
 }
 
@@ -704,13 +768,13 @@ impl Accumulator {
     fn new(batch_size: usize) -> Self {
         Self {
             batch_size,
-            paths: Vec::with_capacity(batch_size),
+            pending: Vec::with_capacity(batch_size),
             features: Vec::with_capacity(batch_size),
         }
     }
 
-    fn push(&mut self, order: usize, path: PathBuf, features: Features) -> Option<InferenceBatch> {
-        self.paths.push((order, path));
+    fn push(&mut self, pending: Pending, features: Features) -> Option<InferenceBatch> {
+        self.pending.push(pending);
         self.features.push(features);
         (self.features.len() == self.batch_size).then(|| self.take())
     }
@@ -721,7 +785,7 @@ impl Accumulator {
 
     fn take(&mut self) -> InferenceBatch {
         InferenceBatch {
-            paths: std::mem::replace(&mut self.paths, Vec::with_capacity(self.batch_size)),
+            pending: std::mem::replace(&mut self.pending, Vec::with_capacity(self.batch_size)),
             features: std::mem::replace(&mut self.features, Vec::with_capacity(self.batch_size)),
         }
     }
@@ -732,6 +796,13 @@ struct Response {
     order: usize,
     path: PathBuf,
     result: Result<FileType, magika::Error>,
+    _permit: tokio::sync::OwnedSemaphorePermit,
+}
+
+impl Response {
+    fn new(pending: Pending, result: Result<FileType, magika::Error>) -> Self {
+        Self { order: pending.order, path: pending.path, result, _permit: pending.permit }
+    }
 }
 
 #[derive(Serialize)]
@@ -914,4 +985,80 @@ fn join<T: AsRef<str>>(xs: impl IntoIterator<Item = T>) -> String {
     }
     result.push(']');
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn model_features() -> Features {
+        match FeaturesOrRuled::extract_sync(std::fs::File::open("../../README.md").unwrap())
+            .unwrap()
+        {
+            FeaturesOrRuled::Features(features) => features,
+            FeaturesOrRuled::Ruled(_) => panic!("README must exercise model inference"),
+        }
+    }
+
+    #[tokio::test]
+    async fn global_accumulator_combines_work_from_every_reader() {
+        let features = model_features();
+        let (batch_sender, batch_receiver) = async_channel::bounded::<InferenceBatch>(8);
+        let (result_sender, _result_receiver) = tokio::sync::mpsc::channel(8);
+        let trace = Trace::default();
+        let (read_sender, read_receiver) = async_channel::bounded(8);
+        let result_window = Arc::new(tokio::sync::Semaphore::new(8));
+
+        for reader in 0..4 {
+            let (work_sender, work_receiver) = async_channel::bounded(2);
+            for item in 0..2 {
+                let order = reader * 2 + item;
+                let pending = Pending {
+                    order,
+                    path: PathBuf::from(format!("file-{order}")),
+                    permit: result_window.clone().acquire_owned().await.unwrap(),
+                };
+                work_sender
+                    .send_blocking(Work::Extracted { pending, features: features.clone() })
+                    .unwrap();
+            }
+            drop(work_sender);
+            read_files(&work_receiver, &read_sender, &trace, reader);
+        }
+        drop(read_sender);
+        accumulate_files(8, &read_receiver, &batch_sender, &result_sender, &trace, 0)
+            .await
+            .unwrap();
+        drop(batch_sender);
+
+        let batches =
+            std::iter::from_fn(|| batch_receiver.recv_blocking().ok()).collect::<Vec<_>>();
+        assert_eq!(batches.len(), 1, "all readers must feed one accumulator");
+        assert_eq!(batches[0].features.len(), 8);
+    }
+
+    #[tokio::test]
+    async fn reorder_holds_capacity_until_the_response_is_printable() {
+        let window = Arc::new(tokio::sync::Semaphore::new(2));
+        let first = window.clone().acquire_owned().await.unwrap();
+        let second = window.clone().acquire_owned().await.unwrap();
+        let mut reorder = Reorder::default();
+
+        reorder.push(Response {
+            order: 1,
+            path: PathBuf::from("second"),
+            result: Ok(FileType::Directory),
+            _permit: second,
+        });
+        assert!(window.clone().try_acquire_owned().is_err());
+
+        reorder.push(Response {
+            order: 0,
+            path: PathBuf::from("first"),
+            result: Ok(FileType::Directory),
+            _permit: first,
+        });
+        drop(reorder.pop().unwrap());
+        assert!(window.clone().try_acquire_owned().is_ok());
+    }
 }

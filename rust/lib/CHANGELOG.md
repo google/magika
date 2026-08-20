@@ -24,7 +24,7 @@
 
 ### Patch
 
-- Compile GPU graph rewrites only when the target includes a GPU backend
+- Keep CPU-only builds free of GPU rewrite code and warning-clean across supported toolchains
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

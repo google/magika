@@ -425,8 +425,8 @@ fn scores_agree(reference: &[f32], candidate: &[f32]) -> bool {
 
 fn scores_agree_with_bytes(reference: &[u8], candidate: &[f32]) -> bool {
     reference.len() == std::mem::size_of_val(candidate)
-        && reference.chunks_exact(4).zip(candidate).all(|(reference, candidate)| {
-            let reference = f32::from_le_bytes(reference.try_into().unwrap());
+        && reference.as_chunks::<4>().0.iter().zip(candidate).all(|(reference, candidate)| {
+            let reference = f32::from_le_bytes(*reference);
             (reference - candidate).abs() <= GPU_AGREEMENT_EPSILON
         })
 }

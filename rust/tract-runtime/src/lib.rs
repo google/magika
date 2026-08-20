@@ -15,6 +15,7 @@
 //! Fixed-shape tract runtime used by Magika's synchronous inference threads.
 
 mod direct_conv;
+#[cfg(any(target_os = "macos", feature = "cuda"))]
 mod gpu_conv;
 mod layer_norm;
 

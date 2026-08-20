@@ -24,6 +24,7 @@
 
 ### Patch
 
+- Compile GPU graph rewrites only when the target includes a GPU backend
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

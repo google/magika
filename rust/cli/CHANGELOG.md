@@ -21,6 +21,7 @@
 ### Patch
 
 - Accumulate features from every reader into one global inference batch and bound ordered results
+- Cancel queued pipeline work when standard output closes so recursive runs terminate promptly
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

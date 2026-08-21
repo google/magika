@@ -1,27 +1,28 @@
 [package]
 name = "magika-tract-runtime"
 version = "0.0.1-dev"
-license = "Apache-2.0"
 edition = "2024"
 rust-version = "1.91"
 description = "Internal tract inference runtime for Magika"
 repository = "https://github.com/google/magika"
-include = ["/LICENSE", "/src", "/models", "/README.md"]
-
-[features]
-cuda = ["dep:tract-cuda", "dep:tract-gpu"]
+license = "Apache-2.0"
+include = ["/LICENSE", "/README.md", "/models", "/src"]
 
 [dependencies]
 anyhow = "1.0.104"
+cudarc = { version = "0.19.9", optional = true }
 tract-core = "0.23.4"
-tract-linalg = { version = "0.23.4", features = ["multithread-mm"] }
-tract-nnef = "0.23.4"
 tract-cuda = { version = "0.23.4", optional = true }
 tract-gpu = { version = "0.23.4", optional = true }
+tract-linalg = { version = "0.23.4", features = ["multithread-mm"] }
+tract-nnef = "0.23.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tract-gpu = "0.23.4"
 tract-metal = "0.23.4"
+
+[features]
+cuda = ["dep:cudarc", "dep:tract-cuda", "dep:tract-gpu"]
 
 [lints.rust]
 missing_docs = "warn"

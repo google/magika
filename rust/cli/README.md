@@ -123,20 +123,6 @@ empty/empty_file: Empty file (inode)
 -: INI configuration file (text)
 ```
 
-Magika accumulates eight files per inference by default. It uses four resident inference threads on
-a GPU and sizes the CPU thread count from the host's available parallelism. Both values can be
-changed for a specific workload. `--backend auto` prefers a compiled and available GPU
-implementation, then falls back to CPU; `--backend gpu` requires GPU initialization to succeed,
-while `--backend cpu` never initializes a GPU. Implementation names such as Metal or CUDA are
-intentionally not user-facing choices. Use `-v` to report the resolved implementation. For example,
-on macOS with a usable GPU:
-
-```shell
-magika --backend auto --batch-size 8 --threads 4 -v README.md
-backend: gpu (tract-metal)
-README.md: Markdown document (text)
-```
-
 ```shell
 % magika --help
 Determines file content types using AI
@@ -192,33 +178,6 @@ Options:
             %S  The score of the content type for the file in percent
             %b  The model output if overruled (empty otherwise)
             %%  A literal %
-
-      --backend <BACKEND>
-          Selects the inference device
-
-          [default: auto]
-          [possible values: auto, cpu, gpu]
-
-      --batch-size <BATCH_SIZE>
-          Number of files to accumulate before dispatching inference
-
-          [default: 8]
-
-      --threads <THREADS>
-          Number of resident inference threads.
-
-          Inference on a GPU is bound by the device rather than by the host, so a handful of threads keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every thread is one more core doing the work. This defaults accordingly: four on a GPU, all available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
-
-      --trace-utilization
-          Prints per-stage busy and waiting time to standard error when the run finishes
-
-      --readers <READERS>
-          Number of resident threads reading files and extracting features.
-
-          Reading costs far less than inference, so this defaults to one per inference thread, which is already more than a run makes use of.
-
-  -v, --verbose
-          Reports the selected inference device and implementation
 
   -h, --help
           Print help (see a summary with '-h')

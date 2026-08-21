@@ -487,6 +487,7 @@ name = "magika-tract-runtime"
 version = "0.0.1-dev"
 dependencies = [
  "anyhow",
+ "cudarc",
  "tract-core",
  "tract-cuda",
  "tract-gpu",

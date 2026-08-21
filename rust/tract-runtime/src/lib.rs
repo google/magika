@@ -244,6 +244,7 @@ impl Runtime {
 
     #[cfg(all(not(target_os = "macos"), feature = "cuda"))]
     fn prepare_gpu(classes: &[usize]) -> Result<Self> {
+        ensure!(unsafe { cudarc::nvrtc::sys::is_culib_present() });
         let mut plans = Vec::with_capacity(classes.len());
         for &batch in classes {
             let mut model = load_model(batch)?;

@@ -24,8 +24,8 @@ use anyhow::{ensure, Context as _, Result};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
-    self, Backend, BackendRequest, ContentType, Features, FeaturesOrRuled, FileType, InferredType,
-    OverwriteReason, Runtime, Session, TypeInfo,
+    self, Backend, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason,
+    Runtime, TypeInfo,
 };
 use serde::Serialize;
 use tokio::io::AsyncReadExt;
@@ -57,11 +57,7 @@ struct Flags {
     format: Format,
 
     #[clap(flatten)]
-    compute: Compute,
-
-    /// Reports the selected inference device and implementation.
-    #[arg(short, long)]
-    verbose: bool,
+    experimental: Experimental,
 }
 
 struct Version;
@@ -131,13 +127,17 @@ struct Format {
 }
 
 #[derive(Args)]
-struct Compute {
+struct Experimental {
     /// Selects the inference device.
-    #[arg(long, value_enum, default_value_t = BackendChoice::Auto)]
+    #[arg(hide = true, long, value_enum, default_value_t)]
     backend: BackendChoice,
 
-    /// Number of files to accumulate before dispatching inference.
-    #[arg(long, default_value = "8")]
+    /// Reports the selected inference device and implementation.
+    #[arg(hide = true, long)]
+    backend_info: bool,
+
+    /// Number of files to identify in a single inference.
+    #[arg(hide = true, long, default_value = "8")]
     batch_size: usize,
 
     /// Number of resident inference threads.
@@ -146,18 +146,18 @@ struct Compute {
     /// keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every
     /// thread is one more core doing the work. This defaults accordingly: four on a GPU, all
     /// available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
-    #[arg(long, alias = "num-tasks")]
+    #[arg(hide = true, long)]
     threads: Option<usize>,
 
     /// Prints per-stage busy and waiting time to standard error when the run finishes.
-    #[arg(long)]
+    #[arg(hide = true, long)]
     trace_utilization: bool,
 
     /// Number of resident threads reading files and extracting features.
     ///
     /// Reading costs far less than inference, so this defaults to one per inference thread, which
     /// is already more than a run makes use of.
-    #[arg(long)]
+    #[arg(hide = true, long)]
     readers: Option<usize>,
 }
 
@@ -235,16 +235,6 @@ enum BackendChoice {
     Gpu,
 }
 
-impl From<BackendChoice> for BackendRequest {
-    fn from(backend: BackendChoice) -> Self {
-        match backend {
-            BackendChoice::Auto => BackendRequest::Auto,
-            BackendChoice::Cpu => BackendRequest::Cpu,
-            BackendChoice::Gpu => BackendRequest::Gpu,
-        }
-    }
-}
-
 /// Inference threads it takes to keep a GPU queued.
 ///
 /// The device is the bottleneck there, and it is already busy well before the host runs out of
@@ -281,14 +271,10 @@ fn default_inference_threads(backend: Backend) -> usize {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    start().await
-}
-
-async fn start() -> Result<()> {
     let flags = Flags::parse();
-    ensure!(0 < flags.compute.batch_size, "--batch-size cannot be zero");
-    ensure!(flags.compute.threads != Some(0), "--threads cannot be zero");
-    ensure!(flags.compute.readers != Some(0), "--readers cannot be zero");
+    ensure!(flags.experimental.batch_size != 0, "--batch-size cannot be zero");
+    ensure!(flags.experimental.threads != Some(0), "--threads cannot be zero");
+    ensure!(flags.experimental.readers != Some(0), "--readers cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -302,50 +288,40 @@ async fn start() -> Result<()> {
     }
     // The accumulator never emits more than one batch worth of files, so the larger resident
     // classes are unreachable and preparing them would only cost startup.
-    let runtime = Arc::new(
-        Session::builder()
-            .with_backend(flags.compute.backend.into())
-            .with_max_batch(flags.compute.batch_size)
-            .build_runtime()?,
-    );
-    let threads = match flags.compute.threads {
+    let mut builder = Runtime::builder();
+    builder = builder.with_max_batch(flags.experimental.batch_size);
+    builder = match flags.experimental.backend {
+        BackendChoice::Auto => builder,
+        BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
+        BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
+    };
+    let runtime = Arc::new(builder.build()?);
+    let threads = match flags.experimental.threads {
         Some(threads) => threads,
         None => default_inference_threads(runtime.backend_info().backend()),
     };
-    let readers = flags.compute.readers.unwrap_or(threads);
-    if flags.verbose {
+    let readers = flags.experimental.readers.unwrap_or(threads);
+    if flags.experimental.backend_info {
         let info = runtime.backend_info();
         let backend = match info.backend() {
             Backend::Cpu => "cpu",
             Backend::Gpu => "gpu",
         };
-        eprintln!("backend: {backend} ({})", info.implementation());
+        eprintln!("{backend} ({})", info.implementation());
+        return Ok(());
     }
-    let result_capacity = threads
-        .checked_mul(flags.compute.batch_size)
-        .context("--threads times --batch-size is too large")?;
     let (result_sender, result_receiver) =
-        tokio::sync::mpsc::channel::<Result<Response>>(result_capacity);
+        tokio::sync::mpsc::channel::<Result<Response>>(threads * flags.experimental.batch_size);
     let (batch_sender, batch_receiver) = async_channel::bounded::<InferenceBatch>(threads);
     // Keep enough paths queued that no reader ever waits on traversal: one batch being filled and
     // one waiting behind it, for every reader. Validate this before using `readers` to size tracing
     // state or assign stage indexes.
-    let work_capacity = readers
-        .checked_mul(flags.compute.batch_size)
-        .and_then(|x| x.checked_mul(2))
-        .context("--readers times --batch-size is too large")?;
-    let reader_stage = 1_usize;
-    let accumulator_stage = reader_stage
-        .checked_add(readers)
-        .context("--readers is too large for utilization tracing")?;
-    let infer_stage = accumulator_stage
-        .checked_add(1)
-        .context("--readers is too large for utilization tracing")?;
-    infer_stage
-        .checked_add(threads)
-        .context("--threads and --readers are too large for utilization tracing")?;
+    let work_capacity = 2 * readers * flags.experimental.batch_size;
+    let reader_stage = 1;
+    let accumulator_stage = reader_stage + readers;
+    let infer_stage = accumulator_stage + 1;
     let trace = Arc::new(Trace::new(
-        flags.compute.trace_utilization,
+        flags.experimental.trace_utilization,
         std::iter::once("walk".to_string())
             .chain((0..readers).map(|i| format!("read[{i}]")))
             .chain(std::iter::once("batch".to_string()))
@@ -374,7 +350,7 @@ async fn start() -> Result<()> {
             }
         }
     });
-    let batch_size = flags.compute.batch_size;
+    let batch_size = flags.experimental.batch_size;
     let accumulator = tokio::spawn({
         let batch_sender = batch_sender.clone();
         let result_sender = result_sender.clone();
@@ -615,8 +591,8 @@ async fn accumulate_files(
 }
 
 /// Reads a file and extracts its features.
-fn extract_path(path: &Path) -> magika::Result<FeaturesOrRuled> {
-    FeaturesOrRuled::extract_sync(std::fs::File::open(path)?)
+fn extract_path(path: &Path) -> Result<FeaturesOrRuled> {
+    FeaturesOrRuled::extract(std::fs::File::open(path)?)
 }
 
 enum ProcessPath {
@@ -639,7 +615,7 @@ enum Work {
 /// Feature extraction result produced by any reader and consumed by the single accumulator.
 struct ReadItem {
     pending: Pending,
-    extracted: magika::Result<FeaturesOrRuled>,
+    extracted: Result<FeaturesOrRuled>,
 }
 
 /// A path and its permit in the bounded, ordered result window.
@@ -661,11 +637,11 @@ impl From<FeaturesOrRuled> for ProcessPath {
 async fn process_path(
     flags: &Flags, paths: &mut Vec<(PathBuf, Option<std::fs::FileType>)>, path: &Path,
     known: Option<std::fs::FileType>,
-) -> magika::Result<ProcessPath> {
+) -> Result<ProcessPath> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         tokio::io::stdin().read_to_end(&mut stdin).await?;
-        return Ok(FeaturesOrRuled::extract_sync(&stdin[..])?.into());
+        return Ok(FeaturesOrRuled::extract(&stdin[..])?.into());
     }
     // `read_dir` already reported the type of every entry it produced, so reading its metadata
     // again would be one extra system call per file on the one task that feeds every reader. Only
@@ -742,7 +718,7 @@ fn infer_batches(
             Some(session) => session,
             slot => slot.insert(runtime.session()?),
         };
-        let batch = magika.identify_features_batch_sync(&features)?;
+        let batch = magika.identify_features_batch(&features)?;
         trace.add(stage, running, true);
         assert_eq!(batch.len(), pending.len());
 
@@ -822,12 +798,12 @@ impl Accumulator {
 struct Response {
     order: usize,
     path: PathBuf,
-    result: Result<FileType, magika::Error>,
+    result: Result<FileType>,
     _permit: tokio::sync::OwnedSemaphorePermit,
 }
 
 impl Response {
-    fn new(pending: Pending, result: Result<FileType, magika::Error>) -> Self {
+    fn new(pending: Pending, result: Result<FileType>) -> Self {
         Self { order: pending.order, path: pending.path, result, _permit: pending.permit }
     }
 }
@@ -847,10 +823,10 @@ struct JsonResult<'a> {
     score: f32,
 }
 
-impl From<magika::Error> for JsonError {
-    fn from(value: magika::Error) -> Self {
-        match value {
-            magika::Error::IOError(x) => match x.kind() {
+impl From<anyhow::Error> for JsonError {
+    fn from(value: anyhow::Error) -> Self {
+        match value.root_cause().downcast_ref::<std::io::Error>() {
+            Some(x) => match x.kind() {
                 ErrorKind::NotFound => JsonError::FileDoesNotExist,
                 ErrorKind::PermissionDenied => JsonError::PermissionError,
                 _ => JsonError::Unknown,
@@ -1019,9 +995,7 @@ mod tests {
     use super::*;
 
     fn model_features() -> Features {
-        match FeaturesOrRuled::extract_sync(std::fs::File::open("../../README.md").unwrap())
-            .unwrap()
-        {
+        match FeaturesOrRuled::extract(std::fs::File::open("../../README.md").unwrap()).unwrap() {
             FeaturesOrRuled::Features(features) => features,
             FeaturesOrRuled::Ruled(_) => panic!("README must exercise model inference"),
         }
@@ -1029,7 +1003,6 @@ mod tests {
 
     #[tokio::test]
     async fn global_accumulator_combines_work_from_every_reader() {
-        let features = model_features();
         let (batch_sender, batch_receiver) = async_channel::bounded::<InferenceBatch>(8);
         let (result_sender, _result_receiver) = tokio::sync::mpsc::channel(8);
         let trace = Trace::default();
@@ -1046,7 +1019,7 @@ mod tests {
                     permit: result_window.clone().acquire_owned().await.unwrap(),
                 };
                 work_sender
-                    .send_blocking(Work::Extracted { pending, features: features.clone() })
+                    .send_blocking(Work::Extracted { pending, features: model_features() })
                     .unwrap();
             }
             drop(work_sender);

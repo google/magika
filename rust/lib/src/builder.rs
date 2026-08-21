@@ -24,7 +24,7 @@ pub struct Builder {
 }
 
 impl Builder {
-    /// Selects automatic, CPU-only, or GPU-required inference.
+    /// Selects a specific backend for inference.
     pub fn with_backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
         self

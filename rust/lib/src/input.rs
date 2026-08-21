@@ -12,21 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::future::Future;
 use std::io::{Read, Seek, SeekFrom};
 
-use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
+use anyhow::Result;
 
 use crate::config::ModelConfig;
-use crate::future::exec;
-use crate::{ContentType, Result};
+use crate::ContentType;
 
 /// Features to identify a file using AI.
-#[derive(Clone)]
 pub struct Features(pub(crate) Vec<i32>);
 
-/// Synchronous abstraction over file content.
-pub trait SyncInput {
+/// Abstraction over file content.
+pub trait Input {
     /// Returns the size of the input.
     fn length(&self) -> Result<u64>;
 
@@ -34,21 +31,12 @@ pub trait SyncInput {
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()>;
 }
 
-/// Asynchronous abstraction over file content.
-pub trait AsyncInput {
-    /// Returns the size of the input.
-    fn length(&self) -> impl Future<Output = Result<u64>>;
-
-    /// Reads from the input at the given offset to fill the buffer.
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>>;
-}
-
 const _: () = const {
     // We assume in the rest of the file, that u64 holds any usize.
     assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
 };
 
-impl SyncInput for &[u8] {
+impl Input for &[u8] {
     fn length(&self) -> Result<u64> {
         Ok(self.len() as u64)
     }
@@ -60,7 +48,7 @@ impl SyncInput for &[u8] {
     }
 }
 
-impl SyncInput for std::fs::File {
+impl Input for std::fs::File {
     fn length(&self) -> Result<u64> {
         Ok(self.metadata()?.len())
     }
@@ -71,35 +59,13 @@ impl SyncInput for std::fs::File {
     }
 }
 
-impl<T: SyncInput> SyncInput for &mut T {
+impl<T: Input> Input for &mut T {
     fn length(&self) -> Result<u64> {
-        <T as SyncInput>::length(self)
+        <T as Input>::length(self)
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        <T as SyncInput>::read_at(self, buffer, offset)
-    }
-}
-
-impl<T: SyncInput> AsyncInput for T {
-    fn length(&self) -> impl Future<Output = Result<u64>> {
-        std::future::ready(self.length())
-    }
-
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>> {
-        std::future::ready(self.read_at(buffer, offset))
-    }
-}
-
-impl AsyncInput for tokio::fs::File {
-    async fn length(&self) -> Result<u64> {
-        Ok(self.metadata().await?.len())
-    }
-
-    async fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        self.seek(SeekFrom::Start(offset)).await?;
-        self.read_exact(buffer).await?;
-        Ok(())
+        <T as Input>::read_at(self, buffer, offset)
     }
 }
 
@@ -113,27 +79,16 @@ pub enum FeaturesOrRuled {
 }
 
 impl FeaturesOrRuled {
-    /// Extracts the features from a file (synchronously).
+    /// Extracts the features from a file.
     ///
     /// Returns the content type directly if the file cannot be identified using AI.
-    pub fn extract_sync(file: impl SyncInput) -> Result<Self> {
-        exec(Self::extract(file))
-    }
-
-    /// Extracts the features from a file (asynchronously).
-    ///
-    /// Returns the content type directly if the file cannot be identified using AI.
-    pub async fn extract_async(file: impl AsyncInput) -> Result<Self> {
-        Self::extract(file).await
-    }
-
-    pub(crate) async fn extract(file: impl AsyncInput) -> Result<Self> {
+    pub fn extract(file: impl Input) -> Result<Self> {
         let config = &crate::model::CONFIG;
-        let file_len = file.length().await?;
+        let file_len = file.length()?;
         if file_len == 0 {
             return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
         }
-        let (first_block, features) = extract_features_async(config, file, file_len).await?;
+        let (first_block, features) = extract_features(config, file, file_len)?;
         if features[config.min_file_size_for_dl - 1] != config.padding_token {
             return Ok(FeaturesOrRuled::Features(Features(features)));
         }
@@ -146,17 +101,17 @@ impl FeaturesOrRuled {
     }
 }
 
-async fn extract_features_async(
-    config: &ModelConfig, mut file: impl AsyncInput, file_len: u64,
+fn extract_features(
+    config: &ModelConfig, mut file: impl Input, file_len: u64,
 ) -> Result<(Vec<u8>, Vec<i32>)> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
     let buffer_size = std::cmp::min(config.block_size as u64, file_len) as usize;
     let mut content_beg = vec![0; buffer_size];
-    file.read_at(&mut content_beg, 0).await?;
+    file.read_at(&mut content_beg, 0)?;
     let beg = strip_prefix(&content_beg);
     let mut end = vec![0; buffer_size];
-    file.read_at(&mut end, file_len - buffer_size as u64).await?;
+    file.read_at(&mut end, file_len - buffer_size as u64)?;
     let end = strip_suffix(&end);
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
@@ -275,9 +230,8 @@ mod tests {
             expected.extend_from_slice(&test.features.beg);
             expected.extend_from_slice(&test.features.end);
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
-            let actual = extract_features_async(&config, content.as_slice(), content.len() as u64);
-            let actual = exec(actual).unwrap().1;
-            let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();
+            let actual = extract_features(&config, content.as_slice(), content.len() as u64);
+            let actual: Vec<_> = actual.unwrap().1.into_iter().map(|x| x as usize).collect();
             assert_eq!(actual, expected, "{test:?}");
         }
     }

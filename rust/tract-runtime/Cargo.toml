@@ -1,6 +1,6 @@
 [package]
 name = "magika-tract-runtime"
-version = "1.2.0-dev"
+version = "0.0.1-dev"
 license = "Apache-2.0"
 edition = "2024"
 rust-version = "1.91"
@@ -13,15 +13,15 @@ cuda = ["dep:tract-cuda", "dep:tract-gpu"]
 
 [dependencies]
 anyhow = "1.0.104"
-tract-core = "=0.23.4"
-tract-linalg = { version = "=0.23.4", features = ["multithread-mm"] }
-tract-nnef = "=0.23.4"
-tract-cuda = { version = "=0.23.4", optional = true }
-tract-gpu = { version = "=0.23.4", optional = true }
+tract-core = "0.23.4"
+tract-linalg = { version = "0.23.4", features = ["multithread-mm"] }
+tract-nnef = "0.23.4"
+tract-cuda = { version = "0.23.4", optional = true }
+tract-gpu = { version = "0.23.4", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-tract-gpu = "=0.23.4"
-tract-metal = "=0.23.4"
+tract-gpu = "0.23.4"
+tract-metal = "0.23.4"
 
 [lints.rust]
 missing_docs = "warn"

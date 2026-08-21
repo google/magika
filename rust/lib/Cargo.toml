@@ -1,6 +1,6 @@
 [package]
 name = "magika"
-version = "1.2.0-dev"
+version = "2.0.0-dev"
 license = "Apache-2.0"
 edition = "2021"
 description = "Determines file content types using AI"
@@ -14,18 +14,17 @@ include = ["/LICENSE", "/src"]
 features = ["_doc"]
 
 [features]
-serde = ["dep:serde"]
 cuda = ["magika-tract-runtime/cuda"]
+serde = ["dep:serde"]
 # Internal features.
 _doc = ["serde"]
-_test = []
 
 [dependencies]
-magika-tract-runtime = { version = "=1.2.0-dev", path = "../tract-runtime" }
+anyhow = "1.0.104"
+magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }
 thiserror = "1.0.63"
-tokio = { version = "1.43.1", features = ["fs", "io-util"] }
 
 [dev-dependencies]
 data-encoding = "2.6.0"

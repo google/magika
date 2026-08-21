@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     https://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,36 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{BackendInfo, BackendRequest, Error, Result, Session};
+use anyhow::Result;
+use magika_tract_runtime::BackendRequest;
+
+use crate::{BackendInfo, Builder, Session};
 
 /// Shared prepared inference plans.
 ///
-/// Create one runtime, share it between threads, and call [`Self::session`] inside each thread to
-/// allocate its private mutable tract state.
+/// Create one runtime, share it between threads, and call [`Self::session`] inside each thread.
 pub struct Runtime {
     inner: magika_tract_runtime::Runtime,
 }
 
 impl Runtime {
-    pub(crate) fn new(backend: BackendRequest) -> Result<Self> {
-        let inner = magika_tract_runtime::Runtime::new(backend).map_err(Error::inference)?;
-        Ok(Self { inner })
+    /// Creates a default runtime.
+    pub fn new() -> Result<Self> {
+        Self::builder().build()
     }
 
-    pub(crate) fn with_max_batch(backend: BackendRequest, max_batch: usize) -> Result<Self> {
-        let inner = magika_tract_runtime::Runtime::with_max_batch(backend, max_batch)
-            .map_err(Error::inference)?;
-        Ok(Self { inner })
+    /// Initializes a new Magika runtime builder with default values.
+    pub fn builder() -> Builder {
+        Builder::default()
     }
 
     /// Returns the resolved CPU or GPU implementation.
     pub fn backend_info(&self) -> BackendInfo {
-        self.inner.backend_info()
+        self.inner.backend_info().into()
     }
 
     /// Spawns private mutable inference state for the current thread.
     pub fn session(&self) -> Result<Session> {
-        let inner = self.inner.session().map_err(Error::inference)?;
-        Ok(Session { inner })
+        Ok(Session { inner: self.inner.session()? })
+    }
+
+    pub(crate) fn new_internal(backend: BackendRequest, max_batch: Option<usize>) -> Result<Self> {
+        let inner = match max_batch {
+            None => magika_tract_runtime::Runtime::new(backend)?,
+            Some(max_batch) => magika_tract_runtime::Runtime::with_max_batch(backend, max_batch)?,
+        };
+        Ok(Self { inner })
     }
 }

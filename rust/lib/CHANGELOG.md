@@ -1,34 +1,29 @@
 # Changelog
 
-## 1.2.0-dev
+## 2.0.0-dev
+
+### Major
+
+- Remove the dependency on the ONNX Runtime
+- Remove async support for `Session`
+- Remove the `_async` methods of `Session`
+- Remove the `_sync` suffix from the `Session` methods
+- Rename `SyncInput` to `Input`
+- Remove `Error` and `Result` using the `anyhow` crate instead
+- Change all methods from `Builder` which now builds a `Runtime`
+- Remove `Session::builder()` in favor of `Runtime::builder()`
 
 ### Minor
 
-- Replace the ONNX Runtime backend with an embedded tract runtime, so a binary depending on this
-  crate no longer needs an external inference runtime
+- Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
 - Add `Runtime` to prepare the model once and create one `Session` per inference thread
 - Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference
 - Add `Builder::with_max_batch()` to prepare only the batch classes a caller can reach
-- Add `Session::backend_info()` and re-export `Backend`, `BackendInfo` and `BackendRequest`
-- Add a `cuda` feature for GPU inference on CUDA; Metal is used automatically on macOS
-- Replace `Error::OrtError` with `Error::InferenceError`
-- Spawn the execution state of a batch class the first time a session reaches it, rather than every
-  class up front
-- Check a GPU's scores for a known input against the release CPU reference before using it.
-  `BackendRequest::Auto` falls back to the CPU when they disagree, and `Gpu` reports an error
-  rather than returning wrong content types
-- Deprecate `Builder::with_inter_threads()`, `Builder::with_intra_threads()`,
-  `Builder::with_optimization_level()` and `Builder::with_parallel_execution()`, which tract
-  manages itself. They are kept as no-ops for source compatibility.
-- A `Session` is now used by a single thread. Share a `Runtime` to identify files concurrently.
+- Add `Backend` and `BackendInfo` for backend selection (CPU or GPU) and information
+- Add `Session::backend_info()` to get information about the backend
 
 ### Patch
 
-- Fold the embedding activation into its constant table and optimize the x86_64 LayerNorm and
-  fused-convolution paths
-- Reuse the largest optimized x86_64 CPU plan for smaller tails when a maximum batch is declared
-- Reject non-finite model scores instead of passing them to content-type selection
-- Keep CPU-only builds free of GPU rewrite code and warning-clean across supported toolchains
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

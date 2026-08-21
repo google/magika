@@ -74,5 +74,14 @@ non_existent: No such file or directory (os error 2) (error)
 src/main.rs: Rust source (code)"
 
 info "Test exit code with broken pipe"
-magika -r ../../tests_data | head -n1 >/dev/null
-[ "${PIPESTATUS[0]}" -eq 0 ] || error "non-zero exit code with broken pipe"
+magika -r ../../tests_data > >(head -n1 >/dev/null) &
+magika_pid=$!
+( sleep 10; kill -TERM "$magika_pid" 2>/dev/null ) &
+watchdog_pid=$!
+set +e
+wait "$magika_pid"
+code=$?
+set -e
+kill -TERM "$watchdog_pid" 2>/dev/null || true
+wait "$watchdog_pid" 2>/dev/null || true
+[ "$code" -eq 0 ] || error "non-zero exit code or timeout with broken pipe"

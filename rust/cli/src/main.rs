@@ -356,6 +356,11 @@ async fn start() -> Result<()> {
     let result_window = Arc::new(tokio::sync::Semaphore::new(work_capacity));
     let (work_sender, work_receiver) = async_channel::bounded::<Work>(work_capacity);
     let (read_sender, read_receiver) = async_channel::bounded::<ReadItem>(work_capacity);
+    // Receiver clones do not keep a normally completing stage alive, but closing one cancels the
+    // entire channel when stdout disappears.
+    let shutdown_work = work_receiver.clone();
+    let shutdown_read = read_receiver.clone();
+    let shutdown_batch = batch_receiver.clone();
     let walker = tokio::spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
@@ -410,6 +415,12 @@ async fn start() -> Result<()> {
                 .downcast_ref::<std::io::Error>()
                 .is_some_and(|x| x.kind() == std::io::ErrorKind::BrokenPipe) =>
         {
+            // The consumer is gone, so no queued result can become observable. Closing every
+            // bounded stage wakes blocked producers and lets their threads terminate promptly.
+            result_window.close();
+            shutdown_work.close();
+            shutdown_read.close();
+            shutdown_batch.close();
             Ok(())
         }
         x => x,

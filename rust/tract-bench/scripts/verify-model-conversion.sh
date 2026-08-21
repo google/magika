@@ -62,6 +62,11 @@ current="$candidate_dir/standard_v3_3.first.nnef.tgz"
 cmp "$repo_dir/rust/tract-runtime/models/model.nnef.tgz" "$current"
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" release_cpu_graph_has_every_required_fusion
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
+# Neither gate above reaches the fused convolution: the verifier runs the unfused NNEF, the fusion
+# contract only counts matches, and the score probe is batch one, below the batch the fusion needs.
+# These run the fused graph and check the numbers it produces.
+cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" the_fallback_packing_path_scores_the_release_model_the_same
+cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" both_packing_paths_agree
 printf 'verified_release_artifacts\t%s\t%s\n' "$current" "$repo_dir/rust/tract-runtime/models/model.probe.f32le"
 
 if [ "$(uname -s)" = "Darwin" ]; then

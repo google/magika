@@ -24,6 +24,10 @@
 
 ### Patch
 
+- Fold the embedding activation into its constant table and optimize the x86_64 LayerNorm and
+  fused-convolution paths
+- Reuse the largest optimized x86_64 CPU plan for smaller tails when a maximum batch is declared
+- Reject non-finite model scores instead of passing them to content-type selection
 - Keep CPU-only builds free of GPU rewrite code and warning-clean across supported toolchains
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies

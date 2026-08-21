@@ -10,7 +10,8 @@
 - Add `--verbose` to report the selected inference device and implementation
 - Add `--readers` to size the pool of threads reading files and extracting features
 - Scale `--threads` with the available parallelism on a CPU instead of always using four, which
-  left most of a multi-core host idle, and default `--readers` to one per inference thread
+  left most of a multi-core host idle. Use every logical CPU on x86_64 Linux and leave one free on
+  other CPU targets, and default `--readers` to one per inference thread
 - Add `--trace-utilization` to report busy and waiting time per pipeline stage
 - Rename `--num-tasks` to `--threads` and document it, keeping `--num-tasks` as an alias
 - Document `--batch-size` and raise its default from one to eight

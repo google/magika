@@ -123,12 +123,13 @@ empty/empty_file: Empty file (inode)
 -: INI configuration file (text)
 ```
 
-Magika accumulates eight files per inference by default and runs four resident inference threads.
-Both values can be changed for a specific workload. `--backend auto` prefers a compiled and
-available GPU implementation, then falls back to CPU; `--backend gpu` requires GPU initialization
-to succeed, while `--backend cpu` never initializes a GPU. Implementation names such as Metal or
-CUDA are intentionally not user-facing choices. Use `-v` to report the resolved implementation.
-For example, on macOS with a usable GPU:
+Magika accumulates eight files per inference by default. It uses four resident inference threads on
+a GPU and sizes the CPU thread count from the host's available parallelism. Both values can be
+changed for a specific workload. `--backend auto` prefers a compiled and available GPU
+implementation, then falls back to CPU; `--backend gpu` requires GPU initialization to succeed,
+while `--backend cpu` never initializes a GPU. Implementation names such as Metal or CUDA are
+intentionally not user-facing choices. Use `-v` to report the resolved implementation. For example,
+on macOS with a usable GPU:
 
 ```shell
 magika --backend auto --batch-size 8 --threads 4 -v README.md
@@ -206,7 +207,7 @@ Options:
       --threads <THREADS>
           Number of resident inference threads.
 
-          Inference on a GPU is bound by the device rather than by the host, so a handful of threads keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every thread is one more core doing the work. This defaults accordingly: four on a GPU, and one less than the available parallelism on a CPU.
+          Inference on a GPU is bound by the device rather than by the host, so a handful of threads keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every thread is one more core doing the work. This defaults accordingly: four on a GPU, all available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
 
       --trace-utilization
           Prints per-stage busy and waiting time to standard error when the run finishes

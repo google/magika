@@ -31,8 +31,8 @@ fn a_declared_maximum_serves_larger_requests_with_the_same_scores() {
     let mut every_class = Runtime::new(BackendRequest::Cpu).unwrap().session().unwrap();
     let reference = every_class.run(&input, batch).unwrap();
 
-    // Twenty items cannot be served by the classes at or below eight unless the request is
-    // decomposed over exactly those, so this fails outright if routing reaches for a larger class.
+    // Twenty items cannot reach a class above eight. Depending on architecture, the tail is
+    // either routed to a smaller resident plan or padded through the optimized batch-eight plan.
     let mut up_to_eight =
         Runtime::with_max_batch(BackendRequest::Cpu, 8).unwrap().session().unwrap();
     let routed = up_to_eight.run(&input, batch).unwrap();

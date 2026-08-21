@@ -457,6 +457,55 @@ impl Op for FusedLayerNorm {
     op_as_typed_op!();
 }
 
+#[inline(always)]
+#[allow(clippy::too_many_arguments)] // Flat hot-path slices preserve LLVM alias information.
+fn normalize_values(
+    values: &mut [f32], outer: usize, axis_len: usize, inner: usize, epsilon: f32, scale: &[f32],
+    bias: &[f32], means: &mut [f32], inverse_stddevs: &mut [f32],
+) {
+    let reciprocal = 1.0 / axis_len as f32;
+    for outer_index in 0..outer {
+        means.fill(0.0);
+        inverse_stddevs.fill(0.0);
+        let outer_start = outer_index * axis_len * inner;
+        for axis_index in 0..axis_len {
+            let start = outer_start + axis_index * inner;
+            for inner_index in 0..inner {
+                let value = values[start + inner_index];
+                means[inner_index] += value;
+                inverse_stddevs[inner_index] += value * value;
+            }
+        }
+        for inner_index in 0..inner {
+            let mean = means[inner_index] * reciprocal;
+            means[inner_index] = mean;
+            let variance = (inverse_stddevs[inner_index] * reciprocal - mean * mean).max(0.0);
+            inverse_stddevs[inner_index] = (variance + epsilon).sqrt().recip();
+        }
+        for axis_index in 0..axis_len {
+            let start = outer_start + axis_index * inner;
+            let scaled_inverse = inverse_stddevs.iter().map(|inverse| inverse * scale[axis_index]);
+            for (inner_index, inverse) in scaled_inverse.enumerate() {
+                values[start + inner_index] =
+                    (values[start + inner_index] - means[inner_index]) * inverse + bias[axis_index];
+            }
+        }
+    }
+}
+
+/// LLVM can vectorize the independent inner positions with eight-wide registers without changing
+/// the accumulation order for any position. The portable copy remains the compiled implementation
+/// on macOS and non-x86 targets.
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2,fma")]
+#[allow(clippy::too_many_arguments)] // Mirrors the portable function exactly for vectorization.
+unsafe fn normalize_values_avx2(
+    values: &mut [f32], outer: usize, axis_len: usize, inner: usize, epsilon: f32, scale: &[f32],
+    bias: &[f32], means: &mut [f32], inverse_stddevs: &mut [f32],
+) {
+    normalize_values(values, outer, axis_len, inner, epsilon, scale, bias, means, inverse_stddevs);
+}
+
 impl EvalOp for FusedLayerNorm {
     fn is_stateless(&self) -> bool {
         true
@@ -475,41 +524,52 @@ impl EvalOp for FusedLayerNorm {
         let bias_plain = self.bias.as_ref().try_as_plain()?;
         let bias = bias_plain.as_slice::<f32>()?;
         let mut output = input.into_tensor();
-        let reciprocal = 1.0 / axis_len as f32;
         let mut means = vec![0.0_f32; inner];
         let mut inverse_stddevs = vec![0.0_f32; inner];
         {
             let mut plain = output.try_as_plain_mut()?;
             let values = plain.as_slice_mut::<f32>()?;
-            for outer_index in 0..outer {
-                means.fill(0.0);
-                inverse_stddevs.fill(0.0);
-                let outer_start = outer_index * axis_len * inner;
-                for axis_index in 0..axis_len {
-                    let start = outer_start + axis_index * inner;
-                    for inner_index in 0..inner {
-                        let value = values[start + inner_index];
-                        means[inner_index] += value;
-                        inverse_stddevs[inner_index] += value * value;
-                    }
-                }
-                for inner_index in 0..inner {
-                    let mean = means[inner_index] * reciprocal;
-                    means[inner_index] = mean;
-                    let variance =
-                        (inverse_stddevs[inner_index] * reciprocal - mean * mean).max(0.0);
-                    inverse_stddevs[inner_index] = (variance + epsilon).sqrt().recip();
-                }
-                for axis_index in 0..axis_len {
-                    let start = outer_start + axis_index * inner;
-                    for inner_index in 0..inner {
-                        values[start + inner_index] = (values[start + inner_index]
-                            - means[inner_index])
-                            * (inverse_stddevs[inner_index] * scale[axis_index])
-                            + bias[axis_index];
-                    }
-                }
+            #[cfg(target_arch = "x86_64")]
+            if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+                // SAFETY: both features were checked immediately above.
+                unsafe {
+                    normalize_values_avx2(
+                        values,
+                        outer,
+                        axis_len,
+                        inner,
+                        epsilon,
+                        scale,
+                        bias,
+                        &mut means,
+                        &mut inverse_stddevs,
+                    )
+                };
+            } else {
+                normalize_values(
+                    values,
+                    outer,
+                    axis_len,
+                    inner,
+                    epsilon,
+                    scale,
+                    bias,
+                    &mut means,
+                    &mut inverse_stddevs,
+                );
             }
+            #[cfg(not(target_arch = "x86_64"))]
+            normalize_values(
+                values,
+                outer,
+                axis_len,
+                inner,
+                epsilon,
+                scale,
+                bias,
+                &mut means,
+                &mut inverse_stddevs,
+            );
         }
         Ok(tvec!(output.into_tvalue()))
     }

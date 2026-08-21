@@ -15,7 +15,7 @@
 use crate::{BackendRequest, Result, Runtime, Session};
 
 /// Configures and creates a Magika session.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Builder {
     backend: BackendRequest,
     max_batch: Option<usize>,
@@ -58,10 +58,9 @@ impl Builder {
 
     /// Declares the largest batch this session will ever be asked to identify.
     ///
-    /// Plans are prepared and warmed per batch class at build time, so declaring a smaller maximum
-    /// skips the classes that can never be reached and makes startup proportionally cheaper.
-    /// Passing a batch larger than this later still works: it is decomposed over the resident
-    /// classes.
+    /// Declaring a smaller maximum skips unreachable fixed plans and makes startup cheaper. On an
+    /// x86_64 CPU, smaller tails are padded through the largest resident optimized plan;
+    /// elsewhere, requests are decomposed over the original resident classes.
     pub fn with_max_batch(mut self, max_batch: usize) -> Self {
         self.max_batch = Some(max_batch);
         self

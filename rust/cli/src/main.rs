@@ -144,8 +144,8 @@ struct Compute {
     ///
     /// Inference on a GPU is bound by the device rather than by the host, so a handful of threads
     /// keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every
-    /// thread is one more core doing the work. This defaults accordingly: four on a GPU, and one
-    /// less than the available parallelism on a CPU.
+    /// thread is one more core doing the work. This defaults accordingly: four on a GPU, all
+    /// available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
     #[arg(long, alias = "num-tasks")]
     threads: Option<usize>,
 
@@ -263,10 +263,19 @@ fn default_inference_threads(backend: Backend) -> usize {
         // The device is the limit, not the host, so never ask the host for more than it takes to
         // keep the device queued, nor for more than it has.
         Backend::Gpu => available.min(GPU_INFERENCE_THREADS),
-        // Every thread is one more core identifying files, so take the machine and leave one core.
-        // The rest of the pipeline walks and prints on single threads of its own whatever the
-        // machine size, and a run this long should not make the machine stop answering.
-        Backend::Cpu => available.saturating_sub(1).max(1),
+        Backend::Cpu => {
+            // The x86_64 Linux inference graph benefits from both SMT siblings, and traversal is
+            // too small to justify reserving a logical CPU. Keep the original portable/macOS
+            // policy, whose graph and host scheduling have different scaling behavior.
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            {
+                available
+            }
+            #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+            {
+                available.saturating_sub(1).max(1)
+            }
+        }
     }
 }
 
@@ -318,6 +327,23 @@ async fn start() -> Result<()> {
     let (result_sender, result_receiver) =
         tokio::sync::mpsc::channel::<Result<Response>>(result_capacity);
     let (batch_sender, batch_receiver) = async_channel::bounded::<InferenceBatch>(threads);
+    // Keep enough paths queued that no reader ever waits on traversal: one batch being filled and
+    // one waiting behind it, for every reader. Validate this before using `readers` to size tracing
+    // state or assign stage indexes.
+    let work_capacity = readers
+        .checked_mul(flags.compute.batch_size)
+        .and_then(|x| x.checked_mul(2))
+        .context("--readers times --batch-size is too large")?;
+    let reader_stage = 1_usize;
+    let accumulator_stage = reader_stage
+        .checked_add(readers)
+        .context("--readers is too large for utilization tracing")?;
+    let infer_stage = accumulator_stage
+        .checked_add(1)
+        .context("--readers is too large for utilization tracing")?;
+    infer_stage
+        .checked_add(threads)
+        .context("--threads and --readers are too large for utilization tracing")?;
     let trace = Arc::new(Trace::new(
         flags.compute.trace_utilization,
         std::iter::once("walk".to_string())
@@ -325,15 +351,6 @@ async fn start() -> Result<()> {
             .chain(std::iter::once("batch".to_string()))
             .chain((0..threads).map(|i| format!("infer[{i}]"))),
     ));
-    let reader_stage = 1;
-    let accumulator_stage = reader_stage + readers;
-    let infer_stage = accumulator_stage + 1;
-    // Keep enough paths queued that no reader ever waits on traversal: one batch being filled and
-    // one waiting behind it, for every reader.
-    let work_capacity = readers
-        .checked_mul(flags.compute.batch_size)
-        .and_then(|x| x.checked_mul(2))
-        .context("--readers times --batch-size is too large")?;
     // A permit follows each non-recursive path until its ordered response is printed. This bounds
     // the reorder buffer without starving the accumulator before it can fill a complete batch.
     let result_window = Arc::new(tokio::sync::Semaphore::new(work_capacity));
@@ -701,9 +718,8 @@ fn infer_batches(
     runtime: &Runtime, receiver: &async_channel::Receiver<InferenceBatch>,
     sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Trace, stage: usize,
 ) -> Result<()> {
-    // The session is created on the first batch rather than up front. A run holding fewer files
-    // than there are threads never reaches most of them, and a session that identifies nothing is
-    // paid for all the same: it spawns state for every resident plan and warms each one.
+    // Create a session only when a thread receives its first batch. A short run never reaches most
+    // threads, so spawning their private execution state up front would be pure startup overhead.
     let mut session = None;
     loop {
         let waiting = trace.start();

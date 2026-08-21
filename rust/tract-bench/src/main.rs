@@ -124,9 +124,9 @@ fn main() -> Result<()> {
     ensure!(options.iterations > 0, "--iterations must be greater than zero");
     ensure!(options.threads != Some(0), "--threads must be greater than zero");
 
-    let input = (0..options.batch * FEATURE_SIZE)
-        .map(|index| (index % (PADDING_TOKEN + 1)) as i32)
-        .collect::<Vec<_>>();
+    let input_len = options.batch.checked_mul(FEATURE_SIZE).context("--batch is too large")?;
+    let input =
+        (0..input_len).map(|index| (index % (PADDING_TOKEN + 1)) as i32).collect::<Vec<_>>();
     match options.backend {
         RequestedBackend::Ort => run_ort(&options, &input),
         request => run_tract(&options, request, &input),
@@ -261,7 +261,8 @@ fn bench<S: InferenceSession>(
 }
 
 fn validate_output(output: &[f32], batch: usize) -> Result<()> {
-    ensure!(output.len() == batch * NUM_LABELS, "backend returned an invalid output length");
+    let expected = batch.checked_mul(NUM_LABELS).context("benchmark batch is too large")?;
+    ensure!(output.len() == expected, "backend returned an invalid output length");
     ensure!(output.iter().all(|score| score.is_finite()), "backend returned a non-finite score");
     Ok(())
 }

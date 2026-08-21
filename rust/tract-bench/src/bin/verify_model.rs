@@ -40,14 +40,19 @@ fn main() -> Result<()> {
     let options = parse_options(std::env::args_os().skip(1))?;
     ensure!(options.batch > 0, "--batch must be greater than zero");
     ensure!(options.feature_size > 0, "--feature-size must be greater than zero");
-    let input = (0..options.batch * options.feature_size)
-        .map(|index| (index % 257) as i32)
-        .collect::<Vec<_>>();
+    let input_len = options
+        .batch
+        .checked_mul(options.feature_size)
+        .context("--batch times --feature-size is too large")?;
+    let input = (0..input_len).map(|index| (index % 257) as i32).collect::<Vec<_>>();
 
     ort::init().with_telemetry(false).commit();
     let onnx = run_onnx(&options, &input)?;
     let nnef = run_nnef(&options, &input)?;
     ensure!(onnx.len() == nnef.len(), "ONNX and NNEF output lengths differ");
+    ensure!(!onnx.is_empty(), "model output is empty");
+    ensure!(onnx.iter().all(|score| score.is_finite()), "ONNX output contains a non-finite score");
+    ensure!(nnef.iter().all(|score| score.is_finite()), "NNEF output contains a non-finite score");
     ensure!(onnx.len().is_multiple_of(options.batch), "model output is not batched");
     let labels = onnx.len() / options.batch;
     let max_difference =

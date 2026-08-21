@@ -77,6 +77,10 @@ jobs:
       - run: rustup default stable
       - run: rust/tract-bench/scripts/verify-model-conversion.sh
         shell: bash
+      # The tract job above runs the unit tests on x86_64 only, so without this the aarch64 graph
+      # is checked against ONNX but never against its own contracts.
+      - if: matrix.os == 'ubuntu-24.04-arm'
+        run: rust/tract-runtime/test.sh
   run:
     runs-on: ${{ matrix.os }}-latest
     strategy:

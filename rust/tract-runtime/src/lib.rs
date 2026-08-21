@@ -15,6 +15,7 @@
 //! Fixed-shape tract runtime used by Magika's synchronous inference threads.
 
 mod direct_conv;
+mod embedding;
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 mod gpu_conv;
 mod layer_norm;
@@ -46,6 +47,7 @@ const NUM_LABELS: usize = 214;
 const PADDING_TOKEN: i32 = 256;
 const DIRECT_FUSED_MIN_BATCH: usize = 8;
 const EXPECTED_CONVOLUTIONS: usize = 1;
+const EXPECTED_EMBEDDINGS: usize = 1;
 const EXPECTED_LAYER_NORMS: usize = 2;
 /// Largest score difference tolerated between a GPU and the CPU on the same input.
 ///
@@ -111,34 +113,42 @@ struct PreparedPlan {
 impl Runtime {
     /// Prepares every fixed batch plan for the requested device class.
     pub fn new(request: BackendRequest) -> Result<Self> {
-        Self::with_max_batch(request, BATCH_CLASSES[BATCH_CLASSES.len() - 1])
+        Self::with_classes(request, &BATCH_CLASSES, &BATCH_CLASSES)
     }
 
-    /// Prepares only the plans reachable for requests of at most `max_batch` items.
+    /// Prepares plans for requests accumulated up to `max_batch` items.
     ///
-    /// Requests are decomposed over the resident classes largest first, so a caller that never
-    /// submits more than `max_batch` items can never reach a larger class. Preparing those anyway
-    /// costs startup twice over, once to build the plan and once to warm it, and warming the
-    /// largest class runs a full inference at that size. At the command line default of eight,
-    /// three of the six classes are unreachable and were about two thirds of startup.
+    /// The x86_64 CPU graph keeps only the largest reachable class: smaller requests are padded
+    /// into that optimized fused graph and their extra scores discarded. Other architectures keep
+    /// the original set of reachable fixed plans and routing behavior.
     pub fn with_max_batch(request: BackendRequest, max_batch: usize) -> Result<Self> {
         ensure!(max_batch > 0, "the maximum batch cannot be zero");
         let classes: Vec<usize> =
             BATCH_CLASSES.iter().copied().filter(|class| *class <= max_batch).collect();
         ensure!(!classes.is_empty(), "no resident plan can serve a batch of {max_batch}");
+        #[cfg(target_arch = "x86_64")]
+        let cpu_classes = &classes[classes.len() - 1..];
+        #[cfg(not(target_arch = "x86_64"))]
+        let cpu_classes = classes.as_slice();
+        Self::with_classes(request, cpu_classes, &classes)
+    }
+
+    fn with_classes(
+        request: BackendRequest, cpu_classes: &[usize], gpu_classes: &[usize],
+    ) -> Result<Self> {
         match request {
-            BackendRequest::Cpu => Self::prepare_cpu(&classes),
+            BackendRequest::Cpu => Self::prepare_cpu(cpu_classes),
             BackendRequest::Gpu => {
-                let gpu = Self::prepare_gpu(&classes)?;
+                let gpu = Self::prepare_gpu(gpu_classes)?;
                 ensure!(
                     gpu.passes_gpu_probe()?,
                     "the GPU does not identify files correctly on this machine"
                 );
                 Ok(gpu)
             }
-            BackendRequest::Auto => match Self::prepare_gpu(&classes) {
+            BackendRequest::Auto => match Self::prepare_gpu(gpu_classes) {
                 Ok(gpu) if gpu_agreement_passes(gpu.passes_gpu_probe()) => Ok(gpu),
-                _ => Self::prepare_cpu(&classes),
+                _ => Self::prepare_cpu(cpu_classes),
             },
         }
     }
@@ -166,7 +176,7 @@ impl Runtime {
         self.info
     }
 
-    /// Spawns private mutable execution state for one inference thread.
+    /// Creates a session for one inference thread; private execution state is spawned on first use.
     pub fn session(&self) -> Result<Session> {
         let plans = self
             .plans
@@ -177,9 +187,7 @@ impl Runtime {
                 state: None,
             })
             .collect();
-        let mut session = Session { info: self.info, plans };
-        session.warm_largest()?;
-        Ok(session)
+        Ok(Session { info: self.info, plans })
     }
 
     fn prepare_cpu(classes: &[usize]) -> Result<Self> {
@@ -309,6 +317,13 @@ fn load_model(batch: usize) -> Result<TypedModel> {
         model
     };
     model = model.into_decluttered().context("decluttering before Magika graph fusion")?;
+    // Folded here rather than in a backend preparer: it removes work from the graph itself, so it
+    // is worth the same on a CPU, on Metal and on CUDA.
+    let folded = embedding::fuse_magika_embedding(&mut model)?;
+    ensure!(
+        folded == EXPECTED_EMBEDDINGS,
+        "required {EXPECTED_EMBEDDINGS} embedding folds for batch {batch}, matched {folded}"
+    );
     Ok(model)
 }
 
@@ -360,36 +375,28 @@ impl Session {
         let mut remaining = batch;
         let mut outputs = Vec::new();
         while remaining > 0 {
-            // Plans are resident in increasing batch order, so the last one that fits is the
-            // largest that fits. A session prepared for a smaller maximum simply takes more turns.
-            let index = self
-                .plans
-                .iter()
-                .rposition(|plan| plan.batch <= remaining)
-                .context("no resident plan can serve a single item")?;
+            // Use the largest plan that fits. If none does (the x86_64 runtime deliberately keeps
+            // only its largest optimized class), pad the tail through the smallest resident plan.
+            let index = self.plans.iter().rposition(|plan| plan.batch <= remaining).unwrap_or(0);
             let plan = &mut self.plans[index];
             let class = plan.batch;
-            let input_len = class * FEATURE_SIZE;
+            let served = remaining.min(class);
+            let input_len = served * FEATURE_SIZE;
             let chunk = &input[input_offset..input_offset + input_len];
             input_offset += input_len;
-            remaining -= class;
-            outputs.extend(run_plan(plan.state()?, chunk, class)?);
+            remaining -= served;
+            if served == class {
+                outputs.extend(run_plan(plan.state()?, chunk, class)?);
+            } else {
+                let mut padded = vec![PADDING_TOKEN; class * FEATURE_SIZE];
+                padded[..input_len].copy_from_slice(chunk);
+                let mut padded_output = run_plan(plan.state()?, &padded, class)?;
+                padded_output.truncate(served * NUM_LABELS);
+                outputs.extend(padded_output);
+            }
         }
         ensure!(input_offset == input.len());
         Ok(outputs)
-    }
-
-    /// Runs the largest resident plan once so the first real request does not pay for it.
-    ///
-    /// Only the largest: a caller that accumulates batches reaches it first and stays there, and
-    /// every other class stays uninstantiated until something actually routes to it.
-    fn warm_largest(&mut self) -> Result<()> {
-        let Some(plan) = self.plans.last_mut() else { return Ok(()) };
-        let batch = plan.batch;
-        let input = vec![PADDING_TOKEN; batch * FEATURE_SIZE];
-        run_plan(plan.state()?, &input, batch)
-            .with_context(|| format!("warming batch-{batch} plan"))?;
-        Ok(())
     }
 }
 
@@ -410,7 +417,9 @@ fn decode_output(mut output: TVec<TValue>, batch: usize) -> Result<Vec<f32>> {
         "invalid model output shape {:?}",
         output.shape()
     );
-    Ok(output.to_plain_array_view::<f32>()?.iter().copied().collect())
+    let scores = output.to_plain_array_view::<f32>()?.iter().copied().collect::<Vec<_>>();
+    ensure!(scores.iter().all(|score| score.is_finite()), "model returned a non-finite score");
+    Ok(scores)
 }
 
 /// Reports whether two backends produced the same scores for the same input.
@@ -506,6 +515,14 @@ mod tests {
     }
 
     #[test]
+    fn rejects_a_non_finite_model_output() {
+        let mut output = vec![0.0_f32; NUM_LABELS];
+        output[7] = f32::NAN;
+        let output = Tensor::from_shape(&[1, NUM_LABELS], &output).unwrap().into_tvalue();
+        assert!(decode_output(tvec!(output), 1).is_err());
+    }
+
+    #[test]
     fn rejects_an_input_length_that_overflows() {
         assert!(expected_input_len(usize::MAX).is_err());
     }
@@ -518,6 +535,41 @@ mod tests {
             direct_conv::fuse_magika_conv_max(&mut model, DIRECT_FUSED_MIN_BATCH)?,
             EXPECTED_CONVOLUTIONS
         );
+        Ok(())
+    }
+
+    /// A target without a vectorized packer runs the release model through the fallback packing
+    /// path. Every machine this project can test on takes the vectorized one, so without this the
+    /// fallback would only ever have been exercised on a small synthetic convolution, at the real
+    /// dimensions of nothing.
+    #[test]
+    fn the_fallback_packing_path_scores_the_release_model_the_same() -> Result<()> {
+        let batch = DIRECT_FUSED_MIN_BATCH;
+        let prepare = |portable: bool| -> Result<Vec<f32>> {
+            let mut model = load_model(batch)?;
+            ensure!(layer_norm::fuse_magika_layer_norm(&mut model)? == EXPECTED_LAYER_NORMS);
+            let fused = if portable {
+                direct_conv::fuse_magika_conv_max_portable(&mut model, batch)?
+            } else {
+                direct_conv::fuse_magika_conv_max(&mut model, batch)?
+            };
+            ensure!(fused == EXPECTED_CONVOLUTIONS);
+            static CPU: DefaultRuntime = DefaultRuntime;
+            let options =
+                RunOptions { executor: Some(Executor::SingleThread), ..RunOptions::default() };
+            let runnable = CPU.prepare_with_options(model, &options)?;
+            let input: Vec<i32> =
+                (0..batch * FEATURE_SIZE).map(|index| (index % 257) as i32).collect();
+            run_plan(runnable.spawn()?.as_mut(), &input, batch)
+        };
+        let scores = prepare(false)?;
+        let fallback = prepare(true)?;
+        ensure!(scores.len() == batch * NUM_LABELS);
+        // The two paths walk the reduction in a different order, so they agree closely rather than
+        // to the bit. This bound is far below the gap between two different content types.
+        for (left, right) in scores.iter().zip(fallback.iter()) {
+            ensure!((left - right).abs() <= 1e-5, "{left} != {right}");
+        }
         Ok(())
     }
 }

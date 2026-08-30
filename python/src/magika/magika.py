@@ -686,12 +686,12 @@ class Magika:
                         )
                 except OSError as exc:
                     if self._no_dereference and exc.errno == ELOOP:
-                        return self._get_path_result(path, ContentTypeLabel.SYMLINK), None
+                        return self._get_path_result(
+                            path, ContentTypeLabel.SYMLINK
+                        ), None
                     if exc.errno in (ENOENT, ENOTDIR):
                         return (
-                            MagikaResult(
-                                path=path, status=Status.FILE_NOT_FOUND_ERROR
-                            ),
+                            MagikaResult(path=path, status=Status.FILE_NOT_FOUND_ERROR),
                             None,
                         )
                     raise

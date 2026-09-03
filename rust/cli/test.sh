@@ -16,12 +16,16 @@
 set -e
 . ../color.sh
 
+PROFILE=release-fast
+
 x cargo check
-x cargo build --release
+x cargo check --features=_trace
+x cargo build --profile=$PROFILE
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
+x cargo clippy --features=_trace -- --deny=warnings
 
-PATH=$(dirname $PWD)/target/release:$PATH
+PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 
 TEST_SUITES='basic previous_missdetections'
 info "Test against the test suites: $TEST_SUITES"

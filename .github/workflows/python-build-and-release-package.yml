@@ -89,22 +89,23 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-      - if: matrix.platform.runner == 'ubuntu-latest'
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: rust/onnx/runtime/build/Linux
-          key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
-      - if: matrix.platform.runner == 'ubuntu-latest'
-        name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out=../dist
-          before-script-linux: "${{ github.workspace }}/rust/onnx/maturin.sh"
-          manylinux: 2_28
-          working-directory: python
-      - if: matrix.platform.runner != 'ubuntu-latest'
-        name: Build wheels
+      # TODO(PR): Remove if comments if it works.
+      # - if: matrix.platform.runner == 'ubuntu-latest'
+      #   name: Build wheels
+      #   uses: PyO3/maturin-action@v1
+      #   with:
+      #     target: ${{ matrix.platform.target }}
+      #     args: --release --out=../dist
+      #     manylinux: 2_28
+      #     working-directory: python
+      # - if: matrix.platform.runner != 'ubuntu-latest'
+      #   name: Build wheels
+      #   uses: PyO3/maturin-action@v1
+      #   with:
+      #     target: ${{ matrix.platform.target }}
+      #     args: --release --out=../dist
+      #     working-directory: python
+      - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}

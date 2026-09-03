@@ -20,7 +20,7 @@ info "Sync generated files"
 ( cd gen; cargo run; )
 
 info "Sync CLI output"
-( cd cli; cargo build --release; )
+( cd cli; cargo build --profile=release-fast; )
 PATH=$PWD/target/release:$PATH
 ( cd ../tests_data/basic
   set -x
@@ -38,17 +38,14 @@ info "Updating CLI output in README.md"
 ( cd cli
   for i in $(seq 1 $(grep '^% ' README.md | wc -l)); do
     grep -n '^% ' README.md | cut -f1 -d: | head -n$i | tail -n1 | while read line; do
-      sed -i.bak -e "$line,"'/```/{' -e "${line}p" -e '/```/!d' -e '}' README.md
-      rm README.md.bak
+      sed -i $line',/```/{'$line'p;/```/!d}' README.md
       cmd="$(head -n$line README.md | tail -n1 | sed 's/^% //')"
       ( cd ../..; eval "$cmd"; ) 2>/dev/null > tmp
-      sed -i.bak $line'r tmp' README.md
-      rm README.md.bak
+      sed -i $line'r tmp' README.md
     done
   done
   rm tmp
-  sed -i.bak 's/[[:space:]]*$//' README.md
-  rm README.md.bak
+  sed -i 's/ \+$//' README.md
 )
 
 if [ "$1" = --check ]; then

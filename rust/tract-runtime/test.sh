@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     https://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,12 +14,11 @@
 # limitations under the License.
 
 set -e
-# The workflow runs this from the repository root, but the commands below and color.sh are relative
-# to the crate, so resolve where this script lives rather than assuming the caller's directory.
-cd -- "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 . ../color.sh
 
 x cargo check
+x cargo check --features=cuda
 x cargo test
 x cargo fmt -- --check
-x cargo clippy --all-targets -- --deny=warnings
+x cargo clippy -- --deny=warnings
+x cargo clippy --features=cuda -- --deny=warnings

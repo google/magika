@@ -507,7 +507,7 @@ dependencies = [
 
 [[package]]
 name = "magika-tract-runtime"
-version = "1.2.0-dev"
+version = "0.0.1-dev"
 dependencies = [
  "anyhow",
  "tract-core",

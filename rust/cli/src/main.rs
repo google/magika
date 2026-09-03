@@ -15,12 +15,13 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::io::{ErrorKind, Write as _};
+use std::io::{ErrorKind, Read, Write as _};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
-use std::thread::JoinHandle;
 
-use anyhow::{ensure, Context as _, Result};
+use anyhow::{ensure, Result};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
@@ -28,7 +29,6 @@ use magika::{
     Runtime, TypeInfo,
 };
 use serde::Serialize;
-use tokio::io::AsyncReadExt;
 
 /// Determines file content types using AI.
 #[derive(Parser)]
@@ -128,11 +128,11 @@ struct Format {
 
 #[derive(Args)]
 struct Experimental {
-    /// Selects the inference device.
+    /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
     backend: BackendChoice,
 
-    /// Reports the selected inference device and implementation.
+    /// Reports the selected inference backend and exits.
     #[arg(hide = true, long)]
     backend_info: bool,
 
@@ -149,82 +149,12 @@ struct Experimental {
     #[arg(hide = true, long)]
     threads: Option<usize>,
 
-    /// Prints per-stage busy and waiting time to standard error when the run finishes.
-    #[arg(hide = true, long)]
-    trace_utilization: bool,
-
     /// Number of resident threads reading files and extracting features.
     ///
     /// Reading costs far less than inference, so this defaults to one per inference thread, which
     /// is already more than a run makes use of.
-    #[arg(hide = true, long)]
-    readers: Option<usize>,
-}
-
-/// Per-stage busy and waiting time, empty unless --trace-utilization is set.
-#[derive(Default)]
-struct Trace {
-    stages: Vec<Stage>,
-}
-
-struct Stage {
-    name: String,
-    busy_ns: std::sync::atomic::AtomicU64,
-    wait_ns: std::sync::atomic::AtomicU64,
-}
-
-impl Trace {
-    fn new(enabled: bool, names: impl IntoIterator<Item = String>) -> Self {
-        let stages = if enabled {
-            names
-                .into_iter()
-                .map(|name| Stage {
-                    name,
-                    busy_ns: std::sync::atomic::AtomicU64::new(0),
-                    wait_ns: std::sync::atomic::AtomicU64::new(0),
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
-        Trace { stages }
-    }
-
-    fn enabled(&self) -> bool {
-        !self.stages.is_empty()
-    }
-
-    fn start(&self) -> Option<std::time::Instant> {
-        self.enabled().then(std::time::Instant::now)
-    }
-
-    fn add(&self, stage: usize, started: Option<std::time::Instant>, busy: bool) {
-        let Some(started) = started else { return };
-        let Some(stage) = self.stages.get(stage) else { return };
-        let counter = if busy { &stage.busy_ns } else { &stage.wait_ns };
-        counter
-            .fetch_add(started.elapsed().as_nanos() as u64, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    fn report(&self) {
-        if !self.enabled() {
-            return;
-        }
-        eprintln!("trace  stage           busy      waiting   busy%");
-        for stage in &self.stages {
-            let busy = stage.busy_ns.load(std::sync::atomic::Ordering::Relaxed);
-            let wait = stage.wait_ns.load(std::sync::atomic::Ordering::Relaxed);
-            let total = busy + wait;
-            let share = if total == 0 { 0.0 } else { busy as f64 / total as f64 * 100.0 };
-            eprintln!(
-                "trace  {:<14} {:>7.3}s  {:>7.3}s  {:>5.1}%",
-                stage.name,
-                busy as f64 / 1e9,
-                wait as f64 / 1e9,
-                share
-            );
-        }
-    }
+    #[arg(hide = true, long, default_value = "1")]
+    readers: usize,
 }
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
@@ -233,6 +163,74 @@ enum BackendChoice {
     Auto,
     Cpu,
     Gpu,
+}
+
+/// Per-stage busy and waiting time.
+#[cfg(feature = "_trace")]
+#[derive(Default, Clone)]
+struct Trace {
+    stages: Arc<std::sync::Mutex<HashMap<String, Stage>>>,
+}
+
+#[cfg(feature = "_trace")]
+struct Stage {
+    busy_ns: u64,
+    wait_ns: u64,
+}
+
+#[cfg(feature = "_trace")]
+impl Trace {
+    fn insert(&self, stage: Stage) {
+        let name = std::thread::current().name().unwrap().to_string();
+        assert!(self.stages.lock().unwrap().insert(name, stage).is_none());
+    }
+
+    fn report(&self, readers: usize, threads: usize) {
+        let mut stages = self.stages.lock().unwrap();
+        let mut report = Vec::new();
+        report.push(("walk".to_string(), stages.remove("magika-walk").unwrap()));
+        for i in 0..readers {
+            report
+                .push((format!("read[{i}]"), stages.remove(&format!("magika-read-{i}")).unwrap()));
+        }
+        report.push(("batch".to_string(), stages.remove("magika-batch").unwrap()));
+        for i in 0..threads {
+            report.push((
+                format!("infer[{i}]"),
+                stages.remove(&format!("magika-infer-{i}")).unwrap(),
+            ));
+        }
+        assert!(stages.is_empty());
+        eprintln!("trace  stage           busy      waiting   busy%");
+        for (name, stage) in report {
+            let busy = stage.busy_ns;
+            let wait = stage.wait_ns;
+            let total = busy + wait;
+            let share = if total == 0 { 0.0 } else { busy as f64 / total as f64 * 100.0 };
+            eprintln!(
+                "trace  {:<14} {:>7.3}s  {:>7.3}s  {:>5.1}%",
+                name,
+                busy as f64 / 1e9,
+                wait as f64 / 1e9,
+                share
+            );
+        }
+    }
+}
+
+#[cfg(feature = "_trace")]
+impl Stage {
+    fn start() -> (std::time::Instant, cpu_time::ThreadTime) {
+        (std::time::Instant::now(), cpu_time::ThreadTime::now())
+    }
+
+    fn finalize(wall_thread: (std::time::Instant, cpu_time::ThreadTime)) -> Stage {
+        let (wall, thread) = wall_thread;
+        let total_ns = wall.elapsed().as_nanos() as u64;
+        let busy_ns = thread.elapsed().as_nanos() as u64;
+        let wait_ns = total_ns.saturating_sub(busy_ns);
+        Stage { busy_ns, wait_ns }
+    }
 }
 
 /// Inference threads it takes to keep a GPU queued.
@@ -269,12 +267,12 @@ fn default_inference_threads(backend: Backend) -> usize {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let flags = Flags::parse();
     ensure!(flags.experimental.batch_size != 0, "--batch-size cannot be zero");
+    let batch_size = flags.experimental.batch_size;
     ensure!(flags.experimental.threads != Some(0), "--threads cannot be zero");
-    ensure!(flags.experimental.readers != Some(0), "--readers cannot be zero");
+    ensure!(flags.experimental.readers != 0, "--readers cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -286,148 +284,153 @@ async fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    // The accumulator never emits more than one batch worth of files, so the larger resident
-    // classes are unreachable and preparing them would only cost startup.
     let mut builder = Runtime::builder();
-    builder = builder.with_max_batch(flags.experimental.batch_size);
+    builder = builder.with_max_batch(batch_size);
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
         BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
     };
     let runtime = Arc::new(builder.build()?);
-    let threads = match flags.experimental.threads {
-        Some(threads) => threads,
-        None => default_inference_threads(runtime.backend_info().backend()),
-    };
-    let readers = flags.experimental.readers.unwrap_or(threads);
     if flags.experimental.backend_info {
         let info = runtime.backend_info();
         let backend = match info.backend() {
             Backend::Cpu => "cpu",
             Backend::Gpu => "gpu",
         };
-        eprintln!("{backend} ({})", info.implementation());
+        println!("{backend} ({})", info.implementation());
         return Ok(());
     }
+    let threads = match flags.experimental.threads {
+        Some(threads) => threads,
+        None => default_inference_threads(runtime.backend_info().backend()),
+    };
+    let readers = flags.experimental.readers;
+    let (work_sender, work_receiver) = crossbeam_channel::bounded::<OrderPath>(readers);
+    let (read_sender, read_receiver) =
+        std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
+    let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<InferenceBatch>(threads);
     let (result_sender, result_receiver) =
-        tokio::sync::mpsc::channel::<Result<Response>>(threads * flags.experimental.batch_size);
-    let (batch_sender, batch_receiver) = async_channel::bounded::<InferenceBatch>(threads);
-    // Keep enough paths queued that no reader ever waits on traversal: one batch being filled and
-    // one waiting behind it, for every reader. Validate this before using `readers` to size tracing
-    // state or assign stage indexes.
-    let work_capacity = 2 * readers * flags.experimental.batch_size;
-    let reader_stage = 1;
-    let accumulator_stage = reader_stage + readers;
-    let infer_stage = accumulator_stage + 1;
-    let trace = Arc::new(Trace::new(
-        flags.experimental.trace_utilization,
-        std::iter::once("walk".to_string())
-            .chain((0..readers).map(|i| format!("read[{i}]")))
-            .chain(std::iter::once("batch".to_string()))
-            .chain((0..threads).map(|i| format!("infer[{i}]"))),
-    ));
-    // A permit follows each non-recursive path until its ordered response is printed. This bounds
-    // the reorder buffer without starving the accumulator before it can fill a complete batch.
-    let result_window = Arc::new(tokio::sync::Semaphore::new(work_capacity));
-    let (work_sender, work_receiver) = async_channel::bounded::<Work>(work_capacity);
-    let (read_sender, read_receiver) = async_channel::bounded::<ReadItem>(work_capacity);
-    // Receiver clones do not keep a normally completing stage alive, but closing one cancels the
-    // entire channel when stdout disappears.
-    let shutdown_work = work_receiver.clone();
-    let shutdown_read = read_receiver.clone();
-    let shutdown_batch = batch_receiver.clone();
-    let walker = tokio::spawn({
+        std::sync::mpsc::sync_channel::<Result<Response>>(threads * batch_size);
+    let reorder_next = Arc::new(AtomicUsize::new(0));
+    #[cfg(feature = "_trace")]
+    let trace = Trace::default();
+    let mut join_handles = Vec::new();
+    join_handles.push(std::thread::Builder::new().name("magika-walk".to_string()).spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
-        let result_window = result_window.clone();
+        let reorder_next = reorder_next.clone();
+        #[cfg(feature = "_trace")]
         let trace = trace.clone();
-        async move {
-            if let Err(e) =
-                walk_paths(&flags, &work_sender, &result_sender, result_window, &trace).await
-            {
-                let _ = result_sender.send(Err(e)).await;
-            }
-        }
-    });
-    let batch_size = flags.experimental.batch_size;
-    let accumulator = tokio::spawn({
-        let batch_sender = batch_sender.clone();
-        let result_sender = result_sender.clone();
-        let trace = trace.clone();
-        async move {
-            if let Err(error) = accumulate_files(
-                batch_size,
-                &read_receiver,
-                &batch_sender,
+        move || {
+            #[cfg(feature = "_trace")]
+            let start = Stage::start();
+            if let Err(e) = walk_paths(
+                &flags,
+                &work_sender,
                 &result_sender,
-                &trace,
-                accumulator_stage,
-            )
-            .await
-            {
-                let _ = result_sender.send(Err(error)).await;
+                &reorder_next,
+                4 * threads * batch_size,
+            ) {
+                let _ = result_sender.send(Err(e));
             }
+            #[cfg(feature = "_trace")]
+            trace.insert(Stage::finalize(start));
         }
-    });
-    let read_threads =
-        spawn_read_threads(readers, &work_receiver, &read_sender, &trace, reader_stage)?;
+    })?);
+    for index in 0..readers {
+        join_handles.push(std::thread::Builder::new().name(format!("magika-read-{index}")).spawn(
+            {
+                let work_receiver = work_receiver.clone();
+                let read_sender = read_sender.clone();
+                #[cfg(feature = "_trace")]
+                let trace = trace.clone();
+                move || {
+                    #[cfg(feature = "_trace")]
+                    let start = Stage::start();
+                    read_files(&work_receiver, &read_sender);
+                    #[cfg(feature = "_trace")]
+                    trace.insert(Stage::finalize(start));
+                }
+            },
+        )?)
+    }
     drop(work_receiver);
     drop(read_sender);
+    join_handles.push(std::thread::Builder::new().name("magika-batch".to_string()).spawn({
+        let batch_sender = batch_sender.clone();
+        let result_sender = result_sender.clone();
+        #[cfg(feature = "_trace")]
+        let trace = trace.clone();
+        move || {
+            #[cfg(feature = "_trace")]
+            let start = Stage::start();
+            if let Err(error) =
+                batch_files(batch_size, &read_receiver, &batch_sender, &result_sender)
+            {
+                let _ = result_sender.send(Err(error));
+            }
+            #[cfg(feature = "_trace")]
+            trace.insert(Stage::finalize(start));
+        }
+    })?);
     drop(batch_sender);
-    let inference_threads = spawn_inference_threads(
-        threads,
-        runtime,
-        &batch_receiver,
-        &result_sender,
-        &trace,
-        infer_stage,
-    )?;
+    for index in 0..threads {
+        join_handles.push(
+            std::thread::Builder::new().name(format!("magika-infer-{index}")).spawn({
+                let batch_receiver = batch_receiver.clone();
+                let result_sender = result_sender.clone();
+                let runtime = runtime.clone();
+                #[cfg(feature = "_trace")]
+                let trace = trace.clone();
+                move || {
+                    #[cfg(feature = "_trace")]
+                    let start = Stage::start();
+                    if let Err(error) = infer_batches(&runtime, &batch_receiver, &result_sender) {
+                        let _ = result_sender.send(Err(error));
+                    }
+                    #[cfg(feature = "_trace")]
+                    trace.insert(Stage::finalize(start));
+                }
+            })?,
+        );
+    }
     drop(batch_receiver);
     drop(result_sender);
-    let print_result = match print(&flags, result_receiver).await {
+    let print_result = match print(&flags, result_receiver, reorder_next) {
         Err(e)
             if e.root_cause()
                 .downcast_ref::<std::io::Error>()
                 .is_some_and(|x| x.kind() == std::io::ErrorKind::BrokenPipe) =>
         {
-            // The consumer is gone, so no queued result can become observable. Closing every
-            // bounded stage wakes blocked producers and lets their threads terminate promptly.
-            result_window.close();
-            shutdown_work.close();
-            shutdown_read.close();
-            shutdown_batch.close();
             Ok(())
         }
         x => x,
     };
-    walker.await?;
-    accumulator.await?;
-    for thread in read_threads {
-        thread.join().map_err(|_| anyhow::anyhow!("read thread panicked"))?;
+    for handle in join_handles {
+        ensure!(handle.join().is_ok());
     }
-    for thread in inference_threads {
-        thread.join().map_err(|_| anyhow::anyhow!("inference thread panicked"))?;
-    }
-    trace.report();
+    #[cfg(feature = "_trace")]
+    trace.report(readers, threads);
     print_result
 }
 
-async fn print(
-    flags: &Flags, mut result_receiver: tokio::sync::mpsc::Receiver<Result<Response>>,
+fn print(
+    flags: &Flags, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
+    reorder_next: Arc<AtomicUsize>,
 ) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     if flags.format.json {
         write!(stdout, "[")?;
     }
-    let mut reorder = Reorder::default();
+    let mut reorder = Reorder::new(reorder_next);
     let mut errors = false;
-    while let Some(response) = result_receiver.recv().await {
+    while let Ok(response) = result_receiver.recv() {
         reorder.push(response?);
         while let Some(response) = reorder.pop() {
             errors |= response.result.is_err();
             if flags.format.json {
-                if reorder.next != 1 {
+                if reorder.next.load(Relaxed) != 1 {
                     write!(stdout, ",")?;
                 }
                 for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
@@ -440,7 +443,7 @@ async fn print(
     }
     debug_assert!(reorder.is_empty());
     if flags.format.json {
-        if reorder.next != 0 {
+        if reorder.next.load(Relaxed) != 0 {
             writeln!(stdout)?;
         }
         writeln!(stdout, "]")?;
@@ -455,67 +458,36 @@ async fn print(
 ///
 /// This task only traverses and stats. Reading file content is left to [`read_files`] so that it
 /// happens on several threads at once instead of serializing behind traversal.
-async fn walk_paths(
-    flags: &Flags, work_sender: &async_channel::Sender<Work>,
-    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>,
-    result_window: Arc<tokio::sync::Semaphore>, trace: &Trace,
+fn walk_paths(
+    flags: &Flags, work_sender: &crossbeam_channel::Sender<OrderPath>,
+    result_sender: &std::sync::mpsc::SyncSender<Result<Response>>, reorder_next: &AtomicUsize,
+    max_dist: usize,
 ) -> Result<()> {
     let mut flags_paths: Vec<(PathBuf, Option<std::fs::FileType>)> =
         flags.path.iter().rev().map(|path| (path.clone(), None)).collect();
     let mut order = 0;
     while let Some((path, file_type)) = flags_paths.pop() {
-        let started = trace.start();
-        let processed = process_path(flags, &mut flags_paths, &path, file_type).await;
-        trace.add(0, started, true);
-        let started = trace.start();
-        match processed {
-            Ok(ProcessPath::Recursive) => continue,
-            processed => {
-                let permit =
-                    result_window.clone().acquire_owned().await.context("result window closed")?;
-                let pending = Pending { order, path, permit };
-                match processed {
-                    Ok(ProcessPath::Content) => work_sender.send(Work::Content(pending)).await?,
-                    // Standard input is already consumed and cannot be read again, so it travels with its
-                    // features instead of its path.
-                    Ok(ProcessPath::Features(features)) => {
-                        work_sender.send(Work::Extracted { pending, features }).await?
-                    }
-                    Ok(ProcessPath::Ruled(file_type)) => {
-                        result_sender.send(Ok(Response::new(pending, Ok(file_type)))).await?
-                    }
-                    Err(error) => {
-                        result_sender.send(Ok(Response::new(pending, Err(error)))).await?
-                    }
-                    Ok(ProcessPath::Recursive) => unreachable!(),
-                }
-            }
+        let processed = process_path(flags, &mut flags_paths, &path, file_type);
+        if matches!(processed, Ok(ProcessPath::Recursive)) {
+            continue;
         }
-        trace.add(0, started, false);
+        // Make sure a specific non-recursive path does not get stranded for too long in the
+        // pipeline. This bounds the reorder buffer without starving the pipeline.
+        while reorder_next.load(Relaxed) + max_dist < order {
+            std::hint::spin_loop();
+        }
+        let pending = OrderPath { order, path };
+        match processed {
+            Ok(ProcessPath::Content) => work_sender.send(pending)?,
+            Ok(ProcessPath::Ruled(file_type)) => {
+                result_sender.send(Ok(Response::new(pending, Ok(file_type))))?
+            }
+            Err(error) => result_sender.send(Ok(Response::new(pending, Err(error))))?,
+            Ok(ProcessPath::Recursive) => unreachable!(),
+        }
         order += 1;
     }
     Ok(())
-}
-
-/// Spawns the threads that read files and extract features.
-fn spawn_read_threads(
-    readers: usize, receiver: &async_channel::Receiver<Work>,
-    sender: &async_channel::Sender<ReadItem>, trace: &Arc<Trace>, first_stage: usize,
-) -> Result<Vec<JoinHandle<()>>> {
-    (0..readers)
-        .map(|index| {
-            let receiver = receiver.clone();
-            let sender = sender.clone();
-            let trace = trace.clone();
-            let stage = first_stage + index;
-            std::thread::Builder::new()
-                .name(format!("magika-read-{index}"))
-                .spawn(move || {
-                    read_files(&receiver, &sender, &trace, stage);
-                })
-                .map_err(Into::into)
-        })
-        .collect()
 }
 
 /// Reads files and extracts their features.
@@ -525,123 +497,78 @@ fn spawn_read_threads(
 /// on a dedicated thread costs a system call per block instead, and there is nothing else for the
 /// thread to interleave anyway.
 fn read_files(
-    work_receiver: &async_channel::Receiver<Work>, sender: &async_channel::Sender<ReadItem>,
-    trace: &Trace, stage: usize,
+    work_receiver: &crossbeam_channel::Receiver<OrderPath>,
+    sender: &std::sync::mpsc::SyncSender<ReadItem>,
 ) {
-    loop {
-        let waiting = trace.start();
-        let Ok(work) = work_receiver.recv_blocking() else { break };
-        trace.add(stage, waiting, false);
-
-        let reading = trace.start();
-        let (pending, extracted) = match work {
-            Work::Content(pending) => {
-                let extracted = extract_path(&pending.path);
-                (pending, extracted)
-            }
-            Work::Extracted { pending, features } => {
-                (pending, Ok(FeaturesOrRuled::Features(features)))
-            }
-        };
-        trace.add(stage, reading, true);
-
-        let handing = trace.start();
-        if sender.send_blocking(ReadItem { pending, extracted }).is_err() {
+    while let Ok(pending) = work_receiver.recv() {
+        let extracted = extract_path(&pending.path);
+        if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
-        trace.add(stage, handing, false);
     }
 }
 
 /// Accumulates every reader's output into one global inference batch stream.
-async fn accumulate_files(
-    batch_size: usize, receiver: &async_channel::Receiver<ReadItem>,
-    batch_sender: &async_channel::Sender<InferenceBatch>,
-    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Trace, stage: usize,
+fn batch_files(
+    batch_size: usize, receiver: &std::sync::mpsc::Receiver<ReadItem>,
+    batch_sender: &crossbeam_channel::Sender<InferenceBatch>,
+    result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
-    let mut accumulator = Accumulator::new(batch_size);
-    loop {
-        let waiting = trace.start();
-        let Ok(ReadItem { pending, extracted }) = receiver.recv().await else {
-            break;
-        };
-        trace.add(stage, waiting, false);
-
-        let handling = trace.start();
+    let mut batcher = Batcher::new(batch_size);
+    while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
             Ok(FeaturesOrRuled::Features(features)) => {
-                if let Some(batch) = accumulator.push(pending, features) {
-                    batch_sender.send(batch).await?;
+                if let Some(batch) = batcher.push(pending, features) {
+                    batch_sender.send(batch)?;
                 }
             }
             Ok(FeaturesOrRuled::Ruled(content_type)) => {
                 let result = Ok(FileType::Ruled(content_type));
-                result_sender.send(Ok(Response::new(pending, result))).await?;
+                result_sender.send(Ok(Response::new(pending, result)))?;
             }
             Err(error) => {
-                result_sender.send(Ok(Response::new(pending, Err(error)))).await?;
+                result_sender.send(Ok(Response::new(pending, Err(error))))?;
             }
         }
-        trace.add(stage, handling, true);
     }
-    if let Some(batch) = accumulator.finish() {
-        batch_sender.send(batch).await?;
+    if let Some(batch) = batcher.finish() {
+        batch_sender.send(batch)?;
     }
     Ok(())
 }
 
 /// Reads a file and extracts its features.
 fn extract_path(path: &Path) -> Result<FeaturesOrRuled> {
+    if path.to_str() == Some("-") {
+        let mut stdin = Vec::new();
+        std::io::stdin().read_to_end(&mut stdin)?;
+        return FeaturesOrRuled::extract(&stdin[..]);
+    }
     FeaturesOrRuled::extract(std::fs::File::open(path)?)
 }
 
 enum ProcessPath {
     Recursive,
-    /// A regular file whose content still has to be read.
     Content,
-    Features(Features),
     Ruled(FileType),
 }
 
-/// An item of work handed to a read thread.
-enum Work {
-    /// A regular file whose content still has to be read.
-    Content(Pending),
-
-    /// Standard input, whose features the walk already extracted.
-    Extracted { pending: Pending, features: Features },
+struct OrderPath {
+    order: usize,
+    path: PathBuf,
 }
 
-/// Feature extraction result produced by any reader and consumed by the single accumulator.
 struct ReadItem {
-    pending: Pending,
+    pending: OrderPath,
     extracted: Result<FeaturesOrRuled>,
 }
 
-/// A path and its permit in the bounded, ordered result window.
-struct Pending {
-    order: usize,
-    path: PathBuf,
-    permit: tokio::sync::OwnedSemaphorePermit,
-}
-
-impl From<FeaturesOrRuled> for ProcessPath {
-    fn from(value: FeaturesOrRuled) -> Self {
-        match value {
-            FeaturesOrRuled::Features(x) => ProcessPath::Features(x),
-            FeaturesOrRuled::Ruled(x) => ProcessPath::Ruled(FileType::Ruled(x)),
-        }
-    }
-}
-
-async fn process_path(
+fn process_path(
     flags: &Flags, paths: &mut Vec<(PathBuf, Option<std::fs::FileType>)>, path: &Path,
     known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if path.to_str() == Some("-") {
-        let mut stdin = Vec::new();
-        tokio::io::stdin().read_to_end(&mut stdin).await?;
-        return Ok(FeaturesOrRuled::extract(&stdin[..])?.into());
+        return Ok(ProcessPath::Content);
     }
     // `read_dir` already reported the type of every entry it produced, so reading its metadata
     // again would be one extra system call per file on the one task that feeds every reader. Only
@@ -650,18 +577,18 @@ async fn process_path(
         Some(known) if flags.no_dereference || !known.is_symlink() => known,
         _ => {
             if flags.no_dereference {
-                tokio::fs::symlink_metadata(&path).await?.file_type()
+                std::fs::symlink_metadata(path)?.file_type()
             } else {
-                tokio::fs::metadata(&path).await?.file_type()
+                std::fs::metadata(path)?.file_type()
             }
         }
     };
     if metadata.is_dir() {
         return Ok(if flags.recursive {
-            let mut entries = tokio::fs::read_dir(&path).await?;
             let mut dir_paths = Vec::new();
-            while let Some(entry) = entries.next_entry().await? {
-                dir_paths.push((entry.path(), entry.file_type().await.ok()));
+            for entry in std::fs::read_dir(path)? {
+                let entry = entry?;
+                dir_paths.push((entry.path(), entry.file_type().ok()));
             }
             dir_paths.sort_by(|a, b| a.0.cmp(&b.0));
             while let Some(path) = dir_paths.pop() {
@@ -678,96 +605,68 @@ async fn process_path(
     Ok(ProcessPath::Content)
 }
 
-fn spawn_inference_threads(
-    threads: usize, runtime: Arc<Runtime>, receiver: &async_channel::Receiver<InferenceBatch>,
-    sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Arc<Trace>, first_stage: usize,
-) -> Result<Vec<JoinHandle<()>>> {
-    (0..threads)
-        .map(|index| {
-            let receiver = receiver.clone();
-            let sender = sender.clone();
-            let runtime = runtime.clone();
-            let trace = trace.clone();
-            let stage = first_stage + index;
-            std::thread::Builder::new()
-                .name(format!("magika-inference-{index}"))
-                .spawn(move || {
-                    if let Err(error) = infer_batches(&runtime, &receiver, &sender, &trace, stage) {
-                        let _ = sender.blocking_send(Err(error));
-                    }
-                })
-                .map_err(Into::into)
-        })
-        .collect()
-}
-
 fn infer_batches(
-    runtime: &Runtime, receiver: &async_channel::Receiver<InferenceBatch>,
-    sender: &tokio::sync::mpsc::Sender<Result<Response>>, trace: &Trace, stage: usize,
+    runtime: &Runtime, receiver: &crossbeam_channel::Receiver<InferenceBatch>,
+    sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
     // Create a session only when a thread receives its first batch. A short run never reaches most
     // threads, so spawning their private execution state up front would be pure startup overhead.
     let mut session = None;
-    loop {
-        let waiting = trace.start();
-        let Ok(InferenceBatch { pending, features }) = receiver.recv_blocking() else { break };
-        trace.add(stage, waiting, false);
-
-        let running = trace.start();
+    while let Ok(InferenceBatch { pending, features }) = receiver.recv() {
         let magika = match &mut session {
             Some(session) => session,
             slot => slot.insert(runtime.session()?),
         };
         let batch = magika.identify_features_batch(&features)?;
-        trace.add(stage, running, true);
-        assert_eq!(batch.len(), pending.len());
-
-        let sending = trace.start();
+        debug_assert_eq!(batch.len(), pending.len());
         for (pending, output) in pending.into_iter().zip(batch) {
             let result = Ok(output);
-            sender.blocking_send(Ok(Response::new(pending, result)))?;
+            sender.send(Ok(Response::new(pending, result)))?;
         }
-        trace.add(stage, sending, false);
     }
     Ok(())
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Reorder {
-    next: usize,
+    next: Arc<AtomicUsize>,
     todo: HashMap<usize, Response>,
 }
 
 impl Reorder {
+    fn new(next: Arc<AtomicUsize>) -> Self {
+        Reorder { next, todo: HashMap::new() }
+    }
+
     fn is_empty(&self) -> bool {
         self.todo.is_empty()
     }
 
     fn push(&mut self, response: Response) {
-        debug_assert!(self.next <= response.order);
+        debug_assert!(self.next.load(Relaxed) <= response.order);
         let prev = self.todo.insert(response.order, response);
         debug_assert!(prev.is_none());
     }
 
     fn pop(&mut self) -> Option<Response> {
-        let result = self.todo.remove(&self.next)?;
-        self.next += 1;
+        let result = self.todo.remove(&self.next.load(Relaxed))?;
+        self.next.fetch_add(1, Relaxed);
         Some(result)
     }
 }
 
 struct InferenceBatch {
-    pending: Vec<Pending>,
+    pending: Vec<OrderPath>,
     features: Vec<Features>,
 }
 
-struct Accumulator {
+struct Batcher {
     batch_size: usize,
-    pending: Vec<Pending>,
+    pending: Vec<OrderPath>,
     features: Vec<Features>,
 }
 
-impl Accumulator {
+impl Batcher {
     fn new(batch_size: usize) -> Self {
         Self {
             batch_size,
@@ -776,7 +675,7 @@ impl Accumulator {
         }
     }
 
-    fn push(&mut self, pending: Pending, features: Features) -> Option<InferenceBatch> {
+    fn push(&mut self, pending: OrderPath, features: Features) -> Option<InferenceBatch> {
         self.pending.push(pending);
         self.features.push(features);
         (self.features.len() == self.batch_size).then(|| self.take())
@@ -799,12 +698,11 @@ struct Response {
     order: usize,
     path: PathBuf,
     result: Result<FileType>,
-    _permit: tokio::sync::OwnedSemaphorePermit,
 }
 
 impl Response {
-    fn new(pending: Pending, result: Result<FileType>) -> Self {
-        Self { order: pending.order, path: pending.path, result, _permit: pending.permit }
+    fn new(pending: OrderPath, result: Result<FileType>) -> Self {
+        Self { order: pending.order, path: pending.path, result }
     }
 }
 
@@ -988,77 +886,4 @@ fn join<T: AsRef<str>>(xs: impl IntoIterator<Item = T>) -> String {
     }
     result.push(']');
     result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn model_features() -> Features {
-        match FeaturesOrRuled::extract(std::fs::File::open("../../README.md").unwrap()).unwrap() {
-            FeaturesOrRuled::Features(features) => features,
-            FeaturesOrRuled::Ruled(_) => panic!("README must exercise model inference"),
-        }
-    }
-
-    #[tokio::test]
-    async fn global_accumulator_combines_work_from_every_reader() {
-        let (batch_sender, batch_receiver) = async_channel::bounded::<InferenceBatch>(8);
-        let (result_sender, _result_receiver) = tokio::sync::mpsc::channel(8);
-        let trace = Trace::default();
-        let (read_sender, read_receiver) = async_channel::bounded(8);
-        let result_window = Arc::new(tokio::sync::Semaphore::new(8));
-
-        for reader in 0..4 {
-            let (work_sender, work_receiver) = async_channel::bounded(2);
-            for item in 0..2 {
-                let order = reader * 2 + item;
-                let pending = Pending {
-                    order,
-                    path: PathBuf::from(format!("file-{order}")),
-                    permit: result_window.clone().acquire_owned().await.unwrap(),
-                };
-                work_sender
-                    .send_blocking(Work::Extracted { pending, features: model_features() })
-                    .unwrap();
-            }
-            drop(work_sender);
-            read_files(&work_receiver, &read_sender, &trace, reader);
-        }
-        drop(read_sender);
-        accumulate_files(8, &read_receiver, &batch_sender, &result_sender, &trace, 0)
-            .await
-            .unwrap();
-        drop(batch_sender);
-
-        let batches =
-            std::iter::from_fn(|| batch_receiver.recv_blocking().ok()).collect::<Vec<_>>();
-        assert_eq!(batches.len(), 1, "all readers must feed one accumulator");
-        assert_eq!(batches[0].features.len(), 8);
-    }
-
-    #[tokio::test]
-    async fn reorder_holds_capacity_until_the_response_is_printable() {
-        let window = Arc::new(tokio::sync::Semaphore::new(2));
-        let first = window.clone().acquire_owned().await.unwrap();
-        let second = window.clone().acquire_owned().await.unwrap();
-        let mut reorder = Reorder::default();
-
-        reorder.push(Response {
-            order: 1,
-            path: PathBuf::from("second"),
-            result: Ok(FileType::Directory),
-            _permit: second,
-        });
-        assert!(window.clone().try_acquire_owned().is_err());
-
-        reorder.push(Response {
-            order: 0,
-            path: PathBuf::from("first"),
-            result: Ok(FileType::Directory),
-            _permit: first,
-        });
-        drop(reorder.pop().unwrap());
-        assert!(window.clone().try_acquire_owned().is_ok());
-    }
 }

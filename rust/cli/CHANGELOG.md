@@ -4,24 +4,10 @@
 
 ### Minor
 
-- Replace the ONNX Runtime backend with an embedded tract runtime, so the binary no longer needs
-  an external inference runtime
-- Add `--backend` to select automatic, CPU-only or GPU-required inference
-- Add `--verbose` to report the selected inference device and implementation
-- Add `--readers` to size the pool of threads reading files and extracting features
-- Scale `--threads` with the available parallelism on a CPU instead of always using four, which
-  left most of a multi-core host idle. Use every logical CPU on x86_64 Linux and leave one free on
-  other CPU targets, and default `--readers` to one per inference thread
-- Add `--trace-utilization` to report busy and waiting time per pipeline stage
-- Rename `--num-tasks` to `--threads` and document it, keeping `--num-tasks` as an alias
-- Document `--batch-size` and raise its default from one to eight
-- Remove `--intra-threads`, `--inter-threads`, `--optimization-level` and `--parallel-execution`,
-  which configured the ONNX Runtime
+- Remove the dependency on the ONNX Runtime
 
 ### Patch
 
-- Accumulate features from every reader into one global inference batch and bound ordered results
-- Cancel queued pipeline work when standard output closes so recursive runs terminate promptly
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

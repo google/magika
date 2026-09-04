@@ -16,12 +16,16 @@
 set -e
 . ../color.sh
 
+PROFILE=release-fast
+
 x cargo check
-x cargo build --release
+x cargo check --features=_trace
+x cargo build --profile=$PROFILE
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
+x cargo clippy --features=_trace -- --deny=warnings
 
-PATH=$(dirname $PWD)/target/release:$PATH
+PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 
 TEST_SUITES='basic previous_missdetections'
 info "Test against the test suites: $TEST_SUITES"
@@ -35,7 +39,7 @@ info "Test against the test suites: $TEST_SUITES"
   done
 )
 
-# We rely below on the fact that we don't have permission on /etc/shadow.
+# We rely below on the fact that we don't have permission to read `chmod 000` files.
 [ $(id -u) -eq 0 ] && success "No more tests in Docker"
 
 info "Test exit code with at least one error"
@@ -49,8 +53,11 @@ test_error() {
     [ "$actual" = "$expected" ] || error "invalid output for magika $files"
   )
 }
-test_error '/etc/shadow' "\
-/etc/shadow: Permission denied (os error 13) (error)"
+unreadable=$(mktemp)
+trap 'chmod u+rw "$unreadable"; rm -f "$unreadable"' EXIT
+chmod 000 "$unreadable"
+test_error "$unreadable" "\
+$unreadable: Permission denied (os error 13) (error)"
 test_error 'non_existent src/main.rs' "\
 non_existent: No such file or directory (os error 2) (error)
 src/main.rs: Rust source (code)"

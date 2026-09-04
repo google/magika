@@ -14,55 +14,40 @@
 
 //! Determines file content types using AI.
 //!
-//! This library indirectly depends on the ONNX Runtime through the `ort` [crate][ort-crate]. The
-//! final user is responsible to make sure the ONNX Runtime is available. The `ort` crate provides
-//! [many options][ort-linking] in this regard. The simplest option is to enable the default [cargo
-//! features][ort-features] of the `ort` crate by adding the following dependency to the
-//! `Cargo.toml` file of the final binary:
-//!
-//! ```toml
-//! [dependencies]
-//! ort = "=2.0.0-rc.12"
-//! ```
-//!
 //! # Examples
 //!
 //! ```rust
-//! # fn main() -> magika::Result<()> {
-//! // A Magika session can be used multiple times across multiple threads.
+//! # fn main() -> anyhow::Result<()> {
 //! let mut magika = magika::Session::new()?;
 //!
 //! // Files can be identified from their path.
-//! assert_eq!(magika.identify_file_sync("src/lib.rs")?.info().label, "rust");
+//! assert_eq!(magika.identify_file("src/lib.rs")?.info().label, "rust");
 //!
 //! // Contents can also be identified directly from memory.
-//! let result = magika.identify_content_sync(&b"#!/bin/sh\necho hello"[..])?;
+//! let result = magika.identify_content(&b"#!/bin/sh\necho hello"[..])?;
 //! assert_eq!(result.info().label, "shell");
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! [ort-crate]: https://crates.io/crates/ort
-//! [ort-linking]: https://ort.pyke.io/setup/linking
-//! [ort-features]: https://ort.pyke.io/setup/cargo-features
 
 #![cfg_attr(feature = "_doc", feature(doc_cfg))]
 
+pub use crate::backend::{Backend, BackendInfo};
 pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
-pub use crate::error::{Error, Result};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
-pub use crate::input::{AsyncInput, Features, FeaturesOrRuled, SyncInput};
+pub use crate::input::{Features, FeaturesOrRuled, Input};
+pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
+mod backend;
 mod builder;
 mod config;
 mod content;
-mod error;
 mod file;
-mod future;
 mod input;
 mod model;
+mod runtime;
 mod session;
 
 #[cfg(test)]
@@ -137,7 +122,7 @@ mod tests {
             }
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
-            let actual = session.identify_file_sync(format!("../../{}", test.path)).unwrap();
+            let actual = session.identify_file(format!("../../{}", test.path)).unwrap();
             assert_prediction(actual, expected, &test.path);
         }
     }
@@ -166,8 +151,37 @@ mod tests {
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
-            let actual = session.identify_content_sync(content.as_slice()).unwrap();
+            let actual = session.identify_content(content.as_slice()).unwrap();
             assert_prediction(actual, expected, &test.content_base64);
         }
+    }
+
+    #[test]
+    fn every_fixed_batch_class_matches_on_cpu_and_auto() {
+        let features =
+            match FeaturesOrRuled::extract(File::open("../../README.md").unwrap()).unwrap() {
+                FeaturesOrRuled::Features(features) => features,
+                FeaturesOrRuled::Ruled(_) => panic!("README must exercise model inference"),
+            };
+        let features: [Features; 64] = std::array::from_fn(|_| Features(features.0.clone()));
+        for backend in [Some(Backend::Cpu), None] {
+            let mut builder = Runtime::builder();
+            if let Some(backend) = backend {
+                builder = builder.with_backend(backend);
+            }
+            let runtime = builder.build().unwrap();
+            let mut session = runtime.session().unwrap();
+            for batch in [1, 4, 8, 16, 32, 64] {
+                let results = session.identify_features_batch(&features[..batch]).unwrap();
+                assert_eq!(results.len(), batch);
+                assert!(results.iter().all(|result| result.info().label == "markdown"));
+            }
+        }
+    }
+
+    #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
+    #[test]
+    fn forced_gpu_fails_when_no_gpu_backend_is_compiled() {
+        assert!(Runtime::builder().with_backend(Backend::Gpu).build().is_err());
     }
 }

@@ -1,6 +1,26 @@
 # Changelog
 
-## 1.1.1-dev
+## 2.0.0-dev
+
+### Major
+
+- Remove the dependency on the ONNX Runtime
+- Remove async support for `Session`
+- Remove the `_async` methods of `Session`
+- Remove the `_sync` suffix from the `Session` methods
+- Rename `SyncInput` to `Input`
+- Remove `Error` and `Result` using the `anyhow` crate instead
+- Change all methods from `Builder` which now builds a `Runtime`
+- Remove `Session::builder()` in favor of `Runtime::builder()`
+
+### Minor
+
+- Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
+- Add `Runtime` to prepare the model once and create one `Session` per inference thread
+- Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference
+- Add `Builder::with_max_batch()` to prepare only the batch classes a caller can reach
+- Add `Backend` and `BackendInfo` for backend selection (CPU or GPU) and information
+- Add `Session::backend_info()` to get information about the backend
 
 ### Patch
 

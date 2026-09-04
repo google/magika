@@ -12,65 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use ort::session::builder::GraphOptimizationLevel;
+use anyhow::Result;
 
-use crate::{Result, Session};
+use crate::{Backend, Runtime};
 
-/// Configures and creates a Magika session.
-#[derive(Debug, Default)]
+/// Configures and creates a Magika runtime.
+#[derive(Clone, Debug, Default)]
 pub struct Builder {
-    inter_threads: Option<usize>,
-    intra_threads: Option<usize>,
-    optimization_level: Option<GraphOptimizationLevel>,
-    parallel_execution: Option<bool>,
+    backend: Option<Backend>,
+    max_batch: Option<usize>,
 }
 
 impl Builder {
-    /// Configures the number of threads to parallelize the execution of the graph.
-    pub fn with_inter_threads(mut self, num_threads: usize) -> Self {
-        self.inter_threads = Some(num_threads);
+    /// Selects a specific backend for inference.
+    pub fn with_backend(mut self, backend: Backend) -> Self {
+        self.backend = Some(backend);
         self
     }
 
-    /// Configures the number of threads to parallelize the execution within nodes.
-    pub fn with_intra_threads(mut self, num_threads: usize) -> Self {
-        self.intra_threads = Some(num_threads);
+    /// Declares the largest batch this session will ever be asked to identify.
+    ///
+    /// Declaring a smaller maximum skips unreachable fixed plans and makes startup cheaper. On an
+    /// x86_64 CPU, smaller tails are padded through the largest resident optimized plan;
+    /// elsewhere, requests are decomposed over the original resident classes.
+    pub fn with_max_batch(mut self, max_batch: usize) -> Self {
+        self.max_batch = Some(max_batch);
         self
     }
 
-    /// Configures the session optimization level.
-    pub fn with_optimization_level(mut self, opt_level: GraphOptimizationLevel) -> Self {
-        self.optimization_level = Some(opt_level);
-        self
-    }
-
-    /// Configures the session parallel execution.
-    pub fn with_parallel_execution(mut self, parallel_execution: bool) -> Self {
-        self.parallel_execution = Some(parallel_execution);
-        self
-    }
-
-    /// Consumes the builder to create a Magika session.
-    pub fn build(self) -> Result<Session> {
-        Ok(self.build_()?)
-    }
-
-    fn build_(self) -> ort::Result<Session> {
-        let mut session = ort::session::Session::builder()?;
-        let Builder { inter_threads, intra_threads, optimization_level, parallel_execution } = self;
-        if let Some(num_threads) = inter_threads {
-            session = session.with_inter_threads(num_threads)?;
-        }
-        if let Some(num_threads) = intra_threads {
-            session = session.with_intra_threads(num_threads)?;
-        }
-        if let Some(opt_level) = optimization_level {
-            session = session.with_optimization_level(opt_level)?;
-        }
-        if let Some(parallel_execution) = parallel_execution {
-            session = session.with_parallel_execution(parallel_execution)?;
-        }
-        let session = session.commit_from_memory(include_bytes!("model.onnx"))?;
-        Ok(Session { session })
+    /// Consumes the builder to create a Magika runtime.
+    pub fn build(self) -> Result<Runtime> {
+        Runtime::new_internal(Backend::to_request(self.backend), self.max_batch)
     }
 }

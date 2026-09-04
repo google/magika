@@ -1,0 +1,62 @@
+[package]
+name = "magika-tract-bench"
+version = "0.0.0"
+publish = false
+edition = "2024"
+rust-version = "1.91"
+default-run = "magika-runtime-bench"
+
+[[bin]]
+name = "magika-runtime-bench"
+path = "src/main.rs"
+
+[[bin]]
+name = "convert-model"
+path = "src/bin/convert_model.rs"
+required-features = ["convert"]
+
+[[bin]]
+name = "optimize-onnx"
+path = "src/bin/optimize_onnx.rs"
+required-features = ["ort-runtime"]
+
+[[bin]]
+name = "verify-model"
+path = "src/bin/verify_model.rs"
+required-features = ["verify"]
+
+[features]
+default = ["ort-runtime"]
+convert = ["dep:flate2", "dep:tract-core", "dep:tract-hir", "dep:tract-nnef", "dep:tract-onnx"]
+ort-runtime = ["dep:ndarray", "dep:ort"]
+verify = ["ort-runtime", "dep:tract-core", "dep:tract-nnef"]
+
+[dependencies]
+anyhow = "1.0.104"
+flate2 = { version = "1.1.9", optional = true }
+magika-tract-runtime = { path = "../tract-runtime" }
+ndarray = { version = "0.17.2", optional = true }
+tract-core = { version = "=0.23.4", optional = true }
+tract-hir = { version = "=0.23.4", optional = true }
+tract-nnef = { version = "=0.23.4", optional = true }
+tract-onnx = { version = "=0.23.4", optional = true }
+
+[dependencies.ort]
+version = "=2.0.0-rc.12"
+optional = true
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
+
+# Keep ordinary `cargo run` useful for performance iteration. Release builds remain authoritative
+# for recorded timings because their single codegen unit and full LTO cost too much for dev cycles.
+[profile.dev]
+debug = 1
+opt-level = 3
+
+[lints.rust]
+missing_docs = "warn"
+unreachable_pub = "warn"
+unused = { level = "warn", priority = -1 }

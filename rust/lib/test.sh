@@ -18,7 +18,7 @@ set -e
 
 x cargo check
 x cargo check --features=serde
-x cargo test --features=_test
+x cargo test
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
 if cargo --version | grep -q nightly; then

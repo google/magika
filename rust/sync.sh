@@ -19,9 +19,15 @@ set -e
 info "Sync generated files"
 ( cd gen; cargo run; )
 
+info "Sync embedded model"
+( cd tract-bench
+  cargo run --no-default-features --features=convert --bin=convert-model -- \
+    ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le}
+)
+
 info "Sync CLI output"
 ( cd cli; cargo build --profile=release-fast; )
-PATH=$PWD/target/release:$PATH
+PATH=$PWD/target/release-fast:$PATH
 ( cd ../tests_data/basic
   set -x
   magika rust/code.rs

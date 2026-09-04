@@ -89,22 +89,6 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-      # TODO(PR): Remove if comments if it works.
-      # - if: matrix.platform.runner == 'ubuntu-latest'
-      #   name: Build wheels
-      #   uses: PyO3/maturin-action@v1
-      #   with:
-      #     target: ${{ matrix.platform.target }}
-      #     args: --release --out=../dist
-      #     manylinux: 2_28
-      #     working-directory: python
-      # - if: matrix.platform.runner != 'ubuntu-latest'
-      #   name: Build wheels
-      #   uses: PyO3/maturin-action@v1
-      #   with:
-      #     target: ${{ matrix.platform.target }}
-      #     args: --release --out=../dist
-      #     working-directory: python
       - name: Build wheels
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:

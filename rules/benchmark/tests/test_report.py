@@ -87,3 +87,18 @@ def test_multiclass_false_positive_rate_has_negative_denominator(observations):
     assert values["fp"] == 1
     assert values["tn"] == 2
     assert values["fp_rate"] == pytest.approx(1 / 3)
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+@pytest.mark.parametrize("matched", [True, False])
+def test_unadjudicated_matches_cannot_qualify_enforced_rules(observations, enabled, matched):
+    from magika_rules_benchmark.report import failures
+
+    observations["samples"].pop()  # Remove the unrelated, already-covered false positive.
+    observations["rules"]["png_rule"]["enforced"] = enabled
+    unknown = observations["samples"][0].copy()
+    unknown.update(truth=None, raw_matches=["png_rule"] if matched else [])
+    observations["samples"].append(unknown)
+    assert bool(failures(observations)) == (enabled and matched)
+    if enabled and matched:
+        assert metrics(observations)["per_rule"]["png_rule"]["status"] == "not_working"

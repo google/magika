@@ -85,10 +85,13 @@ def metrics(result):
         tp = sum(r["truth"] == rule["format_id"] for r in targets)
         fp, fn = len(targets) - tp, positives - tp
         ambiguous = sum(r["ambiguous"] and name in r["raw_matches"] for r in rows)
+        unadjudicated = sum(
+            r["truth"] is None and not r["ambiguous"] and name in r["raw_matches"] for r in rows
+        )
         enabled = rule.get("enforced", rule.get("enabled", False))
         status = (
             "not_working"
-            if fp or ambiguous or not tp or not enabled
+            if fp or ambiguous or unadjudicated or not tp or not enabled
             else "partial"
             if fn
             else "full"
@@ -97,6 +100,7 @@ def metrics(result):
             format_id=rule["format_id"],
             status=status,
             ambiguous_matches=ambiguous,
+            unadjudicated_matches=unadjudicated,
             conflicts=dict(Counter(r["truth"] for r in targets if r["truth"] != rule["format_id"])),
         )
     primary = [r for r in known if r["truth"] in supported]
@@ -435,7 +439,9 @@ def failures(result):
     for name, rule in result["rules"].items():
         measured = values["per_rule"][name]
         if rule.get("enforced", rule.get("enabled", False)) and (
-            measured["fp"] or measured["ambiguous_matches"]
+            measured["fp"] or measured["ambiguous_matches"] or measured["unadjudicated_matches"]
         ):
-            errors.append(f"Enforced rule {name} produced a false positive or ambiguous match")
+            errors.append(
+                f"Enforced rule {name} produced a false positive, ambiguous or unadjudicated match"
+            )
     return errors

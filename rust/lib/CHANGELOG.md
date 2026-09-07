@@ -30,6 +30,8 @@
 
 ### Patch
 
+- Reuse a complete file prefix for tail features instead of reading small files twice.
+
 - Keep rules' 4 KiB input window independent of the model block size, preserve feature extraction on abstention, and reject mismatched model dimensions at compile time.
 - Exclude the working directory and PATH from implicit Windows rules-library searches; explicitly selected DLLs may load dependencies beside themselves.
 - Require Rust 1.93 and verify all features and targets on that minimum version.

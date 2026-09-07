@@ -154,9 +154,16 @@ fn extract_features_with_prefix(
 ) -> Result<(Vec<u8>, Vec<i32>)> {
     let buffer_size = content_beg.len();
     let beg = strip_prefix(&content_beg);
-    let mut end = vec![0; buffer_size];
-    file.read_at(&mut end, file_len - buffer_size as u64)?;
-    let end = strip_suffix(&end);
+    let mut tail = Vec::new();
+    let end = if file_len == buffer_size as u64 {
+        // The prefix already holds the complete file, including its tail.
+        content_beg.as_slice()
+    } else {
+        tail.resize(buffer_size, 0);
+        file.read_at(&mut tail, file_len - buffer_size as u64)?;
+        tail.as_slice()
+    };
+    let end = strip_suffix(end);
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
@@ -219,6 +226,24 @@ mod tests {
             self.reads.push((offset, buffer.len()));
             buffer.copy_from_slice(&self.bytes[offset as usize..offset as usize + buffer.len()]);
             Ok(())
+        }
+    }
+
+    #[test]
+    fn a_complete_prefix_is_not_read_again_for_the_tail() {
+        let block_size = crate::model::CONFIG.block_size;
+        for len in [1, 7, 8, 9, 1023, 1024, 2048, block_size - 1, block_size, block_size + 1] {
+            let mut input = CountingInput {
+                bytes: (0..len).map(|i| (i % 256) as u8).collect(),
+                reads: Vec::new(),
+            };
+            FeaturesOrRuled::extract_with_matcher(&mut input, |_, _| None).unwrap();
+            let expected = if len <= block_size {
+                vec![(0, len)]
+            } else {
+                vec![(0, block_size), (1, block_size)]
+            };
+            assert_eq!(input.reads, expected, "input length {len}");
         }
     }
 

@@ -224,12 +224,22 @@ rule taxonomy_gif
         fn_rate = 0.03
 
 	strings:
-		$p0_0 = { 47 49 46 38 }
-		$p1_0 = "GIF87a"
-		$p2_0 = "GIF89a"
+        $version = /GIF8[79]a/
+        $block = { ( 21 | 2C | 3B ) }
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p1_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p2_0 at 0)))
+    condition:
+        prefix_size >= 14 and $version at 0 and uint16(6) > 0 and uint16(8) > 0 and
+        (
+            (uint8(10) < 128 and $block at 13) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 0 and $block at 19) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 1 and $block at 25) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 2 and $block at 37) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 3 and $block at 61) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 4 and $block at 109) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 5 and $block at 205) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 6 and $block at 397) or
+            (uint8(10) >= 128 and uint8(10) % 8 == 7 and $block at 781)
+        )
 }
 
 rule taxonomy_hlp
@@ -405,16 +415,15 @@ rule taxonomy_pcap
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.17999999999999999
+        fn_rate = 0.19
 
 	strings:
-		$p0_0 = { A1 B2 C3 D4 }
-		$p1_0 = { D4 C3 B2 A1 }
-		$p2_0 = { 4d 3c b2 a1 }
-		$p3_0 = { a1 b2 3c 4d }
+        $little = { ( D4 C3 B2 A1 | 4D 3C B2 A1 ) 02 00 04 00 }
+        $big = { ( A1 B2 C3 D4 | A1 B2 3C 4D ) 00 02 00 04 }
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0)))
+    condition:
+        prefix_size >= 24 and
+        (($little at 0 and uint32(16) > 0) or ($big at 0 and uint32be(16) > 0))
 }
 
 rule taxonomy_pdb

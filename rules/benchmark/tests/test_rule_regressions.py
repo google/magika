@@ -88,6 +88,11 @@ def test_all_public_fixture_incomplete_prefixes_abstain(scan_rules):
 
 
 POSITIVE_FILES = [
+    ("3dsx", "rules_positive/review-3dsx.bin"),
+    ("au", "rules_positive/review-au.bin"),
+    ("gif", "mitra/gif/gif87.gif"),
+    ("gif", "mitra/gif/gif89.gif"),
+    ("pcap", "mitra/pcap/pcap.pcap"),
     ("fbx", "rules_positive/review-fbx-legacy.bin"),
     ("bzip", "mitra/bzip/bzip2.bz2"),
     *[
@@ -360,6 +365,35 @@ def test_native_engine_agrees_on_adversarial_and_positive_corpus(tmp_path):
     )
     cases = [(path, None) for path in NEGATIVES]
     cases += [(ROOT / "tests_data" / path, label) for label, path in POSITIVE_FILES]
+    generated = []
+    for version in (b"87a", b"89a"):
+        for bits in (None, *range(8)):
+            content = gif_fixture(version, bits)
+            offset = 13 + (3 * (2 << bits) if bits is not None else 0)
+            generated += [(content, "gif"), (content[:offset], None)]
+            generated.append((content[:offset] + b"\0" + content[offset + 1 :], None))
+    for order in ("little", "big"):
+        for nano in (False, True):
+            content = pcap_fixture(order, nano)
+            generated.append((content, "pcap"))
+            generated.extend((content[:length], None) for length in range(24))
+            generated.append((content[:16] + bytes(4) + content[20:], None))
+        for encoding in (*range(1, 15), *range(16, 28)):
+            content = (
+                (b".snd" if order == "big" else b"dns.")
+                + b"".join(
+                    value.to_bytes(4, order) for value in [24, 0xFFFFFFFF, encoding, 96001, 3]
+                )
+                + bytes(16)
+            )
+            generated += [(content, "au"), (content[:20] + bytes(4) + content[24:], None)]
+    for label, minimum in (("3dsx", 56), ("au", 24)):
+        content = (ROOT / f"tests_data/rules_positive/review-{label}.bin").read_bytes()
+        generated.extend((content[:length], None) for length in range(minimum))
+    for index, (content, expected) in enumerate(generated):
+        path = tmp_path / f"gif-pcap-{index}.bin"
+        path.write_bytes(content)
+        cases.append((path, expected))
     records = [
         dict(
             path=str(path),
@@ -429,3 +463,137 @@ def test_unix_compress_requires_valid_lzw_flags(scan_rules, flags):
 @pytest.mark.parametrize("suffix", [bytes(128), b"notes " * 32, b"\xff" * 128])
 def test_cab_signature_alone_is_insufficient(scan_rules, suffix):
     assert scan_rules(b"MSCF" + suffix) == set()
+
+
+def gif_fixture(version=b"89a", palette_bits=None):
+    """A complete one-pixel GIF with a local or global color table."""
+    palette = b"\x00\x00\x00\xff\xff\xff"
+    global_table = (
+        palette + bytes(3 * ((2 << palette_bits) - 2)) if palette_bits is not None else b""
+    )
+    flags = 0x80 | palette_bits if palette_bits is not None else 0
+    screen = b"\x01\x00\x01\x00" + bytes([flags, 0, 0])
+    image = b",\x00\x00\x00\x00\x01\x00\x01\x00"
+    image += b"\x00" if global_table else b"\x80" + palette
+    return b"GIF" + version + screen + global_table + image + b"\x02\x02\x44\x01\x00;"
+
+
+@pytest.mark.parametrize("version", [b"87a", b"89a"])
+@pytest.mark.parametrize("palette_bits", [None, *range(8)])
+def test_gif_color_table_boundaries(scan_rules, version, palette_bits):
+    content = gif_fixture(version, palette_bits)
+    assert scan_rules(content) == {"gif"}
+    block_offset = 13 + (3 * (2 << palette_bits) if palette_bits is not None else 0)
+    assert "gif" not in scan_rules(content[:block_offset])
+    damaged = bytearray(content)
+    damaged[block_offset] = 0
+    assert "gif" not in scan_rules(damaged)
+
+
+@pytest.mark.parametrize(
+    "offset,replacement", [(3, b"80a"), (4, b"9b"), (6, b"\0\0"), (8, b"\0\0")]
+)
+def test_gif_requires_version_and_dimensions(scan_rules, offset, replacement):
+    content = bytearray(gif_fixture())
+    content[offset : offset + len(replacement)] = replacement
+    assert "gif" not in scan_rules(content)
+
+
+def pcap_fixture(order="little", nano=False):
+    magic = 0xA1B23C4D if nano else 0xA1B2C3D4
+    # Empty captures are valid, and the two old timezone/accuracy fields are ignored by readers.
+    return (
+        magic.to_bytes(4, order)
+        + (2).to_bytes(2, order)
+        + (4).to_bytes(2, order)
+        + (3600).to_bytes(4, order)
+        + (42).to_bytes(4, order)
+        + (65535).to_bytes(4, order)
+        + (147).to_bytes(4, order)
+    )
+
+
+@pytest.mark.parametrize("order", ["little", "big"])
+@pytest.mark.parametrize("nano", [False, True])
+def test_pcap_complete_header_and_endianness(scan_rules, order, nano):
+    content = pcap_fixture(order, nano)
+    assert scan_rules(content) == {"pcap"}
+    for length in range(24):
+        assert "pcap" not in scan_rules(content[:length])
+    for offset, width, value in [(4, 2, 0), (4, 2, 1), (4, 2, 3), (6, 2, 0), (16, 4, 0)]:
+        damaged = bytearray(content)
+        damaged[offset : offset + width] = value.to_bytes(width, order)
+        assert "pcap" not in scan_rules(damaged)
+
+
+@pytest.mark.parametrize(
+    "magic",
+    [
+        b"GIF8",
+        b"GIF87a",
+        b"GIF89a",
+        *(pcap_fixture(order, nano)[:4] for order in ("little", "big") for nano in (False, True)),
+    ],
+)
+@pytest.mark.parametrize("padding", [b"\0", b"\xff", b" "])
+def test_gif_and_pcap_padded_magic_abstains(scan_rules, magic, padding):
+    assert scan_rules(magic + padding * 1024) == set()
+
+
+@pytest.mark.parametrize("label,minimum", [("3dsx", 56), ("au", 24)])
+def test_3dsx_and_au_require_complete_headers(scan_rules, label, minimum):
+    content = (ROOT / f"tests_data/rules_positive/review-{label}.bin").read_bytes()
+    assert scan_rules(content) == {label}
+    for length in range(minimum):
+        assert label not in scan_rules(content[:length])
+
+
+@pytest.mark.parametrize(
+    "label,offset,replacement",
+    [
+        ("3dsx", 4, b"\x04\x00"),
+        ("3dsx", 6, b"\0\0"),
+        ("3dsx", 8, b"\x01"),
+        ("3dsx", 12, b"\x01"),
+        ("3dsx", 16, bytes(4)),
+        ("3dsx", 16, b"\x01\0\0\0"),
+        ("au", 4, bytes(4)),
+        ("au", 4, b"\0\0\0\x14"),
+        ("au", 12, bytes(4)),
+        ("au", 12, b"\xff" * 4),
+        ("au", 16, bytes(4)),
+        ("au", 20, bytes(4)),
+    ],
+)
+def test_3dsx_and_au_invalid_header_fields_abstain(scan_rules, label, offset, replacement):
+    content = bytearray((ROOT / f"tests_data/rules_positive/review-{label}.bin").read_bytes())
+    content[offset : offset + len(replacement)] = replacement
+    assert label not in scan_rules(content)
+
+
+@pytest.mark.parametrize("magic", [b"3DSX", b".snd"])
+@pytest.mark.parametrize("padding", [b"\0", b"\xff", b" "])
+def test_3dsx_and_au_padded_magic_abstains(scan_rules, magic, padding):
+    assert scan_rules(magic + padding * 1024) == set()
+
+
+@pytest.mark.parametrize("order", ["big", "little"])
+@pytest.mark.parametrize("encoding", [*range(1, 8), 23, 24, 25, 26, 27])
+def test_au_known_sample_encodings_and_byte_orders(scan_rules, order, encoding):
+    magic = b".snd" if order == "big" else b"dns."
+    # Streaming size is unknown; a sample rate or channel count need not be a common preset.
+    content = (
+        magic
+        + b"".join(x.to_bytes(4, order) for x in [24, 0xFFFFFFFF, encoding, 96001, 3])
+        + bytes(16)
+    )
+    assert scan_rules(content) == {"au"}
+
+
+@pytest.mark.parametrize("size", [32, 44])
+def test_3dsx_standard_and_extended_headers(scan_rules, size):
+    import struct
+
+    content = struct.pack("<4sHH6I", b"3DSX", size, 8, 0, 0, 4, 0, 0, 0)
+    content += bytes(size - 32 + 24) + bytes.fromhex("1e ff 2f e1")
+    assert scan_rules(content) == {"3dsx"}

@@ -54,6 +54,10 @@ precision guarantee. Unreviewed rules remain subject to the ongoing format audit
 | MIDI | Require header format, track count, valid timing division and first track header. Extended header chunks are outside this reviewed variant. | 100 / 100 |
 | FBX | Require the full little-endian binary header and ufbx-supported versions 3000–7700. Corpus evaluation caught and restored the legacy version through a dedicated fixture. | 100 / 100 |
 | Blender | Require pointer width, byte order and version fields in the pre-v5 header. Blender 5's extended header is outside this reviewed variant. | 100 / 100 |
+| GIF | Require version, nonzero dimensions and a block marker after the complete color table. | 97 / 100 |
+| PCAP | Require the 24-byte version-2.4 header, matching byte order and nonzero snapshot length. One formerly matched corpus file claims unsupported version 1.0 and now abstains. | 81 / 100 |
+| AU | Require the complete header, data offset, sample rate, channels and known encoding; support both byte orders. This corpus has only one AU positive, so coverage evidence is limited. | 1 / 1 |
+| 3DSX | Require version-zero standard/extended header, relocation header space and aligned segments. | 100 / 100 |
 
 Specification references include [gzip](https://www.rfc-editor.org/rfc/rfc1952),
 [EPUB ZIP requirements](https://www.w3.org/TR/epub-33/#sec-zip-container-mime),
@@ -67,6 +71,23 @@ The next batch compares pinned libmagic/Tika entries with the
 [WOFF](https://www.w3.org/TR/WOFF/), [WOFF2](https://www.w3.org/TR/WOFF2/),
 [NumPy format documentation](https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html)
 and [ufbx's reader](https://github.com/ufbx/ufbx/blob/master/ufbx.c).
+
+The following review batch compares libmagic's permissive magic matches with the
+[GIF89a specification](https://www.w3.org/Graphics/GIF/spec-gif89a.txt), the
+[PCAP format draft](https://www.ietf.org/archive/id/draft-ietf-opsawg-pcap-05.html),
+[libsndfile's AU reader and writer](https://github.com/libsndfile/libsndfile/blob/master/src/au.c)
+and [devkitPro's 3DSX writer](https://github.com/devkitPro/3dstools/blob/master/src/3dsxtool.cpp).
+GIF requires version, nonzero dimensions and a block marker after the complete
+global color table, covering all eight table sizes and the no-global-table case.
+PCAP requires the complete 24-byte header, version 2.4 and a nonzero snapshot
+length; both byte orders and microsecond/nanosecond timestamps are covered.
+The obsolete timezone/accuracy fields remain unrestricted. Older and extended
+PCAP versions remain outside this rule's coverage.
+AU requires its 24-byte header, a data offset beyond that header, nonzero sample
+rate and channels, and a documented encoding; both byte orders are supported.
+3DSX requires the standard or extended version-zero header, zero flags, relocation
+header space and aligned segment sizes. These are header checks; complete audio,
+image, packet or executable payload validation remains outside prefix matching.
 
 ## Regression and evaluation requirements
 

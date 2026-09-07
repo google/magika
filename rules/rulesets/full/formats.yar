@@ -66,11 +66,13 @@ rule taxonomy_3dsx
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 33 44 53 58 }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    strings:
+        $base = { 33 44 53 58 20 00 08 00 00 00 00 00 00 00 00 00 }
+        $extended = { 33 44 53 58 2C 00 08 00 00 00 00 00 00 00 00 00 }
+    condition:
+        (($base at 0 and prefix_size >= 56) or ($extended at 0 and prefix_size >= 68)) and
+        uint32(16) >= 4 and uint32(16) % 4 == 0 and uint32(20) % 4 == 0 and
+        uint32(24) % 4 == 0 and uint32(28) % 4 == 0
 }
 
 rule taxonomy_3gp
@@ -203,19 +205,17 @@ rule taxonomy_au
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = ".snd"
-		$p1_0 = { 00 00 00 01 }
-		$p2_0 = { 00 00 00 03 }
-		$p3_0 = { 2E 73 6E 64 00 00 00 }
-		$p4_0 = { 00 00 00 06 }
-		$p5_0 = { 00 00 00 07 }
-		$p6_0 = { 00 00 00 04 }
-		$p7_0 = { 00 00 00 02 }
-		$p8_0 = { 00 00 00 05 }
-
-	condition:
-		prefix_size >= 8 and ((((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) and ((prefix_size >= 16 and $p1_0 at 12) or (prefix_size >= 16 and $p2_0 at 12) or (prefix_size >= 16 and $p4_0 at 12) or (prefix_size >= 16 and $p5_0 at 12) or (prefix_size >= 16 and $p6_0 at 12) or (prefix_size >= 16 and $p7_0 at 12) or (prefix_size >= 16 and $p8_0 at 12))) or (prefix_size >= 7 and $p3_0 at 0)))
+    strings:
+        $big = ".snd"
+        $little = "dns."
+    condition:
+        prefix_size >= 24 and
+        (
+            ($big at 0 and uint32be(4) >= 24 and uint32be(16) > 0 and uint32be(20) > 0 and
+             ((uint32be(12) >= 1 and uint32be(12) <= 14) or (uint32be(12) >= 16 and uint32be(12) <= 27))) or
+            ($little at 0 and uint32(4) >= 24 and uint32(16) > 0 and uint32(20) > 0 and
+             ((uint32(12) >= 1 and uint32(12) <= 14) or (uint32(12) >= 16 and uint32(12) <= 27)))
+        )
 }
 
 rule taxonomy_avi

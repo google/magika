@@ -97,5 +97,27 @@
       "vt:abb4237b275f52136d33745530c3a629d196313149c98d256560f54c0335fca6"
     ],
     "corpus": "parquet-v56"
+  },
+  {
+    "file": "review-3dsx.bin",
+    "sha256": "8416b7e0a9b28baa73870df35175e72c8c1e722f1af98592416d1313204d891a",
+    "size": 110496,
+    "purpose": "Direct format-header regression; preserved corpus bytes.",
+    "label": "3dsx",
+    "origins": [
+      "vt:8416b7e0a9b28baa73870df35175e72c8c1e722f1af98592416d1313204d891a"
+    ],
+    "corpus": "parquet-v56"
+  },
+  {
+    "file": "review-au.bin",
+    "sha256": "97eeb08a309073fb625132c3833b7a6e2d64aaa39677751ee5a24ece4b7761c2",
+    "size": 3868,
+    "purpose": "Direct format-header regression; preserved corpus bytes.",
+    "label": "au",
+    "origins": [
+      "github:https://github.com/apache/tika/blob/5e029d3e2e977dbc266a199fc4c4fd3cb48af0f5/tika-parsers/tika-parsers-standard/tika-parsers-standard-modules/tika-parser-audiovideo-module/src/test/resources/test-documents/testAU.au:97eeb08a309073fb625132c3833b7a6e2d64aaa39677751ee5a24ece4b7761c2"
+    ],
+    "corpus": "parquet-v56"
   }
 ]

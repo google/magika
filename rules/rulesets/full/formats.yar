@@ -44,12 +44,16 @@ rule taxonomy_3dsm
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = /(\x4d){2}([\x00-\xff]){4}\x02\x00\x0a(\x00){3}[\x03-\x04](([\x00-\xff]){3}(\x3d){2})/
-		$p1_0 = /(\x4d){2}(([\x00-\xff]){4}(\x3d){2})/
+    // 3DS root chunk and child discriminator; reject impossible small main-chunk lengths and TIFF collisions.
+    strings:
+        $root = { 4D 4D }
+        $version = { 02 00 0A 00 00 00 }
+        $editor = { 3D 3D }
 
-	condition:
-		(($p0_0 at 0) or ($p1_0 at 0))
+    condition:
+        prefix_size >= 16 and $root at 0 and uint32(2) >= 16
+        and (($version at 6 and uint32(12) >= 3 and uint32(12) <= 4)
+             or ($editor at 6 and uint32(8) >= 6))
 }
 
 rule taxonomy_3dsx
@@ -66,7 +70,7 @@ rule taxonomy_3dsx
 		$p0_0 = { 33 44 53 58 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_3gp
@@ -106,7 +110,7 @@ rule taxonomy_3gp
 		$p23_0 = { 33 67 74 }
 
 	condition:
-		(((prefix_size >= 8 and $p9_0 at 4) and ((prefix_size >= 11 and $p2_0 at 8) or (prefix_size >= 11 and $p5_0 at 8) or (prefix_size >= 11 and $p11_0 at 8) or (prefix_size >= 11 and $p12_0 at 8) or (prefix_size >= 11 and $p15_0 at 8) or (prefix_size >= 11 and $p17_0 at 8) or (prefix_size >= 11 and $p19_0 at 8) or (prefix_size >= 11 and $p23_0 at 8))) or ((prefix_size >= 11 and original_size >= 11 and $p0_0 at 4) or (prefix_size >= 12 and $p1_0 at 4) or (prefix_size >= 12 and $p3_0 at 4) or (prefix_size >= 12 and $p4_0 at 4) or (prefix_size >= 12 and $p6_0 at 4) or (prefix_size >= 12 and $p7_0 at 4) or (prefix_size >= 12 and $p8_0 at 4) or (prefix_size >= 12 and $p10_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p13_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p14_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p16_0 at 0) or (prefix_size >= 12 and original_size >= 12 and $p18_0 at 4) or (prefix_size >= 12 and $p20_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p21_0 at 4) or (prefix_size >= 12 and $p22_0 at 4)))
+		prefix_size >= 8 and ((((prefix_size >= 8 and $p9_0 at 4) and ((prefix_size >= 11 and $p2_0 at 8) or (prefix_size >= 11 and $p5_0 at 8) or (prefix_size >= 11 and $p11_0 at 8) or (prefix_size >= 11 and $p12_0 at 8) or (prefix_size >= 11 and $p15_0 at 8) or (prefix_size >= 11 and $p17_0 at 8) or (prefix_size >= 11 and $p19_0 at 8) or (prefix_size >= 11 and $p23_0 at 8))) or ((prefix_size >= 11 and original_size >= 11 and $p0_0 at 4) or (prefix_size >= 12 and $p1_0 at 4) or (prefix_size >= 12 and $p3_0 at 4) or (prefix_size >= 12 and $p4_0 at 4) or (prefix_size >= 12 and $p6_0 at 4) or (prefix_size >= 12 and $p7_0 at 4) or (prefix_size >= 12 and $p8_0 at 4) or (prefix_size >= 12 and $p10_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p13_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p14_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p16_0 at 0) or (prefix_size >= 12 and original_size >= 12 and $p18_0 at 4) or (prefix_size >= 12 and $p20_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p21_0 at 4) or (prefix_size >= 12 and $p22_0 at 4))))
 }
 
 rule taxonomy_ace
@@ -125,7 +129,7 @@ rule taxonomy_ace
 		$p2_0 = /(\x2a){2}\x41\x43\x45(\x2a){2}[\x0a-\x0d](\x0a|\x0b|\x0c|\x0d|\x14)/
 
 	condition:
-		((prefix_size >= 14 and original_size >= 14 and $p0_0 at 7) or ($p1_0 at 7) or ($p2_0 at 7))
+		prefix_size >= 8 and (((prefix_size >= 14 and original_size >= 14 and $p0_0 at 7) or ($p1_0 at 7) or ($p2_0 at 7)))
 }
 
 rule taxonomy_applebplist
@@ -150,7 +154,7 @@ rule taxonomy_applebplist
 		$p8_0 = { 62 70 6C 69 73 74 00 01 }
 
 	condition:
-		((prefix_size >= 8 and $p0_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p1_0 at 0) or (prefix_size >= 8 and $p2_0 at 0) or (prefix_size >= 8 and $p3_0 at 0) or (prefix_size >= 8 and $p4_0 at 0) or (prefix_size >= 8 and $p5_0 at 0) or (prefix_size >= 8 and $p6_0 at 0) or (prefix_size >= 8 and $p7_0 at 0) or (prefix_size >= 8 and $p8_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 8 and $p0_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p1_0 at 0) or (prefix_size >= 8 and $p2_0 at 0) or (prefix_size >= 8 and $p3_0 at 0) or (prefix_size >= 8 and $p4_0 at 0) or (prefix_size >= 8 and $p5_0 at 0) or (prefix_size >= 8 and $p6_0 at 0) or (prefix_size >= 8 and $p7_0 at 0) or (prefix_size >= 8 and $p8_0 at 0)))
 }
 
 rule taxonomy_appledouble
@@ -167,7 +171,7 @@ rule taxonomy_appledouble
 		$p0_0 = { 00 05 16 07 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_applesingle
@@ -184,39 +188,10 @@ rule taxonomy_applesingle
 		$p0_0 = { 00 05 16 00 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
-rule taxonomy_arc
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/archive:libmagic_1631bb45451c23fb6aac_line_598; libmagic:magic/Magdir/archive:libmagic_243a5e9cf3cfc790f9f5_line_594; libmagic:magic/Magdir/archive:libmagic_2cf74413ac8980dea53f_line_592; libmagic:magic/Magdir/archive:libmagic_35a363d7bd396019e8f6_line_607; libmagic:magic/Magdir/archive:libmagic_610c9e502ebb6af29ccb_line_600; libmagic:magic/Magdir/archive:libmagic_a17cb6a06bbbdcf78f3a_line_605; libmagic:magic/Magdir/archive:libmagic_b419cbf5f668942ab6e5_line_602; libmagic:magic/Magdir/archive:libmagic_e1ba35801790f0f6eeae_line_609; libmagic:magic/Magdir/archive:libmagic_f1405c71130bec4d78bc_line_596; puremagic:puremagic/magic_data.json:headers[1078]; puremagic:puremagic/magic_data.json:headers[1079]; puremagic:puremagic/magic_data.json:headers[1080]; puremagic:puremagic/magic_data.json:headers[1081]; puremagic:puremagic/magic_data.json:headers[1082]; puremagic:puremagic/magic_data.json:headers[1083]"
-		label = "arc"
-		enforced = true
-        class = "full"
-        fp_rate = 0
-        fn_rate = 0
 
-	strings:
-		$p0_0 = { 1a 02 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p1_0 = { 1a 06 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p2_0 = { 1A 03 00 00 }
-		$p3_0 = { 1a 08 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p4_0 = { 1a 09 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p5_0 = { 1A 08 00 00 }
-		$p6_0 = { 1a 03 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p7_0 = { 1A 02 00 00 }
-		$p8_0 = { 1a 04 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p9_0 = { 1a 48 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p10_0 = { 1A 06 00 00 }
-		$p11_0 = { 1A 09 00 00 }
-		$p12_0 = { 1a 14 ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-		$p13_0 = { 1A 04 00 00 }
-		$p14_0 = { 1a 0a ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) ( 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 0a | 0b | 0c | 0d | 0e | 0f | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 1a | 1b | 1c | 1d | 1e | 1f | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 2a | 2b | 2c | 2d | 2e | 2f | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 3a | 3b | 3c | 3d | 3e | 3f | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 4a | 4b | 4c | 4d | 4e | 4f | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 5a | 5b | 5c | 5d | 5e | 5f | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 6a | 6b | 6c | 6d | 6e | 6f | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 7a | 7b | 7c | 7d | 7e | 7f ) }
-
-	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p4_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p5_0 at 0) or (prefix_size >= 4 and $p6_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p7_0 at 0) or (prefix_size >= 4 and $p8_0 at 0) or (prefix_size >= 4 and $p9_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p10_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p11_0 at 0) or (prefix_size >= 4 and $p12_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p13_0 at 0) or (prefix_size >= 4 and $p14_0 at 0))
-}
 
 rule taxonomy_au
 {
@@ -240,7 +215,7 @@ rule taxonomy_au
 		$p8_0 = { 00 00 00 05 }
 
 	condition:
-		(((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) and ((prefix_size >= 16 and $p1_0 at 12) or (prefix_size >= 16 and $p2_0 at 12) or (prefix_size >= 16 and $p4_0 at 12) or (prefix_size >= 16 and $p5_0 at 12) or (prefix_size >= 16 and $p6_0 at 12) or (prefix_size >= 16 and $p7_0 at 12) or (prefix_size >= 16 and $p8_0 at 12))) or (prefix_size >= 7 and $p3_0 at 0))
+		prefix_size >= 8 and ((((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) and ((prefix_size >= 16 and $p1_0 at 12) or (prefix_size >= 16 and $p2_0 at 12) or (prefix_size >= 16 and $p4_0 at 12) or (prefix_size >= 16 and $p5_0 at 12) or (prefix_size >= 16 and $p6_0 at 12) or (prefix_size >= 16 and $p7_0 at 12) or (prefix_size >= 16 and $p8_0 at 12))) or (prefix_size >= 7 and $p3_0 at 0)))
 }
 
 rule taxonomy_avi
@@ -253,14 +228,13 @@ rule taxonomy_avi
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 52 49 46 46 ?? ?? ?? ?? 41 56 49 20 }
-		$p1_0 = "AVI "
-		$p2_0 = "AVF0"
-		$p3_0 = "AVI LIST"
+    // RIFF AVI with LIST/hdrl; do not treat an isolated form name or AVF0 as AVI.
+    strings:
+        $header = { 52 49 46 46 ?? ?? ?? ?? 41 56 49 20 4C 49 53 54 }
+        $hdrl = "hdrl"
 
-	condition:
-		((prefix_size >= 12 and $p0_0 at 0) or (prefix_size >= 12 and original_size >= 12 and $p1_0 at 8) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 16 and original_size >= 16 and $p3_0 at 8))
+    condition:
+        prefix_size >= 24 and $header at 0 and $hdrl at 20 and uint32(4) >= 16 and uint32(16) >= 4
 }
 
 rule taxonomy_avif
@@ -281,7 +255,7 @@ rule taxonomy_avif
 		$p4_0 = "ftypavis"
 
 	condition:
-		(((prefix_size >= 8 and $p2_0 at 4) and ((prefix_size >= 12 and $p0_0 at 8) or (prefix_size >= 12 and $p1_0 at 8))) or ((prefix_size >= 12 and original_size >= 12 and $p3_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p4_0 at 4)))
+		prefix_size >= 8 and ((((prefix_size >= 8 and $p2_0 at 4) and ((prefix_size >= 12 and $p0_0 at 8) or (prefix_size >= 12 and $p1_0 at 8))) or ((prefix_size >= 12 and original_size >= 12 and $p3_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p4_0 at 4))))
 }
 
 rule taxonomy_avro
@@ -299,7 +273,7 @@ rule taxonomy_avro
 		$p1_0 = /(\x4f\x62\x6a\x01([\x00-\xff]){2})(\x61\x76\x72\x6f\x2e)(\x63\x6f\x64\x65\x63([\x00-\xff]){8,50}|\x73\x79\x6e\x63([\x00-\xff]){8,50})\x73\x63\x68\x65\x6d\x61(([\x00-\xff]){3}\x22\x74\x79\x70\x65\x22)(([\x00-\xff]){2,65}\x22\x6e\x61\x6d\x65\x22)/
 
 	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or ($p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or ($p1_0 at 0)))
 }
 
 rule taxonomy_bam
@@ -316,7 +290,7 @@ rule taxonomy_bam
 		$p0_0 = { 42 41 4d 01 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_beam
@@ -335,7 +309,7 @@ rule taxonomy_beam
 		$p2_0 = { 46 4f 52 31 }
 
 	condition:
-		((prefix_size >= 7 and $p0_0 at 0) or ((prefix_size >= 12 and $p1_0 at 8) and (prefix_size >= 4 and $p2_0 at 0)))
+		prefix_size >= 8 and (((prefix_size >= 7 and $p0_0 at 0) or ((prefix_size >= 12 and $p1_0 at 8) and (prefix_size >= 4 and $p2_0 at 0))))
 }
 
 rule taxonomy_blend
@@ -352,7 +326,7 @@ rule taxonomy_blend
 		$p0_0 = "BLENDER"
 
 	condition:
-		(prefix_size >= 7 and original_size >= 7 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 7 and original_size >= 7 and $p0_0 at 0))
 }
 
 rule taxonomy_bpg
@@ -369,7 +343,7 @@ rule taxonomy_bpg
 		$p0_0 = { 42 50 47 FB }
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_bzip
@@ -387,7 +361,7 @@ rule taxonomy_bzip
 		$p1_0 = "BZh"
 
 	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 3 and original_size >= 3 and $p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 3 and original_size >= 3 and $p1_0 at 0)))
 }
 
 rule taxonomy_cram
@@ -404,7 +378,7 @@ rule taxonomy_cram
 		$p0_0 = { 43 52 41 4d }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_dex
@@ -422,7 +396,7 @@ rule taxonomy_dex
 		$p1_0 = { 64 65 78 0A 30 30 39 00 }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p1_0 at 0)))
 }
 
 rule taxonomy_dicom
@@ -439,7 +413,7 @@ rule taxonomy_dicom
 		$p0_0 = "DICM"
 
 	condition:
-		(prefix_size >= 132 and original_size >= 132 and $p0_0 at 128)
+		prefix_size >= 8 and ((prefix_size >= 132 and original_size >= 132 and $p0_0 at 128))
 }
 
 rule taxonomy_dsstore
@@ -456,7 +430,7 @@ rule taxonomy_dsstore
 		$p0_0 = { 00 00 00 01 42 75 64 31 00 }
 
 	condition:
-		(prefix_size >= 9 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 9 and $p0_0 at 0))
 }
 
 rule taxonomy_duckdb
@@ -473,7 +447,7 @@ rule taxonomy_duckdb
 		$p0_0 = { 44 55 43 4b }
 
 	condition:
-		(prefix_size >= 12 and $p0_0 at 8)
+		prefix_size >= 8 and ((prefix_size >= 12 and $p0_0 at 8))
 }
 
 rule taxonomy_dwg
@@ -486,31 +460,12 @@ rule taxonomy_dwg
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 41 43 31 30 31 38 }
-		$p1_0 = "AC2.10"
-		$p2_0 = { 41 43 31 30 31 35 }
-		$p3_0 = /\x41\x43\x31(\x30){2}\x33/
-		$p4_0 = /\x41\x43\x31(\x30){2}\x36/
-		$p5_0 = "MC0.0"
-		$p6_0 = /\x41\x43\x31(\x30){2}\x32/
-		$p7_0 = { 41 43 31 2e 33 }
-		$p8_0 = "AC1.50"
-		$p9_0 = { 41 43 31 30 33 32 }
-		$p10_0 = { 41 43 31 30 31 34 }
-		$p11_0 = /\x41\x43(\x31(\x30){2}\x31|\x32\x2e\x32\x31|\x32\x2e(\x32){2})/
-		$p12_0 = "AC10"
-		$p13_0 = /\x41\x43\x31\x30\x32\x34(\x00){2}/
-		$p14_0 = /\x41\x43\x31\x30\x32\x31(\x00){2}/
-		$p15_0 = "AC1.2"
-		$p16_0 = { 41 43 31 30 32 37 }
-		$p17_0 = "AC1.40"
-		$p18_0 = /\x41\x43\x31(\x30){2}\x34/
-		$p19_0 = /\x41\x43\x31(\x30){2}\x39/
-		$p20_0 = { 41 43 31 30 31 32 }
+    // Modern AutoCAD version identifiers with five reserved zero bytes; legacy short ASCII prefixes are insufficient.
+    strings:
+        $header = /AC10(09|12|14|15|18|21|24|27|32)\x00{5}/
 
-	condition:
-		((prefix_size >= 6 and $p0_0 at 0) or (prefix_size >= 6 and $p1_0 at 0) or (prefix_size >= 6 and $p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or (prefix_size >= 5 and $p5_0 at 0) or ($p6_0 at 0) or (prefix_size >= 5 and $p7_0 at 0) or (prefix_size >= 6 and $p8_0 at 0) or (prefix_size >= 6 and $p9_0 at 0) or (prefix_size >= 6 and $p10_0 at 0) or ($p11_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p12_0 at 0) or ($p13_0 at 0) or ($p14_0 at 0) or (prefix_size >= 5 and $p15_0 at 0) or (prefix_size >= 6 and $p16_0 at 0) or (prefix_size >= 6 and $p17_0 at 0) or ($p18_0 at 0) or ($p19_0 at 0) or (prefix_size >= 6 and $p20_0 at 0))
+    condition:
+        prefix_size >= 128 and $header at 0
 }
 
 rule taxonomy_ese
@@ -528,7 +483,7 @@ rule taxonomy_ese
 		$p1_0 = { 00 00 00 00 }
 
 	condition:
-		((prefix_size >= 8 and $p0_0 at 4) and (prefix_size >= 136 and $p1_0 at 132))
+		prefix_size >= 8 and (((prefix_size >= 8 and $p0_0 at 4) and (prefix_size >= 136 and $p1_0 at 132)))
 }
 
 rule taxonomy_fbx
@@ -545,7 +500,7 @@ rule taxonomy_fbx
 		$p0_0 = { 4b 61 79 64 61 72 61 20 46 42 58 20 42 69 6e 61 72 79 20 20 00 }
 
 	condition:
-		(prefix_size >= 21 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 21 and $p0_0 at 0))
 }
 
 rule taxonomy_fits
@@ -563,7 +518,7 @@ rule taxonomy_fits
 		$p1_0 = { 20 20 }
 
 	condition:
-		((prefix_size >= 9 and original_size >= 9 and $p0_0 at 0) and (prefix_size >= 91 and $p1_0 at 89))
+		prefix_size >= 8 and (((prefix_size >= 9 and original_size >= 9 and $p0_0 at 0) and (prefix_size >= 91 and $p1_0 at 89)))
 }
 
 rule taxonomy_flv
@@ -576,12 +531,12 @@ rule taxonomy_flv
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 46 4C 56 01 }
-		$p1_0 = "FLV"
+    // FLV v1 standard header, legal audio/video flags, data offset and initial previous-tag size.
+    strings:
+        $header = { 46 4C 56 01 (00 | 01 | 04 | 05) 00 00 00 09 00 00 00 00 }
 
-	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 3 and $p1_0 at 0))
+    condition:
+        prefix_size >= 13 and $header at 0
 }
 
 rule taxonomy_gguf
@@ -601,7 +556,7 @@ rule taxonomy_gguf
 		$p3_0 = /(\x47){2}\x55\x46\x03(\x00){3}/
 
 	condition:
-		(($p0_0 at 0) or ($p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or ($p3_0 at 0))
+		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or ($p3_0 at 0)))
 }
 
 rule taxonomy_gltf
@@ -618,7 +573,7 @@ rule taxonomy_gltf
 		$p0_0 = { 67 6c 54 46 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_gzip
@@ -631,12 +586,12 @@ rule taxonomy_gzip
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "\\037\\213"
-		$p1_0 = { 1F 8B }
+    // RFC 1952: complete member minimum, DEFLATE method and zero reserved flag bits.
+    strings:
+        $header = { 1F 8B 08 }
 
-	condition:
-		((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0) or (prefix_size >= 2 and $p1_0 at 0))
+    condition:
+        prefix_size >= 20 and $header at 0 and uint8(3) <= 31
 }
 
 rule taxonomy_hdf4
@@ -653,7 +608,7 @@ rule taxonomy_hdf4
 		$p0_0 = { 0E 03 13 01 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_heif
@@ -680,7 +635,7 @@ rule taxonomy_heif
 		$p10_0 = "ftypheis"
 
 	condition:
-		(((prefix_size >= 8 and $p1_0 at 4) and ((prefix_size >= 12 and $p3_0 at 8) or (prefix_size >= 12 and $p9_0 at 8))) or ((prefix_size >= 12 and original_size >= 12 and $p0_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p2_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p4_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p5_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p6_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p7_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p8_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p10_0 at 4)))
+		prefix_size >= 8 and ((((prefix_size >= 8 and $p1_0 at 4) and ((prefix_size >= 12 and $p3_0 at 8) or (prefix_size >= 12 and $p9_0 at 8))) or ((prefix_size >= 12 and original_size >= 12 and $p0_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p2_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p4_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p5_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p6_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p7_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p8_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p10_0 at 4))))
 }
 
 rule taxonomy_icc
@@ -697,7 +652,7 @@ rule taxonomy_icc
 		$p0_0 = "acsp"
 
 	condition:
-		(prefix_size >= 40 and original_size >= 40 and $p0_0 at 36)
+		prefix_size >= 8 and ((prefix_size >= 40 and original_size >= 40 and $p0_0 at 36))
 }
 
 rule taxonomy_icns
@@ -714,26 +669,7 @@ rule taxonomy_icns
 		$p0_0 = "icns"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
-}
-
-rule taxonomy_jxl
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/jpeg:libmagic_09c181c8a4d299652a29_line_265; libmagic:magic/Magdir/jpeg:libmagic_75914ba77f68d4a72f4e_line_256; pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:1856; pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:1857; puremagic:puremagic/magic_data.json:headers[13]; puremagic:puremagic/magic_data.json:headers[14]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[1384]/magic[0]"
-		label = "jxl"
-		enforced = true
-        class = "full"
-        fp_rate = 0
-        fn_rate = 0
-
-	strings:
-		$p0_0 = { FF 0A }
-		$p1_0 = /(\x00){3}\x0c\x4a\x58\x4c\x20\x0d\x0a\x87\x0a/
-		$p2_0 = { 00 00 00 0C 4A 58 4C 20 0D 0A 87 0A }
-
-	condition:
-		((prefix_size >= 2 and original_size >= 2 and $p0_0 at 0) or ($p1_0 at 0) or (prefix_size >= 12 and original_size >= 12 and $p2_0 at 0))
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_llvm_bitcode
@@ -751,7 +687,7 @@ rule taxonomy_llvm_bitcode
 		$p1_0 = { de c0 17 0b }
 
 	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0)))
 }
 
 rule taxonomy_lnk
@@ -768,7 +704,7 @@ rule taxonomy_lnk
 		$p0_0 = { 4c 00 00 00 01 14 02 00 00 00 00 00 c0 00 00 00 00 00 00 46 }
 
 	condition:
-		(prefix_size >= 20 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 20 and $p0_0 at 0))
 }
 
 rule taxonomy_lrz
@@ -785,7 +721,7 @@ rule taxonomy_lrz
 		$p0_0 = "LRZI"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_lz
@@ -802,7 +738,7 @@ rule taxonomy_lz
 		$p0_0 = "LZIP"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_lz4
@@ -821,7 +757,7 @@ rule taxonomy_lz4
 		$p2_0 = { 03 21 4c 18 }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0)))
 }
 
 rule taxonomy_mat
@@ -839,7 +775,7 @@ rule taxonomy_mat
 		$p1_0 = { 35 }
 
 	condition:
-		((prefix_size >= 6 and $p0_0 at 0) and (prefix_size >= 8 and $p1_0 at 7))
+		prefix_size >= 8 and (((prefix_size >= 6 and $p0_0 at 0) and (prefix_size >= 8 and $p1_0 at 7)))
 }
 
 rule taxonomy_midi
@@ -856,7 +792,7 @@ rule taxonomy_midi
 		$p0_0 = "MThd"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_mpegts
@@ -869,20 +805,15 @@ rule taxonomy_mpegts
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 47 }
-		$p1_0 = { 47 }
-		$p2_0 = { 47 }
-		$p3_0 = { 47 }
-		$p4_0 = { 47 }
-		$p5_0 = { 47 }
-		$p6_0 = { 47 }
-		$p7_0 = { 47 }
-		$p8_0 = { 47 }
-		$p9_0 = { 47 }
+    // Observe 21 complete TS/M2TS packets, each with sync and legal header bits.
+    // Five isolated G bytes are insufficient, especially in nucleotide text.
+    strings:
+        $ts = /\x47[\x00-\x7f][\x00-\xff][\x10-\x3f\x50-\x7f\x90-\xbf\xd0-\xff]([\x00-\xff]{184}\x47[\x00-\x7f][\x00-\xff][\x10-\x3f\x50-\x7f\x90-\xbf\xd0-\xff]){20}/
+        $m2ts = /\x47[\x00-\x7f][\x00-\xff][\x10-\x3f\x50-\x7f\x90-\xbf\xd0-\xff]([\x00-\xff]{188}\x47[\x00-\x7f][\x00-\xff][\x10-\x3f\x50-\x7f\x90-\xbf\xd0-\xff]){20}/
 
-	condition:
-		(((prefix_size >= 389 and $p0_0 at 388) and (prefix_size >= 773 and $p2_0 at 772) and (prefix_size >= 5 and $p3_0 at 4) and (prefix_size >= 197 and $p6_0 at 196) and (prefix_size >= 581 and $p8_0 at 580)) or ((prefix_size >= 189 and $p1_0 at 188) and (prefix_size >= 565 and $p4_0 at 564) and (prefix_size >= 1 and $p5_0 at 0) and (prefix_size >= 753 and $p7_0 at 752) and (prefix_size >= 377 and $p9_0 at 376)))
+    condition:
+        (prefix_size >= 3948 and $ts at 0)
+        or (prefix_size >= 4032 and $m2ts at 4)
 }
 
 rule taxonomy_npy
@@ -899,7 +830,7 @@ rule taxonomy_npy
 		$p0_0 = { 93 4E 55 4D 50 59 }
 
 	condition:
-		(prefix_size >= 6 and original_size >= 6 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 6 and original_size >= 6 and $p0_0 at 0))
 }
 
 rule taxonomy_one
@@ -916,25 +847,10 @@ rule taxonomy_one
 		$p0_0 = /\xe4\x52\x5c\x7b\x8c\xd8\xa7\x4d\xae\xb1\x53\x78\xd0\x29\x96\xd3/
 
 	condition:
-		($p0_0 at 0)
+		prefix_size >= 8 and (($p0_0 at 0))
 }
 
-rule taxonomy_orc
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/apache:libmagic_11a425bf4c85f8783ee1_line_11"
-		label = "orc"
-		enforced = true
-        class = "full"
-        fp_rate = 0
-        fn_rate = 0
 
-	strings:
-		$p0_0 = { 4f 52 43 }
-
-	condition:
-		(prefix_size >= 3 and $p0_0 at 0)
-}
 
 rule taxonomy_parquet
 {
@@ -950,7 +866,7 @@ rule taxonomy_parquet
 		$p0_0 = "PAR1"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_postgres_dump
@@ -967,7 +883,7 @@ rule taxonomy_postgres_dump
 		$p0_0 = { 50 47 44 4d 50 }
 
 	condition:
-		(prefix_size >= 5 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 5 and $p0_0 at 0))
 }
 
 rule taxonomy_psd
@@ -980,14 +896,18 @@ rule taxonomy_psd
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 38 42 50 53 00 01 }
-		$p1_0 = "8BPS"
-		$p2_0 = { 38 42 50 53 00 02 }
-		$p3_0 = "8BPS  \\000\\000\\000\\000"
+    // Adobe PSD/PSB: 26-byte header, version, reserved bytes, channels, dimensions, depth and mode.
+    strings:
+        $header = { 38 42 50 53 00 (01 | 02) 00 00 00 00 00 00 }
 
-	condition:
-		((prefix_size >= 6 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 6 and $p2_0 at 0) or (prefix_size >= 22 and original_size >= 22 and $p3_0 at 0))
+    condition:
+        prefix_size >= 26 and $header at 0
+        and uint16be(12) >= 1 and uint16be(12) <= 56
+        and uint32be(14) >= 1 and uint32be(18) >= 1
+        and ((uint16be(4) == 1 and uint32be(14) <= 30000 and uint32be(18) <= 30000)
+             or (uint16be(4) == 2 and uint32be(14) <= 300000 and uint32be(18) <= 300000))
+        and (uint16be(22) == 1 or uint16be(22) == 8 or uint16be(22) == 16 or uint16be(22) == 32)
+        and uint16be(24) <= 9
 }
 
 rule taxonomy_qoi
@@ -1004,7 +924,7 @@ rule taxonomy_qoi
 		$p0_0 = "qoif"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_rar
@@ -1024,7 +944,7 @@ rule taxonomy_rar
 		$p3_0 = { 52 45 7e 5e }
 
 	condition:
-		((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0) or (prefix_size >= 7 and original_size >= 7 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0) or (prefix_size >= 7 and original_size >= 7 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0)))
 }
 
 rule taxonomy_redis_rdb
@@ -1041,7 +961,7 @@ rule taxonomy_redis_rdb
 		$p0_0 = { 52 45 44 49 53 }
 
 	condition:
-		(prefix_size >= 5 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 5 and $p0_0 at 0))
 }
 
 rule taxonomy_rzip
@@ -1058,7 +978,7 @@ rule taxonomy_rzip
 		$p0_0 = { 52 5a 49 50 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_sas
@@ -1071,12 +991,13 @@ rule taxonomy_sas
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 53 41 53 }
-		$p1_0 = { 53 41 53 }
+    // SAS7BDAT: correlate the binary file magic used by pandas with Tika SAS FILE marker; no bare SAS text.
+    strings:
+        $header = { 00 00 00 00 00 00 00 00 00 00 00 00 C2 EA 81 60 B3 14 11 CF BD 92 08 00 09 C7 31 8C 18 1F 10 11 }
+        $type = "SAS FILE"
 
-	condition:
-		((prefix_size >= 87 and $p0_0 at 84) or (prefix_size >= 3 and $p1_0 at 0))
+    condition:
+        prefix_size >= 288 and $header at 0 and $type at 84 and uint8(37) <= 1
 }
 
 rule taxonomy_sevenzip
@@ -1089,14 +1010,12 @@ rule taxonomy_sevenzip
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "7z\\274\\257\\047\\034"
-		$p1_0 = { 37 7A BC AF 27 1C }
-		$p2_0 = "7z"
-		$p3_0 = { BC AF 27 1C }
+    // 7z complete 32-byte signature header, exact offset and supported major version zero.
+    strings:
+        $header = { 37 7A BC AF 27 1C 00 }
 
-	condition:
-		((prefix_size >= 18 and original_size >= 18 and $p0_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p1_0 at 0) or ((prefix_size >= 2 and $p2_0 in ( 0 .. 1 )) and (prefix_size >= 6 and $p3_0 in ( 2 .. 5 ))))
+    condition:
+        prefix_size >= 32 and $header at 0
 }
 
 rule taxonomy_shapefile
@@ -1114,7 +1033,7 @@ rule taxonomy_shapefile
 		$p1_0 = /(\x00){2}\x27\x0a(\x00){20}(([\x00-\xff]){4}\xe8\x03(\x00){2})(([\x00-\xff]){68}(\x00){3}\x32)/
 
 	condition:
-		(($p0_0 at 0) or ($p1_0 at 0))
+		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0)))
 }
 
 rule taxonomy_sketchup
@@ -1147,7 +1066,7 @@ rule taxonomy_sketchup
 		$p16_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x38)/
 
 	condition:
-		(($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or (prefix_size >= 32 and $p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0) or ($p8_0 at 0) or ($p9_0 at 0) or ($p10_0 at 0) or ($p11_0 at 0) or ($p12_0 at 0) or ($p13_0 at 0) or ($p14_0 at 0) or ($p15_0 at 0) or ($p16_0 at 0))
+		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or (prefix_size >= 32 and $p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0) or ($p8_0 at 0) or ($p9_0 at 0) or ($p10_0 at 0) or ($p11_0 at 0) or ($p12_0 at 0) or ($p13_0 at 0) or ($p14_0 at 0) or ($p15_0 at 0) or ($p16_0 at 0)))
 }
 
 rule taxonomy_spirv
@@ -1165,7 +1084,7 @@ rule taxonomy_spirv
 		$p1_0 = { 03 02 23 07 }
 
 	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0)))
 }
 
 rule taxonomy_spss
@@ -1184,7 +1103,7 @@ rule taxonomy_spss
 		$p2_0 = "$FL2"
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0)))
 }
 
 rule taxonomy_swf
@@ -1197,13 +1116,21 @@ rule taxonomy_swf
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "FWS"
-		$p1_0 = "CWS"
-		$p2_0 = "ZWS"
+    // SWF header version and declared size; FWS RECT begins with nonzero Nbits, CWS starts with a zlib header.
+    strings:
+        $fws = "FWS"
+        $cws = "CWS"
+        $zws = "ZWS"
+        $zlib = { 78 (01 | 5E | 9C | DA) }
 
-	condition:
-		((prefix_size >= 3 and original_size >= 3 and $p0_0 at 0) or (prefix_size >= 3 and original_size >= 3 and $p1_0 at 0) or (prefix_size >= 3 and original_size >= 3 and $p2_0 at 0))
+    condition:
+        prefix_size >= 15 and uint32(4) >= 15 and uint8(3) >= 1 and uint8(3) <= 50
+        and (($fws at 0 and uint8(8) >= 8 and uint8(8) <= 248
+             and uint8(8) % 8 == 0 and uint8(9) <= 31)
+             or ($cws at 0 and uint8(3) >= 6 and $zlib at 8)
+             or (prefix_size >= 17 and $zws at 0 and uint8(3) >= 13
+                 and uint32(8) >= 5 and uint8(12) == 93
+                 and uint32(13) >= 4096 and uint32(13) <= 1073741824))
 }
 
 rule taxonomy_uf2
@@ -1220,25 +1147,7 @@ rule taxonomy_uf2
 		$p0_0 = { 55 46 32 0a }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
-}
-
-rule taxonomy_unixcompress
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/compress:libmagic_d3a761d2dade747b519c_line_12; puremagic:puremagic/magic_data.json:headers[1047]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[907]/magic[0]"
-		label = "unixcompress"
-		enforced = true
-        class = "full"
-        fp_rate = 0
-        fn_rate = 0
-
-	strings:
-		$p0_0 = "\\037\\235"
-		$p1_0 = { 1F 9D }
-
-	condition:
-		((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0) or (prefix_size >= 2 and original_size >= 2 and $p1_0 at 0))
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_vhd
@@ -1255,7 +1164,7 @@ rule taxonomy_vhd
 		$p0_0 = "conectix"
 
 	condition:
-		(prefix_size >= 8 and original_size >= 8 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0))
 }
 
 rule taxonomy_wad
@@ -1273,7 +1182,7 @@ rule taxonomy_wad
 		$p1_0 = "PWAD"
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0)))
 }
 
 rule taxonomy_wasm
@@ -1286,12 +1195,12 @@ rule taxonomy_wasm
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 6D 73 61 00 }
-		$p1_0 = { 00 61 73 6D }
+    // WebAssembly binary module: magic and version 1; an empty module is eight bytes.
+    strings:
+        $header = { 00 61 73 6D 01 00 00 00 }
 
-	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0))
+    condition:
+        prefix_size >= 8 and $header at 0
 }
 
 rule taxonomy_wav
@@ -1304,14 +1213,17 @@ rule taxonomy_wav
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "WAVE"
-		$p1_0 = "WAV "
-		$p2_0 = "WAVEfmt "
-		$p3_0 = { 52 46 36 34 ff ff ff ff 57 41 56 45 64 73 36 34 }
+    // Correlate WAVE form with RIFF/RIFX container and length; RF64 requires ds64.
+    strings:
+        $riff = "RIFF"
+        $rifx = "RIFX"
+        $wave = "WAVE"
+        $rf64 = { 52 46 36 34 FF FF FF FF 57 41 56 45 64 73 36 34 }
 
-	condition:
-		((prefix_size >= 12 and original_size >= 12 and $p0_0 at 8) or (prefix_size >= 12 and original_size >= 12 and $p1_0 at 8) or (prefix_size >= 16 and original_size >= 16 and $p2_0 at 8) or (prefix_size >= 16 and $p3_0 at 0))
+    condition:
+        prefix_size >= 12 and $wave at 8
+        and (($riff at 0 and uint32(4) >= 4) or ($rifx at 0 and uint32be(4) >= 4)
+             or (prefix_size >= 48 and $rf64 at 0 and uint32(16) >= 28))
 }
 
 rule taxonomy_woff
@@ -1328,7 +1240,7 @@ rule taxonomy_woff
 		$p0_0 = "wOFF"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_woff2
@@ -1345,7 +1257,7 @@ rule taxonomy_woff2
 		$p0_0 = "wOF2"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_xar
@@ -1362,7 +1274,7 @@ rule taxonomy_xar
 		$p0_0 = "xar!"
 
 	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_xcf
@@ -1382,7 +1294,7 @@ rule taxonomy_xcf
 		$p3_0 = "gimp xcf"
 
 	condition:
-		((prefix_size >= 10 and original_size >= 10 and $p0_0 at 0) or (prefix_size >= 13 and original_size >= 13 and $p1_0 at 0) or (prefix_size >= 9 and original_size >= 9 and $p2_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p3_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 10 and original_size >= 10 and $p0_0 at 0) or (prefix_size >= 13 and original_size >= 13 and $p1_0 at 0) or (prefix_size >= 9 and original_size >= 9 and $p2_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p3_0 at 0)))
 }
 
 rule taxonomy_zst
@@ -1405,5 +1317,5 @@ rule taxonomy_zst
 		$p6_0 = { 26 b5 2f fd }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p4_0 at 0) or (prefix_size >= 4 and $p5_0 at 0) or (prefix_size >= 4 and $p6_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p4_0 at 0) or (prefix_size >= 4 and $p5_0 at 0) or (prefix_size >= 4 and $p6_0 at 0)))
 }

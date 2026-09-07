@@ -52,7 +52,7 @@ rule taxonomy_apk
 		$p4_0 = { 63 6c 61 73 73 65 73 2e 64 65 78 }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p3_0 at 0) and (((prefix_size >= 28 and $p0_0 at 26) and (prefix_size >= 41 and $p4_0 at 30)) or ((prefix_size >= 49 and $p1_0 at 30) and (prefix_size >= 28 and $p2_0 at 26))))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p3_0 at 0) and (((prefix_size >= 28 and $p0_0 at 26) and (prefix_size >= 41 and $p4_0 at 30)) or ((prefix_size >= 49 and $p1_0 at 30) and (prefix_size >= 28 and $p2_0 at 26)))))
 }
 
 rule taxonomy_bmp
@@ -65,21 +65,21 @@ rule taxonomy_bmp
         fp_rate = 0
         fn_rate = 0.02
 
-	strings:
-		$p0_0 = { 18 00 }
-		$p1_0 = { 08 00 }
-		$p2_0 = { 01 00 }
-		$p3_0 = { 01 00 }
-		$p4_0 = "BMxxxx\\000\\000"
-		$p5_0 = { 20 00 }
-		$p6_0 = { 10 00 }
-		$p7_0 = "BM"
-		$p8_0 = { 00 00 }
-		$p9_0 = { 04 00 }
-		$p10_0 = { 00 00 00 00 }
-
-	condition:
-		(((prefix_size >= 28 and $p3_0 at 26) and ((prefix_size >= 2 and original_size >= 2 and $p7_0 at 0) and ((prefix_size >= 34 and $p10_0 at 30) and ((prefix_size >= 30 and $p0_0 at 28) or (prefix_size >= 30 and $p1_0 at 28) or (prefix_size >= 30 and $p2_0 at 28) or (prefix_size >= 30 and $p5_0 at 28) or (prefix_size >= 30 and $p6_0 at 28) or (prefix_size >= 30 and $p8_0 at 28) or (prefix_size >= 30 and $p9_0 at 28))))) or (prefix_size >= 14 and original_size >= 14 and $p4_0 at 0))
+    // BMP file header plus OS/2 BITMAPCOREHEADER or Windows uncompressed DIB.
+    strings:
+        $header = { 42 4D ?? ?? ?? ?? 00 00 00 00 }
+    condition:
+        prefix_size >= 26 and $header at 0 and uint32(2) >= 26 and uint32(10) >= 26
+        and ((uint32(14) == 12 and uint16(18) >= 1 and uint16(20) >= 1
+              and uint16(22) == 1
+              and (uint16(24) == 1 or uint16(24) == 4 or uint16(24) == 8 or uint16(24) == 24))
+             or (prefix_size >= 54 and uint32(10) >= 54
+                 and (uint32(14) == 40 or uint32(14) == 52 or uint32(14) == 56
+                      or uint32(14) == 108 or uint32(14) == 124)
+                 and uint32(18) >= 1 and uint32(18) <= 2147483647 and uint32(22) >= 1
+                 and uint16(26) == 1 and uint32(30) == 0
+                 and (uint16(28) == 1 or uint16(28) == 4 or uint16(28) == 8
+                      or uint16(28) == 16 or uint16(28) == 24 or uint16(28) == 32)))
 }
 
 rule taxonomy_cab
@@ -92,13 +92,14 @@ rule taxonomy_cab
         fp_rate = 0
         fn_rate = 0.44
 
-	strings:
-		$p0_0 = "MSCF"
-		$p1_0 = { 4D 53 43 46 00 00 00 00 }
-		$p2_0 = "MSCF\\0\\0\\0\\0"
-
-	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and $p1_0 at 0) or (prefix_size >= 12 and original_size >= 12 and $p2_0 at 0))
+    // Microsoft CFHEADER: signature, reserved words, version 1.3 and legal flags.
+    strings:
+        $header = { 4D 53 43 46 00 00 00 00 }
+    condition:
+        prefix_size >= 36 and $header at 0
+        and uint32(8) >= 36 and uint32(12) == 0
+        and uint32(16) >= 36 and uint32(20) == 0
+        and uint16(24) == 259 and uint16(26) >= 1 and uint16(30) <= 7
 }
 
 rule taxonomy_crx
@@ -115,7 +116,7 @@ rule taxonomy_crx
 		$p0_0 = "Cr24"
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_dbase
@@ -142,7 +143,7 @@ rule taxonomy_dbase
 		$p10_0 = /\x63(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4e))/
 
 	condition:
-		(($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0) or ($p8_0 at 0) or ($p9_0 at 0) or ($p10_0 at 0))
+		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0) or ($p8_0 at 0) or ($p9_0 at 0) or ($p10_0 at 0)))
 }
 
 rule taxonomy_emf
@@ -166,7 +167,7 @@ rule taxonomy_emf
 		$p7_0 = /\x01(\x00){3}([\x00-\xff]){36}\x20\x45\x4d\x46(\x00){2}\x01\x00(([\x00-\xff]){44}\x6c(\x00){3})/
 
 	condition:
-		(($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0))
+		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0)))
 }
 
 rule taxonomy_epub
@@ -177,17 +178,21 @@ rule taxonomy_epub
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.03
+        fn_rate = 0.04
 
-	strings:
-		$p0_0 = { 65 70 75 62 2b 7a 69 70 }
-		$p1_0 = "mimetypeapplication/epub+zip"
-		$p2_0 = "PK\\003\\004"
-		$p3_0 = { 08 00 00 00 6d 69 6d 65 74 79 70 65 61 70 70 6c 69 63 61 74 69 6f 6e 2f }
-		$p4_0 = { 50 4B 03 04 }
+    // EPUB OCF: first local ZIP entry is uncompressed mimetype, no extra field, exact 20-byte media type.
+    strings:
+        $zip = { 50 4B 03 04 }
+        $mime = "mimetypeapplication/epub+zip"
+        $descriptor = { 50 4B 07 08 6F 61 AB 2C 14 00 00 00 14 00 00 00 }
 
-	condition:
-		(((prefix_size >= 58 and $p0_0 at 50) and (prefix_size >= 50 and $p3_0 at 26) and (prefix_size >= 4 and original_size >= 4 and $p4_0 at 0)) or (prefix_size >= 58 and original_size >= 58 and $p1_0 at 30) or (prefix_size >= 10 and original_size >= 10 and $p2_0 at 0))
+    condition:
+        prefix_size >= 58 and $zip at 0 and $mime at 30
+        and uint16(6) % 2 == 0 and uint16(8) == 0
+        and ((uint32(18) == 20 and uint32(22) == 20)
+             or (prefix_size >= 74 and uint16(6) % 16 == 8
+                 and uint32(18) == 0 and uint32(22) == 0 and $descriptor at 58))
+        and uint16(26) == 8 and uint16(28) == 0
 }
 
 rule taxonomy_flac
@@ -205,7 +210,7 @@ rule taxonomy_flac
 		$p1_0 = { 66 4C 61 43 00 00 00 22 }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p1_0 at 0)))
 }
 
 rule taxonomy_gif
@@ -224,7 +229,7 @@ rule taxonomy_gif
 		$p2_0 = "GIF89a"
 
 	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p1_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p2_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p1_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p2_0 at 0)))
 }
 
 rule taxonomy_hlp
@@ -242,7 +247,7 @@ rule taxonomy_hlp
 		$p1_0 = { 00 00 FF FF FF FF }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) and (prefix_size >= 12 and original_size >= 12 and $p1_0 at 6))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) and (prefix_size >= 12 and original_size >= 12 and $p1_0 at 6)))
 }
 
 rule taxonomy_ico
@@ -255,13 +260,13 @@ rule taxonomy_ico
         fp_rate = 0
         fn_rate = 0.46999999999999997
 
-	strings:
-		$p0_0 = { 00 00 01 00 }
-		$p1_0 = { 42 41 28 00 00 00 2E 00 00 00 00 00 00 00 }
-		$p2_0 = "\\0\\0\\1\\0"
+    // ICONDIR plus first ICONDIRENTRY: nonempty directory, reserved byte, resource size and payload offset.
+    strings:
+        $header = { 00 00 01 00 }
 
-	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 14 and $p1_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p2_0 at 0))
+    condition:
+        prefix_size >= 22 and $header at 0 and uint16(4) >= 1
+        and uint8(9) == 0 and uint32(14) >= 8 and uint32(18) >= 22
 }
 
 rule taxonomy_jp2
@@ -278,7 +283,7 @@ rule taxonomy_jp2
 		$p0_0 = /(\x00){3}\x0c\x6a\x50(\x20){2}\x0d\x0a\x87\x0a(([\x00-\xff]){4}\x66\x74\x79\x70\x6a\x70\x32)/
 
 	condition:
-		($p0_0 at 0)
+		prefix_size >= 8 and (($p0_0 at 0))
 }
 
 rule taxonomy_luabytecode
@@ -295,7 +300,7 @@ rule taxonomy_luabytecode
 		$p0_0 = { 1b 4c 75 61 }
 
 	condition:
-		(prefix_size >= 4 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
 }
 
 rule taxonomy_macho
@@ -315,7 +320,7 @@ rule taxonomy_macho
 		$p3_0 = { CF FA ED FE }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p3_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p3_0 at 0)))
 }
 
 rule taxonomy_mkv
@@ -334,7 +339,7 @@ rule taxonomy_mkv
 		$p2_0 = "matroska"
 
 	condition:
-		((prefix_size >= 16 and $p0_0 at 0) or (prefix_size >= 39 and original_size >= 39 and $p1_0 at 31) or (prefix_size >= 32 and original_size >= 32 and $p2_0 at 24))
+		prefix_size >= 8 and (((prefix_size >= 16 and $p0_0 at 0) or (prefix_size >= 39 and original_size >= 39 and $p1_0 at 31) or (prefix_size >= 32 and original_size >= 32 and $p2_0 at 24)))
 }
 
 rule taxonomy_mscompress
@@ -353,7 +358,7 @@ rule taxonomy_mscompress
 		$p2_0 = { 53 5A 44 44 88 F0 27 33 41 }
 
 	condition:
-		(((prefix_size >= 4 and $p0_0 at 0) and (prefix_size >= 7 and $p1_0 at 4)) or (prefix_size >= 9 and $p2_0 at 0))
+		prefix_size >= 8 and ((((prefix_size >= 4 and $p0_0 at 0) and (prefix_size >= 7 and $p1_0 at 4)) or (prefix_size >= 9 and $p2_0 at 0)))
 }
 
 rule taxonomy_netcdf
@@ -371,7 +376,7 @@ rule taxonomy_netcdf
 		$p1_0 = { 43 44 46 01 }
 
 	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0)))
 }
 
 rule taxonomy_ogg
@@ -384,11 +389,12 @@ rule taxonomy_ogg
         fp_rate = 0
         fn_rate = 0.56999999999999995
 
-	strings:
-		$p0_0 = "OggS"
+    // RFC 3533: complete first page header, revision zero, BOS (optionally EOS), initial sequence, nonempty segment table.
+    strings:
+        $header = { 4F 67 67 53 00 (02 | 06) }
 
-	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
+    condition:
+        prefix_size >= 28 and $header at 0 and uint32(18) == 0 and uint8(26) >= 1
 }
 
 rule taxonomy_pcap
@@ -408,7 +414,7 @@ rule taxonomy_pcap
 		$p3_0 = { a1 b2 3c 4d }
 
 	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0)))
 }
 
 rule taxonomy_pdb
@@ -426,7 +432,7 @@ rule taxonomy_pdb
 		$p1_0 = /\x4d\x69\x63\x72\x6f\x73\x6f\x66\x74\x20\x43\x2f\x43(\x2b){2}\x20\x4d\x53\x46\x20\x37\x2e(\x30){2}/
 
 	condition:
-		(($p0_0 at 0) or ($p1_0 at 0))
+		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0)))
 }
 
 rule taxonomy_pythonbytecode
@@ -531,7 +537,7 @@ rule taxonomy_pythonbytecode
 		$p88_0 = { d1 f2 0d 0a }
 
 	condition:
-		((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p4_0 at 0) or (prefix_size >= 4 and $p5_0 at 0) or (prefix_size >= 4 and $p6_0 at 0) or (prefix_size >= 4 and $p7_0 at 0) or (prefix_size >= 4 and $p8_0 at 0) or (prefix_size >= 4 and $p9_0 at 0) or (prefix_size >= 4 and $p10_0 at 0) or (prefix_size >= 4 and $p11_0 at 0) or (prefix_size >= 4 and $p12_0 at 0) or (prefix_size >= 4 and $p13_0 at 0) or (prefix_size >= 4 and $p14_0 at 0) or (prefix_size >= 4 and $p15_0 at 0) or (prefix_size >= 4 and $p16_0 at 0) or (prefix_size >= 4 and $p17_0 at 0) or (prefix_size >= 4 and $p18_0 at 0) or (prefix_size >= 4 and $p19_0 at 0) or (prefix_size >= 4 and $p20_0 at 0) or (prefix_size >= 4 and $p21_0 at 0) or (prefix_size >= 4 and $p22_0 at 0) or (prefix_size >= 4 and $p23_0 at 0) or (prefix_size >= 4 and $p24_0 at 0) or (prefix_size >= 4 and $p25_0 at 0) or (prefix_size >= 4 and $p26_0 at 0) or (prefix_size >= 4 and $p27_0 at 0) or (prefix_size >= 4 and $p28_0 at 0) or (prefix_size >= 4 and $p29_0 at 0) or (prefix_size >= 4 and $p30_0 at 0) or (prefix_size >= 4 and $p31_0 at 0) or (prefix_size >= 4 and $p32_0 at 0) or (prefix_size >= 4 and $p33_0 at 0) or (prefix_size >= 4 and $p34_0 at 0) or (prefix_size >= 4 and $p35_0 at 0) or (prefix_size >= 4 and $p36_0 at 0) or (prefix_size >= 4 and $p37_0 at 0) or (prefix_size >= 4 and $p38_0 at 0) or (prefix_size >= 4 and $p39_0 at 0) or (prefix_size >= 4 and $p40_0 at 0) or (prefix_size >= 4 and $p41_0 at 0) or (prefix_size >= 4 and $p42_0 at 0) or (prefix_size >= 4 and $p43_0 at 0) or (prefix_size >= 4 and $p44_0 at 0) or (prefix_size >= 4 and $p45_0 at 0) or (prefix_size >= 4 and $p46_0 at 0) or (prefix_size >= 4 and $p47_0 at 0) or (prefix_size >= 4 and $p48_0 at 0) or (prefix_size >= 4 and $p49_0 at 0) or (prefix_size >= 4 and $p50_0 at 0) or (prefix_size >= 4 and $p51_0 at 0) or (prefix_size >= 4 and $p52_0 at 0) or (prefix_size >= 4 and $p53_0 at 0) or (prefix_size >= 4 and $p54_0 at 0) or (prefix_size >= 4 and $p55_0 at 0) or (prefix_size >= 4 and $p56_0 at 0) or (prefix_size >= 4 and $p57_0 at 0) or (prefix_size >= 4 and $p58_0 at 0) or (prefix_size >= 4 and $p59_0 at 0) or (prefix_size >= 4 and $p60_0 at 0) or (prefix_size >= 4 and $p61_0 at 0) or (prefix_size >= 4 and $p62_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p63_0 at 0) or (prefix_size >= 4 and $p64_0 at 0) or (prefix_size >= 4 and $p65_0 at 0) or (prefix_size >= 4 and $p66_0 at 0) or (prefix_size >= 4 and $p67_0 at 0) or (prefix_size >= 4 and $p68_0 at 0) or (prefix_size >= 4 and $p69_0 at 0) or (prefix_size >= 4 and $p70_0 at 0) or (prefix_size >= 4 and $p71_0 at 0) or (prefix_size >= 4 and $p72_0 at 0) or (prefix_size >= 4 and $p73_0 at 0) or (prefix_size >= 4 and $p74_0 at 0) or (prefix_size >= 4 and $p75_0 at 0) or (prefix_size >= 4 and $p76_0 at 0) or (prefix_size >= 4 and $p77_0 at 0) or (prefix_size >= 4 and $p78_0 at 0) or (prefix_size >= 4 and $p79_0 at 0) or (prefix_size >= 4 and $p80_0 at 0) or (prefix_size >= 4 and $p81_0 at 0) or (prefix_size >= 4 and $p82_0 at 0) or (prefix_size >= 4 and $p83_0 at 0) or (prefix_size >= 4 and $p84_0 at 0) or (prefix_size >= 4 and $p85_0 at 0) or (prefix_size >= 4 and $p86_0 at 0) or (prefix_size >= 4 and $p87_0 at 0) or (prefix_size >= 4 and $p88_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p4_0 at 0) or (prefix_size >= 4 and $p5_0 at 0) or (prefix_size >= 4 and $p6_0 at 0) or (prefix_size >= 4 and $p7_0 at 0) or (prefix_size >= 4 and $p8_0 at 0) or (prefix_size >= 4 and $p9_0 at 0) or (prefix_size >= 4 and $p10_0 at 0) or (prefix_size >= 4 and $p11_0 at 0) or (prefix_size >= 4 and $p12_0 at 0) or (prefix_size >= 4 and $p13_0 at 0) or (prefix_size >= 4 and $p14_0 at 0) or (prefix_size >= 4 and $p15_0 at 0) or (prefix_size >= 4 and $p16_0 at 0) or (prefix_size >= 4 and $p17_0 at 0) or (prefix_size >= 4 and $p18_0 at 0) or (prefix_size >= 4 and $p19_0 at 0) or (prefix_size >= 4 and $p20_0 at 0) or (prefix_size >= 4 and $p21_0 at 0) or (prefix_size >= 4 and $p22_0 at 0) or (prefix_size >= 4 and $p23_0 at 0) or (prefix_size >= 4 and $p24_0 at 0) or (prefix_size >= 4 and $p25_0 at 0) or (prefix_size >= 4 and $p26_0 at 0) or (prefix_size >= 4 and $p27_0 at 0) or (prefix_size >= 4 and $p28_0 at 0) or (prefix_size >= 4 and $p29_0 at 0) or (prefix_size >= 4 and $p30_0 at 0) or (prefix_size >= 4 and $p31_0 at 0) or (prefix_size >= 4 and $p32_0 at 0) or (prefix_size >= 4 and $p33_0 at 0) or (prefix_size >= 4 and $p34_0 at 0) or (prefix_size >= 4 and $p35_0 at 0) or (prefix_size >= 4 and $p36_0 at 0) or (prefix_size >= 4 and $p37_0 at 0) or (prefix_size >= 4 and $p38_0 at 0) or (prefix_size >= 4 and $p39_0 at 0) or (prefix_size >= 4 and $p40_0 at 0) or (prefix_size >= 4 and $p41_0 at 0) or (prefix_size >= 4 and $p42_0 at 0) or (prefix_size >= 4 and $p43_0 at 0) or (prefix_size >= 4 and $p44_0 at 0) or (prefix_size >= 4 and $p45_0 at 0) or (prefix_size >= 4 and $p46_0 at 0) or (prefix_size >= 4 and $p47_0 at 0) or (prefix_size >= 4 and $p48_0 at 0) or (prefix_size >= 4 and $p49_0 at 0) or (prefix_size >= 4 and $p50_0 at 0) or (prefix_size >= 4 and $p51_0 at 0) or (prefix_size >= 4 and $p52_0 at 0) or (prefix_size >= 4 and $p53_0 at 0) or (prefix_size >= 4 and $p54_0 at 0) or (prefix_size >= 4 and $p55_0 at 0) or (prefix_size >= 4 and $p56_0 at 0) or (prefix_size >= 4 and $p57_0 at 0) or (prefix_size >= 4 and $p58_0 at 0) or (prefix_size >= 4 and $p59_0 at 0) or (prefix_size >= 4 and $p60_0 at 0) or (prefix_size >= 4 and $p61_0 at 0) or (prefix_size >= 4 and $p62_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p63_0 at 0) or (prefix_size >= 4 and $p64_0 at 0) or (prefix_size >= 4 and $p65_0 at 0) or (prefix_size >= 4 and $p66_0 at 0) or (prefix_size >= 4 and $p67_0 at 0) or (prefix_size >= 4 and $p68_0 at 0) or (prefix_size >= 4 and $p69_0 at 0) or (prefix_size >= 4 and $p70_0 at 0) or (prefix_size >= 4 and $p71_0 at 0) or (prefix_size >= 4 and $p72_0 at 0) or (prefix_size >= 4 and $p73_0 at 0) or (prefix_size >= 4 and $p74_0 at 0) or (prefix_size >= 4 and $p75_0 at 0) or (prefix_size >= 4 and $p76_0 at 0) or (prefix_size >= 4 and $p77_0 at 0) or (prefix_size >= 4 and $p78_0 at 0) or (prefix_size >= 4 and $p79_0 at 0) or (prefix_size >= 4 and $p80_0 at 0) or (prefix_size >= 4 and $p81_0 at 0) or (prefix_size >= 4 and $p82_0 at 0) or (prefix_size >= 4 and $p83_0 at 0) or (prefix_size >= 4 and $p84_0 at 0) or (prefix_size >= 4 and $p85_0 at 0) or (prefix_size >= 4 and $p86_0 at 0) or (prefix_size >= 4 and $p87_0 at 0) or (prefix_size >= 4 and $p88_0 at 0)))
 }
 
 rule taxonomy_rpm
@@ -544,13 +550,13 @@ rule taxonomy_rpm
         fp_rate = 0
         fn_rate = 0.82999999999999996
 
-	strings:
-		$p0_0 = "\\xed\\xab\\xee\\xdb"
-		$p1_0 = { 64 72 70 6d }
-		$p2_0 = { ED AB EE DB }
+    // RPM binary lead, supported major version, binary/source type and signature header; literal escaped text is not magic.
+    strings:
+        $header = { ED AB EE DB (03 | 04) 00 }
+        $signature = { 8E AD E8 01 00 00 00 00 }
 
-	condition:
-		((prefix_size >= 16 and original_size >= 16 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0))
+    condition:
+        prefix_size >= 112 and $header at 0 and uint16be(6) <= 1 and $signature at 96
 }
 
 rule taxonomy_stata
@@ -567,7 +573,7 @@ rule taxonomy_stata
 		$p0_0 = "<stata_dta><header><release>"
 
 	condition:
-		(prefix_size >= 28 and $p0_0 at 0)
+		prefix_size >= 8 and ((prefix_size >= 28 and $p0_0 at 0))
 }
 
 rule taxonomy_torrent
@@ -587,22 +593,40 @@ rule taxonomy_torrent
 		$p3_0 = { 64 37 3a 63 6f 6d 6d 65 6e 74 }
 
 	condition:
-		((prefix_size >= 17 and $p0_0 at 0) or (prefix_size >= 7 and $p1_0 at 0) or (prefix_size >= 11 and original_size >= 11 and $p2_0 at 0) or (prefix_size >= 10 and $p3_0 at 0))
+		prefix_size >= 8 and (((prefix_size >= 17 and $p0_0 at 0) or (prefix_size >= 7 and $p1_0 at 0) or (prefix_size >= 11 and original_size >= 11 and $p2_0 at 0) or (prefix_size >= 10 and $p3_0 at 0)))
 }
 
-rule taxonomy_xcoff
+rule taxonomy_jxl
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/ibm6000:libmagic_72f92e57f4bd2f191a75_line_28"
-		label = "xcoff"
+        source_refs = "libmagic:magic/Magdir/jpeg:libmagic_09c181c8a4d299652a29_line_265; libmagic:magic/Magdir/jpeg:libmagic_75914ba77f68d4a72f4e_line_256; pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:1856; pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:1857; puremagic:puremagic/magic_data.json:headers[13]; puremagic:puremagic/magic_data.json:headers[14]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[1384]/magic[0]"
+		label = "jxl"
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.01
+        fn_rate = 0.1764705882352941
 
-	strings:
-		$p0_0 = { 01 f7 }
+    // JPEG XL container signature plus ftyp jxl brand. Raw two-byte codestream needs a parser and is not enforced.
+    strings:
+        $header = { 00 00 00 0C 4A 58 4C 20 0D 0A 87 0A ?? ?? ?? ?? 66 74 79 70 6A 78 6C 20 }
 
-	condition:
-		(prefix_size >= 2 and $p0_0 at 0)
+    condition:
+        prefix_size >= 32 and $header at 0 and uint32be(12) >= 20
+}
+
+rule taxonomy_unixcompress
+{
+	meta:
+        source_refs = "libmagic:magic/Magdir/compress:libmagic_d3a761d2dade747b519c_line_12; puremagic:puremagic/magic_data.json:headers[1047]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[907]/magic[0]"
+		label = "unixcompress"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.02083333333333333
+
+    // LZW maxbits 9..16, optional block-mode bit; reserved flag bits stay zero.
+    strings:
+        $header = { 1F 9D (09 | 0A | 0B | 0C | 0D | 0E | 0F | 10 | 89 | 8A | 8B | 8C | 8D | 8E | 8F | 90) }
+    condition:
+        prefix_size >= 8 and $header at 0
 }

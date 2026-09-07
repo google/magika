@@ -1,0 +1,2 @@
+FLV Studio release notes
+version 2

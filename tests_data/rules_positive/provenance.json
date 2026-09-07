@@ -1,0 +1,20 @@
+[
+  {
+    "file": "zws-0.swf",
+    "sha256": "51757aa4c1839bc6685b5b9e9219476ed7efd9d99ea1951507959a42233934e7",
+    "origins": [
+      "github:https://github.com/denivip/osmf-hls-plugin/blob/ec991cac165836941416a8fde2090ee3a5517239/release/HLSDynamicPlugin.swf:51757aa4c1839bc6685b5b9e9219476ed7efd9d99ea1951507959a42233934e7"
+    ],
+    "corpus": "parquet-v56",
+    "label": "swf"
+  },
+  {
+    "file": "zws-1.swf",
+    "sha256": "9a99612c2a80880e322a05aba8b5af34458e1db0ad4d7b09c040cb59cba5e157",
+    "origins": [
+      "github:https://github.com/nesbox/emulator/blob/12e79e64fd4a4aa20fd1239e8a6773ffae393961/bin/Nesbox.swf:9a99612c2a80880e322a05aba8b5af34458e1db0ad4d7b09c040cb59cba5e157"
+    ],
+    "corpus": "parquet-v56",
+    "label": "swf"
+  }
+]

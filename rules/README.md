@@ -6,6 +6,15 @@ supported bounded conditions. Conflicting labels, insufficient evidence and scan
 failures abstain and use the existing pipeline. Format identity does not certify
 full-file validity. The default remains `--rules=off`.
 
+Requesting enforcement reports an initialization error if the rule pack or native
+library cannot load. Per-file scan failures still abstain. Both full and partial
+rules can decide a label: partial means some files of that format are missed.
+
+Every active bundled rule requires at least eight observed prefix bytes. Most
+reviewed formats require a larger header and correlated structural fields; padding
+a short magic string does not establish identity. See [rule quality](QUALITY.md)
+for the reviewed formats, source comparisons, measured coverage and limitations.
+
 ## Directory
 
 - `rulesets/full/`: rules with zero observed false positives and false negatives.
@@ -81,7 +90,7 @@ The command writes `report.md` and raw JSON. By default it exports the binary's 
 embedded source; `--rules-file` selects a custom pack. `--phase quality` runs correctness
 only, `--phase performance` uses saved observations for the same binary/rules/model,
 and `--phase render --output tmp/rules-release` regenerates Markdown without inference.
-An enforced-rule false positive, required-abstention violation, reference scan error or
+An enforced-rule false positive or unadjudicated match, required-abstention violation, reference scan error or
 engine mismatch returns a failing exit status after writing the report. Such failures
 also prevent the `all` phase from starting performance work. Disabled candidates remain
 in the report without failing this gate. Saved input bytes are verified before timing.

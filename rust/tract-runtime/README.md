@@ -21,3 +21,6 @@ floating-point behavior, especially for nearly constant activations. CPU and GPU
 still accumulate in different orders. The startup probe checks every row of every resident GPU batch plan using a stored CPU
 reference for one repeated input;
 it does not establish score agreement for every file or batch class.
+
+CPU and GPU confidence scores are backend dependent. Regression qualification checks final
+classification and overwrite decisions across varied reference files and every batch class.

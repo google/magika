@@ -62,6 +62,9 @@ mod session;
 
 #[cfg(test)]
 mod tests {
+    #[cfg(any(target_os = "macos", feature = "cuda"))]
+    mod gpu;
+
     use std::fs::File;
     use std::io::Read;
 

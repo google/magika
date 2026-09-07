@@ -363,20 +363,6 @@ fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    let rule_input = RuleInput {
-        mode: flags.rules.into(),
-        #[cfg(feature = "yara-rules")]
-        pack: if matches!(flags.rules, Rules::Enforce) {
-            let source = flags.rules_file.clone().or_else(|| {
-                let exe = std::env::current_exe().ok()?;
-                let source = exe.parent()?.join("rules/promoted.yar");
-                source.is_file().then_some(source)
-            });
-            source.map(magika::RuleSet::from_file).transpose()?
-        } else {
-            None
-        },
-    };
     // CLI inference receives features only; readers own the selected rule pack.
     let builder = Runtime::builder().with_max_batch(batch_size);
     let builder = match flags.experimental.backend {
@@ -430,6 +416,21 @@ fn main() -> Result<()> {
             }
         }
     })?);
+    // Start backend preparation before loading an explicit pack, so the two can overlap.
+    let rule_input = RuleInput {
+        mode: flags.rules.into(),
+        #[cfg(feature = "yara-rules")]
+        pack: if matches!(flags.rules, Rules::Enforce) {
+            let source = flags.rules_file.clone().or_else(|| {
+                let exe = std::env::current_exe().ok()?;
+                let source = exe.parent()?.join("rules/promoted.yar");
+                source.is_file().then_some(source)
+            });
+            source.map(magika::RuleSet::from_file).transpose()?
+        } else {
+            None
+        },
+    };
     join_handles.push(std::thread::Builder::new().name("magika-walk".to_string()).spawn({
         let flags = flags.clone();
         let read_sender = read_sender.clone();

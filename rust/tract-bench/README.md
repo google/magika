@@ -32,9 +32,14 @@ architecture, so the gate compares the checked probe numerically with the curren
 instead. It also checks every bundled historical model against ONNX at batches 1, 8, 16, 32, and 64
 and runs the production CPU and GPU graph contracts.
 
-The runtime consumes the `.nnef.tgz` file directly. Gzip is therefore the release codec. For a
-codec-neutral size comparison, the size script also compresses equivalent raw ONNX and NNEF tar
-representations with zstd-19:
+The production runtime loads `model.graph.json` and `model.weights`, with `model.probe.f32le`
+for GPU startup validation. The crate also includes `model.nnef.tgz` for release tooling and
+source-versus-artifact tests. The current model files occupy 3,213,905 bytes for production
+artifacts and 2,917,050 bytes for NNEF, or 6,130,955 bytes combined before crate compression.
+These are model-file sizes, not executable or compressed crate sizes.
+
+The size script compares ONNX and NNEF representations under raw, gzip and zstd-19 codecs.
+Its output does not measure the production artifacts or the total packaged model size:
 
 ```sh
 rust/tract-bench/scripts/measure-size.sh
@@ -66,7 +71,11 @@ warm-up, timed wall duration, and files per second. Use `/usr/bin/time -lp` arou
 invocation when recording peak memory. Alternate backend order across short trials to reduce cache
 and thermal bias.
 
-### Linux end-to-end CLI comparison
+### Historical Linux end-to-end CLI comparison
+
+The following report was recorded in commit `152b6bd4`. It describes the defaults at that time;
+it does not establish the throughput of the current revision or isolate the inference engine's
+contribution. The original raw trial report is no longer in this checkout.
 
 On 2026-08-21, release builds of `origin/main` (ONNX Runtime, commit `94ffd1d`) and this
 branch (tract) were run over the same 4,000-file corpus on an 8-core/16-thread Intel Xeon
@@ -81,9 +90,12 @@ machine was checked for competing build or test processes before and after each 
 | Runtime | Median wall time | Range | Median throughput |
 | --- | ---: | ---: | ---: |
 | `origin/main`, ONNX Runtime | 5.181 s | 5.061–5.533 s | 772 files/s |
-| this branch, tract CPU | 3.730 s | 3.711–3.786 s | 1,072 files/s |
+| historical tract CPU branch | 3.730 s | 3.711–3.786 s | 1,072 files/s |
 
-The tract CLI delivered 1.39 times the throughput, or 28.0% lower wall time, end to end.
+That historical run reported 1.39 times the throughput, or 28.0% lower wall time, end to end.
+It compared production defaults, including different batch and worker settings, rather than
+matched runtime configurations. Use the runtime benchmark above for an explicit backend/batch/
+thread comparison and the rules benchmark below for current CLI measurements.
 
 ### The machine must be idle
 
@@ -119,3 +131,8 @@ the compute-only benchmark.
 
 The [rules benchmark](../../rules/README.md) evaluates the actual CLI on supplied
 Parquet corpus files, including correctness, coverage, throughput and memory.
+For a before/after comparison, run its existing matrix once per binary into separate result files,
+using the same corpus, rules pack, seed, counts, workers, and backends. Compare matching cells and
+retain both reports' binary and input fingerprints. For example, `--counts 1,1000 --workers 1,4
+--backends cpu gpu` selects single-file and bulk cases with explicit worker and backend settings.
+Those measurements describe the selected settings, not necessarily the CLI defaults.

@@ -90,12 +90,73 @@ fn prepare_directory(path: &Path) -> Result<()> {
             metadata.permissions().mode() & 0o022 == 0,
             "cache directory must not be writable by other users"
         );
+        validate_ancestors(path)?;
     }
     Ok(())
 }
 
+#[cfg(unix)]
+fn validate_ancestors(path: &Path) -> Result<()> {
+    use std::os::unix::fs::MetadataExt;
+    let uid = unsafe { libc::geteuid() };
+    let path = std::fs::canonicalize(path)?;
+    for ancestor in path.ancestors() {
+        let metadata = std::fs::metadata(ancestor)?;
+        ensure!(metadata.uid() == uid || metadata.uid() == 0, "untrusted cache directory owner");
+        // Root/user-owned sticky temporary directories protect owned child entries.
+        ensure!(
+            metadata.mode() & 0o022 == 0 || metadata.mode() & 0o1000 != 0,
+            "cache ancestor is replaceable by other users"
+        );
+    }
+    Ok(())
+}
+
+fn validate_open_file(file: &File) -> Result<()> {
+    let metadata = file.metadata()?;
+    ensure!(metadata.is_file(), "cache entry must be a regular file");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let uid = unsafe { libc::geteuid() };
+        ensure!(metadata.uid() == uid || metadata.uid() == 0, "untrusted cache file owner");
+        ensure!(metadata.mode() & 0o022 == 0, "cache file is writable by other users");
+    }
+    Ok(())
+}
+
+fn open_cache_file(path: &Path, writable: bool) -> Result<File> {
+    let mut options = OpenOptions::new();
+    options.read(true).write(writable).create(writable).truncate(false);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        let parent = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
+        validate_ancestors(parent)?;
+        // Validate the opened inode, reject leaf symlinks atomically, and never block on a FIFO.
+        options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).mode(0o600);
+    }
+    let file = options.open(path)?;
+    validate_open_file(&file)?;
+    Ok(file)
+}
+
+fn lock_with_deadline(file: &File) -> Result<()> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    loop {
+        match file.try_lock() {
+            Ok(()) => return Ok(()),
+            Err(std::fs::TryLockError::WouldBlock) => {
+                ensure!(std::time::Instant::now() < deadline, "rules cache lock timed out");
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            Err(std::fs::TryLockError::Error(error)) => return Err(error.into()),
+        }
+    }
+}
+
 fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
-    let mut file = File::open(path)?;
+    let mut file = open_cache_file(path, false)?;
     let mut magic = [0; 9];
     file.read_exact(&mut magic)?;
     ensure!(&magic == MAGIC, "invalid rules cache version");
@@ -216,16 +277,10 @@ pub(super) fn load(
         return Ok(rules);
     }
     // Keep lock files in place: unlinking one could create two independently locked inodes.
-    let lock = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(false)
-        .open(directory.join(format!("{key}.lock")))
-        .and_then(|file| {
-            file.lock()?;
-            Ok(file)
-        });
+    let lock = open_cache_file(&directory.join(format!("{key}.lock")), true).and_then(|file| {
+        lock_with_deadline(&file)?;
+        Ok(file)
+    });
     let Ok(_lock) = lock else {
         return compile(source, None);
     };
@@ -242,6 +297,128 @@ mod tests {
 
     const SOURCE: &str = r#"rule a { meta: label = "png" enabled = true class = "full" fp_rate = 0 fn_rate = 0
         strings: $a = "ABCD" condition: $a at 0 and original_size >= 4 }"#;
+
+    #[test]
+    fn cache_lock_contention_falls_back_without_waiting_forever() {
+        const CHILD_DIRECTORY: &str = "MAGIKA_TEST_CONTENDED_CACHE";
+        if let Some(directory) = std::env::var_os(CHILD_DIRECTORY) {
+            let directory = PathBuf::from(directory);
+            let rules = load("", Some(&directory), None).unwrap();
+            assert!(!rules.loaded_from_cache());
+            assert_eq!(rules.identify(b"ABCD", 4), None);
+            std::fs::write(directory.join("completed"), b"compiled without cache").unwrap();
+            return;
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let lock = open_cache_file(&temp.path().join(format!("{}.lock", key(""))), true).unwrap();
+        lock.lock().unwrap();
+        let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "rules::cache::tests::cache_lock_contention_falls_back_without_waiting_forever",
+            ])
+            .env(CHILD_DIRECTORY, temp.path())
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                assert!(status.success());
+                break;
+            }
+            if std::time::Instant::now() >= deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("contended cache lock blocked initialization");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(
+            std::fs::read(temp.path().join("completed")).unwrap(),
+            b"compiled without cache"
+        );
+        assert!(!temp.path().join(format!("{}.hsdb", key(""))).exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn cache_read_rejects_symlinks_and_other_writable_files() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+        let temp = tempfile::tempdir().unwrap();
+        let pack = temp.path().join("valid.hsdb");
+        export("", &pack).unwrap();
+        assert!(read(&pack, &key("")).is_ok());
+        let link = temp.path().join("linked.hsdb");
+        symlink(&pack, &link).unwrap();
+        assert!(read(&link, &key("")).is_err(), "cache followed a symlink");
+        std::fs::set_permissions(&pack, std::fs::Permissions::from_mode(0o666)).unwrap();
+        assert!(read(&pack, &key("")).is_err(), "cache trusted an other-writable file");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn cache_directory_rejects_replaceable_ancestor() {
+        use std::os::unix::fs::PermissionsExt;
+        let temp = tempfile::tempdir().unwrap();
+        let parent = temp.path().join("shared");
+        let leaf = parent.join("cache");
+        prepare_directory(&leaf).unwrap();
+        std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o777)).unwrap();
+        assert!(prepare_directory(&leaf).is_err(), "cache trusts an attacker-replaceable ancestor");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn cache_locks_reject_symlinks_without_touching_the_target() {
+        let temp = tempfile::tempdir().unwrap();
+        let target = temp.path().join("keep");
+        std::fs::write(&target, b"unchanged").unwrap();
+        let link = temp.path().join("entry.lock");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        assert!(open_cache_file(&link, true).is_err());
+        assert_eq!(std::fs::read(&target).unwrap(), b"unchanged");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn cache_special_files_never_block() {
+        const CHILD_PATH: &str = "MAGIKA_TEST_CACHE_FIFO";
+        if let Some(path) = std::env::var_os(CHILD_PATH) {
+            let path = PathBuf::from(path);
+            assert!(open_cache_file(&path, false).is_err());
+            assert!(open_cache_file(&path, true).is_err());
+            std::fs::write(path.with_extension("checked"), b"checked both open modes").unwrap();
+            return;
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let fifo = temp.path().join("entry.fifo");
+        assert!(std::process::Command::new("mkfifo").arg(&fifo).status().unwrap().success());
+        let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "rules::cache::tests::cache_special_files_never_block"])
+            .env(CHILD_PATH, &fifo)
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                assert!(status.success());
+                break;
+            }
+            if std::time::Instant::now() >= deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("cache opening blocked on a FIFO");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        // A misspelled test filter must not turn a zero-test child into success.
+        assert_eq!(
+            std::fs::read(fifo.with_extension("checked")).unwrap(),
+            b"checked both open modes"
+        );
+    }
 
     #[test]
     fn cache_identity_covers_source_and_manifest() {

@@ -143,7 +143,7 @@ Options:
           [possible values: off, enforce]
 
       --rules-file <RULES_FILE>
-          Loads a YARA pack with per-rule enabled metadata. Requires --rules=enforce
+          Loads a YARA pack with per-rule enforcement metadata. Requires --rules=enforce
 
       --compile-rules <COMPILE_RULES>
           Compiles a YARA file to a sibling .hsdb file and exits; refuses to overwrite

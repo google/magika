@@ -239,24 +239,62 @@ mod tests {
     }
 
     #[test]
-    fn every_fixed_batch_class_matches_on_cpu_and_auto() {
-        let features =
-            match FeaturesOrRuled::extract(File::open("../../README.md").unwrap()).unwrap() {
-                FeaturesOrRuled::Features(features) => features,
-                FeaturesOrRuled::Ruled(_) => panic!("README must exercise model inference"),
-            };
-        let features: [Features; 64] = std::array::from_fn(|_| Features(features.0.clone()));
-        for backend in [Some(Backend::Cpu), None] {
-            let mut builder = Runtime::builder();
-            if let Some(backend) = backend {
-                builder = builder.with_backend(backend);
+    fn mixed_batches_preserve_each_row_on_cpu_and_auto() {
+        let mut paths: Vec<_> = std::fs::read_dir("../../tests_data/basic")
+            .unwrap()
+            .flat_map(|dir| std::fs::read_dir(dir.unwrap().path()).unwrap())
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.is_file())
+            .collect();
+        paths.sort();
+        let mut features: Vec<Features> = Vec::new();
+        for path in paths {
+            if let FeaturesOrRuled::Features(value) =
+                FeaturesOrRuled::extract(File::open(path).unwrap()).unwrap()
+            {
+                if features.iter().all(|other| other.0 != value.0) {
+                    features.push(value);
+                }
             }
-            let runtime = builder.build().unwrap();
-            let mut session = runtime.session().unwrap();
-            for batch in [1, 4, 8, 16, 32, 64] {
-                let results = session.identify_features_batch(&features[..batch]).unwrap();
-                assert_eq!(results.len(), batch);
-                assert!(results.iter().all(|result| result.info().label == "markdown"));
+            if features.len() == 65 {
+                break;
+            }
+        }
+        assert_eq!(features.len(), 65, "batch-order coverage requires 65 distinct inputs");
+        assert!(features.windows(2).all(|pair| pair[0].0 != pair[1].0));
+        for backend in [Some(Backend::Cpu), None] {
+            let builder = |maximum| {
+                let mut builder = Runtime::builder().with_max_batch(maximum);
+                if let Some(backend) = backend {
+                    builder = builder.with_backend(backend);
+                }
+                builder
+            };
+            let reference = builder(1).build().unwrap();
+            let mut single = reference.session().unwrap();
+            let expected: Vec<_> =
+                features.iter().map(|row| single.identify_features(row).unwrap()).collect();
+            let labels: std::collections::HashSet<_> =
+                expected.iter().map(|row| row.info().label).collect();
+            assert!(labels.len() >= 8, "fixtures must distinguish reordered output labels");
+            for maximum in [8, 64] {
+                let runtime = builder(maximum).build().unwrap();
+                let mut session = runtime.session().unwrap();
+                for batch in [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65] {
+                    let results = session.identify_features_batch(&features[..batch]).unwrap();
+                    assert_eq!(results.len(), batch);
+                    for (index, (actual, expected)) in results.iter().zip(&expected).enumerate() {
+                        let context =
+                            format!("{backend:?}, maximum {maximum}, batch {batch}, row {index}");
+                        assert_eq!(actual.info().label, expected.info().label, "{context}");
+                        assert!(
+                            (actual.score() - expected.score()).abs() <= 1e-4,
+                            "{context}: score {} != {}",
+                            actual.score(),
+                            expected.score()
+                        );
+                    }
+                }
             }
         }
     }

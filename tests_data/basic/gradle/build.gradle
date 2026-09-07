@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'example.weather'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.guava:guava:33.4.8-jre'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+}
+
+application {
+    mainClass = 'example.weather.ForecastApp'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.register('printForecast') {
+    doLast {
+        println 'Glasswing Ridge: 18 C, clear skies'
+    }
+}
+

@@ -12,6 +12,34 @@ ROOT = Path(__file__).resolve().parents[3]
 NEGATIVES = sorted(p for p in (ROOT / "tests_data/rules_negative").iterdir() if p.suffix != ".md")
 
 
+@pytest.mark.parametrize("brand,label", [(b"3gp6", "3gp"), (b"avif", "avif"), (b"heic", "heif")])
+def test_ftyp_requires_complete_fixed_header(scan_rules, brand, label):
+    header = (20).to_bytes(4, "big") + b"ftyp" + brand + bytes(4) + brand
+    assert scan_rules(header) == {label}
+    for length in range(8, 16):
+        assert scan_rules(header[:length]) == set(), length
+    for size in (1, 8, 12, 15, 17, 19, 21, 0xFFFFFFFF):
+        assert scan_rules(size.to_bytes(4, "big") + header[4:]) == set(), size
+    # A long, complete brand table may extend beyond the scan window.
+    large = (4112).to_bytes(4, "big") + header[4:16] + brand * 1024
+    assert scan_rules(large) == {label}
+
+
+@pytest.mark.parametrize("brand", [b"3gp\0", b"3gp?", b"3gm?", b"3gt?", b"isom", b"mif1", b"3g2a"])
+def test_ftyp_sibling_and_incomplete_brands_abstain(scan_rules, brand):
+    assert scan_rules((20).to_bytes(4, "big") + b"ftyp" + brand + bytes(4) + brand) == set()
+
+
+@pytest.mark.parametrize(
+    "brand,label",
+    [(brand, "3gp") for brand in (b"3gp1", b"3gp4", b"3ge9", b"3gg6", b"3gh9", b"3gmA", b"3gs7", b"3gtv")]
+    + [(b"avis", "avif")]
+    + [(brand, "heif") for brand in (b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs")],
+)
+def test_ftyp_existing_brand_variants(scan_rules, brand, label):
+    assert scan_rules((16).to_bytes(4, "big") + b"ftyp" + brand + bytes(4)) == {label}
+
+
 @pytest.fixture(scope="module")
 def scan_rules():
     compiler = yara_x.Compiler(includes_enabled=False)

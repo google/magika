@@ -91,6 +91,33 @@ image, packet or executable payload validation remains outside prefix matching.
 
 ## Regression and evaluation requirements
 
+### Targeted FTYP review
+
+The 3GP, AVIF and HEIF rules now require a complete 16-byte fixed `ftyp` header,
+a normal 32-bit box size of at least 16 bytes, four-byte alignment, and a complete
+major brand. Redundant upstream alternatives are consolidated. 3GP uses complete
+registered brands from the previously supported families, retaining the legacy
+`3gp1`–`3gp3` and `3gs7` spellings recognized by the pinned Tika data. AVIF retains
+`avif`/`avis`; HEIF retains its eight HEVC/L-HEVC brands. Generic `mif1` and `isom`
+do not establish these narrower identities, and 3GPP2 remains separate.
+
+The comparison uses the pinned libmagic/Tika entries, the
+[MP4 registration authority's brands](https://github.com/mp4ra/mp4ra.github.io/blob/main/data/brands.csv),
+and [GPAC's FileTypeBox reader](https://github.com/gpac/gpac/blob/master/src/isomedia/box_code_base.c).
+The fixed header includes both major brand and minor version; compatible brands
+occupy four-byte entries. These rules do not validate the entire declared box or
+media payload. Extended-size boxes and brands found only in a compatibility list
+remain outside the reviewed variants.
+
+The targeted check retained 100/100 3GP, 100/100 AVIF and 12/12 HEIF matches from
+the same development corpus, with no native/reference disagreement. Twenty-nine
+focused checks cover fixed-header truncations, illegal sizes/alignment, incomplete
+and sibling brands, retained variants, and a brand table beyond the scan window.
+This is targeted evidence; a new full-corpus evaluation is deferred until a larger
+batch of rule changes is ready.
+
+### Batch qualification
+
 The maintained regression suite includes the twenty original false-positive probes,
 literal escape text, padded short magic, truncated public fixtures, malformed field
 mutations, ZIP sibling confusion and real positive files. Native integration checks

@@ -85,34 +85,14 @@ rule taxonomy_3gp
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "ftyp3gg"
-		$p1_0 = "ftyp3gp6"
-		$p2_0 = { 33 67 67 }
-		$p3_0 = "ftyp3gp4"
-		$p4_0 = "ftyp3gp3"
-		$p5_0 = { 33 67 70 }
-		$p6_0 = "ftyp3ge6"
-		$p7_0 = "ftyp3gg6"
-		$p8_0 = "ftyp3gs7"
-		$p9_0 = "ftyp"
-		$p10_0 = "ftyp3gp2"
-		$p11_0 = { 33 67 65 }
-		$p12_0 = { 33 67 73 }
-		$p13_0 = "ftyp3gs"
-		$p14_0 = "ftyp3ge"
-		$p15_0 = { 33 67 68 }
-		$p16_0 = { 00 00 00 14 66 74 79 70 33 67 70 }
-		$p17_0 = { 33 67 72 }
-		$p18_0 = "ftyp3gp5"
-		$p19_0 = { 33 67 6d }
-		$p20_0 = "ftyp3ge7"
-		$p21_0 = "ftyp3gp"
-		$p22_0 = "ftyp3gp1"
-		$p23_0 = { 33 67 74 }
+    // Ordinary 32-bit ftyp: complete major/minor version fields and aligned brand table.
+    // Payload completeness is not format identity; the brand table may exceed the scan prefix.
+    strings:
+        $header = { 66 74 79 70 33 67 (65 (36 | 37 | 39) | 67 (36 | 39) | 68 39 | 6D (39 | 41) | 70 (31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39) | 72 (36 | 39) | 73 (36 | 37 | 39) | 74 (38 | 39 | 76)) }
 
-	condition:
-		prefix_size >= 8 and ((((prefix_size >= 8 and $p9_0 at 4) and ((prefix_size >= 11 and $p2_0 at 8) or (prefix_size >= 11 and $p5_0 at 8) or (prefix_size >= 11 and $p11_0 at 8) or (prefix_size >= 11 and $p12_0 at 8) or (prefix_size >= 11 and $p15_0 at 8) or (prefix_size >= 11 and $p17_0 at 8) or (prefix_size >= 11 and $p19_0 at 8) or (prefix_size >= 11 and $p23_0 at 8))) or ((prefix_size >= 11 and original_size >= 11 and $p0_0 at 4) or (prefix_size >= 12 and $p1_0 at 4) or (prefix_size >= 12 and $p3_0 at 4) or (prefix_size >= 12 and $p4_0 at 4) or (prefix_size >= 12 and $p6_0 at 4) or (prefix_size >= 12 and $p7_0 at 4) or (prefix_size >= 12 and $p8_0 at 4) or (prefix_size >= 12 and $p10_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p13_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p14_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p16_0 at 0) or (prefix_size >= 12 and original_size >= 12 and $p18_0 at 4) or (prefix_size >= 12 and $p20_0 at 4) or (prefix_size >= 11 and original_size >= 11 and $p21_0 at 4) or (prefix_size >= 12 and $p22_0 at 4))))
+    condition:
+        prefix_size >= 16 and $header at 4 and
+        uint32be(0) >= 16 and uint32be(0) % 4 == 0
 }
 
 rule taxonomy_ace
@@ -247,15 +227,14 @@ rule taxonomy_avif
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 61 76 69 66 }
-		$p1_0 = { 61 76 69 73 }
-		$p2_0 = "ftyp"
-		$p3_0 = "ftypavif"
-		$p4_0 = "ftypavis"
+    // Ordinary 32-bit ftyp: complete major/minor version fields and aligned brand table.
+    // Payload completeness is not format identity; the brand table may exceed the scan prefix.
+    strings:
+        $header = { 66 74 79 70 61 76 69 (66 | 73) }
 
-	condition:
-		prefix_size >= 8 and ((((prefix_size >= 8 and $p2_0 at 4) and ((prefix_size >= 12 and $p0_0 at 8) or (prefix_size >= 12 and $p1_0 at 8))) or ((prefix_size >= 12 and original_size >= 12 and $p3_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p4_0 at 4))))
+    condition:
+        prefix_size >= 16 and $header at 4 and
+        uint32be(0) >= 16 and uint32be(0) % 4 == 0
 }
 
 rule taxonomy_avro
@@ -631,21 +610,14 @@ rule taxonomy_heif
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "ftypheim"
-		$p1_0 = "ftyp"
-		$p2_0 = "ftyphevc"
-		$p3_0 = { 68 65 69 63 }
-		$p4_0 = "ftyphevm"
-		$p5_0 = "ftyphevx"
-		$p6_0 = "ftyphevs"
-		$p7_0 = "ftypheix"
-		$p8_0 = "ftypheic"
-		$p9_0 = { 68 65 69 78 }
-		$p10_0 = "ftypheis"
+    // Ordinary 32-bit ftyp: complete major/minor version fields and aligned brand table.
+    // Payload completeness is not format identity; the brand table may exceed the scan prefix.
+    strings:
+        $header = { 66 74 79 70 68 65 (69 (63 | 78 | 6D | 73) | 76 (63 | 78 | 6D | 73)) }
 
-	condition:
-		prefix_size >= 8 and ((((prefix_size >= 8 and $p1_0 at 4) and ((prefix_size >= 12 and $p3_0 at 8) or (prefix_size >= 12 and $p9_0 at 8))) or ((prefix_size >= 12 and original_size >= 12 and $p0_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p2_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p4_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p5_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p6_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p7_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p8_0 at 4) or (prefix_size >= 12 and original_size >= 12 and $p10_0 at 4))))
+    condition:
+        prefix_size >= 16 and $header at 4 and
+        uint32be(0) >= 16 and uint32be(0) % 4 == 0
 }
 
 rule taxonomy_icc

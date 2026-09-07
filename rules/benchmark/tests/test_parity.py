@@ -40,6 +40,17 @@ def scan(tmp_path, source, payloads):
     return rows
 
 
+@pytest.mark.parametrize("brand,label", [(b"3gp6", "3gp"), (b"avif", "avif"), (b"heic", "heif")])
+def test_ftyp_native_bounds(tmp_path, brand, label):
+    root = Path(__file__).resolve().parents[3]
+    source = (root / "rules/rulesets/full/formats.yar").read_text()
+    header = (20).to_bytes(4, "big") + b"ftyp" + brand + bytes(4) + brand
+    payloads = [header, header[:11], header[:15]]
+    payloads += [size.to_bytes(4, "big") + header[4:] for size in (1, 12, 17, 0xFFFFFFFF)]
+    rows = scan(tmp_path, source, payloads)
+    assert [row["rule_prediction"] for row in rows] == [label] + [None] * 6
+
+
 @pytest.mark.parametrize(
     "condition,patterns,payloads,expected",
     [

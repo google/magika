@@ -114,3 +114,37 @@ def test_bundle_exports_exact_embedded_source_and_compiles(tmp_path):
         assert archive.extractfile("rules/promoted.yar").read() == exported.read_bytes()
         assert archive.getmember("rules/promoted.hsdb").size > 0
         assert "README.md" in archive.getnames()
+
+
+def test_release_suffix_update_is_portable_and_stops_before_publishing(tmp_path):
+    repo = tmp_path / "release repo"
+    rust = repo / "rust"
+    rust.mkdir(parents=True)
+    for name in ("publish.sh", "color.sh"):
+        shutil.copy2(ROOT.parent / "rust" / name, rust / name)
+    for name in ("lib", "cli", "tract-runtime"):
+        crate = rust / name
+        crate.mkdir()
+        (crate / "Cargo.toml").write_text('[package]\nversion = "1.2.3-dev"\n')
+        (crate / "Cargo.lock").write_text('version = "1.2.3-dev"\n')
+        (crate / "CHANGELOG.md").write_text("# Changelog\n\n## 1.2.3-dev\n")
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+    git("init", "-q")
+    git("config", "user.name", "Release test")
+    git("config", "user.email", "release-test@example.invalid")
+    git("config", "commit.gpgsign", "false")
+    git("config", "core.hooksPath", "/dev/null")
+    git("add", ".")
+    git("commit", "-qm", "Fixture")
+    result = subprocess.run(["sh", "publish.sh"], cwd=rust, capture_output=True, timeout=15)
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
+    assert b"Create a PR with this commit" in result.stdout
+    for name in ("lib", "cli", "tract-runtime"):
+        for filename in ("Cargo.toml", "Cargo.lock", "CHANGELOG.md"):
+            value = (rust / name / filename).read_text()
+            assert "1.2.3" in value and "-dev" not in value
+    assert git("status", "--porcelain").stdout == b""
+    assert git("log", "-1", "--format=%s").stdout.strip() == b"Release Rust crates"

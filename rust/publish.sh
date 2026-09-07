@@ -21,8 +21,25 @@ set -e
 [ -z "$(git status -s)" ] || error "Repository is not clean"
 
 info "Removing all -dev suffixes (if any)"
-sed -i 's/-dev"/"/' $(git ls-files '*/Cargo.*')
-sed -i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
+# Python is already required for source staging; avoid GNU/BSD sed -i differences.
+python3 - <<'PYTHON'
+import os
+import subprocess
+from pathlib import Path
+
+for pattern, old, new in (
+    ("*/Cargo.*", b'-dev"', b'"'),
+    ("*/CHANGELOG.md", b"-dev", b""),
+):
+    for name in subprocess.check_output(["git", "ls-files", "-z", "--", pattern]).split(b"\0"):
+        if name:
+            path = Path(os.fsdecode(name))
+            content = path.read_bytes()
+            updated = b"".join(
+                line.replace(old, new, 1) for line in content.splitlines(keepends=True)
+            )
+            path.write_bytes(updated)
+PYTHON
 if [ -n "$(git status -s)" ]; then
   info "Creating a commit with those changes"
   git commit -aqm'Release Rust crates'

@@ -169,16 +169,32 @@ impl Runtime {
     /// kernel, report a device and return answers that are simply wrong, and nothing downstream
     /// can tell: a wrong content type is a content type, and the command line exits successfully
     /// having mislabelled everything. The converter records the batch-one CPU scores for this
-    /// exact embedded model, and the release gate regenerates them. Comparing against those bytes
-    /// keeps the check fail-closed without building a CPU plan on every GPU process startup.
+    /// exact embedded model, and the release gate regenerates them. Every resident GPU plan runs
+    /// repeated copies of that input; every output row must agree with the reference. This checks
+    /// each batch kernel without building a CPU plan on every GPU process startup. It is a device
+    /// health check; varied-file and row-order qualification needs separate regression tests.
     fn passes_gpu_probe(&self) -> Result<bool> {
         if self.info.backend == Backend::Cpu {
             return Ok(true);
         }
         let input: Vec<i32> =
             (0..FEATURE_SIZE).map(|index| (index % (PADDING_TOKEN as usize + 1)) as i32).collect();
-        let candidate = self.session()?.run(&input, 1)?;
-        Ok(scores_agree_with_bytes(EMBEDDED_GPU_PROBE, &candidate))
+        if self.plans.is_empty() {
+            return Ok(false);
+        }
+        for plan in &self.plans {
+            // Execute this plan directly: session routing must not accidentally validate a
+            // different class. Drop its probe state before allocating the next class's state.
+            let candidate =
+                run_plan(plan.runnable.spawn()?.as_mut(), &input.repeat(plan.batch), plan.batch)?;
+            if !candidate
+                .chunks_exact(NUM_LABELS)
+                .all(|row| scores_agree_with_bytes(EMBEDDED_GPU_PROBE, row))
+            {
+                return Ok(false);
+            }
+        }
+        Ok(true)
     }
 
     /// Returns the resolved backend.
@@ -502,6 +518,43 @@ mod tests {
         // Release scripts can also verify a newly converted probe without replacing the golden.
         if let Some(path) = std::env::var_os("MAGIKA_RELEASE_PROBE") {
             assert!(scores_agree_with_bytes(&std::fs::read(path)?, &output));
+        }
+        Ok(())
+    }
+
+    // Each mock plan emits a known reference vector. A defect affects only the last
+    // row of one batch class, so a batch-one-only or first-row-only probe misses it.
+    fn probe_test_runtime(faulty_batch: Option<usize>) -> Result<Runtime> {
+        use tract_core::internal::*;
+        let reference: Vec<f32> =
+            EMBEDDED_GPU_PROBE.as_chunks::<4>().0.iter().copied().map(f32::from_le_bytes).collect();
+        let mut plans = Vec::new();
+        for batch in BATCH_CLASSES {
+            let mut output = reference.repeat(batch);
+            if faulty_batch == Some(batch) {
+                output[(batch - 1) * NUM_LABELS] += 0.1;
+            }
+            let mut model = TypedModel::default();
+            model.add_source("input", i32::fact([batch, FEATURE_SIZE]))?;
+            let scores =
+                model.add_const("scores", Tensor::from_shape(&[batch, NUM_LABELS], &output)?)?;
+            model.select_output_outlets(&[scores])?;
+            plans.push(PreparedPlan { batch, runnable: Arc::new(model.into_runnable()?) });
+        }
+        Ok(super::Runtime {
+            info: BackendInfo { backend: Backend::Gpu, implementation: "test" },
+            plans,
+        })
+    }
+
+    #[test]
+    fn gpu_probe_rejects_a_fault_in_every_resident_batch_class() -> Result<()> {
+        assert!(probe_test_runtime(None)?.passes_gpu_probe()?);
+        for batch in BATCH_CLASSES {
+            assert!(
+                !probe_test_runtime(Some(batch))?.passes_gpu_probe()?,
+                "accepted a defective batch-{batch} plan"
+            );
         }
         Ok(())
     }

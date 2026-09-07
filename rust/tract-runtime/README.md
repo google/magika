@@ -18,5 +18,6 @@ CPU- or GPU-bound model execution never occupies an async executor thread.
 GPU preparation retains the model's original normalization variance expression,
 `max(E[x*x] - E[x]*E[x], 0)`. Replacing it with the mean squared centered input changes
 floating-point behavior, especially for nearly constant activations. CPU and GPU kernels can
-still accumulate in different orders. The startup probe checks one input against a tolerance;
+still accumulate in different orders. The startup probe checks every row of every resident GPU batch plan using a stored CPU
+reference for one repeated input;
 it does not establish score agreement for every file or batch class.

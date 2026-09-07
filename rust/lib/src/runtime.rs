@@ -15,12 +15,15 @@
 use anyhow::Result;
 use magika_tract_runtime::BackendRequest;
 
-use crate::{BackendInfo, Builder, Session};
+use crate::{BackendInfo, Builder, RulesMode, Session};
 
 /// Shared prepared inference plans.
 ///
 /// Create one runtime, share it between threads, and call [`Self::session`] inside each thread.
 pub struct Runtime {
+    rules_mode: RulesMode,
+    #[cfg(feature = "yara-rules")]
+    pub(crate) ruleset: Option<crate::RuleSet>,
     inner: magika_tract_runtime::Runtime,
 }
 
@@ -42,14 +45,28 @@ impl Runtime {
 
     /// Spawns private mutable inference state for the current thread.
     pub fn session(&self) -> Result<Session> {
-        Ok(Session { inner: self.inner.session()? })
+        Ok(Session {
+            inner: self.inner.session()?,
+            rules_mode: self.rules_mode,
+            #[cfg(feature = "yara-rules")]
+            ruleset: self.ruleset.clone(),
+            #[cfg(test)]
+            inference_runs: 0,
+        })
     }
 
-    pub(crate) fn new_internal(backend: BackendRequest, max_batch: Option<usize>) -> Result<Self> {
+    pub(crate) fn new_internal(
+        backend: BackendRequest, max_batch: Option<usize>, rules_mode: RulesMode,
+    ) -> Result<Self> {
         let inner = match max_batch {
             None => magika_tract_runtime::Runtime::new(backend)?,
             Some(max_batch) => magika_tract_runtime::Runtime::with_max_batch(backend, max_batch)?,
         };
-        Ok(Self { inner })
+        Ok(Self {
+            inner,
+            rules_mode,
+            #[cfg(feature = "yara-rules")]
+            ruleset: None,
+        })
     }
 }

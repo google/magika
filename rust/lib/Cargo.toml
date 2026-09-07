@@ -8,7 +8,7 @@ repository = "https://github.com/google/magika"
 homepage = "https://securityresearch.google/magika"
 keywords = ["file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
-include = ["/LICENSE", "/src"]
+include = ["/LICENSE", "/src", "/build.rs", "/rulesets", "/RULES-LICENSES"]
 
 [package.metadata.docs.rs]
 features = ["_doc"]
@@ -16,10 +16,18 @@ features = ["_doc"]
 [features]
 cuda = ["magika-tract-runtime/cuda"]
 serde = ["dep:serde"]
+yara-rules = ["dep:yara-x-parser", "dep:regex-syntax", "dep:libloading", "dep:serde", "dep:serde_json", "dep:sha2", "dep:tempfile", "dep:libc"]
 # Internal features.
 _doc = ["serde"]
 
 [dependencies]
+yara-x-parser = { version = "=1.20.0", optional = true }
+regex-syntax = { version = "=0.8.11", optional = true }
+libloading = { version = "0.8.9", optional = true }
+serde_json = { version = "1.0.120", optional = true }
+sha2 = { version = "0.10.9", optional = true }
+tempfile = { version = "3.23.0", optional = true }
+libc = { version = "0.2", optional = true }
 anyhow = "1.0.104"
 magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"
@@ -31,6 +39,10 @@ data-encoding = "2.6.0"
 flate2 = "1.0.30"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
+
+[build-dependencies]
+anyhow = "1.0.104"
+yara-x-parser = { version = "=1.20.0", optional = true }
 
 [lints.rust]
 missing_docs = "warn"

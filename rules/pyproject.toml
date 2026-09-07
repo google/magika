@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "magika-rules-benchmark"
+version = "0.1.0"
+description = "Correctness, coverage and disk performance evaluation for Magika rules"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+dependencies = ["pyarrow>=20,<24", "yara-x==1.20.0", "tabulate>=0.9,<1"]
+
+[project.scripts]
+magika-rules-benchmark = "magika_rules_benchmark:main"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.12,<1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["benchmark/src/magika_rules_benchmark"]
+
+[tool.pytest.ini_options]
+testpaths = ["benchmark/tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "native: requires MAGIKA_TEST_BINARY and MAGIKA_VECTORSCAN_LIBRARY",
+  "packaging: builds staged Rust packages",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]

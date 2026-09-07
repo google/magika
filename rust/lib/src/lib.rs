@@ -37,6 +37,9 @@ pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{Features, FeaturesOrRuled, Input};
+#[cfg(feature = "yara-rules")]
+pub use crate::rules::RuleSet;
+pub use crate::rules::{RulesMode, DEFAULT_RULES};
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
@@ -47,6 +50,7 @@ mod content;
 mod file;
 mod input;
 mod model;
+mod rules;
 mod runtime;
 mod session;
 

@@ -19,8 +19,10 @@ set -e
 x cargo check
 x cargo check --features=serde
 x cargo test
+x cargo test --features=yara-rules
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
+x cargo clippy --features=yara-rules --all-targets -- --deny=warnings
 if cargo --version | grep -q nightly; then
   x env RUSTDOCFLAGS=--deny=warnings cargo doc --features=_doc
 fi

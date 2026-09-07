@@ -25,6 +25,7 @@ serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 
 [features]
+yara-rules = ["magika/yara-rules"]
 _trace = ["dep:cpu-time"]
 
 [profile.release]

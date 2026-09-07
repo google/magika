@@ -6,6 +6,8 @@
 
 - Remove the dependency on the ONNX Runtime
 
+- Add `--rules=off|enforce`, `--rules-file`, `--write-default-rules`, and `--compile-rules`; optional Vectorscan execution supports per-rule enablement, compiled packs and a persistent compilation cache, with bundled structural variants individually disabled pending qualification
+
 ### Patch
 
 - Remove deprecated `package.authors` field in `Cargo.toml`

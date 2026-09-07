@@ -2,6 +2,10 @@
 __pycache__/
 .ipynb_checkpoints
 venv/
+/rules/.venv/
+/rules/.pytest_cache/
+/rules/.ruff_cache/
+/rules/dist/
 tmp/
 .env
 *.swp

@@ -14,16 +14,32 @@
 
 use anyhow::Result;
 
-use crate::{Backend, Runtime};
+use crate::{Backend, RulesMode, Runtime};
 
 /// Configures and creates a Magika runtime.
 #[derive(Clone, Debug, Default)]
 pub struct Builder {
+    rules_mode: RulesMode,
+    #[cfg(feature = "yara-rules")]
+    ruleset: Option<crate::RuleSet>,
     backend: Option<Backend>,
     max_batch: Option<usize>,
 }
 
 impl Builder {
+    /// Selects the promoted rule allowlist; defaults to off.
+    pub fn with_rules_mode(mut self, mode: RulesMode) -> Self {
+        self.rules_mode = mode;
+        self
+    }
+
+    /// Supplies a loaded pack. It is used only when rules mode is `Enforce`.
+    #[cfg(feature = "yara-rules")]
+    pub fn with_ruleset(mut self, ruleset: crate::RuleSet) -> Self {
+        self.ruleset = Some(ruleset);
+        self
+    }
+
     /// Selects a specific backend for inference.
     pub fn with_backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
@@ -32,9 +48,9 @@ impl Builder {
 
     /// Declares the largest batch this session will ever be asked to identify.
     ///
-    /// Declaring a smaller maximum skips unreachable fixed plans and makes startup cheaper. On an
-    /// x86_64 CPU, smaller tails are padded through the largest resident optimized plan;
-    /// elsewhere, requests are decomposed over the original resident classes.
+    /// Declaring a smaller maximum skips unreachable fixed plans and makes startup cheaper. On a
+    /// CPU, smaller tails are padded through the largest resident plan; GPU requests are
+    /// decomposed over the original resident classes.
     pub fn with_max_batch(mut self, max_batch: usize) -> Self {
         self.max_batch = Some(max_batch);
         self
@@ -42,6 +58,18 @@ impl Builder {
 
     /// Consumes the builder to create a Magika runtime.
     pub fn build(self) -> Result<Runtime> {
-        Runtime::new_internal(Backend::to_request(self.backend), self.max_batch)
+        self.rules_mode.check()?;
+        let runtime = Runtime::new_internal(
+            Backend::to_request(self.backend),
+            self.max_batch,
+            self.rules_mode,
+        )?;
+        #[cfg(feature = "yara-rules")]
+        let runtime = {
+            let mut runtime = runtime;
+            runtime.ruleset = self.ruleset;
+            runtime
+        };
+        Ok(runtime)
     }
 }

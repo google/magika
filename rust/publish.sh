@@ -40,7 +40,10 @@ info "Publishing the tract runtime"
 ( cd tract-runtime && cargo publish )
 
 info "Publishing the library"
-( cd lib && cargo publish )
+source_stage=$(mktemp -d)
+trap 'rm -rf "$source_stage"' EXIT HUP INT TERM
+python3 ../rules/package.py source --output "$source_stage/source"
+cargo publish --manifest-path "$source_stage/source/lib/Cargo.toml"
 
 info "Publishing the CLI"
 ( cd cli && cargo publish )

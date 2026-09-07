@@ -22,6 +22,10 @@
 - Add `Backend` and `BackendInfo` for backend selection (CPU or GPU) and information
 - Add `Session::backend_info()` to get information about the backend
 
+- Add opt-in bounded YARA format rules executed by Vectorscan, loaded rulesets, compiled packs, a persistent compilation cache and mode-aware extraction; defaults remain off and bundled structural variants remain individually disabled pending qualification
+- Block promotion of the bundled SQLite header variants because MBTiles subtypes can share their complete scan prefix and file length
+- Add rule-only output types from the knowledge base and canonical dataset taxonomy, including AVIF, QOI, GGUF and DuckDB, without changing the model's classes or existing output metadata and mappings
+
 ### Patch
 
 - Remove deprecated `package.authors` field in `Cargo.toml`

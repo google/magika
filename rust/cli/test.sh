@@ -21,6 +21,9 @@ PROFILE=release-fast
 x cargo check
 x cargo check --features=_trace
 x cargo build --profile=$PROFILE
+x cargo test
+x cargo test --features=yara-rules
+x cargo clippy --features=yara-rules --all-targets -- --deny=warnings
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
 x cargo clippy --features=_trace -- --deny=warnings

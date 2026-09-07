@@ -16,14 +16,26 @@
 set -e
 . ./color.sh
 
+# GNU and BSD sed have incompatible -i options. Keep the same expressions and
+# preserve file permissions by copying successful output back into the file.
+sed_in_place() {
+  file=$1
+  shift
+  temporary=$(mktemp)
+  if sed "$@" "$file" > "$temporary"; then
+    if ! cat "$temporary" > "$file"; then
+      rm "$temporary"
+      return 1
+    fi
+    rm "$temporary"
+  else
+    rm "$temporary"
+    return 1
+  fi
+}
+
 info "Sync generated files"
 ( cd gen; cargo run; )
-
-info "Sync embedded model"
-( cd tract-bench
-  cargo run --no-default-features --features=convert --bin=convert-model -- \
-    ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le}
-)
 
 info "Sync CLI output"
 ( cd cli; cargo build --profile=release-fast; )
@@ -44,14 +56,14 @@ info "Updating CLI output in README.md"
 ( cd cli
   for i in $(seq 1 $(grep '^% ' README.md | wc -l)); do
     grep -n '^% ' README.md | cut -f1 -d: | head -n$i | tail -n1 | while read line; do
-      sed -i $line',/```/{'$line'p;/```/!d}' README.md
+      sed_in_place README.md -e "$line"',/```/{' -e "$line"'p' -e '/```/!d' -e '}'
       cmd="$(head -n$line README.md | tail -n1 | sed 's/^% //')"
       ( cd ../..; eval "$cmd"; ) 2>/dev/null > tmp
-      sed -i $line'r tmp' README.md
+      sed_in_place README.md $line'r tmp'
     done
   done
   rm tmp
-  sed -i 's/ \+$//' README.md
+  sed_in_place README.md 's/ *$//'
 )
 
 if [ "$1" = --check ]; then

@@ -9,6 +9,7 @@ on:
     paths:
       - ".github/workflows/rust-*"
       - "assets/**"
+      - "rules/**"
       - "rust/**"
       - "tests_data/**"
 
@@ -94,3 +95,70 @@ jobs:
       - run: cargo build --profile=release-fast
         working-directory: rust/cli
       - run: rust/target/release-fast/magika -r tests_data/basic
+  rules:
+    name: Optional rules (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+      - run: rustup default stable
+      - run: rustup component add rustfmt clippy
+      - run: cargo test --locked
+        working-directory: rust/lib
+      - run: cargo test --locked --features yara-rules
+        working-directory: rust/lib
+      - run: cargo clippy --locked --features yara-rules --all-targets -- -D warnings
+        working-directory: rust/lib
+      - run: cargo test --locked
+        working-directory: rust/cli
+      - run: cargo test --locked --features yara-rules
+        working-directory: rust/cli
+  rules-native:
+    name: Rules parity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+      - run: rustup default stable
+      - name: Install native build dependencies
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install ragel boost cmake
+          else
+            sudo apt-get update
+            sudo apt-get install -y ragel libboost-dev cmake
+          fi
+          python3 -m venv "$RUNNER_TEMP/uv"
+          "$RUNNER_TEMP/uv/bin/pip" install uv==0.8.22
+          echo "$RUNNER_TEMP/uv/bin" >> "$GITHUB_PATH"
+      - name: Build pinned Vectorscan
+        shell: bash
+        run: |
+          git init "$RUNNER_TEMP/vectorscan"
+          git -C "$RUNNER_TEMP/vectorscan" fetch --depth 1 https://github.com/VectorCamp/vectorscan.git acd7363aadea43da9c5246542d9969db843dd132
+          git -C "$RUNNER_TEMP/vectorscan" checkout --detach FETCH_HEAD
+          cmake -S "$RUNNER_TEMP/vectorscan" -B "$RUNNER_TEMP/vectorscan-build" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON \
+            -DBUILD_UNIT=OFF -DBUILD_EXAMPLES=OFF -DFAT_RUNTIME=OFF
+          cmake --build "$RUNNER_TEMP/vectorscan-build" --parallel 2
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "MAGIKA_VECTORSCAN_LIBRARY=$RUNNER_TEMP/vectorscan-build/lib/libhs.dylib" >> "$GITHUB_ENV"
+          else
+            echo "MAGIKA_VECTORSCAN_LIBRARY=$RUNNER_TEMP/vectorscan-build/lib/libhs.so" >> "$GITHUB_ENV"
+          fi
+          echo "MAGIKA_TEST_BINARY=$GITHUB_WORKSPACE/rust/target/debug/magika" >> "$GITHUB_ENV"
+      - run: cargo build --locked --manifest-path rust/cli/Cargo.toml --features yara-rules
+      - run: cargo test --locked --manifest-path rust/lib/Cargo.toml --features yara-rules -- --include-ignored --skip rules::cache::tests::process_probe
+      - run: cargo test --locked --manifest-path rust/cli/Cargo.toml --features yara-rules -- --include-ignored
+      - run: uv sync --directory rules --locked
+      - run: uv run --directory rules --locked ruff check .
+      - run: uv run --directory rules --locked ruff format --check .
+      - run: uv run --directory rules --locked pytest --run-native --run-packaging

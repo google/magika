@@ -136,6 +136,21 @@ Arguments:
           Use a dash (-) to read from standard input (can only be used once).
 
 Options:
+      --rules <RULES>
+          Enables the selected ruleset (requires the yara-rules feature)
+
+          [default: off]
+          [possible values: off, enforce]
+
+      --rules-file <RULES_FILE>
+          Loads a YARA pack with per-rule enabled metadata. Requires --rules=enforce
+
+      --compile-rules <COMPILE_RULES>
+          Compiles a YARA file to a sibling .hsdb file and exits; refuses to overwrite
+
+      --write-default-rules <WRITE_DEFAULT_RULES>
+          Writes the bundled YARA source to a new file and exits
+
   -r, --recursive
           Identifies files within directories instead of identifying the directory itself
 
@@ -190,3 +205,16 @@ Options:
 See the [docs on Magika's core
 concepts](https://securityresearch.google/magika/core-concepts/how-magika-works/) for more details
 about the output format and other important aspects.
+
+## Rule and inference concurrency
+
+The CLI prepares the model on a background coordinator while its readers extract and classify
+files. Rule hits can reach ordered output before model preparation completes; misses queue in
+bounded inference batches. Once the backend is ready, the coordinator starts the normal CPU or
+GPU worker count (`--threads` overrides it). Each worker owns its inference session. An earlier
+ML miss can still hold up later rule hits because output preserves input order.
+
+On CPU, a declared maximum batch retains one model plan. Partial batches are padded through that
+plan and padding outputs are discarded, avoiding extra unfused plans and their retained buffers.
+When traversal fills the bounded output window, it requests a batch flush after the outstanding
+reads complete. Scheduling delays never trigger partial inference batches.

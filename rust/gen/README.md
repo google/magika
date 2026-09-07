@@ -7,7 +7,11 @@ There are 3 files in the Rust library that depend on the model:
 - The labels describing the model output, `rust/lib/src/model.rs`, which is generated from the model
   configuration, `rust/gen/model/config.min.json`.
 - The list of possible file types, `rust/lib/src/content.rs`, which is generated from the knowledge
-  base of content types, `assets/content_types_kb.min.json`.
+  base of content types, `assets/content_types_kb.min.json`. Explicitly selected binary labels in
+  `rust/gen/content_types` that are absent from the knowledge base use metadata from
+  `rules/content-types.json`. Existing knowledge-base entries remain unchanged. These additional
+  output identities do not add model classes or enable rules; the generated library does not read
+  the taxonomy at runtime.
 
 The purpose of this crate is to generate the last two files. There is a test to make sure that they
 are up-to-date. If the test fails, one simply needs to run `./sync.sh` from the `rust` directory to

@@ -74,11 +74,11 @@ awk/weekly_totals.awk: Awk (code)
 batch/simple.bat: DOS batch file (code)
 bib/references.bib: BibTeX (text)
 c/code.c: C source (code)
+clojure/weather_summary.clj: Clojure (code)
 css/code.css: CSS source (code)
 csv/magika_test.csv: CSV document (code)
+dart/inventory_report.dart: Dart source (code)
 diff/weather-station.patch: Diff file (text)
-dockerfile/Dockerfile: Dockerfile (code)
-docx/doc.docx: Microsoft Word 2007+ document (document)
 ```
 
 ```shell

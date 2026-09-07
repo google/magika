@@ -30,6 +30,7 @@
 
 ### Patch
 
+- Exclude the working directory and PATH from implicit Windows rules-library searches; explicitly selected DLLs may load dependencies beside themselves.
 - Require Rust 1.93 and verify all features and targets on that minimum version.
 - Expose rules APIs in stable Rust documentation and use maintained rule sources ahead of stale packaging copies in repository builds.
 - Reject unsafe Unix cache files and directories, avoid blocking on special cache files, and fall back to uncached compilation after bounded lock contention.

@@ -63,6 +63,31 @@ pub(super) struct Api {
     library: Library,
 }
 
+fn load_library(path: &std::ffi::OsStr) -> Result<Library> {
+    #[cfg(windows)]
+    {
+        use libloading::os::windows::{
+            Library as WindowsLibrary, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS,
+            LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR,
+        };
+        let path = std::path::Path::new(path);
+        let mut flags = LOAD_LIBRARY_SEARCH_DEFAULT_DIRS;
+        let resolved;
+        let path = if path.components().count() > 1 {
+            resolved = std::fs::canonicalize(path)?;
+            flags |= LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR;
+            resolved.as_os_str()
+        } else {
+            path.as_os_str()
+        };
+        // Exclude CWD and PATH for both the engine and its dependencies. An explicit
+        // path additionally permits dependencies beside that deliberately selected DLL.
+        Ok(unsafe { WindowsLibrary::load_with_flags(path, flags) }?.into())
+    }
+    #[cfg(not(windows))]
+    Ok(unsafe { Library::new(path) }?)
+}
+
 impl Api {
     pub(super) fn load() -> Result<Arc<Self>> {
         let name = if cfg!(target_os = "macos") {
@@ -82,7 +107,7 @@ impl Api {
                 .unwrap_or_else(|| name.into())
         });
         // Loading executable libraries requires a trusted system installation or explicit path.
-        let library = unsafe { Library::new(&path) }.with_context(|| {
+        let library = load_library(&path).with_context(|| {
             format!("load Vectorscan {path:?}; set MAGIKA_VECTORSCAN_LIBRARY to its library path")
         })?;
         let mut platform = Platform::default();
@@ -333,5 +358,46 @@ mod tests {
             Decision::Match(ContentType::Png)
         );
         assert_eq!(Arc::strong_count(&database), 2, "successful worker should remain cached");
+    }
+}
+
+#[cfg(all(test, windows))]
+mod loading_tests {
+    use super::*;
+
+    #[test]
+    fn current_directory_dll_is_not_loaded_implicitly() {
+        const CHILD: &str = "MAGIKA_TEST_DLL_DIRECTORY";
+        const NAME: &str = "magika_untrusted_probe.dll";
+        if let Some(directory) = std::env::var_os(CHILD) {
+            let path = std::path::PathBuf::from(directory);
+            assert!(load_library(std::ffi::OsStr::new(NAME)).is_err(), "loaded DLL from CWD");
+            // The fixture is a real, loadable DLL; an invalid PE file cannot make this pass.
+            assert!(load_library(path.join(NAME).as_os_str()).is_ok());
+            std::fs::write(path.join("checked"), b"checked implicit and explicit loads").unwrap();
+            return;
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let system = std::path::PathBuf::from(std::env::var_os("SystemRoot").unwrap());
+        std::fs::copy(system.join("System32/version.dll"), temp.path().join(NAME)).unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "rules::native::loading_tests::current_directory_dll_is_not_loaded_implicitly",
+            ])
+            .env(CHILD, temp.path())
+            .current_dir(temp.path())
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            std::fs::read(temp.path().join("checked")).unwrap(),
+            b"checked implicit and explicit loads"
+        );
     }
 }

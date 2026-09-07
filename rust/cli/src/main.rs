@@ -519,40 +519,96 @@ fn print(
     flags: &Flags, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
     reorder_next: Arc<Progress>,
 ) -> Result<()> {
-    // Closing this guard wakes traversal on every return, including an initial write failure.
+    print_to(flags, result_receiver, reorder_next, &mut std::io::stdout().lock())
+}
+
+fn print_to(
+    flags: &Flags, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
+    reorder_next: Arc<Progress>, stdout: &mut impl std::io::Write,
+) -> Result<()> {
+    // Dropping Reorder wakes traversal on every return, including write failures.
     let mut reorder = Reorder::new(reorder_next);
-    let mut stdout = std::io::stdout().lock();
     if flags.format.json {
         write!(stdout, "[")?;
     }
     let mut errors = false;
-    while let Ok(response) = result_receiver.recv() {
-        reorder.push(response?);
-        while let Some(response) = reorder.pop() {
+    let mut printed = 0;
+    let mut failure = None;
+    let mut write_failed = false;
+    {
+        let mut output_row = |response: Response| -> Result<()> {
             errors |= response.result.is_err();
             if flags.format.json {
-                if reorder.next != 1 {
+                // Serialize before writing a comma: a bad row must not corrupt the array.
+                let json = serde_json::to_string_pretty(&response.json()?)?;
+                if printed != 0 {
                     write!(stdout, ",")?;
                 }
-                for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
+                for line in json.lines() {
                     write!(stdout, "\n  {line}")?;
                 }
             } else {
                 writeln!(stdout, "{}", response.format(flags)?)?;
             }
+            printed += 1;
+            Ok(())
+        };
+        'responses: while let Ok(response) = result_receiver.recv() {
+            match response {
+                Ok(response) => reorder.push(response),
+                Err(error) => {
+                    failure = Some(error);
+                    break;
+                }
+            }
+            while let Some(response) = reorder.pop() {
+                if let Err(error) = output_row(response) {
+                    write_failed = error.root_cause().is::<std::io::Error>();
+                    failure = Some(error);
+                    break 'responses;
+                }
+            }
+        }
+        if failure.is_none() && !reorder.is_empty() {
+            failure = Some(anyhow::anyhow!("classification stopped with missing ordered results"));
+        }
+        if failure.is_some() && !write_failed {
+            // Keep completed results already received, even when a failed earlier row leaves a gap.
+            // Do not wait for new work after a pipeline failure.
+            for response in result_receiver.try_iter().flatten() {
+                reorder.push(response);
+            }
+            let mut remaining: Vec<_> =
+                reorder.todo.drain().map(|(_, response)| response).collect();
+            remaining.sort_by_key(|response| response.order);
+            for response in remaining {
+                if let Err(error) = output_row(response) {
+                    if error.root_cause().is::<std::io::Error>() {
+                        write_failed = true;
+                        break;
+                    }
+                }
+            }
         }
     }
-    debug_assert!(reorder.is_empty());
-    if flags.format.json {
-        if reorder.next != 0 {
-            writeln!(stdout)?;
+    let close_result = (|| -> Result<()> {
+        if flags.format.json && !write_failed {
+            if printed != 0 {
+                writeln!(stdout)?;
+            }
+            writeln!(stdout, "]")?;
         }
-        writeln!(stdout, "]")?;
-    }
+        Ok(())
+    })();
+    // Return to main so worker joins and tracing still run. A later broken pipe must
+    // not turn an input error that was already observed into a successful exit.
     if errors {
-        std::process::exit(1);
+        anyhow::bail!("one or more input files failed");
     }
-    Ok(())
+    match failure {
+        Some(error) => Err(error),
+        None => close_result,
+    }
 }
 
 /// Walks the requested paths and hands regular files to the read threads.
@@ -813,14 +869,26 @@ fn infer_batches(
             slot => slot.insert(runtime.session()?),
         };
         let batch = magika.identify_features_batch(&features)?;
-        debug_assert_eq!(batch.len(), pending.len());
-        for (pending, output) in pending.into_iter().zip(batch) {
-            let result = Ok(output);
-            sender.send(Ok(Response::new(pending, result)))?;
-        }
+        dispatch_inference_results(pending, batch, sender)?;
     }
     #[cfg(feature = "_trace")]
     eprintln!("trace inference batch sizes: {batch_counts:?}");
+    Ok(())
+}
+
+fn dispatch_inference_results(
+    pending: Vec<OrderPath>, batch: Vec<FileType>,
+    sender: &std::sync::mpsc::SyncSender<Result<Response>>,
+) -> Result<()> {
+    ensure!(
+        batch.len() == pending.len(),
+        "inference returned {} rows for {} inputs",
+        batch.len(),
+        pending.len()
+    );
+    for (pending, output) in pending.into_iter().zip(batch) {
+        sender.send(Ok(Response::new(pending, Ok(output))))?;
+    }
     Ok(())
 }
 
@@ -863,6 +931,122 @@ impl Drop for Reorder {
 #[cfg(test)]
 mod reorder_tests {
     use super::*;
+
+    #[test]
+    fn wrong_inference_row_count_errors_before_dispatch() {
+        for returned in [0, 1, 3] {
+            let pending =
+                (0..2).map(|order| OrderPath { order, path: PathBuf::from("sample") }).collect();
+            let batch = vec![FileType::Ruled(ContentType::Png); returned];
+            let (sender, receiver) = std::sync::mpsc::sync_channel(4);
+            assert!(dispatch_inference_results(pending, batch, &sender).is_err());
+            assert!(receiver.try_recv().is_err(), "partial results escaped a malformed batch");
+        }
+    }
+
+    fn output_response(order: usize) -> Response {
+        Response::new(
+            OrderPath { order, path: PathBuf::from(format!("{order}.png")) },
+            Ok(FileType::Ruled(ContentType::Png)),
+        )
+    }
+
+    #[test]
+    fn pipeline_errors_close_json_and_preserve_buffered_results() {
+        let flags = Flags::try_parse_from(["magika", "--json", "sample"]).unwrap();
+        let (sender, receiver) = std::sync::mpsc::channel();
+        sender.send(Ok(output_response(0))).unwrap();
+        sender.send(Ok(output_response(2))).unwrap();
+        sender.send(Err(anyhow::anyhow!("inference failed"))).unwrap();
+        drop(sender);
+        let mut output = Vec::new();
+        let result = print_to(&flags, receiver, Arc::new(Progress::default()), &mut output);
+        assert!(result.is_err());
+        let rows: Vec<serde_json::Value> = serde_json::from_slice(&output).unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0]["path"], "0.png");
+        assert_eq!(rows[1]["path"], "2.png");
+    }
+
+    #[test]
+    fn a_broken_pipe_while_closing_json_does_not_mask_input_errors() {
+        struct FailClosing;
+        impl std::io::Write for FailClosing {
+            fn write(&mut self, buffer: &[u8]) -> std::io::Result<usize> {
+                if buffer.first() == Some(&b']') {
+                    Err(std::io::Error::from(ErrorKind::BrokenPipe))
+                } else {
+                    Ok(buffer.len())
+                }
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let flags = Flags::try_parse_from(["magika", "--json", "sample"]).unwrap();
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let mut response = output_response(0);
+        response.result = Err(std::io::Error::from(ErrorKind::NotFound).into());
+        sender.send(Ok(response)).unwrap();
+        drop(sender);
+        let error = print_to(&flags, receiver, Arc::new(Progress::default()), &mut FailClosing)
+            .unwrap_err();
+        assert!(error.to_string().contains("input files failed"), "{error}");
+        assert!(!error.root_cause().is::<std::io::Error>());
+    }
+
+    #[test]
+    fn a_later_broken_pipe_does_not_mask_a_pipeline_failure() {
+        struct FailAfterOpening;
+        impl std::io::Write for FailAfterOpening {
+            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+                if bytes == b"[" {
+                    Ok(1)
+                } else {
+                    Err(ErrorKind::BrokenPipe.into())
+                }
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        for buffered in [false, true] {
+            let flags = Flags::try_parse_from(["magika", "--json", "sample"]).unwrap();
+            let (sender, receiver) = std::sync::mpsc::channel();
+            sender.send(Err(anyhow::anyhow!("model unavailable"))).unwrap();
+            if buffered {
+                sender.send(Ok(output_response(1))).unwrap();
+            }
+            drop(sender);
+            let error =
+                print_to(&flags, receiver, Arc::new(Progress::default()), &mut FailAfterOpening)
+                    .unwrap_err();
+            assert_eq!(error.to_string(), "model unavailable");
+        }
+    }
+
+    #[test]
+    fn pipeline_failure_before_any_output_still_writes_an_empty_json_array() {
+        let flags = Flags::try_parse_from(["magika", "--json", "sample"]).unwrap();
+        let (sender, receiver) = std::sync::mpsc::channel();
+        sender.send(Err(anyhow::anyhow!("model unavailable"))).unwrap();
+        drop(sender);
+        let mut output = Vec::new();
+        assert!(print_to(&flags, receiver, Arc::new(Progress::default()), &mut output).is_err());
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&output).unwrap(),
+            serde_json::json!([])
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn non_utf8_json_path_is_a_fallible_error_not_a_panic() {
+        use std::os::unix::ffi::OsStringExt;
+        let mut response = output_response(0);
+        response.path = std::ffi::OsString::from_vec(vec![b'f', 0xff]).into();
+        assert!(response.json().is_err());
+    }
 
     #[test]
     #[cfg(unix)]
@@ -1255,7 +1439,7 @@ impl Response {
     }
 
     fn json(self) -> Result<serde_json::Value> {
-        let path = self.path.to_path_buf();
+        let path = serde_json::to_value(&self.path)?;
         let result = match self.result {
             Ok(x) => {
                 let dl = match &x {

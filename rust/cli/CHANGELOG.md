@@ -10,6 +10,8 @@
 
 ### Patch
 
+- Preserve completed JSON results and close arrays on classification errors; report invalid UTF-8 paths without panicking and preserve earlier failures when output closes.
+- Reject inference batches with mismatched result counts before dispatching any rows.
 - Reject named pipes and other unsupported special files before reader dispatch; JSON reports `unsupported_file_type` and regular files continue processing.
 - Bound experimental batch sizes to 1–64 and reader/inference worker counts to 1–256 before allocating queues or starting threads.
 - Remove deprecated `package.authors` field in `Cargo.toml`

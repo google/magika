@@ -101,19 +101,28 @@ impl FeaturesOrRuled {
     }
 
     pub(crate) fn extract_with_matcher(
-        mut file: impl Input, identify: impl FnOnce(&[u8], u64) -> Option<ContentType>,
+        file: impl Input, identify: impl FnOnce(&[u8], u64) -> Option<ContentType>,
     ) -> Result<Self> {
-        let config = &crate::model::CONFIG;
+        Self::extract_with_config(&crate::model::CONFIG, file, identify)
+    }
+
+    fn extract_with_config(
+        config: &ModelConfig, mut file: impl Input,
+        identify: impl FnOnce(&[u8], u64) -> Option<ContentType>,
+    ) -> Result<Self> {
         let file_len = file.length()?;
         if file_len == 0 {
             return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
         }
-        let mut first_block = vec![0; file_len.min(config.block_size as u64) as usize];
+        let read_size = config.block_size.max(crate::rules::PREFIX_LIMIT);
+        let mut first_block = vec![0; file_len.min(read_size as u64) as usize];
         file.read_at(&mut first_block, 0)?;
         let prefix = &first_block[..first_block.len().min(crate::rules::PREFIX_LIMIT)];
         if let Some(content_type) = identify(prefix, file_len) {
             return Ok(FeaturesOrRuled::Ruled(content_type));
         }
+        // Rule lookahead must not change the model's whitespace trimming or tail window.
+        first_block.truncate(config.block_size);
         let (first_block, features) =
             extract_features_with_prefix(config, file, file_len, first_block)?;
         if features[config.min_file_size_for_dl - 1] != config.padding_token {
@@ -210,6 +219,28 @@ mod tests {
             self.reads.push((offset, buffer.len()));
             buffer.copy_from_slice(&self.bytes[offset as usize..offset as usize + buffer.len()]);
             Ok(())
+        }
+    }
+
+    #[test]
+    fn rule_prefix_is_independent_of_model_block_size() {
+        for block_size in [2048, 4096, 8192] {
+            let config = ModelConfig { block_size, ..crate::model::CONFIG };
+            // Whitespace spanning the smaller block boundary makes accidental feature
+            // extraction with the larger rule prefix observably wrong.
+            let mut bytes = vec![b' '; 2000];
+            bytes.extend((0..10000).map(|i| (i % 256) as u8));
+            let expected =
+                extract_features(&config, bytes.as_slice(), bytes.len() as u64).unwrap().1;
+            let result =
+                FeaturesOrRuled::extract_with_config(&config, bytes.as_slice(), |prefix, _| {
+                    assert_eq!(prefix.len(), 4096, "model block size {block_size}");
+                    assert!(prefix == &bytes[..4096]);
+                    None
+                })
+                .unwrap();
+            let FeaturesOrRuled::Features(features) = result else { panic!("expected features") };
+            assert_eq!(features.0, expected, "model block size {block_size}");
         }
     }
 

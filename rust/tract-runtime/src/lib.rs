@@ -49,8 +49,10 @@ use tract_metal::MetalTransform;
 /// Fixed batch shapes prepared by every runtime.
 pub const BATCH_CLASSES: [usize; 6] = [1, 4, 8, 16, 32, 64];
 
-const FEATURE_SIZE: usize = 2048;
-const NUM_LABELS: usize = 214;
+/// Number of input tokens per file in the shipped model.
+pub const FEATURE_SIZE: usize = 2048;
+/// Number of output scores per file in the shipped model.
+pub const NUM_LABELS: usize = 214;
 const PADDING_TOKEN: i32 = 256;
 #[cfg(any(test, feature = "_model-release"))]
 const DIRECT_FUSED_MIN_BATCH: usize = 8;

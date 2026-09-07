@@ -50,6 +50,12 @@ mod content;
 mod file;
 mod input;
 mod model;
+
+// A regenerated model configuration must match the runtime's embedded model contract.
+const _: () = {
+    assert!(model::CONFIG.beg_size + model::CONFIG.end_size == magika_tract_runtime::FEATURE_SIZE);
+    assert!(model::NUM_LABELS == magika_tract_runtime::NUM_LABELS);
+};
 mod rules;
 mod runtime;
 mod session;

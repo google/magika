@@ -12,3 +12,7 @@ Callers do not select Metal or CUDA directly; the resolved implementation is ava
 
 Inference is synchronous. Async file reading and batch accumulation belong above this crate, so
 CPU- or GPU-bound model execution never occupies an async executor thread.
+
+At startup on a GPU, every resident batch plan runs repeated copies of one input and every
+output row is checked against a stored CPU reference. The probe is a device health check: it
+does not establish score agreement for every file.

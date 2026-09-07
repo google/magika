@@ -57,8 +57,14 @@ impl Builder {
     }
 
     /// Consumes the builder to create a Magika runtime.
+    /// Returns an error if requested rule enforcement cannot be initialized.
     pub fn build(self) -> Result<Runtime> {
         self.rules_mode.check()?;
+        #[cfg(feature = "yara-rules")]
+        let ruleset = match (self.rules_mode, self.ruleset) {
+            (RulesMode::Enforce, None) => Some(crate::RuleSet::bundled()?),
+            (_, ruleset) => ruleset,
+        };
         let runtime = Runtime::new_internal(
             Backend::to_request(self.backend),
             self.max_batch,
@@ -67,7 +73,7 @@ impl Builder {
         #[cfg(feature = "yara-rules")]
         let runtime = {
             let mut runtime = runtime;
-            runtime.ruleset = self.ruleset;
+            runtime.ruleset = ruleset;
             runtime
         };
         Ok(runtime)

@@ -16,6 +16,7 @@ pub enum RulesMode {
     /// Use the selected pack, or the bundled allowlist. Requires `yara-rules`.
     ///
     /// An empty allowlist or any scan failure falls through to the existing pipeline.
+    /// Runtime construction returns an error if the selected rules cannot be loaded.
     Enforce,
 }
 
@@ -79,6 +80,12 @@ impl std::fmt::Debug for RuleSet {
 
 #[cfg(feature = "yara-rules")]
 impl RuleSet {
+    /// Loads the bundled rules, returning initialization errors to the caller.
+    /// Successful loads share the compiled database and use the normal user cache.
+    pub fn bundled() -> Result<Self> {
+        engine::bundled().cloned()
+    }
+
     /// Reads a YARA file, reusing a compatible compiled database from the user cache when present.
     /// Existing instances retain their loaded contents. Cache failures use in-memory compilation.
     pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self> {

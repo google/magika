@@ -54,13 +54,16 @@ pub(super) fn scan(database: &Arc<native::Database>, prefix: &[u8], size: u64) -
     })
 }
 
-pub(super) fn scan_promoted(prefix: &[u8], size: u64) -> Option<ContentType> {
+pub(super) fn bundled() -> anyhow::Result<&'static RuleSet> {
     BUNDLED
         .get_or_init(|| {
             RuleSet::load(super::DEFAULT_RULES, super::cache::default_directory().as_deref(), None)
                 .map_err(|e| format!("{e:#}"))
         })
         .as_ref()
-        .ok()?
-        .identify(prefix, size)
+        .map_err(|error| anyhow::anyhow!("failed to load bundled rules: {error}"))
+}
+
+pub(super) fn scan_promoted(prefix: &[u8], size: u64) -> Option<ContentType> {
+    bundled().ok()?.identify(prefix, size)
 }

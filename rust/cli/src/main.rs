@@ -426,7 +426,11 @@ fn main() -> Result<()> {
                 let source = exe.parent()?.join("rules/promoted.yar");
                 source.is_file().then_some(source)
             });
-            source.map(magika::RuleSet::from_file).transpose()?
+            Some(match source {
+                Some(path) => magika::RuleSet::from_file(&path)
+                    .with_context(|| format!("failed to load rules from {}", path.display()))?,
+                None => magika::RuleSet::bundled()?,
+            })
         } else {
             None
         },

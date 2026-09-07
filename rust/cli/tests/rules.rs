@@ -8,6 +8,7 @@ fn command() -> Command {
 }
 
 #[test]
+#[cfg_attr(feature = "yara-rules", ignore = "requires a native Vectorscan compiler library")]
 fn rules_mode_is_explicit_and_batch_order_is_preserved() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests_data");
     let paths = [root.join("basic/png/magika_test.png"), root.join("basic/pdf/magika_test.pdf")];
@@ -344,4 +345,26 @@ fn installed_source_pack_and_library_are_discovered() {
     assert!(String::from_utf8_lossy(&edited.stdout).trim_end().ends_with(": gif"));
     assert!(directory.join("cache").is_dir());
     std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[cfg(feature = "yara-rules")]
+#[test]
+fn requested_rules_fail_visibly_when_native_library_is_missing() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests_data");
+    let run = |mode: &str| {
+        command()
+            .args(["--rules", mode, "--backend=cpu", "--batch-size=1", "--jsonl"])
+            .env("MAGIKA_VECTORSCAN_LIBRARY", root.join("nonexistent-vectorscan-library"))
+            .env("MAGIKA_RULES_CACHE", "")
+            .arg(root.join("basic/png/magika_test.png"))
+            .output()
+            .unwrap()
+    };
+    let off = run("off");
+    assert!(off.status.success(), "{}", String::from_utf8_lossy(&off.stderr));
+    let enforced = run("enforce");
+    assert!(!enforced.status.success(), "enforcement silently fell back to the model");
+    assert!(enforced.stdout.is_empty(), "failed enforcement emitted successful file results");
+    let error = String::from_utf8_lossy(&enforced.stderr);
+    assert!(error.contains("rules") && error.contains("Vectorscan"), "{error}");
 }

@@ -88,6 +88,12 @@ def test_all_public_fixture_incomplete_prefixes_abstain(scan_rules):
 
 
 POSITIVE_FILES = [
+    ("fbx", "rules_positive/review-fbx-legacy.bin"),
+    ("bzip", "mitra/bzip/bzip2.bz2"),
+    *[
+        (label, f"rules_positive/review-{label}.bin")
+        for label in ("qoi", "gltf", "woff", "woff2", "npy", "midi", "fbx", "blend")
+    ],
     ("bmp", "mitra/bmp/bmp.bmp"),
     ("cab", "mitra/cab/cab.cab"),
     ("gzip", "mitra/gzip/gzip.gz"),
@@ -110,6 +116,130 @@ POSITIVE_FILES = [
 @pytest.mark.parametrize("label,relative", POSITIVE_FILES)
 def test_real_positive_fixtures(scan_rules, label, relative):
     assert scan_rules((ROOT / "tests_data" / relative).read_bytes()) == {label}
+
+
+@pytest.mark.parametrize(
+    "magic",
+    [
+        b"BZh",
+        b"BZh9",
+        b"qoif",
+        b"glTF",
+        b"wOFF",
+        b"wOF2",
+        b"\x93NUMPY",
+        b"MThd",
+        b"Kaydara FBX Binary  \0",
+        b"BLENDER",
+    ],
+)
+@pytest.mark.parametrize("padding", [b"\0", b"\xff", b" "])
+def test_additional_padded_signatures_abstain(scan_rules, magic, padding):
+    assert scan_rules(magic + padding * 4096) == set()
+
+
+@pytest.mark.parametrize(
+    "label,offset,invalid",
+    [
+        ("qoi", 4, bytes(4)),
+        ("qoi", 8, bytes(4)),
+        ("qoi", 12, b"\x02"),
+        ("qoi", 13, b"\x02"),
+        ("gltf", 4, bytes(4)),
+        ("gltf", 8, bytes(4)),
+        ("gltf", 12, b"\x03\0\0\0"),
+        ("gltf", 16, b"BIN\0"),
+        ("woff", 12, bytes(2)),
+        ("woff", 14, b"\0\x01"),
+        ("woff2", 12, bytes(2)),
+        ("woff2", 14, b"\0\x01"),
+        ("woff2", 20, bytes(4)),
+        ("npy", 6, b"\x04"),
+        ("npy", 7, b"\x01"),
+        ("npy", 8, bytes(2)),
+        ("midi", 4, bytes(4)),
+        ("midi", 8, b"\0\x03"),
+        ("midi", 10, bytes(2)),
+        ("midi", 14, b"TEXT"),
+        ("fbx", 21, b"\0"),
+        ("fbx", 23, bytes(4)),
+        ("blend", 7, b"?"),
+        ("blend", 8, b"?"),
+        ("blend", 9, b"abc"),
+    ],
+)
+def test_additional_header_corruptions_abstain(scan_rules, label, offset, invalid):
+    data = bytearray((ROOT / f"tests_data/rules_positive/review-{label}.bin").read_bytes())
+    data[offset : offset + len(invalid)] = invalid
+    assert label not in scan_rules(data)
+
+
+@pytest.mark.parametrize("content", [b"", b"ordinary compressed content"])
+@pytest.mark.parametrize("level", range(1, 10))
+def test_bzip2_standard_encoder_and_damaged_block_magic(scan_rules, content, level):
+    import bz2
+
+    compressed = bz2.compress(content, compresslevel=level)
+    assert scan_rules(compressed) == {"bzip"}
+    assert "bzip" not in scan_rules(compressed[:4] + bytes(len(compressed) - 4))
+
+
+@pytest.mark.parametrize("channels", [3, 4])
+@pytest.mark.parametrize("colorspace", [0, 1])
+def test_qoi_complete_single_pixel_image(scan_rules, channels, colorspace):
+    import struct
+
+    # One run of the initial opaque black pixel, then the required stream terminator.
+    content = (
+        b"qoif" + struct.pack(">IIBB", 1, 1, channels, colorspace) + b"\xc0" + bytes(7) + b"\x01"
+    )
+    assert scan_rules(content) == {"qoi"}
+    for size in range(23):
+        assert "qoi" not in scan_rules(content[:size])
+
+
+@pytest.mark.parametrize(
+    "label,minimum",
+    [
+        ("qoi", 23),
+        ("gltf", 24),
+        ("woff", 64),
+        ("woff2", 51),
+        ("npy", 64),
+        ("midi", 26),
+        ("fbx", 27),
+        ("blend", 32),
+    ],
+)
+def test_additional_format_header_truncations(scan_rules, label, minimum):
+    content = (ROOT / f"tests_data/rules_positive/review-{label}.bin").read_bytes()
+    for length in range(minimum):
+        assert label not in scan_rules(content[:length]), (label, length)
+
+
+@pytest.mark.parametrize("division", [0x8001, 0xFF01, 0xE800, 0xE700, 0xE300, 0xE200])
+def test_midi_invalid_smpte_division_abstains(scan_rules, division):
+    content = bytearray((ROOT / "tests_data/rules_positive/review-midi.bin").read_bytes())
+    content[12:14] = division.to_bytes(2, "big")
+    assert "midi" not in scan_rules(content)
+
+
+@pytest.mark.parametrize("major", [1, 2, 3])
+@pytest.mark.parametrize("key_order", [0, 1])
+def test_numpy_supported_versions_and_dictionary_order(scan_rules, major, key_order):
+    import struct
+
+    # A complete empty uint8 array with a Python-literal dictionary header.
+    headers = [
+        "{'descr': '|u1', 'fortran_order': False, 'shape': (0,), }",
+        "{'shape': (0,), 'fortran_order': False, 'descr': '|u1', }",
+    ]
+    header = headers[key_order].encode()
+    offset = 10 if major == 1 else 12
+    header += b" " * ((-offset - len(header) - 1) % 64) + b"\n"
+    length = struct.pack("<H" if major == 1 else "<I", len(header))
+    content = b"\x93NUMPY" + bytes([major, 0]) + length + header
+    assert scan_rules(content) == {"npy"}
 
 
 @pytest.mark.parametrize("version", [0, 2, 13, 255])

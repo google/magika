@@ -322,11 +322,13 @@ rule taxonomy_blend
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "BLENDER"
+    strings:
+        // libmagic's pre-v5 header fields: pointer width, byte order and three version digits.
+        // Blender 5's distinct extended header remains outside this reviewed variant.
+        $header = /BLENDER[_-][vV][1-4][0-9]{2}/
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 7 and original_size >= 7 and $p0_0 at 0))
+    condition:
+        prefix_size >= 32 and $header at 0
 }
 
 rule taxonomy_bpg
@@ -356,12 +358,15 @@ rule taxonomy_bzip
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = /[\x42][\x5a][\x68][\x31\x32\x33\x34\x35\x36\x37\x38\x39]/
-		$p1_0 = "BZh"
+    strings:
+        // Tika's BZh[1-9] plus bzip2 block/end markers; libmagic's bare BZh is too weak.
+        $header = /BZh[1-9]/
+        $block = { 31 41 59 26 53 59 }
+        $empty = { 17 72 45 38 50 90 00 00 00 00 }
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 3 and original_size >= 3 and $p1_0 at 0)))
+    condition:
+        prefix_size >= 14 and $header at 0 and
+        (($empty at 4) or (prefix_size >= 20 and $block at 4))
 }
 
 rule taxonomy_cram
@@ -496,11 +501,12 @@ rule taxonomy_fbx
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 4b 61 79 64 61 72 61 20 46 42 58 20 42 69 6e 61 72 79 20 20 00 }
+    strings:
+        // ufbx binary header and supported versions, including legacy 3000; little-endian variant.
+        $magic = { 4B 61 79 64 61 72 61 20 46 42 58 20 42 69 6E 61 72 79 20 20 00 1A 00 }
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 21 and $p0_0 at 0))
+    condition:
+        prefix_size >= 27 and $magic at 0 and uint32(23) >= 3000 and uint32(23) <= 7700
 }
 
 rule taxonomy_fits
@@ -569,11 +575,15 @@ rule taxonomy_gltf
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 67 6c 54 46 }
+    strings:
+        // Khronos GLB 2.0: first chunk is aligned JSON, not a detached glTF string.
+        $magic = { 67 6C 54 46 02 00 00 00 }
+        $json = "JSON"
+        $object = /[ \t\r\n]{0,64}\{/
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 24 and $magic at 0 and uint32(8) >= 24 and uint32(8) % 4 == 0 and
+        uint32(12) >= 4 and uint32(12) % 4 == 0 and $json at 16 and $object at 20
 }
 
 rule taxonomy_gzip
@@ -788,11 +798,19 @@ rule taxonomy_midi
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "MThd"
+    strings:
+        // Standard MIDI header chunk plus the first track header; extended MThd is not enforced.
+        $header = { 4D 54 68 64 00 00 00 06 }
+        $track = "MTrk"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 26 and $header at 0 and uint16be(8) <= 2 and
+        uint16be(10) >= 1 and $track at 14 and uint32be(18) >= 4 and
+        ((uint16be(12) >= 1 and uint16be(12) <= 32767) or
+         ((uint8(12) == 232 or uint8(12) == 231 or uint8(12) == 227 or uint8(12) == 226) and
+          uint8(13) >= 1)) and
+        ((uint16be(8) == 0 and uint16be(10) == 1) or
+         (uint16be(8) >= 1 and uint16be(8) <= 2))
 }
 
 rule taxonomy_mpegts
@@ -826,11 +844,17 @@ rule taxonomy_npy
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 93 4E 55 4D 50 59 }
+    strings:
+        // NumPy v1 uses a 16-bit header length; v2/v3 use 32 bits. Older files align to 16.
+        // Dictionary order is unconstrained; do not require descr to be the first key.
+        $v1 = { 93 4E 55 4D 50 59 01 00 }
+        $v2 = { 93 4E 55 4D 50 59 ( 02 | 03 ) 00 }
+        $dictionary = /\{[ \t]{0,16}['"]/
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 6 and original_size >= 6 and $p0_0 at 0))
+    condition:
+        prefix_size >= 64 and
+        (($v1 at 0 and uint16(8) >= 54 and uint16(8) % 16 == 6 and $dictionary at 10) or
+         ($v2 at 0 and uint32(8) >= 52 and uint32(8) % 16 == 4 and $dictionary at 12))
 }
 
 rule taxonomy_one
@@ -920,11 +944,13 @@ rule taxonomy_qoi
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "qoif"
+    strings:
+        // https://qoiformat.org/qoi-specification.pdf: complete header and minimum encoded image.
+        $magic = "qoif"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 23 and $magic at 0 and uint32be(4) > 0 and uint32be(8) > 0 and
+        (uint8(12) == 3 or uint8(12) == 4) and uint8(13) <= 1
 }
 
 rule taxonomy_rar
@@ -1236,11 +1262,16 @@ rule taxonomy_woff
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "wOFF"
+    strings:
+        // W3C WOFF header plus one complete directory entry. Common sfnt flavors only.
+        $magic = "wOFF"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 64 and $magic at 0 and uint32be(8) >= 64 and
+        uint16be(12) >= 1 and uint16be(12) <= 4095 and uint16be(14) == 0 and
+        uint32be(16) >= 28 and
+        (uint32be(4) == 65536 or uint32be(4) == 0x4F54544F or
+         uint32be(4) == 0x74727565 or uint32be(4) == 0x74797031)
 }
 
 rule taxonomy_woff2
@@ -1253,11 +1284,16 @@ rule taxonomy_woff2
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "wOF2"
+    strings:
+        // W3C WOFF2: header, at least one directory entry and compressed payload.
+        $magic = "wOF2"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 51 and $magic at 0 and uint32be(8) >= 51 and
+        uint16be(12) >= 1 and uint16be(12) <= 4095 and uint16be(14) == 0 and
+        uint32be(16) >= 28 and uint32be(20) >= 1 and
+        (uint32be(4) == 65536 or uint32be(4) == 0x4F54544F or
+         uint32be(4) == 0x74727565 or uint32be(4) == 0x74797031 or uint32be(4) == 0x74746366)
 }
 
 rule taxonomy_xar

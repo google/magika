@@ -45,6 +45,15 @@ precision guarantee. Unreviewed rules remain subject to the ongoing format audit
 | ARC | Disabled: the reviewed short signature does not establish safe identity. | — |
 | ORC | Disabled: a short leading ORC string is insufficient; the format also relies on footer metadata. | — |
 | XCOFF | Disabled until a stronger header/section check replaces its two-byte magic. | — |
+| Bzip2 | Require a legal block-size digit and the block marker or empty-stream end marker; compare all nine stdlib compression levels. | 100 / 100 |
+| QOI | Require dimensions, channel count, colorspace and the minimum complete encoded image size. | 13 / 13 |
+| GLB | Require version 2, aligned lengths and a first JSON chunk. Version 1 is outside this reviewed variant. | 100 / 100 |
+| WOFF | Require a complete header and first directory entry, legal reserved fields and a common sfnt flavor. | 100 / 100 |
+| WOFF2 | Require header, directory/payload space, table and compressed-size evidence. Reserved-field violations abstain even though tolerant decoders may accept them. | 100 / 100 |
+| NumPy | Distinguish v1's 16-bit header length from v2/v3's 32-bit length; require aligned dictionary-header evidence without fixing key order. | 100 / 100 |
+| MIDI | Require header format, track count, valid timing division and first track header. Extended header chunks are outside this reviewed variant. | 100 / 100 |
+| FBX | Require the full little-endian binary header and ufbx-supported versions 3000–7700. Corpus evaluation caught and restored the legacy version through a dedicated fixture. | 100 / 100 |
+| Blender | Require pointer width, byte order and version fields in the pre-v5 header. Blender 5's extended header is outside this reviewed variant. | 100 / 100 |
 
 Specification references include [gzip](https://www.rfc-editor.org/rfc/rfc1952),
 [EPUB ZIP requirements](https://www.w3.org/TR/epub-33/#sec-zip-container-mime),
@@ -52,6 +61,12 @@ Specification references include [gzip](https://www.rfc-editor.org/rfc/rfc1952),
 [Photoshop formats](https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/),
 [ORC](https://orc.apache.org/specification/ORCv1/) and
 [pandas SAS constants](https://github.com/pandas-dev/pandas/blob/main/pandas/io/sas/sas_constants.py).
+The next batch compares pinned libmagic/Tika entries with the
+[QOI specification](https://qoiformat.org/qoi-specification.pdf),
+[Khronos GLB specification](https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc#glb-file-format-specification),
+[WOFF](https://www.w3.org/TR/WOFF/), [WOFF2](https://www.w3.org/TR/WOFF2/),
+[NumPy format documentation](https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html)
+and [ufbx's reader](https://github.com/ufbx/ufbx/blob/master/ufbx.c).
 
 ## Regression and evaluation requirements
 

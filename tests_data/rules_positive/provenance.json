@@ -16,5 +16,86 @@
     ],
     "corpus": "parquet-v56",
     "label": "swf"
+  },
+  {
+    "file": "review-qoi.bin",
+    "sha256": "a75a4e7443d41c7953361a2b68cb9fa3654e13dbf337c305415e91111ede205f",
+    "origins": [
+      "github:https://github.com/serenityos/serenity/blob/c594b79cb88d50120ca099243f94b2d04cab15a4/Tests/LibGL/reference-images/0011_tex_env_combine_with_constant_color.qoi:a75a4e7443d41c7953361a2b68cb9fa3654e13dbf337c305415e91111ede205f"
+    ],
+    "corpus": "parquet-v56",
+    "label": "qoi"
+  },
+  {
+    "file": "review-gltf.bin",
+    "sha256": "2734eebe2a52e38e8d05cae2c719918d688bfb18e76a9b1bd6fa542b8f0ac1d7",
+    "origins": [
+      "vt:2734eebe2a52e38e8d05cae2c719918d688bfb18e76a9b1bd6fa542b8f0ac1d7"
+    ],
+    "corpus": "parquet-v56",
+    "label": "gltf"
+  },
+  {
+    "file": "review-woff.bin",
+    "sha256": "cccb8949e22793b220dc55d2aeb9157a26a831fa7c2cc0deae27f7e789dd78ee",
+    "origins": [
+      "github:https://github.com/php/php-src/blob/5be4de10e7524a707a957351aa9da5d89492ec2c/ext/fileinfo/tests/resources/test.woff:cccb8949e22793b220dc55d2aeb9157a26a831fa7c2cc0deae27f7e789dd78ee"
+    ],
+    "corpus": "parquet-v56",
+    "label": "woff"
+  },
+  {
+    "file": "review-woff2.bin",
+    "sha256": "fc74b05d439c450dd859cc04abbc76eac71bcb50bb8c491aef301a2ed44bd8c2",
+    "origins": [
+      "github:https://github.com/hashicorp/vault/blob/41e571b6606e3691e0ce3f82ae23d6db0e445118/ui/public/fonts/text-security-square.woff2:fc74b05d439c450dd859cc04abbc76eac71bcb50bb8c491aef301a2ed44bd8c2"
+    ],
+    "corpus": "parquet-v56",
+    "label": "woff2"
+  },
+  {
+    "file": "review-npy.bin",
+    "sha256": "9b51e50e6538e600111c668630bcc863f4130bb169a779525990001fc1ef9e3a",
+    "origins": [
+      "github:https://github.com/elixir-nx/nx/blob/509da1b5e28380bb60bd11d67dc669e4b68231df/nx/test/fixtures/numpy/1d_uint8.npy:9b51e50e6538e600111c668630bcc863f4130bb169a779525990001fc1ef9e3a"
+    ],
+    "corpus": "parquet-v56",
+    "label": "npy"
+  },
+  {
+    "file": "review-midi.bin",
+    "sha256": "a1259360c48adc81f2c5b822f221044595632bd1a76302db1f9d983c44f45a30",
+    "origins": [
+      "github:https://github.com/sindresorhus/file-type/blob/1562005a4dfb8215b9407a54cc4b55700af46b03/fixture/fixture.mid:a1259360c48adc81f2c5b822f221044595632bd1a76302db1f9d983c44f45a30"
+    ],
+    "corpus": "parquet-v56",
+    "label": "midi"
+  },
+  {
+    "file": "review-fbx.bin",
+    "sha256": "c0c2d4a07aae2060d4c623e2642a7f9d576ff8f2dc595152ddcfc2a07d214304",
+    "origins": [
+      "github:https://github.com/mrdoob/three.js/blob/78d0edbf4f285c746064dc3f1927abf2b9efb9ef/examples/models/fbx/vCube.fbx:c0c2d4a07aae2060d4c623e2642a7f9d576ff8f2dc595152ddcfc2a07d214304"
+    ],
+    "corpus": "parquet-v56",
+    "label": "fbx"
+  },
+  {
+    "file": "review-blend.bin",
+    "sha256": "92b7cb4ce923e36d33f54bd7914315512c2767ef5675d78f3bef526175282f3d",
+    "origins": [
+      "vt:92b7cb4ce923e36d33f54bd7914315512c2767ef5675d78f3bef526175282f3d"
+    ],
+    "corpus": "parquet-v56",
+    "label": "blend"
+  },
+  {
+    "file": "review-fbx-legacy.bin",
+    "label": "fbx",
+    "sha256": "abb4237b275f52136d33745530c3a629d196313149c98d256560f54c0335fca6",
+    "origins": [
+      "vt:abb4237b275f52136d33745530c3a629d196313149c98d256560f54c0335fca6"
+    ],
+    "corpus": "parquet-v56"
   }
 ]

@@ -6,7 +6,7 @@ rust-version = "1.91"
 description = "Internal tract inference runtime for Magika"
 repository = "https://github.com/google/magika"
 license = "Apache-2.0"
-include = ["/LICENSE", "/README.md", "/models", "/src", "/tests"]
+include = ["/LICENSE", "/README.md", "/CHANGELOG.md", "/models", "/src", "/tests"]
 
 [dependencies]
 anyhow = "1.0.104"

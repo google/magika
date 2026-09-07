@@ -435,3 +435,53 @@ fn requested_rules_fail_visibly_when_native_library_is_missing() {
     let error = String::from_utf8_lossy(&enforced.stderr);
     assert!(error.contains("rules") && error.contains("Vectorscan"), "{error}");
 }
+
+#[test]
+#[cfg(unix)]
+fn recursive_symlink_cycles_report_once_and_keep_other_inputs() {
+    let directory = std::env::temp_dir().join(format!("magika-cycle-{}", std::process::id()));
+    std::fs::create_dir_all(directory.join("tree/sub")).unwrap();
+    std::fs::write(directory.join("tree/a.txt"), b"ordinary text\n").unwrap();
+    std::os::unix::fs::symlink("..", directory.join("tree/sub/back")).unwrap();
+    // A separate alias to the same subtree is legitimate; cycle detection must be
+    // scoped to ancestors, not a global visited set that silently drops inputs.
+    std::os::unix::fs::symlink("tree", directory.join("alias")).unwrap();
+    let output = command()
+        .args(["-r", "--jsonl", "--rules=off", "--backend=cpu"])
+        .arg(directory.join("tree"))
+        .arg(directory.join("alias"))
+        .output()
+        .unwrap();
+    let links = command()
+        .args(["-r", "--jsonl", "--no-dereference", "--rules=off", "--backend=cpu"])
+        .arg(directory.join("tree"))
+        .arg(directory.join("alias"))
+        .output()
+        .unwrap();
+    std::fs::remove_dir_all(&directory).unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let rows: Vec<serde_json::Value> = String::from_utf8(output.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(rows.len(), 4, "repeated files through a directory cycle");
+    for (row, suffix) in
+        rows.iter().zip(["tree/a.txt", "tree/sub/back", "alias/a.txt", "alias/sub/back"])
+    {
+        assert_eq!(row["path"], directory.join(suffix).to_str().unwrap());
+    }
+    for index in [1, 3] {
+        assert_eq!(rows[index]["result"]["status"], "directory_cycle");
+    }
+    assert!(links.status.success());
+    let rows: Vec<serde_json::Value> = String::from_utf8(links.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(rows.len(), 3);
+    for index in [1, 2] {
+        assert_eq!(rows[index]["result"]["value"]["output"]["label"], "symlink");
+    }
+}

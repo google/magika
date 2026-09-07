@@ -10,6 +10,7 @@
 
 ### Patch
 
+- Detect ancestor directory cycles during recursive traversal, report `directory_cycle` in JSON, and continue processing other inputs and legitimate aliases.
 - Preserve completed JSON results and close arrays on classification errors; report invalid UTF-8 paths without panicking and preserve earlier failures when output closes.
 - Reject inference batches with mismatched result counts before dispatching any rows.
 - Reject named pipes and other unsupported special files before reader dispatch; JSON reports `unsupported_file_type` and regular files continue processing.

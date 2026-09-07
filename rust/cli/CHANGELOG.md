@@ -6,10 +6,12 @@
 
 - Remove the dependency on the ONNX Runtime
 
-- Add `--rules=off|enforce`, `--rules-file`, `--write-default-rules`, and `--compile-rules`; optional Vectorscan execution supports per-rule enablement, compiled packs and a persistent compilation cache, with bundled structural variants individually disabled pending qualification
+- Add `--rules=off|enforce`, `--rules-file`, `--write-default-rules`, and `--compile-rules`; optional Vectorscan execution supports full and partial enforced rules, disabled candidates, compiled packs and a persistent compilation cache. Rules remain off by default; requesting enforcement reports initialization failures.
 
 ### Patch
 
+- Reject named pipes and other unsupported special files before reader dispatch; JSON reports `unsupported_file_type` and regular files continue processing.
+- Bound experimental batch sizes to 1–64 and reader/inference worker counts to 1–256 before allocating queues or starting threads.
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

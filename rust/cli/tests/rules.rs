@@ -8,6 +8,73 @@ fn command() -> Command {
 }
 
 #[test]
+fn invalid_resource_limits_exit_without_panic_or_output() {
+    for (flag, limit) in [("--batch-size", 64), ("--threads", 256), ("--readers", 256)] {
+        for value in [usize::MAX, limit + 1, 0] {
+            let output = command().args([flag, &value.to_string(), "sample"]).output().unwrap();
+            assert_eq!(output.status.code(), Some(2), "{flag}={value}");
+            assert!(output.stdout.is_empty());
+            let error = String::from_utf8_lossy(&output.stderr);
+            assert!(error.contains(flag), "{error}");
+            assert!(!error.contains("panicked"), "{error}");
+        }
+    }
+}
+
+#[test]
+#[cfg(unix)]
+fn recursive_named_pipe_reports_error_and_preserves_regular_results() {
+    use std::process::Stdio;
+    use std::time::{Duration, Instant};
+
+    let directory =
+        std::env::temp_dir().join(format!("magika-recursive-fifo-{}", std::process::id()));
+    let inputs = directory.join("inputs");
+    std::fs::create_dir_all(&inputs).unwrap();
+    std::fs::write(inputs.join("a.txt"), b"ordinary text before pipe\n").unwrap();
+    let pipe = inputs.join("b.pipe");
+    assert!(Command::new("mkfifo").arg(&pipe).status().unwrap().success());
+    std::fs::write(inputs.join("c.txt"), b"ordinary text after pipe\n").unwrap();
+    let output = directory.join("output.jsonl");
+    let mut child = command()
+        .args(["-r", "--jsonl", "--rules=off", "--backend=cpu", "--threads=1", "--readers=1"])
+        .arg(&inputs)
+        .stdin(Stdio::null())
+        .stdout(std::fs::File::create(&output).unwrap())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            std::fs::remove_dir_all(&directory).unwrap();
+            panic!("recursive FIFO blocked classification");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    let rows: Vec<serde_json::Value> = std::fs::read_to_string(output)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    std::fs::remove_dir_all(&directory).unwrap();
+    assert_eq!(status.code(), Some(1));
+    assert_eq!(rows.len(), 3);
+    for (row, name) in rows.iter().zip(["a.txt", "b.pipe", "c.txt"]) {
+        assert_eq!(row["path"].as_str().unwrap(), inputs.join(name).to_str().unwrap());
+    }
+    assert_eq!(rows[1]["result"]["status"], "unsupported_file_type");
+    for index in [0, 2] {
+        assert!(rows[index]["result"]["value"]["output"]["label"].is_string());
+    }
+}
+
+#[test]
 #[cfg_attr(feature = "yara-rules", ignore = "requires a native Vectorscan compiler library")]
 fn rules_mode_is_explicit_and_batch_order_is_preserved() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests_data");

@@ -181,24 +181,23 @@ struct Experimental {
     #[arg(hide = true, long)]
     backend_info: bool,
 
-    /// Number of files to identify in a single inference.
-    #[arg(hide = true, long, default_value = "8")]
+    /// Number of files to identify in a single inference (1 through 64).
+    #[arg(hide = true, long, default_value = "8", value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=64))]
     batch_size: usize,
 
-    /// Number of resident inference threads.
+    /// Number of resident inference threads (1 through 256).
     ///
     /// Inference on a GPU is bound by the device rather than by the host, so a handful of threads
     /// keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every
     /// thread is one more core doing the work. This defaults accordingly: four on a GPU, all
     /// available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
-    #[arg(hide = true, long)]
+    #[arg(hide = true, long, value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=256))]
     threads: Option<usize>,
 
-    /// Number of resident threads reading files and extracting features.
+    /// Number of resident threads reading files and extracting features (1 through 256).
     ///
-    /// Reading costs far less than inference, so this defaults to one per inference thread, which
-    /// is already more than a run makes use of.
-    #[arg(hide = true, long, default_value = "1")]
+    /// Defaults to one reader, independently of the number of inference threads.
+    #[arg(hide = true, long, default_value = "1", value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=256))]
     readers: usize,
 }
 
@@ -292,7 +291,8 @@ const GPU_INFERENCE_THREADS: usize = 4;
 /// what this process may use rather than what the machine is built from, so a container's CPU quota
 /// and a restricted affinity mask both count.
 fn default_inference_threads(backend: Backend) -> usize {
-    let available = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    let available =
+        std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get).min(256);
     match backend {
         // The device is the limit, not the host, so never ask the host for more than it takes to
         // keep the device queued, nor for more than it has.
@@ -348,10 +348,7 @@ fn main() -> Result<()> {
         cfg!(feature = "yara-rules") || matches!(flags.rules, Rules::Off),
         "--rules=enforce requires a build with the yara-rules Cargo feature"
     );
-    ensure!(flags.experimental.batch_size != 0, "--batch-size cannot be zero");
     let batch_size = flags.experimental.batch_size;
-    ensure!(flags.experimental.threads != Some(0), "--threads cannot be zero");
-    ensure!(flags.experimental.readers != 0, "--readers cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -734,6 +731,13 @@ fn process_path(
     if metadata.is_symlink() {
         return Ok(ProcessPath::Ruled(FileType::Symlink));
     }
+    if !metadata.is_file() {
+        return Err(std::io::Error::new(
+            ErrorKind::Unsupported,
+            format!("unsupported non-regular file: {}", path.display()),
+        )
+        .into());
+    }
     Ok(ProcessPath::Content)
 }
 
@@ -859,6 +863,53 @@ impl Drop for Reorder {
 #[cfg(test)]
 mod reorder_tests {
     use super::*;
+
+    #[test]
+    #[cfg(unix)]
+    fn named_pipes_are_rejected_before_reader_dispatch() {
+        let directory = std::env::temp_dir().join(format!(
+            "magika-fifo-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("pipe");
+        assert!(std::process::Command::new("mkfifo").arg(&path).status().unwrap().success());
+        let flags = Flags::try_parse_from(["magika", "sample"]).unwrap();
+        let mut pending = Vec::new();
+        let result = process_path(&flags, &mut pending, &path, None);
+        let known = std::fs::metadata(&path).unwrap().file_type();
+        let from_directory = process_path(&flags, &mut pending, &path, Some(known));
+        let link = directory.join("link");
+        std::os::unix::fs::symlink(&path, &link).unwrap();
+        let followed = process_path(&flags, &mut pending, &link, None);
+        let socket = directory.join("socket");
+        let listener = std::os::unix::net::UnixListener::bind(&socket).unwrap();
+        let socket_result = process_path(&flags, &mut pending, &socket, None);
+        drop(listener);
+        std::fs::remove_dir_all(directory).unwrap();
+        assert!(result.is_err(), "FIFO dispatched to a blocking reader");
+        assert!(from_directory.is_err(), "recursive FIFO dispatched to a blocking reader");
+        assert!(followed.is_err(), "followed FIFO symlink dispatched to a blocking reader");
+        assert!(socket_result.is_err(), "socket dispatched to a file reader");
+    }
+
+    #[test]
+    fn experimental_resource_limits_reject_invalid_values_before_execution() {
+        for (flag, limit) in [("--batch-size", 64), ("--threads", 256), ("--readers", 256)] {
+            for value in [0, limit + 1, usize::MAX] {
+                assert!(
+                    Flags::try_parse_from(["magika", flag, &value.to_string(), "sample"]).is_err(),
+                    "{flag} accepted {value}"
+                );
+            }
+            for value in [1, limit] {
+                assert!(
+                    Flags::try_parse_from(["magika", flag, &value.to_string(), "sample"]).is_ok()
+                );
+            }
+        }
+    }
 
     #[test]
     fn sparse_misses_fill_batches_without_unbounded_lookahead() {
@@ -1120,6 +1171,7 @@ enum JsonError {
     Unknown,
     FileDoesNotExist,
     PermissionError,
+    UnsupportedFileType,
 }
 
 #[derive(Serialize)]
@@ -1135,6 +1187,7 @@ impl From<anyhow::Error> for JsonError {
             Some(x) => match x.kind() {
                 ErrorKind::NotFound => JsonError::FileDoesNotExist,
                 ErrorKind::PermissionDenied => JsonError::PermissionError,
+                ErrorKind::Unsupported => JsonError::UnsupportedFileType,
                 _ => JsonError::Unknown,
             },
             _ => JsonError::Unknown,

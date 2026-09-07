@@ -18,11 +18,13 @@
 - Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
 - Add `Runtime` to prepare the model once and create one `Session` per inference thread
 - Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference
-- Add `Builder::with_max_batch()` to prepare only the batch classes a caller can reach
+- Add `Builder::with_max_batch()` to limit resident plans: CPU retains the largest applicable plan and pads smaller tails; GPU retains the applicable fixed classes
 - Add `Backend` and `BackendInfo` for backend selection (CPU or GPU) and information
 - Add `Session::backend_info()` to get information about the backend
 
-- Add opt-in bounded YARA format rules executed by Vectorscan, loaded rulesets, compiled packs, a persistent compilation cache and mode-aware extraction; defaults remain off and bundled structural variants remain individually disabled pending qualification
+- Add the opt-in `yara-rules` feature, `RulesMode`, `DEFAULT_RULES`, `Builder::with_rules_mode()` and `Builder::with_ruleset()`, and `FeaturesOrRuled::extract_with_rules()` / `extract_with_ruleset()` for bounded YARA format rules executed by Vectorscan. Full and partial rules can enforce matches; disabled candidates abstain. Rules remain off by default.
+- Add `RuleSet` source/file loading, `RuleSet::bundled()`, compiled-pack export and a persistent compilation cache. `Builder::build()` reports requested rule initialization failures.
+- Add `ContentType::from_label()` and `Runtime::backend_info()`.
 - Block promotion of the bundled SQLite header variants because MBTiles subtypes can share their complete scan prefix and file length
 - Add rule-only output types from the knowledge base and canonical dataset taxonomy, including AVIF, QOI, GGUF and DuckDB, without changing the model's classes or existing output metadata and mappings
 

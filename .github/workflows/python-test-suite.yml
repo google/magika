@@ -9,6 +9,7 @@ on:
     paths:
       - "python/**"
       - "rust/**"
+      - "rules/**"
       - "tests_data/**"
       - ".github/workflows/python-test-suite.yml"
 

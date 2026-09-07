@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -23,6 +24,7 @@ def stage(path):
 
 def test_source_stage_contains_canonical_inputs_and_no_research(tmp_path):
     library = stage(tmp_path / "source")
+    assert (library / "README.md").read_bytes() == (ROOT.parent / "rust/lib/README.md").read_bytes()
     for bucket in ("full", "partial", "notworking"):
         assert (library / "rulesets" / bucket / "formats.yar").read_bytes() == (
             ROOT / "rulesets" / bucket / "formats.yar"
@@ -37,6 +39,30 @@ def test_source_stage_contains_canonical_inputs_and_no_research(tmp_path):
         capture_output=True,
     )
     assert existing.returncode != 0
+
+
+@pytest.mark.packaging
+def test_checkout_build_ignores_stale_packaged_rule_copy(tmp_path):
+    library = stage(tmp_path / "repo/rust")
+    canonical = tmp_path / "repo/rules/rulesets"
+    shutil.copytree(ROOT / "rulesets", canonical)
+    (library / "rulesets/full/formats.yar").write_text("this is a stale invalid packaged copy")
+    result = subprocess.run(
+        [
+            "cargo",
+            "check",
+            "--locked",
+            "--manifest-path",
+            str(library / "Cargo.toml"),
+            "--features",
+            "yara-rules",
+        ],
+        cwd=library,
+        env=dict(os.environ, CARGO_TARGET_DIR=str(ROOT.parent / "rust/target")),
+        capture_output=True,
+        timeout=300,
+    )
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
 
 
 @pytest.mark.packaging

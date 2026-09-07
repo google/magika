@@ -18,15 +18,15 @@ set -e
 
 PROFILE=release-fast
 
-x cargo check
-x cargo check --features=_trace
-x cargo build --profile=$PROFILE
-x cargo test
-x cargo test --features=yara-rules
-x cargo clippy --features=yara-rules --all-targets -- --deny=warnings
+x cargo check --locked
+x cargo check --locked --all-features --all-targets
+x cargo build --locked --profile=$PROFILE
+x cargo test --locked
+x cargo test --locked --features=yara-rules
+x cargo test --locked --features=_trace --bin magika
+x cargo clippy --locked --all-features --all-targets -- --deny=warnings
 x cargo fmt -- --check
-x cargo clippy -- --deny=warnings
-x cargo clippy --features=_trace -- --deny=warnings
+x cargo clippy --locked -- --deny=warnings
 
 PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 

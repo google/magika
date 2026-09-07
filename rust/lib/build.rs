@@ -14,7 +14,10 @@ mod metadata;
 fn main() -> anyhow::Result<()> {
     let manifest = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let packaged = manifest.join("rulesets");
-    let root = if packaged.is_dir() { packaged } else { manifest.join("../../rules/rulesets") };
+    let canonical = manifest.join("../../rules/rulesets");
+    // In a checkout, packaging leftovers must not override the maintained sources.
+    // An isolated source distribution has only its staged rulesets directory.
+    let root = if canonical.is_dir() { canonical } else { packaged };
     println!("cargo:rerun-if-changed={}", root.display());
     let mut source = String::new();
     for bucket in ["full", "partial", "notworking"] {

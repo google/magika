@@ -18,7 +18,9 @@
 //!
 //! ```rust
 //! # fn main() -> anyhow::Result<()> {
-//! let mut magika = magika::Session::new()?;
+//! // This example identifies one file at a time, so prepare a single-file plan.
+//! let runtime = magika::Runtime::builder().with_max_batch(1).build()?;
+//! let mut magika = runtime.session()?;
 //!
 //! // Files can be identified from their path.
 //! assert_eq!(magika.identify_file("src/lib.rs")?.info().label, "rust");
@@ -29,8 +31,6 @@
 //! # Ok(())
 //! # }
 //! ```
-
-#![cfg_attr(feature = "_doc", feature(doc_cfg))]
 
 pub use crate::backend::{Backend, BackendInfo};
 pub use crate::builder::Builder;

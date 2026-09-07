@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 def stage_source(output):
     output.mkdir(parents=True, exist_ok=False)
     for name, paths in {
-        "lib": ("Cargo.toml", "Cargo.lock", "LICENSE", "build.rs", "src"),
+        "lib": ("Cargo.toml", "Cargo.lock", "LICENSE", "README.md", "build.rs", "src"),
         "tract-runtime": ("Cargo.toml", "Cargo.lock", "LICENSE", "README.md", "src", "models"),
     }.items():
         destination = output / name

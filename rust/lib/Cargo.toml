@@ -3,12 +3,13 @@ name = "magika"
 version = "2.0.0-dev"
 license = "Apache-2.0"
 edition = "2021"
+rust-version = "1.93"
 description = "Determines file content types using AI"
 repository = "https://github.com/google/magika"
 homepage = "https://securityresearch.google/magika"
 keywords = ["file", "magic"]
 categories = ["command-line-utilities", "filesystem", "parser-implementations"]
-include = ["/LICENSE", "/src", "/build.rs", "/rulesets", "/RULES-LICENSES"]
+include = ["/LICENSE", "/README.md", "/src", "/build.rs", "/rulesets", "/RULES-LICENSES"]
 
 [package.metadata.docs.rs]
 features = ["_doc"]
@@ -18,7 +19,7 @@ cuda = ["magika-tract-runtime/cuda"]
 serde = ["dep:serde"]
 yara-rules = ["dep:yara-x-parser", "dep:regex-syntax", "dep:libloading", "dep:serde", "dep:serde_json", "dep:sha2", "dep:tempfile", "dep:libc"]
 # Internal features.
-_doc = ["serde"]
+_doc = ["serde", "yara-rules"]
 
 [dependencies]
 yara-x-parser = { version = "=1.20.0", optional = true }
@@ -32,7 +33,6 @@ anyhow = "1.0.104"
 magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }
-thiserror = "1.0.63"
 
 [dev-dependencies]
 data-encoding = "2.6.0"

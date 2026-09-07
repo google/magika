@@ -14,3 +14,9 @@ Callers do not select Metal or CUDA directly; the resolved implementation is ava
 
 Inference is synchronous. Async file reading and batch accumulation belong above this crate, so
 CPU- or GPU-bound model execution never occupies an async executor thread.
+
+GPU preparation retains the model's original normalization variance expression,
+`max(E[x*x] - E[x]*E[x], 0)`. Replacing it with the mean squared centered input changes
+floating-point behavior, especially for nearly constant activations. CPU and GPU kernels can
+still accumulate in different orders. The startup probe checks one input against a tolerance;
+it does not establish score agreement for every file or batch class.

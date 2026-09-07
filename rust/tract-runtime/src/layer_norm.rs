@@ -25,8 +25,6 @@ mod fusion {
     use tract_core::ops::change_axes::AxisOp;
     use tract_core::ops::element_wise::ElementWiseOp;
     use tract_core::ops::math::{Add, Max, Mul, Rsqrt, Square, Sub};
-    #[cfg(any(target_os = "macos", feature = "cuda"))]
-    use tract_core::ops::nn::RmsNorm;
     use tract_core::ops::nn::{Reduce, Reducer};
 
     use super::*;
@@ -35,7 +33,7 @@ mod fusion {
     #[cfg(any(test, feature = "_model-release"))]
     pub(crate) fn fuse_magika_layer_norm(model: &mut TypedModel) -> TractResult<usize> {
         let mut fused = 0;
-        while let Some(pattern) = FusionPattern::find(model)? {
+        while let Some(pattern) = FusionPattern::find(model, 0)? {
             let op = FusedLayerNorm::new(
                 pattern.axis,
                 pattern.epsilon,
@@ -54,56 +52,38 @@ mod fusion {
         Ok(fused)
     }
 
-    /// Rewrite true LayerNorm as mean-centering plus tract's GPU-fused RMSNorm.
+    /// Check the supported LayerNorm shape without changing its variance expression.
+    /// GPU reductions support the original E[x*x] - E[x]*E[x] graph directly.
     #[cfg(any(target_os = "macos", feature = "cuda"))]
-    pub(crate) fn fuse_magika_layer_norm_for_gpu(model: &mut TypedModel) -> TractResult<usize> {
-        let mut fused = 0;
-        while let Some(pattern) = FusionPattern::find(model)? {
-            let epsilon = pattern.epsilon.as_ref().clone().into_shape(&[])?.into_arc_tensor();
-            let mut patch = TypedModelPatch::default();
-            let centered = patch.tap_model(model, pattern.centered)?;
-            let normalized = patch.wire_node(
-                "magika.gpu_rms_norm",
-                RmsNorm { axis: pattern.axis, eps: epsilon },
-                &[centered],
-            )?[0];
-            let scale = patch.add_const("magika.layer_norm_scale", pattern.scale)?;
-            let scaled = patch.wire_node(
-                "magika.layer_norm_scale_mul",
-                TypedBinOp(Box::new(Mul), None),
-                &[normalized, scale],
-            )?[0];
-            let bias = patch.add_const("magika.layer_norm_bias", pattern.bias)?;
-            let output = patch.wire_node(
-                "magika.layer_norm_bias_add",
-                TypedBinOp(Box::new(Add), None),
-                &[scaled, bias],
-            )?[0];
-            patch.shunt_outside(model, OutletId::new(pattern.output_node, 0), output)?;
-            patch.apply(model)?;
-            model.compact()?;
-            fused += 1;
+    pub(crate) fn validate_magika_layer_norm_for_gpu(model: &TypedModel) -> TractResult<usize> {
+        let mut count = 0;
+        let mut next = 0;
+        while let Some(pattern) = FusionPattern::find(model, next)? {
+            next = pattern.output_node + 1;
+            count += 1;
         }
-        Ok(fused)
+        Ok(count)
     }
 
     struct FusionPattern {
         #[cfg(any(test, feature = "_model-release"))]
         input: OutletId,
-        #[cfg(any(target_os = "macos", feature = "cuda"))]
-        centered: OutletId,
         output_node: usize,
+        #[cfg(any(test, feature = "_model-release"))]
         axis: usize,
+        #[cfg(any(test, feature = "_model-release"))]
         epsilon: Arc<Tensor>,
+        #[cfg(any(test, feature = "_model-release"))]
         scale: Arc<Tensor>,
+        #[cfg(any(test, feature = "_model-release"))]
         bias: Arc<Tensor>,
         #[cfg(any(test, feature = "_model-release"))]
         input_shape: TVec<usize>,
     }
 
     impl FusionPattern {
-        fn find(model: &TypedModel) -> TractResult<Option<Self>> {
-            for output in &model.nodes {
+        fn find(model: &TypedModel, start: usize) -> TractResult<Option<Self>> {
+            for output in model.nodes.iter().skip(start) {
                 if !is_add(output) {
                     continue;
                 }
@@ -197,12 +177,14 @@ mod fusion {
             Ok(Some(Self {
                 #[cfg(any(test, feature = "_model-release"))]
                 input,
-                #[cfg(any(target_os = "macos", feature = "cuda"))]
-                centered: centered_outlet,
                 output_node: output.id,
+                #[cfg(any(test, feature = "_model-release"))]
                 axis,
+                #[cfg(any(test, feature = "_model-release"))]
                 epsilon,
+                #[cfg(any(test, feature = "_model-release"))]
                 scale,
+                #[cfg(any(test, feature = "_model-release"))]
                 bias,
                 #[cfg(any(test, feature = "_model-release"))]
                 input_shape: input_shape.into(),
@@ -423,7 +405,7 @@ mod fusion {
 #[cfg(any(test, feature = "_model-release"))]
 pub(crate) use fusion::fuse_magika_layer_norm;
 #[cfg(any(target_os = "macos", feature = "cuda"))]
-pub(crate) use fusion::fuse_magika_layer_norm_for_gpu;
+pub(crate) use fusion::validate_magika_layer_norm_for_gpu;
 
 fn scalar_f32(value: &Tensor) -> Option<f32> {
     (value.len() == 1).then(|| value.cast_to_scalar::<f32>().ok()).flatten()
@@ -610,6 +592,129 @@ impl TypedOp for FusedLayerNorm {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(any(target_os = "macos", feature = "cuda"))]
+    fn layer_norm_test_model() -> TractResult<TypedModel> {
+        use tract_core::ops::binary::TypedBinOp;
+        use tract_core::ops::element_wise::ElementWiseOp;
+        use tract_core::ops::math::{Add, Max, Mul, Rsqrt, Square, Sub};
+        use tract_core::ops::nn::{Reduce, Reducer};
+        let mut model = TypedModel::default();
+        let shape = [2, 256, 3];
+        let input = model.add_source("input", f32::fact(shape))?;
+        let sum =
+            model.wire_node("sum", Reduce { axes: tvec!(1), reducer: Reducer::Sum }, &[input])?[0];
+        let reciprocal = model.add_const("reciprocal", tensor3(&[[[1.0_f32 / 256.0]]]))?;
+        let mean = model.wire_node("mean", TypedBinOp(Box::new(Mul), None), &[sum, reciprocal])?[0];
+        let squares_mean = model.wire_node(
+            "mean_of_squares",
+            Reduce { axes: tvec!(1), reducer: Reducer::MeanOfSquares },
+            &[input],
+        )?[0];
+        let mean_squared =
+            model.wire_node("square_of_mean", ElementWiseOp(Box::new(Square {}), None), &[mean])?
+                [0];
+        let variance = model.wire_node(
+            "variance",
+            TypedBinOp(Box::new(Sub), None),
+            &[squares_mean, mean_squared],
+        )?[0];
+        let zero = model.add_const("zero", tensor3(&[[[0.0_f32]]]))?;
+        let clamped =
+            model.wire_node("clamp", TypedBinOp(Box::new(Max), None), &[variance, zero])?[0];
+        let epsilon = model.add_const("epsilon", tensor3(&[[[1.0e-6_f32]]]))?;
+        let denominator =
+            model.wire_node("denominator", TypedBinOp(Box::new(Add), None), &[clamped, epsilon])?
+                [0];
+        let inverse =
+            model.wire_node("inverse", ElementWiseOp(Box::new(Rsqrt {}), None), &[denominator])?[0];
+        let scale =
+            model.add_const("scale", Tensor::from_shape(&[1, 256, 1], &vec![0.75_f32; 256])?)?;
+        let scaled_inverse = model.wire_node(
+            "scaled_inverse",
+            TypedBinOp(Box::new(Mul), None),
+            &[inverse, scale],
+        )?[0];
+        let centered =
+            model.wire_node("centered", TypedBinOp(Box::new(Sub), None), &[input, mean])?[0];
+        let normalized = model.wire_node(
+            "normalized",
+            TypedBinOp(Box::new(Mul), None),
+            &[centered, scaled_inverse],
+        )?[0];
+        let bias =
+            model.add_const("bias", Tensor::from_shape(&[1, 256, 1], &vec![0.1_f32; 256])?)?;
+        let output =
+            model.wire_node("output", TypedBinOp(Box::new(Add), None), &[normalized, bias])?[0];
+        model.select_output_outlets(&[output])?;
+        Ok(model)
+    }
+
+    #[test]
+    #[cfg(any(target_os = "macos", feature = "cuda"))]
+    fn gpu_preparation_preserves_original_variance_arithmetic() -> TractResult<()> {
+        let model = layer_norm_test_model()?;
+        let shape = [2, 256, 3];
+        let gpu = model.clone();
+        assert_eq!(validate_magika_layer_norm_for_gpu(&gpu)?, 1);
+        let reference = model.into_runnable()?;
+        let candidate = gpu.into_runnable()?;
+        for mean in [0.0_f32, 100.0, 1000.0] {
+            let values: Vec<f32> = (0..shape.iter().product::<usize>())
+                .map(|index| mean + ((index % 19) as f32 - 9.0) * 0.125)
+                .collect();
+            let input = Tensor::from_shape(&shape, &values)?.into_tvalue();
+            let expected = reference.run(tvec!(input.clone()))?;
+            let actual = candidate.run(tvec!(input))?;
+            let error = expected[0]
+                .try_as_plain()?
+                .as_slice::<f32>()?
+                .iter()
+                .zip(actual[0].try_as_plain()?.as_slice::<f32>()?)
+                .map(|(a, b)| (a - b).abs())
+                .fold(0.0_f32, f32::max);
+            assert!(
+                error <= 1e-5,
+                "GPU preparation changed variance arithmetic at mean {mean}: max error {error}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    #[ignore = "requires an available Metal device"]
+    fn metal_executes_original_layer_norm_statistics() -> TractResult<()> {
+        use tract_core::transform::ModelTransform;
+        let mut gpu = layer_norm_test_model()?;
+        let cpu = gpu.clone().into_runnable()?;
+        assert_eq!(validate_magika_layer_norm_for_gpu(&gpu)?, 1);
+        tract_metal::MetalTransform { gemm_impl: None }.transform(&mut gpu)?;
+        assert!(
+            gpu.nodes
+                .iter()
+                .any(|node| node.op_as::<tract_gpu::ops::reduce::GpuReduce>().is_some()),
+            "no GPU reduction was emitted"
+        );
+        let gpu = crate::with_memory_arena(TypedSimplePlan::build(
+            gpu.into_optimized()?,
+            &RunOptions::default(),
+        )?)?;
+        let shape = [2, 256, 3];
+        let values: Vec<f32> = (0..1536).map(|index| ((index % 19) as f32 - 9.0) * 0.125).collect();
+        let input = Tensor::from_shape(&shape, &values)?.into_tvalue();
+        let expected = cpu.run(tvec!(input.clone()))?;
+        let actual = Arc::new(gpu).run(tvec!(input))?;
+        let error = expected[0]
+            .try_as_plain()?
+            .as_slice::<f32>()?
+            .iter()
+            .zip(actual[0].try_as_plain()?.as_slice::<f32>()?)
+            .map(|(a, b)| (a - b).abs())
+            .fold(0.0_f32, f32::max);
+        assert!(error < 1e-4, "Metal LayerNorm max error {error}");
+        Ok(())
+    }
 
     #[test]
     fn fused_layer_norm_matches_scalar_reference() {

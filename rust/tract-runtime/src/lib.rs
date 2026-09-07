@@ -64,8 +64,8 @@ const EXPECTED_EMBEDDINGS: usize = 1;
 const EXPECTED_LAYER_NORMS: usize = 2;
 /// Largest score difference tolerated between a GPU and the CPU on the same input.
 ///
-/// They run different kernels and do not agree to the bit: the release gate measures about 1.4e-5
-/// between them. This sits far above that and far below a different answer.
+/// This is a startup-probe tolerance, not a guarantee for every input or a bound on
+/// classification changes near thresholds. Corpus qualification requires separate checks.
 const GPU_AGREEMENT_EPSILON: f32 = 1e-3;
 /// Embedded release model bytes used by the benchmark's parity and size gates.
 #[doc(hidden)]
@@ -294,10 +294,10 @@ fn with_memory_arena(runnable: TypedSimplePlan) -> Result<TypedSimplePlan> {
 
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 fn prepare_gpu_graph(model: &mut TypedModel, batch: usize) -> Result<()> {
-    let fused_layer_norm = layer_norm::fuse_magika_layer_norm_for_gpu(model)?;
+    let validated_layer_norm = layer_norm::validate_magika_layer_norm_for_gpu(model)?;
     ensure!(
-        fused_layer_norm == EXPECTED_LAYER_NORMS,
-        "required {EXPECTED_LAYER_NORMS} GPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
+        validated_layer_norm == EXPECTED_LAYER_NORMS,
+        "required {EXPECTED_LAYER_NORMS} GPU LayerNorm patterns for batch {batch}, matched {validated_layer_norm}"
     );
     let lowered = gpu_conv::lower_magika_conv_to_matmul(model)?;
     ensure!(

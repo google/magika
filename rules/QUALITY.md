@@ -129,6 +129,40 @@ notices are in [LICENSES](LICENSES). No new inference or regression runs were
 needed: the candidates and their non-enforcement are unchanged. This disposition
 does not qualify any candidate for future promotion.
 
+### Further disabled formats
+
+These candidates also remain unchanged and unreferenced. The same saved corpus
+observations apply; zero matches with no positive samples provides no evidence for
+promotion. The review retains the existing fallback rather than adding coverage.
+
+| Format | Source comparison and disposition | Raw correct / other-label matches |
+| --- | --- | --- |
+| Access | PRONOM signatures 270 and 2143–2147 cover Access 1.x/2.0, including encrypted variants; their long correlated markers do not cover the available newer files. | 0 / 0 (100 positives) |
+| ANI | libmagic requires RIFF's `ACON` form at offset 8; the puremagic-derived candidate only checks `RIFF`, matching AVI, WAV and WebP. | 100 / 298 |
+| a.out | libmagic distinguishes three 32-bit magic values and byte orders, with additional header fields. The candidate only retains four magic bytes and has no positive qualification. | 0 / 0 (no positives) |
+| ARJ | puremagic's two-byte `60 EA` marker is below the active prefix floor and has no surrounding header evidence. | 0 / 0 (no positives) |
+| Arrow | libmagic's six-byte `ARROW1` file marker is retained without more structure; it is not evidence for Arrow stream variants or qualification without samples. | 0 / 0 (no positives) |
+| Berkeley DB | libmagic correlates magic at offset 0 or 12 with version fields. The candidate mixes byte-order/format magics without those fields or positive samples. | 0 / 0 (no positives) |
+| Bzip3 | No candidate is implemented. libmagic recognizes `BZ3v1` and reads a following block size, but implementing and qualifying that rule would add coverage. | 0 / 0 (no positives) |
+| Cinema 4D | PRONOM 846/847/1562 describes distinct 4.x, 5.x and 6+ signatures, including correlated container tags. No sample qualifies any retained variant. | 0 / 0 (no positives) |
+| COFF | No candidate is implemented. libmagic's COFF handling checks section count, processor and flags; a short machine value alone would not replace that context. | 0 / 0 (94 positives) |
+| CRT | No candidate is implemented. libmagic's textual certificate patterns do not supply a qualified rule for the full certificate class. | 0 / 0 (100 positives) |
+| DEB | libmagic correlates ar with the `debian-binary` or `debian-split` member. The generic `!<arch>` alternative also matches every sampled ar archive. | 100 / 100 |
+| DMG | The source signature is an Apple Driver Map with a block-size mask, not universal DMG identity; it matches two ISO-labeled files and none of the DMG positives. | 0 / 2 (100 positives) |
+| ELF | The four-byte ELF magic is shared by the 100 sampled CUDA binaries. libmagic additionally examines class, byte order and other header fields. | 99 / 100 |
+| FileMaker | PRONOM's 3/5/7+/12 variants use long version-specific header strings and offsets. They have no positive coverage in this corpus. | 0 / 0 (no positives) |
+| FlatGeobuf | The eight-byte magic agrees with libmagic's signature, but no sample establishes the retained variant's coverage. | 0 / 0 (no positives) |
+| HDF5 | libmagic supports user-block offsets and PRONOM distinguishes superblock versions. Generic HDF5 magic also matches 35 Keras and 22 NetCDF files, plus one invalid-labeled sample. | 100 / 58 |
+| HWP | puremagic/Tika's textual header targets older HWP files; Tika treats v5 as a compound-file subtype. None of the three available positives matches this candidate. | 0 / 0 (3 positives) |
+| ISO | No candidate is implemented. libmagic's CD-ROM filesystem checks read well beyond the 4 KiB prefix, so copying them would violate the scan bound. | 0 / 0 (100 positives) |
+| Java bytecode | PRONOM's `CA FE BA BE` signature also matches nine Mach-O files; additional class-file structure would be needed before promotion. | 100 / 9 |
+| JPEG | The merged sources contain a JP2 signature mislabeled `image/jpeg` by puremagic, plus bare SOI and escaped text. It matches 97 JP2 and two invalid-labeled files. | 100 / 99 |
+
+Comparisons use the per-rule source references, plus libmagic's `compress`, `coff`,
+`securitycerts` and `filesystems` entries for unimplemented candidates and Tika's
+HWP subtype definitions. No tests were added for these inactive alternatives;
+future promotion would require focused regressions and corpus qualification.
+
 ## Regression and evaluation requirements
 
 ### Targeted FTYP review

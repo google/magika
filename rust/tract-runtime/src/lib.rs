@@ -14,23 +14,30 @@
 
 //! Fixed-shape tract runtime used by Magika's synchronous inference threads.
 
+mod artifact;
 mod direct_conv;
+#[cfg(any(test, feature = "_model-release"))]
 mod embedding;
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 mod gpu_conv;
 mod layer_norm;
-
 use std::sync::Arc;
 
 #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
 use anyhow::bail;
 use anyhow::{Context as _, Result, ensure};
+#[cfg(feature = "_model-release")]
+#[doc(hidden)]
+pub use artifact::export as export_model_artifact;
 // Only the GPU preparers build a plan by hand; the CPU one goes through the runtime.
+#[cfg(test)]
+use tract_core::prelude::Framework as _;
+#[cfg(any(test, feature = "_model-release"))]
+use tract_core::prelude::ToDim as _;
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 use tract_core::prelude::TypedSimplePlan;
 use tract_core::prelude::{
-    Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, ToDim as _, TypedModel,
-    tvec,
+    IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, TypedModel, tvec,
 };
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, Runtime as _, State};
 use tract_core::tract_linalg::multithread::Executor;
@@ -45,9 +52,13 @@ pub const BATCH_CLASSES: [usize; 6] = [1, 4, 8, 16, 32, 64];
 const FEATURE_SIZE: usize = 2048;
 const NUM_LABELS: usize = 214;
 const PADDING_TOKEN: i32 = 256;
+#[cfg(any(test, feature = "_model-release"))]
 const DIRECT_FUSED_MIN_BATCH: usize = 8;
+#[cfg(any(test, feature = "_model-release", target_os = "macos", feature = "cuda"))]
 const EXPECTED_CONVOLUTIONS: usize = 1;
+#[cfg(any(test, feature = "_model-release"))]
 const EXPECTED_EMBEDDINGS: usize = 1;
+#[cfg(any(test, feature = "_model-release", target_os = "macos", feature = "cuda"))]
 const EXPECTED_LAYER_NORMS: usize = 2;
 /// Largest score difference tolerated between a GPU and the CPU on the same input.
 ///
@@ -118,18 +129,15 @@ impl Runtime {
 
     /// Prepares plans for requests accumulated up to `max_batch` items.
     ///
-    /// The x86_64 CPU graph keeps only the largest reachable class: smaller requests are padded
-    /// into that optimized fused graph and their extra scores discarded. Other architectures keep
-    /// the original set of reachable fixed plans and routing behavior.
+    /// CPU inference keeps only the largest reachable class: smaller requests are padded into
+    /// that graph and their extra scores discarded. This avoids retaining slower unfused plans
+    /// and their intermediate tensors when rule hits leave a partial batch. GPU routing is unchanged.
     pub fn with_max_batch(request: BackendRequest, max_batch: usize) -> Result<Self> {
         ensure!(max_batch > 0, "the maximum batch cannot be zero");
         let classes: Vec<usize> =
             BATCH_CLASSES.iter().copied().filter(|class| *class <= max_batch).collect();
         ensure!(!classes.is_empty(), "no resident plan can serve a batch of {max_batch}");
-        #[cfg(target_arch = "x86_64")]
         let cpu_classes = &classes[classes.len() - 1..];
-        #[cfg(not(target_arch = "x86_64"))]
-        let cpu_classes = classes.as_slice();
         Self::with_classes(request, cpu_classes, &classes)
     }
 
@@ -195,20 +203,9 @@ impl Runtime {
         let options =
             RunOptions { executor: Some(Executor::SingleThread), ..RunOptions::default() };
         let mut plans = Vec::with_capacity(classes.len());
+        let mut artifact = artifact::Bundle::embedded()?;
         for &batch in classes {
-            let mut model = load_model(batch)?;
-            let fused_layer_norm = layer_norm::fuse_magika_layer_norm(&mut model)?;
-            ensure!(
-                fused_layer_norm == EXPECTED_LAYER_NORMS,
-                "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
-            );
-            if batch >= DIRECT_FUSED_MIN_BATCH {
-                let fused_conv = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
-                ensure!(
-                    fused_conv == EXPECTED_CONVOLUTIONS,
-                    "required {EXPECTED_CONVOLUTIONS} CPU Conv1D fusion for batch {batch}, matched {fused_conv}"
-                );
-            }
+            let model = artifact.model(batch, true)?;
             let runnable = CPU
                 .prepare_with_options(model, &options)
                 .with_context(|| format!("preparing CPU batch-{batch} plan"))?;
@@ -220,8 +217,9 @@ impl Runtime {
     #[cfg(target_os = "macos")]
     fn prepare_gpu(classes: &[usize]) -> Result<Self> {
         let mut plans = Vec::with_capacity(classes.len());
+        let mut artifact = artifact::Bundle::embedded()?;
         for &batch in classes {
-            let mut model = load_model(batch)?;
+            let mut model = artifact.model(batch, false)?;
             prepare_gpu_graph(&mut model, batch)?;
             let gemm_impl = None;
             MetalTransform { gemm_impl }
@@ -246,8 +244,9 @@ impl Runtime {
     fn prepare_gpu(classes: &[usize]) -> Result<Self> {
         ensure!(unsafe { cudarc::nvrtc::sys::is_culib_present() });
         let mut plans = Vec::with_capacity(classes.len());
+        let mut artifact = artifact::Bundle::embedded()?;
         for &batch in classes {
-            let mut model = load_model(batch)?;
+            let mut model = artifact.model(batch, false)?;
             prepare_gpu_graph(&mut model, batch)?;
             tract_cuda::CudaTransform
                 .transform(&mut model)
@@ -306,10 +305,33 @@ fn prepare_gpu_graph(model: &mut TypedModel, batch: usize) -> Result<()> {
     Ok(())
 }
 
-fn load_model(batch: usize) -> Result<TypedModel> {
+#[cfg(any(test, feature = "_model-release"))]
+fn prepare_cpu_graph(model: &mut TypedModel, batch: usize) -> Result<()> {
+    let fused_layer_norm = layer_norm::fuse_magika_layer_norm(model)?;
+    ensure!(
+        fused_layer_norm == EXPECTED_LAYER_NORMS,
+        "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
+    );
+    if batch >= DIRECT_FUSED_MIN_BATCH {
+        let fused_conv = direct_conv::fuse_magika_conv_max(model, batch)?;
+        ensure!(
+            fused_conv == EXPECTED_CONVOLUTIONS,
+            "required {EXPECTED_CONVOLUTIONS} CPU Conv1D fusion for batch {batch}, matched {fused_conv}"
+        );
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+fn load_nnef_model(batch: usize) -> Result<TypedModel> {
     let model = tract_nnef::nnef()
         .model_for_read(&mut std::io::Cursor::new(EMBEDDED_NNEF_MODEL))
         .context("loading the embedded NNEF model")?;
+    prepare_nnef_model(model, batch)
+}
+
+#[cfg(any(test, feature = "_model-release"))]
+fn prepare_nnef_model(model: TypedModel, batch: usize) -> Result<TypedModel> {
     let mut model = if let Some(symbol) = model.symbols.get("N") {
         let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
         model.set_symbols(&symbols).context("binding the NNEF batch symbol")?
@@ -376,7 +398,7 @@ impl Session {
         let mut remaining = batch;
         let mut outputs = Vec::new();
         while remaining > 0 {
-            // Use the largest plan that fits. If none does (the x86_64 runtime deliberately keeps
+            // Use the largest plan that fits. If none does (the bounded CPU runtime keeps
             // only its largest optimized class), pad the tail through the smallest resident plan.
             let index = self.plans.iter().rposition(|plan| plan.batch <= remaining).unwrap_or(0);
             let plan = &mut self.plans[index];
@@ -475,6 +497,10 @@ mod tests {
         let output = Runtime::prepare_cpu(&[1])?.session()?.run(&input, 1)?;
         assert!(scores_agree_with_bytes(EMBEDDED_GPU_PROBE, &output));
         assert!(!scores_agree_with_bytes(&EMBEDDED_GPU_PROBE[..4], &output));
+        // Release scripts can also verify a newly converted probe without replacing the golden.
+        if let Some(path) = std::env::var_os("MAGIKA_RELEASE_PROBE") {
+            assert!(scores_agree_with_bytes(&std::fs::read(path)?, &output));
+        }
         Ok(())
     }
 
@@ -530,7 +556,7 @@ mod tests {
 
     #[test]
     fn release_cpu_graph_has_every_required_fusion() -> Result<()> {
-        let mut model = load_model(DIRECT_FUSED_MIN_BATCH)?;
+        let mut model = load_nnef_model(DIRECT_FUSED_MIN_BATCH)?;
         assert_eq!(layer_norm::fuse_magika_layer_norm(&mut model)?, EXPECTED_LAYER_NORMS);
         assert_eq!(
             direct_conv::fuse_magika_conv_max(&mut model, DIRECT_FUSED_MIN_BATCH)?,
@@ -547,7 +573,7 @@ mod tests {
     fn the_fallback_packing_path_scores_the_release_model_the_same() -> Result<()> {
         let batch = DIRECT_FUSED_MIN_BATCH;
         let prepare = |portable: bool| -> Result<Vec<f32>> {
-            let mut model = load_model(batch)?;
+            let mut model = load_nnef_model(batch)?;
             ensure!(layer_norm::fuse_magika_layer_norm(&mut model)? == EXPECTED_LAYER_NORMS);
             let fused = if portable {
                 direct_conv::fuse_magika_conv_max_portable(&mut model, batch)?

@@ -114,3 +114,8 @@ done
 End-to-end CLI results must be measured separately because traversal, feature extraction, global
 batch accumulation, ordered output, startup, and backend auto-selection are intentionally outside
 the compute-only benchmark.
+
+## File classification and rules
+
+The [rules benchmark](../../rules/README.md) evaluates the actual CLI on supplied
+Parquet corpus files, including correctness, coverage, throughput and memory.

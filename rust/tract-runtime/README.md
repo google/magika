@@ -3,7 +3,9 @@
 This crate is the inference layer shared by the Rust `magika` library, CLI, and runtime benchmark.
 It loads the checked NNEF release artifact, binds fixed batch classes `1, 4, 8, 16, 32, 64`, and
 prepares their target-specific tract plans once. Each inference thread then spawns private mutable
-state from those shared plans.
+state from those shared plans. When a CPU caller declares a maximum batch, only its largest
+reachable plan is prepared; smaller requests pad through that plan and discard padding outputs.
+This keeps partial batches from allocating additional unfused execution states.
 
 The public device choice is intentionally generic: automatic, CPU, or GPU. On macOS the compiled
 GPU implementation is Metal. CUDA can be compiled on supported systems with the `cuda` feature.

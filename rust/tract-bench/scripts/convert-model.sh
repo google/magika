@@ -23,16 +23,25 @@ checked_model="$repo_dir/rust/tract-runtime/models/model.nnef.tgz"
 checked_probe="$repo_dir/rust/tract-runtime/models/model.probe.f32le"
 
 convert_model() {
-  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$1"
+  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$1" "$2" "$3"
 }
 
 if [ "${1:-}" = "--check" ]; then
-  candidate_dir=$(mktemp -d)
-  trap 'rm -rf "$candidate_dir"' EXIT HUP INT TERM
+  if [ "$#" -gt 2 ]; then
+    echo "usage: $0 --check [OUTPUT_DIRECTORY]" >&2
+    exit 2
+  fi
+  mkdir -p "$repo_dir/tmp"
+  candidate_dir=${2:-$(mktemp -d "$repo_dir/tmp/model-check.XXXXXX")}
+  mkdir -p "$candidate_dir"
+  candidate_dir=$(CDPATH= cd -- "$candidate_dir" && pwd)
+  printf 'conversion_intermediates\t%s\n' "$candidate_dir"
   candidate_model="$candidate_dir/model.nnef.tgz"
-  convert_model "$candidate_model"
+  convert_model "$candidate_model" "$candidate_dir/model.probe.f32le" "$candidate_dir"
   cmp "$checked_model" "$candidate_model"
-  cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
+  cmp "$repo_dir/rust/tract-runtime/models/model.graph.json" "$candidate_dir/model.graph.json"
+  cmp "$repo_dir/rust/tract-runtime/models/model.weights" "$candidate_dir/model.weights"
+  MAGIKA_RELEASE_PROBE="$candidate_dir/model.probe.f32le" cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
   exit 0
 fi
 
@@ -41,4 +50,4 @@ if [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$checked_model" "$checked_probe"
+convert_model "$checked_model" "$checked_probe" "$repo_dir/rust/tract-runtime/models"

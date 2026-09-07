@@ -18,8 +18,15 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 bench_dir=$(dirname -- "$script_dir")
 repo_dir=$(CDPATH= cd -- "$bench_dir/../.." && pwd)
-candidate_dir=$(mktemp -d)
-trap 'rm -rf "$candidate_dir"' EXIT HUP INT TERM
+if [ "$#" -gt 1 ]; then
+  echo "usage: $0 [OUTPUT_DIRECTORY]" >&2
+  exit 2
+fi
+mkdir -p "$repo_dir/tmp"
+candidate_dir=${1:-$(mktemp -d "$repo_dir/tmp/model-conversion.XXXXXX")}
+mkdir -p "$candidate_dir"
+candidate_dir=$(CDPATH= cd -- "$candidate_dir" && pwd)
+printf 'conversion_intermediates\t%s\n' "$candidate_dir"
 cd "$repo_dir"
 
 executable_suffix=""
@@ -33,8 +40,19 @@ for source_model in "$repo_dir"/assets/models/*/model.onnx; do
   model_name=$(basename "$(dirname "$source_model")")
   first="$candidate_dir/$model_name.first.nnef.tgz"
   second="$candidate_dir/$model_name.second.nnef.tgz"
-  "$converter" "$source_model" "$first"
-  "$converter" "$source_model" "$second"
+  if [ "$model_name" = "standard_v3_3" ]; then
+    "$converter" "$source_model" "$first" "$candidate_dir/model.probe.f32le" "$candidate_dir/portable"
+  else
+    "$converter" "$source_model" "$first"
+  fi
+  if [ "$model_name" = "standard_v3_3" ]; then
+    "$converter" "$source_model" "$second" "$candidate_dir/model.second.probe.f32le" "$candidate_dir/portable-second"
+    cmp "$candidate_dir/model.probe.f32le" "$candidate_dir/model.second.probe.f32le"
+    cmp "$candidate_dir/portable/model.graph.json" "$candidate_dir/portable-second/model.graph.json"
+    cmp "$candidate_dir/portable/model.weights" "$candidate_dir/portable-second/model.weights"
+  else
+    "$converter" "$source_model" "$second"
+  fi
   cmp "$first" "$second"
   gzip -t "$first"
   tar -tzf "$first" | grep -qx 'graph.nnef'
@@ -61,12 +79,15 @@ done
 current="$candidate_dir/standard_v3_3.first.nnef.tgz"
 cmp "$repo_dir/rust/tract-runtime/models/model.nnef.tgz" "$current"
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" release_cpu_graph_has_every_required_fusion
-cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
+MAGIKA_RELEASE_PROBE="$candidate_dir/model.probe.f32le" cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
 # Neither gate above reaches the fused convolution: the verifier runs the unfused NNEF, the fusion
 # contract only counts matches, and the score probe is batch one, below the batch the fusion needs.
 # These run the fused graph and check the numbers it produces.
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" the_fallback_packing_path_scores_the_release_model_the_same
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" both_packing_paths_agree
+cmp "$repo_dir/rust/tract-runtime/models/model.graph.json" "$candidate_dir/portable/model.graph.json"
+cmp "$repo_dir/rust/tract-runtime/models/model.weights" "$candidate_dir/portable/model.weights"
+cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" artifact::tests -- --test-threads=1
 printf 'verified_release_artifacts\t%s\t%s\n' "$current" "$repo_dir/rust/tract-runtime/models/model.probe.f32le"
 
 if [ "$(uname -s)" = "Darwin" ]; then

@@ -58,3 +58,21 @@ fn a_maximum_below_every_class_still_serves_requests() {
 fn a_zero_maximum_is_rejected() {
     assert!(Runtime::with_max_batch(BackendRequest::Cpu, 0).is_err());
 }
+
+#[test]
+fn partial_batches_preserve_scores_through_the_bounded_cpu_plan() {
+    let mut reference = Runtime::with_max_batch(BackendRequest::Cpu, 1).unwrap().session().unwrap();
+    let mut bounded = Runtime::with_max_batch(BackendRequest::Cpu, 8).unwrap().session().unwrap();
+    for batch in 1..=8 {
+        let input = features(batch);
+        let expected = reference.run(&input, batch).unwrap();
+        let actual = bounded.run(&input, batch).unwrap();
+        assert_eq!(actual.len(), expected.len());
+        for (index, (actual, expected)) in actual.iter().zip(&expected).enumerate() {
+            assert!(
+                (actual - expected).abs() < 1e-5,
+                "batch {batch}, score {index}: {actual} vs {expected}"
+            );
+        }
+    }
+}

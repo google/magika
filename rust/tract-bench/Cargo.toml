@@ -27,7 +27,7 @@ required-features = ["verify"]
 
 [features]
 default = ["ort-runtime"]
-convert = ["dep:flate2", "dep:tract-core", "dep:tract-hir", "dep:tract-nnef", "dep:tract-onnx"]
+convert = ["magika-tract-runtime/_model-release", "dep:flate2", "dep:tract-core", "dep:tract-hir", "dep:tract-nnef", "dep:tract-onnx"]
 ort-runtime = ["dep:ndarray", "dep:ort"]
 verify = ["ort-runtime", "dep:tract-core", "dep:tract-nnef"]
 

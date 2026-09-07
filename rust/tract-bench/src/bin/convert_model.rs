@@ -34,16 +34,13 @@ use tract_onnx::prelude::*;
 
 fn main() -> Result<()> {
     let mut args = std::env::args_os().skip(1).map(PathBuf::from);
-    let Some(source) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
-    };
-    let Some(destination) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
-    };
+    const USAGE: &str =
+        "usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le [RUNTIME_DIRECTORY]]";
+    let source = args.next().context(USAGE)?;
+    let destination = args.next().context(USAGE)?;
     let probe = args.next();
-    if args.next().is_some() {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
-    }
+    let runtime_directory = args.next();
+    ensure!(args.next().is_none(), "{USAGE}");
 
     let onnx = tract_onnx::onnx();
     let proto = onnx
@@ -60,6 +57,9 @@ fn main() -> Result<()> {
     verify_rust_round_trip(&destination)?;
     if let Some(probe) = probe {
         write_probe_reference(&destination, &probe)?;
+    }
+    if let Some(directory) = runtime_directory {
+        magika_tract_runtime::export_model_artifact(&destination, &directory)?;
     }
 
     Ok(())

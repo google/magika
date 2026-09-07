@@ -58,6 +58,7 @@ fn has_transposing_packer() -> bool {
 /// Replace a supported Conv1D -> transpose -> GELU -> max-over-position chain.
 ///
 /// Returns the number of independent chains replaced.
+#[cfg(any(test, feature = "_model-release"))]
 pub(crate) fn fuse_magika_conv_max(model: &mut TypedModel, batch: usize) -> TractResult<usize> {
     fuse_magika_conv_max_inner(model, batch, false)
 }
@@ -71,6 +72,7 @@ pub(crate) fn fuse_magika_conv_max_portable(
     fuse_magika_conv_max_inner(model, batch, true)
 }
 
+#[cfg(any(test, feature = "_model-release"))]
 fn fuse_magika_conv_max_inner(
     model: &mut TypedModel, batch: usize, force_portable: bool,
 ) -> TractResult<usize> {
@@ -94,14 +96,14 @@ fn fuse_magika_conv_max_inner(
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-struct ConvDimensions {
-    batch: usize,
-    input_channels: usize,
-    input_length: usize,
-    output_channels: usize,
-    kernel_length: usize,
-    output_length: usize,
-    channels_last: bool,
+pub(super) struct ConvDimensions {
+    pub(super) batch: usize,
+    pub(super) input_channels: usize,
+    pub(super) input_length: usize,
+    pub(super) output_channels: usize,
+    pub(super) kernel_length: usize,
+    pub(super) output_length: usize,
+    pub(super) channels_last: bool,
 }
 
 impl ConvDimensions {
@@ -114,6 +116,7 @@ impl ConvDimensions {
     }
 }
 
+#[cfg(any(test, feature = "_model-release"))]
 struct FusionPattern {
     input: OutletId,
     max_node: usize,
@@ -122,6 +125,7 @@ struct FusionPattern {
     dimensions: ConvDimensions,
 }
 
+#[cfg(any(test, feature = "_model-release"))]
 impl FusionPattern {
     fn find(model: &TypedModel, batch: usize) -> TractResult<Option<Self>> {
         use tract_core::ops::change_axes::AxisOp;
@@ -243,16 +247,16 @@ impl FusionPattern {
 }
 
 #[derive(Clone, Debug)]
-struct DirectFusedConvMax1D {
-    dimensions: ConvDimensions,
+pub(super) struct DirectFusedConvMax1D {
+    pub(super) dimensions: ConvDimensions,
     tile_batches: usize,
     tile_columns: usize,
     eager_pack: bool,
     mmm: Box<dyn MatMatMul>,
     packing: usize,
     packed_kernel: Box<dyn MMMInputValue>,
-    kernel: Arc<Tensor>,
-    bias: Arc<Tensor>,
+    pub(super) kernel: Arc<Tensor>,
+    pub(super) bias: Arc<Tensor>,
     input_format: Arc<DirectConvInputFormat>,
 }
 
@@ -276,7 +280,7 @@ impl DirectFusedConvMax1D {
     /// `force_portable` makes the operator take the packing path of a target without a vectorized
     /// packer, so a test can compare the two on one machine. It can only ever turn the eager path
     /// off; turning it on where the host cannot run it would be unsound.
-    fn new(
+    pub(super) fn new(
         dimensions: ConvDimensions, kernel: Arc<Tensor>, bias: Arc<Tensor>, force_portable: bool,
     ) -> TractResult<Self> {
         ensure!(kernel.datum_type() == DatumType::F32, "Conv1D kernel must be f32");

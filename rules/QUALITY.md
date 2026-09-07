@@ -163,6 +163,45 @@ Comparisons use the per-rule source references, plus libmagic's `compress`, `cof
 HWP subtype definitions. No tests were added for these inactive alternatives;
 future promotion would require focused regressions and corpus qualification.
 
+### Remaining disabled candidates
+
+This final disabled-candidate group follows the same unchanged-source comparison.
+XZ and SQLite use the rule names `xz_v1` and `sqlite_v1`; their observations are
+counted under those names, not nonexistent `taxonomy_` aliases.
+
+| Format | Source comparison and disposition | Raw correct / other-label matches |
+| --- | --- | --- |
+| LHA | puremagic's complete method markers are weakened by an independent three-byte `-lh` alternative. A malformed sample matches. | 100 / 1 |
+| LightWave | PRONOM signature 1583 correlates `FORM` with `LWOB`, a specific object variant. None of the available LightWave positives matches it. | 0 / 0 (100 positives) |
+| LMDB | libmagic reads magic at offset 16 and a following version. The candidate only retains the magic and has no positive samples. | 0 / 0 (no positives) |
+| LZX | libmagic's three-byte marker identifies the Amiga archive family; it is below the active prefix floor and lacks qualification. | 0 / 0 (no positives) |
+| MP3 | libmagic examines frame header fields; the merged candidate accepts short sync patterns and bare ID3. One FLAC and three ICO files match. | 100 / 4 |
+| OTF | No candidate is implemented. libmagic's `OTTO`/sfnt recognition does not by itself qualify new coverage. | 0 / 0 (100 positives) |
+| Outlook | puremagic's compound-file header is shared by Office and other containers. Tika inspects message-specific storage names such as `__substg1.0_`. | 100 / 565 |
+| Paradox | PRONOM 516–519 encodes version-specific header fields at offset 2 and later positions. No sample qualifies these variants. | 0 / 0 (no positives) |
+| PCAPNG | libmagic also checks the byte-order magic at offset 8; the candidate only checks the initial block type and matches 18 PCAP-labeled samples. | 100 / 18 |
+| PGP | Armor signatures and the two-byte binary-key alternative are mixed; only four positives match, plus two PEM-labeled samples. The broader PGP class is not qualified. | 4 / 2 (19 positives) |
+| PNG | libmagic correlates PNG with IHDR/CgBI structure. The candidate also accepts literal escape text and does not reject 14 invalid-labeled samples. | 100 / 14 |
+| PostScript | libmagic distinguishes leading separators and Adobe headers. Bare `%!` and escaped text in the combined candidate match two LaTeX files. | 82 / 2 |
+| RData | libmagic's `RDX2`/`RDX3` lines continue into RDS interpretation; the candidate only retains five leading bytes and has no positive samples. | 0 / 0 (no positives) |
+| Rhinoceros | PRONOM supplies distinct 3DM version 1–8 header strings and padding. No positive samples qualify these retained variants. | 0 / 0 (no positives) |
+| SquashFS | libmagic follows the endian-dependent magic with superblock interpretation. Generic SquashFS identity also matches seven Snap packages. | 100 / 7 |
+| TAR | puremagic/Tika provide `ustar` markers at offset 257; escaped-text variants and missing header correlation leave two invalid-labeled matches. | 98 / 2 |
+| TGA | The puremagic source itself encodes literal backslash text at offset 1. This is not a binary TGA header and matches none of the positives. | 0 / 0 (100 positives) |
+| TIFF | TIFF/BigTIFF magic does not distinguish GeoTIFF; the merged candidate also contains an `I I` text alternative. It matches 100 GeoTIFF and five invalid-labeled samples. | 100 / 105 |
+| WebP | libmagic correlates RIFF with `WEBP` and then walks chunks. The standalone RIFF alternative also matches ANI, AVI and WAV. | 98 / 300 |
+| WIM | puremagic's source contains literal `MSWIM` plus backslash escapes. libmagic uses binary zero bytes and a WIM header reader; the candidate matches no positives. | 0 / 0 (100 positives) |
+| WMF | Tika's longer header alternatives are weakened by puremagic's independent two-byte `01 00` signature, which also matches 67 EMF files. | 100 / 67 |
+| XZ | The reviewed 12-byte header checks magic, flags and header CRC for four check types. Existing indistinguishable-prefix ambiguity evidence keeps the prior promotion hold; the corpus alone does not resolve it. | 100 / 0 |
+| zlib stream | Tika's four short CMF/FLG pairs are insufficient for the narrower stream label; 85 DMG files also match. libmagic additionally interprets compression-method and header check bits. | 100 / 85 |
+| SQLite | The 100-byte header and page-size checks identify SQLite storage, not its applications. The same predicate matches 100 GeoPackage and three MBTiles files. Existing constructed MBTiles counterexamples also preserve the promotion hold. | 87 / 103 |
+
+The review checked the referenced pinned entries and the existing XZ/SQLite
+structural-verification evidence, including its reported counterexamples rather
+than treating it as a passing qualification run. No inactive predicate was enabled,
+rewritten or benchmarked again. All 64 candidates reviewed in these three tables
+remain outside enforced classification.
+
 ## Regression and evaluation requirements
 
 ### Targeted FTYP review

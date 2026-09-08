@@ -324,14 +324,19 @@ fn main() -> Result<()> {
         std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(path)?
-            .write_all(magika::DEFAULT_RULES.as_bytes())?;
+            .open(path)
+            .with_context(|| format!("create rules source {}", path.display()))?
+            .write_all(magika::DEFAULT_RULES.as_bytes())
+            .with_context(|| format!("write rules source {}", path.display()))?;
         return Ok(());
     }
     if let Some(path) = &flags.compile_rules {
         #[cfg(feature = "yara-rules")]
         {
-            magika::RuleSet::compile_file(path, path.with_extension("hsdb"))?;
+            let output = path.with_extension("hsdb");
+            magika::RuleSet::compile_file(path, &output).with_context(|| {
+                format!("compile rules {} to {}", path.display(), output.display())
+            })?;
             return Ok(());
         }
         #[cfg(not(feature = "yara-rules"))]
@@ -919,7 +924,9 @@ fn infer_batches(
         dispatch_inference_results(pending, batch, sender)?;
     }
     #[cfg(feature = "_trace")]
-    eprintln!("trace inference batch sizes: {batch_counts:?}");
+    if !batch_counts.is_empty() {
+        eprintln!("trace inference batch sizes: {batch_counts:?}");
+    }
     Ok(())
 }
 

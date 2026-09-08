@@ -156,6 +156,18 @@ python3 rules/package.py bundle --binary /path/to/magika \
   --output tmp/magika-rules.tar.gz
 ```
 
+Stage the library before packaging or publishing it: the canonical rules and notices
+live outside `rust/lib`, and raw `cargo package` from that checkout does not collect
+them. `rust/publish.sh` uses this staging path. The existing packaging tests verify
+that the staged inputs match the maintained files and build without checkout paths,
+both with and without `yara-rules`.
+
 Source staging preserves the local tract-runtime dependency for verification. Binary
 bundles export the executable's embedded source, compile a target-specific `.hsdb`,
 and include notices. Existing outputs are not overwritten. These commands do not publish.
+
+The bundled `libhs` must support the destination CPUs as well as the destination OS
+and architecture. The native-test CI recipe uses host tuning (`FAT_RUNTIME=OFF`);
+it is not a portable distribution build recipe. A compatible `.hsdb` check cannot
+protect against unsupported instructions inside the native library itself. Choose
+and verify the engine's CPU baseline before distributing a bundle.

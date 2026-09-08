@@ -1,31 +1,25 @@
-This crate is for maintenance purposes only. It is used to update the Rust library to a new model.
-There are 3 files in the Rust library that depend on the model:
+This maintenance crate regenerates two Rust source files from the selected model's
+configuration and content-type metadata:
 
-- The model itself, `rust/lib/src/model.onnx`, which is a symbolic link to some model under
-  `assets/models`, controlled by the `rust/gen/model` symbolic link. Publishing the crate will
-  dereference this symbolic link.
-- The labels describing the model output, `rust/lib/src/model.rs`, which is generated from the model
-  configuration, `rust/gen/model/config.min.json`.
-- The list of possible file types, `rust/lib/src/content.rs`, which is generated from the knowledge
-  base of content types, `assets/content_types_kb.min.json`. Explicitly selected binary labels in
-  `rust/gen/content_types` that are absent from the knowledge base use metadata from
-  `rules/content-types.json`. Existing knowledge-base entries remain unchanged. These additional
-  output identities do not add model classes or enable rules; the generated library does not read
-  the taxonomy at runtime.
+- `rust/lib/src/model.rs` contains model configuration and output-label mappings,
+  generated from `rust/gen/model/config.min.json`.
+- `rust/lib/src/content.rs` contains file-type metadata from
+  `assets/content_types_kb.min.json`. Explicitly selected binary labels in
+  `rust/gen/content_types` that are absent from the knowledge base use
+  `rules/content-types.json`. Additional output identities do not add model classes
+  or enable rules, and the library does not read this metadata source at runtime.
 
-The purpose of this crate is to generate the last two files. There is a test to make sure that they
-are up-to-date. If the test fails, one simply needs to run `./sync.sh` from the `rust` directory to
-regenerate them.
+`rust/gen/model` selects the model configuration. Run `./sync.sh` from `rust/` to
+regenerate these files and the CLI examples; `./sync.sh --check` checks the generated
+results for differences. These sources are committed before publication.
 
-An alternative design to generating the files before publishing the crate, would be to publish the
-model and Magika configurations and use a build script to generate the files during compilation.
-This has a few disadvantages:
+Inference artifacts live separately in `rust/tract-runtime/models/`. The existing
+[conversion script](../tract-bench/scripts/convert-model.sh) converts the checked ONNX
+source into the NNEF reference, portable graph, weights and probe used by the runtime's
+release workflow. `rust/gen` does not regenerate these inference artifacts.
 
-- We need to publish the model and Magika configurations which contain more information than needed
-  to use the library (and the CLI).
-- We need to use a build script, which is frown upon for security reasons, as the entity compiling
-  the library or CLI now needs to trust the build script, which can run arbitrary code. This only
-  matters when the entity compiling the library or CLI is not the same as the one running the
-  library or CLI (e.g. Debian maintainers), since the library and CLI too can run arbitrary code.
-- Using a build script also increases compilation time (and compilation complexity) instead of
-  having it factored before publishing.
+Consumers compile the committed generated Rust sources. The library's `build.rs`
+assembles the maintained YARA sources and, with `yara-rules`, checks their syntax and
+metadata. It does not run model conversion, read the evaluation corpus or download
+a model. Native rule compilation occurs when a compatible compiled pack is unavailable
+at runtime, and requires Vectorscan.

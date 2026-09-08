@@ -3,6 +3,10 @@
 This binary crate implements a command-line interface (CLI) to the library crate
 [magika](https://crates.io/crates/magika) which provides file content type detection using AI.
 
+For piped input, pass the literal path `-`, for example `cat sample.bin | magika -`.
+Named input paths must be regular files (or directories for traversal); device paths
+such as `/dev/stdin` and process-substitution paths are not substitutes for `-`.
+
 ## Disclaimer
 
 This project is not an official Google project. It is not supported by Google and Google

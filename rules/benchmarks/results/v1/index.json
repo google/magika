@@ -28,6 +28,13 @@
       "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
       "status": "complete",
       "artifacts_sha256": "edebf5f87e62d432172cfd8e17595b1dcd35685d74e7adaeb7b27532fc335991"
+    },
+    {
+      "id": "2026-09-08-e5f7e339-sembiance-v3",
+      "benchmark_version": "1.1.0",
+      "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+      "status": "complete",
+      "artifacts_sha256": "1be3b57196d9ce242a1e12ceaf367b59fea492da5e285b88c761bae9c5cc067b"
     }
   ]
 }

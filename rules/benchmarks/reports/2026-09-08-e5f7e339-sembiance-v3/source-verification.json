@@ -1,0 +1,10 @@
+{
+  "classes": 3861,
+  "metadata_rows_sha256": "d60af682014a211e6423e333805044bd0ccb74e58081b28995094cb61ae793f1",
+  "original_bytes": 2704176375,
+  "samples": 33421,
+  "shards": 41,
+  "tensorflow_required": false,
+  "verified": true,
+  "whole_file_sha256_checked": 33421
+}

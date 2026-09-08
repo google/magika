@@ -1,0 +1,23 @@
+{
+  "attribution": "Sembiance / dexvert; original creators retain their rights",
+  "eligible_mapped_files": 1925,
+  "excluded_or_failed": {
+    "error": 2,
+    "excluded_size": 3587
+  },
+  "label_basis": "upstream source claims, not automatic validation",
+  "near_duplicate_check": "pending; do not claim certified independent holdout",
+  "overlap_inputs": [
+    {
+      "name": "samples.parquet",
+      "sha256": "e9f5546abbc807f38e5ba52727a776876e4d3ab16f9fb93b1981d240ec3738c2"
+    },
+    {
+      "name": "samples.parquet",
+      "sha256": "64deb2fe010d6de415899294a4ee8acdaaf47e4cd0e52e5ebdb002ecbdcfdccb"
+    }
+  ],
+  "populated_classes": 3866,
+  "source_file_urls": 33598,
+  "unique_files": 33421
+}

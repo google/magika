@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "files": {
+    "annotations.json.gz": "9cc8673633a0191c893ee6dff4f0c9edff43c8f123e3f8d0debc01ef2c9fb352",
+    "confusions.json": "742fdf0d3f75ef6f941b77b4b26a462e2a2c0df6cee3274f0a0446a0abf03a93",
+    "overview.json": "8d6e034b639ae924363824355baa15ad461bcbc88ad6e8921b4adcd1124e5dfa",
+    "overview.md": "3e8e560fcb8676d0adef46e5adfcb7f64d251ea80a24d5b43259a644c1caff4e",
+    "selection.json": "0eb5f190ef88a31e31587e0fc39e7a7beba1e0dabf5369bcde25c1d7b31496cc",
+    "source-import-summary.json": "38ff206dc888769be59cf19878d5147ed126524f0edb20d3968169d8e5d437a5",
+    "source-magika-score.json": "a70de248727e8bd8eb8931ec118dc41100393734e8a37453ae69c72ec4a3b5ca",
+    "source-manifest.json": "08b5a1684079ca9a95360d4c4e868fe3a9d7c9b64d21bba0cd6f75c71eeeb252",
+    "source-validation-summary.json": "e14590f9a19cde3ed3b477c7c10ca02725037732263b34a0dddf59c6876aea2b",
+    "source-verification.json": "8b410d64a02e424add32a441964cd1a7338efe6d5a3b56ee43cd7c599a241a40",
+    "wrong-decisions.json.gz": "c680b8053e90a6cfecf439ac60eab4b0e4c15ed0407aaf51d1ff55a19b1c50c4"
+  },
+  "code_sha256": {
+    "sembiance_inputs.py": "9edda76888b0ec1746aa6086319fcc6812ec279c884a3a73f313e76f29f931fa",
+    "external_table.py": "7f11b69e358e037a3fe8af6bdbb4738c71fea7ba731e6122bc003f4aeb7681fc"
+  },
+  "benchmark_receipt_sha256": "1be3b57196d9ce242a1e12ceaf367b59fea492da5e285b88c761bae9c5cc067b"
+}

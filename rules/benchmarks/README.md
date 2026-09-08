@@ -217,3 +217,21 @@ rules/.venv/bin/python rules/benchmarks/full_table.py \
   --render rules/benchmarks/reports/2026-09-08-e5f7e339-all/overview.json \
   --output /tmp/magika-benchmark.md
 ```
+
+## Sembiance external check
+
+[Sembiance v3 results](reports/2026-09-08-e5f7e339-sembiance-v3/overview.md) use
+the same eight-mode benchmark and unchanged deferred-backend executable.
+All 33,421 files were verified; the dataset lane's existing eligibility flags
+select 2,400 scoring samples across 167 formats. The run contains 29 seeded
+workloads per mode, with three repetitions and one warmup. V56 remains the base
+dataset.
+
+`sembiance_inputs.py` creates a benchmark input manifest from the verified snapshot
+and existing eligibility flags, retaining the frozen comparator aliases.
+`external_table.py` renders the saved benchmark JSON without historical speedup
+claims across different datasets. Per-file wrong decisions, confusion counts,
+label-basis breakdowns, selection metadata and hashes accompany the overview.
+
+[Complete timing cells and raw evidence](results/v1/2026-09-08-e5f7e339-sembiance-v3/report.md)
+are retained alongside the previous runs.

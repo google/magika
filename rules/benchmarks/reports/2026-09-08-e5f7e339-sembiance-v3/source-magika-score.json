@@ -1,0 +1,539 @@
+{
+  "basis": "per-sample evaluation_basis: structural validation or reviewed upstream mapping; exact overlaps excluded, near-duplicates not certified",
+  "eligible_samples": 2400,
+  "label_bases": {
+    "reviewed_source_mapping": 913,
+    "validated_auto": 1487
+  },
+  "macro_accuracy": 0.5539258177824682,
+  "per_class": {
+    "3dsm": {
+      "incorrect": 12
+    },
+    "3gp": {
+      "correct": 10
+    },
+    "3mf": {
+      "incorrect": 3
+    },
+    "access": {
+      "incorrect": 11
+    },
+    "ace": {
+      "correct": 6
+    },
+    "acorn_sprite": {
+      "incorrect": 12
+    },
+    "ani": {
+      "incorrect": 4
+    },
+    "applebplist": {
+      "correct": 24
+    },
+    "appledouble": {
+      "incorrect": 31
+    },
+    "applesingle": {
+      "incorrect": 3
+    },
+    "arc": {
+      "incorrect": 13
+    },
+    "arj": {
+      "incorrect": 13
+    },
+    "asf": {
+      "incorrect": 8
+    },
+    "asm": {
+      "correct": 11
+    },
+    "au": {
+      "incorrect": 12
+    },
+    "avi": {
+      "incorrect": 18
+    },
+    "avif": {
+      "incorrect": 10
+    },
+    "awk": {
+      "correct": 12
+    },
+    "bib": {
+      "correct": 7
+    },
+    "blend": {
+      "incorrect": 1
+    },
+    "bmp": {
+      "correct": 33
+    },
+    "bpg": {
+      "incorrect": 4
+    },
+    "cab": {
+      "correct": 12,
+      "incorrect": 1
+    },
+    "chm": {
+      "correct": 9
+    },
+    "cinema4d": {
+      "incorrect": 18
+    },
+    "collada": {
+      "incorrect": 10
+    },
+    "css": {
+      "correct": 2
+    },
+    "csv": {
+      "correct": 5
+    },
+    "dbase": {
+      "incorrect": 14
+    },
+    "deb": {
+      "correct": 2
+    },
+    "degas": {
+      "incorrect": 121
+    },
+    "dicom": {
+      "correct": 9
+    },
+    "dmg": {
+      "correct": 1
+    },
+    "doc": {
+      "correct": 11,
+      "incorrect": 5
+    },
+    "docx": {
+      "correct": 10
+    },
+    "dsstore": {
+      "correct": 10
+    },
+    "dwg": {
+      "correct": 14,
+      "incorrect": 1
+    },
+    "dxf": {
+      "correct": 11
+    },
+    "elf": {
+      "correct": 1
+    },
+    "emf": {
+      "correct": 64
+    },
+    "epub": {
+      "correct": 7
+    },
+    "fbx": {
+      "incorrect": 3
+    },
+    "fits": {
+      "incorrect": 5
+    },
+    "flac": {
+      "correct": 2
+    },
+    "flv": {
+      "correct": 5
+    },
+    "fpx": {
+      "incorrect": 2
+    },
+    "gif": {
+      "correct": 31,
+      "incorrect": 14
+    },
+    "gltf": {
+      "incorrect": 2
+    },
+    "h5": {
+      "correct": 4
+    },
+    "haskell": {
+      "correct": 2
+    },
+    "hdf4": {
+      "incorrect": 4
+    },
+    "heif": {
+      "incorrect": 4
+    },
+    "hlp": {
+      "correct": 20,
+      "incorrect": 5
+    },
+    "html": {
+      "correct": 32,
+      "incorrect": 2
+    },
+    "hve": {
+      "incorrect": 9
+    },
+    "hwp": {
+      "incorrect": 1
+    },
+    "icns": {
+      "correct": 2
+    },
+    "ico": {
+      "correct": 26
+    },
+    "ics": {
+      "correct": 10
+    },
+    "iges": {
+      "incorrect": 11
+    },
+    "ilbm": {
+      "incorrect": 124
+    },
+    "ini": {
+      "correct": 14,
+      "incorrect": 3
+    },
+    "intelhex": {
+      "incorrect": 3
+    },
+    "internetshortcut": {
+      "correct": 11
+    },
+    "iso": {
+      "correct": 2,
+      "incorrect": 24
+    },
+    "jar": {
+      "correct": 7,
+      "incorrect": 2
+    },
+    "jar_arj": {
+      "incorrect": 10
+    },
+    "java": {
+      "correct": 8,
+      "incorrect": 5
+    },
+    "javabytecode": {
+      "correct": 10
+    },
+    "jng": {
+      "incorrect": 13
+    },
+    "jp2": {
+      "correct": 10
+    },
+    "jpeg": {
+      "correct": 49
+    },
+    "json": {
+      "correct": 3,
+      "incorrect": 2
+    },
+    "jxl": {
+      "incorrect": 5
+    },
+    "kmz": {
+      "incorrect": 2
+    },
+    "koala": {
+      "incorrect": 35
+    },
+    "latex": {
+      "correct": 13
+    },
+    "lha": {
+      "correct": 17,
+      "incorrect": 7
+    },
+    "lightwave": {
+      "incorrect": 24
+    },
+    "lrz": {
+      "incorrect": 2
+    },
+    "lz": {
+      "incorrect": 1
+    },
+    "lzx": {
+      "incorrect": 13
+    },
+    "m3u": {
+      "correct": 10
+    },
+    "m4": {
+      "correct": 13
+    },
+    "makefile": {
+      "correct": 13,
+      "incorrect": 1
+    },
+    "mat": {
+      "incorrect": 7
+    },
+    "maya": {
+      "incorrect": 4
+    },
+    "midi": {
+      "correct": 12
+    },
+    "mp2": {
+      "incorrect": 9
+    },
+    "mp3": {
+      "correct": 6,
+      "incorrect": 1
+    },
+    "mp4": {
+      "correct": 7,
+      "incorrect": 1
+    },
+    "mpegts": {
+      "incorrect": 1
+    },
+    "mscompress": {
+      "correct": 19
+    },
+    "msi": {
+      "correct": 3
+    },
+    "nrrd": {
+      "incorrect": 3
+    },
+    "obj": {
+      "incorrect": 8
+    },
+    "odp": {
+      "correct": 1
+    },
+    "ods": {
+      "correct": 1
+    },
+    "odt": {
+      "correct": 7
+    },
+    "ogg": {
+      "correct": 20,
+      "incorrect": 1
+    },
+    "otf": {
+      "correct": 5
+    },
+    "outlook": {
+      "correct": 6
+    },
+    "paradox": {
+      "incorrect": 13
+    },
+    "pbm": {
+      "incorrect": 26
+    },
+    "pcd": {
+      "incorrect": 1
+    },
+    "pcpaint": {
+      "incorrect": 25
+    },
+    "pdf": {
+      "correct": 6
+    },
+    "pe": {
+      "incorrect": 100
+    },
+    "pem": {
+      "correct": 38,
+      "incorrect": 8
+    },
+    "pgp": {
+      "incorrect": 10
+    },
+    "php": {
+      "correct": 8,
+      "incorrect": 3
+    },
+    "ply": {
+      "incorrect": 7
+    },
+    "png": {
+      "correct": 37
+    },
+    "postscript": {
+      "correct": 61,
+      "incorrect": 3
+    },
+    "ppt": {
+      "correct": 5
+    },
+    "pptx": {
+      "correct": 3
+    },
+    "printfox": {
+      "incorrect": 35
+    },
+    "prolog": {
+      "correct": 6,
+      "incorrect": 6
+    },
+    "proteindb": {
+      "correct": 18
+    },
+    "psd": {
+      "correct": 13
+    },
+    "python": {
+      "correct": 13
+    },
+    "qoi": {
+      "incorrect": 3
+    },
+    "qt": {
+      "correct": 6
+    },
+    "rar": {
+      "correct": 8
+    },
+    "rdata": {
+      "incorrect": 2
+    },
+    "riff": {
+      "incorrect": 7
+    },
+    "rpm": {
+      "correct": 7
+    },
+    "rtf": {
+      "correct": 13
+    },
+    "ruby": {
+      "correct": 10,
+      "incorrect": 4
+    },
+    "sevenzip": {
+      "correct": 4
+    },
+    "sgml": {
+      "correct": 3,
+      "incorrect": 7
+    },
+    "shapefile": {
+      "incorrect": 7
+    },
+    "sketchup": {
+      "incorrect": 12
+    },
+    "squashfs": {
+      "correct": 3
+    },
+    "srt": {
+      "correct": 14
+    },
+    "step": {
+      "incorrect": 11
+    },
+    "stl": {
+      "incorrect": 4
+    },
+    "svg": {
+      "correct": 11
+    },
+    "swf": {
+      "correct": 8
+    },
+    "tar": {
+      "correct": 6,
+      "incorrect": 1
+    },
+    "tga": {
+      "correct": 7,
+      "incorrect": 5
+    },
+    "thumbsdb": {
+      "correct": 9
+    },
+    "tiff": {
+      "correct": 91
+    },
+    "torrent": {
+      "correct": 12
+    },
+    "ttf": {
+      "correct": 13
+    },
+    "txt": {
+      "correct": 73,
+      "incorrect": 33
+    },
+    "vcard": {
+      "incorrect": 10
+    },
+    "visio": {
+      "incorrect": 10
+    },
+    "vtk": {
+      "incorrect": 8
+    },
+    "vtt": {
+      "correct": 2
+    },
+    "wad": {
+      "incorrect": 11
+    },
+    "wav": {
+      "correct": 19
+    },
+    "webm": {
+      "correct": 14
+    },
+    "webp": {
+      "correct": 5
+    },
+    "wim": {
+      "incorrect": 6
+    },
+    "winregistry": {
+      "correct": 7
+    },
+    "wma": {
+      "incorrect": 3
+    },
+    "wmf": {
+      "correct": 9
+    },
+    "woff": {
+      "correct": 7
+    },
+    "woff2": {
+      "correct": 2
+    },
+    "xar": {
+      "correct": 3
+    },
+    "xcf": {
+      "incorrect": 5
+    },
+    "xls": {
+      "correct": 7,
+      "incorrect": 17
+    },
+    "xlsx": {
+      "correct": 3
+    },
+    "xml": {
+      "correct": 6
+    },
+    "xz": {
+      "correct": 5
+    },
+    "zip": {
+      "correct": 28,
+      "incorrect": 4
+    }
+  }
+}

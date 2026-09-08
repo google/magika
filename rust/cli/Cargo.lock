@@ -767,7 +767,7 @@ dependencies = [
 
 [[package]]
 name = "magika-cli"
-version = "1.2.0-dev"
+version = "2.0.0-dev"
 dependencies = [
  "anyhow",
  "clap",

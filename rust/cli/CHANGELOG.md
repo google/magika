@@ -1,10 +1,13 @@
 # Changelog
 
-## 1.2.0-dev
+## 2.0.0-dev
+
+### Major
+
+- Move the Rust CLI to Magika 2.0 alongside the breaking Rust API and embedded tract runtime.
+- Remove the dependency on the ONNX Runtime
 
 ### Minor
-
-- Remove the dependency on the ONNX Runtime
 
 - Add `--rules=off|enforce`, `--rules-file`, `--write-default-rules`, and `--compile-rules`; optional Vectorscan execution supports full and partial enforced rules, disabled candidates, compiled packs and a persistent compilation cache. Rules remain off by default; requesting enforcement reports initialization failures.
 

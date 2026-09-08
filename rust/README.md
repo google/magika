@@ -27,3 +27,25 @@ their individual licenses. The locked tract dependency graph includes MPL-2.0
 are used without local patches. Inspect the selected build's graph with
 `cargo tree --locked --manifest-path cli/Cargo.toml -i dyn-eq` and the equivalent
 command for `option-ext`; feature and target selection can change that graph.
+
+## Migrating to Magika 2.0
+
+The Rust CLI and library are both `2.0.0-dev`. The embedded tract runtime replaces
+ONNX Runtime; applications must migrate the public Rust API before upgrading.
+Python and JavaScript keep their independent versions and existing runtimes.
+
+- Build a shared `Runtime` with `Runtime::builder()`; create one `Session` per
+  inference thread. `Builder` now builds a runtime rather than a session.
+- Replace `SyncInput` with `Input`, remove `_sync` suffixes, and replace removed
+  async session calls with synchronous calls on each worker's session.
+- Handle `anyhow::Result` rather than the removed Magika `Error`/`Result` types.
+- Select `Backend::Cpu` for a reproducible CPU comparison. Automatic selection
+  can use a GPU for bulk inference; explicit GPU requests require a working
+  backend. See the CLI help for batch, reader and inference-worker controls.
+- Rules are opt-in: build with `yara-rules` and request `--rules=enforce`. This
+  also requires the documented Vectorscan library. The default remains ML with
+  rules off; signature misses and conflicts fall through to ML.
+
+See [the library changelog](lib/CHANGELOG.md) and
+[the CLI changelog](cli/CHANGELOG.md) for the complete API and behavior changes.
+Benchmark results distinguish Magika 2 with rules off from rules enforced.

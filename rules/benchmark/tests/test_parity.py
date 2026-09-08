@@ -40,6 +40,21 @@ def scan(tmp_path, source, payloads):
     return rows
 
 
+def test_reviewed_binary_headers_native(
+    tmp_path, reviewed_binary_headers, reviewed_binary_header_variants
+):
+    root = Path(__file__).resolve().parents[3]
+    source = (root / "rules/rulesets/full/formats.yar").read_text()
+    payloads, expected = [], []
+    for label, header, minimum, invalid in reviewed_binary_headers:
+        payloads.extend([header, header[: minimum - 1], *invalid])
+        expected.extend([label, None, *([None] * len(invalid))])
+    for label, header in reviewed_binary_header_variants:
+        payloads.append(header)
+        expected.append(label)
+    assert [row["rule_prediction"] for row in scan(tmp_path, source, payloads)] == expected
+
+
 @pytest.mark.parametrize("brand,label", [(b"3gp6", "3gp"), (b"avif", "avif"), (b"heic", "heif")])
 def test_ftyp_native_bounds(tmp_path, brand, label):
     root = Path(__file__).resolve().parents[3]

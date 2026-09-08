@@ -12,6 +12,23 @@ ROOT = Path(__file__).resolve().parents[3]
 NEGATIVES = sorted(p for p in (ROOT / "tests_data/rules_negative").iterdir() if p.suffix != ".md")
 
 
+@pytest.mark.parametrize(
+    "label", ["cram", "dex", "redis_rdb", "lz", "rzip", "xar", "spirv", "icns"]
+)
+def test_reviewed_binary_headers(scan_rules, reviewed_binary_headers, label):
+    _, header, minimum, invalid = next(row for row in reviewed_binary_headers if row[0] == label)
+    assert scan_rules(header) == {label}
+    for content in invalid:
+        assert scan_rules(content) == set(), content.hex()
+    for length in range(8, minimum):
+        assert scan_rules(header[:length]) == set(), length
+
+
+def test_reviewed_binary_header_variants(scan_rules, reviewed_binary_header_variants):
+    for label, header in reviewed_binary_header_variants:
+        assert scan_rules(header) == {label}, (label, header.hex())
+
+
 @pytest.mark.parametrize("brand,label", [(b"3gp6", "3gp"), (b"avif", "avif"), (b"heic", "heif")])
 def test_ftyp_requires_complete_fixed_header(scan_rules, brand, label):
     header = (20).to_bytes(4, "big") + b"ftyp" + brand + bytes(4) + brand
@@ -32,9 +49,14 @@ def test_ftyp_sibling_and_incomplete_brands_abstain(scan_rules, brand):
 
 @pytest.mark.parametrize(
     "brand,label",
-    [(brand, "3gp") for brand in (b"3gp1", b"3gp4", b"3ge9", b"3gg6", b"3gh9", b"3gmA", b"3gs7", b"3gtv")]
+    [
+        (brand, "3gp")
+        for brand in (b"3gp1", b"3gp4", b"3ge9", b"3gg6", b"3gh9", b"3gmA", b"3gs7", b"3gtv")
+    ]
     + [(b"avis", "avif")]
-    + [(brand, "heif") for brand in (b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs")],
+    + [
+        (brand, "heif") for brand in (b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs")
+    ],
 )
 def test_ftyp_existing_brand_variants(scan_rules, brand, label):
     assert scan_rules((16).to_bytes(4, "big") + b"ftyp" + brand + bytes(4)) == {label}

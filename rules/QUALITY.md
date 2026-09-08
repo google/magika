@@ -229,6 +229,38 @@ and sibling brands, retained variants, and a brand table beyond the scan window.
 This is targeted evidence; a new full-corpus evaluation is deferred until a larger
 batch of rule changes is ready.
 
+### Fixed binary header review
+
+Eight further active signatures now require their identifying header structure.
+The comparison starts from the pinned libmagic/Puremagic signatures and checks the
+format's writer or reader directly. These checks identify formats; they do not
+validate complete payloads or checksums.
+
+| Rule | Source comparison and maintained guard | Corpus positives retained |
+| --- | --- | ---: |
+| CRAM | The [CRAM specification](https://github.com/samtools/hts-specs/blob/master/CRAMv3.tex) defines a 26-byte file definition. Require all 26 bytes and the specified 1.0, 2.0/2.1 or 3.0/3.1 version pair. | 17/17 |
+| DEX | The [DEX header specification](https://source.android.com/docs/core/runtime/dex-format) adds three decimal version bytes, a NUL terminator, a header-size field and an endian tag to the old four-byte signature. Require 112 bytes, or 120 for version 041, with matching header size and endian tag. Preserve both byte orders and numeric legacy versions. | 100/100 |
+| Redis RDB | The [Redis writer and reader](https://github.com/redis/redis/blob/unstable/src/rdb.c) use `REDIS` plus four decimal version digits. Require all nine bytes and a nonzero version. | 77/77 |
+| Lzip | The [libarchive reader](https://github.com/libarchive/libarchive/blob/master/libarchive/archive_read_support_filter_xz.c) recognizes versions 0/1 and dictionary exponents 12 through 29. Check those fields, the pack's eight-byte minimum prefix, and total size sufficient for the six-byte header plus the respective 12/20-byte trailer. | 1/1 |
+| Rzip | The [rzip 2.1 source](https://rzip.samba.org/ftp/rzip/rzip-2.1.tar.gz) writes a 24-byte header with version 2.1, two size words and ten zero reserved bytes. Require the full header, retain 2.0/2.1, and check the reserved bytes. Older or future revisions are outside the reviewed variants. | 1/1 |
+| XAR | The [Apple XAR reader](https://github.com/apple-oss-distributions/xar/blob/main/xar/lib/archive.c) reads the fixed 28-byte structure while tolerating unusual size/version fields. Require 28 bytes and nonzero TOC lengths. Preserve that tolerance and extended headers; do not restrict checksum algorithms. | 100/100 |
+| SPIR-V | The [SPIRV-Tools reader](https://github.com/KhronosGroup/SPIRV-Tools/blob/main/source/binary.cpp) recognizes five-word headers and version encoding. Require 20 bytes, word-aligned total size, version 1.0 through 1.6, a nonzero ID bound and reserved schema zero, in either byte order. | 89/89 |
+| ICNS | The [Pillow ICNS reader](https://github.com/python-pillow/Pillow/blob/main/src/PIL/IcnsImagePlugin.py) reads an eight-byte container header and eight-byte element headers. Preserve an empty eight-byte container; otherwise require the first full element header and minimum declared lengths. Do not restrict element type codes. | 100/100 |
+
+Four XAR corpus samples have reversed size/version values (1/28), but their
+compressed tables expand to XAR XML of the declared length. Rejecting them on
+those fields would overrestrict identification relative to the reader. The rule
+and regression fixtures preserve them.
+
+All eight original rules failed the focused malformed-header/truncation checks
+before the changes. Ten focused tests now pass, including one batched native
+comparison covering the same mutations and retained endian/version/container
+variants. A single targeted native/reference corpus check retained all 485
+positives without conflicts, scan errors or disagreement. This is development
+corpus evidence for the affected types, not fresh full-corpus qualification.
+The existing full-corpus evaluation item remains open for the accumulated batch;
+no runtime or benchmark code changed in this review.
+
 ### Batch qualification
 
 The maintained regression suite includes the twenty original false-positive probes,

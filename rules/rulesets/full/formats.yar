@@ -358,11 +358,12 @@ rule taxonomy_cram
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 43 52 41 4d }
+    // CRAM file definition: complete 26-byte header and specified version pairs.
+    strings:
+        $header = { 43 52 41 4D (01 00 | 02 (00 | 01) | 03 (00 | 01)) }
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 26 and $header at 0
 }
 
 rule taxonomy_dex
@@ -375,12 +376,20 @@ rule taxonomy_dex
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 64 65 78 0A }
-		$p1_0 = { 64 65 78 0A 30 30 39 00 }
+    // DEX fixed header, numeric version, correct endian tag and standard/container header size.
+    strings:
+        $header = /dex\n[0-9]{3}\x00/
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p1_0 at 0)))
+    condition:
+        prefix_size >= 112 and $header at 0 and
+        (
+            (uint32be(4) != 0x30343100 and
+             ((uint32(36) == 112 and uint32(40) == 0x12345678) or
+              (uint32be(36) == 112 and uint32be(40) == 0x12345678))) or
+            (uint32be(4) == 0x30343100 and prefix_size >= 120 and
+             ((uint32(36) == 120 and uint32(40) == 0x12345678) or
+              (uint32be(36) == 120 and uint32be(40) == 0x12345678)))
+        )
 }
 
 rule taxonomy_dicom
@@ -647,11 +656,14 @@ rule taxonomy_icns
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "icns"
+    // ICNS container length, then a complete first element header unless the container is empty.
+    strings:
+        $header = "icns"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 8 and $header at 0 and
+        (uint32be(4) == 8 or
+         (prefix_size >= 16 and uint32be(4) >= 16 and uint32be(12) >= 8))
 }
 
 rule taxonomy_llvm_bitcode
@@ -716,11 +728,13 @@ rule taxonomy_lz
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "LZIP"
+    // Lzip versions 0/1 and dictionary exponent 12..29, as recognized by libarchive.
+    strings:
+        $header = /LZIP[\x00\x01][\x0c-\x1d\x2c-\x3d\x4c-\x5d\x6c-\x7d\x8c-\x9d\xac-\xbd\xcc-\xdd\xec-\xfd]/
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 8 and $header at 0 and
+        ((uint8(4) == 0 and original_size >= 18) or (uint8(4) == 1 and original_size >= 26))
 }
 
 rule taxonomy_lz4
@@ -955,11 +969,12 @@ rule taxonomy_redis_rdb
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 52 45 44 49 53 }
+    // Redis writes REDIS followed by a four-digit, nonzero RDB version.
+    strings:
+        $header = /REDIS[0-9]{4}/
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 5 and $p0_0 at 0))
+    condition:
+        prefix_size >= 9 and $header at 0 and uint32be(5) != 0x30303030
 }
 
 rule taxonomy_rzip
@@ -972,11 +987,12 @@ rule taxonomy_rzip
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 52 5a 49 50 }
+    // Rzip 2.x: complete 24-byte header; ten reserved bytes follow the two size words.
+    strings:
+        $header = { 52 5A 49 50 02 (00 | 01) [8] 00 00 00 00 00 00 00 00 00 00 }
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 24 and $header at 0
 }
 
 rule taxonomy_sas
@@ -1077,12 +1093,19 @@ rule taxonomy_spirv
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 07 23 02 03 }
-		$p1_0 = { 03 02 23 07 }
+    // SPIR-V five-word header: version 1.0..1.6, nonzero ID bound and reserved schema zero.
+    strings:
+        $little = { 03 02 23 07 }
+        $big = { 07 23 02 03 }
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0)))
+    condition:
+        prefix_size >= 20 and original_size % 4 == 0 and
+        (
+            ($little at 0 and uint32(4) >= 0x10000 and uint32(4) <= 0x10600 and
+             uint32(4) % 256 == 0 and uint32(12) > 0 and uint32(16) == 0) or
+            ($big at 0 and uint32be(4) >= 0x10000 and uint32be(4) <= 0x10600 and
+             uint32be(4) % 256 == 0 and uint32be(12) > 0 and uint32be(16) == 0)
+        )
 }
 
 rule taxonomy_spss
@@ -1278,11 +1301,14 @@ rule taxonomy_xar
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "xar!"
+    // Complete XAR header and nonzero TOC lengths; retain the reader's size/version tolerance.
+    strings:
+        $header = "xar!"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    condition:
+        prefix_size >= 28 and $header at 0 and
+        (uint32be(8) > 0 or uint32be(12) > 0) and
+        (uint32be(16) > 0 or uint32be(20) > 0)
 }
 
 rule taxonomy_xcf

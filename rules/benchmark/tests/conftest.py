@@ -4,12 +4,76 @@
 import hashlib
 import json
 import os
+import struct
 from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from magika_rules_benchmark.corpus import file_hash
+
+
+@pytest.fixture(scope="module")
+def reviewed_binary_headers():
+    """Header structures from the format readers, plus independently invalid fields."""
+    dex = bytearray(112)
+    dex[:8] = b"dex\n035\0"
+    struct.pack_into("<III", dex, 32, 112, 112, 0x12345678)
+    cases = [
+        ("cram", b"CRAM\x03\0" + bytes(20), 26, [(4, b"\0"), (5, b"\xff")]),
+        ("dex", bytes(dex), 112, [(7, b"!"), (6, b"x"), (36, bytes(4)), (40, bytes(4))]),
+        ("redis_rdb", b"REDIS0009\xff" + bytes(8), 9, [(5, b"x009"), (5, b"0000")]),
+        ("lz", b"LZIP\x01\xce" + bytes(30), 8, [(4, b"\x02"), (5, b"\0"), (5, b"\xfe")]),
+        ("rzip", b"RZIP\x02\x01" + bytes(18), 24, [(4, b"\0"), (14, b"\x01")]),
+        (
+            "xar",
+            struct.pack(">4sHHQQI", b"xar!", 28, 1, 8, 8, 0) + bytes(8),
+            28,
+            [(8, bytes(8)), (16, bytes(8))],
+        ),
+        (
+            "spirv",
+            struct.pack("<5I", 0x07230203, 0x00010000, 0, 1, 0),
+            20,
+            [(4, bytes(4)), (12, bytes(4)), (16, b"\x01")],
+        ),
+        (
+            "icns",
+            struct.pack(">4sI4sI", b"icns", 16, b"TOC ", 8),
+            16,
+            [(4, bytes(4)), (12, (7).to_bytes(4, "big"))],
+        ),
+    ]
+    result = []
+    for label, header, minimum, mutations in cases:
+        invalid = []
+        for offset, value in mutations:
+            changed = bytearray(header)
+            changed[offset : offset + len(value)] = value
+            invalid.append(bytes(changed))
+        result.append((label, header, minimum, invalid))
+    return result
+
+
+@pytest.fixture(scope="module")
+def reviewed_binary_header_variants():
+    variants = []
+    for endian in ("<", ">"):
+        for version, size in ((b"035", 112), (b"041", 120)):
+            dex = bytearray(size)
+            dex[:8] = b"dex\n" + version + b"\0"
+            struct.pack_into(endian + "III", dex, 32, size, size, 0x12345678)
+            variants.append(("dex", bytes(dex)))
+        variants.append(("spirv", struct.pack(endian + "5I", 0x07230203, 0x00010600, 0, 1, 0)))
+    variants.extend(
+        [
+            ("xar", struct.pack(">4sHHQQI", b"xar!", 1, 28, 8, 8, 0) + bytes(8)),
+            ("xar", struct.pack(">4sHHQQI", b"xar!", 32, 1, 8, 8, 1) + bytes(12)),
+            ("icns", struct.pack(">4sI", b"icns", 8)),
+            ("lz", b"LZIP\x00\x0c" + bytes(30)),
+        ]
+    )
+    return variants
 
 
 def pytest_addoption(parser):

@@ -22,7 +22,6 @@ jobs:
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             manylinux: 2_28
-            before-script-linux: "rust/onnx/maturin.sh"
           - os: macOS
             runner: macos-14
             target: aarch64-apple-darwin
@@ -78,14 +77,24 @@ jobs:
             chmod +x python/wheel_data/scripts/magika
           fi
 
-      # Build PyO3 wheel using maturin-action
-      - name: Build wheel via Maturin
+      # Build PyO3 wheel using maturin-action (Linux in manylinux container)
+      - if: matrix.platform.runner == 'ubuntu-latest'
+        name: Build wheel via Maturin (Linux)
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist
-          manylinux: ${{ matrix.platform.manylinux || 'off' }}
-          before-script-linux: ${{ matrix.platform.before-script-linux || '' }}
+          manylinux: ${{ matrix.platform.manylinux }}
+          before-script-linux: "${{ github.workspace }}/rust/onnx/maturin.sh"
+          working-directory: python
+
+      # Build PyO3 wheel using maturin-action (macOS/Windows on host)
+      - if: matrix.platform.runner != 'ubuntu-latest'
+        name: Build wheel via Maturin (macOS/Windows)
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
           working-directory: python
 
       - name: Upload wheel artifact

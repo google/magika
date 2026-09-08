@@ -49,12 +49,33 @@ An installed `rules/promoted.yar` beside the executable takes precedence over em
 defaults. A paired `.hsdb` is reused when compatible. Modified or incompatible source
 compiles into the user cache. `MAGIKA_RULES_CACHE` selects the cache directory; an empty
 value disables writable caching. Sources and compiled packs are trusted configuration.
+The pack checksum detects corruption; it does not authenticate the author or make a
+native database safe to accept from an untrusted party. Protect the source, paired
+pack and cache directory as application configuration, separately from files being
+classified.
+
+Compatibility includes the loaded engine, OS, architecture and CPU tuning/features.
+A release pack built for a different CPU may need compilation on its first use;
+the resulting user cache serves subsequent loads. An unavailable, unsafe or unwritable
+cache does not prevent classification: the source compiles in memory. Optional cache
+write failures are nonfatal, whereas explicit compiled-pack export reports failures.
+`RuleSet::loaded_from_cache()` reports whether initialization reused a compiled pack.
+Cache-lock contention waits at most one second before compiling without a cache write.
+Old source/compiler entries are retained; remove disposable cache entries only while
+no Magika process is using that cache, so active lock files are not replaced.
 
 Terminals require a canonical Magika `label`, `enforced`, `class`, `fp_rate` and
 `fn_rate`. Active full rules require both rates zero; partial rules require FP rate
 zero and FN rate strictly between zero and one. Rates are fractions. The build checks
 directory/metadata agreement. Metadata records the author's evidence; it is not proof
 of precision. Generic YARA engines do not apply Magika enforcement metadata.
+
+Private helpers are boolean building blocks rather than terminal classifications;
+the directory/class checks apply to terminals. A helper explicitly disabled by metadata
+is false wherever referenced, including under `and`. Public disabled candidates are
+parsed and metadata-checked, but their conditions are lowered only when enabled or
+referenced from an active rule. Promotion therefore requires successful compilation
+and evaluation; accepted metadata alone does not prove a rule can match.
 
 Supported conditions include bounded text/hex/byte-regex matches, fixed-offset unsigned
 integer comparisons, original/prefix length comparisons, power-of-two modulo equality,

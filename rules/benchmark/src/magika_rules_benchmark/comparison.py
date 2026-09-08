@@ -101,18 +101,30 @@ def parse_output(adapter, raw, paths, aliases):
             )
         return rows
     if adapter == Adapter.FILE:
-        labels = raw.decode().splitlines()
-        if len(labels) != len(paths):
-            raise ValueError("file output count differs from input count")
-        return [
-            mapped(
-                [label],
-                aliases,
-                abstain=label == "application/octet-stream",
-                error=label if label.startswith("ERROR:") else None,
+        lines = raw.decode().splitlines()
+        rows, index = [], 0
+        for path in paths:
+            if index >= len(lines):
+                raise ValueError("file output count differs from input count")
+            labels = [lines[index]]
+            index += 1
+            # Apple file emits architecture continuations even with --brief.
+            continuation = re.compile(re.escape(path) + r" \(for architecture [^)]+\):\s*(.*)")
+            while index < len(lines) and (match := continuation.fullmatch(lines[index])):
+                labels.append(match[1])
+                index += 1
+            labels = sorted(set(labels))
+            rows.append(
+                mapped(
+                    labels,
+                    aliases,
+                    abstain=labels == ["application/octet-stream"],
+                    error=next((s for s in labels if s.startswith("ERROR:")), None),
+                )
             )
-            for label in labels
-        ]
+        if index != len(lines):
+            raise ValueError("file output count differs from input count")
+        return rows
     groups = re.split(r"(?m)^File: (.+)\r?$", raw.decode())
     if groups[1::2] != list(paths):
         raise ValueError("TrID output paths are missing or reordered")
@@ -233,6 +245,11 @@ def compare_previous(current, previous):
     if current["benchmark_version"] != previous["benchmark_version"]:
         reasons.append("benchmark_version")
     for key in current["compatibility"].keys() | previous["compatibility"].keys():
+        if key in ("settings", "mappings"):
+            a, b = current["compatibility"].get(key, {}), previous["compatibility"].get(key, {})
+            if any(a[tool] != b[tool] for tool in a.keys() & b.keys()):
+                reasons.append(key)
+            continue
         if current["compatibility"].get(key) != previous["compatibility"].get(key):
             reasons.append(key)
     if reasons:
@@ -453,6 +470,15 @@ def load_json(path):
     )
 
 
+def input_identity(source):
+    return fingerprint(
+        dict(
+            classes=source["classes"],
+            samples=sorted((s["sha256"], s["size"], s["truth"]) for s in source["samples"]),
+        )
+    )
+
+
 def save_gzip(path, data):
     path.write_bytes(
         gzip.compress(json.dumps(data, sort_keys=True, allow_nan=False).encode(), mtime=0)
@@ -558,6 +584,19 @@ def run(args):
         source_identity=source.get("identity"),
     )
     mappings, observations = {}, {}
+    reuse = None
+    if args.reuse_quality:
+        reuse = load_json(args.reuse_quality / "results.json")
+        old_inputs = load_json(args.reuse_quality / "inputs.json.gz")
+        if input_identity(old_inputs) != input_identity(source):
+            raise ValueError("Cannot reuse quality output from changed inputs or labels")
+        for key in ("environment", "quality_chunk_files"):
+            if reuse["config"].get(key) != spec.get(key):
+                raise ValueError("Cannot reuse quality output with changed execution settings")
+        result["reused_quality"] = {
+            "source_results_sha256": corpus.file_hash(args.reuse_quality / "results.json"),
+            "raw_sha256": {},
+        }
     for tool in tools:
         tool_id = tool["id"]
         if tool.get("unavailable"):
@@ -581,7 +620,12 @@ def run(args):
             group = samples[start : start + spec.get("quality_chunk_files", 128)]
             paths = ["files/" + s["sha256"] for s in group]
             command = tool_command(tool, paths, lists)
-            raw = invoke(command, env, args.timeout, cwd=output)
+            cached = args.reuse_quality / "raw" / f"{tool_id}-{start}.txt.gz" if reuse else None
+            if cached and cached.exists() and reuse["tools"].get(tool_id) == identity:
+                raw = gzip.decompress(cached.read_bytes())
+                result["reused_quality"]["raw_sha256"][cached.name] = corpus.file_hash(cached)
+            else:
+                raw = invoke(command, env, args.timeout, cwd=output)
             (output / "raw" / f"{tool_id}-{start}.txt.gz").write_bytes(gzip.compress(raw, mtime=0))
             rows.extend(parse_output(Adapter(tool["adapter"]), raw, paths, mapping))
         observations[tool_id] = rows
@@ -635,11 +679,11 @@ def run(args):
         host=fingerprint(stable_host),
         protocol=fingerprint(protocol),
         corpus=fingerprint([(s["sha256"], s["size"], s["truth"]) for s in samples]),
-        mappings=fingerprint(mappings),
+        mappings={tool: fingerprint(mapping) for tool, mapping in mappings.items()},
         workloads=fingerprint(cases),
         hyperfine=fingerprint(hyperfine_id),
         environment=fingerprint(spec.get("environment", {})),
-        settings=fingerprint([command_settings(t) for t in tools]),
+        settings={t["id"]: fingerprint(command_settings(t)) for t in tools},
         benchmark_code=fingerprint(
             {p.name: corpus.file_hash(p) for p in sorted(Path(__file__).parent.glob("*.py"))}
         ),
@@ -731,6 +775,11 @@ def main(argv=None):
     parser.add_argument("--hyperfine", default="hyperfine")
     parser.add_argument("--workloads", type=Path)
     parser.add_argument("--previous", type=Path)
+    parser.add_argument(
+        "--reuse-quality",
+        type=Path,
+        help="Reuse matching raw quality stdout from an earlier run; never timing",
+    )
     parser.add_argument("--timeout", type=float, default=120)
     parser.add_argument("--render", type=Path, help="Render saved JSON only; run no tools")
     args = parser.parse_args(argv)

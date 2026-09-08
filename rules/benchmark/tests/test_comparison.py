@@ -94,6 +94,23 @@ def test_unknown_adapter_is_rejected():
         c.Adapter("magkia")
 
 
+def test_file_fat_macho_architecture_lines_belong_to_one_input():
+    raw = b"application/x-mach-binary\nfiles/abc (for architecture x86_64):\tapplication/x-mach-binary\nfiles/abc (for architecture arm64):\tapplication/x-mach-binary\napplication/pdf\n"
+    rows = c.parse_output(
+        c.Adapter.FILE,
+        raw,
+        ["files/abc", "files/def"],
+        {"application/x-mach-binary": ["macho"], "application/pdf": ["pdf"]},
+    )
+    assert [r["prediction"] for r in rows] == ["macho", "pdf"]
+
+
+def test_quality_reuse_rejects_changed_labels():
+    original = {"samples": [{"sha256": "a", "size": 1, "truth": "pdf"}], "classes": {"pdf": {}}}
+    changed = original | {"samples": [{"sha256": "a", "size": 1, "truth": "zip"}]}
+    assert c.input_identity(original) != c.input_identity(changed)
+
+
 def test_changed_flags_block_comparison_but_relocated_artifacts_do_not():
     tool = {
         "id": "m2",
@@ -153,3 +170,15 @@ def test_history_derives_quality_deltas_from_json():
     delta = c.compare_previous(after, base)["quality_deltas"][0]
     assert delta["accuracy"] == pytest.approx(0.1)
     assert delta["rule_hit_percent"] == 5
+
+
+def test_adding_a_tool_preserves_history_for_existing_tools():
+    old = {
+        "benchmark_version": "1.0.0",
+        "compatibility": {"settings": {"m1": "a"}, "mappings": {"m1": "b"}},
+        "measurements": [],
+    }
+    new = old | {
+        "compatibility": {"settings": {"m1": "a", "m2": "c"}, "mappings": {"m1": "b", "m2": "d"}}
+    }
+    assert c.compare_previous(new, old)["comparable"]

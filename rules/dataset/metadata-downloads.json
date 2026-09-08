@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "download_url": null,
-  "scope": "Public metadata only. Hosting location will be added before release. Place these files in this directory.",
+  "download_url": "https://drive.google.com/file/d/1ffmSHtDTJWHpjKiwMIJepsa2cscsXemE/view?usp=sharing",
+  "scope": "Public metadata only. Extract the Magika archive in this directory and the Sembiance archive in a separate directory.",
   "files": [
     {
       "name": "classes.parquet",
@@ -27,6 +27,24 @@
       "name": "samples.parquet",
       "sha256": "e9f5546abbc807f38e5ba52727a776876e4d3ab16f9fb93b1981d240ec3738c2",
       "bytes": 22485367
+    }
+  ],
+  "archives": [
+    {
+      "dataset": "magika-eval",
+      "version": "0.1",
+      "name": "magika-eval-dataset-v0.1-metadata.tar.gz",
+      "download_url": "https://drive.google.com/file/d/1ffmSHtDTJWHpjKiwMIJepsa2cscsXemE/view?usp=sharing",
+      "sha256": "73b4de058e082ecbca58bf130af65187b558bc8de3fb6e758c84016189fecc6d",
+      "bytes": 236816527
+    },
+    {
+      "dataset": "sembiance-eval",
+      "version": "3.0",
+      "name": "sembiance-eval-dataset-v3.0-metadata.tar.gz",
+      "download_url": "https://drive.google.com/file/d/1XwoERSuli_H2Xk8jBt3zwekkguF5XwqZ/view?usp=drive_link",
+      "sha256": "383c9c60b89c4eefda87cf381099af174c3503876b067df5cd2240d340172434",
+      "bytes": 10228691
     }
   ]
 }

@@ -19,20 +19,39 @@ cp -n env-config .env
 Add your credentials to `.env`; `env-config` explains how to obtain them. VT
 Intelligence search and file download permissions are required for VT collection.
 Credentials, downloaded bytes and Parquet metadata remain ignored. Metadata is
-published separately in cloud storage, not Git LFS. The hosting destination has
-not been selected yet; `metadata-downloads.json` records the required filenames,
-full SHA-256 checksums and sizes, with a download URL to be filled before release.
+published separately on Google Drive, not Git LFS.
 
-The distribution is one `dataset-metadata.tar.gz` archive, with a companion JSON
-receipt containing its SHA-256 and size. Download both from the published bucket
-or Drive folder, check the archive hash, and unpack it in `rules/dataset/`:
+## Published metadata
 
-```sh
-shasum -a 256 dataset-metadata.tar.gz  # Compare with the distribution receipt.
-tar -xzf dataset-metadata.tar.gz
+| Dataset | Versioned archive | Size |
+| --- | --- | ---: |
+| Magika GitHub + VT corpus | [magika-eval-dataset-v0.1-metadata.tar.gz](https://drive.google.com/file/d/1ffmSHtDTJWHpjKiwMIJepsa2cscsXemE/view?usp=sharing) | 236,816,527 bytes |
+| Sembiance evaluation corpus | [sembiance-eval-dataset-v3.0-metadata.tar.gz](https://drive.google.com/file/d/1XwoERSuli_H2Xk8jBt3zwekkguF5XwqZ/view?usp=drive_link) | 10,228,691 bytes |
+
+SHA-256 checksums (computed from the released local archives):
+
+```text
+73b4de058e082ecbca58bf130af65187b558bc8de3fb6e758c84016189fecc6d  magika-eval-dataset-v0.1-metadata.tar.gz
+383c9c60b89c4eefda87cf381099af174c3503876b067df5cd2240d340172434  sembiance-eval-dataset-v3.0-metadata.tar.gz
 ```
 
-`archive-manifest.json` inside the archive lists every member's SHA-256 and size.
+Download the archives using the links above and compare their checksums with
+`shasum -a 256 <archive-name>`. `metadata-downloads.json` also records the archive
+names, links, full hashes and sizes. Both archives contain metadata, not file bytes.
+
+Unpack the Magika archive in this package directory. Keep the Sembiance metadata
+in a separate directory so the two datasets' `samples.parquet` and `classes.parquet`
+files do not overwrite each other:
+
+```sh
+shasum -a 256 magika-eval-dataset-v0.1-metadata.tar.gz
+tar -xzf magika-eval-dataset-v0.1-metadata.tar.gz
+mkdir -p .local/sembiance-eval
+shasum -a 256 sembiance-eval-dataset-v3.0-metadata.tar.gz
+tar -xzf sembiance-eval-dataset-v3.0-metadata.tar.gz -C .local/sembiance-eval
+```
+
+For the Magika archive, `archive-manifest.json` inside the archive lists every member's SHA-256 and size.
 The baseline files live at the archive root; completed candidate metadata lives
 in `candidate-metadata/`. The versioned receipts bind the baseline to its expected
 snapshot. No external research files are needed to hydrate it.

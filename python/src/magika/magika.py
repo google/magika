@@ -192,7 +192,7 @@ class Magika:
                 "Input stream must be opened in bytes mode, not in text mode."
             )
 
-        if not isinstance(stream, io.BufferedIOBase):
+        if not isinstance(stream, (io.BufferedIOBase, io.RawIOBase)):
             raise TypeError("Input stream must be a readable BinaryIO object.")
 
         if (

@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "file_counts": [
+    1,
+    2,
+    5,
+    10,
+    25,
+    100,
+    1000
+  ],
+  "rule_hit_percentages": [
+    0,
+    20,
+    50,
+    100
+  ],
+  "runs": 3,
+  "warmup": 1,
+  "seed": 20260908,
+  "quality_chunk_files": 128,
+  "rules_reference": "rules-mapped",
+  "environment": {
+    "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+    "OMP_NUM_THREADS": "2",
+    "OPENBLAS_NUM_THREADS": "2"
+  },
+  "tools": [
+    {
+      "id": "rules-serialized",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/usr/bin/env",
+        "MAGIKA_RULES_MMAP_SPIKE=0",
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-mmap-spike",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=only",
+        "--rules-file",
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-packs/serialized/rules.yar"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-mmap-spike",
+        "--version"
+      ],
+      "artifacts": {
+        "rules": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-packs/serialized/rules.yar",
+        "native": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+        "binary": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-mmap-spike",
+        "compiled_rules": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-packs/serialized/rules.hsdb"
+      },
+      "settings": {
+        "backend": "none (CPU signatures)",
+        "readers": 2,
+        "threads": 0,
+        "internal_batch": null,
+        "rules": "only",
+        "model": null,
+        "queue_threads_flag": 2,
+        "queue_batch_flag": 8,
+        "storage": "serialized"
+      }
+    },
+    {
+      "id": "rules-mapped",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/usr/bin/env",
+        "MAGIKA_RULES_MMAP_SPIKE=1",
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-mmap-spike",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=only",
+        "--rules-file",
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-packs/mapped/rules.yar"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-mmap-spike",
+        "--version"
+      ],
+      "artifacts": {
+        "rules": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-packs/mapped/rules.yar",
+        "native": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+        "binary": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-mmap-spike",
+        "compiled_rules": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-packs/mapped/rules.hsdb"
+      },
+      "settings": {
+        "backend": "none (CPU signatures)",
+        "readers": 2,
+        "threads": 0,
+        "internal_batch": null,
+        "rules": "only",
+        "model": null,
+        "queue_threads_flag": 2,
+        "queue_batch_flag": 8,
+        "storage": "mapped"
+      }
+    }
+  ],
+  "rules_reference_mode": "only"
+}

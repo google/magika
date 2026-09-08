@@ -312,11 +312,28 @@ rule taxonomy_luabytecode
         fp_rate = 0
         fn_rate = 0.47999999999999998
 
-	strings:
-		$p0_0 = { 1b 4c 75 61 }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    // Lua's own loaders: retain legacy layouts and configured numeric representations.
+    // Modern chunks carry format, size and binary conversion-check fields, including LNUM modes.
+    strings:
+        $v24 = { 1B 4C 75 61 23 (12 34 | 34 12) }
+        $v25 = { 1B 4C 75 61 25 02 04 ?? (12 34 | 34 12) }
+        $v31 = { 1B 4C 75 61 31 (6C | 66 | 64 | 3F) }
+        $v32 = { 1B 4C 75 61 32 }
+        $v40 = /\x1bLua\x40[\x00\x01][\x01-\xff]{7}/
+        $v50 = /\x1bLua\x50[\x00\x01][\x01-\xff]{8}/
+        $v51 = /\x1bLua\x51\x00[\x00\x01][\x01-\xff]{4}[\x00\x01\x02\x04\x08\x82\x84\x88]/
+        $v52 = /\x1bLua\x52\x00[\x00\x01][\x01-\xff]{4}[\x00\x01\x02\x04\x08\x82\x84\x88]\x19\x93\x0d\x0a\x1a\x0a/
+        $v53 = /\x1bLua\x53\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]{5}/
+        $v54 = /\x1bLua\x54\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]{3}/
+        $v55 = /\x1bLua\x55\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]/
+    condition:
+        prefix_size >= 8 and (
+            ($v24 at 0 and prefix_size >= 11) or
+            ($v25 at 0 and prefix_size >= 14 and uint8(7) >= 1) or
+            ($v31 at 0 and uint8(6) >= 1) or $v32 at 0 or
+            ($v40 at 0 and prefix_size >= 14) or ($v50 at 0 and prefix_size >= 15) or
+            $v51 at 0 or $v52 at 0 or $v53 at 0 or $v54 at 0 or $v55 at 0
+        )
 }
 
 rule taxonomy_macho
@@ -329,14 +346,23 @@ rule taxonomy_macho
         fp_rate = 0
         fn_rate = 0.09
 
-	strings:
-		$p0_0 = { FE ED FA CE }
-		$p1_0 = { FE ED FA CF }
-		$p2_0 = { CE FA ED FE }
-		$p3_0 = { CF FA ED FE }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p3_0 at 0)))
+    // Apple loader.h: complete thin header and nonzero file type.
+    // Empty command tables have zero size; nonempty tables need an 8-byte load command.
+    // CPU identifiers, flags and future nonzero file types remain open.
+    strings:
+        $le32 = { CE FA ED FE }
+        $le64 = { CF FA ED FE }
+        $be32 = { FE ED FA CE }
+        $be64 = { FE ED FA CF }
+    condition:
+        prefix_size >= 28 and (
+            (($le32 at 0 or ($le64 at 0 and prefix_size >= 32)) and uint32(12) >= 1 and
+             ((uint32(16) == 0 and uint32(20) == 0) or
+              (uint32(16) >= 1 and uint32(20) >= 8))) or
+            (($be32 at 0 or ($be64 at 0 and prefix_size >= 32)) and uint32be(12) >= 1 and
+             ((uint32be(16) == 0 and uint32be(20) == 0) or
+              (uint32be(16) >= 1 and uint32be(20) >= 8)))
+        )
 }
 
 rule taxonomy_mkv
@@ -349,13 +375,18 @@ rule taxonomy_mkv
         fp_rate = 0
         fn_rate = 0.01
 
-	strings:
-		$p0_0 = { 1A 45 DF A3 93 42 82 88 6D 61 74 72 6F 73 6B 61 }
-		$p1_0 = "matroska"
-		$p2_0 = "matroska"
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 16 and $p0_0 at 0) or (prefix_size >= 39 and original_size >= 39 and $p1_0 at 31) or (prefix_size >= 32 and original_size >= 32 and $p2_0 at 24)))
+    // EBML magic plus an actual DocType element, retaining the inherited name offsets.
+    // Size 8 may use any legal VINT width; bare text at those offsets is insufficient.
+    strings:
+        $ebml = { 1A 45 DF A3 }
+        $doctype = { 42 82 (88 | 40 08 | 20 00 08 | 10 00 00 08 |
+                            08 00 00 00 08 | 04 00 00 00 00 08 |
+                            02 00 00 00 00 00 08 | 01 00 00 00 00 00 00 08)
+                     6D 61 74 72 6F 73 6B 61 }
+        $name = "matroska"
+    condition:
+        prefix_size >= 16 and $ebml at 0 and uint8(4) >= 1 and uint8(4) <= 254 and
+        $doctype in (5 .. 28) and ($name at 8 or $name at 24 or $name at 31)
 }
 
 rule taxonomy_mscompress
@@ -602,14 +633,20 @@ rule taxonomy_torrent
         fp_rate = 0
         fn_rate = 0.01
 
-	strings:
-		$p0_0 = { 64 31 33 3a 61 6e 6e 6f 75 6e 63 65 2d 6c 69 73 74 }
-		$p1_0 = { 64 34 3a 69 6e 66 6f }
-		$p2_0 = "d8:announce"
-		$p3_0 = { 64 37 3a 63 6f 6d 6d 65 6e 74 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 17 and $p0_0 at 0) or (prefix_size >= 7 and $p1_0 at 0) or (prefix_size >= 11 and original_size >= 11 and $p2_0 at 0) or (prefix_size >= 10 and $p3_0 at 0)))
+    // BEP 3/12/52: typed tracker URLs or a torrent-specific info dictionary prefix.
+    // A generic comment or info key is insufficient; long tracker lists remain recognizable.
+    strings:
+        $root = /d(13:announce-list|4:info|8:announce|7:comment)/
+        $announce = /d8:announce([7-9]|[1-9][0-9]{1,3}):(https?|udp|wss?):\/\/[\x21-\xff]/
+        $announce_list = /d13:announce-listll([7-9]|[1-9][0-9]{1,3}):(https?|udp|wss?):\/\/[\x21-\xff]/
+        $info = "4:infod"
+        $piece_length = /12:piece lengthi[1-9][0-9]{0,18}e/
+        $name = /4:name[1-9][0-9]{0,3}:/
+    condition:
+        prefix_size >= 20 and $root at 0 and (
+            $announce at 0 or $announce_list at 0 or
+            ($info in (0 .. 4089) and $piece_length in (0 .. 4060) and $name in (0 .. 4085))
+        )
 }
 
 rule taxonomy_jxl

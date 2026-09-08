@@ -6,6 +6,42 @@ complete eight-byte empty WebAssembly module. This floor prevents decisions on
 truncated magic; it does not make arbitrary padded magic safe. Format checks below
 require related header fields, sizes, versions or container structure as available.
 
+## Lua, Mach-O, Matroska and torrent review
+
+These four rules were checked against their format sources and 814 distinct supplied
+positives: 400 baseline files plus 434 automatically validated candidates, with 20
+duplicates removed. Candidate labels came from the validation sidecar's single
+assigned format, and every selected file's size and SHA-256 was verified. All 650
+previous matches were retained; 164 misses were unchanged. There were no wrong
+labels, conflicts or native/YARA-X disagreements in this positive batch. The final
+accumulated cross-class false-positive and performance gates remain separate.
+
+| Rule | Source comparison and maintained scope | Matches / positives |
+| --- | --- | --- |
+| Lua bytecode | Libmagic accepts the four-byte magic alone. Lua's own 2.4–5.5 loaders establish distinct version layouts, byte order, size fields and conversion markers. Floors are 8 bytes for 3.1/3.2, 11 for 2.4, 14 for 2.5/3.0 and 4.0, 15 for 5.0/5.4, 12 for 5.1, 18 for 5.2, 17 for 5.3 and 13 for 5.5. These cover structural prefixes; numeric representation payloads and function bodies are not fully validated. LuaJIT remains outside this rule's existing coverage. | 79 / 180 |
+| Mach-O | Tika's four thin-file magic values are retained. Apple's `mach_header` and `mach_header_64` require 28 and 32 observed bytes. Require nonzero file type and consistent empty/nonempty command-table fields, with at least eight declared command bytes for nonempty tables. Preserve both byte orders, CPU identifiers, flags, future nonzero file types and command tables beyond the prefix. Fat binaries and complete load-command validation remain outside this rule. | 369 / 430 |
+| Matroska | Puremagic's bare name at offsets 24/31 can identify unrelated text. Like libmagic, require EBML magic and a DocType element; additionally check its encoded length. Retain the inherited name offsets 8/24/31, with a 16-byte minimum and all eight legal VINT widths for the eight-byte name. This is an early DocType check, not full EBML traversal; padded DocType strings and other offsets remain unqualified. | 102 / 103 |
+| Torrent | Libmagic's leading comment/info keys are also valid generic dictionaries. Require a typed HTTP(S), UDP or WS(S) tracker URL, or typed info/name/piece-length evidence within the prefix, with a 20-byte minimum. Preserve announce lists extending beyond 4 KiB, trackerless info-first files and v2 metadata. Prefix matching does not fully parse bencoding or verify tracker-string lengths or piece hashes. | 100 / 101 |
+
+The initial Lua check rejected one quality-proven candidate with numeric-mode byte
+`4`. Stock Lua uses `0/1`, but OpenWrt's LNUM patch defines integer-width modes
+`2/4/8` and their complex-number variants. Those modes are retained in the 5.1/5.2
+layouts, with a dedicated regression. The candidate's recorded validator walked
+25 Lua 5.2 prototypes to EOF; its exact producer is not established. The legacy
+and 5.5 header fixtures establish layout handling, not measured coverage of every
+Lua version.
+
+Primary sources: [Lua release sources](https://www.lua.org/ftp/),
+[Lua 5.1 header](https://www.lua.org/source/5.1/lundump.c.html),
+[Lua 5.2 header](https://www.lua.org/source/5.2/lundump.c.html),
+[Lua 5.5 header](https://www.lua.org/source/5.5/lundump.c.html),
+[OpenWrt LNUM patch](https://github.com/openwrt/openwrt/blob/main/package/utils/lua/patches/010-lua-5.1.3-lnum-full-260308.patch),
+[Apple Mach-O structures](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h),
+[EBML](https://www.rfc-editor.org/rfc/rfc8794.html),
+[BEP 3](https://www.bittorrent.org/beps/bep_0003.html),
+[BEP 12](https://www.bittorrent.org/beps/bep_0012.html) and
+[BEP 52](https://www.bittorrent.org/beps/bep_0052.html).
+
 The review changes the YARA definitions directly. Sources are the pinned libmagic,
 Tika, PRONOM and puremagic revisions in [LICENSES](LICENSES), supplemented by format
 specifications. A signature copied from another tool remains evidence to examine,

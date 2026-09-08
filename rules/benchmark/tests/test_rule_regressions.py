@@ -15,6 +15,10 @@ NEGATIVES = sorted(p for p in (ROOT / "tests_data/rules_negative").iterdir() if 
 @pytest.mark.parametrize(
     "label",
     [
+        "luabytecode",
+        "torrent",
+        "macho",
+        "mkv",
         "crx",
         "flac",
         "hlp",

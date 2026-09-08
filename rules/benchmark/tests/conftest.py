@@ -59,6 +59,32 @@ def reviewed_binary_headers():
     stata = b"<stata_dta><header><release>118</release><byteorder>LSF</byteorder>"
     cases = [
         (
+            "luabytecode",
+            bytes.fromhex("1b4c7561520001040804080019930d0a1a0a"),
+            18,
+            [(4, b"\0"), (5, b"\x01"), (6, b"\x02"), (7, b"\0"), (11, b"\x03"), (12, b"x")],
+        ),
+        (
+            "torrent",
+            b"d8:announce8:http://x4:infod6:lengthi1e4:name1:x12:piece lengthi1e6:pieces20:"
+            + b"x" * 20
+            + b"ee",
+            21,
+            [],
+        ),
+        (
+            "macho",
+            struct.pack("<7I", 0xFEEDFACE, 7, 3, 1, 0, 0, 0),
+            28,
+            [(12, bytes(4)), (16, struct.pack("<I", 1)), (20, struct.pack("<I", 8))],
+        ),
+        (
+            "mkv",
+            bytes.fromhex("1a45dfa393428288") + b"matroska" + bytes.fromhex("4287810142858101"),
+            16,
+            [(0, bytes(4)), (4, b"\0"), (5, b"\x42\x83"), (7, b"\x87")],
+        ),
+        (
             "crx",
             b"Cr24" + struct.pack("<II", 3, 1) + b"x",
             12,
@@ -250,12 +276,123 @@ def reviewed_binary_headers():
     for flag, extra in ((0x61, 4), (0x68, 8), (0x69, 12)):
         header = bytes.fromhex("04224d18") + bytes([flag, 0x40]) + bytes(extra + 1)
         lz4_invalid.extend(header[:length] for length in range(8, len(header)))
+    macho_invalid = next(row[3] for row in result if row[0] == "macho")
+    for order in ("<", ">"):
+        for magic, count in ((0xFEEDFACE, 7), (0xFEEDFACF, 8)):
+            header = struct.pack(order + "I" * count, magic, 7, 3, 1, 1, 7, *([0] * (count - 6)))
+            macho_invalid.extend([header + bytes(8), header[: count * 4 - 1]])
+    mkv_invalid = next(row[3] for row in result if row[0] == "mkv")
+    for offset in (24, 31):
+        mkv_invalid.extend(
+            [
+                b"x" * offset + b"matroska",
+                bytes.fromhex("1a45dfa3a3") + bytes(offset - 5) + b"matroska",
+                bytes.fromhex("1a45dfa3a3")
+                + bytes(offset - 8)
+                + bytes.fromhex("428288")
+                + b"matrosk",
+            ]
+        )
+    lua_invalid = next(row[3] for row in result if row[0] == "luabytecode")
+    lua_invalid.extend(
+        [
+            b"\x1bLua" + bytes(40),
+            bytes.fromhex("1b4c75615100010408040803"),
+            bytes.fromhex("1b4c7561530019930d0a1a0a0408040008"),
+            bytes.fromhex("1b4c7561540019930d0a1a0a040008"),
+            bytes.fromhex("1b4c7561550019930d0a1a0a00"),
+        ]
+    )
+    torrent_invalid = next(row[3] for row in result if row[0] == "torrent")
+    torrent_invalid.extend(
+        [
+            b"d7:comment11:hello worlde",
+            b"d4:infod4:name4:useree",
+            b"d8:announcei1ee",
+            b"d8:announce5:helloe",
+            b"d13:announce-listl4:urlee",
+            b"d13:announce-list" + bytes(40),
+        ]
+    )
     return result
 
 
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    # OpenWrt's LNUM modes include integer widths and an optional complex-number bit.
+    # A validated corpus sample uses mode 4 with the Lua 5.2 layout.
+    for version in (0x51, 0x52):
+        for mode in (2, 4, 8, 0x82, 0x84, 0x88):
+            header = b"\x1bLua" + bytes([version, 0, 1, 4, 4, 4, 8, mode])
+            if version == 0x52:
+                header += bytes.fromhex("19930d0a1a0a")
+            variants.append(("luabytecode", header))
+    # Lua's own loaders use several incompatible layouts and permit configured number types.
+    variants.extend(
+        ("luabytecode", bytes.fromhex(value))
+        for value in (
+            "1b4c7561233412" + struct.pack("<f", 0.123456789e-23).hex(),
+            "1b4c7561250204081234" + struct.pack(">f", 0.123456789e-23).hex(),
+            "1b4c7561316408" + struct.pack(">d", 3.14159265358979323846e8).hex(),
+            "1b4c75613200" + "00" * 24,
+            "1b4c75613208" + struct.pack("<d", 3.14159265358979323846e8).hex(),
+            "1b4c7561400104080420060908" + struct.pack("<d", 3.14159265358979323846e8).hex(),
+            "1b4c756150010408040608090908" + struct.pack("<d", 3.14159265358979323846e7).hex(),
+            "1b4c75615100010408040800",
+            "1b4c75615100000404040401",
+            "1b4c7561520000040404080019930d0a1a0a",
+            "1b4c7561530019930d0a1a0a0408040808" + struct.pack("<qd", 0x5678, 370.5).hex(),
+            "1b4c7561540019930d0a1a0a040808" + struct.pack(">qd", 0x5678, 370.5).hex(),
+            "1b4c7561550019930d0a1a0a04"
+            + struct.pack("<i", -0x5678).hex()
+            + "04"
+            + struct.pack("<I", 0x12345678).hex()
+            + "08"
+            + struct.pack("<q", -0x5678).hex()
+            + "08"
+            + struct.pack("<d", -370.5).hex(),
+        )
+    )
+    info = b"4:infod6:lengthi1e4:name1:x12:piece lengthi1e6:pieces20:" + b"x" * 20 + b"e"
+    variants.extend(
+        ("torrent", content)
+        for content in (
+            b"d" + info + b"e",
+            b"d7:comment1:x" + info + b"e",
+            b"d8:announce0:" + info + b"e",
+            b"d13:announce-listll8:http://xee" + info + b"e",
+            b"d8:announce7:udp://x" + info + b"e",
+            # Large tracker lists can place the info dictionary outside the observed prefix.
+            b"d13:announce-listl" + b"l8:http://xe" * 400 + b"e" + info + b"e",
+            b"d4:infod9:file treed1:xd0:d6:lengthi0eeee12:meta versioni2e"
+            b"4:name1:x12:piece lengthi16384ee12:piece layersdee",
+        )
+    )
+    # Both byte orders and word sizes, including commands extending beyond the scan prefix.
+    for order in ("<", ">"):
+        for magic, count in ((0xFEEDFACE, 7), (0xFEEDFACF, 8)):
+            for filetype in range(1, 15):
+                header = struct.pack(
+                    order + "I" * count, magic, 7, 3, filetype, 1, 4096, *([0] * (count - 6))
+                )
+                variants.append(
+                    ("macho", header + struct.pack(order + "II", 1, 4096) + bytes(4088))
+                )
+    # The inherited DocType offsets, with every legal width of its size VINT.
+    for offset in (8, 24, 31):
+        for width in range(1, 9):
+            start = offset - width - 2
+            if start < 5:
+                continue
+            size = ((1 << (7 * width)) | 8).to_bytes(width, "big")
+            gap = start - 5
+            padding = b"\xec" + bytes([0x80 + gap - 2]) + bytes(gap - 2) if gap else b""
+            payload = padding + b"\x42\x82" + size + b"matroska"
+            if offset == 8:
+                payload += bytes.fromhex("4287810142858101")
+            header = bytes.fromhex("1a45dfa3") + bytes([0x80 + len(payload)])
+            variants.append(("mkv", header + payload))
     variants.append(("crx", b"Cr24" + struct.pack("<III", 2, 65536, 65536) + bytes(131072)))
     # Zero minimum-version and empty compatibility list are accepted by OpenJPEG.
     signature = bytes.fromhex("0000000c6a5020200d0a870a")

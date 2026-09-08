@@ -41,8 +41,6 @@ from magika.types import (
 
 from . import _magika
 
-_DEFAULT_MODEL_NAME = "standard_v3_3"
-
 
 class Magika:
     """Main Magika class for content type identification.
@@ -80,19 +78,14 @@ class Magika:
         if debug:
             self._log.setLevel(logging.DEBUG)
 
-        default_model_dir = (
-            Path(__file__).parent / "models" / self._get_default_model_name()
-        )
         if model_dir is not None:
-            if model_dir.resolve() != default_model_dir.resolve():
-                raise NotImplementedError(
-                    f"Custom model_dir '{model_dir}' is not supported by the Rust backend."
-                )
-            self._model_dir = model_dir
-        else:
-            self._model_dir = default_model_dir
+            raise NotImplementedError(
+                f"Custom model_dir '{model_dir}' is not supported by the Rust backend."
+            )
 
-        self._model_config_path = self._model_dir / "config.min.json"
+        self._model_config_path = (
+            Path(__file__).parent / "config" / "model_config.min.json"
+        )
         if not self._model_config_path.is_file():
             raise MagikaError(
                 f"model config not found at {str(self._model_config_path)}"
@@ -257,7 +250,7 @@ class Magika:
     @staticmethod
     def _get_default_model_name() -> str:
         """Returns the default model name."""
-        return _DEFAULT_MODEL_NAME
+        return str(_magika.get_default_model_name())
 
     @staticmethod
     def _load_content_types_kb(

@@ -34,9 +34,7 @@ classifiers = [
 ]
 version = "1.0.3"
 
-dependencies = [
-    "click>=8.1.7",
-]
+dependencies = []
 
 
 [project.urls]

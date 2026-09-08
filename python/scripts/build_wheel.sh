@@ -22,6 +22,7 @@ echo "Building native CLI binary (magika)..."
 cargo build --release --manifest-path rust/cli/Cargo.toml
 
 echo "Staging binary into python/wheel_data/scripts/..."
+rm -f python/wheel_data/scripts/*
 mkdir -p python/wheel_data/scripts
 cp rust/target/release/magika python/wheel_data/scripts/magika
 chmod +x python/wheel_data/scripts/magika

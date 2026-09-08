@@ -16,8 +16,9 @@ Python bindings work as expected.
 
 2. Run Python test suite:
    $ cd python
-   $ uv run pytest tests/test_magika_python_module.py -k "not slow"
-   # Expected: 25 passed, 1 skipped, 1 deselected
+   $ uv run pytest tests/test_magika_python_module.py -k "not test_magika_module_with_big_file"
+   # Expected: 22 passed, 1 skipped, 1 deselected (fast run in ~3s)
+   # Or run full suite: uv run pytest tests/ (23 passed, 1 skipped)
 
 3. Verify linters and type checkers:
    $ cd python
@@ -31,8 +32,9 @@ Python bindings work as expected.
    $ uv run python -c "
 import magika
 m = magika.Magika()
-res = m.identify_bytes(b'import os\nprint(os.uname())\n')
+res = m.identify_path('../tests_data/basic/python/code.py')
 print(f'Model: {m.get_model_name()}')
+print(f'Default model: {magika.Magika._get_default_model_name()}')
 print(f'Detected: {res.prediction.output.label} ({res.prediction.output.mime_type}), score={res.prediction.score:.4f}')
 assert res.ok and res.prediction.output.label == 'python'
 "
@@ -45,17 +47,20 @@ Verify that the wheel packages both the PyO3 C-extension and the standalone CLI 
 1. Build the release wheel:
    $ ./python/scripts/build_wheel.sh
    $ ls -lh python/dist/
-   # Expected: magika-1.0.3-cp38-abi3-linux_x86_64.whl (~25 MB)
+   # Expected: magika-1.0.3-cp38-abi3-linux_x86_64.whl (~22 MB, no redundant model.onnx)
 
 2. Inspect Wheel Contents (Dual-Entrypoint verification):
    $ unzip -l python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl
    Verify the two critical files exist:
      - PyO3 Extension: magika/_magika.abi3.so
      - Native CLI:     magika-1.0.3.data/scripts/magika
+   Verify removed components do not exist:
+     - No magika/cli/
+     - No magika/models/
 
 3. Inspect Wheel Metadata & ABI Tags:
-   $ unzip -p python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl magika-1.0.3.dist-info/METADATA | grep Requires-Dist
-   # Expected: Requires-Dist: click>=8.1.7 (NO onnxruntime!)
+   $ unzip -p python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl magika-1.0.3.dist-info/METADATA | grep Requires-Dist || echo "No dependencies!"
+   # Expected: No dependencies! (True zero-dependency wheel)
 
    $ unzip -p python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl magika-1.0.3.dist-info/WHEEL | grep Tag
    # Expected: Tag: cp38-abi3-linux_x86_64
@@ -74,22 +79,23 @@ no development tools or compiler toolchains.
 
 3. Check installed packages:
    $ /tmp/magika_clean_env/bin/pip list
-   # Expected: Only 'click', 'magika', and 'pip' are installed.
+   # Expected: ONLY 'magika' and 'pip' are installed (zero external dependencies).
 
 4. Check installed CLI binary:
    $ file /tmp/magika_clean_env/bin/magika
    # Expected: ELF 64-bit executable (native binary)
 
    $ /tmp/magika_clean_env/bin/magika --version
-   $ /tmp/magika_clean_env/bin/magika tests_data/basic/code/python/simple.py
+   # Expected: magika 1.1.1-dev standard_v3_3
+   $ /tmp/magika_clean_env/bin/magika tests_data/basic/python/code.py
 
 5. Check Python library import & detection:
    $ /tmp/magika_clean_env/bin/python -c "
 import magika
 m = magika.Magika()
-res = m.identify_path('tests_data/basic/code/python/simple.py')
-print(f'Result: {res.prediction.output.label} (status={res.status})')
-assert res.ok
+res = m.identify_path('tests_data/basic/python/code.py')
+print(f'Result: {res.prediction.output.label} (score={res.prediction.score:.4f}, status={res.status})')
+assert res.ok and res.prediction.output.label == 'python'
 "
 
 6. Clean up:

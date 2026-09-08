@@ -57,28 +57,22 @@ jobs:
           targets: ${{ matrix.platform.target }}
 
       # Cache ONNX Runtime build on Linux
-      - if: matrix.platform.runner == 'ubuntu-latest'
+      - if: matrix.platform.os == 'Linux'
         uses: actions/cache@v4
         with:
           path: rust/onnx/runtime/build/Linux
           key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
 
-      # On non-Linux runners, compile and stage the CLI binary on the host
-      - if: matrix.platform.runner != 'ubuntu-latest'
-        name: Build and stage magika-cli (macOS/Windows)
+      # On macOS and Windows (which build on the host, not inside a manylinux container),
+      # compile and stage the CLI binary into python/wheel_data/scripts/ before Maturin packages it.
+      # On Linux, this is handled inside the manylinux container by rust/onnx/maturin.sh.
+      - if: matrix.platform.os != 'Linux'
+        name: Build and stage magika CLI (macOS/Windows)
         shell: bash
-        run: |
-          cargo build --release --manifest-path rust/cli/Cargo.toml --target ${{ matrix.platform.target }}
-          mkdir -p python/wheel_data/scripts
-          if [[ "${{ matrix.platform.target }}" == *"windows"* ]]; then
-            cp rust/target/${{ matrix.platform.target }}/release/magika.exe python/wheel_data/scripts/
-          else
-            cp rust/target/${{ matrix.platform.target }}/release/magika python/wheel_data/scripts/
-            chmod +x python/wheel_data/scripts/magika
-          fi
+        run: ./python/scripts/stage_cli.sh ${{ matrix.platform.target }}
 
       # Build PyO3 wheel using maturin-action (Linux in manylinux container)
-      - if: matrix.platform.runner == 'ubuntu-latest'
+      - if: matrix.platform.os == 'Linux'
         name: Build wheel via Maturin (Linux)
         uses: PyO3/maturin-action@v1
         with:
@@ -89,7 +83,7 @@ jobs:
           working-directory: python
 
       # Build PyO3 wheel using maturin-action (macOS/Windows on host)
-      - if: matrix.platform.runner != 'ubuntu-latest'
+      - if: matrix.platform.os != 'Linux'
         name: Build wheel via Maturin (macOS/Windows)
         uses: PyO3/maturin-action@v1
         with:
@@ -102,3 +96,97 @@ jobs:
         with:
           name: wheel-${{ matrix.platform.target }}
           path: python/dist/*.whl
+
+  test-wheels:
+    name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with Python ${{ matrix.python-version }}
+    needs: [build-wheels]
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        platform:
+          - os: Linux
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macOS
+            runner: macos-14
+            target: aarch64-apple-darwin
+          - os: macOS
+            runner: macos-13
+            target: x86_64-apple-darwin
+          - os: Windows
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheel-${{ matrix.platform.target }}
+          path: dist
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Test wheel installation and execution with pip (venv)
+        shell: bash
+        run: |
+          python -m venv test-pip-venv
+          if [[ "${{ matrix.platform.os }}" == "Windows" ]]; then
+            source test-pip-venv/Scripts/activate
+          else
+            source test-pip-venv/bin/activate
+          fi
+          WHEEL_PATH=$(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+          pip install "$WHEEL_PATH"
+
+          # Verify CLI execution
+          magika --version
+          magika tests_data/basic/python/code.py
+          magika -r tests_data/basic
+
+          # Verify Python library execution
+          python -c "import magika; m = magika.Magika(); print(m)"
+          python -c "import magika; m = magika.Magika(); res = m.identify_path('tests_data/basic/python/code.py'); assert res.ok and res.prediction.output.label == 'python', f'Unexpected: {res}'"
+
+      - name: Test wheel installation and execution with uv (venv)
+        shell: bash
+        run: |
+          uv venv test-uv-venv
+          if [[ "${{ matrix.platform.os }}" == "Windows" ]]; then
+            source test-uv-venv/Scripts/activate
+          else
+            source test-uv-venv/bin/activate
+          fi
+          WHEEL_PATH=$(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+          uv pip install "$WHEEL_PATH"
+
+          # Verify CLI execution
+          magika --version
+          magika tests_data/basic/python/code.py
+
+          # Verify Python library execution
+          python -c "import magika; m = magika.Magika(); print(m)"
+          python -c "from pathlib import Path; import magika; m = magika.Magika(); res = m.identify_bytes(Path('tests_data/basic/python/code.py').read_bytes()); assert res.ok and res.prediction.output.label == 'python', f'Unexpected: {res}'"
+
+      - name: Run pytest smoketests
+        shell: bash
+        run: |
+          if [[ "${{ matrix.platform.os }}" == "Windows" ]]; then
+            source test-pip-venv/Scripts/activate
+          else
+            source test-pip-venv/bin/activate
+          fi
+          pip install pytest
+          cd python
+          pytest tests/test_magika_python_module.py -m smoketest
+

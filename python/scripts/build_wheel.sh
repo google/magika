@@ -18,14 +18,9 @@ set -euo pipefail
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &>/dev/null && pwd)
 cd "$ROOT_DIR"
 
-echo "Building native CLI binary (magika)..."
-cargo build --release --manifest-path rust/cli/Cargo.toml
+echo "Building and staging native CLI binary (magika)..."
+./python/scripts/stage_cli.sh
 
-echo "Staging binary into python/wheel_data/scripts/..."
-rm -f python/wheel_data/scripts/*
-mkdir -p python/wheel_data/scripts
-cp rust/target/release/magika python/wheel_data/scripts/magika
-chmod +x python/wheel_data/scripts/magika
 
 echo "Building wheel via uv build..."
 cd python

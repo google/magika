@@ -101,6 +101,23 @@ def parse_output(adapter, raw, paths, aliases):
             )
         return rows
     if adapter == Adapter.FILE:
+        if b"\0" in raw:
+            # file -0 -0 delimits both names and complete descriptions, including
+            # Apple's multiline fat-binary output. Score the top-level MIME;
+            # architecture details stay in the saved raw output.
+            fields = raw.decode().split("\0")
+            if fields[-1] != "" or fields[:-1:2] != list(paths):
+                raise ValueError("file output paths are missing or reordered")
+            labels = [field.splitlines()[0] for field in fields[1:-1:2]]
+            return [
+                mapped(
+                    [label],
+                    aliases,
+                    abstain=label == "application/octet-stream",
+                    error=label if label.startswith("ERROR:") else None,
+                )
+                for label in labels
+            ]
         lines = raw.decode().splitlines()
         rows, index = [], 0
         for path in paths:
@@ -109,7 +126,7 @@ def parse_output(adapter, raw, paths, aliases):
             labels = [lines[index]]
             index += 1
             # Apple file emits architecture continuations even with --brief.
-            continuation = re.compile(re.escape(path) + r" \(for architecture [^)]+\):\s*(.*)")
+            continuation = re.compile(re.escape(path) + r" \(for architecture .+\):\s*(.*)")
             while index < len(lines) and (match := continuation.fullmatch(lines[index])):
                 labels.append(match[1])
                 index += 1

@@ -105,6 +105,19 @@ def test_file_fat_macho_architecture_lines_belong_to_one_input():
     assert [r["prediction"] for r in rows] == ["macho", "pdf"]
 
 
+def test_file_nul_frames_keep_nested_architecture_details_with_the_parent():
+    raw = b"files/a\0application/x-java-applet\nfiles/a (for architecture cputype (79431682) cpusubtype (278464)):\tapplication/octet-stream\0files/b\0application/pdf\0"
+    rows = c.parse_output(
+        c.Adapter.FILE,
+        raw,
+        ["files/a", "files/b"],
+        {"application/x-java-applet": ["java"], "application/pdf": ["pdf"]},
+    )
+    assert [r["prediction"] for r in rows] == ["java", "pdf"]
+    with pytest.raises(ValueError, match="paths"):
+        c.parse_output(c.Adapter.FILE, raw, ["files/b", "files/a"], {})
+
+
 def test_quality_reuse_rejects_changed_labels():
     original = {"samples": [{"sha256": "a", "size": 1, "truth": "pdf"}], "classes": {"pdf": {}}}
     changed = original | {"samples": [{"sha256": "a", "size": 1, "truth": "zip"}]}

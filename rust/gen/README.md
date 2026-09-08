@@ -9,6 +9,13 @@ configuration and content-type metadata:
   `rules/content-types.json`. Additional output identities do not add model classes
   or enable rules, and the library does not read this metadata source at runtime.
 
+The generator preserves the knowledge base's explicit MIME type and group; it does
+not infer a group from a MIME type or choose a dataset category. In particular,
+the existing ASF and AVIF metadata are inherited from that shared source. Changes
+to those values belong in the shared knowledge base so bindings stay consistent.
+Extensions describe possible filenames and are not unique identifiers or inputs
+to classification: a PostgreSQL dump and SQL text can both use `.sql`.
+
 `rust/gen/model` selects the model configuration. Run `./sync.sh` from `rust/` to
 regenerate these files and the CLI examples; `./sync.sh --check` checks the generated
 results for differences. These sources are committed before publication.

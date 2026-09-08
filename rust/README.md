@@ -19,3 +19,11 @@ This directory contains the Rust crates and their tools. It has the following st
 Optional signature rules require the `yara-rules` Cargo feature and a native engine.
 See the [rules build and platform installation instructions](../rules/README.md#build-and-use)
 for `MAGIKA_VECTORSCAN_LIBRARY` and the optional `MAGIKA_RULES_CACHE` override.
+
+The crates' Apache-2.0 license describes Magika's own sources; dependencies retain
+their individual licenses. The locked tract dependency graph includes MPL-2.0
+`dyn-eq` 0.1.3 through tract's core/data crates and, with CUDA enabled, MPL-2.0
+`option-ext` 0.2.0 through `tract-cuda` → `dirs` → `dirs-sys`. Their source packages
+are used without local patches. Inspect the selected build's graph with
+`cargo tree --locked --manifest-path cli/Cargo.toml -i dyn-eq` and the equivalent
+command for `option-ext`; feature and target selection can change that graph.

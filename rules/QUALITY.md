@@ -409,3 +409,45 @@ corpus. Cross-class false-positive evaluation remains the final accumulated gate
 These are prefix identifiers, not checksum, offset-target, image, archive or
 statistical-data validators. No supplied positive currently qualifies the inherited
 SPSS portable alternative beyond its signature and header-length regression.
+
+## Partial CRX, FLAC, WinHelp, JP2, SZDD, NetCDF, PDB and Stata review
+
+The inherited signatures identify only some variants of these formats. The fixes
+preserve that coverage while requiring related header fields:
+
+| Format | Review decision | Matches before / after / positives |
+| --- | --- | --- |
+| CRX | Distinguish CRX2's complete 16-byte header and nonzero key/signature lengths (at most 65536 each) from CRX3's 12-byte header and nonempty protobuf header. | 97 / 97 / 100 |
+| FLAC | Require complete STREAMINFO, its 34-byte size, defined first-block type, block sizes at least 16 and nonzero sample rate. Preserve the last-metadata flag and the entire 20-bit sample-rate range. | 92 / 92 / 100 |
+| WinHelp | Require the complete 16-byte header, plausible directory/file-size fields and the inherited no-free-chain signature. | 98 / 98 / 100 |
+| JP2 | Require the full binary signature box and exact `jp2 ` brand, with a complete, aligned FTYP fixed header. OpenJPEG accepts an empty compatibility list, so the minimum is 28 bytes rather than 32. | 97 / 97 / 100 |
+| SZDD | Require the complete 14-byte normal header and all eight signature bytes. Preserve mode B documented by libmagic for early Windows releases, as well as normal mode A. | 36 / 36 / 100 |
+| NetCDF | Require the 32-byte minimum CDF1/CDF2 header. A nonempty dimension list requires its dimension tag; preserve the reader's tolerance for empty lists. CDF5 and HDF5-backed variants remain outside the rule. | 77 / 77 / 100 |
+| PDB | Require complete MSF7/JG binary magic, 56/60-byte fixed headers and supported page sizes. MSF7 also checks its free-page-map selector. Portable PDB remains outside this rule. | 38 / 38 / 100 |
+| Stata | Correlate a three-digit release with the complete byte-order field, requiring 63 bytes. Preserve both byte orders and do not cap future releases at 119. Pre-117 binary layouts remain outside the rule. | 59 / 59 / 100 |
+
+Sources: [Chromium's CRX2 parser](https://github.com/chromium/chromium/blob/45.0.2454.85/components/crx_file/crx_file.cc)
+and [CRX3 verifier](https://github.com/chromium/chromium/blob/main/components/crx_file/crx_verifier.cc),
+[FLAC format](https://www.rfc-editor.org/rfc/rfc9639.html),
+[Wine's WinHelp reader](https://github.com/wine-mirror/wine/blob/master/programs/winhlp32/hlpfile.c),
+[OpenJPEG FTYP reader](https://github.com/uclouvain/openjpeg/blob/master/src/lib/openjp2/jp2.c),
+[libmspack SZDD reader](https://github.com/kyz/libmspack/blob/master/libmspack/mspack/szddd.c),
+[NetCDF format](https://docs.unidata.ucar.edu/nug/current/file_format_specifications.html)
+and [reader](https://github.com/Unidata/netcdf-c/blob/main/libsrc/v1hpg.c),
+[LLVM MSF header](https://github.com/llvm/llvm-project/blob/main/llvm/include/llvm/DebugInfo/MSF/MSFCommon.h),
+[Wine's legacy PDB header](https://github.com/wine-mirror/wine/blob/master/include/wine/mscvpdb.h)
+and [ReadStat's Stata reader](https://github.com/WizardMac/ReadStat/blob/master/src/stata/readstat_dta_read.c).
+The existing libmagic, puremagic, Tika and PRONOM references remain on each rule.
+
+Eight before-fix regressions exposed invalid or truncated header matches. The
+existing shared/native regression test now consumes both rule packs, so partial
+rules receive the same parity check as full rules. Forty-eight checks passed,
+including header variants and the native matcher, in 10.80 seconds. All 594 previous
+matches were retained across the 800 supplied baseline positives, with no wrong
+rule labels, conflicts, reference errors or native/YARA-X mismatches. The six newly
+validated Stata candidates were identical to already included samples; their bytes
+and assigned labels were verified before deduplication. The 206 unmatched samples
+remain coverage limitations, not newly introduced false negatives. These are
+header checks; they do not verify CRX cryptographic signatures or parse complete
+archives, audio, databases or statistical data. Final cross-class FP and runtime
+performance gates remain separate.

@@ -112,11 +112,14 @@ rule taxonomy_crx
         fp_rate = 0
         fn_rate = 0.03
 
-	strings:
-		$p0_0 = "Cr24"
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    // CRX2 key/signature lengths differ from CRX3's protobuf-header length.
+    strings:
+        $magic = "Cr24"
+    condition:
+        prefix_size >= 12 and $magic at 0 and
+        ((uint32(4) == 3 and uint32(8) >= 1) or
+         (prefix_size >= 16 and uint32(4) == 2 and uint32(8) >= 1 and
+          uint32(8) <= 65536 and uint32(12) >= 1 and uint32(12) <= 65536))
 }
 
 rule taxonomy_dbase
@@ -205,12 +208,12 @@ rule taxonomy_flac
         fp_rate = 0
         fn_rate = 0.08
 
-	strings:
-		$p0_0 = "fLaC"
-		$p1_0 = { 66 4C 61 43 00 00 00 22 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p1_0 at 0)))
+    // FLAC starts with the complete 34-byte STREAMINFO block, optionally the last metadata block.
+    strings:
+        $header = { 66 4C 61 43 (00 | 80) 00 00 22 }
+    condition:
+        prefix_size >= 42 and $header at 0 and uint16be(8) >= 16 and
+        uint16be(10) >= 16 and uint32be(18) >= 4096
 }
 
 rule taxonomy_gif
@@ -252,12 +255,13 @@ rule taxonomy_hlp
         fp_rate = 0
         fn_rate = 0.02
 
-	strings:
-		$p0_0 = { 3F 5F 03 00 }
-		$p1_0 = { 00 00 FF FF FF FF }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) and (prefix_size >= 12 and original_size >= 12 and $p1_0 at 6)))
+    // Complete WinHelp file header; retain the inherited no-free-chain variant.
+    strings:
+        $magic = { 3F 5F 03 00 }
+        $no_free_chain = { 00 00 FF FF FF FF }
+    condition:
+        prefix_size >= 16 and $magic at 0 and $no_free_chain at 6 and
+        uint32(4) >= 16 and uint32(12) >= 16
 }
 
 rule taxonomy_ico
@@ -289,11 +293,13 @@ rule taxonomy_jp2
         fp_rate = 0
         fn_rate = 0.03
 
-	strings:
-		$p0_0 = /(\x00){3}\x0c\x6a\x50(\x20){2}\x0d\x0a\x87\x0a(([\x00-\xff]){4}\x66\x74\x79\x70\x6a\x70\x32)/
-
-	condition:
-		prefix_size >= 8 and (($p0_0 at 0))
+    // Signature box followed by a complete fixed FTYP header and exact JP2 brand.
+    strings:
+        $signature = { 00 00 00 0C 6A 50 20 20 0D 0A 87 0A }
+        $brand = "ftypjp2 "
+    condition:
+        prefix_size >= 28 and $signature at 0 and $brand at 16 and
+        uint32be(12) >= 16 and uint32be(12) % 4 == 0
 }
 
 rule taxonomy_luabytecode
@@ -362,13 +368,11 @@ rule taxonomy_mscompress
         fp_rate = 0
         fn_rate = 0.64000000000000001
 
-	strings:
-		$p0_0 = { 53 5a 44 44 }
-		$p1_0 = { 88 f0 27 }
-		$p2_0 = { 53 5A 44 44 88 F0 27 33 41 }
-
-	condition:
-		prefix_size >= 8 and ((((prefix_size >= 4 and $p0_0 at 0) and (prefix_size >= 7 and $p1_0 at 4)) or (prefix_size >= 9 and $p2_0 at 0)))
+    // Complete normal SZDD header; libmagic also records mode B in early Windows builds.
+    strings:
+        $header = { 53 5A 44 44 88 F0 27 33 (41 | 42) }
+    condition:
+        prefix_size >= 14 and $header at 0
 }
 
 rule taxonomy_netcdf
@@ -381,12 +385,12 @@ rule taxonomy_netcdf
         fp_rate = 0
         fn_rate = 0.23000000000000001
 
-	strings:
-		$p0_0 = { 43 44 46 02 }
-		$p1_0 = { 43 44 46 01 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0)))
+    // Classic/64-bit-offset CDF: minimum empty header and first dimension-list tag.
+    strings:
+        $magic = { 43 44 46 (01 | 02) }
+    condition:
+        prefix_size >= 32 and $magic at 0 and
+        (uint32be(12) == 0 or uint32be(8) == 10)
 }
 
 rule taxonomy_ogg
@@ -436,12 +440,15 @@ rule taxonomy_pdb
         fp_rate = 0
         fn_rate = 0.62
 
-	strings:
-		$p0_0 = /\x4d\x69\x63\x72\x6f\x73\x6f\x66\x74\x20\x43\x2f\x43(\x2b){2}\x20\x70\x72\x6f\x67\x72\x61\x6d\x20\x64\x61\x74\x61\x62\x61\x73\x65\x20\x32\x2e(\x30){2}/
-		$p1_0 = /\x4d\x69\x63\x72\x6f\x73\x6f\x66\x74\x20\x43\x2f\x43(\x2b){2}\x20\x4d\x53\x46\x20\x37\x2e(\x30){2}/
-
-	condition:
-		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0)))
+    // MSF7 and legacy JG fixed headers, including binary magic and valid page sizes.
+    strings:
+        $modern = "Microsoft C/C++ MSF 7.00\r\n\x1aDS\x00\x00\x00"
+        $old = "Microsoft C/C++ program database 2.00\r\n\x1aJG\x00\x00"
+        $page_size = { 00 (02 | 04 | 08 | 10 | 20 | 40 | 80) 00 00 }
+    condition:
+        (prefix_size >= 56 and $modern at 0 and $page_size at 32 and
+         (uint32(36) == 1 or uint32(36) == 2)) or
+        (prefix_size >= 60 and $old at 0 and $page_size at 44)
 }
 
 rule taxonomy_pythonbytecode
@@ -578,11 +585,11 @@ rule taxonomy_stata
         fp_rate = 0
         fn_rate = 0.40999999999999998
 
-	strings:
-		$p0_0 = "<stata_dta><header><release>"
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 28 and $p0_0 at 0))
+    // Correlate numeric release and byte order; do not freeze the version to current releases.
+    strings:
+        $header = /<stata_dta><header><release>[0-9]{3}<\/release><byteorder>(LSF|MSF)<\/byteorder>/
+    condition:
+        prefix_size >= 63 and $header at 0
 }
 
 rule taxonomy_torrent

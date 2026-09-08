@@ -49,7 +49,48 @@ def reviewed_binary_headers():
     vhd[:8] = b"conectix"
     struct.pack_into(">II", vhd, 8, 2, 0x10000)
     struct.pack_into(">I", vhd, 60, 3)
+    flac = bytearray(b"fLaC\x00\x00\x00\x22" + bytes(34))
+    struct.pack_into(">HH", flac, 8, 16, 16)
+    struct.pack_into(">I", flac, 18, 44100 << 12)
+    jp2 = bytes.fromhex("0000000c6a5020200d0a870a") + struct.pack(
+        ">I4s4sI", 16, b"ftyp", b"jp2 ", 0
+    )
+    pdb = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0" + struct.pack("<6I", 4096, 1, 4, 4, 0, 3)
+    stata = b"<stata_dta><header><release>118</release><byteorder>LSF</byteorder>"
     cases = [
+        (
+            "crx",
+            b"Cr24" + struct.pack("<II", 3, 1) + b"x",
+            12,
+            [(4, struct.pack("<I", 1)), (8, bytes(4))],
+        ),
+        (
+            "flac",
+            bytes(flac),
+            42,
+            [(4, b"\x01"), (7, b"\x21"), (8, bytes(2)), (10, bytes(2)), (18, bytes(4))],
+        ),
+        (
+            "hlp",
+            struct.pack("<IIII", 0x00035F3F, 16, 0xFFFFFFFF, 16),
+            16,
+            [(4, bytes(4)), (12, bytes(4))],
+        ),
+        ("jp2", jp2, 28, [(12, struct.pack(">I", size)) for size in (0, 8, 15, 17)] + [(23, b"x")]),
+        ("mscompress", b"SZDD\x88\xf0\x27\x33A\0" + bytes(4), 14, [(7, b"\0"), (8, b"Z")]),
+        (
+            "netcdf",
+            b"CDF\x01" + bytes(28),
+            32,
+            [(8, struct.pack(">II", tag, 1)) for tag in (0, 9, 11, 12)],
+        ),
+        ("pdb", pdb, 56, [(24, bytes(8)), (32, struct.pack("<I", 1000)), (36, bytes(4))]),
+        (
+            "stata",
+            stata,
+            len(stata),
+            [(stata.index(b"118"), b"x18"), (stata.index(b"LSF"), b"BAD")],
+        ),
         ("ese", bytes(ese), 668, [(8, bytes(4)), (12, struct.pack("<I", 2))]),
         ("fits", fits, 2880, [(29, b"X"), (80, b"COMMENT "), (109, b"7")]),
         ("llvm_bitcode", b"BC\xc0\xde\x35\x14\x00\x00", 8, [(4, bytes(4))]),
@@ -196,6 +237,14 @@ def reviewed_binary_headers():
     )
     spss_invalid = next(row[3] for row in result if row[0] == "spss")
     spss_invalid.append(bytes.fromhex("c9c3e2c1") + bytes(459))
+    crx_invalid = next(row[3] for row in result if row[0] == "crx")
+    crx_invalid.extend(
+        [
+            b"Cr24" + struct.pack("<I", 2) + bytes(4),
+            b"Cr24" + struct.pack("<III", 2, 0, 1),
+            b"Cr24" + struct.pack("<III", 2, 1, 0),
+        ]
+    )
     # Optional LZ4 fields must be observed through the header checksum.
     lz4_invalid = next(row[3] for row in result if row[0] == "lz4")
     for flag, extra in ((0x61, 4), (0x68, 8), (0x69, 12)):
@@ -207,6 +256,57 @@ def reviewed_binary_headers():
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    variants.append(("crx", b"Cr24" + struct.pack("<III", 2, 65536, 65536) + bytes(131072)))
+    # Zero minimum-version and empty compatibility list are accepted by OpenJPEG.
+    signature = bytes.fromhex("0000000c6a5020200d0a870a")
+    for box_size in (16, 20, 24, 4100):
+        variants.append(
+            (
+                "jp2",
+                signature
+                + struct.pack(">I4s4sI", box_size, b"ftyp", b"jp2 ", 1)
+                + b"jp2 " * ((box_size - 16) // 4),
+            )
+        )
+    for last in (0, 128):
+        for rate in (1, 44100, 1048575):
+            flac = bytearray(b"fLaC" + bytes([last, 0, 0, 34]) + bytes(34))
+            struct.pack_into(">HH", flac, 8, 16, 65535)
+            struct.pack_into(">I", flac, 18, rate << 12)
+            variants.append(("flac", bytes(flac)))
+    # Early Windows betas used mode B; missing filename characters and size can be zero.
+    variants.append(("mscompress", b"SZDD\x88\xf0\x27\x33B\0" + bytes(4)))
+    for version in (1, 2):
+        for tag, count in ((0, 0), (10, 0), (10, 1)):
+            variants.append(
+                (
+                    "netcdf",
+                    b"CDF"
+                    + bytes([version])
+                    + struct.pack(">III", 0xFFFFFFFF, tag, count)
+                    + bytes(16),
+                )
+            )
+    for block in (512, 1024, 2048, 4096, 8192, 16384, 32768):
+        modern = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0" + struct.pack(
+            "<6I", block, 2, 4, 4, 0, 3
+        )
+        variants.append(("pdb", modern))
+    old_magic = b"Microsoft C/C++ program database 2.00\r\n\x1aJG\0\0"
+    assert len(old_magic) == 44
+    variants.append(("pdb", old_magic + struct.pack("<IHHII", 4096, 1, 4, 4, 0)))
+    for version in (117, 118, 119, 120):
+        for order in (b"LSF", b"MSF"):
+            variants.append(
+                (
+                    "stata",
+                    b"<stata_dta><header><release>"
+                    + str(version).encode()
+                    + b"</release><byteorder>"
+                    + order
+                    + b"</byteorder>",
+                )
+            )
     # The ESE streaming subtype and future revisions do not require a fixed page-size list.
     ese = bytearray(668)
     struct.pack_into("<III", ese, 4, 0x89ABCDEF, 0x620, 1)

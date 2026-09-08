@@ -44,7 +44,9 @@ def test_reviewed_binary_headers_native(
     tmp_path, reviewed_binary_headers, reviewed_binary_header_variants
 ):
     root = Path(__file__).resolve().parents[3]
-    source = (root / "rules/rulesets/full/formats.yar").read_text()
+    source = "\n".join(
+        path.read_text() for path in sorted((root / "rules/rulesets").rglob("*.yar"))
+    )
     payloads, expected = [], []
     for label, header, minimum, invalid in reviewed_binary_headers:
         payloads.extend([header, header[: minimum - 1], *invalid])

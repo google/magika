@@ -26,7 +26,48 @@ def reviewed_binary_headers():
     mat = b"MATLAB 5.0 MAT-file".ljust(124, b" ") + b"\x00\x01IM"
     parquet_sink = pa.BufferOutputStream()
     pq.write_table(pa.table({"value": pa.array([], type=pa.int32())}), parquet_sink)
+    ese = bytearray(668)
+    struct.pack_into("<III", ese, 4, 0x89ABCDEF, 0x620, 0)
+    fits = b"".join(
+        card.ljust(80, b" ")
+        for card in (
+            b"SIMPLE  =                    T",
+            b"BITPIX  =                    8",
+            b"NAXIS   =                    0",
+            b"END",
+        )
+    ).ljust(2880, b" ")
+    shapefile = bytearray(112)
+    struct.pack_into(">I", shapefile, 0, 9994)
+    struct.pack_into(">I", shapefile, 24, 56)
+    struct.pack_into("<II", shapefile, 28, 1000, 0)
+    struct.pack_into(">II", shapefile, 100, 1, 2)
+    sav = bytearray(176)
+    sav[:4] = b"$FL2"
+    struct.pack_into("<III", sav, 64, 2, 0, 0)
+    vhd = bytearray(512)
+    vhd[:8] = b"conectix"
+    struct.pack_into(">II", vhd, 8, 2, 0x10000)
+    struct.pack_into(">I", vhd, 60, 3)
     cases = [
+        ("ese", bytes(ese), 668, [(8, bytes(4)), (12, struct.pack("<I", 2))]),
+        ("fits", fits, 2880, [(29, b"X"), (80, b"COMMENT "), (109, b"7")]),
+        ("llvm_bitcode", b"BC\xc0\xde\x35\x14\x00\x00", 8, [(4, bytes(4))]),
+        ("lrz", b"LRZI\x00\x06" + bytes(18), 24, [(4, b"\xff"), (5, b"\x00")]),
+        (
+            "postgres_dump",
+            b"PGDMP\x01\x0e\x00\x04\x08\x01" + bytes(20),
+            11,
+            [(5, b"\x00"), (8, b"\x00"), (8, b"\x21"), (9, b"\x00"), (10, b"\xff")],
+        ),
+        ("shapefile", bytes(shapefile), 108, [(24, bytes(4)), (32, struct.pack("<I", 2))]),
+        ("spss", bytes(sav), 176, [(64, bytes(4)), (72, struct.pack("<I", 3))]),
+        (
+            "vhd",
+            bytes(vhd),
+            512,
+            [(8, bytes(4)), (12, bytes(4)), (60, struct.pack(">I", 1)), (84, b"\x02")],
+        ),
         (
             "ace",
             struct.pack("<HHBH7sBBBBI8sB", 0, 27, 0, 0, b"**ACE**", 20, 20, 0, 0, 0, bytes(8), 0),
@@ -145,6 +186,16 @@ def reviewed_binary_headers():
             changed[offset : offset + len(value)] = value
             invalid.append(bytes(changed))
         result.append((label, header, minimum, invalid))
+    llvm_invalid = next(row[3] for row in result if row[0] == "llvm_bitcode")
+    llvm_invalid.extend(
+        [
+            bytes.fromhex("dec0170b") + bytes(4),
+            struct.pack("<4I", 0x0B17C0DE, 0, 16, 0) + bytes(4),
+            struct.pack("<4I", 0x0B17C0DE, 0, 0, 4) + bytes(4),
+        ]
+    )
+    spss_invalid = next(row[3] for row in result if row[0] == "spss")
+    spss_invalid.append(bytes.fromhex("c9c3e2c1") + bytes(459))
     # Optional LZ4 fields must be observed through the header checksum.
     lz4_invalid = next(row[3] for row in result if row[0] == "lz4")
     for flag, extra in ((0x61, 4), (0x68, 8), (0x69, 12)):
@@ -156,6 +207,57 @@ def reviewed_binary_headers():
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    # The ESE streaming subtype and future revisions do not require a fixed page-size list.
+    ese = bytearray(668)
+    struct.pack_into("<III", ese, 4, 0x89ABCDEF, 0x620, 1)
+    struct.pack_into("<II", ese, 232, 122, 0)
+    variants.append(("ese", bytes(ese)))
+    # Tolerate the historical third-card BITPIX layout and all defined pixel widths.
+    for bits in (b"8", b"16", b"32", b"64", b"-32", b"-64"):
+        cards = (
+            b"SIMPLE  =                    F",
+            b"COMMENT     legacy order",
+            b"BITPIX  = " + bits,
+            b"NAXIS   =                    0",
+            b"END",
+        )
+        variants.append(("fits", b"".join(c.ljust(80, b" ") for c in cards).ljust(2880, b" ")))
+    # LLVM can start with top-level abbreviations or records, and ignores wrapper version/CPU.
+    for first in (1, 2, 3, 0x35):
+        variants.append(("llvm_bitcode", b"BC\xc0\xde" + bytes([first]) + bytes(7)))
+    for offset in (16, 20, 4096):
+        variants.append(
+            (
+                "llvm_bitcode",
+                struct.pack("<4I", 0x0B17C0DE, 7, offset, 8)
+                + bytes(offset - 16)
+                + b"BC\xc0\xde\x35\x14\x00\x00",
+            )
+        )
+    # LRZIP 0.7 uses formerly unused flags, including encryption mode 3.
+    for minor in (2, 4, 5, 6, 7):
+        variants.append(("lrz", b"LRZI\x00" + bytes([minor]) + bytes(16) + b"\x03\x01"))
+    for minor in (0, 1, 6, 7, 14, 15, 17):
+        for fmt in (1, 3, 5):
+            header = b"PGDMP\x01" + bytes([minor]) + (b"\x00" if minor else b"")
+            header += b"\x04" + (b"\x08" if minor >= 7 else b"") + bytes([fmt])
+            variants.append(("postgres_dump", header + bytes(20)))
+    for endian in ("<", ">"):
+        for magic in (b"$FL2", b"$FL3"):
+            for layout in (2, 3):
+                for compression in (0, 1, 2):
+                    sav = bytearray(176)
+                    sav[:4] = magic
+                    struct.pack_into(endian + "III", sav, 64, layout, 0, compression)
+                    variants.append(("spss", bytes(sav)))
+    variants.append(("spss", bytes.fromhex("c9c3e2c1") + bytes(460)))
+    for kind in (2, 3, 4):
+        vhd = bytearray(512)
+        vhd[:8] = b"conectix"
+        struct.pack_into(">II", vhd, 8, 3, 0x10000)
+        struct.pack_into(">I", vhd, 60, kind)
+        vhd[84] = 1
+        variants.append(("vhd", bytes(vhd)))
     # Do not freeze ACE creator/extractor versions or host identifiers to today's list.
     for version in (10, 11, 12, 13, 20, 22):
         variants.append(

@@ -369,3 +369,43 @@ other lane's single assigned label and verified against each file's size/SHA-256
 This focused compatibility check does not replace the accumulated cross-class
 zero-observed-FP gate. No runtime code, new I/O, corpus source or dataset commit
 changed in this batch.
+
+## ESE, FITS, LLVM, LRZIP, PostgreSQL, shapefile, SPSS and VHD review
+
+Each rule was compared directly with its inherited signatures and a format reader
+or specification. The changes use the existing bounded rule language.
+
+| Format | Review decision | Retained matches / supplied positives |
+| --- | --- | --- |
+| ESE | Require the complete 668-byte documented header, nonzero format version and database/stream subtype. Keep the inherited zero field at offset 132, and leave revision/page-size values unrestricted. | 16 / 16 |
+| FITS | Require one 2880-byte header block, a logical SIMPLE value and a legal BITPIX value on the second or third card. Preserve the inherited second-card spacing check, SIMPLE=F, flexible value positioning and all six pixel widths. | 100 / 100 |
+| LLVM bitcode | Require word-aligned file size. Raw bitstreams reject an initial END_BLOCK but permit subblocks, abbreviations and records. Wrappers require the offset/size fields and room for embedded magic; do not constrain ignored wrapper versions or assume a 20-byte payload offset. | 465 / 465 |
+| LRZIP | Require the 24-byte header, major zero and a nonzero minor version. Keep minor versions open and do not impose old reserved-field values on newer streaming/encryption flags. | 4 / 4 |
+| PostgreSQL dump | Check major version, integer widths and custom/tar/directory format. Distinguish 1.0's missing revision byte and the offset-width byte introduced in 1.7; keep newer minor versions. | 49 / 49 |
+| Shapefile | Preserve PRONOM's main/index first-entry distinction while requiring 108 bytes, legal header shape type and a minimum file length. Empty-header-only files remain outside the existing rule's coverage. | 100 / 100 |
+| SPSS | Require the 176-byte SAV/ZSAV header, layout 2/3, legal compression and consistent byte order. Raise the inherited portable alternative's floor to its 464-byte logical header; no translated portable-header parser was added. | 163 / 163 |
+| VHD | Require a complete 512-byte leading footer copy, version 1.0, defined feature/type values and a legal saved-state flag. Trailing-footer-only fixed disks remain outside the prefix rule's coverage. | 7 / 7 |
+
+Sources: libyal's [ESE format documentation](https://github.com/libyal/libesedb/blob/main/documentation/Extensible%20Storage%20Engine%20(ESE)%20Database%20File%20(EDB)%20format.asciidoc),
+[CFITSIO](https://github.com/HEASARC/cfitsio/blob/develop/fitscore.c),
+[LLVM bitcode format](https://llvm.org/docs/BitCodeFormat.html) and
+[wrapper reader](https://github.com/llvm/llvm-project/blob/main/llvm/include/llvm/Bitcode/BitcodeReader.h),
+[LRZIP header layouts](https://github.com/ckolivas/lrzip/blob/master/doc/magic.header.txt),
+[PostgreSQL ReadHead](https://github.com/postgres/postgres/blob/master/src/bin/pg_dump/pg_backup_archiver.c),
+[ESRI shapefile specification](https://www.esri.com/library/whitepapers/pdfs/shapefile.pdf),
+[ReadStat SAV header](https://github.com/WizardMac/ReadStat/blob/master/src/spss/readstat_sav.h),
+[ReadStat portable reader](https://github.com/WizardMac/ReadStat/blob/master/src/spss/readstat_por_read.c)
+and [QEMU's VHD reader](https://github.com/qemu/qemu/blob/master/block/vpc.c).
+Pinned libmagic/PRONOM source identifiers remain attached to each rule.
+
+Eight regressions failed before the changes. Forty shared header, variant and
+native/YARA-X tests then passed in 5.96 seconds. These exercise truncated headers,
+invalid fields, historical layouts, byte orders and newer flags. Existing corpus
+observation retained all 904 distinct positives with no conflicts, reference errors
+or native/YARA-X mismatches: 476 baseline files plus 452 validated candidates minus
+24 duplicate hashes. Candidate labels came from the other lane's single assigned
+label; all sample bytes were checked against size and SHA-256, without changing the
+corpus. Cross-class false-positive evaluation remains the final accumulated gate.
+These are prefix identifiers, not checksum, offset-target, image, archive or
+statistical-data validators. No supplied positive currently qualifies the inherited
+SPSS portable alternative beyond its signature and header-length regression.

@@ -467,12 +467,12 @@ rule taxonomy_ese
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { ef cd ab 89 }
-		$p1_0 = { 00 00 00 00 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 8 and $p0_0 at 4) and (prefix_size >= 136 and $p1_0 at 132)))
+    // ESE database/stream header; keep revisions and page sizes unrestricted.
+    strings:
+        $magic = { EF CD AB 89 }
+    condition:
+        prefix_size >= 668 and $magic at 4 and uint32(8) >= 1 and
+        uint32(12) <= 1 and uint32(132) == 0
 }
 
 rule taxonomy_fbx
@@ -503,12 +503,13 @@ rule taxonomy_fits
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "SIMPLE  ="
-		$p1_0 = { 20 20 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 9 and original_size >= 9 and $p0_0 at 0) and (prefix_size >= 91 and $p1_0 at 89)))
+    // One complete FITS header block, SIMPLE value and second/third-card BITPIX.
+    strings:
+        $simple = /SIMPLE  = {1,20}[TF][ \/]/
+        $bitpix = /BITPIX  = {1,20}(8|16|32|64|-32|-64)[ \/]/
+    condition:
+        prefix_size >= 2880 and $simple at 0 and uint16be(89) == 0x2020 and
+        ($bitpix at 80 or $bitpix at 160)
 }
 
 rule taxonomy_flv
@@ -672,12 +673,15 @@ rule taxonomy_llvm_bitcode
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 42 43 c0 de }
-		$p1_0 = { de c0 17 0b }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0)))
+    // Raw streams cannot begin with END_BLOCK. Wrappers carry offset/size before payload.
+    strings:
+        $raw = { 42 43 C0 DE }
+        $wrapper = { DE C0 17 0B }
+    condition:
+        original_size % 4 == 0 and
+        ((prefix_size >= 8 and $raw at 0 and
+          (uint8(4) % 4 == 1 or uint8(4) % 4 == 2 or uint8(4) % 4 == 3)) or
+         (prefix_size >= 20 and $wrapper at 0 and uint32(8) >= 16 and uint32(12) >= 4))
 }
 
 rule taxonomy_lnk
@@ -707,11 +711,11 @@ rule taxonomy_lrz
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "LRZI"
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    // LRZIP's 24-byte version-zero header; newer minor versions reuse flag bytes.
+    strings:
+        $magic = "LRZI"
+    condition:
+        prefix_size >= 24 and $magic at 0 and uint8(4) == 0 and uint8(5) >= 1
 }
 
 rule taxonomy_lz
@@ -896,11 +900,17 @@ rule taxonomy_postgres_dump
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 50 47 44 4d 50 }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 5 and $p0_0 at 0))
+    // PostgreSQL 1.0 omits revision; 1.7 adds offset width. Keep newer minor versions.
+    strings:
+        $magic = "PGDMP"
+        $format = { (01 | 03 | 05) }
+    condition:
+        prefix_size >= 9 and $magic at 0 and uint8(5) == 1 and
+        ((uint8(6) == 0 and uint8(7) >= 1 and uint8(7) <= 32 and $format at 8) or
+         (prefix_size >= 10 and uint8(6) >= 1 and uint8(6) <= 6 and
+          uint8(8) >= 1 and uint8(8) <= 32 and $format at 9) or
+         (prefix_size >= 11 and uint8(6) >= 7 and uint8(8) >= 1 and uint8(8) <= 32 and
+          uint8(9) >= 1 and uint8(9) <= 32 and $format at 10))
 }
 
 rule taxonomy_psd
@@ -1048,12 +1058,15 @@ rule taxonomy_shapefile
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = /(\x00){2}\x27\x0a(\x00){20}(([\x00-\xff]){4}\xe8\x03(\x00){2})(([\x00-\xff]){68}(\x00){3}\x01)/
-		$p1_0 = /(\x00){2}\x27\x0a(\x00){20}(([\x00-\xff]){4}\xe8\x03(\x00){2})(([\x00-\xff]){68}(\x00){3}\x32)/
-
-	condition:
-		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0)))
+    // PRONOM main/index signatures plus complete first record/entry and legal header type.
+    strings:
+        $header = { 00 00 27 0A [20] ?? ?? ?? ?? E8 03 00 00 }
+        $reserved = { 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 }
+        $shape = { (00 | 01 | 03 | 05 | 08 | 0B | 0D | 0F | 12 | 15 | 17 | 19 | 1C | 1F) 00 00 00 }
+        $first = { 00 00 00 (01 | 32) }
+    condition:
+        prefix_size >= 108 and $header at 0 and $reserved at 4 and $shape at 32 and
+        uint32be(24) >= 54 and $first at 100
 }
 
 rule taxonomy_sketchup
@@ -1109,13 +1122,15 @@ rule taxonomy_spss
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "$FL3"
-		$p1_0 = { c9 c3 e2 c1 }
-		$p2_0 = "$FL2"
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0)))
+    // SAV/ZSAV fixed header, byte order, layout and compression. Portable header is larger.
+    strings:
+        $sav = { 24 46 4C (32 | 33) }
+        $portable = { C9 C3 E2 C1 }
+    condition:
+        (prefix_size >= 176 and $sav at 0 and
+         (((uint32(64) == 2 or uint32(64) == 3) and uint32(72) <= 2) or
+          ((uint32be(64) == 2 or uint32be(64) == 3) and uint32be(72) <= 2))) or
+        (prefix_size >= 464 and $portable at 0)
 }
 
 rule taxonomy_swf
@@ -1173,11 +1188,13 @@ rule taxonomy_vhd
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "conectix"
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0))
+    // Complete leading copy of the VHD footer; fixed images with only a trailing footer abstain.
+    strings:
+        $magic = "conectix"
+    condition:
+        prefix_size >= 512 and $magic at 0 and
+        (uint32be(8) == 2 or uint32be(8) == 3) and uint32be(12) == 0x10000 and
+        uint32be(60) >= 2 and uint32be(60) <= 4 and uint8(84) <= 1
 }
 
 rule taxonomy_wad

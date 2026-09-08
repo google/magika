@@ -60,10 +60,13 @@ pub(super) struct Api {
     free_scratch: Free,
     platform: Platform,
     version: String,
-    library: Library,
+    library: std::mem::ManuallyDrop<Library>,
 }
 
 fn load_library(path: &std::ffi::OsStr) -> Result<Library> {
+    #[cfg(feature = "_mmap-spike")]
+    let _startup_span = crate::startup_trace::span("native_library_dlopen");
+
     #[cfg(windows)]
     {
         use libloading::os::windows::{
@@ -90,6 +93,9 @@ fn load_library(path: &std::ffi::OsStr) -> Result<Library> {
 
 impl Api {
     pub(super) fn load() -> Result<Arc<Self>> {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("native_api_load_total");
+
         let name = if cfg!(target_os = "macos") {
             "libhs.dylib"
         } else if cfg!(target_os = "windows") {
@@ -125,7 +131,7 @@ impl Api {
                 free_scratch: *library.get::<Free>(b"hs_free_scratch")?,
                 version: CStr::from_ptr(version()).to_string_lossy().into_owned(),
                 platform,
-                library,
+                library: std::mem::ManuallyDrop::new(library),
             }))
         }
     }
@@ -185,8 +191,13 @@ impl Api {
             bail!("Vectorscan compilation failed: {message}");
         }
         ensure!(!db.is_null(), "Vectorscan returned a null database");
-        Ok(Arc::new(Database { db, api: self.clone(), outputs: program.outputs,
-            #[cfg(all(feature = "_mmap-spike", unix))] mapping: None }))
+        Ok(Arc::new(Database {
+            db,
+            api: self.clone(),
+            outputs: program.outputs,
+            #[cfg(all(feature = "_mmap-spike", unix))]
+            mapping: None,
+        }))
     }
 
     #[cfg(all(feature = "_mmap-spike", unix))]
@@ -203,26 +214,49 @@ impl Api {
         let bytecode = word(36);
         ensure!(word(0) == 0xdbdbdbdb, "invalid native image magic");
         ensure!(length.checked_add(104) == Some(payload.len()), "invalid native image length");
-        ensure!(bytecode == 64 && bytecode + length <= payload.len(), "invalid native image alignment/offset");
+        ensure!(
+            bytecode == 64 && bytecode + length <= payload.len(),
+            "invalid native image alignment/offset"
+        );
         let db = payload.as_ptr() as *mut c_void;
         ensure!((db as usize) % 64 == 0, "unaligned native image");
         type Size = unsafe extern "C" fn(*const c_void, *mut usize) -> c_int;
         let size = unsafe { self.library.get::<Size>(b"hs_database_size")? };
         let mut reported = 0;
-        ensure!(unsafe { size(db, &mut reported) } == 0 && reported == payload.len(), "incompatible native image");
+        ensure!(
+            unsafe { size(db, &mut reported) } == 0 && reported == payload.len(),
+            "incompatible native image"
+        );
         Ok(Arc::new(Database { db, api: self.clone(), outputs, mapping: Some(mapping) }))
     }
 
     pub(super) fn deserialize(
         self: &Arc<Self>, bytes: &[u8], outputs: Vec<Option<ContentType>>,
     ) -> Result<Arc<Database>> {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("native_deserialize");
         type Deserialize = unsafe extern "C" fn(*const c_char, usize, *mut *mut c_void) -> c_int;
         let deserialize = unsafe { self.library.get::<Deserialize>(b"hs_deserialize_database")? };
         let mut db = ptr::null_mut();
         let code = unsafe { deserialize(bytes.as_ptr().cast(), bytes.len(), &mut db) };
         ensure!(code == 0 && !db.is_null(), "Vectorscan database deserialization failed: {code}");
-        Ok(Arc::new(Database { db, api: self.clone(), outputs,
-            #[cfg(all(feature = "_mmap-spike", unix))] mapping: None }))
+        Ok(Arc::new(Database {
+            db,
+            api: self.clone(),
+            outputs,
+            #[cfg(all(feature = "_mmap-spike", unix))]
+            mapping: None,
+        }))
+    }
+}
+
+impl Drop for Api {
+    fn drop(&mut self) {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("native_library_dlclose");
+        unsafe {
+            std::mem::ManuallyDrop::drop(&mut self.library);
+        }
     }
 }
 
@@ -288,18 +322,36 @@ impl Database {
         let size = unsafe { self.api.library.get::<Size>(b"hs_serialized_database_size")? };
         let at = unsafe { self.api.library.get::<At>(b"hs_deserialize_database_at")? };
         let mut length = 0;
-        ensure!(unsafe { size(serialized.as_ptr().cast(), serialized.len(), &mut length) } == 0
-            && length <= super::cache::MAX_DATABASE_SIZE, "invalid image size");
+        ensure!(
+            unsafe { size(serialized.as_ptr().cast(), serialized.len(), &mut length) } == 0
+                && length <= super::cache::MAX_DATABASE_SIZE,
+            "invalid image size"
+        );
         let mut pointer = ptr::null_mut();
-        ensure!(unsafe { libc::posix_memalign(&mut pointer, 64, length) } == 0, "image allocation failed");
+        ensure!(
+            unsafe { libc::posix_memalign(&mut pointer, 64, length) } == 0,
+            "image allocation failed"
+        );
         struct Aligned(*mut c_void);
-        impl Drop for Aligned { fn drop(&mut self) { unsafe { libc::free(self.0); } } }
+        impl Drop for Aligned {
+            fn drop(&mut self) {
+                unsafe {
+                    libc::free(self.0);
+                }
+            }
+        }
         let aligned = Aligned(pointer);
-        ensure!(unsafe { at(serialized.as_ptr().cast(), serialized.len(), aligned.0) } == 0, "image construction failed");
+        ensure!(
+            unsafe { at(serialized.as_ptr().cast(), serialized.len(), aligned.0) } == 0,
+            "image construction failed"
+        );
         Ok(unsafe { std::slice::from_raw_parts(aligned.0.cast(), length) }.to_vec())
     }
 
     pub(super) fn worker(self: &Arc<Self>) -> Result<Worker> {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("native_scratch_allocate");
+
         let mut scratch = ptr::null_mut();
         let code = unsafe { (self.api.alloc)(self.db, &mut scratch) };
         ensure!(code == 0 && !scratch.is_null(), "Vectorscan scratch allocation failed: {code}");
@@ -309,8 +361,13 @@ impl Database {
 
 impl Drop for Database {
     fn drop(&mut self) {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("native_database_free");
+
         #[cfg(all(feature = "_mmap-spike", unix))]
-        if self.mapping.is_some() { return; }
+        if self.mapping.is_some() {
+            return;
+        }
         unsafe {
             (self.api.free_db)(self.db);
         }
@@ -324,6 +381,9 @@ pub(super) struct Worker {
 
 impl Drop for Worker {
     fn drop(&mut self) {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("native_scratch_free");
+
         unsafe {
             (self.database.api.free_scratch)(self.scratch);
         }
@@ -352,6 +412,9 @@ unsafe extern "C" fn matched(id: u32, _: u64, _: u64, _: u32, context: *mut c_vo
 
 impl Worker {
     pub(super) fn scan(&mut self, prefix: &[u8], original_size: u64) -> Decision {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("native_scan");
+
         if original_size > i64::MAX as u64
             || prefix.is_empty()
             || prefix.len() != original_size.min(super::PREFIX_LIMIT as u64) as usize

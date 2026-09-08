@@ -27,10 +27,16 @@ struct Manifest {
 }
 
 fn key(source: &str) -> String {
+    #[cfg(feature = "_mmap-spike")]
+    let _startup_span = crate::startup_trace::span("rules_cache_identity");
+
     let mut hash = Sha256::new();
     hash.update((super::PREFIX_LIMIT as u64).to_le_bytes());
     #[cfg(all(feature = "_mmap-spike", unix))]
-    if super::mapped::enabled() { hash.update(b"mapped-image-v1"); hash.update(include_bytes!("mapped.rs")); }
+    if super::mapped::enabled() {
+        hash.update(b"mapped-image-v1");
+        hash.update(include_bytes!("mapped.rs"));
+    }
     // Source and compiler identity are available without constructing an AST or program.
     // Parser/regex versions are pinned; bump this identity when changing those pins.
     for part in [
@@ -52,6 +58,9 @@ fn key(source: &str) -> String {
 // Cover the output mapping and engine identity as well as the native bytes. This detects
 // corruption; packs/cache directories are trusted configuration, not authenticated input.
 fn checksum(manifest: &Manifest, payload: &[u8]) -> Result<String> {
+    #[cfg(feature = "_mmap-spike")]
+    let _startup_span = crate::startup_trace::span("rules_payload_checksum");
+
     let mut hash = Sha256::new();
     hash.update(serde_json::to_vec(&(&manifest.key, &manifest.engine, &manifest.labels))?);
     hash.update(payload);
@@ -75,6 +84,9 @@ pub(super) fn default_directory() -> Option<PathBuf> {
 }
 
 fn prepare_directory(path: &Path) -> Result<()> {
+    #[cfg(feature = "_mmap-spike")]
+    let _startup_span = crate::startup_trace::span("cache_directory_prepare");
+
     let mut builder = std::fs::DirBuilder::new();
     builder.recursive(true);
     #[cfg(unix)]
@@ -99,6 +111,9 @@ fn prepare_directory(path: &Path) -> Result<()> {
 
 #[cfg(unix)]
 fn validate_ancestors(path: &Path) -> Result<()> {
+    #[cfg(feature = "_mmap-spike")]
+    let _startup_span = crate::startup_trace::span("cache_ancestor_checks");
+
     use std::os::unix::fs::MetadataExt;
     let uid = unsafe { libc::geteuid() };
     let path = std::fs::canonicalize(path)?;
@@ -158,9 +173,14 @@ fn lock_with_deadline(file: &File) -> Result<()> {
 }
 
 fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
+    #[cfg(feature = "_mmap-spike")]
+    let _startup_span = crate::startup_trace::span("rules_pack_read_total");
+
     let mut file = open_cache_file(path, false)?;
     #[cfg(all(feature = "_mmap-spike", unix))]
-    if super::mapped::enabled() { return read_mapped(file, expected_key); }
+    if super::mapped::enabled() {
+        return read_mapped(file, expected_key);
+    }
     let mut magic = [0; 9];
     file.read_exact(&mut magic)?;
     ensure!(&magic == MAGIC, "invalid rules cache version");
@@ -173,8 +193,12 @@ fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
     let manifest: Manifest = serde_json::from_slice(&bytes)?;
     ensure!(manifest.key == expected_key, "cache source/compiler identity mismatch");
     ensure!(manifest.labels.len() <= 100_000, "invalid output mapping size");
+    #[cfg(feature = "_mmap-spike")]
+    let _payload_read = crate::startup_trace::span("serialized_payload_read");
     let mut payload = Vec::new();
     file.take(MAX_DATABASE_SIZE as u64 + 1).read_to_end(&mut payload)?;
+    #[cfg(feature = "_mmap-spike")]
+    drop(_payload_read);
     ensure!(payload.len() <= MAX_DATABASE_SIZE, "invalid native payload size");
     ensure!(checksum(&manifest, &payload)? == manifest.checksum, "cache checksum mismatch");
     let database = if payload.is_empty() {
@@ -204,9 +228,15 @@ fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
 
 #[cfg(all(feature = "_mmap-spike", unix))]
 fn read_mapped(file: File, expected_key: &str) -> Result<super::RuleSet> {
+    #[cfg(feature = "_mmap-spike")]
+    let _startup_span = crate::startup_trace::span("mapped_pack_read_total");
+
     let mapping = super::mapped::Mapping::new(&file)?;
     let bytes = mapping.bytes();
-    ensure!(bytes.len() >= 13 && &bytes[..9] == super::mapped::MAGIC, "invalid mapped pack version");
+    ensure!(
+        bytes.len() >= 13 && &bytes[..9] == super::mapped::MAGIC,
+        "invalid mapped pack version"
+    );
     let length = u32::from_le_bytes(bytes[9..13].try_into().unwrap()) as usize;
     ensure!(length <= MAX_MANIFEST_SIZE && 13 + length <= bytes.len(), "invalid mapped manifest");
     let manifest: Manifest = serde_json::from_slice(&bytes[13..13 + length])?;
@@ -215,15 +245,30 @@ fn read_mapped(file: File, expected_key: &str) -> Result<super::RuleSet> {
     let offset = (13 + length).next_multiple_of(super::mapped::ALIGNMENT);
     ensure!(offset <= bytes.len(), "truncated mapped pack");
     let payload = &bytes[offset..];
-    ensure!(payload.len() <= MAX_DATABASE_SIZE && checksum(&manifest, payload)? == manifest.checksum,
-        "mapped checksum/length mismatch");
+    ensure!(
+        payload.len() <= MAX_DATABASE_SIZE && checksum(&manifest, payload)? == manifest.checksum,
+        "mapped checksum/length mismatch"
+    );
     let database = if payload.is_empty() {
-        ensure!(manifest.labels.is_empty() && manifest.engine == "empty", "invalid empty mapped pack");
+        ensure!(
+            manifest.labels.is_empty() && manifest.engine == "empty",
+            "invalid empty mapped pack"
+        );
         None
     } else {
-        let outputs = manifest.labels.iter().map(|label| label.as_deref().map(|label|
-            crate::ContentType::from_label(label).ok_or_else(|| anyhow::anyhow!("invalid mapped label")))
-            .transpose()).collect::<Result<Vec<_>>>()?;
+        let outputs = manifest
+            .labels
+            .iter()
+            .map(|label| {
+                label
+                    .as_deref()
+                    .map(|label| {
+                        crate::ContentType::from_label(label)
+                            .ok_or_else(|| anyhow::anyhow!("invalid mapped label"))
+                    })
+                    .transpose()
+            })
+            .collect::<Result<Vec<_>>>()?;
         ensure!(outputs.iter().any(Option::is_some), "mapped pack needs a terminal label");
         let api = Api::load()?;
         ensure!(manifest.engine == api.identity(), "mapped engine/CPU identity mismatch");
@@ -251,7 +296,8 @@ fn write_payload(
     temporary.write_all(&manifest)?;
     #[cfg(all(feature = "_mmap-spike", unix))]
     if super::mapped::enabled() {
-        let padding = (13 + manifest.len()).next_multiple_of(super::mapped::ALIGNMENT) - 13 - manifest.len();
+        let padding =
+            (13 + manifest.len()).next_multiple_of(super::mapped::ALIGNMENT) - 13 - manifest.len();
         temporary.write_all(&vec![0; padding])?;
     }
     #[cfg(test)]
@@ -280,12 +326,17 @@ fn compile(source: &str, output: Option<(&Path, String, bool)>) -> Result<super:
     };
     if let Some((path, key, replace)) = output {
         let write = || {
-            let payload =
-                database.as_ref().map(|db| {
+            let payload = database
+                .as_ref()
+                .map(|db| {
                     #[cfg(all(feature = "_mmap-spike", unix))]
-                    if super::mapped::enabled() { return db.image(); }
+                    if super::mapped::enabled() {
+                        return db.image();
+                    }
                     db.serialize()
-                }).transpose()?.unwrap_or_default();
+                })
+                .transpose()?
+                .unwrap_or_default();
             write_payload(path, key, engine, labels, &payload, replace)
         };
         if replace {
@@ -755,7 +806,7 @@ mod mapped_tests {
         let valid = std::fs::read(&image).unwrap();
         assert!(read(&image, &key(source)).unwrap().loaded_from_cache());
         assert!(read(&image, "wrong-source").is_err());
-        for data in [valid[..12].to_vec(), valid[..valid.len()-1].to_vec(), {
+        for data in [valid[..12].to_vec(), valid[..valid.len() - 1].to_vec(), {
             let mut bad = valid.clone();
             *bad.last_mut().unwrap() ^= 1;
             bad
@@ -766,9 +817,21 @@ mod mapped_tests {
         std::fs::write(&image, &valid).unwrap();
         let changed = source.replace("MAGIKA_MMAP_TEST!", "MAGIKA_MMAP_NEXT!");
         std::fs::write(&source_path, changed).unwrap();
-        let refreshed = super::super::RuleSet::from_file_with_cache(&source_path, Some(&temp.path().join("cache"))).unwrap();
+        let refreshed = super::super::RuleSet::from_file_with_cache(
+            &source_path,
+            Some(&temp.path().join("cache")),
+        )
+        .unwrap();
         assert!(!refreshed.loaded_from_cache());
-        assert_eq!(refreshed.identify_input(b"MAGIKA_MMAP_NEXT!".as_slice()).unwrap(), Some(crate::ContentType::Png));
-        assert!(super::super::RuleSet::from_file_with_cache(&source_path, Some(&temp.path().join("cache"))).unwrap().loaded_from_cache());
+        assert_eq!(
+            refreshed.identify_input(b"MAGIKA_MMAP_NEXT!".as_slice()).unwrap(),
+            Some(crate::ContentType::Png)
+        );
+        assert!(super::super::RuleSet::from_file_with_cache(
+            &source_path,
+            Some(&temp.path().join("cache"))
+        )
+        .unwrap()
+        .loaded_from_cache());
     }
 }

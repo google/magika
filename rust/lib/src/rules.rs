@@ -51,12 +51,12 @@ mod cache;
 mod compiler;
 #[cfg(feature = "yara-rules")]
 mod engine;
+#[cfg(all(feature = "_mmap-spike", unix))]
+mod mapped;
 #[cfg(feature = "yara-rules")]
 mod metadata;
 #[cfg(feature = "yara-rules")]
 mod native;
-#[cfg(all(feature = "_mmap-spike", unix))]
-mod mapped;
 
 /// A compiled, shareable YARA pack executed by Vectorscan.
 ///
@@ -122,6 +122,9 @@ impl RuleSet {
     }
 
     fn read_source(path: &std::path::Path) -> Result<String> {
+        #[cfg(feature = "_mmap-spike")]
+        let _startup_span = crate::startup_trace::span("rules_source_read");
+
         use std::io::Read;
         let mut source = String::new();
         std::fs::File::open(path)?.take(4 * 1024 * 1024 + 1).read_to_string(&mut source)?;
@@ -146,11 +149,15 @@ impl RuleSet {
     /// A miss, conflict or scan failure returns `None`; input errors remain errors.
     /// Empty and short text inputs receive no implicit fallback classification.
     pub fn identify_input(&self, mut input: impl crate::Input) -> Result<Option<ContentType>> {
+        #[cfg(feature = "_mmap-spike")]
+        let _input_read = crate::startup_trace::span("input_prefix_read");
         let size = input.length()?;
         let mut prefix = vec![0; size.min(PREFIX_LIMIT as u64) as usize];
         if !prefix.is_empty() {
             input.read_at(&mut prefix, 0)?;
         }
+        #[cfg(feature = "_mmap-spike")]
+        drop(_input_read);
         Ok(self.identify(&prefix, size))
     }
 

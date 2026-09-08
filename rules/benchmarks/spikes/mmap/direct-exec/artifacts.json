@@ -1,0 +1,12 @@
+{
+  "cli-before-rules.json": "bc6c468467c8e462359d22d2989daff34082511d5b06751306df9f823c465cd9",
+  "diagnose.py.txt": "f34e81e5802fa2321b31465d26f31408a34da1364fc675b8b9faedcbda1863f6",
+  "report.md": "0000d5db72cf5a6e0b2a34fb9204b2afb70108f2e3e057ed153780211fb18803",
+  "rules-mapped-files-1-hits-natural.json": "d87a78f45f1cf90744186f3a2a29836e360df79f906a04d3264de5d58f1acd65",
+  "rules-mapped-files-10-hits-natural.json": "1ceb00b02ee4b795dfc5581377c9720098469dc73e7d05ba147a915e995afbb6",
+  "rules-mapped-files-1000-hits-natural.json": "c4e0fb1f8a0bda7358bc7b6d86bbdc7781b9df99ae11d0f3e1af6ba04d3b97af",
+  "rules-serialized-files-1-hits-natural.json": "6c41a2e9b19ea570613fa463ccebe4dd221e4577c5e2d689389ca087b4d05c45",
+  "rules-serialized-files-10-hits-natural.json": "13279c16d3ea03a79c98291d1ac9f87b41588fec643e18c8adcf44e5dc797efb",
+  "rules-serialized-files-1000-hits-natural.json": "d68337daa02687896f56554d978473c722e11943c342ee751d52f12b3a363d4e",
+  "summary.json": "44944885a20776a9bc1f4494913c52feb2b42862f6630447a4f05a8cb1026324"
+}

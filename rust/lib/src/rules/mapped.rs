@@ -3,9 +3,9 @@
 
 //! Unix-only experiment. The original serialized loader remains the default.
 
+use anyhow::{ensure, Result};
 use std::fs::File;
 use std::os::fd::AsRawFd;
-use anyhow::{ensure, Result};
 
 pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x01";
 pub(super) const ALIGNMENT: usize = 4096;
@@ -14,15 +14,32 @@ pub(super) fn enabled() -> bool {
     std::env::var_os("MAGIKA_RULES_MMAP_SPIKE").is_some_and(|x| x == "1")
 }
 
-pub(super) struct Mapping { pointer: *mut libc::c_void, length: usize }
+pub(super) struct Mapping {
+    pointer: *mut libc::c_void,
+    length: usize,
+}
 impl Mapping {
     pub(super) fn new(file: &File) -> Result<Self> {
         let length = usize::try_from(file.metadata()?.len())?;
-        ensure!(length > 0 && length <= super::cache::MAX_DATABASE_SIZE + 8 * 1024 * 1024,
-            "invalid mapped pack size");
-        let pointer = unsafe { libc::mmap(std::ptr::null_mut(), length, libc::PROT_READ,
-            libc::MAP_PRIVATE, file.as_raw_fd(), 0) };
-        ensure!(pointer != libc::MAP_FAILED, "map rules image: {}", std::io::Error::last_os_error());
+        ensure!(
+            length > 0 && length <= super::cache::MAX_DATABASE_SIZE + 8 * 1024 * 1024,
+            "invalid mapped pack size"
+        );
+        let pointer = unsafe {
+            libc::mmap(
+                std::ptr::null_mut(),
+                length,
+                libc::PROT_READ,
+                libc::MAP_PRIVATE,
+                file.as_raw_fd(),
+                0,
+            )
+        };
+        ensure!(
+            pointer != libc::MAP_FAILED,
+            "map rules image: {}",
+            std::io::Error::last_os_error()
+        );
         Ok(Self { pointer, length })
     }
     pub(super) fn bytes(&self) -> &[u8] {
@@ -31,7 +48,11 @@ impl Mapping {
     }
 }
 impl Drop for Mapping {
-    fn drop(&mut self) { unsafe { libc::munmap(self.pointer, self.length); } }
+    fn drop(&mut self) {
+        unsafe {
+            libc::munmap(self.pointer, self.length);
+        }
+    }
 }
 
 #[cfg(test)]

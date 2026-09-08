@@ -43,6 +43,9 @@ pub use crate::rules::{RulesMode, DEFAULT_RULES};
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
+#[cfg(feature = "_mmap-spike")]
+pub mod startup_trace;
+
 mod backend;
 mod builder;
 mod config;

@@ -80,7 +80,10 @@ fn checksum(manifest: &Manifest, payload: &[u8]) -> Result<String> {
 
     let mut hash = CacheHasher::new();
     hash.update(&serde_json::to_vec(&(&manifest.key, &manifest.engine, &manifest.labels))?);
+    #[cfg(not(feature = "_blake3-rayon-spike"))]
     hash.update(payload);
+    #[cfg(feature = "_blake3-rayon-spike")]
+    hash.update_rayon(payload);
     let digest = finish_hash(hash);
     #[cfg(feature = "_blake3-spike")]
     return Ok(format!("blake3:{digest}"));

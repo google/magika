@@ -11,7 +11,7 @@ from magika_rules_benchmark import comparison as c
 from magika_rules_benchmark import corpus
 
 
-def run(source, destination, hyperfine, binary=None, packs=None, rayon_threads=None):
+def run(source, destination, hyperfine, binary=None, packs=None):
     result = c.load_json(source / 'results.json')
     observations = c.load_json(source / 'observations.json.gz')
     assert observations['rules-serialized'] == observations['rules-mapped']
@@ -24,8 +24,6 @@ def run(source, destination, hyperfine, binary=None, packs=None, rayon_threads=N
     env = {'PATH': os.defpath, 'HOME': str(source / 'home'), 'TMPDIR': str(source / 'tmp'),
            'MAGIKA_RULES_CACHE': str(source / 'rule-cache'), 'LC_ALL': 'C', 'LANG': 'C', 'TZ': 'UTC',
            **result['config']['environment']}
-    if rayon_threads is not None:
-        env["RAYON_NUM_THREADS"] = str(rayon_threads)
     if binary:
         for tool in result['config']['tools']:
             tool['command'][2] = str(binary)
@@ -100,7 +98,6 @@ if __name__ == '__main__':
     parser.add_argument('hyperfine', type=Path)
     parser.add_argument('--binary', type=Path)
     parser.add_argument('--packs', type=Path)
-    parser.add_argument("--rayon-threads", type=int)
     args = parser.parse_args()
     run(args.source.resolve(), args.destination.resolve(), args.hyperfine.resolve(),
-        args.binary.resolve() if args.binary else None, args.packs.resolve() if args.packs else None, args.rayon_threads)
+        args.binary.resolve() if args.binary else None, args.packs.resolve() if args.packs else None)

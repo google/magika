@@ -1,14 +1,13 @@
 # Copyright 2026 Google LLC
 # SPDX-License-Identifier: Apache-2.0
 """Render the hash experiment from saved observations, without inferred verdicts."""
-import argparse
 import json
 from pathlib import Path
 
 from magika_rules_benchmark import corpus
 
 
-def render(root, blake3_label="BLAKE3"):
+def render(root):
     variants = ('sha256', 'blake3')
     sources = {name: root / name / 'startup/traces.json' for name in variants}
     traces = {name: json.loads(path.read_text()) for name, path in sources.items()}
@@ -39,15 +38,15 @@ def render(root, blake3_label="BLAKE3"):
                                     *(root / name / 'direct/summary.json' for name in variants)]},
               'stages_ms': rows, 'process_ms': process}
     corpus.atomic_json(root / 'comparison.json', result)
-    lines = [f'# {blake3_label} versus accelerated SHA-256', '',
+    lines = ['# BLAKE3 versus accelerated SHA-256', '',
              'Mapped rules on the recorded ARM64 macOS host. Stage medians from ten fresh-process '
              'traces on the same one-file rule hit. Inclusive spans overlap; do not add them.', '',
-             f'| Stage | ARM SHA-256 ms | {blake3_label} ms |', '|---|---:|---:|']
+             '| Stage | ARM SHA-256 ms | BLAKE3 ms |', '|---|---:|---:|']
     for row in rows:
         lines.append(f"| {row['stage']} | {row['sha256_ms']:.4f} | {row['blake3_ms']:.4f} |")
     lines += ['', 'Trace-disabled whole-process Hyperfine timings: twenty runs after one warmup, '
               'same saved natural workloads, warm OS caches. Ranges expose shared-host variability.', '',
-              f'| Files | ARM SHA-256 median ms (min–max) | {blake3_label} median ms (min–max) |',
+              '| Files | ARM SHA-256 median ms (min–max) | BLAKE3 median ms (min–max) |',
               '|---:|---:|---:|']
     for row in process:
         cells = [str(row['files'])]
@@ -68,8 +67,4 @@ def render(root, blake3_label="BLAKE3"):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parent / 'hash-comparison')
-    parser.add_argument('--blake3-label', default='BLAKE3')
-    args = parser.parse_args()
-    render(args.root, args.blake3_label)
+    render(Path(__file__).resolve().parent / 'hash-comparison')

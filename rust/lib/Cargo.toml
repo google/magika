@@ -22,6 +22,7 @@ yara-rules = ["dep:yara-x-parser", "dep:regex-syntax", "dep:libloading", "dep:se
 _mmap-spike = ["yara-rules"]
 _sha2-accel-spike = ["_mmap-spike", "sha2/asm"]
 _blake3-spike = ["_mmap-spike", "dep:blake3"]
+_blake3-rayon-spike = ["_blake3-spike", "blake3/rayon"]
 _doc = ["serde", "yara-rules"]
 
 [dependencies]

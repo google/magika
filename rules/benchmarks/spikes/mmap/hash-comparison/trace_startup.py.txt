@@ -15,7 +15,7 @@ from magika_rules_benchmark import comparison as c
 from magika_rules_benchmark import corpus
 
 
-def run(source, destination, binary, packs, rayon_threads=None):
+def run(source, destination, binary, packs):
     original = c.load_json(source / 'results.json')
     observations = c.load_json(source / 'observations.json.gz')['rules-mapped']
     samples = sorted(c.load_json(source / 'inputs.json.gz')['samples'], key=lambda s: s['sha256'])
@@ -27,8 +27,6 @@ def run(source, destination, binary, packs, rayon_threads=None):
     env = {'PATH': os.defpath, 'HOME': str(source / 'home'), 'TMPDIR': str(source / 'tmp'),
            'MAGIKA_RULES_CACHE': str(destination / 'cache'), 'LC_ALL': 'C', 'LANG': 'C', 'TZ': 'UTC',
            **original['config']['environment'], 'MAGIKA_STARTUP_TRACE': '1'}
-    if rayon_threads is not None:
-        env["RAYON_NUM_THREADS"] = str(rayon_threads)
     tools = {}
     for mode in ['serialized', 'mapped']:
         pack = packs / mode / 'rules.yar'
@@ -94,6 +92,5 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     for name in ['source', 'destination', 'binary', 'packs']:
         p.add_argument(name, type=Path)
-    p.add_argument("--rayon-threads", type=int)
     a = p.parse_args()
-    run(a.source.resolve(), a.destination.resolve(), a.binary.resolve(), a.packs.resolve(), a.rayon_threads)
+    run(a.source.resolve(), a.destination.resolve(), a.binary.resolve(), a.packs.resolve())

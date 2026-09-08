@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/debug/deps/magika-772eb7d781b31485)
+
+running 3 tests
+test rules::mapped::tests::mmap_spike_bounds_and_versions_are_checked_before_native_access ... ok
+test rules::mapped::tests::mmap_spike_image_is_relocatable_readonly_and_lives_with_worker ... ok
+test rules::cache::mapped_tests::mmap_spike_pack_validation_and_source_changes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.03s
+
+     Running tests/rules_loading.rs (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/debug/deps/rules_loading-f8ce99b5718923ab)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

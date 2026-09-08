@@ -137,3 +137,31 @@ absent from the available `libhs_runtime`; splitting compiler/runtime loading is
 separate compatibility change. The local runtime-only dylib also still links
 libc++, so its dependency footprint must be measured rather than inferred from
 upstream's generic documentation.
+
+## BLAKE3 comparison
+
+[Generated BLAKE3 versus ARM SHA-256 table](hash-comparison/comparison.md) records
+fresh measurements for both variants on the same saved inputs. BLAKE3 source is
+`fd3f13570876c904a94d245a9ab17d157048508d`; build with `_blake3-spike`. The pinned
+`blake3` 1.8.5 build selects NEON automatically on this little-endian ARM64 target.
+This variant uses BLAKE3 for both cache identities and manifest/payload checksums,
+with separate serialized/mapped pack versions and explicit digest prefixes.
+SHA-256 benchmark provenance hashes retain their existing encoding.
+
+Both mapped packs contain the same 1,633,536 native payload bytes, verified by
+identical payload digests in [receipt.json](hash-comparison/receipt.json). Two new
+tests failed before implementation and passed after it; all three native mapping,
+corruption and source-change tests passed. All 80 traced classifications and each
+1-, 10- and 1,000-file timed workload matched the saved observations. This focused
+experiment does not claim a new full-corpus replay or non-Mac performance results.
+
+BLAKE3's measured checksum span was 0.7593 ms versus accelerated SHA-256's 0.5460 ms.
+The corresponding one-file whole-process medians were 5.507 and 5.526 ms, with
+overlapping ranges. These observations do not establish an end-to-end startup win
+for BLAKE3 on this host. The default hash selection remains unchanged in the spike.
+
+Reproduce using `trace_startup.py` and `diagnose.py` with each receipt's binary and
+separately compiled pack directories. Place observations under
+`hash-comparison/{sha256,blake3}/{startup,direct}` in a fresh result tree, then run
+`hash_comparison.py` to derive JSON and Markdown. Existing observations are immutable.
+The scripts, commands, binary/pack hashes, raw timings, traces and TDD logs are retained.

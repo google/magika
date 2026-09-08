@@ -154,3 +154,15 @@ def test_status_does_not_create_state(tmp_path, capsys):
     external.main(["status", "--run-dir", str(tmp_path)])
     assert "complete" in capsys.readouterr().out
     assert not (tmp_path / "inventory.sqlite").exists()
+
+
+def test_reviewed_crosswalk_preserves_known_name_collisions():
+    from pathlib import Path
+
+    mapping = json.loads((Path(__file__).parents[1] / "config/sembiance-mapping.json").read_text())
+    assert "image/pcd" not in mapping  # Kodak Photo CD is not point-cloud PCD.
+    assert "image/srt" not in mapping  # Synthetic Arts is not SubRip.
+    assert "text/c" not in mapping  # Upstream explicitly groups C and C++.
+    assert mapping["text/pointCloudData"]["format_id"] == "pcd"
+    assert mapping["image/bigTIFF"]["format_id"] == "tiff"
+    assert mapping["archive/jarARJ"]["format_id"] != mapping["archive/jar"]["format_id"]

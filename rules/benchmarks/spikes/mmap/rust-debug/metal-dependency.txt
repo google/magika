@@ -1,0 +1,4 @@
+tract-metal v0.23.4
+└── magika-tract-runtime v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/tract-runtime)
+    └── magika v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/lib)
+        └── magika-cli v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/cli)

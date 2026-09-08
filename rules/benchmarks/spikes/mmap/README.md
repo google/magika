@@ -227,3 +227,12 @@ The native Hyperfine timer now records boundaries for the very same child traces
 Before-main averages 3.09 ms, main 1.51 ms and trace/exit/wakeup 0.65 ms, totaling
 5.24 ms with tracing. The untraced median is 4.55 ms. The major remaining bucket is
 before-main startup; its framework/loader/scheduler split is not yet isolated.
+
+## Rust debugger inspection
+
+[Rust LLDB startup stacks and dependency findings](rust-debug/README.md) show 347
+images present before the first Rust main statement, including ML/GPU frameworks.
+The debugger observes Objective-C initialization called from dyld before Rust main.
+Cargo confirms unconditional `magika-tract-runtime -> tract-metal` linkage on macOS.
+This identifies an eager-loading target; the marginal timing saving needs a build
+that removes that dependency chain. Debugger pauses are not used as benchmark data.

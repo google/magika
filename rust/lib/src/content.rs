@@ -3273,7 +3273,8 @@ pub enum ContentType {
 impl ContentType {
     pub(crate) const SIZE: usize = 293;
 
-    /// Looks up an exact, canonical Magika label.
+    /// Looks up an exact, canonical content label for a regular file.
+    /// Filesystem labels `directory` and `symlink` belong to `FileType` and return `None`.
     pub fn from_label(label: &str) -> Option<Self> {
         Some(match label {
             "3dsm" => Self::_3dsm,

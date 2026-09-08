@@ -12,6 +12,15 @@ GPU implementation is Metal. CUDA can be compiled on supported systems with the 
 Callers do not select Metal or CUDA directly; the resolved implementation is available through
 `BackendInfo` for verbose diagnostics.
 
+Automatic selection attempts GPU preparation and its correctness probe, then falls
+back to CPU if either fails. It reports the selected backend through `BackendInfo`;
+it does not retain a diagnostic history of rejected GPU candidates. Request `Gpu`
+explicitly when GPU initialization or probe errors need to reach the caller.
+Preparation is synchronous and has no driver timeout. Explicit `Cpu` skips GPU
+initialization entirely. Startup latency and steady-state throughput are separate
+measurements in the existing benchmark; a faster GPU inference rate alone does not
+establish lower latency for a short command.
+
 Inference is synchronous. Async file reading and batch accumulation belong above this crate, so
 CPU- or GPU-bound model execution never occupies an async executor thread.
 

@@ -222,3 +222,11 @@ On CPU, a declared maximum batch retains one model plan. Partial batches are pad
 plan and padding outputs are discarded, avoiding extra unfused plans and their retained buffers.
 When traversal fills the bounded output window, it requests a batch flush after the outstanding
 reads complete. Scheduling delays never trigger partial inference batches.
+
+CPU session buffers scale with the inference worker count and batch size; sharing
+model plans does not share each worker's mutable execution buffers. The default CPU
+worker count follows available parallelism (including CPU quota and affinity),
+capped at 256. On x86_64 Linux it uses all available logical CPUs up to that cap;
+other targets reserve one when possible. `--threads` and `--batch-size` control
+the concurrency and batch size when memory is constrained. GPU concurrency has a
+separate, smaller default limit. Reducing these settings also changes throughput.

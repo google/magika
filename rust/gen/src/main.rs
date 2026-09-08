@@ -101,7 +101,8 @@ fn generate_content_types(
     writeln!(output, "}}\n")?;
     writeln!(output, "impl ContentType {{")?;
     writeln!(output, "    pub(crate) const SIZE: usize = {};\n", variants.len())?;
-    writeln!(output, "    /// Looks up an exact, canonical Magika label.")?;
+    writeln!(output, "    /// Looks up an exact, canonical content label for a regular file.")?;
+    writeln!(output, "    /// Filesystem labels `directory` and `symlink` belong to `FileType` and return `None`.")?;
     writeln!(output, "    pub fn from_label(label: &str) -> Option<Self> {{")?;
     writeln!(output, "        Some(match label {{")?;
     for Variant { label, .. } in &variants {

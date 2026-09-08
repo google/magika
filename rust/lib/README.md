@@ -14,6 +14,11 @@ The optional `yara-rules` feature exposes `RulesMode`, `RuleSet` and rule-aware 
 extraction. Rules are off by default. `Builder::with_rules_mode(RulesMode::Enforce)`
 loads bundled rules and reports initialization errors, including a missing native
 Vectorscan library. `Builder::with_ruleset()` selects an explicitly loaded pack.
+The selected pack is retained by the runtime and its sessions; a custom pack replaces
+the bundled selection. For caller-managed batching, `FeaturesOrRuled` separates rule
+results from rows passed to `Session::identify_features_batch()`. A `Ruled` result
+already contains its `ContentType` and needs no model call. The CLI uses this same
+extraction boundary while managing ordered output and batches itself.
 Full and partial enabled rules may decide a label; missed or conflicting matches
 fall through to the existing pipeline. A deterministic score of 1 is not a
 probability or proof that the complete file is valid.

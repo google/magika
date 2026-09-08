@@ -64,6 +64,12 @@ Cache-lock contention waits at most one second before compiling without a cache 
 Old source/compiler entries are retained; remove disposable cache entries only while
 no Magika process is using that cache, so active lock files are not replaced.
 
+Scanning reuses one native scratch allocation per thread for its current pack.
+Switching that thread to a different `RuleSet` replaces the scratch and keeps the
+new database alive while it is in use. The CLI uses one pack per run. Applications
+that alternate packs on one thread pay for that replacement; scratch for every
+previously visited pack is not retained.
+
 Terminals require a canonical Magika `label`, `enforced`, `class`, `fp_rate` and
 `fn_rate`. Active full rules require both rates zero; partial rules require FP rate
 zero and FN rate strictly between zero and one. Rates are fractions. The build checks

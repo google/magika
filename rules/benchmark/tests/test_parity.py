@@ -41,7 +41,7 @@ def scan(tmp_path, source, payloads):
 
 
 def test_reviewed_binary_headers_native(
-    tmp_path, reviewed_binary_headers, reviewed_binary_header_variants
+    tmp_path, reviewed_binary_headers, reviewed_binary_header_variants, dex_only_archives
 ):
     root = Path(__file__).resolve().parents[3]
     source = "\n".join(
@@ -54,6 +54,8 @@ def test_reviewed_binary_headers_native(
     for label, header in reviewed_binary_header_variants:
         payloads.append(header)
         expected.append(label)
+    payloads.extend(dex_only_archives.values())
+    expected.extend([None] * len(dex_only_archives))
     assert [row["rule_prediction"] for row in scan(tmp_path, source, payloads)] == expected
 
 

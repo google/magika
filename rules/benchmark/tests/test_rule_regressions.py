@@ -85,6 +85,14 @@ def test_reviewed_binary_header_variants(scan_rules, reviewed_binary_header_vari
         assert scan_rules(header) == {label}, (label, header.hex())
 
 
+@pytest.mark.parametrize("compression", [0, 8])
+@pytest.mark.parametrize("jar_manifest", [False, True])
+def test_dex_archive_without_android_manifest_is_not_apk(
+    scan_rules, compression, jar_manifest, dex_only_archives
+):
+    assert "apk" not in scan_rules(dex_only_archives[compression, jar_manifest])
+
+
 @pytest.mark.parametrize("brand,label", [(b"3gp6", "3gp"), (b"avif", "avif"), (b"heic", "heif")])
 def test_ftyp_requires_complete_fixed_header(scan_rules, brand, label):
     header = (20).to_bytes(4, "big") + b"ftyp" + brand + bytes(4) + brand

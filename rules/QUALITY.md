@@ -6,6 +6,36 @@ complete eight-byte empty WebAssembly module. This floor prevents decisions on
 truncated magic; it does not make arbitrary padded magic safe. Format checks below
 require related header fields, sizes, versions or container structure as available.
 
+## Final cross-class APK regression
+
+The accumulated evaluation used 25,421 distinct automatically validated files:
+14,102 baseline files and 11,895 candidates, with 576 duplicate hashes removed.
+Every selected file's size and hash was verified; immutable validation-sidecar
+reads supplied the labels. Native and YARA-X classifications agreed throughout.
+Ten supplied ZIP/JAR labels initially disagreed with APK classification.
+
+Three were DEX-only ZIP/JAR archives without an Android manifest. A first member
+named `classes.dex` is insufficient evidence of an APK, even when it contains real
+DEX bytes. That branch now also requires a complete `AndroidManifest.xml` local
+ZIP entry within the 4 KiB prefix; a name in a ZIP comment is insufficient.
+Stored/deflated archives, with and without a JAR manifest, are regression cases
+shared with the native parity test. Four reference tests failed before the fix;
+seven focused checks including native parity passed afterward.
+
+A 616-file affected batch removed those three false positives while retaining
+564 of 565 previously matching APK positives (606 validated APKs in this snapshot).
+The remaining previously matched APK has its manifest beyond the prefix and falls
+back to ML. Manifest-first detection is retained, including native-only packages.
+
+The other seven label disagreements contain binary Android manifests and native
+libraries but neither DEX nor `resources.arsc`. The supplied validator skips APK
+identity for that combination before considering its manifest. Android permits
+[native-only APKs without DEX](https://developer.android.com/guide/topics/manifest/application-element#code),
+so these labels require corpus-lane adjudication rather than a rule that rejects
+that layout. No files were relabelled or excluded. The zero-observed-FP gate and
+final coverage metadata remain pending; the earlier batch counts below are
+historical evidence, not a claim that this final gate passed.
+
 ## APK, dBase, EMF and Python bytecode review
 
 The last four format audits used the existing regression suite and `runner.observe`.

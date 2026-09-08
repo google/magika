@@ -45,18 +45,20 @@ rule taxonomy_apk
         fn_rate = 0.26000000000000001
 
     // Android ZIP members use stored/deflated data; retain ignored ZIP versions, including 0.
-    // Lengths may be deferred to a data descriptor. Keep both inherited first-member names.
+    // Lengths may be deferred to a data descriptor. DEX-only ZIP/JAR files are not APKs:
+    // a DEX-first package also needs an Android manifest local entry within the prefix.
     strings:
         $zip = { 50 4B 03 04 }
         $dex = "classes.dex"
         $manifest = "AndroidManifest.xml"
+        $manifest_entry = { 50 4B 03 04 [22] 13 00 ?? ?? 41 6E 64 72 6F 69 64 4D 61 6E 69 66 65 73 74 2E 78 6D 6C }
     condition:
         prefix_size >= 41 and $zip at 0 and uint16(6) % 2 == 0 and
         (uint16(8) == 0 or uint16(8) == 8) and
         ((uint32(18) >= 1 and uint32(22) >= 1) or
          uint16(6) % 16 == 8 or uint16(6) % 16 == 10 or
          uint16(6) % 16 == 12 or uint16(6) % 16 == 14) and
-        ((uint16(26) == 11 and $dex at 30) or
+        ((uint16(26) == 11 and $dex at 30 and $manifest_entry in (41..4047)) or
          (prefix_size >= 49 and uint16(26) == 19 and $manifest at 30))
 }
 

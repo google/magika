@@ -59,6 +59,8 @@ def reviewed_binary_headers():
     stata = b"<stata_dta><header><release>118</release><byteorder>LSF</byteorder>"
     apk = struct.pack("<4s5H3I2H", b"PK\x03\x04", 0, 0, 0, 0, 0, 0, 112, 112, 11, 0)
     apk += b"classes.dex" + dex
+    apk += struct.pack("<4s5H3I2H", b"PK\x03\x04", 0, 0, 0, 0, 0, 0, 8, 8, 19, 0)
+    apk += b"AndroidManifest.xml" + b"\x03\x00\x08\x00\x08\x00\x00\x00"
     dbf = bytearray(65)
     dbf[:4] = bytes([3, 126, 1, 31])
     struct.pack_into("<HH", dbf, 8, 65, 2)
@@ -74,7 +76,7 @@ def reviewed_binary_headers():
         (
             "apk",
             apk,
-            41,
+            202,
             [(6, b"\x01\0"), (8, b"\x01\0"), (18, bytes(8)), (26, b"\x0c\0")],
         ),
         ("dbase", bytes(dbf), 64, [(8, bytes(2)), (10, bytes(2)), (2, b"\x0d")]),
@@ -368,6 +370,26 @@ def reviewed_binary_headers():
 
 
 @pytest.fixture(scope="module")
+def dex_only_archives(reviewed_binary_headers):
+    import io
+    import zipfile
+
+    dex = next(row[1] for row in reviewed_binary_headers if row[0] == "dex")
+    archives = {}
+    for compression in (0, 8):
+        for jar_manifest in (False, True):
+            output = io.BytesIO()
+            with zipfile.ZipFile(output, "w", compression=compression) as archive:
+                archive.writestr("classes.dex", dex)
+                if jar_manifest:
+                    archive.writestr("META-INF/MANIFEST.MF", "Manifest-Version: 1.0\r\n\r\n")
+                # A filename in a comment does not establish an Android manifest entry.
+                archive.comment = b"AndroidManifest.xml"
+            archives[compression, jar_manifest] = output.getvalue()
+    return archives
+
+
+@pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
     for name in (b"classes.dex", b"AndroidManifest.xml"):
@@ -385,9 +407,16 @@ def reviewed_binary_header_variants():
                     0 if flags & 8 else 1,
                     0 if flags & 8 else 1,
                     len(name),
-                    4096,
+                    4 if name == b"classes.dex" else 4096,
                 )
-                variants.append(("apk", header + name + bytes(4096) + b"x"))
+                extra = bytes(4 if name == b"classes.dex" else 4096)
+                content = header + name + extra + b"x"
+                if name == b"classes.dex":
+                    content += struct.pack(
+                        "<4s5H3I2H", b"PK\x03\x04", 0, 0, 0, 0, 0, 0, 8, 8, 19, 0
+                    )
+                    content += b"AndroidManifest.xml" + b"\x03\x00\x08\x00\x08\x00\x00\x00"
+                variants.append(("apk", content))
     for version in (3, 4, 0x43, 0x63, 0x7B, 0x83, 0x8B, 0x8E, 0xCB):
         header = bytearray(65)
         header[:4] = bytes([version, 126, 12, 31])

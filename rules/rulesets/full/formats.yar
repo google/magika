@@ -124,19 +124,14 @@ rule taxonomy_applebplist
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "bplist01"
-		$p1_0 = "bplist"
-		$p2_0 = { 62 70 6C 69 73 74 00 00 }
-		$p3_0 = "bplist10"
-		$p4_0 = { 62 70 6C 69 73 74 40 00 }
-		$p5_0 = "bplist15"
-		$p6_0 = "bplist00"
-		$p7_0 = "bplist16"
-		$p8_0 = { 62 70 6C 69 73 74 00 01 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 8 and $p0_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p1_0 at 0) or (prefix_size >= 8 and $p2_0 at 0) or (prefix_size >= 8 and $p3_0 at 0) or (prefix_size >= 8 and $p4_0 at 0) or (prefix_size >= 8 and $p5_0 at 0) or (prefix_size >= 8 and $p6_0 at 0) or (prefix_size >= 8 and $p7_0 at 0) or (prefix_size >= 8 and $p8_0 at 0)))
+    // Classic readers accept bplist0?; other known serializations have distinct version bytes.
+    strings:
+        $classic = /bplist0[\x00-\xff]/
+        $modern = /bplist1[0-9]/
+        $binary_version = { 62 70 6C 69 73 74 (00 (00 | 01) | 40 00) }
+    condition:
+        prefix_size >= 8 and
+        ((prefix_size >= 41 and $classic at 0) or $modern at 0 or $binary_version at 0)
 }
 
 rule taxonomy_appledouble
@@ -149,11 +144,11 @@ rule taxonomy_appledouble
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 00 05 16 07 }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    // Complete fixed AppleDouble header, retaining version 1 and version 2.
+    strings:
+        $header = { 00 05 16 07 00 (01 | 02) 00 00 }
+    condition:
+        prefix_size >= 26 and $header at 0
 }
 
 rule taxonomy_applesingle
@@ -166,14 +161,12 @@ rule taxonomy_applesingle
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 00 05 16 00 }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    // Complete fixed AppleSingle header; filler bytes vary between historical writers.
+    strings:
+        $header = { 00 05 16 00 00 (01 | 02) 00 00 }
+    condition:
+        prefix_size >= 26 and $header at 0
 }
-
-
 
 rule taxonomy_au
 {
@@ -543,14 +536,12 @@ rule taxonomy_gguf
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = /(\x47){2}\x55\x46\x02(\x00){3}/
-		$p1_0 = /(\x47){2}\x55\x46\x01(\x00){3}/
-		$p2_0 = { 47 47 55 46 }
-		$p3_0 = /(\x47){2}\x55\x46\x03(\x00){3}/
-
-	condition:
-		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or ($p3_0 at 0)))
+    // GGUF v1 has 32-bit counts; v2/v3 have 64-bit counts. Preserve both byte orders.
+    strings:
+        $v1 = { 47 47 55 46 (01 00 00 00 | 00 00 00 01) }
+        $v2_v3 = { 47 47 55 46 ((02 | 03) 00 00 00 | 00 00 00 (02 | 03)) }
+    condition:
+        prefix_size >= 16 and ($v1 at 0 or (prefix_size >= 24 and $v2_v3 at 0))
 }
 
 rule taxonomy_gltf
@@ -766,12 +757,12 @@ rule taxonomy_mat
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "MATLAB"
-		$p1_0 = { 35 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 6 and $p0_0 at 0) and (prefix_size >= 8 and $p1_0 at 7)))
+    // MAT-v5 text prefix and complete 128-byte header, including endian/version pair.
+    strings:
+        $header = "MATLAB 5"
+        $version_endian = { (00 01 49 4D | 01 00 4D 49) }
+    condition:
+        prefix_size >= 128 and $header at 0 and $version_endian at 124
 }
 
 rule taxonomy_midi
@@ -949,14 +940,13 @@ rule taxonomy_rar
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 52 61 72 21 1A 07 01 00 }
-		$p1_0 = { 52 61 72 21 1A 07 00 }
-		$p2_0 = "Rar!"
-		$p3_0 = { 52 45 7e 5e }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0) or (prefix_size >= 7 and original_size >= 7 and $p1_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0)))
+    // Complete RAR4/RAR5 markers, plus the pre-1.5 marker retained by libmagic.
+    strings:
+        $rar4 = { 52 61 72 21 1A 07 00 }
+        $rar5 = { 52 61 72 21 1A 07 01 00 }
+        $legacy = { 52 45 7E 5E }
+    condition:
+        prefix_size >= 8 and ($rar4 at 0 or $rar5 at 0 or $legacy at 0)
 }
 
 rule taxonomy_redis_rdb
@@ -1060,27 +1050,12 @@ rule taxonomy_sketchup
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x32)/
-		$p1_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x34)/
-		$p2_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x34)/
-		$p3_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x38)/
-		$p4_0 = { ff fe ff 0e 53 00 6b 00 65 00 74 00 63 00 68 00 55 00 70 00 20 00 4d 00 6f 00 64 00 65 00 6c 00 }
-		$p5_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31)/
-		$p6_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x33)/
-		$p7_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x33)/
-		$p8_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x35)/
-		$p9_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x36)/
-		$p10_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x36)/
-		$p11_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x39)/
-		$p12_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x37)/
-		$p13_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x37)/
-		$p14_0 = /\x0e\x53\x6b\x65\x74\x63\x68\x55\x70\x20\x4d\x6f\x64\x65\x6c\x08/
-		$p15_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x35)/
-		$p16_0 = /\xff\xfe\xff\x0e\x53\x00\x6b\x00\x65\x00\x74\x00\x63\x00\x68\x00\x55\x00\x70\x00\x20\x00\x4d\x00\x6f\x00\x64\x00\x65\x00\x6c\x00\xff\xfe\xff(([\x00-\xff]){1}\x7b\x00\x31\x00\x38)/
-
-	condition:
-		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or (prefix_size >= 32 and $p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0) or ($p8_0 at 0) or ($p9_0 at 0) or ($p10_0 at 0) or ($p11_0 at 0) or ($p12_0 at 0) or ($p13_0 at 0) or ($p14_0 at 0) or ($p15_0 at 0) or ($p16_0 at 0)))
+    // Version-specific PRONOM signatures extend the same Unicode header; keep the two families.
+    strings:
+        $unicode = { FF FE FF 0E 53 00 6B 00 65 00 74 00 63 00 68 00 55 00 70 00 20 00 4D 00 6F 00 64 00 65 00 6C 00 }
+        $legacy = { 0E 53 6B 65 74 63 68 55 70 20 4D 6F 64 65 6C 08 }
+    condition:
+        prefix_size >= 16 and ($legacy at 0 or (prefix_size >= 32 and $unicode at 0))
 }
 
 rule taxonomy_spirv
@@ -1164,11 +1139,12 @@ rule taxonomy_uf2
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 55 46 32 0a }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+    // Verify a complete first block with both starting magics and the final block magic.
+    strings:
+        $header = { 55 46 32 0A 57 51 5D 9E }
+        $end = { 30 6F B1 0A }
+    condition:
+        prefix_size >= 512 and $header at 0 and $end at 508 and uint32(16) <= 476
 }
 
 rule taxonomy_vhd
@@ -1198,12 +1174,11 @@ rule taxonomy_wad
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "IWAD"
-		$p1_0 = "PWAD"
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0)))
+    // The IWAD/PWAD header includes the lump count and directory offset, even for an empty WAD.
+    strings:
+        $header = { (49 | 50) 57 41 44 }
+    condition:
+        prefix_size >= 12 and $header at 0
 }
 
 rule taxonomy_wasm
@@ -1321,14 +1296,11 @@ rule taxonomy_xcf
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "gimp xcf v"
-		$p1_0 = "gimp xcf file"
-		$p2_0 = "gimp xcf "
-		$p3_0 = "gimp xcf"
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 10 and original_size >= 10 and $p0_0 at 0) or (prefix_size >= 13 and original_size >= 13 and $p1_0 at 0) or (prefix_size >= 9 and original_size >= 9 and $p2_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p3_0 at 0)))
+    // Complete versioned XCF header and base image type; preserve GIMP's dimension tolerance.
+    strings:
+        $header = /gimp xcf (file|v[0-9]{3})\x00/
+    condition:
+        prefix_size >= 26 and $header at 0 and uint32be(22) <= 2
 }
 
 rule taxonomy_zst

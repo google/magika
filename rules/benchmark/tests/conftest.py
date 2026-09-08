@@ -4,6 +4,7 @@
 import hashlib
 import json
 import os
+import plistlib
 import struct
 from pathlib import Path
 
@@ -19,7 +20,31 @@ def reviewed_binary_headers():
     dex = bytearray(112)
     dex[:8] = b"dex\n035\0"
     struct.pack_into("<III", dex, 32, 112, 112, 0x12345678)
+    uf2 = bytearray(512)
+    struct.pack_into("<8I", uf2, 0, 0x0A324655, 0x9E5D5157, 0, 0, 256, 0, 1, 0)
+    struct.pack_into("<I", uf2, 508, 0x0AB16F30)
+    mat = b"MATLAB 5.0 MAT-file".ljust(124, b" ") + b"\x00\x01IM"
     cases = [
+        ("sketchup", b"\x0eSketchUp Model\x08", 16, [(2, b"?")]),
+        ("applebplist", plistlib.dumps({}, fmt=plistlib.FMT_BINARY), 41, [(6, b"??")]),
+        ("appledouble", bytes.fromhex("0005160700020000") + bytes(18), 26, [(4, bytes(4))]),
+        ("applesingle", bytes.fromhex("0005160000020000") + bytes(18), 26, [(4, bytes(4))]),
+        ("uf2", bytes(uf2), 512, [(4, bytes(4)), (508, bytes(4)), (16, struct.pack("<I", 477))]),
+        (
+            "xcf",
+            b"gimp xcf v011\0" + struct.pack(">3I", 1, 1, 0),
+            26,
+            [(9, b"junk"), (12, b"x"), (13, b"!"), (22, struct.pack(">I", 3))],
+        ),
+        ("rar", b"Rar!\x1a\x07\x01\0" + bytes(8), 8, [(4, bytes(4)), (5, b"x"), (6, b"\x02")]),
+        ("mat", mat, 128, [(124, bytes(2)), (126, b"XX")]),
+        (
+            "gguf",
+            b"GGUF" + struct.pack("<IQQ", 3, 0, 0),
+            24,
+            [(4, bytes(4)), (4, struct.pack("<I", 0x01000003))],
+        ),
+        ("wad", struct.pack("<4sII", b"IWAD", 0, 12), 12, []),
         ("cram", b"CRAM\x03\0" + bytes(20), 26, [(4, b"\0"), (5, b"\xff")]),
         ("dex", bytes(dex), 112, [(7, b"!"), (6, b"x"), (36, bytes(4)), (40, bytes(4))]),
         ("redis_rdb", b"REDIS0009\xff" + bytes(8), 9, [(5, b"x009"), (5, b"0000")]),
@@ -67,6 +92,22 @@ def reviewed_binary_header_variants():
         variants.append(("spirv", struct.pack(endian + "5I", 0x07230203, 0x00010600, 0, 1, 0)))
     variants.extend(
         [
+            ("sketchup", b"\xff\xfe\xff\x0e" + "SketchUp Model".encode("utf-16le")),
+            ("applebplist", b"bplist0?" + bytes(34)),
+            *[
+                ("applebplist", b"bplist" + suffix)
+                for suffix in (b"10", b"15", b"16", b"\0\0", b"\0\1", b"@\0")
+            ],
+            ("appledouble", bytes.fromhex("0005160700010000") + b"Macintosh       " + bytes(2)),
+            ("applesingle", bytes.fromhex("0005160000010000") + bytes(18)),
+            ("xcf", b"gimp xcf file\0" + struct.pack(">3I", 0, 0, 2)),
+            ("rar", b"Rar!\x1a\x07\0" + bytes(9)),
+            ("rar", b"RE~^" + bytes(12)),
+            ("mat", b"MATLAB 5.0 MAT-file".ljust(124, b" ") + b"\x01\0MI"),
+            ("gguf", b"GGUF" + struct.pack("<3I", 1, 0, 0)),
+            ("gguf", b"GGUF" + struct.pack("<IQQ", 2, 0, 0)),
+            ("gguf", b"GGUF" + struct.pack(">IQQ", 3, 0, 0)),
+            ("wad", struct.pack("<4sII", b"PWAD", 0, 12)),
             ("xar", struct.pack(">4sHHQQI", b"xar!", 1, 28, 8, 8, 0) + bytes(8)),
             ("xar", struct.pack(">4sHHQQI", b"xar!", 32, 1, 8, 8, 1) + bytes(12)),
             ("icns", struct.pack(">4sI", b"icns", 8)),

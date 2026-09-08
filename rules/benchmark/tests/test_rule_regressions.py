@@ -13,7 +13,27 @@ NEGATIVES = sorted(p for p in (ROOT / "tests_data/rules_negative").iterdir() if 
 
 
 @pytest.mark.parametrize(
-    "label", ["cram", "dex", "redis_rdb", "lz", "rzip", "xar", "spirv", "icns"]
+    "label",
+    [
+        "sketchup",
+        "applebplist",
+        "appledouble",
+        "applesingle",
+        "uf2",
+        "xcf",
+        "rar",
+        "mat",
+        "gguf",
+        "wad",
+        "cram",
+        "dex",
+        "redis_rdb",
+        "lz",
+        "rzip",
+        "xar",
+        "spirv",
+        "icns",
+    ],
 )
 def test_reviewed_binary_headers(scan_rules, reviewed_binary_headers, label):
     _, header, minimum, invalid = next(row for row in reviewed_binary_headers if row[0] == label)

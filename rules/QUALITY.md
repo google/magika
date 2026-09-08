@@ -261,6 +261,44 @@ corpus evidence for the affected types, not fresh full-corpus qualification.
 The existing full-corpus evaluation item remains open for the accumulated batch;
 no runtime or benchmark code changed in this review.
 
+### Version and container header review
+
+Nine more active rules had reproducible short-header or malformed-field matches.
+All nine failed their focused regression before edits. The following checks now
+retain all 762 affected-format positives in one native/reference corpus run, with
+no conflicts, errors or engine disagreement. This remains targeted development
+corpus evidence, not a fresh full-corpus qualification.
+
+| Rule | Direct source comparison and guard | Retained positives |
+| --- | --- | ---: |
+| Apple binary plist | [CoreFoundation's reader](https://github.com/apple-oss-distributions/CF/blob/main/CFBinaryPList.c) requires at least 41 bytes for classic `bplist0?`, and deliberately accepts any second version byte. Preserve that tolerance and the distinct numeric `bplist1x` / binary version spellings from the pinned signatures; reject an arbitrary unknown version pair. Other serialization variants keep their existing eight-byte minimum. | 100/100 |
+| AppleDouble | [RFC 1740](https://www.rfc-editor.org/rfc/rfc1740) specifies the 26-byte fixed header and the distinct AppleDouble magic. Require the complete header and retain version 1/2. Preserve historical nonzero filler instead of applying the version-2 zero-filler recommendation to all files. | 59/59 |
+| AppleSingle | The same fixed-header layout and version check apply with AppleSingle's different magic. Preserve zero-entry headers; no entry-table or payload traversal is added. | 100/100 |
+| UF2 | The [UF2 specification](https://github.com/microsoft/uf2) identifies a block using two starting magic words and a third at byte 508. Require a complete 512-byte first block, all three words and payload length at most 476. Do not constrain board IDs, flag combinations, block order or the rest of the file. | 100/100 |
+| XCF | The [GIMP reader](https://github.com/GNOME/gimp/blob/master/app/xcf/xcf-load.c) reads the 14-byte version string followed by dimensions and image type. Require all 26 bytes, `file` or a three-digit `vNNN` version with NUL, and base type 0/1/2. Preserve GIMP's tolerance for damaged dimensions instead of rejecting otherwise identifiable XCF files. | 3/3 |
+| RAR | Pinned libmagic `archive` entries distinguish complete RAR4/RAR5 markers and pre-1.5 `RE~^`. Remove the broad `Rar!` alternative that bypassed the remaining signature bytes. Retain all three generations and the global eight-byte floor. | 100/100 |
+| MAT | The [SciPy MAT-v5 writer/reader](https://github.com/scipy/scipy/blob/main/scipy/io/matlab/_mio5.py) uses a 128-byte header with version/endian fields at its end. Require the version-5 text prefix and matching version/endian pair, preserving both byte orders. Other MAT families remain outside this existing rule. | 100/100 |
+| GGUF | The [GGUF specification and version history](https://github.com/ggml-org/ggml/blob/master/docs/gguf.md) describe version 1's 32-bit counts and version 2/3's 64-bit counts. Require 16 or 24 bytes accordingly and preserve both byte orders. Do not validate tensor contents or model architecture. | 100/100 |
+| WAD | The [Doom header definition](https://github.com/id-Software/DOOM/blob/master/linuxdoom-1.10/w_wad.h) contains `IWAD`/`PWAD`, a lump count and directory offset. Require all 12 bytes, preserving empty containers. | 100/100 |
+
+The shared focused fixture covers each malformed field and every truncation from
+the eight-byte floor to the required header length. The native check batches these
+cases with retained legacy/endian variants. Nineteen focused checks passed after
+the nine fixes; the later SketchUp cleanup passed its focused case and the batched
+native check without rerunning the broader suite.
+
+Four other identifying signatures were reviewed individually against their pinned
+sources. Existing whole-corpus observations for each show 100/100 positives and no
+other-label raw hits; these counts predate this review and are reused as supporting
+evidence, not presented as a new evaluation.
+
+| Rule | Source comparison and disposition |
+| --- | --- |
+| DICOM | Libmagic `images`, Puremagic and Tika agree on `DICM` at offset 128. The existing rule requires all 132 bytes, preserves arbitrary preamble data, and identifies the Part 10 wrapper. Keep it; raw datasets without this wrapper remain outside the signature. |
+| BEAM | Libmagic `erlang` distinguishes OTP R3/R4's seven-byte marker from OTP R5+'s `FOR1` at 0 plus `BEAM` at 8. Both variants are preserved, with minimum observed lengths of 8 and 12 respectively. No change warranted. |
+| OneNote | PRONOM internal signature 968 supplies the full 16-byte OneNote GUID at offset zero. The existing bounded pattern requires all 16 bytes and does not conflate it with another compound container. Keep the rule. |
+| SketchUp | PRONOM internal signatures 241/243 give the 16-byte legacy and 32-byte Unicode headers. Every other existing version-specific alternative extends the same Unicode header and was already subsumed. Keep just those two complete headers, preserving the accepted byte language while removing redundant patterns. |
+
 ### Batch qualification
 
 The maintained regression suite includes the twenty original false-positive probes,

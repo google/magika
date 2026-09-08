@@ -18,15 +18,15 @@ This module provides the `Magika` class, the main entry point for using Magika
 to identify file content types.
 """
 
+from __future__ import annotations
+
 import io
 import json
 import logging
 import os
 import time
 from pathlib import Path
-from typing import BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
-
-import onnxruntime as rt
+from typing import Any, BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 from magika.logger import get_logger
 from magika.types import (
@@ -43,6 +43,28 @@ from magika.types import (
     Seekable,
     Status,
 )
+
+# Conditional import of the PyO3 native extension. When available, Magika
+# delegates heavy model inference to the Rust core.
+_magika: Any = None
+try:
+    from magika import _magika as _magika_mod
+
+    _magika = _magika_mod
+except ImportError:
+    # Native PyO3 module is not built or installed; will fall back to onnxruntime if needed.
+    _magika = None
+
+# Conditional import of onnxruntime. Optional when _magika is available; only
+# required if falling back to the pure-Python model runner.
+rt: Any = None
+try:
+    import onnxruntime as _rt_mod
+
+    rt = _rt_mod
+except ImportError:
+    # onnxruntime is not installed; required only if _magika is absent.
+    rt = None
 
 _DEFAULT_MODEL_NAME = "standard_v3_3"
 
@@ -120,7 +142,16 @@ class Magika:
         )
         self._cts_infos = Magika._load_content_types_kb(content_types_kb_path)
 
-        self._onnx_session = self._init_onnx_session()
+        if model_dir is None and _magika is not None:
+            self._pyo3_session: Optional[Any] = _magika.Magika()
+            self._onnx_session = None
+        else:
+            self._pyo3_session = None
+            if rt is None:
+                raise MagikaError(
+                    "Neither _magika native extension nor onnxruntime is available."
+                )
+            self._onnx_session = self._init_onnx_session()
 
     def __repr__(self) -> str:
         return str(self)
@@ -134,7 +165,27 @@ class Magika:
 
     def get_model_name(self) -> str:
         """Gets the name of the loaded model."""
+        if self._pyo3_session is not None:
+            return str(self._pyo3_session.get_model_name())
         return self._model_dir.name
+
+    def _convert_pyo3_result(self, pyo3_res: Any, path: Path) -> MagikaResult:
+        status = Status(pyo3_res.status)
+        if not pyo3_res.ok:
+            return MagikaResult(path=path, status=status, prediction=None)
+
+        output_info = self._cts_infos[ContentTypeLabel(pyo3_res.label)]
+        dl_label = ContentTypeLabel(pyo3_res.dl_label)
+        dl_info = self._cts_infos[dl_label]
+        overwrite_reason = OverwriteReason(pyo3_res.overwrite_reason)
+
+        prediction = MagikaPrediction(
+            dl=dl_info,
+            output=output_info,
+            score=pyo3_res.score,
+            overwrite_reason=overwrite_reason,
+        )
+        return MagikaResult(path=path, status=status, prediction=prediction)
 
     def identify_path(self, path: Union[str, os.PathLike]) -> MagikaResult:
         """Identify the content type of a file given its path."""
@@ -144,6 +195,10 @@ class Magika:
             raise TypeError(
                 f"Path '{path}' is invalid: input path should be of type `Union[str, os.PathLike]`"
             )
+
+        if self._pyo3_session is not None:
+            pyo3_res = self._pyo3_session.identify_path(str(path))
+            return self._convert_pyo3_result(pyo3_res, path)
 
         return self._get_result_from_path(path)
 
@@ -163,6 +218,13 @@ class Magika:
                     f"Input '{path}' is invalid: input path should be of type `Union[str, os.PathLike]`"
                 )
 
+        if self._pyo3_session is not None:
+            pyo3_results = self._pyo3_session.identify_paths([str(p) for p in paths_])
+            return [
+                self._convert_pyo3_result(res, p)
+                for res, p in zip(pyo3_results, paths_)
+            ]
+
         return self._get_results_from_paths(paths_)
 
     def identify_bytes(self, content: bytes) -> MagikaResult:
@@ -171,6 +233,10 @@ class Magika:
             raise TypeError(
                 f"Input content should be of type 'bytes', not {type(content)}."
             )
+
+        if self._pyo3_session is not None:
+            pyo3_res = self._pyo3_session.identify_bytes(content)
+            return self._convert_pyo3_result(pyo3_res, Path("-"))
 
         return self._get_result_from_seekable(Seekable(io.BytesIO(content)))
 
@@ -202,6 +268,10 @@ class Magika:
 
         try:
             current_position = stream.tell()
+            if self._pyo3_session is not None:
+                stream.seek(0)
+                content = stream.read()
+                return self.identify_bytes(content)
             result = self._get_result_from_seekable(Seekable(stream))
         finally:
             # seek to the previous position even in case of exceptions
@@ -832,6 +902,7 @@ class Magika:
             start_time = time.time()
             # onnxruntime accepts simple list of lists of ints/floats for input "bytes"
             # It returns a list of numpy arrays (usually one per output node).
+            assert self._onnx_session is not None
             batch_raw_predictions_np = self._onnx_session.run(
                 ["target_label"], {"bytes": batch_features}
             )[0]

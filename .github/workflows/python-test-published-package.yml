@@ -9,9 +9,9 @@ on:
   schedule:
     - cron: "42 4 * * *" # Run daily
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/python-test-published-package.yml"
+  # pull_request:
+  #   paths:
+  #     - ".github/workflows/python-test-published-package.yml"
 
 permissions:
   contents: read

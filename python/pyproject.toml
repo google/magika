@@ -36,17 +36,6 @@ version = "1.0.3"
 
 dependencies = [
     "click>=8.1.7",
-
-    # Python 3.14+: Min version 1.24.1
-    "onnxruntime>=1.24.1 ; python_version >= '3.14'",
-    # Python 3.13: Min version 1.21.0
-    "onnxruntime>=1.21.0 ; python_version == '3.13'",
-    # Python 3.11 - 3.12: Min version 1.17.0
-    "onnxruntime>=1.17.0 ; python_version >= '3.11' and python_version < '3.13'",
-    # Python 3.10: Support dropped in 1.24.1 (use latest compatible)
-    "onnxruntime>=1.17.0, <1.24.1 ; python_version == '3.10'",
-    # Python 3.9: Support dropped in 1.20.0
-    "onnxruntime>=1.17.0, <1.20.0 ; python_version <= '3.9'",
 ]
 
 
@@ -86,9 +75,9 @@ required-version = ">=0.9.27"
 
 [tool.maturin]
 python-source = "src"
-module-name = "magika"
-bindings = "bin"
-manifest-path = "../rust/cli/Cargo.toml"
+module-name = "magika._magika"
+manifest-path = "../rust/pyo3/Cargo.toml"
+data = "wheel_data"
 locked = true
 editable-profile = "release-fast"
 

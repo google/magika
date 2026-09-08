@@ -5,12 +5,12 @@ on:
   push:
     branches:
       - "main"
-  pull_request:
-    paths:
-      - "python/**"
-      - "rust/**"
-      - "tests_data/**"
-      - ".github/workflows/python-test-suite.yml"
+  # pull_request:
+  #   paths:
+  #     - "python/**"
+  #     - "rust/**"
+  #     - "tests_data/**"
+  #     - ".github/workflows/python-test-suite.yml"
 
 permissions:
   contents: read

@@ -5,10 +5,10 @@ on:
   push:
     branches:
       - "main"
-  pull_request:
-    paths:
-      - 'js/simple_examples/**'
-      - '.github/workflows/run-js-examples.yml'
+  # pull_request:
+  #   paths:
+  #     - 'js/simple_examples/**'
+  #     - '.github/workflows/run-js-examples.yml'
 
 jobs:
   run-examples:

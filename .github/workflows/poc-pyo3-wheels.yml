@@ -1,0 +1,95 @@
+name: POC - PyO3 Multi-Platform Wheels
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "pyo3"
+      - "poc-pyo3"
+
+permissions:
+  contents: read
+
+jobs:
+  build-wheels:
+    name: Build wheel on ${{ matrix.platform.os }} (${{ matrix.platform.target }})
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: Linux
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: 2_28
+            before-script-linux: "rust/onnx/maturin.sh"
+          - os: macOS
+            runner: macos-14
+            target: aarch64-apple-darwin
+          - os: macOS
+            runner: macos-13
+            target: x86_64-apple-darwin
+          - os: Windows
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          # --- Stretch targets (mental note: re-enable once native engine replaces ort) ---
+          # - os: Linux
+          #   runner: ubuntu-latest
+          #   target: aarch64-unknown-linux-gnu
+          #   manylinux: 2_28
+          # - os: Linux (Alpine)
+          #   runner: ubuntu-latest
+          #   target: x86_64-unknown-linux-musl
+          #   manylinux: musllinux_1_2
+          # - os: Linux (Alpine)
+          #   runner: ubuntu-latest
+          #   target: aarch64-unknown-linux-musl
+          #   manylinux: musllinux_1_2
+          # - os: Windows
+          #   runner: windows-latest
+          #   target: aarch64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      # Cache ONNX Runtime build on Linux
+      - if: matrix.platform.runner == 'ubuntu-latest'
+        uses: actions/cache@v4
+        with:
+          path: rust/onnx/runtime/build/Linux
+          key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
+
+      # On non-Linux runners, compile and stage the CLI binary on the host
+      - if: matrix.platform.runner != 'ubuntu-latest'
+        name: Build and stage magika-cli (macOS/Windows)
+        shell: bash
+        run: |
+          cargo build --release --manifest-path rust/cli/Cargo.toml --target ${{ matrix.platform.target }}
+          mkdir -p python/wheel_data/scripts
+          if [[ "${{ matrix.platform.target }}" == *"windows"* ]]; then
+            cp rust/target/${{ matrix.platform.target }}/release/magika.exe python/wheel_data/scripts/
+          else
+            cp rust/target/${{ matrix.platform.target }}/release/magika python/wheel_data/scripts/
+            chmod +x python/wheel_data/scripts/magika
+          fi
+
+      # Build PyO3 wheel using maturin-action
+      - name: Build wheel via Maturin
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
+          manylinux: ${{ matrix.platform.manylinux || 'off' }}
+          before-script-linux: ${{ matrix.platform.before-script-linux || '' }}
+          working-directory: python
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.platform.target }}
+          path: python/dist/*.whl

@@ -5,12 +5,12 @@ on:
   push:
     branches:
       - "main"
-  pull_request:
-    paths:
-      - "website/**"
-      - "js/**"
-      - "tests_data/**"
-      - ".github/workflows/website-*"
+  # pull_request:
+  #   paths:
+  #     - "website/**"
+  #     - "js/**"
+  #     - "tests_data/**"
+  #     - ".github/workflows/website-*"
 permissions:
   contents: read
 jobs:

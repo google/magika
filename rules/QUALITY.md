@@ -36,6 +36,32 @@ that layout. No files were relabelled or excluded. The zero-observed-FP gate and
 final coverage metadata remain pending; the earlier batch counts below are
 historical evidence, not a claim that this final gate passed.
 
+## Final performance verification
+
+The existing CLI benchmark compared the saved duplicate-read-fix binary, before
+the single-input CPU fix, with `ceeb8bcc` and its exported embedded rules. Both
+completed 24 cells: 1/1,000 files, 0/100% rule hits, four workers, Auto/CPU/GPU and
+three shuffled trials. All 128 input-pool classifications and rule-routing results
+were retained. Builds completed before measurement; compiled-rule caches and GPU
+state were warmed by the existing runner.
+
+Auto single-file ML fell from 67.77 to 10.15 ms. Bulk CPU ML remained near 350 ms
+per 1,000 files. The expanded guarded ruleset has a measurable cost: a focused
+comparison using the same final binary, 1,000 rule hits and five trials measured
+21.80 ms with the earlier pack and 23.35 ms with the final pack (about 7.1% slower,
+or 1.55 ms per 1,000 files). ML control medians were 350.72 and 350.00 ms. This
+cost is retained with the correctness checks, not described as noise or zero
+regression. The final rule-hit workload processes about 43,000 files per second.
+
+These are whole-process timings on the same shared Apple Silicon host, including
+startup, disk access, output and shutdown. The pools contain 64 rule hits (61 3DS
+and three 3GP files) and 64 ML misses; they do not establish throughput for every
+format, uncached rule compilation, a cold shader cache or other platforms. Existing
+x86 eager-padding and packing-agreement tests also passed under Rosetta; that is
+correctness evidence, not native x86 performance qualification. Windows native
+rules and CUDA qualification retain the release holds documented in the rules and
+runtime READMEs.
+
 ## APK, dBase, EMF and Python bytecode review
 
 The last four format audits used the existing regression suite and `runner.observe`.

@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "loader": "mapped",
+  "trace_case": "files-1-hits-100",
+  "source_hashes": {
+    "sha256/startup/traces.json": "47c8231ee93d7717f2db09ea4ba1cd93d7e44f5ce5d8a704cc368a771effe33f",
+    "blake3/startup/traces.json": "57236644bbb44de3e44d0ef3f9199a0b4be28797765f3ab7abc1f75a885b5576",
+    "sha256/direct/summary.json": "e8bbf796a1979c75666a8e0a86d9c084c9b76738530bd7a25093881d05de602a",
+    "blake3/direct/summary.json": "fe26f959755b7c5018b4a105a67bc6141ae0381196cc40b5e35da8ec439a816b"
+  },
+  "stages_ms": [
+    {
+      "stage": "main_elapsed_ns",
+      "sha256_ms": 2.119104,
+      "blake3_ms": 2.1193125
+    },
+    {
+      "stage": "rule_pack_load_total",
+      "sha256_ms": 1.1559795,
+      "blake3_ms": 1.116875
+    },
+    {
+      "stage": "rules_payload_checksum",
+      "sha256_ms": 0.5515625,
+      "blake3_ms": 0.473729
+    },
+    {
+      "stage": "rules_cache_identity",
+      "sha256_ms": 0.0899995,
+      "blake3_ms": 0.135625
+    },
+    {
+      "stage": "native_scratch_allocate",
+      "sha256_ms": 0.538125,
+      "blake3_ms": 0.555333
+    },
+    {
+      "stage": "native_library_dlopen",
+      "sha256_ms": 0.314396,
+      "blake3_ms": 0.338292
+    },
+    {
+      "stage": "native_scan",
+      "sha256_ms": 0.0749795,
+      "blake3_ms": 0.0768335
+    }
+  ],
+  "process_ms": [
+    {
+      "files": 1,
+      "sha256": {
+        "median_seconds": 5.448729,
+        "min_seconds": 5.141083,
+        "max_seconds": 5.612042000000001
+      },
+      "blake3": {
+        "median_seconds": 5.228479,
+        "min_seconds": 4.680958,
+        "max_seconds": 5.929458
+      }
+    },
+    {
+      "files": 10,
+      "sha256": {
+        "median_seconds": 5.952063000000001,
+        "min_seconds": 5.7312080000000005,
+        "max_seconds": 6.263458
+      },
+      "blake3": {
+        "median_seconds": 5.844729500000001,
+        "min_seconds": 5.435541000000001,
+        "max_seconds": 6.591709000000001
+      }
+    },
+    {
+      "files": 1000,
+      "sha256": {
+        "median_seconds": 40.69260400000001,
+        "min_seconds": 38.818459,
+        "max_seconds": 56.402209
+      },
+      "blake3": {
+        "median_seconds": 38.851459000000006,
+        "min_seconds": 38.176209,
+        "max_seconds": 40.090459
+      }
+    }
+  ]
+}

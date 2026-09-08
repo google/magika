@@ -165,3 +165,32 @@ separately compiled pack directories. Place observations under
 `hash-comparison/{sha256,blake3}/{startup,direct}` in a fresh result tree, then run
 `hash_comparison.py` to derive JSON and Markdown. Existing observations are immutable.
 The scripts, commands, binary/pack hashes, raw timings, traces and TDD logs are retained.
+
+## Cargo options and Rayon follow-up
+
+The [compiler-option audit](hash-options/README.md) retains actual Cargo backend
+selection, verbose optimized build logs and matched generic/native CPU measurements.
+The initial BLAKE3 variant already used opt-level=3, LTO, one codegen unit and ARM
+NEON. Neither Rust-only `target-cpu=native` nor additional C native tuning improved
+sequential BLAKE3 warm hash time materially on this host. Rayon was missing from
+that first variant and does reduce the checksum span here.
+
+[Actual four-thread Rayon CLI comparison](hash-comparison-rayon/comparison.md)
+uses source `90fffe8f2cdabcb04b05c3e7df4cf5b3f5111600` with feature
+`_blake3-rayon-spike` and `RAYON_NUM_THREADS=4`. The CLI uses the same generic release
+profile as the SHA build, isolating Rayon from CPU tuning. Both mapping modes and
+all checks remain active; native images are byte-identical. Both hash tests and
+all three native tests pass; all 80 traced classifications and timed workloads
+match the saved observations. JSON explicitly records the thread setting.
+
+The measured one-file checksum medians were 0.4737 ms for BLAKE3/Rayon and 0.5516 ms
+for accelerated SHA-256. In-process medians were effectively equal (2.1193 and
+2.1191 ms). Whole-process one-file medians were 5.228 and 5.449 ms, with overlapping
+ranges. This is a modest observed process difference, not a portable speed claim.
+The full tables retain 10- and 1,000-file timings and all raw ranges.
+
+To reproduce, add `--rayon-threads 4` to both measurement scripts. Render their
+saved JSON with `hash_comparison.py --root NEW_RESULTS --blake3-label
+'BLAKE3 + Rayon (4 threads)'`. Each result directory retains its exact script copy.
+The experimental feature leaves thread policy to Rayon/environment; production
+thread budgeting still needs a deliberate policy before enabling it by default.

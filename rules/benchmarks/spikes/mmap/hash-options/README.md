@@ -26,3 +26,10 @@ python measure.py /tmp/magika-hash-generic/release/magika-hash-options \
 ```
 
 Verbose build logs and original CLI backend-selection records are retained.
+
+The follow-up [Rust-only native results](results-rust-only/report.md) sets exactly
+`RUSTFLAGS='-C target-cpu=native'`, leaving CFLAGS unset. Sequential BLAKE3 warm
+medians were 0.6755 ms with that flag and 0.6759 ms without it. Its four-thread Rayon
+first-call median was 0.4112 ms; the SHA-256 first-call median was 0.5019 ms.
+Both runs retain their individual raw samples. Reproduce with a third target
+directory, then pass `--rust-only` to `measure.py` with that binary.

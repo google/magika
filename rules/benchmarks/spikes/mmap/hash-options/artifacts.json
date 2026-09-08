@@ -1,13 +1,17 @@
 {
   "Cargo.lock": "bc736cae5a846bb5ad6199c8acc994c55af35d39e5efc4cc60cbe77238233d5e",
   "Cargo.toml": "cade43f8cec47158face968ea389f9507aa6997e9fa1806892d4dbcc986b928d",
-  "README.md": "89e0384d9627bb64438c873ecaf73969a64f3c62c3fb54a74f7cab77a3579138",
+  "README.md": "b25fac34deb15e5983f86f52759ef52bcf0f475535c063171dd7d8ee3c64f440",
   "build-generic.log": "5edd810aee4f798601d62df9c507c55a66f1ee8080428cbce0ece2d4338e819b",
   "build-native.log": "08152f16bffdb7903c162cfc7168815b0ce7680a6a4a729e5f1549d4ed7636b9",
-  "measure.py": "0f6520bf51c1fc6ffabb43870a912471d3922232d48702c62415001c5a10e639",
+  "build-rust-native.log": "01413bbf64a59e5ab803520602f582e48fc3979b0c048d04bdd36d6ec24c94d6",
+  "measure.py": "0a84542320a81650c60910c033ad6bfb2546f071a151fb16e14af1afe672634e",
   "original-cli-blake3-build.txt": "a5a76aa6e33aae322ae8ff66642a7e8ebf2a05aa8f6ab1dd6f6a964d4eb5d14a",
   "original-cli-blake3-fingerprint.json": "439fb3db9e7293a3f8d41f5a822b964c6a2534c276ed092509a35e6c41ec199b",
+  "results/measure.py.txt": "0f6520bf51c1fc6ffabb43870a912471d3922232d48702c62415001c5a10e639",
   "results/measurements.json": "2beb4b75e3f889edeca0b142cf5d5e92d1ff95cb616d43ecb8c5e0c6a740f3a2",
   "results/report.md": "0aa53ff62429632ce383a6b4468adf72545b28dec2f87e51140692fef215c689",
+  "results-rust-only/measurements.json": "1f064a95eb1ecd715061bf291b1da233d66066f5084f869936a73274cddf0774",
+  "results-rust-only/report.md": "1fae1105511b2cf2544c426ae4a7f757e96c6e13c5e628d2789f35e4bf9653d9",
   "src/main.rs": "76e7e9ec7ea56e06aefde169c6bbd76fd2d81f35d9be5c61b065f1af3823226a"
 }

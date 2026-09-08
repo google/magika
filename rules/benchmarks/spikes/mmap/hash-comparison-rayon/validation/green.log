@@ -1,0 +1,17 @@
+   Compiling blake3 v1.8.5
+   Compiling magika v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/lib)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.48s
+     Running unittests src/lib.rs (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/debug/deps/magika-bb8c08d346aeb104)
+
+running 2 tests
+test rules::cache::blake3_tests::blake3_spike_checksum_covers_manifest_and_payload ... ok
+test rules::cache::blake3_tests::blake3_spike_formats_and_identities_are_separate ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.01s
+
+     Running tests/rules_loading.rs (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/debug/deps/rules_loading-c365658612a83175)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

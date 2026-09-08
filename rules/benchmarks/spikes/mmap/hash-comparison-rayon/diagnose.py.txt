@@ -1,0 +1,106 @@
+# Copyright 2026 Google LLC
+# SPDX-License-Identifier: Apache-2.0
+"""Paired loader diagnostics without an extra env executable in the timed command."""
+import argparse
+import os
+import random
+import shlex
+from pathlib import Path
+
+from magika_rules_benchmark import comparison as c
+from magika_rules_benchmark import corpus
+
+
+def run(source, destination, hyperfine, binary=None, packs=None, rayon_threads=None):
+    result = c.load_json(source / 'results.json')
+    observations = c.load_json(source / 'observations.json.gz')
+    assert observations['rules-serialized'] == observations['rules-mapped']
+    inputs = c.load_json(source / 'inputs.json.gz')['samples']
+    positions = {s['sha256']: i for i, s in enumerate(sorted(inputs, key=lambda s: s['sha256']))}
+    mappings = c.load_json(source / 'label-mappings.json')
+    workloads = c.load_json(source / 'workloads.json')
+    cases = [w for w in workloads if w['requested_rule_hit_percent'] is None and w['file_count'] in [1, 10, 1000]]
+    destination.mkdir(parents=True, exist_ok=False)
+    env = {'PATH': os.defpath, 'HOME': str(source / 'home'), 'TMPDIR': str(source / 'tmp'),
+           'MAGIKA_RULES_CACHE': str(source / 'rule-cache'), 'LC_ALL': 'C', 'LANG': 'C', 'TZ': 'UTC',
+           **result['config']['environment']}
+    if rayon_threads is not None:
+        env["RAYON_NUM_THREADS"] = str(rayon_threads)
+    if binary:
+        for tool in result['config']['tools']:
+            tool['command'][2] = str(binary)
+            tool['version_command'] = [str(binary), '--version']
+            tool['artifacts']['binary'] = str(binary)
+    if packs:
+        for tool in result['config']['tools']:
+            pack = packs / tool['id'].removeprefix('rules-') / 'rules.yar'
+            tool['command'][-1] = str(pack)
+            tool['artifacts']['rules'] = str(pack)
+            tool['artifacts']['compiled_rules'] = str(pack.with_suffix('.hsdb'))
+    identities = {}
+    for tool in result['config']['tools']:
+        identities[tool['id']] = {
+            'version': c.invoke(tool['version_command'], env, 30).decode().strip(),
+            'command': tool['command'],
+            'artifacts': {role: corpus.file_hash(path) for role, path in tool['artifacts'].items()},
+        }
+    jobs = [(tool, case) for tool in result['config']['tools'] for case in cases]
+    random.Random(20260908).shuffle(jobs)
+    summary = {'schema': 1, 'experiment': 'mmap-loader-direct-exec',
+               'source_results_sha256': corpus.file_hash(source / 'results.json'),
+               'diagnostic_code_sha256': corpus.file_hash(Path(__file__)),
+               'host': result['host'], 'tools': identities,
+               'quality_reference_only': bool(binary or packs),
+               'runs': 20, 'warmup': 1, 'measurements': []}
+    for tool, case in [*jobs, (result['config']['tools'][0], None)]:
+        command = tool['command']
+        assert command[:1] == ['/usr/bin/env'] and command[1].startswith('MAGIKA_RULES_MMAP_SPIKE=')
+        env['MAGIKA_RULES_MMAP_SPIKE'] = command[1].split('=', 1)[1]
+        command = command[2:]
+        if case is None:
+            command = [command[0], '--rules=only', '--backend-info']
+            name = 'cli-before-rules'
+            count = 0
+            assert c.invoke(command, env, 30, cwd=source).strip() == b'none (rules-only)'
+        else:
+            paths = ['files/' + h for h in case['samples']]
+            command = [*command, '--', *paths]
+            raw = c.invoke(command, env, 30, cwd=source)
+            rows = c.parse_output(c.Adapter.MAGIKA, raw, paths, mappings[tool['id']])
+            assert rows == [observations[tool['id']][positions[h]] for h in case['samples']]
+            name = tool['id'] + '-' + case['id']
+            count = case['file_count']
+        export = destination / (name + '.json')
+        c.invoke([str(hyperfine), '--shell=none', '--style=none', '--runs', '20', '--warmup', '1',
+                  '--export-json', str(export), shlex.join(command)], env, 120, cwd=source)
+        raw = c.load_json(export)['results'][0]
+        summary['measurements'].append({'name': name, 'tool': tool['id'] if case else None,
+            'file_count': count, 'command': command, 'environment': dict(env),
+            'raw_sha256': corpus.file_hash(export), **c.timing_summary(raw, count)})
+    for tool in result['config']['tools']:
+        for role, path in tool['artifacts'].items():
+            assert corpus.file_hash(path) == identities[tool['id']]['artifacts'][role]
+    summary['decision_parity'] = {'files': len(inputs), 'identical': True}
+    corpus.atomic_json(destination / 'summary.json', summary)
+    table = ['# Mapped rules startup diagnostic', '',
+             'Same binary and inputs; mode selected in the process environment, with no env executable wrapper. '
+             'Twenty measured fresh-process runs after one warmup; warm OS caches. Times include startup and shutdown.', '',
+             '| Path | Files | Median ms | Min ms | Max ms |', '|---|---:|---:|---:|---:|']
+    for m in sorted(summary['measurements'], key=lambda m: (m['file_count'], m['name'])):
+        table.append(f"| {m['name']} | {m['file_count']} | {1000*m['median_seconds']:.3f} | {1000*m['min_seconds']:.3f} | {1000*m['max_seconds']:.3f} |")
+    table += ['', 'The zero-file diagnostic exits before rules loading; it is not isolated OS loader timing. '
+              'It is not subtracted from the classification timings. Full corpus parity was established separately.']
+    (destination / 'report.md').write_text('\n'.join(table) + '\n')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('source', type=Path)
+    parser.add_argument('destination', type=Path)
+    parser.add_argument('hyperfine', type=Path)
+    parser.add_argument('--binary', type=Path)
+    parser.add_argument('--packs', type=Path)
+    parser.add_argument("--rayon-threads", type=int)
+    args = parser.parse_args()
+    run(args.source.resolve(), args.destination.resolve(), args.hyperfine.resolve(),
+        args.binary.resolve() if args.binary else None, args.packs.resolve() if args.packs else None, args.rayon_threads)

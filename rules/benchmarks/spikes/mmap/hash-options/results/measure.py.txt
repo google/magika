@@ -16,9 +16,9 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run(generic, native, pack, destination, rust_only=False):
+def run(generic, native, pack, destination):
     destination.mkdir(exist_ok=False)
-    variants = {'generic': generic, 'rust-native' if rust_only else 'native': native}
+    variants = {'generic': generic, 'native': native}
     modes = ('sha256', 'blake3', 'blake3-rayon')
     jobs = [(variant, mode, repetition) for repetition in range(10)
             for variant in variants for mode in modes]
@@ -48,15 +48,14 @@ def run(generic, native, pack, destination, rust_only=False):
                 'binary_sha256': {k: sha(v) for k, v in variants.items()},
                 'script_sha256': sha(Path(__file__)), 'rayon_threads': 4,
                 'generic_flags': {'RUSTFLAGS': '', 'CFLAGS': ''},
-                'native_flags': {'RUSTFLAGS': '-C target-cpu=native', 'CFLAGS': '' if rust_only else '-mcpu=native'},
+                'native_flags': {'RUSTFLAGS': '-C target-cpu=native', 'CFLAGS': '-mcpu=native'},
                 'profile': {'opt_level': 3, 'lto': True, 'codegen_units': 1},
                 'captures': captured, 'summary': summaries}
     (destination / 'measurements.json').write_text(json.dumps(evidence, indent=2) + '\n')
     lines = ['# Hash compiler-option audit', '',
              'The same manifest and native payload bytes are hashed by every variant. Both use '
              'release opt-level=3, LTO and one codegen unit. BLAKE3 NEON and SHA-256 ARM assembly '
-             'are enabled. Native additionally sets Rust target-cpu=native' +
-             ('. CFLAGS is unset.' if rust_only else ' and C -mcpu=native.'), '',
+             'are enabled. Native additionally sets Rust target-cpu=native and C -mcpu=native.', '',
              'Ten fresh processes per cell, each hashing 21 times. First-call medians include any '
              'Rayon pool initialization (four threads); warm medians use the remaining 20 hashes. '
              'File reading is outside the timer. These are in-memory hash costs, not CLI timings.', '',
@@ -70,6 +69,5 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     for name in ('generic', 'native', 'pack', 'destination'):
         p.add_argument(name, type=Path)
-    p.add_argument("--rust-only", action="store_true")
     a = p.parse_args()
-    run(a.generic.resolve(), a.native.resolve(), a.pack.resolve(), a.destination.resolve(), a.rust_only)
+    run(a.generic.resolve(), a.native.resolve(), a.pack.resolve(), a.destination.resolve())

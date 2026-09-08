@@ -45,6 +45,20 @@ Its output does not measure the production artifacts or the total packaged model
 rust/tract-bench/scripts/measure-size.sh
 ```
 
+## ONNX reference dependency
+
+The optional ONNX reference uses `ort` and `ort-sys` 2.0.0-rc.12 from the lockfile.
+That dependency includes a target-specific table of ONNX Runtime 1.24.2 download
+URLs and SHA-256 hashes. Its build script checks the downloaded archive against
+that table before accepting it into the cache. A fresh reference build needs
+network access unless compatible libraries are already provided; Cargo's crate
+cache alone does not provide the native library. For an offline reference build,
+provision the matching native libraries and set `ORT_LIB_PATH` as described in
+[ort's linking documentation](https://ort.pyke.io/setup/linking).
+
+The production library and CLI do not depend on `ort`. CPU/GPU benchmark commands
+with `--no-default-features` also omit this reference dependency.
+
 ## Runtime benchmark
 
 Each invocation measures one backend in an isolated process. CPU and GPU use the production

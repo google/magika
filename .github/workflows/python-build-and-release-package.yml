@@ -95,6 +95,8 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out=../dist
+          # Preserve the existing Linux glibc baseline instead of building on the runner host.
+          manylinux: "2_28"
           working-directory: python
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

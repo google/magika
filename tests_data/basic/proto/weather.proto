@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package example.weather.v1;
+
+option java_multiple_files = true;
+option java_package = "com.example.weather.v1";
+
+message ForecastRequest {
+  string city = 1;
+  int32 days = 2;
+}
+
+message DailyForecast {
+  string date = 1;
+  double high_celsius = 2;
+  double low_celsius = 3;
+  string summary = 4;
+}
+
+message ForecastResponse {
+  repeated DailyForecast forecasts = 1;
+}
+
+service WeatherService {
+  rpc GetForecast(ForecastRequest) returns (ForecastResponse);
+}

@@ -1,0 +1,9 @@
+[submodule "vendor/sensor-protocol"]
+	path = vendor/sensor-protocol
+	url = https://example.com/weather/sensor-protocol.git
+	branch = stable
+
+[submodule "tools/report-renderer"]
+	path = tools/report-renderer
+	url = https://example.com/weather/report-renderer.git
+	shallow = true

@@ -1,0 +1,20 @@
+diff --git a/config/stations.toml b/config/stations.toml
+index 03a42aa..73d968f 100644
+--- a/config/stations.toml
++++ b/config/stations.toml
+@@ -1,5 +1,6 @@
+ [[station]]
+ id = "harbor-north"
+-interval_seconds = 60
++interval_seconds = 30
++record_wind_gusts = true
+ sensors = ["temperature", "wind"]
+
+diff --git a/docs/operations.md b/docs/operations.md
+index 8eb32e1..f45ce32 100644
+--- a/docs/operations.md
++++ b/docs/operations.md
+@@ -8,3 +8,4 @@ Operators should verify the following before each shift:
+ - The station clock is synchronized.
+ - The rain gauge is clear of debris.
++- The wind sensor reports both average speed and gusts.

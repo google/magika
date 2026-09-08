@@ -70,15 +70,15 @@ cargo install --locked --path=rust/cli
 ```shell
 % cd tests_data/basic && magika -r * | head
 asm/code.asm: Assembly (code)
+awk/weekly_totals.awk: Awk (code)
 batch/simple.bat: DOS batch file (code)
+bib/references.bib: BibTeX (text)
 c/code.c: C source (code)
+clojure/weather_summary.clj: Clojure (code)
 css/code.css: CSS source (code)
 csv/magika_test.csv: CSV document (code)
-dockerfile/Dockerfile: Dockerfile (code)
-docx/doc.docx: Microsoft Word 2007+ document (document)
-docx/magika_test.docx: Microsoft Word 2007+ document (document)
-eml/sample.eml: RFC 822 mail (text)
-empty/empty_file: Empty file (inode)
+dart/inventory_report.dart: Dart source (code)
+diff/weather-station.patch: Diff file (text)
 ```
 
 ```shell

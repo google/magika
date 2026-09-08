@@ -247,3 +247,10 @@ and architecture. The native-test CI recipe uses host tuning (`FAT_RUNTIME=OFF`)
 it is not a portable distribution build recipe. A compatible `.hsdb` check cannot
 protect against unsupported instructions inside the native library itself. Choose
 and verify the engine's CPU baseline before distributing a bundle.
+# Cross-tool revision comparisons
+
+The versioned [cross-tool benchmark](benchmarks/README.md) compares Magika 1,
+Magika 2 with and without rules, libmagic and TrID. It stores quality observations
+and Hyperfine timings as JSON and generates reports and revision deltas from those
+measurements. Workloads cover few, some and many input files and explicit rule-hit
+ratios. This is separate from the rule-enforcement zero-FP qualification gate.

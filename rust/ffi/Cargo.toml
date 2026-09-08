@@ -1,0 +1,13 @@
+[package]
+name = "ffi"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "magika"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+anyhow = "1.0.104"
+magika = { version = "2.0.0-dev", path = "../lib" }

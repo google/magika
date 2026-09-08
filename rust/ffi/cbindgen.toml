@@ -1,0 +1,10 @@
+language = "C"
+include_guard = "MAGIKA_H"
+autogen_warning = """
+// DO NOT EDIT, see link below for more information:
+// https://github.com/google/magika/tree/main/rust/gen"""
+cpp_compat = true
+
+[enum]
+prefix_with_name = true
+rename_variants = "ScreamingSnakeCase"

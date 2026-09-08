@@ -32,14 +32,17 @@ fn main() -> Result<()> {
         .to_str()
         .context("model name")?;
     let model_config = serde_json::from_reader(File::open("model/config.min.json")?)?;
-    let content_types = generate_content_types(content_types, model_name, &model_config)?;
-    generate_model_config(&content_types, model_config)?;
+    let content_types = filter_content_types(content_types, &model_config)?;
+    let variants = generate_lib_content(&content_types, model_name, &model_config)?;
+    generate_lib_model(&variants, model_config)?;
+    generate_ffi_content(&content_types)?;
+    generate_ffi_header()?;
     Ok(())
 }
 
-fn generate_content_types(
-    mut content_types: BTreeMap<String, ContentType>, model_name: &str, model_config: &ModelConfig,
-) -> Result<Vec<String>> {
+fn filter_content_types(
+    mut content_types: BTreeMap<String, ContentType>, model_config: &ModelConfig,
+) -> Result<BTreeMap<String, ContentType>> {
     // We only want to generate content types that are already exposed or that are model labels.
     // This is a conservative approach to avoid exposing the whole knowledge base if it contains
     // experimental content types that won't ever be exposed in the future.
@@ -51,6 +54,12 @@ fn generate_content_types(
         writeln!(&mut content_types_file, "{label}")?;
     }
     content_types.retain(|x, _| labels.contains(x.as_str()));
+    Ok(content_types)
+}
+
+fn generate_lib_content(
+    content_types: &BTreeMap<String, ContentType>, model_name: &str, model_config: &ModelConfig,
+) -> Result<Vec<String>> {
     let mut output = create_generated_file("../lib/src/content.rs")?;
     writeln!(output, "use crate::file::TypeInfo;\n")?;
     writeln!(output, "/// Model name (only comparable with equality).")?;
@@ -63,16 +72,15 @@ fn generate_content_types(
     }
     let mut variants = Vec::new();
     for (label, info) in content_types {
-        let ContentType { mime_type, group, description, extensions, is_text } = info.clone();
-        let mime_type = mime_type.unwrap_or_else(|| {
-            if is_text { "text/plain" } else { "application/octet-stream" }.to_string()
-        });
-        let group = group.unwrap_or_else(|| "unknown".to_string());
-        let description = description.unwrap_or_else(|| label.clone());
+        let mime_type = info.mime_type();
+        let group = info.group();
+        let description = info.description(label);
+        let extensions = &info.extensions;
+        let is_text = info.is_text;
         if !matches!(label.as_str(), "directory" | "symlink") {
             variants.push(Variant { label: label.clone(), doc: description.clone() });
         }
-        writeln!(output, "pub(crate) static {}: TypeInfo = TypeInfo {{", const_name(&label))?;
+        writeln!(output, "pub(crate) static {}: TypeInfo = TypeInfo {{", const_name(label))?;
         writeln!(output, "    label: {label:?},")?;
         writeln!(output, "    mime_type: {mime_type:?},")?;
         writeln!(output, "    group: {group:?},")?;
@@ -95,7 +103,8 @@ fn generate_content_types(
     writeln!(output, "    /// Returns the content type information.")?;
     writeln!(output, "    pub fn info(self) -> &'static TypeInfo {{")?;
     writeln!(output, "        match self {{")?;
-    for Variant { label, .. } in &variants {
+    let variants = variants.into_iter().map(|x| x.label).collect::<Vec<_>>();
+    for label in variants.iter() {
         writeln!(
             output,
             "            ContentType::{} => &{},",
@@ -106,10 +115,10 @@ fn generate_content_types(
     writeln!(output, "        }}")?;
     writeln!(output, "    }}")?;
     writeln!(output, "}}")?;
-    Ok(variants.into_iter().map(|x| x.label).collect())
+    Ok(variants)
 }
 
-fn generate_model_config(content_types: &[String], model_config: ModelConfig) -> Result<()> {
+fn generate_lib_model(variants: &[String], model_config: ModelConfig) -> Result<()> {
     let ModelConfig {
         beg_size,
         mid_size,
@@ -141,17 +150,17 @@ fn generate_model_config(content_types: &[String], model_config: ModelConfig) ->
     writeln!(output, "    thresholds: Cow::Borrowed(&THRESHOLDS),")?;
     writeln!(output, "    overwrite_map: Cow::Borrowed(&OVERWRITE_MAP),")?;
     writeln!(output, "}};\n")?;
-    let mut thresholds_array = vec![medium_confidence_threshold; content_types.len()];
+    let mut thresholds_array = vec![medium_confidence_threshold; variants.len()];
     for (label, threshold) in thresholds {
-        let pos = content_types.iter().position(|x| *x == label).unwrap();
+        let pos = variants.iter().position(|x| *x == label).unwrap();
         thresholds_array[pos] = threshold;
     }
     writeln!(output, "#[rustfmt::skip]")?;
     writeln!(output, "const THRESHOLDS: [f32; ContentType::SIZE] = {thresholds_array:?};")?;
     writeln!(output, "const OVERWRITE_MAP: [ContentType; ContentType::SIZE] = [")?;
-    let mut overwrite_array = content_types.to_vec();
+    let mut overwrite_array = variants.to_vec();
     for (src, dst) in overwrite_map {
-        let pos = content_types.iter().position(|x| *x == src).unwrap();
+        let pos = variants.iter().position(|x| *x == src).unwrap();
         overwrite_array[pos] = dst;
     }
     for label in overwrite_array {
@@ -179,6 +188,61 @@ fn generate_model_config(content_types: &[String], model_config: ModelConfig) ->
     Ok(())
 }
 
+fn generate_ffi_content(content_types: &BTreeMap<String, ContentType>) -> Result<()> {
+    let mut output = create_generated_file("../ffi/src/content.rs")?;
+    writeln!(output, "use std::ptr;\n")?;
+    writeln!(output, "use crate::MagikaTypeInfo;\n")?;
+    let mut variants = Vec::new();
+    for (label, info) in content_types {
+        let mime_type = info.mime_type();
+        let group = info.group();
+        let description = info.description(label);
+        if !matches!(label.as_str(), "directory" | "symlink") {
+            variants.push(label.clone());
+        }
+        let mut extensions = "[".to_string();
+        for extension in &info.extensions {
+            extensions.push_str(&format!("c{extension:?}.as_ptr(), "));
+        }
+        extensions.push_str("ptr::null()].as_ptr()");
+        let is_text = info.is_text;
+        writeln!(
+            output,
+            "#[rustfmt::skip] pub(crate) static {}: MagikaTypeInfo = MagikaTypeInfo {{",
+            const_name(label)
+        )?;
+        writeln!(output, "    label: c{label:?}.as_ptr(),")?;
+        writeln!(output, "    mime_type: c{mime_type:?}.as_ptr(),")?;
+        writeln!(output, "    group: c{group:?}.as_ptr(),")?;
+        writeln!(output, "    description: c{description:?}.as_ptr(),")?;
+        writeln!(output, "    extensions: {extensions},")?;
+        writeln!(output, "    is_text: {is_text:?},")?;
+        writeln!(output, "}};\n")?;
+    }
+    writeln!(
+        output,
+        "pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static MagikaTypeInfo {{"
+    )?;
+    writeln!(output, "    match content_type {{")?;
+    for label in &variants {
+        writeln!(
+            output,
+            "        magika::ContentType::{} => &{},",
+            enum_name(label),
+            const_name(label),
+        )?;
+    }
+    writeln!(output, "        _ => unreachable!(),")?;
+    writeln!(output, "    }}")?;
+    writeln!(output, "}}")?;
+    Ok(())
+}
+
+fn generate_ffi_header() -> Result<()> {
+    let _ = cbindgen::generate("../ffi")?.write_to_file("../ffi/include/magika.h");
+    Ok(())
+}
+
 fn create_generated_file(path: impl AsRef<Path>) -> Result<File> {
     let header = std::fs::read_to_string(file!())?;
     let header = header.split("\n\n").next().context("main.rs does not contain an empty line")?;
@@ -197,6 +261,22 @@ struct ContentType {
     description: Option<String>,
     extensions: Vec<String>,
     is_text: bool,
+}
+
+impl ContentType {
+    fn mime_type(&self) -> String {
+        self.mime_type.clone().unwrap_or_else(|| {
+            if self.is_text { "text/plain" } else { "application/octet-stream" }.to_string()
+        })
+    }
+
+    fn group(&self) -> String {
+        self.group.clone().unwrap_or_else(|| "unknown".to_string())
+    }
+
+    fn description(&self, label: &str) -> String {
+        self.description.clone().unwrap_or_else(|| label.to_string())
+    }
 }
 
 #[derive(Deserialize)]

@@ -192,14 +192,25 @@ impl PyMagika {
         Ok(results)
     }
 
+    #[staticmethod]
+    fn get_default_model_name() -> &'static str {
+        MODEL_NAME
+    }
+
     fn get_model_name(&self) -> &'static str {
         MODEL_NAME
     }
+}
+
+#[pyfunction]
+fn get_default_model_name() -> &'static str {
+    MODEL_NAME
 }
 
 #[pymodule]
 fn _magika(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMagika>()?;
     m.add_class::<PyMagikaResult>()?;
+    m.add_function(wrap_pyfunction!(get_default_model_name, m)?)?;
     Ok(())
 }

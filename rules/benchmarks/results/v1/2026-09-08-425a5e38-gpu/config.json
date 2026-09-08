@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "file_counts": [
+    1,
+    2,
+    5,
+    10,
+    25,
+    100,
+    1000
+  ],
+  "rule_hit_percentages": [
+    0,
+    20,
+    50,
+    100
+  ],
+  "runs": 3,
+  "warmup": 1,
+  "seed": 20260908,
+  "quality_chunk_files": 128,
+  "rules_reference": "magika2-gpu-rules",
+  "ml_reference": "magika2-gpu-ml",
+  "environment": {
+    "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+    "OMP_NUM_THREADS": "2",
+    "OPENBLAS_NUM_THREADS": "2"
+  },
+  "tools": [
+    {
+      "id": "magika2-gpu-ml",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/magika",
+        "--jsonl",
+        "--backend=gpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=off"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/magika",
+        "--version"
+      ],
+      "artifacts": {
+        "rules": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-rules.yar",
+        "native": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+        "model_config": "/Users/elie/git/magika/tmp/rules-pr-worktree/assets/models/standard_v3_3/config.min.json"
+      },
+      "settings": {
+        "backend": "GPU-required (Metal on macOS)",
+        "readers": 2,
+        "threads": 2,
+        "internal_batch": 8,
+        "rules": "off",
+        "model": "standard_v3_3"
+      }
+    },
+    {
+      "id": "magika2-gpu-rules",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/magika",
+        "--jsonl",
+        "--backend=gpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=enforce",
+        "--rules-file",
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-rules.yar"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/magika",
+        "--version"
+      ],
+      "artifacts": {
+        "rules": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-rules.yar",
+        "native": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+        "model_config": "/Users/elie/git/magika/tmp/rules-pr-worktree/assets/models/standard_v3_3/config.min.json"
+      },
+      "settings": {
+        "backend": "GPU-required (Metal on macOS)",
+        "readers": 2,
+        "threads": 2,
+        "internal_batch": 8,
+        "rules": "enforce",
+        "model": "standard_v3_3"
+      }
+    },
+    {
+      "id": "magika1-gpu",
+      "adapter": "magika-jsonl",
+      "unavailable": "Released Rust CLI 1.1.0 exposes no GPU execution-provider selection."
+    },
+    {
+      "id": "libmagic-gpu",
+      "adapter": "file-mime",
+      "unavailable": "file/libmagic is a CPU CLI."
+    },
+    {
+      "id": "trid-gpu",
+      "adapter": "trid",
+      "unavailable": "TrID 2.48 is a CPU CLI."
+    }
+  ]
+}

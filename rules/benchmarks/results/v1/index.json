@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "runs": [
+    {
+      "id": "2026-09-08-425a5e38-cpu",
+      "benchmark_version": "1.0.0",
+      "revision": "425a5e38",
+      "status": "complete",
+      "artifacts_sha256": "606fcf7506e7781f0ff31475c793c0996387e2c393446b733e6692a62b9d2b74"
+    },
+    {
+      "id": "2026-09-08-425a5e38-gpu",
+      "benchmark_version": "1.0.0",
+      "revision": "425a5e38",
+      "status": "partial",
+      "artifacts_sha256": "df378a354c363c0d8b0efe9c53d20c42b17d5b731a2088d9a95f61fb44482363"
+    }
+  ]
+}

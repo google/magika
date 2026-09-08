@@ -157,6 +157,17 @@ JSON compression changes storage only: render accepts compressed and plain JSON.
 Future runs go into new directories; previous measurements are never rewritten
 to make a chart look smoother or a speedup larger.
 
+Store a finished run mechanically, including a generated report and an appended
+JSON history index:
+
+```sh
+rules/.venv/bin/python rules/benchmarks/store.py \
+  /absolute/path/to/completed-run \
+  rules/benchmarks/results/v1/UNIQUE_RUN_ID
+```
+
+The store command refuses an existing destination or unfinished measurements.
+
 An interrupted quality phase can be resumed into a **new** output directory with
 `--reuse-quality /path/to/old-run`. Only raw detector stdout is reused, and only
 when input bytes/labels/class metadata, tool identity, command, environment and

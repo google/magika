@@ -27,14 +27,49 @@ A 616-file affected batch removed those three false positives while retaining
 The remaining previously matched APK has its manifest beyond the prefix and falls
 back to ML. Manifest-first detection is retained, including native-only packages.
 
-The other seven label disagreements contain binary Android manifests and native
-libraries but neither DEX nor `resources.arsc`. The supplied validator skips APK
-identity for that combination before considering its manifest. Android permits
-[native-only APKs without DEX](https://developer.android.com/guide/topics/manifest/application-element#code),
-so these labels require corpus-lane adjudication rather than a rule that rejects
-that layout. No files were relabelled or excluded. The zero-observed-FP gate and
-final coverage metadata remain pending; the earlier batch counts below are
-historical evidence, not a claim that this final gate passed.
+The corpus lane adjudicated the remaining seven disagreements as native-only APK
+splits under patch 136: binary Android manifests and native libraries, with neither
+DEX nor `resources.arsc`. Its APK probe previously skipped that combination. The
+published validation sidecars still await replay, so the final evaluation applies
+those seven explicit adjudications locally; it does not alter the dataset or infer
+truth from rule predictions.
+
+A fresh execution of the existing native/YARA-X observer over all 25,421 files
+with the final exported embedded pack produced **9,624 rule decisions, zero
+observed false positives, zero reference errors, zero engine mismatches and zero
+conflicts**. All selected file hashes and sizes were checked again. This is a full
+rerun, replacing the earlier reconciliation of affected rows. The v1 corpus gate
+passes on this adjudicated snapshot. No additional rule needed disabling.
+
+Coverage remains limited: 571 of 613 adjudicated APKs match, and 26 enforced
+formats have no positive samples in this strict validated subset. Their previous
+positive evidence remains recorded below. Historical per-rule counts describe
+those earlier samples; they are not universal coverage claims or measurements of
+this subset. Unmatched inputs continue to ML, and existing non-working rules
+remain unenforced.
+
+Reproduction fingerprints (SHA-256):
+
+| Input | SHA-256 |
+| --- | --- |
+| Baseline validation sidecar | `cbfc95721f6ff5273a0e09202c03c93c34ceaa06d36949b34315f39f4679bcbf` |
+| Candidate validation sidecar | `a67c9368d0b2a2d49d9a1e5a3117f1559be62cbf2b87ae71f84e7cb459732a18` |
+| Ordered sample hash/adjudicated-label pairs | `1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3` |
+| Exported embedded rule pack | `a0f9cc2a3e3fe9574e950260678724f4c675aae3b56c5f73cb3f5d1ac43aca17` |
+| Release binary at `ceeb8bcc` | `10d6f84b4028a63b6f68ffcf96b7846b6422af9f18ea86e0159a7354096458cf` |
+| Vectorscan library | `7fa047f93570f719310ce784e28b9f3679dcc0f6fd3fa34524b25102100deff1` |
+
+The seven corpus-lane corrections applied to those frozen sidecars are:
+
+| Sample SHA-256 | Previous assignment | Adjudicated assignment |
+| --- | --- | --- |
+| `06f757354a7c2497264f8ff699942d2e3e26d337c9a47b6d8841d7ff83981b86` | jar | apk |
+| `172f7d6788d04c233c587d4493ca961ee4caf161d061d4d9d4062d178d7cacfa` | jar | apk |
+| `228f41228135f69a27b34c09983afff05208189a1faf3460b55ebdaac072852b` | zip | apk |
+| `23fd8ce9b01779a09ded1f21e98945da304603a48671318383250d5537780bcc` | zip | apk |
+| `269d62cc97584626c41b0adeb53dea87e63609fd939675aa0b1b72b3638eab65` | zip | apk |
+| `490817fdcec4a945b4456258cb8a0f4a9b4340835375d65189674670698853a0` | zip | apk |
+| `4dbf0d78ffa0b55556eacbcb711d243502ee2660f090b97565e4bad7e5dbf3df` | zip | apk |
 
 ## Final performance verification
 

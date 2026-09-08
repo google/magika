@@ -451,3 +451,17 @@ remain coverage limitations, not newly introduced false negatives. These are
 header checks; they do not verify CRX cryptographic signatures or parse complete
 archives, audio, databases or statistical data. Final cross-class FP and runtime
 performance gates remain separate.
+
+## Raw BAM scope (R-17)
+
+The BAM rule identifies the uncompressed BAM stream. Pinned libmagic explicitly
+notes that ordinary BAM files wrap this stream in BGZF; HTSlib's `bam_hdr_read`
+reads the raw magic, text length/text and reference count after that layer. The rule
+is therefore limited, but is not dead: both supplied raw BAM positives matched in
+the header review, and the shared/native regressions cover no-text and long-text
+headers. Its zero FN metadata records those two supplied samples; it does not
+claim complete coverage of BGZF-wrapped BAM files. The existing gzip rule identifies
+the outer frame. Identifying its inner BAM payload would require decompression or
+new container handling, outside the requested bug-fix scope. The first-version
+corpus gate remains zero observed false positives, with coverage improvements left
+for later work.

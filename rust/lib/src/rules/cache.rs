@@ -29,6 +29,8 @@ struct Manifest {
 fn key(source: &str) -> String {
     let mut hash = Sha256::new();
     hash.update((super::PREFIX_LIMIT as u64).to_le_bytes());
+    #[cfg(all(feature = "_mmap-spike", unix))]
+    if super::mapped::enabled() { hash.update(b"mapped-image-v1"); hash.update(include_bytes!("mapped.rs")); }
     // Source and compiler identity are available without constructing an AST or program.
     // Parser/regex versions are pinned; bump this identity when changing those pins.
     for part in [
@@ -157,6 +159,8 @@ fn lock_with_deadline(file: &File) -> Result<()> {
 
 fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
     let mut file = open_cache_file(path, false)?;
+    #[cfg(all(feature = "_mmap-spike", unix))]
+    if super::mapped::enabled() { return read_mapped(file, expected_key); }
     let mut magic = [0; 9];
     file.read_exact(&mut magic)?;
     ensure!(&magic == MAGIC, "invalid rules cache version");
@@ -198,6 +202,36 @@ fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
     Ok(super::RuleSet { database, loaded_from_cache: true })
 }
 
+#[cfg(all(feature = "_mmap-spike", unix))]
+fn read_mapped(file: File, expected_key: &str) -> Result<super::RuleSet> {
+    let mapping = super::mapped::Mapping::new(&file)?;
+    let bytes = mapping.bytes();
+    ensure!(bytes.len() >= 13 && &bytes[..9] == super::mapped::MAGIC, "invalid mapped pack version");
+    let length = u32::from_le_bytes(bytes[9..13].try_into().unwrap()) as usize;
+    ensure!(length <= MAX_MANIFEST_SIZE && 13 + length <= bytes.len(), "invalid mapped manifest");
+    let manifest: Manifest = serde_json::from_slice(&bytes[13..13 + length])?;
+    ensure!(manifest.key == expected_key, "mapped source/compiler identity mismatch");
+    ensure!(manifest.labels.len() <= 100_000, "invalid mapped output mapping size");
+    let offset = (13 + length).next_multiple_of(super::mapped::ALIGNMENT);
+    ensure!(offset <= bytes.len(), "truncated mapped pack");
+    let payload = &bytes[offset..];
+    ensure!(payload.len() <= MAX_DATABASE_SIZE && checksum(&manifest, payload)? == manifest.checksum,
+        "mapped checksum/length mismatch");
+    let database = if payload.is_empty() {
+        ensure!(manifest.labels.is_empty() && manifest.engine == "empty", "invalid empty mapped pack");
+        None
+    } else {
+        let outputs = manifest.labels.iter().map(|label| label.as_deref().map(|label|
+            crate::ContentType::from_label(label).ok_or_else(|| anyhow::anyhow!("invalid mapped label")))
+            .transpose()).collect::<Result<Vec<_>>>()?;
+        ensure!(outputs.iter().any(Option::is_some), "mapped pack needs a terminal label");
+        let api = Api::load()?;
+        ensure!(manifest.engine == api.identity(), "mapped engine/CPU identity mismatch");
+        Some(api.map_image(mapping, offset, outputs)?)
+    };
+    Ok(super::RuleSet { database, loaded_from_cache: true })
+}
+
 fn write_payload(
     path: &Path, key: String, engine: String, labels: Vec<Option<String>>, payload: &[u8],
     replace: bool,
@@ -209,9 +243,17 @@ fn write_payload(
     let parent =
         path.parent().filter(|x| !x.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
     let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-    temporary.write_all(MAGIC)?;
+    let magic = MAGIC;
+    #[cfg(all(feature = "_mmap-spike", unix))]
+    let magic = if super::mapped::enabled() { super::mapped::MAGIC } else { magic };
+    temporary.write_all(magic)?;
     temporary.write_all(&(manifest.len() as u32).to_le_bytes())?;
     temporary.write_all(&manifest)?;
+    #[cfg(all(feature = "_mmap-spike", unix))]
+    if super::mapped::enabled() {
+        let padding = (13 + manifest.len()).next_multiple_of(super::mapped::ALIGNMENT) - 13 - manifest.len();
+        temporary.write_all(&vec![0; padding])?;
+    }
     #[cfg(test)]
     if std::env::var_os("MAGIKA_TEST_ABORT_CACHE_WRITE").is_some() {
         std::process::exit(86);
@@ -239,7 +281,11 @@ fn compile(source: &str, output: Option<(&Path, String, bool)>) -> Result<super:
     if let Some((path, key, replace)) = output {
         let write = || {
             let payload =
-                database.as_ref().map(|db| db.serialize()).transpose()?.unwrap_or_default();
+                database.as_ref().map(|db| {
+                    #[cfg(all(feature = "_mmap-spike", unix))]
+                    if super::mapped::enabled() { return db.image(); }
+                    db.serialize()
+                }).transpose()?.unwrap_or_default();
             write_payload(path, key, engine, labels, &payload, replace)
         };
         if replace {
@@ -688,5 +734,41 @@ mod tests {
         assert_eq!(reports.iter().filter(|x| *x == "hit").count(), 3);
         assert!(start(4, false).wait().unwrap().success());
         assert_eq!(std::fs::read_to_string(temp.path().join("report-4")).unwrap(), "hit");
+    }
+}
+
+#[cfg(all(test, feature = "_mmap-spike", unix))]
+mod mapped_tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library and MAGIKA_RULES_MMAP_SPIKE=1"]
+    fn mmap_spike_pack_validation_and_source_changes() {
+        assert!(super::super::mapped::enabled());
+        let source = r#"rule fixture { meta: label = "png" enabled = true class = "full" fp_rate = 0 fn_rate = 0
+            strings: $a = "MAGIKA_MMAP_TEST!" condition: $a at 0 }"#;
+        let temp = tempfile::tempdir().unwrap();
+        let source_path = temp.path().join("source.yar");
+        let image = temp.path().join("source.hsdb");
+        std::fs::write(&source_path, source).unwrap();
+        export(source, &image).unwrap();
+        let valid = std::fs::read(&image).unwrap();
+        assert!(read(&image, &key(source)).unwrap().loaded_from_cache());
+        assert!(read(&image, "wrong-source").is_err());
+        for data in [valid[..12].to_vec(), valid[..valid.len()-1].to_vec(), {
+            let mut bad = valid.clone();
+            *bad.last_mut().unwrap() ^= 1;
+            bad
+        }] {
+            std::fs::write(&image, data).unwrap();
+            assert!(read(&image, &key(source)).is_err());
+        }
+        std::fs::write(&image, &valid).unwrap();
+        let changed = source.replace("MAGIKA_MMAP_TEST!", "MAGIKA_MMAP_NEXT!");
+        std::fs::write(&source_path, changed).unwrap();
+        let refreshed = super::super::RuleSet::from_file_with_cache(&source_path, Some(&temp.path().join("cache"))).unwrap();
+        assert!(!refreshed.loaded_from_cache());
+        assert_eq!(refreshed.identify_input(b"MAGIKA_MMAP_NEXT!".as_slice()).unwrap(), Some(crate::ContentType::Png));
+        assert!(super::super::RuleSet::from_file_with_cache(&source_path, Some(&temp.path().join("cache"))).unwrap().loaded_from_cache());
     }
 }

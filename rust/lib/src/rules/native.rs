@@ -185,7 +185,32 @@ impl Api {
             bail!("Vectorscan compilation failed: {message}");
         }
         ensure!(!db.is_null(), "Vectorscan returned a null database");
-        Ok(Arc::new(Database { db, api: self.clone(), outputs: program.outputs }))
+        Ok(Arc::new(Database { db, api: self.clone(), outputs: program.outputs,
+            #[cfg(all(feature = "_mmap-spike", unix))] mapping: None }))
+    }
+
+    #[cfg(all(feature = "_mmap-spike", unix))]
+    pub(super) fn map_image(
+        self: &Arc<Self>, mapping: super::mapped::Mapping, offset: usize,
+        outputs: Vec<Option<ContentType>>,
+    ) -> Result<Arc<Database>> {
+        let payload = &mapping.bytes()[offset..];
+        // The pinned Vectorscan database header uses a relative bytecode offset.
+        // Before passing mapped bytes to C, bound every region C will checksum/read.
+        ensure!(payload.len() >= 104, "truncated native image header");
+        let word = |at| u32::from_ne_bytes(payload[at..at + 4].try_into().unwrap()) as usize;
+        let length = word(8);
+        let bytecode = word(36);
+        ensure!(word(0) == 0xdbdbdbdb, "invalid native image magic");
+        ensure!(length.checked_add(104) == Some(payload.len()), "invalid native image length");
+        ensure!(bytecode == 64 && bytecode + length <= payload.len(), "invalid native image alignment/offset");
+        let db = payload.as_ptr() as *mut c_void;
+        ensure!((db as usize) % 64 == 0, "unaligned native image");
+        type Size = unsafe extern "C" fn(*const c_void, *mut usize) -> c_int;
+        let size = unsafe { self.library.get::<Size>(b"hs_database_size")? };
+        let mut reported = 0;
+        ensure!(unsafe { size(db, &mut reported) } == 0 && reported == payload.len(), "incompatible native image");
+        Ok(Arc::new(Database { db, api: self.clone(), outputs, mapping: Some(mapping) }))
     }
 
     pub(super) fn deserialize(
@@ -196,7 +221,8 @@ impl Api {
         let mut db = ptr::null_mut();
         let code = unsafe { deserialize(bytes.as_ptr().cast(), bytes.len(), &mut db) };
         ensure!(code == 0 && !db.is_null(), "Vectorscan database deserialization failed: {code}");
-        Ok(Arc::new(Database { db, api: self.clone(), outputs }))
+        Ok(Arc::new(Database { db, api: self.clone(), outputs,
+            #[cfg(all(feature = "_mmap-spike", unix))] mapping: None }))
     }
 }
 
@@ -205,6 +231,8 @@ pub(super) struct Database {
     outputs: Vec<Option<ContentType>>,
     // Keep the loaded functions alive until every database and worker has been freed.
     api: Arc<Api>,
+    #[cfg(all(feature = "_mmap-spike", unix))]
+    mapping: Option<super::mapped::Mapping>,
 }
 
 // Vectorscan databases are immutable and may be shared; scratch is private to a worker.
@@ -252,6 +280,25 @@ impl Database {
         Ok(unsafe { std::slice::from_raw_parts(owned.0.cast(), length) }.to_vec())
     }
 
+    #[cfg(all(feature = "_mmap-spike", unix))]
+    pub(super) fn image(&self) -> Result<Vec<u8>> {
+        let serialized = self.serialize()?;
+        type Size = unsafe extern "C" fn(*const c_char, usize, *mut usize) -> c_int;
+        type At = unsafe extern "C" fn(*const c_char, usize, *mut c_void) -> c_int;
+        let size = unsafe { self.api.library.get::<Size>(b"hs_serialized_database_size")? };
+        let at = unsafe { self.api.library.get::<At>(b"hs_deserialize_database_at")? };
+        let mut length = 0;
+        ensure!(unsafe { size(serialized.as_ptr().cast(), serialized.len(), &mut length) } == 0
+            && length <= super::cache::MAX_DATABASE_SIZE, "invalid image size");
+        let mut pointer = ptr::null_mut();
+        ensure!(unsafe { libc::posix_memalign(&mut pointer, 64, length) } == 0, "image allocation failed");
+        struct Aligned(*mut c_void);
+        impl Drop for Aligned { fn drop(&mut self) { unsafe { libc::free(self.0); } } }
+        let aligned = Aligned(pointer);
+        ensure!(unsafe { at(serialized.as_ptr().cast(), serialized.len(), aligned.0) } == 0, "image construction failed");
+        Ok(unsafe { std::slice::from_raw_parts(aligned.0.cast(), length) }.to_vec())
+    }
+
     pub(super) fn worker(self: &Arc<Self>) -> Result<Worker> {
         let mut scratch = ptr::null_mut();
         let code = unsafe { (self.api.alloc)(self.db, &mut scratch) };
@@ -262,6 +309,8 @@ impl Database {
 
 impl Drop for Database {
     fn drop(&mut self) {
+        #[cfg(all(feature = "_mmap-spike", unix))]
+        if self.mapping.is_some() { return; }
         unsafe {
             (self.api.free_db)(self.db);
         }

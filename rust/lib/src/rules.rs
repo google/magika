@@ -55,6 +55,8 @@ mod engine;
 mod metadata;
 #[cfg(feature = "yara-rules")]
 mod native;
+#[cfg(all(feature = "_mmap-spike", unix))]
+mod mapped;
 
 /// A compiled, shareable YARA pack executed by Vectorscan.
 ///

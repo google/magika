@@ -234,6 +234,8 @@ impl Database {
         ensure!(code == 0 && !bytes.is_null(), "Vectorscan serialization failed: {code}");
         // Vectorscan's default miscellaneous allocator is malloc. This wrapper never changes
         // engine-global allocators; callers sharing libhs must not replace them while in use.
+        // The engine and Rust must share the malloc/free allocator domain. In particular,
+        // a Windows DLL with a private/static CRT is incompatible; Windows is not qualified.
         struct Serialized(*mut c_char);
         impl Drop for Serialized {
             fn drop(&mut self) {

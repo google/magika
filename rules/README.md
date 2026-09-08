@@ -93,6 +93,12 @@ $env:MAGIKA_VECTORSCAN_LIBRARY = 'C:\path\to\hs.dll'
 
 It must implement the Vectorscan/Hyperscan API used by Magika and match the binary's
 architecture. That setting alone does not establish native Windows compatibility.
+The engine must also use the same C allocator as the Rust binary: serialization
+returns a buffer allocated by the engine's default `malloc`, which Magika releases
+with `libc::free`. A Windows DLL using a private/static CRT is incompatible and can
+corrupt the heap. Do not change Vectorscan's global allocators while Magika is using
+it. Native Windows qualification remains a release hold until a matching engine
+bundle passes serialization, cache replacement, locking and native parity tests.
 `MAGIKA_RULES_CACHE` optionally selects a writable cache directory on every platform;
 otherwise Magika uses its platform-specific default. No native engine is needed
 for the ordinary rules-off path.

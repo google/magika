@@ -260,7 +260,12 @@ impl Runtime {
 
     #[cfg(all(not(target_os = "macos"), feature = "cuda"))]
     fn prepare_gpu(classes: &[usize]) -> Result<Self> {
-        ensure!(unsafe { cudarc::nvrtc::sys::is_culib_present() });
+        // The probe loads and unloads NVRTC, executing native library initialization.
+        // As with CUDA execution, it requires a trusted driver/toolkit library search path.
+        ensure!(
+            unsafe { cudarc::nvrtc::sys::is_culib_present() },
+            "CUDA NVRTC library unavailable"
+        );
         let mut plans = Vec::with_capacity(classes.len());
         let mut artifact = artifact::Bundle::embedded()?;
         for &batch in classes {

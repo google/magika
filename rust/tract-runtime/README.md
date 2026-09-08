@@ -9,6 +9,7 @@ This keeps partial batches from allocating additional unfused execution states.
 
 The public device choice is intentionally generic: automatic, CPU, or GPU. On macOS the compiled
 GPU implementation is Metal. CUDA can be compiled on supported systems with the `cuda` feature.
+The CLI enables CUDA only outside macOS, where that backend is reachable.
 Callers do not select Metal or CUDA directly; the resolved implementation is available through
 `BackendInfo` for verbose diagnostics.
 
@@ -20,6 +21,18 @@ Preparation is synchronous and has no driver timeout. Explicit `Cpu` skips GPU
 initialization entirely. Startup latency and steady-state throughput are separate
 measurements in the existing benchmark; a faster GPU inference rate alone does not
 establish lower latency for a short command.
+
+The CLI uses CPU directly for one explicitly supplied nonrecursive input in Auto
+mode, avoiding GPU preparation for that known small request. Explicit GPU and
+larger or recursive requests retain the existing device-selection behavior.
+
+CUDA hardware execution has not been qualified by the current CI, which checks
+that the CUDA feature compiles. In particular, cudarc 0.19.9 loads CUDA/NVRTC by
+library name; on Windows its default DLL search can include the current directory.
+The secure loader for optional signature rules does not protect these separate
+CUDA loads. Windows CUDA remains a release hold pending secure dependency loading
+and hardware execution tests. Explicit CPU skips these CUDA loads; this is a
+known limitation, not a claim that the loader issue has been fixed.
 
 Inference is synchronous. Async file reading and batch accumulation belong above this crate, so
 CPU- or GPU-bound model execution never occupies an async executor thread.

@@ -87,3 +87,53 @@ not an assumption that an equal engine version implies identical internal layout
 Map only trusted, immutable artifacts; atomic replacement must preserve mapped
 inodes. No full model mmap implementation or new compilation optimization was
 introduced. The unified package design identifies those follow-up constraints.
+
+## Startup attribution and ARM SHA configuration
+
+[Generated stage comparison](attribution.md), [software-SHA traces](startup-traces/report.md)
+and [accelerated-SHA traces](startup-traces-accelerated/report.md) retain ten
+fresh-process captures for each loader on a one-file signature hit and miss.
+`trace_startup.py` verifies every result against the saved corpus observations;
+`attribution.py` derives the table directly from the captured JSON.
+
+The measured dominant in-process cost was our full-image SHA-256 checksum.
+Inspection of pinned `sha2` 0.10.9 `src/sha256.rs` shows that ARM hardware dispatch
+is gated on `feature = "asm"`. Our default dependency configuration did not enable
+it. Experimental `_sha2-accel-spike` enables that dependency feature, retaining
+runtime CPU detection/software fallback and byte-identical hash semantics.
+Source revision `29685e568a13733a299b82ca8fafd8b539b04fcf` includes that feature;
+traced software-SHA source is `46e45ac81ba592158adce12f0c8f93596b777fd1`.
+
+The accelerated build loaded the exact same precompiled images without rebuilding.
+All three mapped-image validation tests passed again and all 40 captured
+classifications agreed with the saved observations. The full 25,421-file parity
+run predates the SHA acceleration experiment; the later change only selects the
+hash implementation. Timed 1-, 10- and 1,000-file outputs were also checked against
+those observations before measurement.
+
+Build accelerated tracing and capture a new output directory:
+
+```sh
+cargo build --release --locked --manifest-path rust/cli/Cargo.toml --features _sha2-accel-spike
+python rules/benchmarks/spikes/mmap/trace_startup.py WORKING_RUN NEW_TRACE_OUTPUT BINARY PACKS_ROOT
+```
+
+`PACKS_ROOT` contains `serialized/rules.yar` and `mapped/rules.yar`, each beside its
+precompiled `rules.hsdb`. Software and accelerated trace binaries reuse these same
+packs. `MAGIKA_STARTUP_TRACE=1` enables structured stderr traces; normal runs leave
+it unset. The trace records nested/concurrent spans separately. Parent launch-to-main
+includes Python process launch and scheduling, so it is not isolated dyld time.
+The main timer ends before emitting the trace, and the parent tail includes that
+emission and process/pipe scheduling. The trace-disabled direct-execution timing
+script also accepts `--binary BINARY --packs PACKS_ROOT` for another build; it
+records the new artifact hashes and treats full-corpus observations as a reference.
+
+The initial zero-file diagnostic, which exits before rules loading, took about
+2.3 ms. It includes CLI parsing/output/shutdown as well as pre-main costs; we do
+not subtract it to manufacture an isolated loader measurement. The actual
+Vectorscan `dlopen` span was roughly 0.24 ms and thread launch roughly 0.03 ms.
+Our wrapper currently requires compiler-only `hs_populate_platform`, which is
+absent from the available `libhs_runtime`; splitting compiler/runtime loading is a
+separate compatibility change. The local runtime-only dylib also still links
+libc++, so its dependency footprint must be measured rather than inferred from
+upstream's generic documentation.

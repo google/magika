@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "dataset": "Sembiance v3",
   "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
   "selection": {
@@ -3451,6 +3451,42 @@
           "tool": "magika1",
           "trials": 3
         }
+      },
+      "tool_identity": {
+        "tool": "Magika",
+        "version": "1.1.0",
+        "software_version": "1.1.0",
+        "source_revision": null,
+        "raw_version": "magika 1.1.0 standard_v3_3",
+        "config": "CPU; ML",
+        "config_id": "06b0f91c3fdb041f1c859bd0b4366edf976aac985c16a35e437b29860cd30a88",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "internal_batch": "default 1",
+            "intra_threads": 2,
+            "model": "standard_v3_3",
+            "release": "cli/v1.1.0",
+            "tasks": 1
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika1/magika-cli-aarch64-apple-darwin/magika",
+            "--jsonl",
+            "--intra-threads=2",
+            "--num-tasks=1"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "188e3ace44592119f89741af19c3636d42daea5239da85adc684647267fc1b31",
+        "executable_sha256": "6f594202dd6627e9923cbc01a57e841f30e3ebab8be711c74352d70e39ade6a9",
+        "artifacts": {
+          "distribution": "54b89c59e9ff024699066178c45e58d731833cc25b7c139b42857d5d31b7b804"
+        }
       }
     },
     {
@@ -6882,6 +6918,49 @@
           "requested_rule_hit_percent": null,
           "tool": "magika2-ml",
           "trials": 3
+        }
+      },
+      "tool_identity": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ e5f7e339",
+        "software_version": "2.0.0-dev",
+        "source_revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; ML",
+        "config_id": "22cc1952bbf9f990ba62121be944bbb13c175cd5baf0b6ac41e618ed93b1796b",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "internal_batch": 8,
+            "model": "standard_v3_3",
+            "readers": 2,
+            "rules": "off",
+            "threads": 2
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-deferred-spike-v3/magika",
+            "--jsonl",
+            "--backend=cpu",
+            "--readers=2",
+            "--threads=2",
+            "--batch-size=8",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "a0289752a5c2a98347e7e7c3276d3a8b4701748d4a6b43cf0df53bc0918bd667",
+        "executable_sha256": "702fd59b7f1a5a2877c5f489fd60e18b00383552fbd04fbd84bb649ecc8cc49a",
+        "artifacts": {
+          "cpu_backend": "8aae32a09e603752b718d709905ba8fe938f3215c4184e44e2801a06f6505302",
+          "metal_backend": "3deb51c217999a84072932057a1c417925a146ffbbc87452e5d7e7781baf802f",
+          "model_config": "ae24c742205358f6ff6dfd5facb6743fb69743dbba8373e73da58ff0cbd695db",
+          "native": "7fa047f93570f719310ce784e28b9f3679dcc0f6fd3fa34524b25102100deff1",
+          "rules": "a0f9cc2a3e3fe9574e950260678724f4c675aae3b56c5f73cb3f5d1ac43aca17"
         }
       }
     },
@@ -10323,6 +10402,52 @@
           "tool": "magika2-rules",
           "trials": 3
         }
+      },
+      "tool_identity": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ e5f7e339",
+        "software_version": "2.0.0-dev",
+        "source_revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; rules + ML",
+        "config_id": "626cb9ea1d6626f86b60c99e09d2e00e0a4313485bfccf7e7e249f8b0dcb1cb2",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "internal_batch": 8,
+            "model": "standard_v3_3",
+            "readers": 2,
+            "rules": "enforce",
+            "threads": 2
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-deferred-spike-v3/magika",
+            "--jsonl",
+            "--backend=cpu",
+            "--readers=2",
+            "--threads=2",
+            "--batch-size=8",
+            "--rules=enforce",
+            "--rules-file",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-no-checksum-packs-55c3209d/mapped/rules.yar"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "30eb9bb8ebd44e4ad4ef6685c42255f0c8b7449cba1da90c5ac101a9376e5453",
+        "executable_sha256": "702fd59b7f1a5a2877c5f489fd60e18b00383552fbd04fbd84bb649ecc8cc49a",
+        "artifacts": {
+          "compiled_rules": "79034ec134d0e1cd1cafd5c40c8c9200fce69d10fff70eee199a6168185e4325",
+          "cpu_backend": "8aae32a09e603752b718d709905ba8fe938f3215c4184e44e2801a06f6505302",
+          "metal_backend": "3deb51c217999a84072932057a1c417925a146ffbbc87452e5d7e7781baf802f",
+          "model_config": "ae24c742205358f6ff6dfd5facb6743fb69743dbba8373e73da58ff0cbd695db",
+          "native": "7fa047f93570f719310ce784e28b9f3679dcc0f6fd3fa34524b25102100deff1",
+          "rules": "a0f9cc2a3e3fe9574e950260678724f4c675aae3b56c5f73cb3f5d1ac43aca17"
+        }
       }
     },
     {
@@ -13754,6 +13879,49 @@
           "requested_rule_hit_percent": null,
           "tool": "magika2-gpu-ml",
           "trials": 3
+        }
+      },
+      "tool_identity": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ e5f7e339",
+        "software_version": "2.0.0-dev",
+        "source_revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Metal; ML",
+        "config_id": "5f62a6455a80fbfb954d77a19920c120013bb1456a3de3249e7db240e52468f2",
+        "configuration": {
+          "settings": {
+            "backend": "GPU-required (Metal on macOS)",
+            "internal_batch": 8,
+            "model": "standard_v3_3",
+            "readers": 2,
+            "rules": "off",
+            "threads": 2
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-deferred-spike-v3/magika",
+            "--jsonl",
+            "--backend=gpu",
+            "--readers=2",
+            "--threads=2",
+            "--batch-size=8",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "a0289752a5c2a98347e7e7c3276d3a8b4701748d4a6b43cf0df53bc0918bd667",
+        "executable_sha256": "702fd59b7f1a5a2877c5f489fd60e18b00383552fbd04fbd84bb649ecc8cc49a",
+        "artifacts": {
+          "cpu_backend": "8aae32a09e603752b718d709905ba8fe938f3215c4184e44e2801a06f6505302",
+          "metal_backend": "3deb51c217999a84072932057a1c417925a146ffbbc87452e5d7e7781baf802f",
+          "model_config": "ae24c742205358f6ff6dfd5facb6743fb69743dbba8373e73da58ff0cbd695db",
+          "native": "7fa047f93570f719310ce784e28b9f3679dcc0f6fd3fa34524b25102100deff1",
+          "rules": "a0f9cc2a3e3fe9574e950260678724f4c675aae3b56c5f73cb3f5d1ac43aca17"
         }
       }
     },
@@ -17195,6 +17363,52 @@
           "tool": "magika2-gpu-rules",
           "trials": 3
         }
+      },
+      "tool_identity": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ e5f7e339",
+        "software_version": "2.0.0-dev",
+        "source_revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Metal; rules + ML",
+        "config_id": "c0765229d16456c7dd2b7ce4e1e232e582e11167b499c8417445516f53ad4f81",
+        "configuration": {
+          "settings": {
+            "backend": "GPU-required (Metal on macOS)",
+            "internal_batch": 8,
+            "model": "standard_v3_3",
+            "readers": 2,
+            "rules": "enforce",
+            "threads": 2
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-deferred-spike-v3/magika",
+            "--jsonl",
+            "--backend=gpu",
+            "--readers=2",
+            "--threads=2",
+            "--batch-size=8",
+            "--rules=enforce",
+            "--rules-file",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-no-checksum-packs-55c3209d/mapped/rules.yar"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "30eb9bb8ebd44e4ad4ef6685c42255f0c8b7449cba1da90c5ac101a9376e5453",
+        "executable_sha256": "702fd59b7f1a5a2877c5f489fd60e18b00383552fbd04fbd84bb649ecc8cc49a",
+        "artifacts": {
+          "compiled_rules": "79034ec134d0e1cd1cafd5c40c8c9200fce69d10fff70eee199a6168185e4325",
+          "cpu_backend": "8aae32a09e603752b718d709905ba8fe938f3215c4184e44e2801a06f6505302",
+          "metal_backend": "3deb51c217999a84072932057a1c417925a146ffbbc87452e5d7e7781baf802f",
+          "model_config": "ae24c742205358f6ff6dfd5facb6743fb69743dbba8373e73da58ff0cbd695db",
+          "native": "7fa047f93570f719310ce784e28b9f3679dcc0f6fd3fa34524b25102100deff1",
+          "rules": "a0f9cc2a3e3fe9574e950260678724f4c675aae3b56c5f73cb3f5d1ac43aca17"
+        }
       }
     },
     {
@@ -20635,6 +20849,53 @@
           "tool": "magika2-rules-only",
           "trials": 3
         }
+      },
+      "tool_identity": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ e5f7e339",
+        "software_version": "2.0.0-dev",
+        "source_revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; rules-only",
+        "config_id": "11776c00432a41c8953b00b8feeac74c31aad97d32540ceb6ab79f434229156f",
+        "configuration": {
+          "settings": {
+            "backend": "none (CPU signatures)",
+            "internal_batch": null,
+            "model": null,
+            "queue_batch_flag": 8,
+            "queue_threads_flag": 2,
+            "readers": 2,
+            "rules": "only",
+            "threads": 0
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-deferred-spike-v3/magika",
+            "--jsonl",
+            "--backend=cpu",
+            "--readers=2",
+            "--threads=2",
+            "--batch-size=8",
+            "--rules=only",
+            "--rules-file",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-no-checksum-packs-55c3209d/mapped/rules.yar"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "338103194deb1c2ea4bbf4ed104a391212d272b51c6d189a25116fda8e75c81e",
+        "executable_sha256": "702fd59b7f1a5a2877c5f489fd60e18b00383552fbd04fbd84bb649ecc8cc49a",
+        "artifacts": {
+          "compiled_rules": "79034ec134d0e1cd1cafd5c40c8c9200fce69d10fff70eee199a6168185e4325",
+          "cpu_backend": "8aae32a09e603752b718d709905ba8fe938f3215c4184e44e2801a06f6505302",
+          "metal_backend": "3deb51c217999a84072932057a1c417925a146ffbbc87452e5d7e7781baf802f",
+          "native": "7fa047f93570f719310ce784e28b9f3679dcc0f6fd3fa34524b25102100deff1",
+          "rules": "a0f9cc2a3e3fe9574e950260678724f4c675aae3b56c5f73cb3f5d1ac43aca17"
+        }
       }
     },
     {
@@ -24067,6 +24328,42 @@
           "tool": "libmagic",
           "trials": 3
         }
+      },
+      "tool_identity": {
+        "tool": "libmagic",
+        "version": "5.41",
+        "software_version": "5.41",
+        "source_revision": null,
+        "raw_version": "file-5.41\nmagic file from /usr/share/file/magic",
+        "config": "MIME; serial",
+        "config_id": "52c4f5d96fd1b285a8c355344a1750ad23a5121090af0a4282473511430c7f2a",
+        "configuration": {
+          "settings": {
+            "decompression": false,
+            "output": "NUL-framed MIME",
+            "threads": 1
+          },
+          "command": [
+            "/usr/bin/file",
+            "-0",
+            "-0",
+            "--mime-type",
+            "--no-pad",
+            "--magic-file",
+            "/usr/share/file/magic.mgc"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "808833b8da07e23b5cd32ef92460cfc4b80472e8ce612ebc39d3c5580afb98b5",
+        "executable_sha256": "a4ba66d26a9cfdc70637c78cdacef920f94147f6aa45ccc73858e493589ef94d",
+        "artifacts": {
+          "definitions": "38fc8af9d342a3a1d32a626195314a913ee255d8cbd259067d665ea55735b7c0"
+        }
       }
     },
     {
@@ -26388,7 +26685,58 @@
           "tool": "trid",
           "trials": 3
         }
+      },
+      "tool_identity": {
+        "tool": "TrID",
+        "version": "2.48",
+        "software_version": "2.48",
+        "source_revision": null,
+        "raw_version": "TrID - File Identifier v2.48 - (C) 2003-2026 By Marco Pontello\n\nPlatform Informations\n  Operating System: Darwin\n  OS release: 25.5.0\n  OS details: macOS-26.5.2-arm64-arm-64bit-Mach-O\n  Machine architecture (CPU): arm64\n  Python: 3.14.4 (main, Apr 14 2026, 14:46:33)\n          [Clang 22.1.3 ]\n  Using Stringzilla: True\nComponents copyrights/licenses\n  StringZilla library (C) Ash Vardanian - Three-clause BSD license",
+        "config": "strings=True; StringZilla=5.1.2",
+        "config_id": "62cc9f75e79e61b81c6ace1002f029e36472d6935ede1b47f91073a5368b87ca",
+        "configuration": {
+          "settings": {
+            "max_results": 5,
+            "strings": true,
+            "stringzilla": "5.1.2",
+            "threads": 1
+          },
+          "command": [
+            "/Users/elie/.local/share/uv/python/cpython-3.14.4-macos-aarch64-none/bin/python3.14",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/trid/trid.py",
+            "-d",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/trid/triddefs.trd",
+            "-n",
+            "5"
+          ],
+          "environment": {
+            "MAGIKA_RULES_MMAP_SPIKE": "1",
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+            "OMP_NUM_THREADS": "2",
+            "OPENBLAS_NUM_THREADS": "2"
+          }
+        },
+        "build_id": "aaf5f8699486e5351eb37114c7d8441dbbe228e39a2bb4d8df43b88f36748885",
+        "executable_sha256": "bf4ea26231212e330b8e9b6f24969a30f894fec88665bf42754070d114ac7fc6",
+        "artifacts": {
+          "definitions": "eb9244ae3fc02d64a9f7ad8ac5b803b38a0cc9869d668108ad2d373320fefe71",
+          "distribution": "3cc2e0865a5e0ccbfe965432c9573fba9b4cbf8149bdf2d25905f16a2e909bdb",
+          "script": "5e8b5a15168595de54c4e002a0082e221e7ee368225f2277ec2d7a5f81fa3897",
+          "stringzilla": "c07c42dfdbea10aa30d13f9588093d9e324f360203ef108e40998851c6100736"
+        }
       }
     }
-  ]
+  ],
+  "dataset_identity": {
+    "id": "sembiance",
+    "name": "Sembiance",
+    "version": "v3",
+    "source_files": 33421,
+    "selection": "evaluation_eligible",
+    "source_manifest_sha256": "08b5a1684079ca9a95360d4c4e868fe3a9d7c9b64d21bba0cd6f75c71eeeb252",
+    "corpus_sha256": "a8717d6c58c4487fd92096efc03eb7155fa867efa4ac9a3da39da2ceaa45810a",
+    "scored_files": 2400
+  },
+  "measured_at_utc": "2026-09-08T23:11:38.675067Z",
+  "benchmark_version": "1.1.0"
 }

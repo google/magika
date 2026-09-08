@@ -166,10 +166,39 @@ JSON history index:
 ```sh
 rules/.venv/bin/python rules/benchmarks/store.py \
   /absolute/path/to/completed-run \
-  rules/benchmarks/results/v1/UNIQUE_RUN_ID
+  rules/benchmarks/results/v1/UNIQUE_RUN_ID \
+  --dataset /absolute/path/to/dataset-descriptor.json
 ```
 
 The store command refuses an existing destination or unfinished measurements.
+A dataset descriptor supplies `id`, `name`, `version`, `corpus_sha256`,
+`source_files` and the selection policy. The command records the scored count and
+original UTC measurement timestamp. It can reuse an existing descriptor for the
+same corpus fingerprint; an unknown snapshot needs an explicit descriptor.
+An established dataset version cannot silently change its snapshot or selection.
+
+The [catalogue](CATALOG.md) and [JSON index](results/v1/index.json) keep independent
+histories by dataset identity and version. The existing combined snapshot is
+`snapshot-1411a5c0fd4a`; the external dataset is Sembiance `v3`. V56 remains the
+base release dataset; the combined historical snapshot is not a full V56 run.
+
+Overview columns are **Tool | Version | Config**. Development Magika versions
+include the source revision; tool configuration may declare `source_revision`
+when it differs from the run revision. Config IDs identify flags, settings and
+environment. JSON also retains full commands, raw version output, executable and
+artifact hashes, and a separate build ID, distinguishing builds of the same
+source revision. The expandable configuration key exposes the exact settings.
+
+`catalog.py` refreshes the catalogue and overview metadata from stored JSON and
+`datasets.json`, verifies original artifact receipts and preserves measurements:
+
+```sh
+rules/.venv/bin/python rules/benchmarks/catalog.py
+```
+
+Add new dataset descriptors to `datasets.json` by corpus fingerprint before a
+catalogue refresh. Original per-run evidence and reports remain immutable;
+current overview tables are generated from that evidence.
 
 An interrupted quality phase can be resumed into a **new** output directory with
 `--reuse-quality /path/to/old-run`. Only raw detector stdout is reused, and only

@@ -1,8 +1,19 @@
 {
-  "schema": 1,
+  "schema": 2,
   "runs": [
     {
       "id": "2026-09-08-425a5e38-cpu",
+      "dataset": {
+        "id": "adjudicated-combined",
+        "name": "Adjudicated combined corpus",
+        "version": "snapshot-1411a5c0fd4a",
+        "source_files": 25421,
+        "selection": "validated combined snapshot with APK patch 136",
+        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
+        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
+        "scored_files": 25421
+      },
+      "measured_at_utc": "2026-09-08T18:22:05.748172Z",
       "benchmark_version": "1.0.0",
       "revision": "425a5e38",
       "status": "complete",
@@ -10,6 +21,17 @@
     },
     {
       "id": "2026-09-08-425a5e38-gpu",
+      "dataset": {
+        "id": "adjudicated-combined",
+        "name": "Adjudicated combined corpus",
+        "version": "snapshot-1411a5c0fd4a",
+        "source_files": 25421,
+        "selection": "validated combined snapshot with APK patch 136",
+        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
+        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
+        "scored_files": 25421
+      },
+      "measured_at_utc": "2026-09-08T18:30:12.121784Z",
       "benchmark_version": "1.0.0",
       "revision": "425a5e38",
       "status": "partial",
@@ -17,6 +39,17 @@
     },
     {
       "id": "2026-09-08-2d6c3992-rules-only",
+      "dataset": {
+        "id": "adjudicated-combined",
+        "name": "Adjudicated combined corpus",
+        "version": "snapshot-1411a5c0fd4a",
+        "source_files": 25421,
+        "selection": "validated combined snapshot with APK patch 136",
+        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
+        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
+        "scored_files": 25421
+      },
+      "measured_at_utc": "2026-09-08T18:55:28.159122Z",
       "benchmark_version": "1.1.0",
       "revision": "2d6c39928b157746630a2efdd4da874cc90da75c",
       "status": "complete",
@@ -24,6 +57,17 @@
     },
     {
       "id": "2026-09-08-e5f7e339-all",
+      "dataset": {
+        "id": "adjudicated-combined",
+        "name": "Adjudicated combined corpus",
+        "version": "snapshot-1411a5c0fd4a",
+        "source_files": 25421,
+        "selection": "validated combined snapshot with APK patch 136",
+        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
+        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
+        "scored_files": 25421
+      },
+      "measured_at_utc": "2026-09-08T22:36:35.070300Z",
       "benchmark_version": "1.1.0",
       "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
       "status": "complete",
@@ -31,6 +75,17 @@
     },
     {
       "id": "2026-09-08-e5f7e339-sembiance-v3",
+      "dataset": {
+        "id": "sembiance",
+        "name": "Sembiance",
+        "version": "v3",
+        "source_files": 33421,
+        "selection": "evaluation_eligible",
+        "source_manifest_sha256": "08b5a1684079ca9a95360d4c4e868fe3a9d7c9b64d21bba0cd6f75c71eeeb252",
+        "corpus_sha256": "a8717d6c58c4487fd92096efc03eb7155fa867efa4ac9a3da39da2ceaa45810a",
+        "scored_files": 2400
+      },
+      "measured_at_utc": "2026-09-08T23:11:38.675067Z",
       "benchmark_version": "1.1.0",
       "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
       "status": "complete",

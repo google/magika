@@ -1,9 +1,14 @@
 {
-  "schema": 1,
-  "generator_sha256": "db7b6b7a96892747afe96688c0713e7303f8e99fca688f4cad588c97cc35baad",
+  "schema": 2,
   "files": {
-    "overview.json": "33a9e3baed28a8c7cf4cdcd657d274b0668073394bc0c10d03bff6e68ab8d9d7",
-    "overview.md": "be8fb208f0bb6097d98a24f36f84c1380fa351725f1365c6944c0e72e1879599"
+    "overview.json": "78802a03a31699c4e32d7595561bf887a71ca8f0eb3a89361d861ca375306a1d",
+    "overview.md": "a2ee62dd4a9b5b2421eb2aa6a5bf623a4ebc3ab173c1cc138e3d247feb68b93d"
   },
-  "run_receipt_sha256": "edebf5f87e62d432172cfd8e17595b1dcd35685d74e7adaeb7b27532fc335991"
+  "run_receipt_sha256": "edebf5f87e62d432172cfd8e17595b1dcd35685d74e7adaeb7b27532fc335991",
+  "code_sha256": {
+    "catalog.py": "5284855bbbd54b72b865dcd4444eb2cb438a9018809f77e3b2df793db53a6ee5",
+    "full_table.py": "392afa7cf9da819a9ae4b58612837f643e4f8878122bc8512744215e57df2fc6",
+    "external_table.py": "30b6a0528ebac473700a44537f4c6fee5f9ef65fa7942880e3394f8e98ed9769",
+    "../benchmark/src/magika_rules_benchmark/identity.py": "afd326d8e13236ebe9bb02634a7c61d401a1f9af5664fd4af8bb61368926c234"
+  }
 }

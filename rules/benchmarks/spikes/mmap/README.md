@@ -218,3 +218,12 @@ saved JSON with `hash_comparison.py --root NEW_RESULTS --blake3-label
 'BLAKE3 + Rayon (4 threads)'`. Each result directory retains its exact script copy.
 The experimental feature leaves thread policy to Rayon/environment; production
 thread budgeting still needs a deliberate policy before enabling it by default.
+
+## Complete process accounting
+
+[Same-run parent/main/exit accounting](process-accounting/results/report.md) fixes
+the earlier incomplete attribution: internal spans alone excluded most startup.
+The native Hyperfine timer now records boundaries for the very same child traces.
+Before-main averages 3.09 ms, main 1.51 ms and trace/exit/wakeup 0.65 ms, totaling
+5.24 ms with tracing. The untraced median is 4.55 ms. The major remaining bucket is
+before-main startup; its framework/loader/scheduler split is not yet isolated.

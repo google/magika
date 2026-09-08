@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "outer_checksum_span_absent": true,
+  "stages_ms": [
+    {
+      "stage": "main_elapsed_ns",
+      "sha256": 2.043979,
+      "none": 1.522291
+    },
+    {
+      "stage": "rule_pack_load_total",
+      "sha256": 1.099396,
+      "none": 0.524354
+    },
+    {
+      "stage": "rules_payload_checksum",
+      "sha256": 0.550646,
+      "none": null
+    },
+    {
+      "stage": "rules_cache_identity",
+      "sha256": 0.0898335,
+      "none": 0.086104
+    },
+    {
+      "stage": "native_scratch_allocate",
+      "sha256": 0.532625,
+      "none": 0.5923955
+    },
+    {
+      "stage": "native_library_dlopen",
+      "sha256": 0.3003545,
+      "none": 0.278688
+    }
+  ],
+  "process_ms": [
+    {
+      "files": 1,
+      "sha256": {
+        "median_seconds": 5.3059795,
+        "min_seconds": 4.976875000000001,
+        "max_seconds": 5.6541250000000005
+      },
+      "none": {
+        "median_seconds": 4.6398955,
+        "min_seconds": 4.280625000000001,
+        "max_seconds": 4.914125
+      }
+    },
+    {
+      "files": 10,
+      "sha256": {
+        "median_seconds": 5.677020500000001,
+        "min_seconds": 5.339375,
+        "max_seconds": 6.176875
+      },
+      "none": {
+        "median_seconds": 5.4059165,
+        "min_seconds": 4.699417,
+        "max_seconds": 5.904542
+      }
+    },
+    {
+      "files": 1000,
+      "sha256": {
+        "median_seconds": 39.095125,
+        "min_seconds": 38.279042,
+        "max_seconds": 40.115750000000006
+      },
+      "none": {
+        "median_seconds": 38.317958,
+        "min_seconds": 37.816250000000004,
+        "max_seconds": 39.250583000000006
+      }
+    }
+  ],
+  "source_hashes": {
+    "sha256/startup/traces.json": "3c30ef8ebdfe978e49413b2c01bd21ae85e86d19d2aecb9bf1400a57ddeeb1f5",
+    "none/startup/traces.json": "0004f204fe916871f1b10a63796ce95fdca297d858cd4e65b1d664d1bd4da993",
+    "sha256/direct/summary.json": "ed3ffb99fdc0b5afe6989409b18312b2f929f735131c8dbdfbacf98ca6656f53",
+    "none/direct/summary.json": "a42d777782b4be7977fbdbefd196521c0352a995f8cf498b0271f871c995c102"
+  }
+}

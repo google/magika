@@ -1,5 +1,29 @@
 # Mapped Vectorscan image spike
 
+## Current loader: no outer payload checksum
+
+Source `55c3209ddf7b24447c51f1b2a1302fd7647a205f` removes the outer cryptographic
+checksum from both serialized and mapped pack loading/writing. The checksum field,
+BLAKE3/Rayon CLI/library variants and their optional dependencies are removed.
+Serialized format is now `MAGIKAHS` version 4; mapped format is `MAGIKAMM` version 3.
+Earlier packs are rebuilt once. Source/compiler cache identity hashing remains to
+invalidate stale compiled rules; build `_sha2-accel-spike` for its accelerated SHA.
+
+Bounds, alignment, trusted-file rules, source/compiler identity, engine/CPU identity
+and recognized labels remain checked. Vectorscan checks its bytecode CRC during
+serialized deserialization or mapped scratch allocation, before scanning. Metadata
+is trusted configuration and no longer has an outer cryptographic corruption check.
+
+The no-checksum pack test failed before implementation and passes now. Three mapped
+tests and the serialized cache/edit/corruption test pass. The native corruption
+regressions change actual bytecode bytes, not unused allocation padding. Mapped
+scratch allocation rejects those bytes; the public identification API abstains on
+native failure as documented.
+
+[Generated before/after startup comparison](checksum-removal/comparison.md) retains
+raw observations and exact artifacts. The sections below document earlier spike
+checkpoints and the hash experiments that led to the current loader.
+
 Source revision: `24b86573616b9fe30a02920e8171064ae08b8dbc`.
 Vectorscan source inspected: `acd7363aadea43da9c5246542d9969db843dd132`.
 This experiment is on `worktree/rules-mmap-spike`; the PR's default loader is unchanged.

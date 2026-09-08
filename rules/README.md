@@ -113,6 +113,13 @@ disk files beneath the output directory. It neither acquires data nor imports da
 project code. Supplied annotations are ground truth; ML or signature-tool agreement
 does not establish labels.
 
+For this first version, the acceptance target is zero observed false positives on
+that supplied, quality-reviewed corpus. Coverage can improve in later versions;
+false negatives can fall through to ML. The report describes the supplied evaluation
+set. Stored `split` and `group` annotations are provenance; this command does not
+create or claim a held-out evaluation. A new collection or split is not a prerequisite
+for this first version.
+
 The command writes `report.md` and raw JSON. By default it exports the binary's exact
 embedded source; `--rules-file` selects a custom pack. `--phase quality` runs correctness
 only, `--phase performance` uses saved observations for the same binary/rules/model,

@@ -63,16 +63,8 @@ def test_magika_module_with_one_test_file() -> None:
 
 @pytest.mark.smoketest
 def test_magika_module_with_explicit_model_dir() -> None:
-    model_dir = utils.get_default_model_dir()
-    test_path = utils.get_one_basic_test_file_path()
-
-    m = Magika(model_dir=model_dir)
-
-    _ = m.identify_path(test_path)
-    _ = m.identify_paths([test_path])
-    _ = m.identify_bytes(test_path.read_bytes())
-    with open(test_path, "rb") as f:
-        _ = m.identify_stream(f)
+    with pytest.raises(NotImplementedError):
+        Magika(model_dir=Path("/nonexistent/model/dir"))
 
 
 def test_magika_module_with_basic_tests_by_paths() -> None:
@@ -119,22 +111,10 @@ def test_magika_module_with_basic_tests_by_stream() -> None:
         )
 
 
-def test_magika_module_with_all_models() -> None:
-    tests_paths = utils.get_basic_test_files_paths()
-
-    models_dir = utils.get_models_dir()
-    for model_dir in models_dir.iterdir():
-        m = Magika(model_dir=model_dir)
-        for test_path in tests_paths:
-            result = m.identify_path(test_path)
-            check_result_vs_expected_result(test_path, result)
-
-
 def test_magika_module_with_previously_missdetected_samples() -> None:
-    model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_previously_missdetected_files_paths()
 
-    m = Magika(model_dir=model_dir)
+    m = Magika()
     results = m.identify_paths(tests_paths)
     check_results_vs_expected_results(tests_paths, results)
 

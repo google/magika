@@ -198,6 +198,16 @@ mod native_tests {
 
     #[test]
     fn bundled_source_policy() {
+        for notice in [
+            "Copyright (c) Ian F. Darwin",
+            "Copyright (c) 2013-2025 Chris Griffith",
+            "Contains public sector information licensed under the Open Government Licence v3.0.",
+            "Copyright 2007-2026 The Apache Software Foundation",
+            "Apache License",
+            "The MIT License (MIT)",
+        ] {
+            assert!(DEFAULT_RULES.contains(notice), "missing bundled attribution: {notice}");
+        }
         assert!(compiler::compile(DEFAULT_RULES).unwrap().outputs.iter().any(Option::is_some));
         assert!(RuleSet::from_source(
             "rule a { meta: label = \"png\" enabled = false condition: filesize > 0 }"

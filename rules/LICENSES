@@ -2,19 +2,19 @@ Derived format signatures and identifying conditions
 
 libmagic
 Source: https://github.com/file/file.git
-Pinned revision/content SHA256: 5e57b94cdd3f2bc2f6db8581dcce76a89fc9c9f7
+Pinned Git revision (SHA-1): 5e57b94cdd3f2bc2f6db8581dcce76a89fc9c9f7
 
 pronom-binary
 Source: https://cdn.nationalarchives.gov.uk/documents/DROID_SignatureFile_V125.xml
-Pinned revision/content SHA256: c7c328dd0e131947667e9b94294c5d47e0b6ec8ec3040b7fd542ac605ecc6ec5
+Pinned content SHA-256: c7c328dd0e131947667e9b94294c5d47e0b6ec8ec3040b7fd542ac605ecc6ec5
 
 puremagic
 Source: https://github.com/cdgriffith/puremagic.git
-Pinned revision/content SHA256: 57bed56ef669132c0f906e1d064680bf2c4b2205
+Pinned Git revision (SHA-1): 57bed56ef669132c0f906e1d064680bf2c4b2205
 
 tika
 Source: https://github.com/apache/tika.git
-Pinned revision/content SHA256: 5e029d3e2e977dbc266a199fc4c4fd3cb48af0f5
+Pinned Git revision (SHA-1): 5e029d3e2e977dbc266a199fc4c4fd3cb48af0f5
 
 PRONOM: Contains public sector information licensed under the Open Government Licence v3.0.
 https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/

@@ -17,7 +17,11 @@ fn main() -> anyhow::Result<()> {
     let canonical = manifest.join("../../rules/rulesets");
     // In a checkout, packaging leftovers must not override the maintained sources.
     // An isolated source distribution has only its staged rulesets directory.
-    let root = if canonical.is_dir() { canonical } else { packaged };
+    let (root, licenses) = if canonical.is_dir() {
+        (canonical, manifest.join("../../rules/LICENSES"))
+    } else {
+        (packaged, manifest.join("RULES-LICENSES"))
+    };
     println!("cargo:rerun-if-changed={}", root.display());
     let mut source = String::new();
     for bucket in ["full", "partial", "notworking"] {
@@ -35,6 +39,14 @@ fn main() -> anyhow::Result<()> {
             source.push_str(&text);
             source.push('\n');
         }
+    }
+    // Keep the existing notices with source exported from an installed binary, too.
+    println!("cargo:rerun-if-changed={}", licenses.display());
+    source.push_str("\n// Third-party signature notices\n");
+    for line in std::fs::read_to_string(licenses)?.lines() {
+        source.push_str("// ");
+        source.push_str(line);
+        source.push('\n');
     }
     #[cfg(feature = "yara-rules")]
     {

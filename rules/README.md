@@ -177,7 +177,10 @@ both with and without `yara-rules`.
 
 Source staging preserves the local tract-runtime dependency for verification. Binary
 bundles export the executable's embedded source, compile a target-specific `.hsdb`,
-and include notices. Existing outputs are not overwritten. These commands do not publish.
+and include notices. The embedded source also carries those notices, so an installed
+CLI retains them in its existing `--write-default-rules` export. When distributing
+individual maintained `.yar` files, include `rules/LICENSES` alongside them. Existing
+outputs are not overwritten. These commands do not publish.
 
 The bundled `libhs` must support the destination CPUs as well as the destination OS
 and architecture. The native-test CI recipe uses host tuning (`FAT_RUNTIME=OFF`);

@@ -46,6 +46,7 @@ def test_checkout_build_ignores_stale_packaged_rule_copy(tmp_path):
     library = stage(tmp_path / "repo/rust")
     canonical = tmp_path / "repo/rules/rulesets"
     shutil.copytree(ROOT / "rulesets", canonical)
+    shutil.copyfile(ROOT / "LICENSES", canonical.parent / "LICENSES")
     (library / "rulesets/full/formats.yar").write_text("this is a stale invalid packaged copy")
     result = subprocess.run(
         [

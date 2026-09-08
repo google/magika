@@ -105,13 +105,12 @@ rule taxonomy_ace
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "**ACE**"
-		$p1_0 = /(\x2a){2}\x41\x43\x45(\x2a){2}(\x14){2}/
-		$p2_0 = /(\x2a){2}\x41\x43\x45(\x2a){2}[\x0a-\x0d](\x0a|\x0b|\x0c|\x0d|\x14)/
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 14 and original_size >= 14 and $p0_0 at 7) or ($p1_0 at 7) or ($p2_0 at 7)))
+    // ACE main header: fixed fields and advert-length byte precede optional data.
+    strings:
+        $magic = "**ACE**"
+    condition:
+        prefix_size >= 31 and $magic at 7 and uint16(2) >= 27 and
+        uint8(4) == 0 and uint8(5) % 2 == 0
 }
 
 rule taxonomy_applebplist
@@ -314,11 +313,14 @@ rule taxonomy_bpg
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 42 50 47 FB }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    // BPG 0.9.8: defined pixel formats/depths, color space and two nonzero ue7(32) dimensions.
+    strings:
+        $magic = { 42 50 47 FB }
+        $format_depth = /[\x00-\x06\x10-\x16\x20-\x26\x30-\x36\x40-\x46\x50-\x56\x60-\x66\x70-\x76\x80-\x86\x90-\x96\xa0-\xa6\xb0-\xb6]/
+        $dimensions = /([\x01-\x7f]|[\x81-\xff][\x80-\xff]{0,2}[\x00-\x7f]|[\x81-\x8f][\x80-\xff]{3}[\x00-\x7f]){2}[\x00-\xff]/
+    condition:
+        prefix_size >= 9 and $magic at 0 and $format_depth at 4 and uint8(5) < 80 and
+        (uint8(4) >= 32 or uint8(5) < 16) and $dimensions at 6
 }
 
 rule taxonomy_bzip
@@ -413,11 +415,11 @@ rule taxonomy_dsstore
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 00 00 00 01 42 75 64 31 00 }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 9 and $p0_0 at 0))
+    // Buddy header plus space for allocator address/count fields; no fixed root address.
+    strings:
+        $magic = { 00 00 00 01 42 75 64 31 00 }
+    condition:
+        prefix_size >= 36 and $magic at 0 and uint32be(8) >= 32 and uint32be(12) >= 12
 }
 
 rule taxonomy_duckdb
@@ -430,11 +432,11 @@ rule taxonomy_duckdb
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 44 55 43 4b }
-
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 12 and $p0_0 at 8))
+    // The on-disk main header occupies 4 KiB. Keep versions forward compatible, including 999.
+    strings:
+        $magic = "DUCK"
+    condition:
+        prefix_size >= 4096 and $magic at 8 and uint32(12) >= 1 and uint32(16) == 0
 }
 
 rule taxonomy_dwg

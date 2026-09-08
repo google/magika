@@ -28,6 +28,33 @@ def reviewed_binary_headers():
     pq.write_table(pa.table({"value": pa.array([], type=pa.int32())}), parquet_sink)
     cases = [
         (
+            "ace",
+            struct.pack("<HHBH7sBBBBI8sB", 0, 27, 0, 0, b"**ACE**", 20, 20, 0, 0, 0, bytes(8), 0),
+            31,
+            [(2, struct.pack("<H", 26)), (4, b"\x01"), (5, b"\x01")],
+        ),
+        (
+            "bpg",
+            b"BPG\xfb\x20\x00\x01\x01\x00" + bytes(4),
+            9,
+            [(4, bytes([flag])) for flag in (0x07, 0x17, 0xC0, 0xFF)]
+            + [(5, bytes([flag])) for flag in (0x50, 0xFF)]
+            + [(6, b"\x00"), (6, b"\x80"), (7, b"\x00"), (7, b"\x80")]
+            + [(4, b"\x00\x10")],
+        ),
+        (
+            "dsstore",
+            struct.pack(">I4sIII16s", 1, b"Bud1", 32, 12, 32, bytes(16)),
+            36,
+            [(8, bytes(4)), (8, struct.pack(">I", 31)), (12, bytes(4))],
+        ),
+        (
+            "duckdb",
+            (bytes(8) + b"DUCK" + struct.pack("<Q", 64)).ljust(4096, b"\0"),
+            4096,
+            [(12, bytes(8)), (16, b"\x01")],
+        ),
+        (
             "avro",
             b'Obj\x01\x02\x16avro.schema\x0a"int"\x00' + bytes(range(16)),
             21,
@@ -129,6 +156,53 @@ def reviewed_binary_headers():
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    # Do not freeze ACE creator/extractor versions or host identifiers to today's list.
+    for version in (10, 11, 12, 13, 20, 22):
+        variants.append(
+            (
+                "ace",
+                struct.pack(
+                    "<HHBH7sBBBBI8sB",
+                    0,
+                    27,
+                    0,
+                    0,
+                    b"**ACE**",
+                    version,
+                    version,
+                    11,
+                    0,
+                    0,
+                    bytes(8),
+                    0,
+                ),
+            )
+        )
+    # These remain header checks when optional data or allocator roots lie beyond 4 KiB.
+    variants.append(("ace", struct.pack("<HHBH7s", 0, 5000, 0, 2, b"**ACE**") + bytes(4990)))
+    for offset in (32, 2048, 8192):
+        variants.append(
+            ("dsstore", struct.pack(">I4sIII16s", 1, b"Bud1", offset, 1264, offset, bytes(16)))
+        )
+    # Keep historical, newer and deprecated-sentinel versions; flags may mark encryption.
+    for version in (1, 4, 43, 64, 68, 69, 999):
+        variants.append(
+            ("duckdb", (bytes(8) + b"DUCK" + struct.pack("<QQ", version, 1)).ljust(4096, b"\0"))
+        )
+    # Every defined pixel format/depth, alpha combination and short/long dimension encoding.
+    for pixel in range(6):
+        for depth in range(7):
+            variants.append(
+                (
+                    "bpg",
+                    b"BPG\xfb"
+                    + bytes([pixel * 32 + 16 + depth, 0x0F if pixel == 0 else 0x4F])
+                    + b"\x01\x01\x00"
+                    + bytes(8),
+                )
+            )
+    for dimension in (b"\x01", b"\x7f", b"\x81\x00", b"\xff\xff\x7f", b"\x8f\xff\xff\xff\x7f"):
+        variants.append(("bpg", b"BPG\xfb\x20\x00" + dimension * 2 + b"\x00" + bytes(4)))
     # Negative map counts carry a byte size; primitive schemas need no record/name keys.
     entry = b'\x16avro.schema\x0a"int"'
     variants.append(("avro", b"Obj\x01\x01" + bytes([len(entry) * 2]) + entry + b"\0" + bytes(16)))

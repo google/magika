@@ -337,3 +337,35 @@ matches, conflicts and engine discrepancies prevent qualification. The reviewed
 batch introduced zero hybrid errors and corrected eighteen ML errors among the
 21,014 samples in supported model classes; 8,509 additional-class samples were also
 checked. Independent qualification remains pending.
+
+## ACE, BPG, DS_Store and DuckDB header review
+
+The inherited libmagic rules primarily matched magic bytes. These four active
+rules now require related header evidence using the existing bounded matcher:
+
+| Format | Source comparison and decision | Retained matches / supplied positives |
+| --- | --- | --- |
+| ACE | acefile reads a main header with type zero, no add-size flag and at least 27 bytes after the CRC/size fields. Require 31 observed bytes and these fields; remove redundant PRONOM alternatives. Keep creator/extractor versions and host identifiers unrestricted. | 100 / 100 |
+| BPG | Bellard's specification defines pixel formats 0–5, depth-minus-eight 0–6, color spaces 0–4 (zero for grayscale), and nonzero dimensions in shortest ue7(32) encoding. Require those fields and the following data-length byte, with a nine-byte floor. Alpha, range, extension and animation flags remain supported. | 10 / 10 |
+| DS_Store | The ds_store reader consumes a 36-byte buddy header and follows an allocator root. Require the complete header, an offset beyond the header allocation and room for allocator counts. Preserve arbitrary root locations and the inherited nine-byte magic. | 100 / 100 |
+| DuckDB | DuckDB stores its main header in a 4 KiB block. Require that block, DUCK at offset eight and a nonzero version with zero high 32 bits. Do not cap versions at a current release; retain historical versions and the newer 999 sentinel. | 53 / 53 |
+
+Sources: [acefile's main-header reader](https://github.com/droe/acefile/blob/master/acefile.py),
+[BPG specification](https://bellard.org/bpg/bpg_spec.txt),
+[ds_store buddy allocator](https://github.com/dmgbuild/ds_store/blob/master/src/ds_store/buddy.py),
+[DuckDB storage header](https://duckdb.org/docs/stable/internals/storage) and
+[DuckDB main-header reader](https://github.com/duckdb/duckdb/blob/main/src/storage/single_file_block_manager.cpp).
+Pinned libmagic entries are in `archive`, `images`, `apple` and `sql` respectively.
+These checks establish header evidence, not whole-file validity: they do not verify
+ACE/DuckDB checksums, decode BPG image data, or compare DS_Store allocator addresses.
+
+Four regressions failed before the edits. Afterward, 32 shared header, variant and
+native/YARA-X parity tests passed. They cover truncations, malformed fields, all
+defined BPG pixel formats/depths, long dimensions and version/location variants.
+The existing benchmark observer then retained all 263 distinct supplied positives,
+with no conflicts, reference errors or native/YARA-X mismatches. This combines 259
+baseline samples with four newly validated BPG candidates, selected using the
+other lane's single assigned label and verified against each file's size/SHA-256.
+This focused compatibility check does not replace the accumulated cross-class
+zero-observed-FP gate. No runtime code, new I/O, corpus source or dataset commit
+changed in this batch.

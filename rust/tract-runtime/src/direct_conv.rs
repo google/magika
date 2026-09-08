@@ -36,7 +36,7 @@ const TILE_COLUMNS_ENV: &str = "MAGIKA_DIRECT_TILE_COLUMNS";
 /// Throughput measured flat across 24 to 96 columns and fell away past 144, so this takes the small
 /// end of the plateau rather than its middle. A tile costs `reduction * columns * 4` bytes of packed
 /// input, which at 48 is a quarter megabyte: within a 256KiB L2, and still within half of a 1MiB L2
-/// when two hyperthreads share one. The 96 this replaces was three times that, sized on a machine
+/// when two hyperthreads share one. The 96 this replaces was twice that, sized on a machine
 /// whose L2 happened to absorb it.
 #[cfg(target_arch = "x86_64")]
 const X86_64_TILE_COLUMNS: usize = 48;

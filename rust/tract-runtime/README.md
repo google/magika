@@ -22,5 +22,21 @@ still accumulate in different orders. The startup probe checks every row of ever
 reference for one repeated input;
 it does not establish score agreement for every file or batch class.
 
-CPU and GPU confidence scores are backend dependent. Regression qualification checks final
+Confidence scores can vary with the backend, batch class and position within a batch because
+floating-point reductions can run in different orders. Regression qualification checks final
 classification and overwrite decisions across varied reference files and every batch class.
+
+The existing `MAGIKA_DIRECT_TILE_COLUMNS` and `MAGIKA_DIRECT_TILE_BATCHES` environment variables
+control CPU convolution tiling when plans are prepared. Both accept positive integers, clamped
+to the graph's columns or batch count. `TILE_COLUMNS` takes precedence for the column tile;
+setting `TILE_BATCHES` selects batch-based tiling instead of the x86 default. They can change
+kernel selection, speed and floating-point rounding. See the [existing benchmark](../tract-bench/README.md#retuning-the-x86_64-convolution-tile)
+for measuring a tuning change on the target machine. These controls do not change GPU tiling.
+
+GPU convolution expands an intermediate tensor to `[batch, 508, 1280]` f32 values: 83,230,720
+bytes at batch 32 and 166,461,440 bytes at batch 64. Those are individual tensor sizes, not
+measurements of peak memory; weights, other intermediates and concurrently active session
+states add to memory use. `with_max_batch` limits the prepared GPU batch classes, and session
+execution states are created when a class first runs. CPU plans explicitly use tract's
+single-thread executor; GPU plans use the GPU runtime's executor settings. In an embedding
+application, changing tract's global executor can affect CPU operations within GPU plans.

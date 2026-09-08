@@ -1,0 +1,14 @@
+{
+  "collection_run": ".local/rebalance-collection",
+  "collection_config": "config/rebalance-collection.json",
+  "metadata_dir": ".",
+  "public_metadata_dir": "rebalance-metadata",
+  "tools": "config/tools.json",
+  "journal_roots": [
+    ".local"
+  ],
+  "prior_journals": [],
+  "verdict_workers": 4,
+  "conflicts_per_class": 0,
+  "conflict_pages_per_class": 20
+}

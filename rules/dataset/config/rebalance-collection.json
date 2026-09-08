@@ -1,0 +1,13 @@
+{
+  "parquet_dir": ".",
+  "license_policy": "config/repository-license-policy.json",
+  "store": ".local/corpus",
+  "github_hints": "config/ranked-text-hints.json",
+  "seed": 2026090701,
+  "vt_recipes": [
+    "config/vt-queries.json"
+  ],
+  "target_per_class": 100,
+  "rebalance": true,
+  "rebalance_candidates_per_class": 20
+}

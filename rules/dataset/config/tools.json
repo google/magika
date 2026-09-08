@@ -1,0 +1,154 @@
+[
+  {
+    "id": "file",
+    "version": "file-5.41 (macOS system)",
+    "license": "BSD-2-Clause",
+    "argv": [
+      "/usr/bin/file",
+      "-b",
+      "-k",
+      "{path}"
+    ],
+    "artifacts": [
+      "/usr/bin/file",
+      "/usr/share/file/magic.mgc"
+    ],
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth."
+  },
+  {
+    "id": "exiftool",
+    "version": "13.59",
+    "license": "Artistic-1.0-Perl OR GPL (upstream README)",
+    "argv": [
+      "/usr/bin/perl",
+      ".local/tools/exiftool/exiftool",
+      "-config",
+      "",
+      "-j",
+      "-FileType",
+      "-FileTypeExtension",
+      "-MIMEType",
+      "-Warning",
+      "-Error",
+      "{path}"
+    ],
+    "artifacts": [
+      ".local/tools/exiftool/lib",
+      ".local/tools/exiftool/exiftool"
+    ],
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth.",
+    "source_revision": "2200871d9cef988051d2a99d67df3bda6cbb30a8"
+  },
+  {
+    "id": "puremagic",
+    "version": "2.2.0",
+    "license": "MIT",
+    "argv": [
+      ".venv/bin/python",
+      "config/verdict-python.py",
+      "puremagic",
+      ".local/tools/puremagic",
+      "{path}"
+    ],
+    "artifacts": [
+      "config/verdict-python.py",
+      ".local/tools/puremagic/puremagic"
+    ],
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth.",
+    "source_revision": "57bed56ef669132c0f906e1d064680bf2c4b2205"
+  },
+  {
+    "id": "file-type",
+    "version": "22.0.2",
+    "license": "MIT",
+    "argv": [
+      "node",
+      "config/verdict-file-type.mjs",
+      ".local/verdict-tools/file-type/source/index.js",
+      "{path}"
+    ],
+    "artifacts": [
+      "config/verdict-file-type.mjs",
+      ".local/verdict-tools/file-type/source",
+      ".local/verdict-tools/file-type/package-lock.json"
+    ],
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth.",
+    "source_revision": "1562005a4dfb8215b9407a54cc4b55700af46b03"
+  },
+  {
+    "id": "siegfried",
+    "version": "built from pinned source; full default.sig",
+    "license": "Apache-2.0",
+    "argv": [
+      ".local/verdict-tools/sf",
+      "-home",
+      ".local/verdict-tools/siegfried",
+      "-json",
+      "-nr",
+      "{path}"
+    ],
+    "artifacts": [
+      ".local/verdict-tools/sf",
+      ".local/verdict-tools/siegfried/default.sig"
+    ],
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth.",
+    "source_revision": "f1ee502e0774dcf3b191b2c552333a32fc98fdd9"
+  },
+  {
+    "id": "fido",
+    "version": "1.6.1",
+    "license": "Apache-2.0",
+    "argv": [
+      ".venv/bin/fido",
+      "-q",
+      "-noextension",
+      "{path}"
+    ],
+    "artifacts": [
+      ".venv/lib/python3.12/site-packages/fido"
+    ],
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth.",
+    "source_revision": "33789ab339dcf06a8c12f38723c9355634056ebb"
+  },
+  {
+    "id": "trid",
+    "version": "2.48, definitions downloaded 2026-09-06",
+    "license": "Custom dual terms: AGPLv3 for personal/noncommercial; commercial license required per license.txt",
+    "argv": [
+      ".venv/bin/python",
+      ".local/verdict-tools/trid/python/trid.py",
+      "-d",
+      ".local/verdict-tools/trid/triddefs.trd",
+      "-n",
+      "20",
+      "-e",
+      "{path}"
+    ],
+    "artifacts": [
+      ".local/verdict-tools/trid/python/trid.py",
+      ".local/verdict-tools/trid/python/license.txt",
+      ".local/verdict-tools/trid/triddefs.trd"
+    ],
+    "timeout_seconds": 30,
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth.",
+    "source_revision": null
+  },
+  {
+    "id": "magika",
+    "version": "local source standard_v3_3",
+    "license": "Apache-2.0",
+    "argv": [
+      ".venv/bin/python",
+      "config/verdict-python.py",
+      "magika",
+      ".local/tools/magika/src",
+      "{path}"
+    ],
+    "artifacts": [
+      "config/verdict-python.py",
+      ".local/tools/magika/src/magika"
+    ],
+    "timeout_seconds": 30,
+    "scope": "Identification of original bytes at SHA256 filename; no extension hints, no sample execution; raw independent result, not ground truth."
+  }
+]

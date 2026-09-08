@@ -1,0 +1,23 @@
+{
+  "classes": 473,
+  "compression": "zstd:3",
+  "corpus_bytes_included": 0,
+  "files": {
+    "classes.parquet": {
+      "sha256": "1703cd3ed356f530bc6c051799cf99537edf06f5380f6f9c42a3f90250cb8bb3",
+      "bytes": 682690
+    },
+    "samples.parquet": {
+      "sha256": "e9f5546abbc807f38e5ba52727a776876e4d3ab16f9fb93b1981d240ec3738c2",
+      "bytes": 22485367
+    }
+  },
+  "implementation_sha256": "42d6eeb14dfbeac5429071304be69773a65f178e22735bdeb0493d12a46d035a",
+  "matrix_sha256": "4a85f95529c29bcdedba68c8b4039de646b1098d0b3f8a7e15f3100d953dbb42",
+  "metadata_scope": "Typed class/sample IDs, categories, extensions, sizes, origins and hard-case flag. Variable property/evidence/verdict records retained losslessly in compressed JSON columns; unknown, conflicting and absent values are preserved.",
+  "original_jsonl_bytes": 263307785,
+  "pyarrow_version": "25.0.1",
+  "round_trip_verified": true,
+  "samples": 29523,
+  "schema_version": 1
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "download_url": null,
+  "scope": "Public metadata only. Hosting location will be added before release. Place these files in this directory.",
+  "files": [
+    {
+      "name": "classes.parquet",
+      "sha256": "1703cd3ed356f530bc6c051799cf99537edf06f5380f6f9c42a3f90250cb8bb3",
+      "bytes": 682690
+    },
+    {
+      "name": "github-used.parquet",
+      "sha256": "636eeea270fc2b01fb79c09016e89c9b9cec14ffc2d9ff7161fb59371b1a0b22",
+      "bytes": 181697
+    },
+    {
+      "name": "repositories.parquet",
+      "sha256": "dfa1c36ca11abfe5d44a84b2edbd9d359ae47232f64c1cf78fbf1c2d3fabc69b",
+      "bytes": 3004175
+    },
+    {
+      "name": "repository-files.parquet",
+      "sha256": "fd7c3771aecb20df4bcf695e47dd6a78f386105cd5ca3ad50b7430a8c71896f1",
+      "bytes": 117360304
+    },
+    {
+      "name": "samples.parquet",
+      "sha256": "e9f5546abbc807f38e5ba52727a776876e4d3ab16f9fb93b1981d240ec3738c2",
+      "bytes": 22485367
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+.env
+.env.*
+.local/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+
+# Metadata is distributed separately via cloud storage, not Git or LFS.
+*.parquet
+
+# Downloaded metadata distribution archives and extraction manifest.
+/dataset-metadata.tar.gz
+/dataset-metadata.tar.gz.json
+/archive-manifest.json

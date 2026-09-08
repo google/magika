@@ -9,12 +9,12 @@ on:
       # Note: These need to match what specified in env.[TEST_]RELEASE_TAG_PREFIX below.
       - "python-v*"
       - "python-test-v*"
-  pull_request:
-    paths:
-      - "python/**"
-      - "rust/**"
-      - "tests_data/**"
-      - ".github/workflows/python-build-and-release-package.yml"
+  # pull_request:
+  #   paths:
+  #     - "python/**"
+  #     - "rust/**"
+  #     - "tests_data/**"
+  #     - ".github/workflows/python-build-and-release-package.yml"
   schedule:
     - cron: "12 3 * * 4" # Run everything once per week.
     - cron: "12 3 * * 1" # Refresh the cache an additional time.

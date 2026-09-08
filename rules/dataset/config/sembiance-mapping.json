@@ -1,0 +1,287 @@
+{
+  "archive/arj": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "arj",
+    "tags": []
+  },
+  "archive/jarARJ": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "jar_arj",
+    "tags": []
+  },
+  "archive/lzx": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "lzx",
+    "tags": []
+  },
+  "archive/rar": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "rar",
+    "tags": []
+  },
+  "archive/tar": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "tar",
+    "tags": []
+  },
+  "archive/xz": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "xz",
+    "tags": []
+  },
+  "archive/zip": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "zip",
+    "tags": []
+  },
+  "audio/flac": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "flac",
+    "tags": []
+  },
+  "audio/mp3": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "mp3",
+    "tags": []
+  },
+  "audio/ogg": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "ogg",
+    "tags": []
+  },
+  "audio/wav": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "wav",
+    "tags": []
+  },
+  "document/docx": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "docx",
+    "tags": []
+  },
+  "document/paradoxDatabase": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "paradox",
+    "tags": []
+  },
+  "document/pdf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "pdf",
+    "tags": []
+  },
+  "document/rtf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "rtf",
+    "tags": []
+  },
+  "document/wordDoc": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "doc",
+    "tags": []
+  },
+  "document/xls": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "xls",
+    "tags": []
+  },
+  "executable/dll": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "pe",
+    "tags": []
+  },
+  "executable/elf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "elf",
+    "tags": []
+  },
+  "executable/exe": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "pe",
+    "tags": []
+  },
+  "font/otf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "otf",
+    "tags": []
+  },
+  "font/ttf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "ttf",
+    "tags": []
+  },
+  "font/woff": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "woff",
+    "tags": []
+  },
+  "image/acornSprite": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "acorn_sprite",
+    "tags": []
+  },
+  "image/avif": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "avif",
+    "tags": []
+  },
+  "image/bigTIFF": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "tiff",
+    "tags": [
+      "bigtiff"
+    ]
+  },
+  "image/bmp": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "bmp",
+    "tags": []
+  },
+  "image/degasHi": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "compressed"
+    ]
+  },
+  "image/degasHiPI": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "uncompressed"
+    ]
+  },
+  "image/degasLow": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "compressed"
+    ]
+  },
+  "image/degasLowPI": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "uncompressed"
+    ]
+  },
+  "image/degasMed": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "compressed"
+    ]
+  },
+  "image/degasMedPI": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "uncompressed"
+    ]
+  },
+  "image/fpx": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "fpx",
+    "tags": []
+  },
+  "image/gif": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "gif",
+    "tags": []
+  },
+  "image/ico": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "ico",
+    "tags": []
+  },
+  "image/iffILBM": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "ilbm",
+    "tags": []
+  },
+  "image/jpeg2000": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "jp2",
+    "tags": []
+  },
+  "image/koalaMicroillustrator": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "koala",
+    "tags": []
+  },
+  "image/pcPaint": {
+    "basis": "PCPaint/Pictor PIC; distinct from PCX; individual bytes remain source claims",
+    "format_id": "pcpaint",
+    "tags": []
+  },
+  "image/png": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "png",
+    "tags": []
+  },
+  "image/printfox": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "printfox",
+    "tags": []
+  },
+  "image/psd": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "psd",
+    "tags": []
+  },
+  "image/svg": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "svg",
+    "tags": []
+  },
+  "image/tga": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "tga",
+    "tags": []
+  },
+  "image/tiff": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "tiff",
+    "tags": []
+  },
+  "image/webp": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "webp",
+    "tags": []
+  },
+  "poly/cinema4D": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "cinema4d",
+    "tags": []
+  },
+  "text/json": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "json",
+    "tags": []
+  },
+  "text/xml": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "xml",
+    "tags": []
+  },
+  "video/avi": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "avi",
+    "tags": []
+  },
+  "video/mkv": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "mkv",
+    "tags": []
+  },
+  "video/mp4": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "mp4",
+    "tags": []
+  }
+}

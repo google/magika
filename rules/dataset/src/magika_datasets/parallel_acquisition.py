@@ -12,6 +12,7 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 from .acquisition import GitReader, ledger, now, object_path, record_origin, sha256_file
+from .http_source import HTTPReader, validate_url
 from .manifest import GitHubReader, github_blob_matches, validate_github_fixture
 from .virustotal import Client
 
@@ -26,8 +27,10 @@ def collect_parallel(inventory, root, *, max_file_bytes, max_bytes, max_files, v
         provider = fixture.get("provider", "git")
         if type(fixture.get("size")) is not int or fixture["size"] < 0:
             raise ValueError("fixture sizes must be nonnegative integers")
-        if provider not in {"git", "github", "virustotal"}:
+        if provider not in {"git", "github", "virustotal", "https"}:
             raise ValueError("unsupported acquisition provider")
+        if provider == "https":
+            validate_url(fixture["url"])
         if provider == "github":
             validate_github_fixture(fixture)
         if provider == "git" or provider == "github" and "sha256" not in fixture:
@@ -69,7 +72,11 @@ def collect_parallel(inventory, root, *, max_file_bytes, max_bytes, max_files, v
                         (vt_client if vt_client is not None else Client())
                         if provider == "virustotal"
                         else (
-                            GitHubReader() if provider == "github" else GitReader(fixture["repo"])
+                            HTTPReader()
+                            if provider == "https"
+                            else GitHubReader()
+                            if provider == "github"
+                            else GitReader(fixture["repo"])
                         )
                     )
                 reader = readers[key]

@@ -8,6 +8,7 @@ import re
 from urllib.parse import quote, unquote, urlsplit
 from urllib.request import Request, build_opener
 
+from .http_source import validate_url
 from .virustotal import NoRedirect
 
 
@@ -40,6 +41,12 @@ def validate_record(record):
         raise ValueError("manifest requires at least one origin")
     for origin in record["origins"]:
         if origin == "vt:" + sha:
+            continue
+        if isinstance(origin, str) and origin.startswith("https:"):
+            url, digest = origin.rsplit(":", 1)
+            validate_url(url)
+            if digest != sha:
+                raise ValueError("origin hash does not match record")
             continue
         if not isinstance(origin, str) or not origin.startswith("github:"):
             raise ValueError("unsupported manifest origin")
@@ -111,7 +118,20 @@ def inventory(rows, *, prefer="github"):
             common["claim"]["vt_markings"] = row["vt_markings"]
         if isinstance(row.get("discovery_queries"), list):
             common["claim"]["discovery_queries"] = row["discovery_queries"]
-        if origin.startswith("vt:"):
+        if origin.startswith("https:"):
+            url = origin.rsplit(":", 1)[0]
+            fixtures.append(
+                {
+                    **common,
+                    "provider": "https",
+                    "url": url,
+                    "source": "https:" + urlsplit(url).netloc,
+                    "revision": sha,
+                    "path": url,
+                    "source_group": "external:" + urlsplit(url).netloc,
+                }
+            )
+        elif origin.startswith("vt:"):
             fixtures.append(
                 {
                     **common,

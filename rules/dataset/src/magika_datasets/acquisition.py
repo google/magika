@@ -177,7 +177,7 @@ def collect(
 ):
     if type(workers) is not int or not 1 <= workers <= 16:
         raise ValueError("acquisition requires 1–16 workers")
-    if workers > 1:
+    if workers > 1 or any(f.get("provider") == "https" for f in inventory.get("fixtures", [])):
         from .parallel_acquisition import collect_parallel
 
         return collect_parallel(

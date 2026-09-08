@@ -322,3 +322,80 @@ inherited from existing metadata; generic TIFF decoding validates TIFF, not the
 georeferencing semantics. All 100 former GeoTIFF samples are retained, giving TIFF
 200 samples and 473 canonical classes including invalid. Historical discovery
 labels remain provenance, not separate canonical types.
+
+## Sembiance external evaluation collection
+
+The separate `sembiance-eval-v1` corpus credits **Sembiance / dexvert** and retains
+original source URLs and claims. It converts the storage representation to our
+Parquet schema; it never converts the actual sample format or folds the files into
+the accepted baseline. Upstream: <https://sembiance.com/fileFormatSamples/> and
+<https://github.com/Sembiance/dexvert>.
+
+```sh
+uv run --no-sync magika-datasets external start \
+  --run-dir .local/sembiance --store .local/sembiance-store \
+  --output .local/sembiance-eval-v1 --workers 4 \
+  --overlap samples.parquet --overlap candidate-metadata/samples.parquet
+uv run --no-sync magika-datasets external status --run-dir .local/sembiance
+# Repeat the start arguments with `resume` after interruption.
+```
+
+This command runs in the foreground and can be placed under a process supervisor.
+Directory listings and completed downloads are checkpointed in SQLite. Resume
+checks saved object hashes and avoids downloading completed objects again. The
+whole source tree is inventoried. Files over 1 MiB, failed downloads and directory
+failures are recorded in `source-inventory.parquet`; the output therefore reports
+the actual bounded subset, not an assertion that every upstream file was copied.
+Transient HTTP failures retry with Tenacity and exponential backoff, respecting
+Retry-After; redirects are refused and recorded. No provider credentials are sent.
+
+The versioned `config/sembiance-mapping.json` is an explicit crosswalk. Unmapped
+source classes use `sembiance/<category>/<source-format>` IDs. Existing-format
+mappings and proposed new IDs preserve upstream labels in `source_claims`.
+Mapping a directory is not byte validation: imported labels remain `source_claim`
+and validation status `unknown` until independently examined. Self-extracting
+archives, mislabeled files and companion files can disagree with a directory's
+label. Run `validate` and review those observations before claiming ground truth.
+
+Initial new-class priorities: `ilbm`, `acorn_sprite`, `degas`, `koala`, `pcpaint`
+and `jar_arj`. BigTIFF maps to `tiff` with `bigtiff`; DEGAS variants share a class
+with compression tags. Proposed external IDs do not mutate the baseline taxonomy.
+ARJ, LZX, Cinema 4D, FlashPix, Paradox database and Printfox are existing classes
+with sample gaps, not new formats. The ARJ Software JAR format is distinct from
+Java JAR; PCPaint/Pictor is distinct from PCX.
+
+The output includes `samples.parquet`, `classes.parquet`, a receipt, full source
+inventory, mapping, summary and verified `snapshot/shards/`. To rehydrate on a
+fresh machine after obtaining the metadata directory:
+
+```sh
+uv run --no-sync magika-datasets hydrate --download \
+  --samples .local/sembiance-eval-v1/samples.parquet \
+  --classes .local/sembiance-eval-v1/classes.parquet \
+  --receipt .local/sembiance-eval-v1/corpus-parquet-receipt.json \
+  --store .local/sembiance-rehydrated-store --output .local/sembiance-rehydrated
+```
+
+HTTPS origins encode `https://host/path:<full-sha256>`. URLs can change: hydration
+requires exact size and SHA-256, and refuses replacement content. The origin
+adapter uses the existing concurrent acquisition writer and verified object store.
+
+Run any evaluator over `snapshot/shards/`, emitting a predictions Parquet with
+`sha256` (32-byte binary or 64-character hex) and `format_id` columns. Then:
+
+```sh
+uv run --no-sync magika-datasets external score \
+  --samples .local/sembiance-eval-v1/samples.parquet --predictions predictions.parquet
+```
+
+Scoring uses only unambiguous mapped source labels with no known exact overlap.
+Missing predictions count against accuracy. Reports include per-class counts and
+macro accuracy. Scores measure agreement with upstream claims, not adjudicated
+ground truth. Unmapped classes remain available for open-set evaluation, but this
+scorer does not silently treat them as `invalid`. Near-duplicate and training
+contamination checks remain pending; this is not a certified independent holdout.
+
+Per-sample rights remain `unknown_per_sample` unless separately established.
+The dexvert software license is not a blanket license for hosted sample content;
+retain original credits and any available per-file terms when distributing bytes.
+Only code and the mapping ship in Git; metadata and sample bytes stay ignored.

@@ -9,12 +9,16 @@ import sys
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["build", "hydrate", "stats", "archive", "validate"])
+    parser.add_argument(
+        "command", choices=["build", "hydrate", "stats", "archive", "validate", "external"]
+    )
     if not argv or argv[0] in ("-h", "--help"):
         parser.print_help()
         return
     command = parser.parse_args(argv[:1]).command
-    if command == "build":
+    if command == "external":
+        from .external import main as run
+    elif command == "build":
         from .pipeline import main as run
     elif command == "hydrate":
         from .hydrate import main as run

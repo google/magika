@@ -738,13 +738,23 @@ rule taxonomy_lz4
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 02 21 4C 18 }
-		$p1_0 = { 04 22 4D 18 }
-		$p2_0 = { 03 21 4c 18 }
+    strings:
+        $legacy = { (02 | 03) 21 4C 18 }
+        // Version 1; reserved bits clear; block sizes 64 KiB through 4 MiB.
+        // Each alternative observes all optional fields and the header checksum.
+        $basic = { 04 22 4D 18 (40 | 44 | 50 | 54 | 60 | 64 | 70 | 74) (40 | 50 | 60 | 70) ?? }
+        $dictionary = { 04 22 4D 18 (41 | 45 | 51 | 55 | 61 | 65 | 71 | 75) (40 | 50 | 60 | 70) [4] ?? }
+        $size = { 04 22 4D 18 (48 | 4C | 58 | 5C | 68 | 6C | 78 | 7C) (40 | 50 | 60 | 70) [8] ?? }
+        $size_dictionary = { 04 22 4D 18 (49 | 4D | 59 | 5D | 69 | 6D | 79 | 7D) (40 | 50 | 60 | 70) [12] ?? }
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0)))
+    condition:
+        prefix_size >= 8 and (
+            $legacy at 0 or
+            ($basic at 0 and original_size >= 11) or
+            ($dictionary at 0 and original_size >= 15) or
+            ($size at 0 and original_size >= 19) or
+            ($size_dictionary at 0 and original_size >= 23)
+        )
 }
 
 rule taxonomy_mat
@@ -1313,15 +1323,13 @@ rule taxonomy_zst
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 28 B5 2F FD }
-		$p1_0 = { 23 b5 2f fd }
-		$p2_0 = { 27 b5 2f fd }
-		$p3_0 = { 24 b5 2f fd }
-		$p4_0 = { 25 b5 2f fd }
-		$p5_0 = { 22 b5 2f fd }
-		$p6_0 = { 26 b5 2f fd }
+    strings:
+        $legacy = { (22 | 23 | 24 | 25 | 26 | 27) B5 2F FD }
+        // Reserved bit 3 must be clear; the unused bit 4 remains unrestricted.
+        $modern = { 28 B5 2F FD (?0 | ?1 | ?2 | ?3 | ?4 | ?5 | ?6 | ?7) }
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p4_0 at 0) or (prefix_size >= 4 and $p5_0 at 0) or (prefix_size >= 4 and $p6_0 at 0)))
+    condition:
+        prefix_size >= 8 and (
+            $legacy at 0 or (prefix_size >= 9 and $modern at 0)
+        )
 }

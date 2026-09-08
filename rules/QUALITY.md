@@ -299,6 +299,28 @@ evidence, not presented as a new evaluation.
 | OneNote | PRONOM internal signature 968 supplies the full 16-byte OneNote GUID at offset zero. The existing bounded pattern requires all 16 bytes and does not conflate it with another compound container. Keep the rule. |
 | SketchUp | PRONOM internal signatures 241/243 give the 16-byte legacy and 32-byte Unicode headers. Every other existing version-specific alternative extends the same Unicode header and was already subsumed. Keep just those two complete headers, preserving the accepted byte language while removing redundant patterns. |
 
+### LZ4 and Zstandard frame headers
+
+Pinned libmagic `compress`, Puremagic and Tika identify these families primarily
+by four-byte magic. The [LZ4 frame specification](https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md)
+and [Zstandard frame specification](https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md)
+provide additional fixed-header constraints that distinguish impossible headers
+without decompressing input.
+
+| Rule | Review decision and limits |
+| --- | --- |
+| LZ4 | Modern frames require version 1, clear reserved bits, and one of the four defined block-size codes. Four alternatives distinguish optional content-size and dictionary fields and observe the complete header through its checksum byte. Retain the eight-byte prefix floor and require room for at least the end marker in the original file. Preserve the two existing legacy magics under their previous eight-byte floor; modern flags do not apply to those formats. Checksums and compressed blocks are not validated. |
+| Zstandard | Modern frames require nine observed bytes, the shortest complete frame, and a clear reserved descriptor bit. Preserve the unused bit because conforming decoders ignore it. Retain the six existing legacy magics under their eight-byte floor. This checks minimum framing and the fixed descriptor, without parsing variable dictionary/content-size fields or compressed blocks. |
+
+Neither rule adds skippable-frame identification: that marker is shared by both
+formats and cannot establish which family follows. Two focused regressions failed
+before the changes. Four checks passed afterward in 3.3 seconds, including shared
+native/reference comparison, malformed descriptors, truncated optional LZ4 fields,
+all four LZ4 block-size codes, and retained legacy variants. The affected corpus
+evaluation and metadata reconciliation remain part of the accumulated batch gate;
+these synthetic checks do not establish corpus precision or recall. No engine or
+inference code changed, and no performance benchmark was repeated for this batch.
+
 ### Batch qualification
 
 The maintained regression suite includes the twenty original false-positive probes,

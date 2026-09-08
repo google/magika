@@ -25,6 +25,19 @@ def reviewed_binary_headers():
     struct.pack_into("<I", uf2, 508, 0x0AB16F30)
     mat = b"MATLAB 5.0 MAT-file".ljust(124, b" ") + b"\x00\x01IM"
     cases = [
+        (
+            "lz4",
+            bytes.fromhex("04224d18604082") + bytes(4),
+            8,
+            [(4, bytes([flag])) for flag in (0, 0x20, 0x80, 0xC0, 0x62)]
+            + [(5, bytes([block])) for block in (0, 0x30, 0x41, 0x80, 0xC0)],
+        ),
+        (
+            "zst",
+            bytes.fromhex("28b52ffd2000010000"),
+            9,
+            [(4, b"\x28"), (4, b"\xff")],
+        ),
         ("sketchup", b"\x0eSketchUp Model\x08", 16, [(2, b"?")]),
         ("applebplist", plistlib.dumps({}, fmt=plistlib.FMT_BINARY), 41, [(6, b"??")]),
         ("appledouble", bytes.fromhex("0005160700020000") + bytes(18), 26, [(4, bytes(4))]),
@@ -77,12 +90,27 @@ def reviewed_binary_headers():
             changed[offset : offset + len(value)] = value
             invalid.append(bytes(changed))
         result.append((label, header, minimum, invalid))
+    # Optional LZ4 fields must be observed through the header checksum.
+    lz4_invalid = next(row[3] for row in result if row[0] == "lz4")
+    for flag, extra in ((0x61, 4), (0x68, 8), (0x69, 12)):
+        header = bytes.fromhex("04224d18") + bytes([flag, 0x40]) + bytes(extra + 1)
+        lz4_invalid.extend(header[:length] for length in range(8, len(header)))
     return result
 
 
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    for flag, extra in ((0x40, 0), (0x61, 4), (0x78, 8), (0x7D, 12)):
+        for block in (0x40, 0x50, 0x60, 0x70):
+            header = bytes.fromhex("04224d18") + bytes([flag, block]) + bytes(extra + 5)
+            variants.append(("lz4", header))
+    for magic in ("02214c18", "03214c18"):
+        variants.append(("lz4", bytes.fromhex(magic) + bytes(4)))
+    for version in range(0x22, 0x28):
+        variants.append(("zst", bytes([version]) + bytes.fromhex("b52ffd") + bytes(4)))
+    # The Zstandard unused bit is explicitly ignored by conforming decoders.
+    variants.append(("zst", bytes.fromhex("28b52ffd3000010000")))
     for endian in ("<", ">"):
         for version, size in ((b"035", 112), (b"041", 120)):
             dex = bytearray(size)

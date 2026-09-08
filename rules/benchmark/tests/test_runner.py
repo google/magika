@@ -41,6 +41,14 @@ def test_subprocess_errors_and_timeouts():
         run_cli([sys.executable, "-c", "import time;time.sleep(60)"], os.environ.copy(), 0.05)
 
 
+def test_subprocess_cwd_supports_short_extensionless_workload_paths(tmp_path):
+    (tmp_path / "sample").write_text("payload")
+    _, output = run_cli(
+        [sys.executable, "-c", "print(open('sample').read())"], os.environ.copy(), 5, cwd=tmp_path
+    )
+    assert output == b"payload\n"
+
+
 def test_changed_materialized_input_rejected_before_execution(tmp_path, monkeypatch):
     from magika_rules_benchmark import runner
 

@@ -258,7 +258,7 @@ def sample_order(files, count, seed):
     return selected
 
 
-def run_cli(command, env, timeout, cpus=None):
+def run_cli(command, env, timeout, cpus=None, cwd=None):
     if sys.platform == "darwin":
         prefix, rss_pattern, scale = (
             ["/usr/bin/time", "-l"],
@@ -282,6 +282,7 @@ def run_cli(command, env, timeout, cpus=None):
     child = subprocess.Popen(
         prefix + command,
         env=env,
+        cwd=cwd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         start_new_session=os.name == "posix",

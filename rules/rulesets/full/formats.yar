@@ -251,7 +251,7 @@ rule taxonomy_avro
 rule taxonomy_bam
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/bioinformatics:libmagic_5294848eb43d5add223c_line_43"
+        source_refs = "libmagic:magic/Magdir/bioinformatics:libmagic_5294848eb43d5add223c_line_43; HTSlib:sam.c:bam_hdr_read"
 		label = "bam"
 		enforced = true
         class = "full"
@@ -262,7 +262,7 @@ rule taxonomy_bam
 		$p0_0 = { 42 41 4d 01 }
 
 	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+		prefix_size >= 12 and $p0_0 at 0
 }
 
 rule taxonomy_beam
@@ -586,7 +586,7 @@ rule taxonomy_gzip
 rule taxonomy_hdf4
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/images:libmagic_4344afb37c71c603cbd9_line_2556"
+        source_refs = "libmagic:magic/Magdir/images:libmagic_4344afb37c71c603cbd9_line_2556; HDFGroup:hdf4/hdf/src/hfiledd.c:HTPstart"
 		label = "hdf4"
 		enforced = true
         class = "full"
@@ -597,7 +597,7 @@ rule taxonomy_hdf4
 		$p0_0 = { 0E 03 13 01 }
 
 	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and $p0_0 at 0))
+		prefix_size >= 22 and $p0_0 at 0 and uint16be(4) >= 1 and uint16be(4) <= 32767
 }
 
 rule taxonomy_heif
@@ -678,7 +678,7 @@ rule taxonomy_llvm_bitcode
 rule taxonomy_lnk
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/windows:libmagic_47fbb4ad20a117b8eb73_line_714"
+        source_refs = "libmagic:magic/Magdir/windows:libmagic_47fbb4ad20a117b8eb73_line_714; Wine:dlls/shell32/shelllink.c:IPersistStream_fnLoad; MS-SHLLINK:ShellLinkHeader"
 		label = "lnk"
 		enforced = true
         class = "full"
@@ -689,7 +689,7 @@ rule taxonomy_lnk
 		$p0_0 = { 4c 00 00 00 01 14 02 00 00 00 00 00 c0 00 00 00 00 00 00 46 }
 
 	condition:
-		prefix_size >= 8 and ((prefix_size >= 20 and $p0_0 at 0))
+		prefix_size >= 76 and $p0_0 at 0
 }
 
 rule taxonomy_lrz

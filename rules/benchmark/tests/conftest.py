@@ -26,6 +26,19 @@ def reviewed_binary_headers():
     mat = b"MATLAB 5.0 MAT-file".ljust(124, b" ") + b"\x00\x01IM"
     cases = [
         (
+            "lnk",
+            bytes.fromhex("4c0000000114020000000000c000000000000046") + bytes(56),
+            76,
+            [(0, b"M"), (4, bytes(16))],
+        ),
+        ("bam", b"BAM\x01" + bytes(8), 12, [(3, b"\x02")]),
+        (
+            "hdf4",
+            bytes.fromhex("0e031301") + struct.pack(">HIHHII", 1, 0, 1, 0, 0, 0),
+            22,
+            [(4, struct.pack(">H", count)) for count in (0, 0x8000, 0xFFFF)],
+        ),
+        (
             "lz4",
             bytes.fromhex("04224d18604082") + bytes(4),
             8,
@@ -101,6 +114,24 @@ def reviewed_binary_headers():
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    # Readers tolerate arbitrary shortcut show commands and reserved header fields.
+    for show_command in (0, 1, 3, 7, 0xFFFFFFFF):
+        lnk = bytearray(bytes.fromhex("4c0000000114020000000000c000000000000046") + bytes(56))
+        struct.pack_into("<I", lnk, 60, show_command)
+        lnk[66:76] = b"\xff" * 10
+        variants.append(("lnk", bytes(lnk)))
+    # Raw BAM can omit its SAM text; text and reference lists may exceed the prefix.
+    for text in (b"@HD\tVN:1.6\n", b"@CO\t" + b"x" * 5000 + b"\n"):
+        variants.append(("bam", b"BAM\x01" + struct.pack("<I", len(text)) + text + bytes(4)))
+    for count in (2, 400, 32767):
+        variants.append(
+            (
+                "hdf4",
+                bytes.fromhex("0e031301")
+                + struct.pack(">HI", count, 0)
+                + struct.pack(">HHII", 1, 0, 0, 0) * count,
+            )
+        )
     for flag, extra in ((0x40, 0), (0x61, 4), (0x78, 8), (0x7D, 12)):
         for block in (0x40, 0x50, 0x60, 0x70):
             header = bytes.fromhex("04224d18") + bytes([flag, block]) + bytes(extra + 5)

@@ -15,6 +15,9 @@ NEGATIVES = sorted(p for p in (ROOT / "tests_data/rules_negative").iterdir() if 
 @pytest.mark.parametrize(
     "label",
     [
+        "lnk",
+        "bam",
+        "hdf4",
         "lz4",
         "zst",
         "sketchup",

@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "file_counts": [
+    1,
+    2,
+    5,
+    10,
+    25,
+    100,
+    1000
+  ],
+  "rule_hit_percentages": [
+    0,
+    20,
+    50,
+    100
+  ],
+  "runs": 3,
+  "warmup": 1,
+  "seed": 20260908,
+  "quality_chunk_files": 128,
+  "rules_reference": "magika2-rules-only",
+  "environment": {
+    "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+    "OMP_NUM_THREADS": "2",
+    "OPENBLAS_NUM_THREADS": "2"
+  },
+  "tools": [
+    {
+      "id": "magika2-rules-only",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/magika",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=only",
+        "--rules-file",
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-rules.yar"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/magika",
+        "--version"
+      ],
+      "artifacts": {
+        "rules": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-rules.yar",
+        "native": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib"
+      },
+      "settings": {
+        "backend": "none (CPU signatures)",
+        "readers": 2,
+        "threads": 0,
+        "internal_batch": null,
+        "rules": "only",
+        "model": null,
+        "queue_threads_flag": 2,
+        "queue_batch_flag": 8
+      }
+    }
+  ],
+  "rules_reference_mode": "only"
+}

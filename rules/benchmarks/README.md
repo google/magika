@@ -177,3 +177,20 @@ when input bytes/labels/class metadata, tool identity, command, environment and
 quality chunk size agree. Saved bytes are hashed in the new receipt and reparsed
 with the current adapter. Timing is always measured afresh. This supports parser
 fixes without repeatedly running successful classifiers.
+
+## Rules-only measurements
+
+[Magika 2 rules-only results](results/v1/2026-09-08-2d6c3992-rules-only/report.md)
+use protocol 1.1.0 and source revision `2d6c3992`. The run classifies the same
+25,421-file snapshot and measures the same 30 saved workloads as the initial CPU
+and Metal runs, using `--rules=only`. The executable skips model initialization
+and feature extraction, and emits `unknown` on signature misses. Vectorscan
+executes on the CPU; there is no separate GPU rules-only mode.
+
+The run directory retains its configuration, portable inputs, workloads, raw
+predictions, Hyperfine JSON, generated report and SHA-256 receipt. Earlier CPU
+and Metal results retain their original revisions and protocol versions. This
+new mode does not claim a same-tool revision speedup against those older modes.
+To reproduce, use this run's `config.json`, `inputs.json.gz` and `workloads.json`
+with the command above. `rules_reference_mode: "only"` removes the need for an
+ML-only control; deterministic unknown outputs do not count as rule matches.

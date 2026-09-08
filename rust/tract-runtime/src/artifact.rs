@@ -580,13 +580,60 @@ mod tests {
                 let x = crate::run_plan(a.as_mut(), &input, batch)?;
                 let y = crate::run_plan(b.as_mut(), &input, batch)?;
                 ensure!(x.len() == batch * NUM_LABELS);
+                check_cpu_artifact_scores(&x, &y)
+                    .with_context(|| format!("CPU artifact batch={batch} real={real}"))?;
+            }
+        }
+        Ok(())
+    }
+
+    fn check_cpu_artifact_scores(source: &[f32], loaded: &[f32]) -> TractResult<()> {
+        ensure!(!source.is_empty() && source.len() == loaded.len());
+        ensure!(source.len() % NUM_LABELS == 0);
+        // The release graph contains constants folded on the release machine.
+        // Source preparation on another architecture can differ in low bits.
+        // Use the CPU fusion test's existing 1e-5 bound and independently require
+        // identical winning labels and confidence-threshold decisions.
+        let max_error =
+            source.iter().zip(loaded).map(|(x, y)| (x - y).abs()).fold(0.0f32, f32::max);
+        ensure!(
+            source.iter().chain(loaded).all(|x| x.is_finite()) && max_error <= 1e-5,
+            "CPU artifact max absolute score error {max_error:e}"
+        );
+        for (x, y) in source.chunks_exact(NUM_LABELS).zip(loaded.chunks_exact(NUM_LABELS)) {
+            let winner = |row: &[f32]| {
+                row.iter().enumerate().max_by(|(_, a), (_, b)| a.total_cmp(b)).unwrap().0
+            };
+            let label = winner(x);
+            ensure!(label == winner(y), "CPU artifact changed winning label");
+            // Every confidence threshold in standard_v3_3/config.min.json.
+            for threshold in [0.5, 0.75, 0.9, 0.95] {
                 ensure!(
-                    x.iter().zip(&y).all(|(x, y)| x.to_bits() == y.to_bits()),
-                    "CPU artifact score mismatch for batch {batch}"
+                    (x[label] >= threshold) == (y[label] >= threshold),
+                    "CPU artifact crossed confidence threshold {threshold}"
                 );
             }
         }
         Ok(())
+    }
+
+    #[test]
+    fn cpu_artifact_roundoff_must_preserve_decisions() {
+        let mut x = vec![0.0; NUM_LABELS];
+        x[0] = 0.8;
+        let mut y = x.clone();
+        y[0] += 6e-7;
+        assert!(check_cpu_artifact_scores(&x, &y).is_ok());
+        y[0] += 1e-3;
+        assert!(check_cpu_artifact_scores(&x, &y).is_err());
+        y[0] = f32::NAN;
+        assert!(check_cpu_artifact_scores(&x, &y).is_err());
+        x[0] = 0.5 - 1e-7;
+        y[0] = 0.5 + 1e-7;
+        assert!(check_cpu_artifact_scores(&x, &y).is_err());
+        x[1] = 0.5;
+        y[1] = 0.5;
+        assert!(check_cpu_artifact_scores(&x, &y).is_err());
     }
 
     #[cfg(target_os = "macos")]

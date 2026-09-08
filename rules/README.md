@@ -109,10 +109,11 @@ An installed `rules/promoted.yar` beside the executable takes precedence over em
 defaults. A paired `.hsdb` is reused when compatible. Modified or incompatible source
 compiles into the user cache. `MAGIKA_RULES_CACHE` selects the cache directory; an empty
 value disables writable caching. Sources and compiled packs are trusted configuration.
-The pack checksum detects corruption; it does not authenticate the author or make a
-native database safe to accept from an untrusted party. Protect the source, paired
-pack and cache directory as application configuration, separately from files being
-classified.
+The loader checks structure, native compatibility and recognized labels; Vectorscan
+validates its own database integrity before scanning. There is no outer payload
+checksum or per-launch cryptographic verification of label metadata. Protect the
+source, paired pack and cache directory as application configuration, separately
+from files being classified. Source/compiler hashes only invalidate stale caches.
 
 Compatibility includes the loaded engine, OS, architecture and CPU tuning/features.
 A release pack built for a different CPU may need compilation on its first use;

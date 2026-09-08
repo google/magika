@@ -10,7 +10,8 @@ whole package. This is a format direction, not an implemented model loader.
 A fixed little-endian header carries magic, container version, package length,
 section count and a bounded section table. Each entry contains a typed section ID,
 payload-format version, 64-bit offset and length, required alignment, compatibility
-identifier and digest. Offsets are relative to the start of the file. Check bounds,
+identifier. Release provenance can carry optional digests for distribution checks;
+they are not a required startup pass. Offsets are relative to the start of the file. Check bounds,
 overlaps, alignment and supported required sections before exposing any slice to C.
 
 Initial sections:
@@ -38,8 +39,10 @@ source, never guess a compatible native representation.
 
 Rules-only opens metadata and the rules section. It does not parse model graphs,
 construct tensors, initialize tract/Metal, or verify the entire model payload on
-every invocation. Validate the container metadata and the sections actually used;
-packaging/install verification may cover the complete package. Keep a mapping
+every invocation. Check the bounds and compatibility of the container metadata
+and selected sections, retaining native database validation. The rules loader no
+longer computes a cryptographic payload checksum at startup. Distribution checks
+can cover the complete package separately. Keep a mapping
 owner alive through every database, tensor and worker borrowing it.
 
 The existing model artifact is already prepared graph JSON plus binary weights,
@@ -60,8 +63,8 @@ can avoid duplicating model bytes when a composed package is unnecessary.
 
 Write to a private temporary inode, validate, then atomically publish. Existing
 processes retain their old mapping. Never truncate or rewrite a mapped inode.
-Bound the format and map only trusted installed/cache artifacts; checksums detect
-corruption, not authenticity. Keep compiler access separate from the runtime
+Bound the format and map only trusted installed/cache artifacts. Keep compiler
+access separate from the runtime
 library so normal launches need not load Vectorscan's compiler dependencies.
 
 ## Compilation optimization opportunities

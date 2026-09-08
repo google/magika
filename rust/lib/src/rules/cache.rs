@@ -8,18 +8,12 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{ensure, Result};
-#[cfg(feature = "_blake3-spike")]
-use blake3::Hasher as CacheHasher;
 use serde::{Deserialize, Serialize};
-#[cfg(not(feature = "_blake3-spike"))]
-use sha2::{Digest, Sha256 as CacheHasher};
+use sha2::{Digest, Sha256};
 
 use super::native::Api;
 
-#[cfg(not(feature = "_blake3-spike"))]
-const MAGIC: &[u8; 9] = b"MAGIKAHS\x02";
-#[cfg(feature = "_blake3-spike")]
-const MAGIC: &[u8; 9] = b"MAGIKAHS\x03";
+const MAGIC: &[u8; 9] = b"MAGIKAHS\x04";
 pub(super) const MAX_DATABASE_SIZE: usize = 64 * 1024 * 1024;
 const MAX_MANIFEST_SIZE: usize = 4 * 1024 * 1024;
 
@@ -29,15 +23,14 @@ struct Manifest {
     key: String,
     labels: Vec<Option<String>>,
     engine: String,
-    checksum: String,
 }
 
 fn key(source: &str) -> String {
     #[cfg(feature = "_mmap-spike")]
     let _startup_span = crate::startup_trace::span("rules_cache_identity");
 
-    let mut hash = CacheHasher::new();
-    hash.update(&(super::PREFIX_LIMIT as u64).to_le_bytes());
+    let mut hash = Sha256::new();
+    hash.update((super::PREFIX_LIMIT as u64).to_le_bytes());
     #[cfg(all(feature = "_mmap-spike", unix))]
     if super::mapped::enabled() {
         hash.update(b"mapped-image-v1");
@@ -55,40 +48,10 @@ fn key(source: &str) -> String {
         env!("CARGO_PKG_VERSION").as_bytes(),
         crate::MODEL_NAME.as_bytes(),
     ] {
-        hash.update(&(part.len() as u64).to_le_bytes());
+        hash.update((part.len() as u64).to_le_bytes());
         hash.update(part);
     }
-    let digest = finish_hash(hash);
-    #[cfg(feature = "_blake3-spike")]
-    return format!("blake3-{digest}");
-    #[cfg(not(feature = "_blake3-spike"))]
-    digest
-}
-
-fn finish_hash(hash: CacheHasher) -> String {
-    #[cfg(feature = "_blake3-spike")]
-    return hash.finalize().to_hex().to_string();
-    #[cfg(not(feature = "_blake3-spike"))]
     format!("{:x}", hash.finalize())
-}
-
-// Cover the output mapping and engine identity as well as the native bytes. This detects
-// corruption; packs/cache directories are trusted configuration, not authenticated input.
-fn checksum(manifest: &Manifest, payload: &[u8]) -> Result<String> {
-    #[cfg(feature = "_mmap-spike")]
-    let _startup_span = crate::startup_trace::span("rules_payload_checksum");
-
-    let mut hash = CacheHasher::new();
-    hash.update(&serde_json::to_vec(&(&manifest.key, &manifest.engine, &manifest.labels))?);
-    #[cfg(not(feature = "_blake3-rayon-spike"))]
-    hash.update(payload);
-    #[cfg(feature = "_blake3-rayon-spike")]
-    hash.update_rayon(payload);
-    let digest = finish_hash(hash);
-    #[cfg(feature = "_blake3-spike")]
-    return Ok(format!("blake3:{digest}"));
-    #[cfg(not(feature = "_blake3-spike"))]
-    Ok(digest)
 }
 
 pub(super) fn default_directory() -> Option<PathBuf> {
@@ -224,7 +187,6 @@ fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
     #[cfg(feature = "_mmap-spike")]
     drop(_payload_read);
     ensure!(payload.len() <= MAX_DATABASE_SIZE, "invalid native payload size");
-    ensure!(checksum(&manifest, &payload)? == manifest.checksum, "cache checksum mismatch");
     let database = if payload.is_empty() {
         ensure!(manifest.labels.is_empty() && manifest.engine == "empty", "invalid empty pack");
         None
@@ -269,10 +231,7 @@ fn read_mapped(file: File, expected_key: &str) -> Result<super::RuleSet> {
     let offset = (13 + length).next_multiple_of(super::mapped::ALIGNMENT);
     ensure!(offset <= bytes.len(), "truncated mapped pack");
     let payload = &bytes[offset..];
-    ensure!(
-        payload.len() <= MAX_DATABASE_SIZE && checksum(&manifest, payload)? == manifest.checksum,
-        "mapped checksum/length mismatch"
-    );
+    ensure!(payload.len() <= MAX_DATABASE_SIZE, "invalid mapped payload size");
     let database = if payload.is_empty() {
         ensure!(
             manifest.labels.is_empty() && manifest.engine == "empty",
@@ -305,8 +264,7 @@ fn write_payload(
     path: &Path, key: String, engine: String, labels: Vec<Option<String>>, payload: &[u8],
     replace: bool,
 ) -> Result<()> {
-    let mut manifest = Manifest { key, engine, labels, checksum: String::new() };
-    manifest.checksum = checksum(&manifest, payload)?;
+    let manifest = Manifest { key, engine, labels };
     let manifest = serde_json::to_vec(&manifest)?;
     ensure!(manifest.len() <= MAX_MANIFEST_SIZE, "cache manifest exceeds limit");
     let parent =
@@ -542,20 +500,8 @@ mod tests {
     }
 
     #[test]
-    fn cache_identity_covers_source_and_manifest() {
+    fn cache_identity_covers_source() {
         assert_ne!(key(SOURCE), key(&format!("{SOURCE}\n// edit")));
-        let mut manifest = Manifest {
-            key: key(SOURCE),
-            engine: "engine-5:cpu-1".into(),
-            labels: vec![None, Some("png".into())],
-            checksum: String::new(),
-        };
-        let original = checksum(&manifest, b"native bytes").unwrap();
-        manifest.engine = "engine-6:cpu-2".into();
-        assert_ne!(checksum(&manifest, b"native bytes").unwrap(), original);
-        manifest.engine = "engine-5:cpu-1".into();
-        manifest.labels[1] = Some("gif".into());
-        assert_ne!(checksum(&manifest, b"native bytes").unwrap(), original);
     }
 
     #[test]
@@ -587,7 +533,9 @@ mod tests {
         let valid = std::fs::read(&pack).unwrap();
         for damaged in [b"partial write".to_vec(), {
             let mut bytes = valid.clone();
-            *bytes.last_mut().unwrap() ^= 1;
+            let length = u32::from_le_bytes(bytes[9..13].try_into().unwrap()) as usize;
+            // Serialized bytecode starts after eight native u32 header words.
+            bytes[13 + length + 32 + 16] ^= 1;
             bytes
         }] {
             std::fs::write(&pack, damaged).unwrap();
@@ -596,12 +544,11 @@ mod tests {
             assert_eq!(repaired.identify(b"ABCD", 4), Some(ContentType::Png));
             assert!(load().loaded_from_cache());
         }
-        // A valid outer checksum cannot make an invalid native database acceptable.
+        // Native deserialization rejects invalid database bytes without an outer hash.
         let length = u32::from_le_bytes(valid[9..13].try_into().unwrap()) as usize;
-        let mut manifest: Manifest = serde_json::from_slice(&valid[13..13 + length]).unwrap();
+        let manifest: Manifest = serde_json::from_slice(&valid[13..13 + length]).unwrap();
         let mut payload = valid[13 + length..].to_vec();
         payload[0] ^= 1; // Invalid native magic; deserializer must reject it before use.
-        manifest.checksum = checksum(&manifest, &payload).unwrap();
         let header = serde_json::to_vec(&manifest).unwrap();
         let mut bytes = MAGIC.to_vec();
         bytes.extend_from_slice(&(header.len() as u32).to_le_bytes());
@@ -612,18 +559,14 @@ mod tests {
         assert!(!rebuilt.loaded_from_cache());
         assert_eq!(rebuilt.identify(b"ABCD", 4), Some(ContentType::Png));
         assert!(load().loaded_from_cache());
-        for damage in ["label", "engine", "unknown-label"] {
+        for damage in ["engine", "unknown-label"] {
             let mut manifest: Manifest = serde_json::from_slice(&valid[13..13 + length]).unwrap();
             let payload = &valid[13 + length..];
             if damage == "engine" {
                 manifest.engine = "different-engine-or-cpu".into();
-                manifest.checksum = checksum(&manifest, payload).unwrap();
             } else {
                 *manifest.labels.iter_mut().find(|x| x.is_some()).unwrap() =
-                    Some(if damage == "label" { "gif" } else { "not-a-label" }.into());
-                if damage == "unknown-label" {
-                    manifest.checksum = checksum(&manifest, payload).unwrap();
-                }
+                    Some("not-a-label".into());
             }
             let header = serde_json::to_vec(&manifest).unwrap();
             let mut bytes = MAGIC.to_vec();
@@ -828,16 +771,30 @@ mod mapped_tests {
         std::fs::write(&source_path, source).unwrap();
         export(source, &image).unwrap();
         let valid = std::fs::read(&image).unwrap();
+        let manifest_length = u32::from_le_bytes(valid[9..13].try_into().unwrap()) as usize;
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&valid[13..13 + manifest_length]).unwrap();
+        assert!(manifest.get("checksum").is_none(), "packs must not carry an outer checksum");
         assert!(read(&image, &key(source)).unwrap().loaded_from_cache());
         assert!(read(&image, "wrong-source").is_err());
-        for data in [valid[..12].to_vec(), valid[..valid.len() - 1].to_vec(), {
-            let mut bad = valid.clone();
-            *bad.last_mut().unwrap() ^= 1;
-            bad
-        }] {
+        for data in [valid[..12].to_vec(), valid[..valid.len() - 1].to_vec()] {
             std::fs::write(&image, data).unwrap();
             assert!(read(&image, &key(source)).is_err());
         }
+        let mut corrupt = valid.clone();
+        let native_offset =
+            (13 + manifest_length).next_multiple_of(super::super::mapped::ALIGNMENT);
+        // The pinned native CRC covers bytecode, starting 64 bytes into the image.
+        corrupt[native_offset + 64 + 16] ^= 1;
+        std::fs::write(&image, corrupt).unwrap();
+        let loaded = read(&image, &key(source)).unwrap();
+        assert!(
+            loaded.database.as_ref().unwrap().worker().is_err(),
+            "native CRC must reject damaged bytecode before scanning"
+        );
+        // The public identification API converts native failures into abstention.
+        assert_eq!(loaded.identify_input(b"MAGIKA_MMAP_TEST!".as_slice()).unwrap(), None);
+        drop(loaded);
         std::fs::write(&image, &valid).unwrap();
         let changed = source.replace("MAGIKA_MMAP_TEST!", "MAGIKA_MMAP_NEXT!");
         std::fs::write(&source_path, changed).unwrap();
@@ -857,43 +814,5 @@ mod mapped_tests {
         )
         .unwrap()
         .loaded_from_cache());
-    }
-}
-
-#[cfg(all(test, feature = "_blake3-spike", unix))]
-mod blake3_tests {
-    use super::*;
-
-    #[test]
-    fn blake3_spike_checksum_covers_manifest_and_payload() {
-        let mut manifest = Manifest {
-            key: "test-key".into(),
-            engine: "test-engine".into(),
-            labels: vec![Some("png".into()), None],
-            checksum: String::new(),
-        };
-        let payload = b"native-image-bytes";
-        let mut bytes =
-            serde_json::to_vec(&(&manifest.key, &manifest.engine, &manifest.labels)).unwrap();
-        bytes.extend_from_slice(payload);
-        let expected = format!("blake3:{}", blake3::hash(&bytes).to_hex());
-        assert_eq!(checksum(&manifest, payload).unwrap(), expected);
-        assert_ne!(checksum(&manifest, b"changed-image-bytes").unwrap(), expected);
-        manifest.labels[0] = Some("zip".into());
-        assert_ne!(checksum(&manifest, payload).unwrap(), expected);
-        manifest.labels[0] = Some("png".into());
-        manifest.engine = "other-engine".into();
-        assert_ne!(checksum(&manifest, payload).unwrap(), expected);
-        manifest.engine = "test-engine".into();
-        manifest.key = "other-key".into();
-        assert_ne!(checksum(&manifest, payload).unwrap(), expected);
-    }
-
-    #[test]
-    fn blake3_spike_formats_and_identities_are_separate() {
-        assert_eq!(MAGIC, b"MAGIKAHS\x03");
-        assert_eq!(super::super::mapped::MAGIC, b"MAGIKAMM\x02");
-        assert!(key("rules").starts_with("blake3-"));
-        assert_ne!(key("rules"), key("changed rules"));
     }
 }

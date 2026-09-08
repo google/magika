@@ -7,10 +7,7 @@ use anyhow::{ensure, Result};
 use std::fs::File;
 use std::os::fd::AsRawFd;
 
-#[cfg(not(feature = "_blake3-spike"))]
-pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x01";
-#[cfg(feature = "_blake3-spike")]
-pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x02";
+pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x03";
 pub(super) const ALIGNMENT: usize = 4096;
 
 pub(super) fn enabled() -> bool {

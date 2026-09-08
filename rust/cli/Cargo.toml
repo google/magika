@@ -32,8 +32,6 @@ magika = { version = "2.0.0-dev", path = "../lib", features = ["cuda"] }
 [features]
 _mmap-spike = ["yara-rules", "magika/_mmap-spike"]
 _sha2-accel-spike = ["_mmap-spike", "magika/_sha2-accel-spike"]
-_blake3-spike = ["_mmap-spike", "magika/_blake3-spike"]
-_blake3-rayon-spike = ["_blake3-spike", "magika/_blake3-rayon-spike"]
 yara-rules = ["magika/yara-rules"]
 _trace = ["dep:cpu-time"]
 

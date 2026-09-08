@@ -35,10 +35,11 @@ use progress::Progress;
 #[derive(Parser)]
 #[command(name = "magika", version = Version, arg_required_else_help = true)]
 struct Flags {
-    /// Enables the selected ruleset (requires the yara-rules feature).
+    /// Selects off, enforce (ML fallback), or only (unknown on misses; no model).
+    /// Requires the yara-rules feature unless off.
     #[arg(long, value_enum, default_value = "off")]
     rules: Rules,
-    /// Loads a YARA pack with per-rule enforcement metadata. Requires --rules=enforce.
+    /// Loads a YARA pack with per-rule enforcement metadata. Requires --rules=enforce or --rules=only.
     #[arg(long)]
     rules_file: Option<PathBuf>,
     /// Compiles a YARA file to a sibling .hsdb file and exits; refuses to overwrite.
@@ -77,31 +78,44 @@ struct Flags {
 enum Rules {
     Off,
     Enforce,
+    Only,
 }
 impl From<Rules> for magika::RulesMode {
     fn from(value: Rules) -> Self {
         match value {
             Rules::Off => Self::Off,
-            Rules::Enforce => Self::Enforce,
+            Rules::Enforce | Rules::Only => Self::Enforce,
         }
     }
 }
 
 #[derive(Clone)]
 struct RuleInput {
-    mode: magika::RulesMode,
+    mode: Rules,
     #[cfg(feature = "yara-rules")]
     pack: Option<magika::RuleSet>,
 }
 impl RuleInput {
     fn extract(&self, input: impl magika::Input) -> Result<FeaturesOrRuled> {
+        if matches!(self.mode, Rules::Only) {
+            #[cfg(feature = "yara-rules")]
+            return Ok(FeaturesOrRuled::Ruled(
+                self.pack
+                    .as_ref()
+                    .context("rules-only requires a loaded ruleset")?
+                    .identify_input(input)?
+                    .unwrap_or(ContentType::Unknown),
+            ));
+            #[cfg(not(feature = "yara-rules"))]
+            anyhow::bail!("--rules=only requires the yara-rules Cargo feature");
+        }
         #[cfg(feature = "yara-rules")]
-        if self.mode == magika::RulesMode::Enforce {
+        if matches!(self.mode, Rules::Enforce) {
             if let Some(pack) = &self.pack {
                 return FeaturesOrRuled::extract_with_ruleset(input, pack);
             }
         }
-        FeaturesOrRuled::extract_with_rules(input, self.mode)
+        FeaturesOrRuled::extract_with_rules(input, self.mode.into())
     }
 }
 
@@ -360,12 +374,12 @@ fn main() -> Result<()> {
         }
     }
     ensure!(
-        flags.rules_file.is_none() || matches!(flags.rules, Rules::Enforce),
-        "--rules-file requires --rules=enforce"
+        flags.rules_file.is_none() || !matches!(flags.rules, Rules::Off),
+        "--rules-file requires --rules=enforce or --rules=only"
     );
     ensure!(
         cfg!(feature = "yara-rules") || matches!(flags.rules, Rules::Off),
-        "--rules=enforce requires a build with the yara-rules Cargo feature"
+        "--rules=enforce/only requires a build with the yara-rules Cargo feature"
     );
     let batch_size = flags.experimental.batch_size;
     ensure!(
@@ -388,6 +402,10 @@ fn main() -> Result<()> {
         BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
     };
     if flags.experimental.backend_info {
+        if matches!(flags.rules, Rules::Only) {
+            println!("none (rules-only)");
+            return Ok(());
+        }
         let runtime = builder.build()?;
         let info = runtime.backend_info();
         let backend = match info.backend() {
@@ -413,31 +431,34 @@ fn main() -> Result<()> {
     #[cfg(feature = "_trace")]
     let trace = Trace::default();
     let mut join_handles = Vec::new();
-    join_handles.push(std::thread::Builder::new().name("magika-model".to_string()).spawn({
-        let batch_receiver = batch_receiver.clone();
-        let result_sender = result_sender.clone();
-        let requested_threads = flags.experimental.threads;
-        #[cfg(feature = "_trace")]
-        let trace = trace.clone();
-        move || {
-            let result = prepare_and_infer(
-                move || builder.build(),
-                requested_threads,
-                &batch_receiver,
-                &result_sender,
-                #[cfg(feature = "_trace")]
-                &trace,
-            );
-            if let Err(error) = result {
-                let _ = result_sender.send(Err(error));
+    // Signature-only extraction never queues inference or initializes a model.
+    if !matches!(flags.rules, Rules::Only) {
+        join_handles.push(std::thread::Builder::new().name("magika-model".to_string()).spawn({
+            let batch_receiver = batch_receiver.clone();
+            let result_sender = result_sender.clone();
+            let requested_threads = flags.experimental.threads;
+            #[cfg(feature = "_trace")]
+            let trace = trace.clone();
+            move || {
+                let result = prepare_and_infer(
+                    move || builder.build(),
+                    requested_threads,
+                    &batch_receiver,
+                    &result_sender,
+                    #[cfg(feature = "_trace")]
+                    &trace,
+                );
+                if let Err(error) = result {
+                    let _ = result_sender.send(Err(error));
+                }
             }
-        }
-    })?);
+        })?);
+    }
     // Start backend preparation before loading an explicit pack, so the two can overlap.
     let rule_input = RuleInput {
-        mode: flags.rules.into(),
+        mode: flags.rules,
         #[cfg(feature = "yara-rules")]
-        pack: if matches!(flags.rules, Rules::Enforce) {
+        pack: if !matches!(flags.rules, Rules::Off) {
             let source = flags.rules_file.clone().or_else(|| {
                 let exe = std::env::current_exe().ok()?;
                 let source = exe.parent()?.join("rules/promoted.yar");

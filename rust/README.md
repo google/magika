@@ -49,3 +49,15 @@ Python and JavaScript keep their independent versions and existing runtimes.
 See [the library changelog](lib/CHANGELOG.md) and
 [the CLI changelog](cli/CHANGELOG.md) for the complete API and behavior changes.
 Benchmark results distinguish Magika 2 with rules off from rules enforced.
+
+### Rules-only classification
+
+Build with `yara-rules`, then run `magika --rules=only --jsonl FILE...` (optionally
+`--rules-file PACK.yar`). This scans the selected pack against at most the first
+4,096 bytes with the original file size available to rule guards. Misses and
+conflicts produce `unknown`, including empty and short text inputs without a
+matching signature. Input errors still report errors. No ML features are extracted
+and no inference model or GPU backend is initialized; `--backend-info` reports
+`none (rules-only)`. Filesystem directory/symlink reporting remains available.
+The library equivalent is `RuleSet::identify_input`, returning `Ok(None)` for an
+abstention. The rules matcher executes on the CPU.

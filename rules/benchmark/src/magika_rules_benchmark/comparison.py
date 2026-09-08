@@ -22,13 +22,34 @@ from tabulate import tabulate
 
 from . import corpus, runner
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 
 class Adapter(StrEnum):
     MAGIKA = "magika-jsonl"
     FILE = "file-mime"
     TRID = "trid"
+
+
+class RuleReference(StrEnum):
+    HYBRID = "hybrid"
+    ONLY = "only"
+
+
+def rule_hit_hashes(samples, rows, control=None):
+    """Count native signature decisions; deterministic unknowns are abstentions."""
+    if control is None:
+        if any(not row["error"] and not row["deterministic"] for row in rows):
+            raise ValueError("Rules-only reference emitted inference output")
+        control = [dict(deterministic=False) for _ in rows]
+    return {
+        sample["sha256"]
+        for sample, row, baseline in zip(samples, rows, control, strict=True)
+        if row["deterministic"]
+        and not baseline["deterministic"]
+        and not row["error"]
+        and row["mapping"] != "abstained"
+    }
 
 
 def fingerprint(value):
@@ -396,7 +417,11 @@ def render(result):
         )
         + "\n\n"
     )
-    text += "Rule ratios refer to the named Magika rules reference versus its ML-only control. A dash is the natural sample mix or a tool without a rules mode.\n\n"
+    if result.get("config", {}).get("rules_reference_mode") == "only":
+        text += "Rule ratios count signature decisions from the rules-only reference; unknowns abstain and no ML control runs. "
+    else:
+        text += "Rule ratios refer to the named Magika rules reference versus its ML-only control. "
+    text += "A dash is the natural sample mix or a tool without a rules mode.\n\n"
     if result.get("common_vocabulary"):
         common = result["common_vocabulary"]
         text += f"Common unambiguous vocabulary: {len(common['classes'])} classes, {common['files']} files. Selected from class metadata and model support, before scoring; this is not proof of each tool's format support.\n\n"
@@ -519,6 +544,7 @@ def run(args):
     spec = load_json(args.config)
     if spec["schema"] != 1:
         raise ValueError("Unsupported comparison config schema")
+    reference_mode = RuleReference(spec.get("rules_reference_mode", "hybrid"))
     counts, rates = spec["file_counts"], spec["rule_hit_percentages"]
     if (
         not counts
@@ -665,12 +691,12 @@ def run(args):
             for tool, rows in observations.items()
         },
     )
-    ref, ml = spec["rules_reference"], spec["ml_reference"]
-    rule_hits = {
-        s["sha256"]
-        for s, a, b in zip(samples, observations[ref], observations[ml], strict=True)
-        if a["deterministic"] and not b["deterministic"] and not a["error"]
-    }
+    ref = spec["rules_reference"]
+    rule_hits = rule_hit_hashes(
+        samples,
+        observations[ref],
+        observations[spec["ml_reference"]] if reference_mode == RuleReference.HYBRID else None,
+    )
     for tool_id in observations:
         result["quality"][tool_id]["rule_hit_percent"] = (
             100 * len(rule_hits) / len(samples) if tool_id == ref else None

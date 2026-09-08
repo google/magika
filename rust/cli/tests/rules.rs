@@ -485,3 +485,84 @@ fn recursive_symlink_cycles_report_once_and_keep_other_inputs() {
         assert_eq!(rows[index]["result"]["value"]["output"]["label"], "symlink");
     }
 }
+
+#[test]
+fn rules_only_empty_pack_abstains_and_reports_no_inference_backend() {
+    let directory = std::env::temp_dir().join(format!("magika-only-empty-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let pack = directory.join("empty.yar");
+    std::fs::write(&pack, "// No rules.\n").unwrap();
+    let input = directory.join("input");
+    std::fs::write(&input, b"ordinary text that must not become a text decision").unwrap();
+    let result = command()
+        .args(["--rules=only", "--rules-file"])
+        .arg(&pack)
+        .args(["--jsonl", "--backend=gpu"])
+        .arg(&input)
+        .output()
+        .unwrap();
+    let info =
+        command().args(["--rules=only", "--backend=gpu", "--backend-info"]).output().unwrap();
+    std::fs::remove_dir_all(directory).unwrap();
+    if !cfg!(feature = "yara-rules") {
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("yara-rules"));
+        return;
+    }
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let row: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(row["result"]["value"]["output"]["label"], "unknown");
+    assert_eq!(row["result"]["value"]["dl"]["label"], "undefined");
+    assert!(info.status.success());
+    assert_eq!(info.stdout, b"none (rules-only)\n");
+}
+
+#[cfg(feature = "yara-rules")]
+#[test]
+#[ignore = "requires a native Vectorscan compiler library"]
+fn rules_only_mixed_hits_misses_and_errors_preserve_order() {
+    let directory = std::env::temp_dir().join(format!("magika-only-mixed-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let pack = directory.join("custom.yar");
+    std::fs::write(
+        &pack,
+        r#"rule fixture { meta: label = "png" enabled = true class = "full" fp_rate = 0 fn_rate = 0
+        strings: $a = "MAGIKA_ONLY_TEST!" condition: $a at 0 }"#,
+    )
+    .unwrap();
+    let hit = directory.join("hit");
+    let miss = directory.join("miss");
+    let empty = directory.join("empty");
+    let absent = directory.join("absent");
+    std::fs::write(&hit, b"MAGIKA_ONLY_TEST!").unwrap();
+    std::fs::write(&miss, b"plain text without a signature").unwrap();
+    std::fs::write(&empty, []).unwrap();
+    let paths: Vec<_> = [&hit, &miss, &empty, &absent].into_iter().cycle().take(260).collect();
+    let result = command()
+        .args(["--rules=only", "--rules-file"])
+        .arg(&pack)
+        .args(["--jsonl", "--readers=2", "--threads=1", "--batch-size=1"])
+        .args(&paths)
+        .output()
+        .unwrap();
+    std::fs::remove_dir_all(&directory).unwrap();
+    assert_eq!(result.status.code(), Some(1), "{}", String::from_utf8_lossy(&result.stderr));
+    let rows: Vec<serde_json::Value> = String::from_utf8(result.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(rows.len(), paths.len());
+    for (i, (row, path)) in rows.iter().zip(paths).enumerate() {
+        assert_eq!(row["path"], path.to_str().unwrap());
+        if i % 4 == 3 {
+            assert_ne!(row["result"]["status"], "ok");
+        } else {
+            assert_eq!(
+                row["result"]["value"]["output"]["label"],
+                if i % 4 == 0 { "png" } else { "unknown" }
+            );
+            assert_eq!(row["result"]["value"]["dl"]["label"], "undefined");
+        }
+    }
+}

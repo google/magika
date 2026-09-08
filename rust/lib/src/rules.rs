@@ -138,6 +138,20 @@ impl RuleSet {
         cache::load(source, directory, shipped)
     }
 
+    /// Identifies an input using only the selected signatures, without loading a model.
+    ///
+    /// Reads at most the first 4096 bytes and preserves the original file size for guards.
+    /// A miss, conflict or scan failure returns `None`; input errors remain errors.
+    /// Empty and short text inputs receive no implicit fallback classification.
+    pub fn identify_input(&self, mut input: impl crate::Input) -> Result<Option<ContentType>> {
+        let size = input.length()?;
+        let mut prefix = vec![0; size.min(PREFIX_LIMIT as u64) as usize];
+        if !prefix.is_empty() {
+            input.read_at(&mut prefix, 0)?;
+        }
+        Ok(self.identify(&prefix, size))
+    }
+
     pub(crate) fn identify(&self, prefix: &[u8], size: u64) -> Option<ContentType> {
         engine::scan(self.database.as_ref()?, prefix, size).content_type()
     }
@@ -162,6 +176,41 @@ mod native_tests {
 
     fn rule(id: &str, label: &str, patterns: &str, condition: &str) -> String {
         format!("rule {id} {{ meta: label = \"{label}\" enabled = true class = \"full\" fp_rate = 0 fn_rate = 0 {patterns} condition: {condition} }}")
+    }
+
+    #[test]
+    fn rules_only_reads_one_bounded_prefix_and_preserves_input_errors() {
+        struct Probe {
+            size: u64,
+            reads: Vec<(u64, usize)>,
+            fail: bool,
+        }
+        impl crate::Input for Probe {
+            fn length(&self) -> Result<u64> {
+                Ok(self.size)
+            }
+            fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
+                self.reads.push((offset, buffer.len()));
+                anyhow::ensure!(!self.fail, "input read failed");
+                buffer.fill(b'A');
+                Ok(())
+            }
+        }
+        let pack = RuleSet::from_source("// Empty test pack.").unwrap();
+        for size in [0, 1, 4096, 4097, u64::MAX] {
+            let mut input = Probe { size, reads: Vec::new(), fail: false };
+            assert_eq!(pack.identify_input(&mut input).unwrap(), None);
+            assert_eq!(
+                input.reads,
+                if size == 0 { vec![] } else { vec![(0, size.min(4096) as usize)] }
+            );
+        }
+        let mut broken = Probe { size: 8192, reads: Vec::new(), fail: true };
+        assert!(pack
+            .identify_input(&mut broken)
+            .unwrap_err()
+            .to_string()
+            .contains("input read failed"));
     }
 
     #[test]

@@ -195,3 +195,26 @@ def test_adding_a_tool_preserves_history_for_existing_tools():
         "compatibility": {"settings": {"m1": "a", "m2": "c"}, "mappings": {"m1": "b", "m2": "d"}}
     }
     assert c.compare_previous(new, old)["comparable"]
+
+
+def test_rules_only_hits_exclude_abstentions_and_errors_without_ml_control():
+    samples = [{"sha256": str(i)} for i in range(4)]
+    rows = [
+        c.mapped(["pdf"], {"pdf": ["pdf"]}, deterministic=True),
+        c.mapped(["unknown"], {}, abstain=True, deterministic=True),
+        c.mapped([], {}, error="permission_denied"),
+        c.mapped(["future-label"], {}, deterministic=True),
+    ]
+    assert c.rule_hit_hashes(samples, rows) == {"0", "3"}
+    # Rules matched even when the corpus label vocabulary cannot map the output.
+    rows[0]["deterministic"] = False
+    with pytest.raises(ValueError, match="inference"):
+        c.rule_hit_hashes(samples, rows)
+
+
+def test_hybrid_rule_hits_still_require_the_ml_control():
+    samples = [{"sha256": str(i)} for i in range(3)]
+    rows = [c.mapped(["pdf"], {"pdf": ["pdf"]}, deterministic=True) for _ in samples]
+    control = [dict(deterministic=x) for x in [False, True, False]]
+    rows[2] = c.mapped(["unknown"], {}, abstain=True, deterministic=True)
+    assert c.rule_hit_hashes(samples, rows, control) == {"0"}

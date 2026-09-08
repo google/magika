@@ -1,7 +1,7 @@
 # Cross-tool benchmark v1
 
 `magika-compare` extends the existing `magika-rules-benchmark` package. Benchmark
-protocol **1.0.0** uses structured tool configuration, hashed input snapshots,
+protocol **1.1.0** uses structured tool configuration, hashed input snapshots,
 raw tool output and Hyperfine JSON. Reports and revision deltas are generated
 from saved JSON by ordinary code. No model or LLM participates in measurement,
 label mapping, scoring, reporting or comparison.
@@ -9,7 +9,7 @@ label mapping, scoring, reporting or comparison.
 ## Measurement contract
 
 - Compare Magika 1's released Rust CLI, Magika 2 with rules off, Magika 2 with
-  rules enforced, `file`/libmagic, and TrID. Additional instances of these adapters
+  rules enforced with ML fallback, Magika 2 rules-only, `file`/libmagic, and TrID. Additional instances of these adapters
   can be added in JSON. Every instance records its version, executable hash,
   artifact hashes and full command/settings. Missing tools must be explicitly
   listed as unavailable; an execution or parsing failure cannot become a fast
@@ -39,7 +39,10 @@ label mapping, scoring, reporting or comparison.
   from speed workloads. Speed uses both the natural sample mix and exact
   0/20/50/100% rule-hit selections where representable. Hits mean a deterministic
   result from the configured Magika rules instance when its ML-only control is
-  not deterministic. Both requested and observed ratios are retained. When
+  not deterministic. Protocol 1.1 also supports `rules_reference_mode: "only"`: the
+  reference runs `--rules=only`, and hits are native signature decisions, excluding
+  unknowns/errors. It requires no ML control and never initializes a model.
+  Both requested and observed ratios are retained. When
   reusing old workloads, observed ratios can change with the revision.
 - Input size and SHA-256 are checked before measurement and hashes checked again
   at completion. Executables and declared artifacts are also checked again.

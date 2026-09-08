@@ -1,0 +1,132 @@
+Magika PyO3 Verification & Testing Plan
+========================================
+
+Phase 1: Local Development & Workspace Checks (On This Machine)
+---------------------------------------------------------------
+Verify that local repository toolchains (`uv`, `cargo`) and in-process
+Python bindings work as expected.
+
+1. Verify `uv run magika` invokes the native Rust CLI:
+   $ uv run --project python magika --version
+   # Expected: magika 1.1.1-dev standard_v3_3 (Rust binary output format)
+
+   Verify that it executes the compiled ELF binary, NOT a Python script:
+   $ file $(uv run --project python which magika)
+   # Expected: ELF 64-bit LSB pie executable ... (not Python script)
+
+2. Run Python test suite:
+   $ cd python
+   $ uv run pytest tests/test_magika_python_module.py -k "not slow"
+   # Expected: 25 passed, 1 skipped, 1 deselected
+
+3. Verify linters and type checkers:
+   $ cd python
+   $ uv run ruff check
+   $ uv run ruff format --check
+   $ uv run mypy src/magika
+   # Expected: All checks pass with 0 errors
+
+4. Quick smoke test in Python REPL:
+   $ cd python
+   $ uv run python -c "
+import magika
+m = magika.Magika()
+res = m.identify_bytes(b'import os\nprint(os.uname())\n')
+print(f'Model: {m.get_model_name()}')
+print(f'Detected: {res.prediction.output.label} ({res.prediction.output.mime_type}), score={res.prediction.score:.4f}')
+assert res.ok and res.prediction.output.label == 'python'
+"
+
+
+Phase 2: Wheel Creation & Inspection
+------------------------------------
+Verify that the wheel packages both the PyO3 C-extension and the standalone CLI binary.
+
+1. Build the release wheel:
+   $ ./python/scripts/build_wheel.sh
+   $ ls -lh python/dist/
+   # Expected: magika-1.0.3-cp38-abi3-linux_x86_64.whl (~25 MB)
+
+2. Inspect Wheel Contents (Dual-Entrypoint verification):
+   $ unzip -l python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl
+   Verify the two critical files exist:
+     - PyO3 Extension: magika/_magika.abi3.so
+     - Native CLI:     magika-1.0.3.data/scripts/magika
+
+3. Inspect Wheel Metadata & ABI Tags:
+   $ unzip -p python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl magika-1.0.3.dist-info/METADATA | grep Requires-Dist
+   # Expected: Requires-Dist: click>=8.1.7 (NO onnxruntime!)
+
+   $ unzip -p python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl magika-1.0.3.dist-info/WHEEL | grep Tag
+   # Expected: Tag: cp38-abi3-linux_x86_64
+
+
+Phase 3: Clean Environment Testing (Zero-Dependency Validation)
+---------------------------------------------------------------
+Test installing the wheel into a completely pristine virtual environment with
+no development tools or compiler toolchains.
+
+1. Create a clean virtual environment in /tmp:
+   $ python3 -m venv /tmp/magika_clean_env
+
+2. Install the built wheel:
+   $ /tmp/magika_clean_env/bin/pip install python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl
+
+3. Check installed packages:
+   $ /tmp/magika_clean_env/bin/pip list
+   # Expected: Only 'click', 'magika', and 'pip' are installed.
+
+4. Check installed CLI binary:
+   $ file /tmp/magika_clean_env/bin/magika
+   # Expected: ELF 64-bit executable (native binary)
+
+   $ /tmp/magika_clean_env/bin/magika --version
+   $ /tmp/magika_clean_env/bin/magika tests_data/basic/code/python/simple.py
+
+5. Check Python library import & detection:
+   $ /tmp/magika_clean_env/bin/python -c "
+import magika
+m = magika.Magika()
+res = m.identify_path('tests_data/basic/code/python/simple.py')
+print(f'Result: {res.prediction.output.label} (status={res.status})')
+assert res.ok
+"
+
+6. Clean up:
+   $ rm -rf /tmp/magika_clean_env
+
+
+Phase 4: Forward Compatibility Testing (cp38-abi3)
+--------------------------------------------------
+Test installing the exact same wheel across multiple Python versions (3.8 - 3.14)
+without rebuilding:
+
+   for py in python3.8 python3.10 python3.11 python3.12 python3.13; do
+     if command -v "$py" &>/dev/null; then
+       echo "Testing with $py..."
+       "$py" -m venv /tmp/venv_$py
+       /tmp/venv_$py/bin/pip install python/dist/magika-1.0.3-cp38-abi3-linux_x86_64.whl
+       /tmp/venv_$py/bin/python -c "import magika; m = magika.Magika(); print(f'$py OK:', m.identify_bytes(b'def foo(): pass').prediction.output.label)"
+       rm -rf /tmp/venv_$py
+     fi
+   done
+
+
+Phase 5: Multi-Platform CI Testing (GitHub Actions)
+---------------------------------------------------
+1. Push branch to GitHub and run workflow:
+   "POC - PyO3 Multi-Platform Wheels" (.github/workflows/poc-pyo3-wheels.yml)
+   Matrix covers:
+     - Linux x86_64 (manylinux_2_28)
+     - macOS Apple Silicon (macos-14, aarch64)
+     - macOS Intel (macos-13, x86_64)
+     - Windows x86_64 (windows-latest, MSVC)
+
+2. Inspect downloaded wheel artifacts:
+   - macOS wheels: contains magika/_magika.abi3.so and magika-1.0.3.data/scripts/magika
+   - Windows wheel: contains magika/_magika.pyd and magika-1.0.3.data/scripts/magika.exe
+
+3. Smoke test on native macOS / Windows machines:
+   $ pip install <wheel_file>
+   $ magika --version
+   $ python -c "import magika; m = magika.Magika(); print(m.identify_bytes(b'test'))"

@@ -8,12 +8,18 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{ensure, Result};
+#[cfg(feature = "_blake3-spike")]
+use blake3::Hasher as CacheHasher;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+#[cfg(not(feature = "_blake3-spike"))]
+use sha2::{Digest, Sha256 as CacheHasher};
 
 use super::native::Api;
 
+#[cfg(not(feature = "_blake3-spike"))]
 const MAGIC: &[u8; 9] = b"MAGIKAHS\x02";
+#[cfg(feature = "_blake3-spike")]
+const MAGIC: &[u8; 9] = b"MAGIKAHS\x03";
 pub(super) const MAX_DATABASE_SIZE: usize = 64 * 1024 * 1024;
 const MAX_MANIFEST_SIZE: usize = 4 * 1024 * 1024;
 
@@ -30,8 +36,8 @@ fn key(source: &str) -> String {
     #[cfg(feature = "_mmap-spike")]
     let _startup_span = crate::startup_trace::span("rules_cache_identity");
 
-    let mut hash = Sha256::new();
-    hash.update((super::PREFIX_LIMIT as u64).to_le_bytes());
+    let mut hash = CacheHasher::new();
+    hash.update(&(super::PREFIX_LIMIT as u64).to_le_bytes());
     #[cfg(all(feature = "_mmap-spike", unix))]
     if super::mapped::enabled() {
         hash.update(b"mapped-image-v1");
@@ -49,9 +55,20 @@ fn key(source: &str) -> String {
         env!("CARGO_PKG_VERSION").as_bytes(),
         crate::MODEL_NAME.as_bytes(),
     ] {
-        hash.update((part.len() as u64).to_le_bytes());
+        hash.update(&(part.len() as u64).to_le_bytes());
         hash.update(part);
     }
+    let digest = finish_hash(hash);
+    #[cfg(feature = "_blake3-spike")]
+    return format!("blake3-{digest}");
+    #[cfg(not(feature = "_blake3-spike"))]
+    digest
+}
+
+fn finish_hash(hash: CacheHasher) -> String {
+    #[cfg(feature = "_blake3-spike")]
+    return hash.finalize().to_hex().to_string();
+    #[cfg(not(feature = "_blake3-spike"))]
     format!("{:x}", hash.finalize())
 }
 
@@ -61,10 +78,14 @@ fn checksum(manifest: &Manifest, payload: &[u8]) -> Result<String> {
     #[cfg(feature = "_mmap-spike")]
     let _startup_span = crate::startup_trace::span("rules_payload_checksum");
 
-    let mut hash = Sha256::new();
-    hash.update(serde_json::to_vec(&(&manifest.key, &manifest.engine, &manifest.labels))?);
+    let mut hash = CacheHasher::new();
+    hash.update(&serde_json::to_vec(&(&manifest.key, &manifest.engine, &manifest.labels))?);
     hash.update(payload);
-    Ok(format!("{:x}", hash.finalize()))
+    let digest = finish_hash(hash);
+    #[cfg(feature = "_blake3-spike")]
+    return Ok(format!("blake3:{digest}"));
+    #[cfg(not(feature = "_blake3-spike"))]
+    Ok(digest)
 }
 
 pub(super) fn default_directory() -> Option<PathBuf> {
@@ -833,5 +854,43 @@ mod mapped_tests {
         )
         .unwrap()
         .loaded_from_cache());
+    }
+}
+
+#[cfg(all(test, feature = "_blake3-spike", unix))]
+mod blake3_tests {
+    use super::*;
+
+    #[test]
+    fn blake3_spike_checksum_covers_manifest_and_payload() {
+        let mut manifest = Manifest {
+            key: "test-key".into(),
+            engine: "test-engine".into(),
+            labels: vec![Some("png".into()), None],
+            checksum: String::new(),
+        };
+        let payload = b"native-image-bytes";
+        let mut bytes =
+            serde_json::to_vec(&(&manifest.key, &manifest.engine, &manifest.labels)).unwrap();
+        bytes.extend_from_slice(payload);
+        let expected = format!("blake3:{}", blake3::hash(&bytes).to_hex());
+        assert_eq!(checksum(&manifest, payload).unwrap(), expected);
+        assert_ne!(checksum(&manifest, b"changed-image-bytes").unwrap(), expected);
+        manifest.labels[0] = Some("zip".into());
+        assert_ne!(checksum(&manifest, payload).unwrap(), expected);
+        manifest.labels[0] = Some("png".into());
+        manifest.engine = "other-engine".into();
+        assert_ne!(checksum(&manifest, payload).unwrap(), expected);
+        manifest.engine = "test-engine".into();
+        manifest.key = "other-key".into();
+        assert_ne!(checksum(&manifest, payload).unwrap(), expected);
+    }
+
+    #[test]
+    fn blake3_spike_formats_and_identities_are_separate() {
+        assert_eq!(MAGIC, b"MAGIKAHS\x03");
+        assert_eq!(super::super::mapped::MAGIC, b"MAGIKAMM\x02");
+        assert!(key("rules").starts_with("blake3-"));
+        assert_ne!(key("rules"), key("changed rules"));
     }
 }

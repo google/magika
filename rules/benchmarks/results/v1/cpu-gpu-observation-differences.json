@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "cpu_results_sha256": "2f27ba09a0b67a8d5b3705d180ff70f1c7e990e256a26416273582311bec4690",
+  "gpu_results_sha256": "32ca14f2ba8dee1103ff9ce2039a74c91548311f8786b124d5aa7e837a8ef1b3",
+  "differences": [
+    {
+      "sha256": "1384aa5d20c5df9b7943ffba19b06401d3d75c9c88edba57b01c9f08d8f2e76a",
+      "truth": "mp3",
+      "mode": "ml",
+      "cpu": {
+        "candidates": [
+          "unknown"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "abstained",
+        "prediction": null,
+        "raw_labels": [
+          "unknown"
+        ]
+      },
+      "gpu": {
+        "candidates": [
+          "iso"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "mapped",
+        "prediction": "iso",
+        "raw_labels": [
+          "iso"
+        ]
+      }
+    },
+    {
+      "sha256": "ab3dddffe0814b776474a2591066ac219537f5a211c04491921ae39381cdf438",
+      "truth": "mp3",
+      "mode": "ml",
+      "cpu": {
+        "candidates": [
+          "unknown"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "abstained",
+        "prediction": null,
+        "raw_labels": [
+          "unknown"
+        ]
+      },
+      "gpu": {
+        "candidates": [
+          "iso"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "mapped",
+        "prediction": "iso",
+        "raw_labels": [
+          "iso"
+        ]
+      }
+    },
+    {
+      "sha256": "c4595b24f597964863bf624fc9e2a69a754b1665a9283d55832675c4c8fb79f6",
+      "truth": "mp3",
+      "mode": "ml",
+      "cpu": {
+        "candidates": [
+          "unknown"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "abstained",
+        "prediction": null,
+        "raw_labels": [
+          "unknown"
+        ]
+      },
+      "gpu": {
+        "candidates": [
+          "iso"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "mapped",
+        "prediction": "iso",
+        "raw_labels": [
+          "iso"
+        ]
+      }
+    },
+    {
+      "sha256": "1384aa5d20c5df9b7943ffba19b06401d3d75c9c88edba57b01c9f08d8f2e76a",
+      "truth": "mp3",
+      "mode": "rules",
+      "cpu": {
+        "candidates": [
+          "unknown"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "abstained",
+        "prediction": null,
+        "raw_labels": [
+          "unknown"
+        ]
+      },
+      "gpu": {
+        "candidates": [
+          "iso"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "mapped",
+        "prediction": "iso",
+        "raw_labels": [
+          "iso"
+        ]
+      }
+    },
+    {
+      "sha256": "ab3dddffe0814b776474a2591066ac219537f5a211c04491921ae39381cdf438",
+      "truth": "mp3",
+      "mode": "rules",
+      "cpu": {
+        "candidates": [
+          "unknown"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "abstained",
+        "prediction": null,
+        "raw_labels": [
+          "unknown"
+        ]
+      },
+      "gpu": {
+        "candidates": [
+          "iso"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "mapped",
+        "prediction": "iso",
+        "raw_labels": [
+          "iso"
+        ]
+      }
+    },
+    {
+      "sha256": "c4595b24f597964863bf624fc9e2a69a754b1665a9283d55832675c4c8fb79f6",
+      "truth": "mp3",
+      "mode": "rules",
+      "cpu": {
+        "candidates": [
+          "unknown"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "abstained",
+        "prediction": null,
+        "raw_labels": [
+          "unknown"
+        ]
+      },
+      "gpu": {
+        "candidates": [
+          "iso"
+        ],
+        "deterministic": false,
+        "error": null,
+        "mapping": "mapped",
+        "prediction": "iso",
+        "raw_labels": [
+          "iso"
+        ]
+      }
+    }
+  ]
+}

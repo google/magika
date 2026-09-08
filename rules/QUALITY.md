@@ -6,6 +6,34 @@ complete eight-byte empty WebAssembly module. This floor prevents decisions on
 truncated magic; it does not make arbitrary padded magic safe. Format checks below
 require related header fields, sizes, versions or container structure as available.
 
+## APK, dBase, EMF and Python bytecode review
+
+The last four format audits used the existing regression suite and `runner.observe`.
+All 859 previous matches were retained across 1,044 distinct supplied positives:
+400 baseline files plus 661 automatically validated candidates, with 17 duplicates
+removed. Selected sizes and SHA-256 values were verified, and candidate truth came
+from a single assigned label in an immutable validation-sidecar read. The 185
+misses were unchanged. No wrong labels, conflicts or native/YARA-X disagreements
+were observed in this positive batch; accumulated cross-class FP and performance
+qualification are still separate gates.
+
+| Rule | Source comparison and maintained scope | Matches / positives |
+| --- | --- | --- |
+| APK | Keep libmagic's first-member names `classes.dex` and `AndroidManifest.xml`, with 41/49-byte floors. Android's ZIP reader supports stored/deflated entries. Reject encrypted entries, unsupported compression and absent sizes unless deferred through the data-descriptor flag. Keep UTF-8/deflate flags, ZIP extra fields beyond 4 KiB and version-needed `0`, which occurs in real supplied APKs. This does not inspect compressed member contents or verify an APK signature. | 566 / 607 |
+| dBase | Replace the long PRONOM letter alternatives with equivalent character classes while retaining each version/type family. For III/IV layouts require the complete first 32-byte field descriptor (64-byte prefix), a header length of at least 64 and nonzero record size. Shapelib tolerates a missing terminator, so do not require 65. For II require a complete first descriptor (24 bytes), the fixed 521-byte file-header floor and nonzero record/field widths. Correct the inherited month ceiling from 28 to 12; keep the zero-date variant. Empty-field tables, other first-field types and the different Level-7 layout are outside the inherited coverage. | 118 / 121 |
+| EMF | Retain PRONOM's eight header/description/pixel-format layouts with readable field checks. Require the applicable 88/100/108-byte fixed prefix, aligned record/file sizes, and at least the header and EOF records. Preserve variable-size descriptions, fields beyond the scan prefix, zero created handles and ignored reserved values. The checks do not traverse every EMF record or compare dynamic offsets with the total file length. | 171 / 206 |
+| Python bytecode | Keep exactly the existing 89 magic values, grouped by the CPython header layout. Require the marshalled code-object marker after the timestamp or source-size word: minimum 9 or 13 observed bytes. Keep Python 1.0–1.2's uppercase marker, later lowercase markers, PyPy 2.7's existing magic and marshal reference flags in the 3.4+ group. Magic 3210 introduced the size word; earlier 3.3 development magics still use the shorter header. This neither parses the full code object nor adds modern PEP-552 magics. | 4 / 110 |
+
+Sources: [Android ZIP reader](https://android.googlesource.com/platform/system/core/+/1ee4892e66ba314131b7ecf17e98bb1762c4b84c/libziparchive/zip_archive.cc),
+[Borland dBase format documentation](https://blogs.embarcadero.com/dbase-dbf-file-structure/),
+[original dBase II format description](https://www.fileformat.info/format/dbf/corion-dbase-ii.htm),
+[Shapelib reader](https://github.com/OSGeo/shapelib/blob/master/dbfopen.c),
+[Microsoft EMF header variants](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-emf/de081cd7-351f-4cc2-830b-d03fb55e89ab),
+[Wine EMF loader](https://github.com/wine-mirror/wine/blob/master/dlls/gdi32/enhmetafile.c),
+[CPython header history](https://github.com/python/cpython/blob/v3.6.15/Lib/importlib/_bootstrap_external.py),
+[Python 1.0 marshal](https://github.com/python/cpython/blob/v1.0.1/Python/marshal.c) and
+[Python 3.4 marshal](https://github.com/python/cpython/blob/v3.4.0/Python/marshal.c).
+
 ## Lua, Mach-O, Matroska and torrent review
 
 These four rules were checked against their format sources and 814 distinct supplied
@@ -54,7 +82,7 @@ The following counts use the existing parquet-v56 corpus of 29,523 distinct file
 Every materialized file's size and SHA-256 was checked before evaluation. These are
 development samples used during fixes, not an independent holdout. None of these
 rules produced an observed false positive in this batch; that is not a universal
-precision guarantee. Unreviewed rules remain subject to the ongoing format audit.
+precision guarantee. Final accumulated qualification is tracked separately.
 
 | Format | Review decision | Correct matches / positives |
 | --- | --- | --- |

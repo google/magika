@@ -44,15 +44,20 @@ rule taxonomy_apk
         fp_rate = 0
         fn_rate = 0.26000000000000001
 
-	strings:
-		$p0_0 = { 0b 00 }
-		$p1_0 = { 41 6e 64 72 6f 69 64 4d 61 6e 69 66 65 73 74 2e 78 6d 6c }
-		$p2_0 = { 13 00 }
-		$p3_0 = { 50 4B 03 04 }
-		$p4_0 = { 63 6c 61 73 73 65 73 2e 64 65 78 }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and original_size >= 4 and $p3_0 at 0) and (((prefix_size >= 28 and $p0_0 at 26) and (prefix_size >= 41 and $p4_0 at 30)) or ((prefix_size >= 49 and $p1_0 at 30) and (prefix_size >= 28 and $p2_0 at 26)))))
+    // Android ZIP members use stored/deflated data; retain ignored ZIP versions, including 0.
+    // Lengths may be deferred to a data descriptor. Keep both inherited first-member names.
+    strings:
+        $zip = { 50 4B 03 04 }
+        $dex = "classes.dex"
+        $manifest = "AndroidManifest.xml"
+    condition:
+        prefix_size >= 41 and $zip at 0 and uint16(6) % 2 == 0 and
+        (uint16(8) == 0 or uint16(8) == 8) and
+        ((uint32(18) >= 1 and uint32(22) >= 1) or
+         uint16(6) % 16 == 8 or uint16(6) % 16 == 10 or
+         uint16(6) % 16 == 12 or uint16(6) % 16 == 14) and
+        ((uint16(26) == 11 and $dex at 30) or
+         (prefix_size >= 49 and uint16(26) == 19 and $manifest at 30))
 }
 
 rule taxonomy_bmp
@@ -132,21 +137,18 @@ rule taxonomy_dbase
         fp_rate = 0
         fn_rate = 0.03
 
-	strings:
-		$p0_0 = /\x8b(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4d|\x4e))/
-		$p1_0 = /\x02([\x00-\xff]){2}(\x00){3}(([\x00-\xff]){1}[\x00-\x03])((\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x4c|\x4e))/
-		$p2_0 = /\x02(([\x00-\xff]){2}[\x01-\x1c][\x01-\x1f])(([\x00-\xff]){2}[\x00-\x03])((\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x4c|\x4e))/
-		$p3_0 = /\xcb(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4d|\x4e))/
-		$p4_0 = /\x04(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4e))/
-		$p5_0 = /\x03(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x4c|\x4d|\x4e))/
-		$p6_0 = /\x43(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4e))/
-		$p7_0 = /\x8e(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4d|\x4e))/
-		$p8_0 = /\x83(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x4c|\x4d|\x4e))/
-		$p9_0 = /\x7b(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4d|\x4e))/
-		$p10_0 = /\x63(([\x00-\xff]){1}[\x01-\x0c][\x01-\x1f])(([\x00-\xff]){28}(\x41|\x42|\x43|\x44|\x45|\x46|\x47|\x48|\x49|\x4a|\x4b|\x4c|\x4d|\x4e|\x4f|\x50|\x51|\x52|\x53|\x54|\x55|\x56|\x57|\x58|\x59|\x5a|\x61|\x62|\x63|\x64|\x65|\x66|\x67|\x68|\x69|\x6a|\x6b|\x6c|\x6d|\x6e|\x6f|\x70|\x71|\x72|\x73|\x74|\x75|\x76|\x77|\x78|\x79|\x7a))(([\x00-\xff]){10}(\x43|\x44|\x46|\x4c|\x4e))/
-
-	condition:
-		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0) or ($p8_0 at 0) or ($p9_0 at 0) or ($p10_0 at 0)))
+    // Same PRONOM version/type families, with readable character classes.
+    // Observe the complete first field descriptor; DBF II has a fixed 521-byte header.
+    strings:
+        $memo = /[\x8b\xcb\x8e\x7b][\x00-\xff][\x01-\x0c][\x01-\x1f][\x00-\xff]{28}[A-Za-z][\x00-\xff]{10}[CDFLMN]/
+        $plain = /[\x04\x43\x63][\x00-\xff][\x01-\x0c][\x01-\x1f][\x00-\xff]{28}[A-Za-z][\x00-\xff]{10}[CDFLN]/
+        $iii = /[\x03\x83][\x00-\xff][\x01-\x0c][\x01-\x1f][\x00-\xff]{28}[A-Za-z][\x00-\xff]{10}[CDLMN]/
+        $ii = /\x02[\x00-\xff]{2}(\x00\x00\x00|[\x01-\x0c][\x01-\x1f][\x00-\xff])[\x00-\xff][\x00-\x03][A-Za-z][\x00-\xff]{10}[CLN]/
+    condition:
+        (prefix_size >= 64 and uint16(8) >= 64 and uint16(10) >= 1 and
+         ($memo at 0 or $plain at 0 or $iii at 0)) or
+        (prefix_size >= 24 and original_size >= 521 and $ii at 0 and
+         uint16(6) >= 1 and uint8(20) >= 1)
 }
 
 rule taxonomy_emf
@@ -159,18 +161,23 @@ rule taxonomy_emf
         fp_rate = 0
         fn_rate = 0.34999999999999998
 
-	strings:
-		$p0_0 = /\x01(\x00){3}([\x00-\xff]){36}\x20\x45\x4d\x46(\x00){2}\x01\x00(([\x00-\xff]){16}\x64(\x00){3})/
-		$p1_0 = /\x01(\x00){3}\x58(\x00){3}(([\x00-\xff]){32}\x20\x45\x4d\x46(\x00){2}\x01\x00)(([\x00-\xff]){16}(\x00){4})/
-		$p2_0 = /\x01(\x00){3}\x64(\x00){3}(([\x00-\xff]){32}\x20\x45\x4d\x46(\x00){2}\x01\x00)(([\x00-\xff]){12}(\x00){4})(([\x00-\xff]){28}(\x00){4})/
-		$p3_0 = /\x01(\x00){3}([\x00-\xff]){36}\x20\x45\x4d\x46(\x00){2}\x01\x00(([\x00-\xff]){44}\x64(\x00){3})/
-		$p4_0 = /\x01(\x00){3}([\x00-\xff]){36}\x20\x45\x4d\x46(\x00){2}\x01\x00(([\x00-\xff]){16}\x58(\x00){3})/
-		$p5_0 = /\x01(\x00){3}\x6c(\x00){3}(([\x00-\xff]){32}\x20\x45\x4d\x46(\x00){2}\x01\x00)(([\x00-\xff]){12}(\x00){4})(([\x00-\xff]){28}(\x00){4})/
-		$p6_0 = /\x01(\x00){3}([\x00-\xff]){36}\x20\x45\x4d\x46(\x00){2}\x01\x00(([\x00-\xff]){16}\x6c(\x00){3})/
-		$p7_0 = /\x01(\x00){3}([\x00-\xff]){36}\x20\x45\x4d\x46(\x00){2}\x01\x00(([\x00-\xff]){44}\x6c(\x00){3})/
-
-	condition:
-		prefix_size >= 8 and ((($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or ($p5_0 at 0) or ($p6_0 at 0) or ($p7_0 at 0)))
+    // MS-EMF fixed header variants plus optional description/pixel-format data.
+    // Reserved fields are ignored; each metafile includes its header and EOF record.
+    strings:
+        $type = { 01 00 00 00 }
+        $signature = { 20 45 4D 46 00 00 01 00 }
+    condition:
+        prefix_size >= 88 and $type at 0 and $signature at 40 and
+        uint32(4) >= 88 and uint32(4) % 4 == 0 and
+        uint32(48) >= 108 and uint32(48) % 4 == 0 and uint32(52) >= 2 and (
+            ((uint32(4) == 88 and uint32(64) == 0) or uint32(64) == 88) or
+            (prefix_size >= 100 and uint32(4) >= 100 and uint32(48) >= 120 and
+             ((uint32(4) == 100 and uint32(60) == 0 and uint32(92) == 0) or
+              uint32(64) == 100 or uint32(92) == 100)) or
+            (prefix_size >= 108 and uint32(4) >= 108 and uint32(48) >= 128 and
+             ((uint32(4) == 108 and uint32(60) == 0 and uint32(92) == 0) or
+              uint32(64) == 108 or uint32(92) == 108))
+        )
 }
 
 rule taxonomy_epub
@@ -492,99 +499,32 @@ rule taxonomy_pythonbytecode
         fp_rate = 0
         fn_rate = 0.97999999999999998
 
-	strings:
-		$p0_0 = { 87 c6 0d 0a }
-		$p1_0 = { 02 09 99 00 }
-		$p2_0 = { 09 0c 0d 0a }
-		$p3_0 = { 1f 0c 0d 0a }
-		$p4_0 = { e5 f2 0d 0a }
-		$p5_0 = { 76 0c 0d 0a }
-		$p6_0 = { 27 0c 0d 0a }
-		$p7_0 = { 2d 0d 0d 0a }
-		$p8_0 = { 03 f3 0d 0a }
-		$p9_0 = { 45 0c 0d 0a }
-		$p10_0 = { 33 0d 0d 0a }
-		$p11_0 = { 63 f2 0d 0a }
-		$p12_0 = { fc c4 0d 0a }
-		$p13_0 = { c2 0b 0d 0a }
-		$p14_0 = { 45 f2 0d 0a }
-		$p15_0 = { 02 0d 0d 0a }
-		$p16_0 = { 31 0d 0d 0a }
-		$p17_0 = { bc 0c 0d 0a }
-		$p18_0 = { 6e f2 0d 0a }
-		$p19_0 = { 8b f2 0d 0a }
-		$p20_0 = { e0 0b 0d 0a }
-		$p21_0 = { 2a eb 0d 0a }
-		$p22_0 = { 2c 0d 0d 0a }
-		$p23_0 = { cc 0b 0d 0a }
-		$p24_0 = { 95 f2 0d 0a }
-		$p25_0 = { b3 f2 0d 0a }
-		$p26_0 = { a9 f2 0d 0a }
-		$p27_0 = { 20 0d 0d 0a }
-		$p28_0 = { c7 f2 0d 0a }
-		$p29_0 = { 3b 0c 0d 0a }
-		$p30_0 = { d0 0c 0d 0a }
-		$p31_0 = { b8 0b 0d 0a }
-		$p32_0 = { 3e 0d 0d 0a }
-		$p33_0 = { 17 0d 0d 0a }
-		$p34_0 = { 80 0c 0d 0a }
-		$p35_0 = { 89 2e 0d 0a }
-		$p36_0 = { 2e ed 0d 0a }
-		$p37_0 = { c6 0c 0d 0a }
-		$p38_0 = { 1d 0c 0d 0a }
-		$p39_0 = { 94 0c 0d 0a }
-		$p40_0 = { e4 0c 0d 0a }
-		$p41_0 = { 04 17 0d 0a }
-		$p42_0 = { 3b f2 0d 0a }
-		$p43_0 = { 16 0d 0d 0a }
-		$p44_0 = { 03 09 99 00 }
-		$p45_0 = { 13 0c 0d 0a }
-		$p46_0 = { d2 f2 0d 0a }
-		$p47_0 = { 2d ed 0d 0a }
-		$p48_0 = { ea 0b 0d 0a }
-		$p49_0 = { d6 0b 0d 0a }
-		$p50_0 = { 4f 0c 0d 0a }
-		$p51_0 = { f8 0c 0d 0a }
-		$p52_0 = { 21 0d 0d 0a }
-		$p53_0 = { 04 f3 0d 0a }
-		$p54_0 = { 58 0c 0d 0a }
-		$p55_0 = { 2a 0d 0d 0a }
-		$p56_0 = { ee 0c 0d 0a }
-		$p57_0 = { 62 0c 0d 0a }
-		$p58_0 = { 6d f2 0d 0a }
-		$p59_0 = { db f2 0d 0a }
-		$p60_0 = { f4 0b 0d 0a }
-		$p61_0 = { 88 c6 0d 0a }
-		$p62_0 = { 9f f2 0d 0a }
-		$p63_0 = { 99 4E 0D 0A }
-		$p64_0 = { 3c f2 0d 0a }
-		$p65_0 = { 3f 0d 0d 0a }
-		$p66_0 = { f5 0b 0d 0a }
-		$p67_0 = { 77 f2 0d 0a }
-		$p68_0 = { f9 f2 0d 0a }
-		$p69_0 = { 6c 0c 0d 0a }
-		$p70_0 = { 0a f3 0d 0a }
-		$p71_0 = { b4 f2 0d 0a }
-		$p72_0 = { 0c 0d 0d 0a }
-		$p73_0 = { b2 0c 0d 0a }
-		$p74_0 = { 9e 0c 0d 0a }
-		$p75_0 = { ff 0b 0d 0a }
-		$p76_0 = { 2b 0d 0d 0a }
-		$p77_0 = { 30 0d 0d 0a }
-		$p78_0 = { 2b eb 0d 0a }
-		$p79_0 = { 59 f2 0d 0a }
-		$p80_0 = { 8a 0c 0d 0a }
-		$p81_0 = { ef f2 0d 0a }
-		$p82_0 = { 2f 0d 0d 0a }
-		$p83_0 = { 8c f2 0d 0a }
-		$p84_0 = { 81 f2 0d 0a }
-		$p85_0 = { 32 0d 0d 0a }
-		$p86_0 = { da 0c 0d 0a }
-		$p87_0 = { fd c4 0d 0a }
-		$p88_0 = { d1 f2 0d 0a }
-
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or (prefix_size >= 4 and $p1_0 at 0) or (prefix_size >= 4 and $p2_0 at 0) or (prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p4_0 at 0) or (prefix_size >= 4 and $p5_0 at 0) or (prefix_size >= 4 and $p6_0 at 0) or (prefix_size >= 4 and $p7_0 at 0) or (prefix_size >= 4 and $p8_0 at 0) or (prefix_size >= 4 and $p9_0 at 0) or (prefix_size >= 4 and $p10_0 at 0) or (prefix_size >= 4 and $p11_0 at 0) or (prefix_size >= 4 and $p12_0 at 0) or (prefix_size >= 4 and $p13_0 at 0) or (prefix_size >= 4 and $p14_0 at 0) or (prefix_size >= 4 and $p15_0 at 0) or (prefix_size >= 4 and $p16_0 at 0) or (prefix_size >= 4 and $p17_0 at 0) or (prefix_size >= 4 and $p18_0 at 0) or (prefix_size >= 4 and $p19_0 at 0) or (prefix_size >= 4 and $p20_0 at 0) or (prefix_size >= 4 and $p21_0 at 0) or (prefix_size >= 4 and $p22_0 at 0) or (prefix_size >= 4 and $p23_0 at 0) or (prefix_size >= 4 and $p24_0 at 0) or (prefix_size >= 4 and $p25_0 at 0) or (prefix_size >= 4 and $p26_0 at 0) or (prefix_size >= 4 and $p27_0 at 0) or (prefix_size >= 4 and $p28_0 at 0) or (prefix_size >= 4 and $p29_0 at 0) or (prefix_size >= 4 and $p30_0 at 0) or (prefix_size >= 4 and $p31_0 at 0) or (prefix_size >= 4 and $p32_0 at 0) or (prefix_size >= 4 and $p33_0 at 0) or (prefix_size >= 4 and $p34_0 at 0) or (prefix_size >= 4 and $p35_0 at 0) or (prefix_size >= 4 and $p36_0 at 0) or (prefix_size >= 4 and $p37_0 at 0) or (prefix_size >= 4 and $p38_0 at 0) or (prefix_size >= 4 and $p39_0 at 0) or (prefix_size >= 4 and $p40_0 at 0) or (prefix_size >= 4 and $p41_0 at 0) or (prefix_size >= 4 and $p42_0 at 0) or (prefix_size >= 4 and $p43_0 at 0) or (prefix_size >= 4 and $p44_0 at 0) or (prefix_size >= 4 and $p45_0 at 0) or (prefix_size >= 4 and $p46_0 at 0) or (prefix_size >= 4 and $p47_0 at 0) or (prefix_size >= 4 and $p48_0 at 0) or (prefix_size >= 4 and $p49_0 at 0) or (prefix_size >= 4 and $p50_0 at 0) or (prefix_size >= 4 and $p51_0 at 0) or (prefix_size >= 4 and $p52_0 at 0) or (prefix_size >= 4 and $p53_0 at 0) or (prefix_size >= 4 and $p54_0 at 0) or (prefix_size >= 4 and $p55_0 at 0) or (prefix_size >= 4 and $p56_0 at 0) or (prefix_size >= 4 and $p57_0 at 0) or (prefix_size >= 4 and $p58_0 at 0) or (prefix_size >= 4 and $p59_0 at 0) or (prefix_size >= 4 and $p60_0 at 0) or (prefix_size >= 4 and $p61_0 at 0) or (prefix_size >= 4 and $p62_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p63_0 at 0) or (prefix_size >= 4 and $p64_0 at 0) or (prefix_size >= 4 and $p65_0 at 0) or (prefix_size >= 4 and $p66_0 at 0) or (prefix_size >= 4 and $p67_0 at 0) or (prefix_size >= 4 and $p68_0 at 0) or (prefix_size >= 4 and $p69_0 at 0) or (prefix_size >= 4 and $p70_0 at 0) or (prefix_size >= 4 and $p71_0 at 0) or (prefix_size >= 4 and $p72_0 at 0) or (prefix_size >= 4 and $p73_0 at 0) or (prefix_size >= 4 and $p74_0 at 0) or (prefix_size >= 4 and $p75_0 at 0) or (prefix_size >= 4 and $p76_0 at 0) or (prefix_size >= 4 and $p77_0 at 0) or (prefix_size >= 4 and $p78_0 at 0) or (prefix_size >= 4 and $p79_0 at 0) or (prefix_size >= 4 and $p80_0 at 0) or (prefix_size >= 4 and $p81_0 at 0) or (prefix_size >= 4 and $p82_0 at 0) or (prefix_size >= 4 and $p83_0 at 0) or (prefix_size >= 4 and $p84_0 at 0) or (prefix_size >= 4 and $p85_0 at 0) or (prefix_size >= 4 and $p86_0 at 0) or (prefix_size >= 4 and $p87_0 at 0) or (prefix_size >= 4 and $p88_0 at 0)))
+    // Preserve the existing 89 magic values; add the CPython marshal code-object tag.
+    // Magic 3210 added the source-size word. These magics predate the PEP 552 header.
+    strings:
+        $early = { (02 09 99 00 | 03 09 99 00)
+                      [4] 43 }
+        $timestamp = { (03 F3 0D 0A | 04 17 0D 0A | 04 F3 0D 0A | 09 0C 0D 0A | 0A F3 0D 0A | 13 0C 0D 0A |
+                      1D 0C 0D 0A | 1F 0C 0D 0A | 27 0C 0D 0A | 2A EB 0D 0A | 2B EB 0D 0A | 2D ED 0D 0A |
+                      2E ED 0D 0A | 3B 0C 0D 0A | 3B F2 0D 0A | 3C F2 0D 0A | 45 0C 0D 0A | 45 F2 0D 0A |
+                      4F 0C 0D 0A | 58 0C 0D 0A | 59 F2 0D 0A | 62 0C 0D 0A | 63 F2 0D 0A | 6C 0C 0D 0A |
+                      6D F2 0D 0A | 6E F2 0D 0A | 76 0C 0D 0A | 77 F2 0D 0A | 80 0C 0D 0A | 81 F2 0D 0A |
+                      87 C6 0D 0A | 88 C6 0D 0A | 89 2E 0D 0A | 8B F2 0D 0A | 8C F2 0D 0A | 95 F2 0D 0A |
+                      99 4E 0D 0A | 9F F2 0D 0A | A9 F2 0D 0A | B3 F2 0D 0A | B4 F2 0D 0A | B8 0B 0D 0A |
+                      C2 0B 0D 0A | C7 F2 0D 0A | CC 0B 0D 0A | D1 F2 0D 0A | D2 F2 0D 0A | D6 0B 0D 0A |
+                      DB F2 0D 0A | E0 0B 0D 0A | E5 F2 0D 0A | EA 0B 0D 0A | EF F2 0D 0A | F4 0B 0D 0A |
+                      F5 0B 0D 0A | F9 F2 0D 0A | FC C4 0D 0A | FD C4 0D 0A | FF 0B 0D 0A)
+                      [4] 63 }
+        $sized = { (8A 0C 0D 0A | 94 0C 0D 0A | 9E 0C 0D 0A)
+                      [8] 63 }
+        $references = { (02 0D 0D 0A | 0C 0D 0D 0A | 16 0D 0D 0A | 17 0D 0D 0A | 20 0D 0D 0A | 21 0D 0D 0A |
+                      2A 0D 0D 0A | 2B 0D 0D 0A | 2C 0D 0D 0A | 2D 0D 0D 0A | 2F 0D 0D 0A | 30 0D 0D 0A |
+                      31 0D 0D 0A | 32 0D 0D 0A | 33 0D 0D 0A | 3E 0D 0D 0A | 3F 0D 0D 0A | B2 0C 0D 0A |
+                      BC 0C 0D 0A | C6 0C 0D 0A | D0 0C 0D 0A | DA 0C 0D 0A | E4 0C 0D 0A | EE 0C 0D 0A |
+                      F8 0C 0D 0A)
+                      [8] (63 | E3) }
+    condition:
+        prefix_size >= 9 and ($early at 0 or $timestamp at 0 or $sized at 0 or $references at 0)
 }
 
 rule taxonomy_rpm

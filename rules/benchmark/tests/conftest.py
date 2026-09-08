@@ -57,7 +57,39 @@ def reviewed_binary_headers():
     )
     pdb = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0" + struct.pack("<6I", 4096, 1, 4, 4, 0, 3)
     stata = b"<stata_dta><header><release>118</release><byteorder>LSF</byteorder>"
+    apk = struct.pack("<4s5H3I2H", b"PK\x03\x04", 0, 0, 0, 0, 0, 0, 112, 112, 11, 0)
+    apk += b"classes.dex" + dex
+    dbf = bytearray(65)
+    dbf[:4] = bytes([3, 126, 1, 31])
+    struct.pack_into("<HH", dbf, 8, 65, 2)
+    dbf[32:34] = b"A\0"
+    dbf[43] = ord("C")
+    dbf[48] = 1
+    dbf[64] = 13
+    emf = bytearray(108)
+    struct.pack_into("<II", emf, 0, 1, 88)
+    struct.pack_into("<4I", emf, 40, 0x464D4520, 0x10000, 108, 2)
+    struct.pack_into("<IIIII", emf, 88, 14, 20, 0, 0, 20)
     cases = [
+        (
+            "apk",
+            apk,
+            41,
+            [(6, b"\x01\0"), (8, b"\x01\0"), (18, bytes(8)), (26, b"\x0c\0")],
+        ),
+        ("dbase", bytes(dbf), 64, [(8, bytes(2)), (10, bytes(2)), (2, b"\x0d")]),
+        (
+            "emf",
+            bytes(emf),
+            88,
+            [(4, struct.pack("<I", 84)), (48, struct.pack("<I", 107)), (52, bytes(4))],
+        ),
+        (
+            "pythonbytecode",
+            bytes.fromhex("330d0d0a") + bytes(8) + b"\xe3" + bytes(40),
+            13,
+            [(12, b"s"), (12, b"C")],
+        ),
         (
             "luabytecode",
             bytes.fromhex("1b4c7561520001040804080019930d0a1a0a"),
@@ -314,12 +346,88 @@ def reviewed_binary_headers():
             b"d13:announce-list" + bytes(40),
         ]
     )
+    pyc_invalid = next(row[3] for row in result if row[0] == "pythonbytecode")
+    pyc_invalid.extend(
+        [
+            bytes.fromhex("03f30d0a") + bytes(40),
+            bytes.fromhex("02099900") + bytes(4) + b"c" + bytes(40),
+            bytes.fromhex("760c0d0a") + bytes(8) + b"c" + bytes(40),
+            bytes.fromhex("8a0c0d0a") + bytes(4) + b"c" + bytes(40),
+        ]
+    )
+    dbf_invalid = next(row[3] for row in result if row[0] == "dbase")
+    dbf2 = bytearray(521)
+    dbf2[:8] = struct.pack("<BHBBBH", 2, 0, 1, 1, 86, 2)
+    dbf2[8] = ord("A")
+    dbf2[19:21] = b"C\x01"
+    dbf2[24] = 13
+    dbf_invalid.append(bytes(dbf2[:23]))
+    dbf2[3] = 13
+    dbf_invalid.append(bytes(dbf2))
     return result
 
 
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    for name in (b"classes.dex", b"AndroidManifest.xml"):
+        for method in (0, 8):
+            for flags in (0, 2, 8, 10, 12, 14, 2048, 2056):
+                header = struct.pack(
+                    "<4s5H3I2H",
+                    b"PK\x03\x04",
+                    0,
+                    flags,
+                    method,
+                    0,
+                    0,
+                    0,
+                    0 if flags & 8 else 1,
+                    0 if flags & 8 else 1,
+                    len(name),
+                    4096,
+                )
+                variants.append(("apk", header + name + bytes(4096) + b"x"))
+    for version in (3, 4, 0x43, 0x63, 0x7B, 0x83, 0x8B, 0x8E, 0xCB):
+        header = bytearray(65)
+        header[:4] = bytes([version, 126, 12, 31])
+        struct.pack_into("<HH", header, 8, 65, 2)
+        header[32], header[43], header[48], header[64] = ord("A"), ord("C"), 1, 13
+        variants.append(("dbase", bytes(header)))
+    for date in ((0, 0, 0), (12, 31, 86)):
+        header = bytearray(521)
+        header[:8] = struct.pack("<BHBBBH", 2, 0, *date, 2)
+        header[8], header[19], header[20], header[24] = ord("A"), ord("C"), 1, 13
+        variants.append(("dbase", bytes(header)))
+    for size in (88, 100, 108, 116, 4204):
+        header = bytearray(size + 20)
+        struct.pack_into("<II", header, 0, 1, size)
+        struct.pack_into("<4I", header, 40, 0x464D4520, 0x10000, size + 20, 2)
+        if size > 108:
+            struct.pack_into("<II", header, 60, 2, 108)
+        # Reserved is ignored by readers; no created handles are needed for an empty drawing.
+        struct.pack_into("<H", header, 58, 0x1234)
+        struct.pack_into("<5I", header, size, 14, 20, 0, 0, 20)
+        variants.append(("emf", bytes(header)))
+    # Keep existing Python magics on both sides of the 3210 header-size transition.
+    for magic, offset, marker in (
+        ("02099900", 8, b"C"),
+        ("03099900", 8, b"C"),
+        ("892e0d0a", 8, b"c"),
+        ("03f30d0a", 8, b"c"),
+        ("0af30d0a", 8, b"c"),
+        ("760c0d0a", 8, b"c"),
+        ("800c0d0a", 8, b"c"),
+        ("8a0c0d0a", 12, b"c"),
+        ("940c0d0a", 12, b"c"),
+        ("b20c0d0a", 12, b"c"),
+        ("c60c0d0a", 12, b"\xe3"),
+        ("330d0d0a", 12, b"c"),
+        ("3f0d0d0a", 12, b"\xe3"),
+    ):
+        variants.append(
+            ("pythonbytecode", bytes.fromhex(magic) + bytes(offset - 4) + marker + bytes(40))
+        )
     # OpenWrt's LNUM modes include integer widths and an optional complex-number bit.
     # A validated corpus sample uses mode 4 with the Lua 5.2 layout.
     for version in (0x51, 0x52):

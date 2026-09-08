@@ -69,6 +69,14 @@ cd magika
 cargo install --locked --path=rust/cli
 ```
 
+### Optional signature rules
+
+Standard installer and wheel builds do not enable the optional `yara-rules` feature.
+For a source build with rules, use `cargo install --locked --path=rust/cli --features=yara-rules`
+from the repository root, then follow the [native-engine installation instructions](../../rules/README.md#native-engine-installation).
+`MAGIKA_VECTORSCAN_LIBRARY` selects the native library; `MAGIKA_RULES_CACHE` optionally
+selects the compiled-rule cache. Enforcement remains off until `--rules=enforce`.
+
 ## Examples
 
 ```shell

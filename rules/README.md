@@ -32,6 +32,13 @@ inside the crate. No generated pack or evaluation report belongs in git.
 
 ## Build and use
 
+Rules are an opt-in Cargo feature in this first version. The standard installer and
+wheel configurations build without `yara-rules`; their ordinary ML path remains
+available. Use the feature-enabled source build below when testing rules. Enabling
+the Cargo feature makes the rule options available but still leaves enforcement
+off until `--rules=enforce` is requested. The maintainer bundle command below is
+an explicit distribution helper; it is not wired into the standard release jobs.
+
 ```sh
 cargo build --locked --release --manifest-path rust/cli/Cargo.toml --features yara-rules
 rust/target/release/magika --rules=enforce example.png
@@ -44,6 +51,53 @@ Ordinary Cargo builds require no Python or dataset. Execution and native compila
 need a compatible Vectorscan `libhs`; set `MAGIKA_VECTORSCAN_LIBRARY` to its location,
 or place it in `lib/` beside the executable. Cargo installation does not install libhs.
 Native databases are compiled for the execution target, not by the Cargo build script.
+
+### Native engine installation
+
+On macOS, [Homebrew provides Vectorscan](https://formulae.brew.sh/formula/vectorscan):
+
+```sh
+brew install vectorscan
+export MAGIKA_VECTORSCAN_LIBRARY="$(brew --prefix vectorscan)/lib/libhs.dylib"
+```
+
+For Debian/Ubuntu Linux, this is the pinned local build used by native CI. Run from
+the repository root; it writes only to `tmp/` after installing build prerequisites:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y build-essential git cmake ragel libboost-dev
+mkdir -p tmp
+git init tmp/vectorscan-source
+git -C tmp/vectorscan-source fetch --depth 1 https://github.com/VectorCamp/vectorscan.git acd7363aadea43da9c5246542d9969db843dd132
+git -C tmp/vectorscan-source checkout --detach FETCH_HEAD
+cmake -S tmp/vectorscan-source -B tmp/vectorscan-build \
+  -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON \
+  -DBUILD_UNIT=OFF -DBUILD_EXAMPLES=OFF -DFAT_RUNTIME=OFF
+cmake --build tmp/vectorscan-build --parallel 2
+export MAGIKA_VECTORSCAN_LIBRARY="$PWD/tmp/vectorscan-build/lib/libhs.so"
+```
+
+This recipe builds for local use. Distribution requires verifying the CPU baseline
+as described under maintainer packaging; a library built for one machine is not
+automatically safe to distribute to other CPUs.
+
+On Windows, native rule execution is not yet qualified by the current Linux/macOS
+native CI jobs, and this repository does not supply a tested `hs.dll` bundle.
+Use the Linux build inside WSL for that environment. A separately supplied native
+Windows library can be selected with an absolute path:
+
+```powershell
+$env:MAGIKA_VECTORSCAN_LIBRARY = 'C:\path\to\hs.dll'
+```
+
+It must implement the Vectorscan/Hyperscan API used by Magika and match the binary's
+architecture. That setting alone does not establish native Windows compatibility.
+`MAGIKA_RULES_CACHE` optionally selects a writable cache directory on every platform;
+otherwise Magika uses its platform-specific default. No native engine is needed
+for the ordinary rules-off path.
+
+### Rule pack loading and caching
 
 An installed `rules/promoted.yar` beside the executable takes precedence over embedded
 defaults. A paired `.hsdb` is reused when compatible. Modified or incompatible source

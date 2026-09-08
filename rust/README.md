@@ -15,3 +15,7 @@ This directory contains the Rust crates and their tools. It has the following st
   dependency order. It generates a commit that must be merged first.
 - The `color.sh` is a shell library for the scripts above.
 - The remaining files have the usual meaning associated to their name.
+
+Optional signature rules require the `yara-rules` Cargo feature and a native engine.
+See the [rules build and platform installation instructions](../rules/README.md#build-and-use)
+for `MAGIKA_VECTORSCAN_LIBRARY` and the optional `MAGIKA_RULES_CACHE` override.

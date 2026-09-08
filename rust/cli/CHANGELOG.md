@@ -10,6 +10,7 @@
 
 ### Patch
 
+- Use a CPU batch-one plan for automatic inference on one non-recursive input, avoiding GPU startup and padded bulk work; preserve explicit GPU requests and bulk routing.
 - Detect ancestor directory cycles during recursive traversal, report `directory_cycle` in JSON, and continue processing other inputs and legitimate aliases.
 - Preserve completed JSON results and close arrays on classification errors; report invalid UTF-8 paths without panicking and preserve earlier failures when output closes.
 - Reject inference batches with mismatched result counts before dispatching any rows.

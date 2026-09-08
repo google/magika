@@ -212,6 +212,12 @@ about the output format and other important aspects.
 
 ## Rule and inference concurrency
 
+For exactly one non-recursive input (including `-`), automatic backend selection
+uses a CPU batch-one plan. This avoids GPU startup and padding a single file through
+the configured bulk batch. Explicit `--backend gpu` still selects the GPU, with a
+batch-one plan. Recursive and multiple-input requests retain the bulk backend and
+batch policy; the CLI does not prewalk directories to estimate their file counts.
+
 The CLI prepares the model on a background coordinator while its readers extract and classify
 files. Rule hits can reach ordered output before model preparation completes; misses queue in
 bounded inference batches. Once the backend is ready, the coordinator starts the normal CPU or

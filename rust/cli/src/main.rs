@@ -201,12 +201,26 @@ struct Experimental {
     readers: usize,
 }
 
-#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 enum BackendChoice {
     #[default]
     Auto,
     Cpu,
     Gpu,
+}
+
+fn inference_configuration(flags: &Flags) -> (usize, BackendChoice) {
+    // A non-recursive argument produces at most one input, including stdin. Use
+    // batch one and skip automatic GPU startup for this known single-file case.
+    // Recursive inputs retain the bulk policy without an extra filesystem walk.
+    if !flags.recursive && flags.path.len() == 1 {
+        let backend = match flags.experimental.backend {
+            BackendChoice::Auto => BackendChoice::Cpu,
+            explicit => explicit,
+        };
+        return (1, backend);
+    }
+    (flags.experimental.batch_size, flags.experimental.backend)
 }
 
 /// Per-stage busy and waiting time.
@@ -366,8 +380,9 @@ fn main() -> Result<()> {
         colored::control::set_override(false);
     }
     // CLI inference receives features only; readers own the selected rule pack.
-    let builder = Runtime::builder().with_max_batch(batch_size);
-    let builder = match flags.experimental.backend {
+    let (inference_batch, backend) = inference_configuration(&flags);
+    let builder = Runtime::builder().with_max_batch(inference_batch);
+    let builder = match backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
         BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
@@ -985,6 +1000,31 @@ impl Drop for Reorder {
 #[cfg(test)]
 mod reorder_tests {
     use super::*;
+
+    #[test]
+    fn one_known_input_avoids_gpu_startup_and_cpu_batch_padding() {
+        for path in ["sample", "-"] {
+            for limit in [1, 8, 64] {
+                let mut flags = Flags::try_parse_from(["magika", path]).unwrap();
+                flags.experimental.batch_size = limit;
+                assert_eq!(inference_configuration(&flags), (1, BackendChoice::Cpu));
+                flags.experimental.backend = BackendChoice::Cpu;
+                assert_eq!(inference_configuration(&flags), (1, BackendChoice::Cpu));
+                flags.experimental.backend = BackendChoice::Gpu;
+                assert_eq!(inference_configuration(&flags), (1, BackendChoice::Gpu));
+            }
+        }
+        // A recursive path can expand into any number of files. A backend-info
+        // request without inputs must continue to report the default device.
+        for args in [
+            vec!["magika", "--recursive", "sample"],
+            vec!["magika", "first", "second"],
+            vec!["magika", "--backend-info"],
+        ] {
+            let flags = Flags::try_parse_from(args).unwrap();
+            assert_eq!(inference_configuration(&flags), (8, BackendChoice::Auto));
+        }
+    }
 
     #[test]
     fn wrong_inference_row_count_errors_before_dispatch() {

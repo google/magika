@@ -233,19 +233,20 @@ rule taxonomy_avif
 rule taxonomy_avro
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/apache:libmagic_dcfba1374d0a8a3f71c0_line_7; pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:3392"
+        source_refs = "libmagic:magic/Magdir/apache:libmagic_dcfba1374d0a8a3f71c0_line_7; pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:3392; Apache Avro:1.12.0:Object Container Files"
 		label = "avro"
 		enforced = true
         class = "full"
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 4f 62 6a 01 }
-		$p1_0 = /(\x4f\x62\x6a\x01([\x00-\xff]){2})(\x61\x76\x72\x6f\x2e)(\x63\x6f\x64\x65\x63([\x00-\xff]){8,50}|\x73\x79\x6e\x63([\x00-\xff]){8,50})\x73\x63\x68\x65\x6d\x61(([\x00-\xff]){3}\x22\x74\x79\x70\x65\x22)(([\x00-\xff]){2,65}\x22\x6e\x61\x6d\x65\x22)/
 
-	condition:
-		prefix_size >= 8 and (((prefix_size >= 4 and $p0_0 at 0) or ($p1_0 at 0)))
+    // Metadata must be nonempty (avro.schema is required); allow negative block counts.
+    // Its ordering and size vary, so the schema need not appear within the scan window.
+    strings:
+        $magic = "Obj\x01"
+    condition:
+        prefix_size >= 21 and $magic at 0 and uint8(4) >= 1
 }
 
 rule taxonomy_bam
@@ -623,18 +624,20 @@ rule taxonomy_heif
 rule taxonomy_icc
 {
 	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[959]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[426]/magic[0]"
+        source_refs = "puremagic:puremagic/magic_data.json:headers[959]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[426]/magic[0]; LittleCMS:src/cmsio0.c:_cmsReadHeader/validDeviceClass"
 		label = "icc"
 		enforced = true
         class = "full"
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "acsp"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 40 and original_size >= 40 and $p0_0 at 36))
+    // Complete profile header and tag count. Retain historical zero device class.
+    strings:
+        $magic = "acsp"
+        $device = /(\x00{4}|scnr|mntr|prtr|link|abst|spac|nmcl|cenc|mid |mlnk|mvis)/
+    condition:
+        prefix_size >= 132 and $magic at 36 and $device at 12
 }
 
 rule taxonomy_icns
@@ -866,18 +869,19 @@ rule taxonomy_one
 rule taxonomy_parquet
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/apache:libmagic_db6156119e2e23b734e3_line_23; puremagic:puremagic/magic_data.json:headers[1024]"
+        source_refs = "libmagic:magic/Magdir/apache:libmagic_db6156119e2e23b734e3_line_23; puremagic:puremagic/magic_data.json:headers[1024]; Apache Parquet:File Format; Apache Arrow:parquet/file_reader.cc:ParseFooterLength"
 		label = "parquet"
 		enforced = true
         class = "full"
         fp_rate = 0
         fn_rate = 0
 
-	strings:
-		$p0_0 = "PAR1"
 
-	condition:
-		prefix_size >= 8 and ((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0))
+    // Leading magic plus the eight-byte footer require at least twelve bytes overall.
+    strings:
+        $magic = "PAR1"
+    condition:
+        prefix_size >= 12 and $magic at 0
 }
 
 rule taxonomy_postgres_dump

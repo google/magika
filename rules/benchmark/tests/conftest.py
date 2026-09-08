@@ -24,7 +24,22 @@ def reviewed_binary_headers():
     struct.pack_into("<8I", uf2, 0, 0x0A324655, 0x9E5D5157, 0, 0, 256, 0, 1, 0)
     struct.pack_into("<I", uf2, 508, 0x0AB16F30)
     mat = b"MATLAB 5.0 MAT-file".ljust(124, b" ") + b"\x00\x01IM"
+    parquet_sink = pa.BufferOutputStream()
+    pq.write_table(pa.table({"value": pa.array([], type=pa.int32())}), parquet_sink)
     cases = [
+        (
+            "avro",
+            b'Obj\x01\x02\x16avro.schema\x0a"int"\x00' + bytes(range(16)),
+            21,
+            [(4, b"\x00"), (3, b"\x02")],
+        ),
+        ("parquet", parquet_sink.getvalue().to_pybytes(), 12, [(3, b"0")]),
+        (
+            "icc",
+            bytes(12) + b"mntr" + bytes(20) + b"acsp" + bytes(92),
+            132,
+            [(12, b"junk"), (36, b"ASCP")],
+        ),
         (
             "lnk",
             bytes.fromhex("4c0000000114020000000000c000000000000046") + bytes(56),
@@ -114,6 +129,29 @@ def reviewed_binary_headers():
 @pytest.fixture(scope="module")
 def reviewed_binary_header_variants():
     variants = []
+    # Negative map counts carry a byte size; primitive schemas need no record/name keys.
+    entry = b'\x16avro.schema\x0a"int"'
+    variants.append(("avro", b"Obj\x01\x01" + bytes([len(entry) * 2]) + entry + b"\0" + bytes(16)))
+    # Metadata order is arbitrary, and the schema may lie beyond the scan prefix.
+    variants.append(
+        ("avro", b"Obj\x01\x04\x08note\x80\x40" + b"x" * 4096 + entry + b"\0" + bytes(16))
+    )
+    # LittleCMS explicitly retains zero device class for profiles written by older versions.
+    for device in (
+        bytes(4),
+        b"scnr",
+        b"mntr",
+        b"prtr",
+        b"link",
+        b"abst",
+        b"spac",
+        b"nmcl",
+        b"cenc",
+        b"mid ",
+        b"mlnk",
+        b"mvis",
+    ):
+        variants.append(("icc", bytes(12) + device + bytes(20) + b"acsp" + bytes(92)))
     # Readers tolerate arbitrary shortcut show commands and reserved header fields.
     for show_command in (0, 1, 3, 7, 0xFFFFFFFF):
         lnk = bytearray(bytes.fromhex("4c0000000114020000000000c000000000000046") + bytes(56))

@@ -1,6 +1,6 @@
 [package]
 name = "magika-cli"
-version = "1.1.1-dev"
+version = "1.2.0-dev"
 license = "Apache-2.0"
 edition = "2021"
 description = "Determines file content types using AI"
@@ -16,19 +16,25 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.86"
-async-channel = "2.3.1"
 clap = { version = "4.5.9", features = ["cargo", "derive", "string"] }
 colored = "3.0.0"
-magika = { version = "=1.1.1-dev", path = "../lib", features = ["serde"] }
-num_cpus = "1.16.0"
-ort = "=2.0.0-rc.12"
+cpu-time = { version = "1.0.0", optional = true }
+crossbeam-channel = "0.5.16"
+magika = { version = "2.0.0-dev", path = "../lib", features = ["cuda", "serde"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
-tokio = { version = "1.43.1", features = ["full"] }
+
+[features]
+_trace = ["dep:cpu-time"]
 
 [profile.release]
 codegen-units = 1
 lto = true
+
+[profile.release-fast]
+inherits = "release"
+codegen-units = 16
+lto = false
 
 [profile.dist]
 inherits = "release"

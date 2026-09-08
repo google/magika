@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import io
+import os
 import signal
 import tempfile
 from pathlib import Path
@@ -240,6 +241,29 @@ def test_magika_module_identify_stream_does_not_alter_position() -> None:
         res = m.identify_stream(stream)
         assert res.ok
         assert stream.tell() == pos
+
+
+def test_magika_module_identify_stream_accepts_raw_fileio() -> None:
+    m = Magika()
+
+    fd, tmp_path = tempfile.mkstemp()
+    os.close(fd)
+    try:
+        with open(tmp_path, "wb") as f:
+            f.write(b"print('hello')\n")
+
+        stream = io.FileIO(tmp_path, "rb")
+        try:
+            # Verify raw binary streams are accepted and position is restored.
+            expected_pos = 2
+            stream.seek(expected_pos)
+            res = m.identify_stream(stream)
+            assert res.ok
+            assert stream.tell() == expected_pos
+        finally:
+            stream.close()
+    finally:
+        os.unlink(tmp_path)
 
 
 def test_magika_module_with_whitespaces() -> None:

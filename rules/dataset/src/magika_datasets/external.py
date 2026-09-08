@@ -314,10 +314,12 @@ def export(run, output, mapping, overlaps=()):
 
 def score(samples, predictions):
     expected = {}
+    label_bases = Counter()
     for row in pq.read_table(samples).to_pylist():
         annotation = json.loads(row["annotation_json"])
         if annotation["evaluation_eligible"]:
             expected[row["sha256"]] = row["format_id"]
+            label_bases[annotation.get("evaluation_basis", "reviewed_source_mapping")] += 1
     seen, counts = set(), defaultdict(Counter)
     for row in pq.read_table(predictions, columns=["sha256", "format_id"]).to_pylist():
         sha = bytes.fromhex(row["sha256"]) if isinstance(row["sha256"], str) else row["sha256"]
@@ -334,15 +336,18 @@ def score(samples, predictions):
     accuracies = [v["correct"] / sum(v.values()) for v in counts.values()]
     return {
         "eligible_samples": len(expected),
+        "label_bases": dict(label_bases),
         "per_class": counts,
         "macro_accuracy": sum(accuracies) / len(accuracies) if accuracies else None,
-        "basis": "reviewed mappings of upstream claims; exact overlaps excluded, near-duplicates not certified",
+        "basis": "per-sample evaluation_basis: structural validation or reviewed upstream mapping; exact overlaps excluded, near-duplicates not certified",
     }
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["start", "resume", "status", "export", "score"])
+    parser.add_argument(
+        "action", choices=["start", "resume", "status", "export", "score", "validate"]
+    )
     parser.add_argument("--run-dir", type=Path, default=Path(".local/sembiance"))
     parser.add_argument("--store", type=Path, default=Path(".local/sembiance-store"))
     parser.add_argument("--output", type=Path)
@@ -352,7 +357,27 @@ def main(argv=None):
     parser.add_argument("--overlap", type=Path, action="append", default=[])
     parser.add_argument("--predictions", type=Path)
     parser.add_argument("--samples", type=Path)
+    parser.add_argument("--metadata", type=Path)
+    parser.add_argument("--taxonomy", type=Path)
     args = parser.parse_args(argv)
+    if args.action == "validate":
+        from .external_validation import validate_external
+
+        if not all((args.metadata, args.taxonomy, args.output)):
+            parser.error("validate requires --metadata, --taxonomy and --output")
+        print(
+            json.dumps(
+                validate_external(
+                    args.metadata,
+                    args.store,
+                    args.taxonomy,
+                    private_output(args.output),
+                    args.workers,
+                ),
+                sort_keys=True,
+            )
+        )
+        return
     if args.action == "status":
         print((args.run_dir / "status.json").read_text())
         return

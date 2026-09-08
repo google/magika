@@ -166,3 +166,108 @@ def test_reviewed_crosswalk_preserves_known_name_collisions():
     assert mapping["text/pointCloudData"]["format_id"] == "pcd"
     assert mapping["image/bigTIFF"]["format_id"] == "tiff"
     assert mapping["archive/jarARJ"]["format_id"] != mapping["archive/jar"]["format_id"]
+
+
+def test_external_validation_relabels_preserves_and_resumes(tmp_path, monkeypatch):
+    import io
+
+    from PIL import Image
+
+    from magika_datasets.acquisition import object_path
+    from magika_datasets.external_validation import validate_external
+    from magika_datasets.parquet_metadata import CLASS_SCHEMA, SAMPLE_SCHEMA
+
+    metadata, store, output = tmp_path / "metadata", tmp_path / "store", tmp_path / "out"
+    metadata.mkdir()
+    buffer = io.BytesIO()
+    Image.new("RGB", (2, 2)).save(buffer, format="PNG")
+    data = buffer.getvalue()
+    sha = hashlib.sha256(data).digest()
+    path = object_path(store, sha.hex())
+    path.parent.mkdir(parents=True)
+    path.write_bytes(data)
+    classes = [
+        {
+            "ordinal": 0,
+            "format_id": "sembiance/image/mystery",
+            "name": "mystery",
+            "categories": [],
+            "extensions": [],
+            "metadata_json": "{}",
+        }
+    ]
+    pq.write_table(pa.Table.from_pylist(classes, CLASS_SCHEMA), metadata / "classes.parquet")
+    taxonomy = tmp_path / "taxonomy.parquet"
+    pq.write_table(
+        pa.Table.from_pylist([{**classes[0], "format_id": "png"}], CLASS_SCHEMA), taxonomy
+    )
+    annotation = {
+        "format_ids": [classes[0]["format_id"]],
+        "source_claims": ["image/mystery"],
+        "evaluation_eligible": False,
+        "overlap_existing_sha256": False,
+    }
+    row = {
+        "sha256": sha,
+        "size": len(data),
+        "format_id": classes[0]["format_id"],
+        "class_ordinal": 0,
+        "sample_ordinal": 0,
+        "origins": ["https://example.org/a:" + sha.hex()],
+        "hard_case": False,
+        "annotation_json": json.dumps(annotation),
+    }
+    pq.write_table(pa.Table.from_pylist([row], SAMPLE_SCHEMA), metadata / "samples.parquet")
+    result = validate_external(metadata, store, taxonomy, output, 2)
+    assert result["counts"] == {"validated_auto": 1}
+    converted = pq.read_table(output / "samples.parquet").to_pylist()[0]
+    assert converted["format_id"] == "png"
+    assert converted["origins"] == row["origins"]
+    note = json.loads(converted["annotation_json"])
+    assert note["source_claims"] == ["image/mystery"]
+    assert not note["hard_case"] and note["evaluation_eligible"]
+    assert note["source_identity_changed"] and not note["source_label_disagreement"]
+    monkeypatch.setattr(
+        "magika_datasets.external_validation.observe",
+        lambda *a, **k: pytest.fail("revalidated cached batch"),
+    )
+    assert validate_external(metadata, store, taxonomy, output) == result
+    assert pq.read_table(metadata / "samples.parquet").to_pylist()[0] == row
+
+
+def test_external_validation_keeps_conflicts_and_overlap(monkeypatch, tmp_path):
+    from magika_datasets.external_validation import validate_row
+
+    annotation = {
+        "format_ids": ["png"],
+        "evaluation_eligible": True,
+        "overlap_existing_sha256": True,
+    }
+    row = {"sha256": b"x" * 32, "format_id": "png", "annotation_json": json.dumps(annotation)}
+    observations = [
+        {"format_id": k, "status": "pass", "auto_eligible": True} for k in ("png", "jpeg")
+    ]
+    monkeypatch.setattr(
+        "magika_datasets.external_validation.observe",
+        lambda *a, **k: {"status": "observed", "observations": observations},
+    )
+    result = json.loads(validate_row(row, tmp_path, {"png": {}, "jpeg": {}})["annotation_json"])
+    assert result["validation_status"] == "conflicting"
+    assert result["conflicting"] and not result["evaluation_eligible"]
+
+
+def test_external_validation_does_not_score_failed_source_claim(monkeypatch, tmp_path):
+    from magika_datasets.external_validation import validate_row
+
+    annotation = {"format_ids": ["png"], "evaluation_eligible": True}
+    row = {"sha256": b"x" * 32, "format_id": "png", "annotation_json": json.dumps(annotation)}
+    monkeypatch.setattr(
+        "magika_datasets.external_validation.observe",
+        lambda *a, **k: {
+            "status": "observed",
+            "observations": [{"format_id": "png", "status": "fail", "auto_eligible": True}],
+        },
+    )
+    result = json.loads(validate_row(row, tmp_path, {"png": {}})["annotation_json"])
+    assert not result["evaluation_eligible"]
+    assert result["format_ids"] == ["png"]

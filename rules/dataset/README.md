@@ -399,3 +399,23 @@ Per-sample rights remain `unknown_per_sample` unless separately established.
 The dexvert software license is not a blanket license for hosted sample content;
 retain original credits and any available per-file terms when distributing bytes.
 Only code and the mapping ship in Git; metadata and sample bytes stay ignored.
+
+To apply the package's structural validators to an imported benchmark, preserving
+source labels and provenance in a separate output:
+
+```sh
+magika-datasets external validate \
+  --metadata .local/sembiance-eval --store .local/sembiance-store \
+  --taxonomy classes.parquet --output .local/sembiance-validated --workers 4
+```
+
+The command validates all files, caches completed batches for resume, and writes
+new native Parquet metadata plus `validation-summary.json`. A single supported
+validator decision can relabel a file; original `source_claims` and
+`source_format_ids` remain available. Source-label disagreements remain hard cases.
+Ambiguous evidence remains conflicting, and unsupported files retain their source
+identity. Generic container checks cannot erase an unmapped application subtype.
+Exact overlaps remain excluded from evaluation. `evaluation_basis` distinguishes
+structurally validated labels from reviewed source mappings; neither implies that
+near-duplicate independence has been established. Use the resulting
+`samples.parquet` for hydration and scoring.

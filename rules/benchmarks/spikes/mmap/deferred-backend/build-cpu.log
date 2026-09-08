@@ -1,0 +1,3 @@
+   Compiling magika-runtime-abi v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime-abi)
+   Compiling magika-runtime-plugin v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime-plugin)
+    Finished `release` profile [optimized] target(s) in 41.77s

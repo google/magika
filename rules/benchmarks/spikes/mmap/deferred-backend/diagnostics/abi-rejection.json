@@ -1,0 +1,20 @@
+[
+  {
+    "backend": "cpu",
+    "returncode": 0,
+    "stdout": "cpu (tract-cpu)\n",
+    "stderr": ""
+  },
+  {
+    "backend": "auto",
+    "returncode": 0,
+    "stdout": "cpu (tract-cpu)\n",
+    "stderr": ""
+  },
+  {
+    "backend": "gpu",
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "Error: incompatible inference backend ABI\n"
+  }
+]

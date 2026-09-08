@@ -1,0 +1,14 @@
+[package]
+name = "magika-runtime"
+version = "0.0.1-dev"
+edition = "2024"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1"
+libloading = "0.8.9"
+magika-runtime-abi = { path = "../runtime-abi" }
+
+[features]
+cuda = []
+

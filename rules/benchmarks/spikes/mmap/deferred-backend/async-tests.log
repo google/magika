@@ -1,0 +1,95 @@
+   Compiling autocfg v1.5.0
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.19
+   Compiling quote v1.0.47
+   Compiling memchr v2.8.3
+   Compiling regex-syntax v0.8.11
+   Compiling libc v0.2.189
+   Compiling version_check v0.9.5
+   Compiling fnv v1.0.7
+   Compiling countme v3.0.1
+   Compiling hashbrown v0.17.1
+   Compiling text-size v1.1.1
+   Compiling hashbrown v0.14.5
+   Compiling either v1.17.0
+   Compiling equivalent v1.0.2
+   Compiling rustc-hash v1.1.0
+   Compiling shlex v1.3.0
+   Compiling typenum v1.20.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling serde_core v1.0.229
+   Compiling rustc-hash v2.1.3
+   Compiling ascii_tree v0.1.1
+   Compiling zmij v1.0.23
+   Compiling rustix v1.1.4
+   Compiling utf8parse v0.2.2
+   Compiling bitflags v2.13.1
+   Compiling cc v1.2.55
+   Compiling itertools v0.15.0
+   Compiling getrandom v0.3.4
+   Compiling generic-array v0.14.7
+   Compiling memoffset v0.9.1
+   Compiling num-traits v0.2.19
+   Compiling aho-corasick v1.1.5
+   Compiling matrixmultiply v0.3.10
+   Compiling indexmap v2.14.2
+   Compiling anstyle-parse v1.0.0
+   Compiling crossbeam-utils v0.8.22
+   Compiling rawpointer v0.2.1
+   Compiling serde_json v1.0.151
+   Compiling regex-automata v0.4.18
+   Compiling colorchoice v1.0.5
+   Compiling serde v1.0.229
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling anstyle-query v1.1.5
+   Compiling anstyle v1.0.14
+   Compiling anstream v1.0.0
+   Compiling syn v2.0.119
+   Compiling syn v3.0.3
+   Compiling sha2-asm v0.6.4
+   Compiling errno v0.3.14
+   Compiling cpufeatures v0.2.17
+   Compiling bstr v1.13.1
+   Compiling rowan v0.17.0
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling clap_lex v1.1.0
+   Compiling once_cell v1.21.3
+   Compiling strsim v0.11.1
+   Compiling heck v0.5.0
+   Compiling fastrand v2.3.0
+   Compiling itoa v1.0.15
+   Compiling clap_builder v4.6.6
+   Compiling magika-runtime v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime)
+   Compiling colored v3.1.1
+   Compiling tempfile v3.23.0
+   Compiling num-complex v0.4.6
+   Compiling num-integer v0.1.46
+   Compiling ndarray v0.17.1
+   Compiling serde_derive v1.0.229
+   Compiling clap_derive v4.6.4
+   Compiling sha2 v0.10.9
+   Compiling logos-codegen v0.16.1
+   Compiling crossbeam-channel v0.5.16
+   Compiling clap v4.6.6
+   Compiling logos-derive v0.16.1
+   Compiling logos v0.16.1
+   Compiling yara-x-parser v1.20.0
+   Compiling magika v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/lib)
+   Compiling magika-cli v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.65s
+     Running unittests src/main.rs (rust/target/debug/deps/magika-611c88e70f785601)
+
+running 2 tests
+test reorder_tests::rule_only_pipeline_finishes_while_model_preparation_is_blocked ... ok
+test reorder_tests::ml_input_observes_model_preparation_failure ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.00s
+
+     Running tests/rules.rs (rust/target/debug/deps/rules-d002028cdd58b705)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
+

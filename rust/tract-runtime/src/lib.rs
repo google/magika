@@ -18,12 +18,12 @@ mod artifact;
 mod direct_conv;
 #[cfg(any(test, feature = "_model-release"))]
 mod embedding;
-#[cfg(any(target_os = "macos", feature = "cuda"))]
+#[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
 mod gpu_conv;
 mod layer_norm;
 use std::sync::Arc;
 
-#[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
+#[cfg(all(not(all(target_os = "macos", feature = "metal")), not(feature = "cuda")))]
 use anyhow::bail;
 use anyhow::{Context as _, Result, ensure};
 #[cfg(feature = "_model-release")]
@@ -34,16 +34,21 @@ pub use artifact::export as export_model_artifact;
 use tract_core::prelude::Framework as _;
 #[cfg(any(test, feature = "_model-release"))]
 use tract_core::prelude::ToDim as _;
-#[cfg(any(target_os = "macos", feature = "cuda"))]
+#[cfg(any(
+    test,
+    feature = "_model-release",
+    all(target_os = "macos", feature = "metal"),
+    feature = "cuda"
+))]
+use tract_core::prelude::TypedModel;
+#[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
 use tract_core::prelude::TypedSimplePlan;
-use tract_core::prelude::{
-    IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, TypedModel, tvec,
-};
+use tract_core::prelude::{IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, tvec};
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, Runtime as _, State};
 use tract_core::tract_linalg::multithread::Executor;
-#[cfg(any(target_os = "macos", feature = "cuda"))]
+#[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
 use tract_core::transform::ModelTransform as _;
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", feature = "metal"))]
 use tract_metal::MetalTransform;
 
 /// Fixed batch shapes prepared by every runtime.
@@ -56,11 +61,21 @@ pub const NUM_LABELS: usize = 214;
 const PADDING_TOKEN: i32 = 256;
 #[cfg(any(test, feature = "_model-release"))]
 const DIRECT_FUSED_MIN_BATCH: usize = 8;
-#[cfg(any(test, feature = "_model-release", target_os = "macos", feature = "cuda"))]
+#[cfg(any(
+    test,
+    feature = "_model-release",
+    all(target_os = "macos", feature = "metal"),
+    feature = "cuda"
+))]
 const EXPECTED_CONVOLUTIONS: usize = 1;
 #[cfg(any(test, feature = "_model-release"))]
 const EXPECTED_EMBEDDINGS: usize = 1;
-#[cfg(any(test, feature = "_model-release", target_os = "macos", feature = "cuda"))]
+#[cfg(any(
+    test,
+    feature = "_model-release",
+    all(target_os = "macos", feature = "metal"),
+    feature = "cuda"
+))]
 const EXPECTED_LAYER_NORMS: usize = 2;
 /// Largest score difference tolerated between a GPU and the CPU on the same input.
 ///
@@ -232,7 +247,7 @@ impl Runtime {
         Ok(Self { info: BackendInfo { backend: Backend::Cpu, implementation: "tract-cpu" }, plans })
     }
 
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", feature = "metal"))]
     fn prepare_gpu(classes: &[usize]) -> Result<Self> {
         let mut plans = Vec::with_capacity(classes.len());
         let mut artifact = artifact::Bundle::embedded()?;
@@ -258,7 +273,7 @@ impl Runtime {
         })
     }
 
-    #[cfg(all(not(target_os = "macos"), feature = "cuda"))]
+    #[cfg(all(not(all(target_os = "macos", feature = "metal")), feature = "cuda"))]
     fn prepare_gpu(classes: &[usize]) -> Result<Self> {
         // The probe loads and unloads NVRTC, executing native library initialization.
         // As with CUDA execution, it requires a trusted driver/toolkit library search path.
@@ -289,7 +304,7 @@ impl Runtime {
         })
     }
 
-    #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
+    #[cfg(all(not(all(target_os = "macos", feature = "metal")), not(feature = "cuda")))]
     fn prepare_gpu(_classes: &[usize]) -> Result<Self> {
         bail!("this build does not include a GPU backend")
     }
@@ -304,7 +319,7 @@ fn gpu_agreement_passes(agreement: Result<bool>) -> bool {
 /// Without it every intermediate allocates a fresh device buffer on every node of every inference,
 /// which is a system call each time. tract installs this itself only when a caller passes memory
 /// sizing hints, and building a plan directly bypasses that.
-#[cfg(any(target_os = "macos", feature = "cuda"))]
+#[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
 fn with_memory_arena(runnable: TypedSimplePlan) -> Result<TypedSimplePlan> {
     // Every batch is bound to a concrete value before the plan is built, so the graph has no free
     // symbols left and the arena can be sized without hints.
@@ -313,7 +328,7 @@ fn with_memory_arena(runnable: TypedSimplePlan) -> Result<TypedSimplePlan> {
     Ok(runnable.with_session_handler(handler))
 }
 
-#[cfg(any(target_os = "macos", feature = "cuda"))]
+#[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
 fn prepare_gpu_graph(model: &mut TypedModel, batch: usize) -> Result<()> {
     let validated_layer_norm = layer_norm::validate_magika_layer_norm_for_gpu(model)?;
     ensure!(

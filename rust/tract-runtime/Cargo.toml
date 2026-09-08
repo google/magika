@@ -22,10 +22,11 @@ tract-linalg = { version = "=0.23.4", features = ["multithread-mm"] }
 tract-nnef = "=0.23.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-tract-gpu = "=0.23.4"
-tract-metal = "=0.23.4"
+tract-metal = { version = "=0.23.4", optional = true }
 
 [features]
+default = ["metal"]
+metal = ["dep:tract-metal", "dep:tract-gpu"]
 _model-release = []
 cuda = ["dep:cudarc", "dep:tract-cuda", "dep:tract-gpu"]
 

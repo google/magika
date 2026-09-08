@@ -636,7 +636,7 @@ mod tests {
         assert!(check_cpu_artifact_scores(&x, &y).is_err());
     }
 
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", feature = "metal"))]
     #[test]
     fn metal_artifact_matches_source_for_every_batch() -> TractResult<()> {
         use tract_core::transform::ModelTransform as _;

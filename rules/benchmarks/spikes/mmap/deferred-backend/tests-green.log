@@ -1,0 +1,31 @@
+     Locking 1 package to latest Rust 1.95.0 compatible version
+      Adding magika-runtime-abi v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime-abi)
+   Compiling cfg-if v1.0.3
+   Compiling magika-runtime-abi v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime-abi)
+   Compiling libloading v0.8.9
+   Compiling magika-runtime v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running unittests src/lib.rs (rust/target/debug/deps/magika_runtime-8b658c377ed11f7f)
+
+running 4 tests
+test tests::cpu_never_attempts_gpu_loading ... ok
+test tests::auto_falls_back_but_explicit_gpu_propagates_failure ... ok
+test tests::rejects_incompatible_backend_headers ... ok
+test tests::missing_backend_is_an_error ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/backend.rs (rust/target/debug/deps/backend-dc02684e4a95afe2)
+
+running 1 test
+test packaged_backend_scores_shapes_and_lifetimes ... ignored, requires the packaged native backend libraries
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests magika_runtime
+
+running 1 test
+test src/lib.rs - Session (line 222) - compile fail ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

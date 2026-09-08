@@ -1,0 +1,6 @@
+[package]
+name = "magika-runtime-abi"
+version = "0.0.1-dev"
+edition = "2024"
+license = "Apache-2.0"
+

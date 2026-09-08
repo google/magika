@@ -19,7 +19,12 @@ use std::sync::Arc;
 use tract_core::internal::*;
 
 // Pattern discovery runs at model release for CPU and during GPU lowering.
-#[cfg(any(test, feature = "_model-release", target_os = "macos", feature = "cuda"))]
+#[cfg(any(
+    test,
+    feature = "_model-release",
+    all(target_os = "macos", feature = "metal"),
+    feature = "cuda"
+))]
 mod fusion {
     use tract_core::ops::binary::TypedBinOp;
     use tract_core::ops::change_axes::AxisOp;
@@ -54,7 +59,7 @@ mod fusion {
 
     /// Check the supported LayerNorm shape without changing its variance expression.
     /// GPU reductions support the original E[x*x] - E[x]*E[x] graph directly.
-    #[cfg(any(target_os = "macos", feature = "cuda"))]
+    #[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
     pub(crate) fn validate_magika_layer_norm_for_gpu(model: &TypedModel) -> TractResult<usize> {
         let mut count = 0;
         let mut next = 0;
@@ -404,7 +409,7 @@ mod fusion {
 }
 #[cfg(any(test, feature = "_model-release"))]
 pub(crate) use fusion::fuse_magika_layer_norm;
-#[cfg(any(target_os = "macos", feature = "cuda"))]
+#[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
 pub(crate) use fusion::validate_magika_layer_norm_for_gpu;
 
 fn scalar_f32(value: &Tensor) -> Option<f32> {
@@ -593,7 +598,7 @@ impl TypedOp for FusedLayerNorm {
 mod tests {
     use super::*;
 
-    #[cfg(any(target_os = "macos", feature = "cuda"))]
+    #[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
     fn layer_norm_test_model() -> TractResult<TypedModel> {
         use tract_core::ops::binary::TypedBinOp;
         use tract_core::ops::element_wise::ElementWiseOp;
@@ -651,7 +656,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(target_os = "macos", feature = "cuda"))]
+    #[cfg(any(all(target_os = "macos", feature = "metal"), feature = "cuda"))]
     fn gpu_preparation_preserves_original_variance_arithmetic() -> TractResult<()> {
         let model = layer_norm_test_model()?;
         let shape = [2, 256, 3];
@@ -682,7 +687,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", feature = "metal"))]
     #[ignore = "requires an available Metal device"]
     fn metal_executes_original_layer_norm_statistics() -> TractResult<()> {
         use tract_core::transform::ModelTransform;

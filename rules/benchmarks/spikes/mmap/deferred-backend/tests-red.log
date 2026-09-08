@@ -1,0 +1,200 @@
+    Updating crates.io index
+     Locking 5 packages to latest Rust 1.95.0 compatible versions
+      Adding libloading v0.8.9 (available: v0.9.0)
+   Compiling anyhow v1.0.104
+   Compiling cfg-if v1.0.4
+   Compiling magika-runtime-abi v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime-abi)
+   Compiling libloading v0.8.9
+   Compiling magika-runtime v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/runtime)
+error[E0425]: cannot find value `FEATURE_SIZE` in this scope
+  --> src/lib.rs:32:79
+   |
+32 |         let good = (abi::ABI_VERSION, size_of::<abi::Api>() as u32, abi::CPU, FEATURE_SIZE, NUM_LABELS);
+   |                                                                               ^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `NUM_LABELS` in this scope
+  --> src/lib.rs:32:93
+   |
+32 |         let good = (abi::ABI_VERSION, size_of::<abi::Api>() as u32, abi::CPU, FEATURE_SIZE, NUM_LABELS);
+   |                                                                                             ^^^^^^^^^^ not found in this scope
+
+warning: unused import: `super::*`
+ --> src/lib.rs:5:9
+  |
+5 |     use super::*;
+  |         ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0433]: cannot find type `BackendRequest` in this scope
+  --> src/lib.rs:10:29
+   |
+10 |         let result = select(BackendRequest::Cpu, |kind| {
+   |                             ^^^^^^^^^^^^^^ use of undeclared type `BackendRequest`
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:12:24
+   |
+12 |             if kind == Kind::Cpu { Ok(7) } else { panic!("CPU loaded GPU") }
+   |                        ^^^^ use of undeclared type `Kind`
+
+error[E0425]: cannot find function `select` in this scope
+  --> src/lib.rs:10:22
+   |
+10 |         let result = select(BackendRequest::Cpu, |kind| {
+   |                      ^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:15:30
+   |
+15 |         assert_eq!(visited, [Kind::Cpu]);
+   |                              ^^^^ use of undeclared type `Kind`
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:23:24
+   |
+23 |             if kind == Kind::Cpu { Ok(7) } else { anyhow::bail!("GPU unavailable") }
+   |                        ^^^^ use of undeclared type `Kind`
+
+error[E0433]: cannot find type `BackendRequest` in this scope
+  --> src/lib.rs:25:27
+   |
+25 |         assert_eq!(select(BackendRequest::Auto, &mut load).unwrap(), 7);
+   |                           ^^^^^^^^^^^^^^ use of undeclared type `BackendRequest`
+
+error[E0425]: cannot find function `select` in this scope
+  --> src/lib.rs:25:20
+   |
+25 |         assert_eq!(select(BackendRequest::Auto, &mut load).unwrap(), 7);
+   |                    ^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `BackendRequest` in this scope
+  --> src/lib.rs:26:24
+   |
+26 |         assert!(select(BackendRequest::Gpu, &mut load).is_err());
+   |                        ^^^^^^^^^^^^^^ use of undeclared type `BackendRequest`
+
+error[E0425]: cannot find function `select` in this scope
+  --> src/lib.rs:26:17
+   |
+26 |         assert!(select(BackendRequest::Gpu, &mut load).is_err());
+   |                 ^^^^^^ not found in this scope
+
+error[E0425]: cannot find function `gpu_kind` in this scope
+  --> src/lib.rs:27:30
+   |
+27 |         assert_eq!(visited, [gpu_kind(), Kind::Cpu, gpu_kind()]);
+   |                              ^^^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:27:42
+   |
+27 |         assert_eq!(visited, [gpu_kind(), Kind::Cpu, gpu_kind()]);
+   |                                          ^^^^ use of undeclared type `Kind`
+
+error[E0425]: cannot find function `gpu_kind` in this scope
+  --> src/lib.rs:27:53
+   |
+27 |         assert_eq!(visited, [gpu_kind(), Kind::Cpu, gpu_kind()]);
+   |                                                     ^^^^^^^^ not found in this scope
+
+error[E0433]: cannot find module or crate `abi` in this scope
+  --> src/lib.rs:32:21
+   |
+32 |         let good = (abi::ABI_VERSION, size_of::<abi::Api>() as u32, abi::CPU, FEATURE_SIZE, NUM_LABELS);
+   |                     ^^^ use of unresolved module or unlinked crate `abi`
+   |
+   = help: if you wanted to use a crate named `abi`, use `cargo add abi` to add it to your `Cargo.toml`
+
+error[E0433]: cannot find module or crate `abi` in this scope
+  --> src/lib.rs:32:69
+   |
+32 |         let good = (abi::ABI_VERSION, size_of::<abi::Api>() as u32, abi::CPU, FEATURE_SIZE, NUM_LABELS);
+   |                                                                     ^^^ use of unresolved module or unlinked crate `abi`
+   |
+   = help: if you wanted to use a crate named `abi`, use `cargo add abi` to add it to your `Cargo.toml`
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:33:32
+   |
+33 |         assert!(validate(good, Kind::Cpu).is_ok());
+   |                                ^^^^ use of undeclared type `Kind`
+
+error[E0425]: cannot find function `validate` in this scope
+  --> src/lib.rs:33:17
+   |
+33 |         assert!(validate(good, Kind::Cpu).is_ok());
+   |                 ^^^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:34:64
+   |
+34 |         assert!(validate((99, good.1, good.2, good.3, good.4), Kind::Cpu).is_err());
+   |                                                                ^^^^ use of undeclared type `Kind`
+
+error[E0425]: cannot find function `validate` in this scope
+  --> src/lib.rs:34:17
+   |
+34 |         assert!(validate((99, good.1, good.2, good.3, good.4), Kind::Cpu).is_err());
+   |                 ^^^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:35:63
+   |
+35 |         assert!(validate((good.0, 0, good.2, good.3, good.4), Kind::Cpu).is_err());
+   |                                                               ^^^^ use of undeclared type `Kind`
+
+error[E0425]: cannot find function `validate` in this scope
+  --> src/lib.rs:35:17
+   |
+35 |         assert!(validate((good.0, 0, good.2, good.3, good.4), Kind::Cpu).is_err());
+   |                 ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find function `gpu_kind` in this scope
+  --> src/lib.rs:36:32
+   |
+36 |         assert!(validate(good, gpu_kind()).is_err());
+   |                                ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find function `validate` in this scope
+  --> src/lib.rs:36:17
+   |
+36 |         assert!(validate(good, gpu_kind()).is_err());
+   |                 ^^^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:37:63
+   |
+37 |         assert!(validate((good.0, good.1, good.2, good.3, 1), Kind::Cpu).is_err());
+   |                                                               ^^^^ use of undeclared type `Kind`
+
+error[E0425]: cannot find function `validate` in this scope
+  --> src/lib.rs:37:17
+   |
+37 |         assert!(validate((good.0, good.1, good.2, good.3, 1), Kind::Cpu).is_err());
+   |                 ^^^^^^^^ not found in this scope
+
+error[E0433]: cannot find type `Loaded` in this scope
+  --> src/lib.rs:42:17
+   |
+42 |         assert!(Loaded::open(std::path::Path::new("/nonexistent/magika-backend.dylib"), Kind::Cpu).is_err());
+   |                 ^^^^^^ use of undeclared type `Loaded`
+
+error[E0433]: cannot find type `Kind` in this scope
+  --> src/lib.rs:42:89
+   |
+42 |         assert!(Loaded::open(std::path::Path::new("/nonexistent/magika-backend.dylib"), Kind::Cpu).is_err());
+   |                                                                                         ^^^^ use of undeclared type `Kind`
+
+error[E0433]: cannot find module or crate `abi` in this scope
+  --> src/lib.rs:32:49
+   |
+32 |         let good = (abi::ABI_VERSION, size_of::<abi::Api>() as u32, abi::CPU, FEATURE_SIZE, NUM_LABELS);
+   |                                                 ^^^ use of unresolved module or unlinked crate `abi`
+   |
+   = help: if you wanted to use a crate named `abi`, use `cargo add abi` to add it to your `Cargo.toml`
+
+Some errors have detailed explanations: E0425, E0433.
+For more information about an error, try `rustc --explain E0425`.
+warning: `magika-runtime` (lib test) generated 1 warning
+error: could not compile `magika-runtime` (lib test) due to 29 previous errors; 1 warning emitted

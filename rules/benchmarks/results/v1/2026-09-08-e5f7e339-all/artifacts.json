@@ -1,0 +1,14 @@
+{
+  "benchmark_version": "1.1.0",
+  "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+  "status": "complete",
+  "files": {
+    "config.json": "2399ee9bd211895f1249ac38d2d6d905c6bca094a5f8a3e5c438c0aa1b9bcdb1",
+    "inputs.json.gz": "b9282127640a745d995c1107825dc116c0c26693b5a135df5a3a9585c4d1b1e6",
+    "label-mappings.json": "de5ec5fd0a626c029e81e15ce33e3e98990729c18e77bf802f820a3f854f62ba",
+    "raw-output.tar.gz": "66a99f9fcaea607fd3331ef87314838eb8a35566ef5c73456f72f0dae29369ec",
+    "report.md": "2bb745e02eade071c715701883807f9bb45b62751a98c3c3e588824873fa7f26",
+    "results.json.gz": "956844f7f47959be09593a0a48400d87488e225abdc35f90796b785d5768db6d",
+    "workloads.json": "11d040a4e1b475b9d49a8819505ff57b20ce23bb60bf3fb83289f8af7d408e5c"
+  }
+}

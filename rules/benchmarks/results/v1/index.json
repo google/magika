@@ -21,6 +21,13 @@
       "revision": "2d6c39928b157746630a2efdd4da874cc90da75c",
       "status": "complete",
       "artifacts_sha256": "4a36dcb07cbed4d40538e19610be360d93bbde31c8d6257a76fd1e17995f856d"
+    },
+    {
+      "id": "2026-09-08-e5f7e339-all",
+      "benchmark_version": "1.1.0",
+      "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+      "status": "complete",
+      "artifacts_sha256": "edebf5f87e62d432172cfd8e17595b1dcd35685d74e7adaeb7b27532fc335991"
     }
   ]
 }

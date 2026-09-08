@@ -194,3 +194,26 @@ new mode does not claim a same-tool revision speedup against those older modes.
 To reproduce, use this run's `config.json`, `inputs.json.gz` and `workloads.json`
 with the command above. `rules_reference_mode: "only"` removes the need for an
 ML-only control; deterministic unknown outputs do not count as rule matches.
+
+## Deferred-backend full rerun
+
+[Eight-mode overview and historical changes](reports/2026-09-08-e5f7e339-all/overview.md)
+reruns all 25,421 quality samples and all 30 saved workloads at revision
+`e5f7e339`, with the original three repetitions and one warmup.
+[Complete results](results/v1/2026-09-08-e5f7e339-all/report.md) retain every
+file-count/rule-hit cell; the adjacent raw archive includes detector observations
+and Hyperfine JSON. All eight modes have identical normalized observations to
+the previous published runs.
+
+The compact overview is generated from saved results by `full_table.py`, including
+rule-match ratios from the raw observations and arithmetic historical changes.
+The overview JSON preserves strict compatibility warnings; historical differences
+include intervening loader changes and shared-host variation.
+
+Regenerate the Markdown without executing any detector:
+
+```sh
+rules/.venv/bin/python rules/benchmarks/full_table.py \
+  --render rules/benchmarks/reports/2026-09-08-e5f7e339-all/overview.json \
+  --output /tmp/magika-benchmark.md
+```

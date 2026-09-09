@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-TARGET="${1:-}"
+TARGET="${1:-${CARGO_BUILD_TARGET:-}}"
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &>/dev/null && pwd)
 cd "$ROOT_DIR"
 
@@ -25,21 +25,46 @@ rm -f python/wheel_data/scripts/*
 if [ -n "$TARGET" ]; then
     echo "Building magika CLI for target $TARGET..."
     cargo build --release --manifest-path rust/cli/Cargo.toml --target "$TARGET"
-    SRC_DIR="rust/target/$TARGET/release"
 else
     echo "Building magika CLI for default target..."
     cargo build --release --manifest-path rust/cli/Cargo.toml
-    SRC_DIR="rust/target/release"
 fi
 
-if [ -f "$SRC_DIR/magika.exe" ]; then
-    cp "$SRC_DIR/magika.exe" python/wheel_data/scripts/
-    echo "Staged magika.exe into python/wheel_data/scripts/"
-elif [ -f "$SRC_DIR/magika" ]; then
-    cp "$SRC_DIR/magika" python/wheel_data/scripts/
-    chmod +x python/wheel_data/scripts/magika
-    echo "Staged magika into python/wheel_data/scripts/"
+# Locate the compiled binary across candidate output locations
+SRC_BIN=""
+CANDIDATES=()
+if [ -n "$TARGET" ]; then
+    CANDIDATES+=("rust/target/$TARGET/release/magika" "rust/target/$TARGET/release/magika.exe")
+fi
+if [ -n "${CARGO_BUILD_TARGET:-}" ]; then
+    CANDIDATES+=("rust/target/$CARGO_BUILD_TARGET/release/magika" "rust/target/$CARGO_BUILD_TARGET/release/magika.exe")
+fi
+CANDIDATES+=("rust/target/release/magika" "rust/target/release/magika.exe")
+
+for candidate in "${CANDIDATES[@]}"; do
+    if [ -f "$candidate" ]; then
+        SRC_BIN="$candidate"
+        break
+    fi
+done
+
+# If still not found, search rust/target for recently built magika binary
+if [ -z "$SRC_BIN" ]; then
+    SRC_BIN=$(find rust/target -type f \( -name "magika" -o -name "magika.exe" \) -path "*/release/*" 2>/dev/null | head -n 1 || true)
+fi
+
+if [ -n "$SRC_BIN" ] && [ -f "$SRC_BIN" ]; then
+    echo "Found CLI binary at $SRC_BIN"
+    BIN_NAME=$(basename "$SRC_BIN")
+    cp "$SRC_BIN" "python/wheel_data/scripts/$BIN_NAME"
+    chmod +x "python/wheel_data/scripts/$BIN_NAME"
+    echo "Staged $BIN_NAME into python/wheel_data/scripts/"
 else
-    echo "Error: CLI binary not found in $SRC_DIR" >&2
+    echo "Error: CLI binary not found in any expected target directory." >&2
+    echo "Checked candidates:" >&2
+    for c in "${CANDIDATES[@]}"; do
+        echo "  - $c" >&2
+    done
+    ls -la rust/target/ 2>/dev/null || true
     exit 1
 fi

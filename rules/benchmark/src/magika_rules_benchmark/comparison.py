@@ -22,7 +22,7 @@ from tabulate import tabulate
 
 from . import corpus, runner
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 
 def validate_default_policy(spec):
@@ -213,6 +213,26 @@ def parse_output(adapter, raw, paths, aliases):
                 mapped(extensions.lower().split("/"), aliases, tie=tie, abstain=not extensions)
             )
     return rows
+
+
+def validate_workload(samples, actual, expected, *, adaptive=False):
+    """Retain workload-dependent CPU/GPU decisions without relaxing output/error checks."""
+    differences = []
+    for sample, row, baseline in zip(samples, actual, expected, strict=True):
+        if row["error"]:
+            raise ValueError("Workload returned a tool error")
+        if row == baseline:
+            continue
+        if not adaptive or row["deterministic"] or baseline["deterministic"]:
+            raise ValueError("Workload outputs differ from quality observations")
+        differences.append(
+            {
+                "sha256": sample["sha256"],
+                "quality_observation": baseline,
+                "workload_observation": row,
+            }
+        )
+    return quality_metrics(samples, actual), differences
 
 
 def quality_metrics(samples, rows):
@@ -771,15 +791,18 @@ def run(args):
         paths = ["files/" + h for h in case["samples"]]
         command = tool_command(tool, paths, lists)
         # Verify each exact workload before timing; never time a broken/early-exit path.
-        actual = parse_output(
-            Adapter(tool["adapter"]),
-            invoke(command, env, args.timeout, cwd=output),
-            paths,
-            mappings[tool_id],
-        )
+        validation_raw = invoke(command, env, args.timeout, cwd=output)
+        validation_file = f"raw/{tool_id}-{case['id']}-validation.txt.gz"
+        (output / validation_file).write_bytes(gzip.compress(validation_raw, mtime=0))
+        actual = parse_output(Adapter(tool["adapter"]), validation_raw, paths, mappings[tool_id])
         expected = [observations[tool_id][row_indices[h]] for h in case["samples"]]
-        if actual != expected or any(row["error"] for row in actual):
-            raise ValueError(f"{tool_id}: workload outputs differ from quality observations")
+        workload_quality, differences = validate_workload(
+            [by_hash[h] for h in case["samples"]],
+            actual,
+            expected,
+            adaptive=tool["adapter"] == Adapter.MAGIKA
+            and tool.get("settings", {}).get("startup_backend") == "CPU",
+        )
         filename = f"{tool_id}-{case['id']}.json"
         export = output / "raw" / filename
         invocation = [
@@ -813,6 +836,9 @@ def run(args):
             command=command,
             input_order_sha256=fingerprint(case["samples"]),
             distinct_files=len(set(case["samples"])),
+            validation_raw=validation_file,
+            workload_quality=workload_quality,
+            differences_from_quality=differences,
         )
         result["measurements"].append(measurement)
         corpus.atomic_json(output / "results.json", result)

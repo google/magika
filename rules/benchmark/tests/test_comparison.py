@@ -260,3 +260,22 @@ def test_default_benchmark_allows_backend_rules_and_output_selection():
             "environment": {"MAGIKA_VECTORSCAN_LIBRARY": "/engine/libhs.dylib"},
         }
     )
+
+
+def test_adaptive_workload_scores_and_records_changed_inference_decisions():
+    samples = [{"sha256": "a" * 64, "truth": "png"}]
+    mapping = {"png": ["png"], "jpeg": ["jpeg"]}
+    expected = [c.mapped(["png"], mapping, deterministic=False)]
+    actual = [c.mapped(["jpeg"], mapping, deterministic=False)]
+    quality, differences = c.validate_workload(samples, actual, expected, adaptive=True)
+    assert quality["accuracy"] == 0 and quality["wrong"] == 1
+    assert differences == [
+        {"sha256": "a" * 64, "quality_observation": expected[0], "workload_observation": actual[0]}
+    ]
+    with pytest.raises(ValueError, match="differ"):
+        c.validate_workload(samples, actual, expected, adaptive=False)
+    for invalid in [actual[0] | {"error": "read failed"}, actual[0] | {"deterministic": True}]:
+        with pytest.raises(ValueError):
+            c.validate_workload(samples, [invalid], expected, adaptive=True)
+    with pytest.raises(ValueError):
+        c.validate_workload(samples, [], expected, adaptive=True)

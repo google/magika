@@ -1,6 +1,6 @@
 # Cross-tool benchmark
 
-Protocol **1.2.0** measures each tool with its shipping resource defaults.
+Protocol **1.2.1** measures each tool with its shipping resource defaults.
 `magika-compare` records tool output and Hyperfine JSON; ordinary code generates
 all tables, scores and revision comparisons from those observations. No LLM
 participates in measurement, label mapping, scoring or report generation.
@@ -29,7 +29,12 @@ participates in measurement, label mapping, scoring or report generation.
 - Every tool receives the same extensionless, SHA-256-named files in lexical
   order. Input sizes and hashes are verified before measurement and hashes again
   at completion. Tool artifacts are rechecked at completion too. Output errors,
-  early exits and changed workload predictions fail the run.
+  early exits and changed deterministic decisions fail the run. Static modes
+  must also retain their inference decisions. For CPU warmup modes, CPU/GPU
+  scheduling can change a borderline inference decision: each workload's raw
+  validation output, quality metrics and differences from the full quality pass
+  are recorded explicitly. Protocol 1.2.1 adds this validation evidence without
+  changing the timing method used by the 1.2.0 baseline.
 - CPU/GPU crossover compares measured medians at the tested file counts. No
   crossover is interpolated between workloads. A workload resolved entirely by
   rules does not demonstrate a GPU inference advantage.

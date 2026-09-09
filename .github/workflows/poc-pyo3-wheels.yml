@@ -21,34 +21,47 @@ jobs:
           - os: Linux
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            manylinux: 2_28
-          - os: Linux
-            runner: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            manylinux: musllinux_1_2
-          - os: Linux
-            runner: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-            manylinux: musllinux_1_2
-          - os: macOS
-            runner: macos-14
-            target: aarch64-apple-darwin
-          - os: Windows
-            runner: windows-latest
-            target: x86_64-pc-windows-msvc
+            manylinux: "2_28"
           - os: Linux
             runner: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            manylinux: 2_28
+            manylinux: "2_28"
+          - os: Linux
+            runner: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            manylinux: "2014"
+          - os: Linux
+            runner: ubuntu-latest
+            target: arm-unknown-linux-gnueabihf
+            manylinux: "auto"
+          - os: Linux
+            runner: ubuntu-latest
+            target: riscv64gc-unknown-linux-gnu
+            manylinux: "2_31"
+          - os: Linux
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            manylinux: "musllinux_1_2"
+          - os: Linux
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            manylinux: "musllinux_1_2"
+          - os: Linux
+            runner: ubuntu-latest
+            target: armv7-unknown-linux-musleabihf
+            manylinux: "musllinux_1_2"
+          - os: macOS
+            runner: macos-14
+            target: aarch64-apple-darwin
+          - os: macOS
+            runner: macos-14
+            target: x86_64-apple-darwin
+          - os: Windows
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
           - os: Windows
             runner: windows-latest
             target: aarch64-pc-windows-msvc
-          # --- Stretch targets ---
-          # Generic Linux for Raspberry Pi (32-bit ARMv7):
-          # - os: Linux
-          #   runner: ubuntu-latest
-          #   target: armv7-unknown-linux-gnueabihf
-          #   manylinux: 2014
 
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +71,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Setup Rust
+        if: matrix.platform.os != 'Linux'
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform.target }}
@@ -96,6 +110,27 @@ jobs:
           name: wheel-${{ matrix.platform.target }}
           path: python/dist/*.whl
 
+  # Test the built wheels across supported Python versions (3.8 through 3.14).
+  #
+  # Tested Platforms:
+  # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-latest
+  # - macOS Apple Silicon (aarch64-apple-darwin) on macos-14
+  # - Windows x64 (x86_64-pc-windows-msvc) on windows-latest
+  #
+  # Uncovered Build Targets (not tested in this matrix):
+  # - x86_64-apple-darwin: Cross-compiled on macos-14 (Apple Silicon). The runner host
+  #   interpreter is ARM64 (pip rejects x86_64 wheels). Running x64 Python via Rosetta
+  #   is blocked for Python 3.8/3.9 due to lack of setup-python x64 binaries on macOS 14.
+  # - aarch64-unknown-linux-gnu: Built via QEMU on x86_64 runner. Cannot execute natively
+  #   on host; native ubuntu-24.04-arm runners lack setup-python binaries for Python 3.8/3.9.
+  # - x86_64-unknown-linux-musl, aarch64-unknown-linux-musl, armv7-unknown-linux-musleabihf:
+  #   Built for musl (Alpine). Host runner uses glibc; pip rejects musllinux wheels on glibc.
+  #   Requires a dedicated Alpine container test job.
+  # - armv7-unknown-linux-gnueabihf, arm-unknown-linux-gnueabihf: 32-bit ARM (Raspberry Pi).
+  #   Requires 32-bit ARM QEMU container emulation.
+  # - riscv64gc-unknown-linux-gnu: 64-bit RISC-V. Requires RISC-V QEMU container emulation.
+  # - aarch64-pc-windows-msvc: Cross-compiled on Windows x86_64. Windows x86_64 cannot execute
+  #   Windows ARM64 binaries (no forward emulation).
   test-wheels:
     name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with Python ${{ matrix.python-version }}
     needs: [build-wheels]

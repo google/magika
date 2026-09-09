@@ -45,6 +45,18 @@ def main():
                 backends_only=True,
             )
             stage(output / "lib", args.data_dir.resolve())
+    # Editable developer installs do not stage native release payloads. Set this
+    # only for the binary wheel build, after the data directory actually exists.
+    pyproject = ROOT / "python/pyproject.toml"
+    text = pyproject.read_text()
+    section = "[tool.maturin]\n"
+    if text.count(section) != 1:
+        raise ValueError("expected one tool.maturin section")
+    pyproject.write_text(
+        text.replace(
+            section, section + f'data = "{args.data_dir.resolve().as_posix()}"\n'
+        )
+    )
 
 
 if __name__ == "__main__":

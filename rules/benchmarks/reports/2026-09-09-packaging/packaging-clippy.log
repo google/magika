@@ -1,0 +1,13 @@
+   Compiling syn v3.0.3
+    Checking half v2.7.1
+   Compiling serde_derive v1.0.229
+    Checking serde v1.0.229
+    Checking string-interner v0.20.0
+    Checking minijinja v2.24.0
+    Checking safetensors v0.8.0
+    Checking tract-data v0.23.4
+    Checking tract-linalg v0.23.4
+    Checking tract-core v0.23.4
+    Checking tract-nnef v0.23.4
+    Checking magika-tract-runtime v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/tract-runtime)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.87s

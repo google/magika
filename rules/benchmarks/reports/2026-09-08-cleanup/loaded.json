@@ -1,0 +1,46 @@
+[
+  {
+    "mode": "rules",
+    "command": [
+      "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cleanup/magika",
+      "--rules=only",
+      "--batch-size=8",
+      "--backend-info"
+    ],
+    "stdout": "none (rules-only)\n",
+    "cpu_library_loaded": false,
+    "metal_library_loaded": false,
+    "metal_framework_active": false,
+    "dyld_log": "rules-dyld.log"
+  },
+  {
+    "mode": "cpu",
+    "command": [
+      "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cleanup/magika",
+      "--rules=off",
+      "--backend=cpu",
+      "--batch-size=8",
+      "--backend-info"
+    ],
+    "stdout": "cpu (tract-cpu)\n",
+    "cpu_library_loaded": true,
+    "metal_library_loaded": false,
+    "metal_framework_active": false,
+    "dyld_log": "cpu-dyld.log"
+  },
+  {
+    "mode": "gpu",
+    "command": [
+      "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cleanup/magika",
+      "--rules=off",
+      "--backend=gpu",
+      "--batch-size=8",
+      "--backend-info"
+    ],
+    "stdout": "gpu (tract-metal)\n",
+    "cpu_library_loaded": false,
+    "metal_library_loaded": true,
+    "metal_framework_active": true,
+    "dyld_log": "gpu-dyld.log"
+  }
+]

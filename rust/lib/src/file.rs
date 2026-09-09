@@ -86,6 +86,8 @@ impl FileType {
     /// Returns the score of the identification, between 0 and 1.
     ///
     /// If the model was run, this is the model score. Otherwise this is 1.
+    /// For rule results, 1 denotes a deterministic decision, not a calibrated
+    /// probability or a guarantee that the entire file is valid.
     pub fn score(&self) -> f32 {
         match self {
             FileType::Directory => 1.0,

@@ -36,7 +36,7 @@ const TILE_COLUMNS_ENV: &str = "MAGIKA_DIRECT_TILE_COLUMNS";
 /// Throughput measured flat across 24 to 96 columns and fell away past 144, so this takes the small
 /// end of the plateau rather than its middle. A tile costs `reduction * columns * 4` bytes of packed
 /// input, which at 48 is a quarter megabyte: within a 256KiB L2, and still within half of a 1MiB L2
-/// when two hyperthreads share one. The 96 this replaces was three times that, sized on a machine
+/// when two hyperthreads share one. The 96 this replaces was twice that, sized on a machine
 /// whose L2 happened to absorb it.
 #[cfg(target_arch = "x86_64")]
 const X86_64_TILE_COLUMNS: usize = 48;
@@ -58,6 +58,7 @@ fn has_transposing_packer() -> bool {
 /// Replace a supported Conv1D -> transpose -> GELU -> max-over-position chain.
 ///
 /// Returns the number of independent chains replaced.
+#[cfg(any(test, feature = "_model-release"))]
 pub(crate) fn fuse_magika_conv_max(model: &mut TypedModel, batch: usize) -> TractResult<usize> {
     fuse_magika_conv_max_inner(model, batch, false)
 }
@@ -71,6 +72,7 @@ pub(crate) fn fuse_magika_conv_max_portable(
     fuse_magika_conv_max_inner(model, batch, true)
 }
 
+#[cfg(any(test, feature = "_model-release"))]
 fn fuse_magika_conv_max_inner(
     model: &mut TypedModel, batch: usize, force_portable: bool,
 ) -> TractResult<usize> {
@@ -94,14 +96,14 @@ fn fuse_magika_conv_max_inner(
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-struct ConvDimensions {
-    batch: usize,
-    input_channels: usize,
-    input_length: usize,
-    output_channels: usize,
-    kernel_length: usize,
-    output_length: usize,
-    channels_last: bool,
+pub(super) struct ConvDimensions {
+    pub(super) batch: usize,
+    pub(super) input_channels: usize,
+    pub(super) input_length: usize,
+    pub(super) output_channels: usize,
+    pub(super) kernel_length: usize,
+    pub(super) output_length: usize,
+    pub(super) channels_last: bool,
 }
 
 impl ConvDimensions {
@@ -114,6 +116,7 @@ impl ConvDimensions {
     }
 }
 
+#[cfg(any(test, feature = "_model-release"))]
 struct FusionPattern {
     input: OutletId,
     max_node: usize,
@@ -122,6 +125,7 @@ struct FusionPattern {
     dimensions: ConvDimensions,
 }
 
+#[cfg(any(test, feature = "_model-release"))]
 impl FusionPattern {
     fn find(model: &TypedModel, batch: usize) -> TractResult<Option<Self>> {
         use tract_core::ops::change_axes::AxisOp;
@@ -243,16 +247,16 @@ impl FusionPattern {
 }
 
 #[derive(Clone, Debug)]
-struct DirectFusedConvMax1D {
-    dimensions: ConvDimensions,
+pub(super) struct DirectFusedConvMax1D {
+    pub(super) dimensions: ConvDimensions,
     tile_batches: usize,
     tile_columns: usize,
     eager_pack: bool,
     mmm: Box<dyn MatMatMul>,
     packing: usize,
     packed_kernel: Box<dyn MMMInputValue>,
-    kernel: Arc<Tensor>,
-    bias: Arc<Tensor>,
+    pub(super) kernel: Arc<Tensor>,
+    pub(super) bias: Arc<Tensor>,
     input_format: Arc<DirectConvInputFormat>,
 }
 
@@ -276,7 +280,7 @@ impl DirectFusedConvMax1D {
     /// `force_portable` makes the operator take the packing path of a target without a vectorized
     /// packer, so a test can compare the two on one machine. It can only ever turn the eager path
     /// off; turning it on where the host cannot run it would be unsound.
-    fn new(
+    pub(super) fn new(
         dimensions: ConvDimensions, kernel: Arc<Tensor>, bias: Arc<Tensor>, force_portable: bool,
     ) -> TractResult<Self> {
         ensure!(kernel.datum_type() == DatumType::F32, "Conv1D kernel must be f32");
@@ -740,6 +744,24 @@ impl MMMInputFormat for DirectConvInputFormat {
     }
 }
 
+/// Initialize only lanes the packer will not write, including the kernel's trailing record.
+/// The caller provides one writable panel of `format.single_panel_len(reduction)` floats.
+#[inline]
+unsafe fn initialize_panel_padding(
+    output: *mut f32, format: &PackedFormat, reduction: usize, width: usize,
+) {
+    debug_assert!(width <= format.r);
+    unsafe {
+        if width < format.r {
+            for k in 0..reduction {
+                output.add(k * format.r + width).write_bytes(0, format.r - width);
+            }
+        }
+        let written = reduction * format.r;
+        output.add(written).write_bytes(0, format.single_panel_len(reduction) - written);
+    }
+}
+
 #[cfg(target_arch = "x86_64")]
 #[allow(clippy::too_many_arguments)] // Flat hot-path slices preserve LLVM alias information.
 fn pack_x86_64_nlc(
@@ -756,14 +778,12 @@ fn pack_x86_64_nlc(
             packed_len * std::mem::size_of::<f32>(),
             format.alignment_bytes,
         );
-        if cfg!(debug_assertions) {
-            packed.as_bytes_mut().fill(0);
-        }
         let output = packed.as_mut_ptr().cast::<f32>();
         for panel in 0..columns.div_ceil(format.r) {
             let first = panel * format.r;
             let width = (columns - first).min(format.r);
             let panel_output = output.add(panel * panel_len);
+            initialize_panel_padding(panel_output, format, reduction, width);
             let panel_offsets = &offsets[first..first + width];
             // The caller only takes this path where a full panel is twelve columns wide and the
             // vectorized packer is available; the short arm is the last panel of a tile.
@@ -943,6 +963,15 @@ impl DirectConvInput {
         let r = self.format.packer.r;
         let column_start = panel * r;
         let column_end = (column_start + r).min(self.mn());
+        // MMM reads a complete panel even when only a few output columns will be stored.
+        unsafe {
+            initialize_panel_padding(
+                buffer.cast(),
+                &self.format.packer,
+                self.k(),
+                column_end - column_start,
+            );
+        }
         let mut writer = if column_end - column_start == r {
             self.format.packer.write_single_panel_with_k_outer(buffer.cast::<f32>())
         } else {
@@ -1073,6 +1102,92 @@ mod tests {
                 + f32::tanh(
                     (2.0 / std::f32::consts::PI).sqrt() * (value + 0.044715 * value.powi(3)),
                 ))
+    }
+
+    #[test]
+    fn packed_panels_initialize_portable_padding() {
+        let dimensions = ConvDimensions {
+            batch: 1,
+            input_channels: 2,
+            input_length: 15,
+            output_channels: 3,
+            kernel_length: 3,
+            output_length: 13,
+            channels_last: true,
+        };
+        let input = (1..=30).map(|x| x as f32).collect::<Vec<_>>();
+        for r in [4, 12] {
+            let format = Arc::new(DirectConvInputFormat {
+                packer: PackedFormat::new(DatumType::F32, r, 4),
+                dimensions,
+                tile_columns: 13,
+                column_offsets: (0..13).map(|x| x * 2).collect(),
+                reduction_offsets: vec![0, 2, 4, 1, 3, 5],
+            });
+            let panel_len = format.packer.single_panel_len(dimensions.reduction());
+            // Poison freshly allocated scratch, then reuse it for full and short panels.
+            let mut scratch = vec![12345.0_f32; panel_len + 8];
+            for columns in [1, 13, 1] {
+                let packed = unsafe {
+                    DirectConvInput::new(input.as_ptr(), input.len(), format.clone(), 0, columns)
+                };
+                for panel in 0..columns.div_ceil(r) {
+                    packed.write_panel(panel, scratch.as_mut_ptr().cast());
+                    let first = panel * r;
+                    let width = (columns - first).min(r);
+                    for (index, &actual) in scratch[..panel_len].iter().enumerate() {
+                        let k = index / r;
+                        let lane = index % r;
+                        let expected = if k < dimensions.reduction() && lane < width {
+                            input[format.column_offsets[first + lane] + format.reduction_offsets[k]]
+                        } else {
+                            0.0
+                        };
+                        assert_eq!(
+                            actual, expected,
+                            "r={r} columns={columns} panel={panel} index={index}"
+                        );
+                    }
+                    assert!(scratch[panel_len..].iter().all(|&x| x == 12345.0));
+                }
+            }
+        }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn packed_panels_initialize_eager_padding() -> TractResult<()> {
+        let format = PackedFormat::new(DatumType::F32, 12, 4);
+        let input = (1..=120).map(|x| x as f32).collect::<Vec<_>>();
+        let offsets = (0..13).map(|x| x * 8).collect::<Vec<_>>();
+        let reduction = 24;
+        let panel_len = format.single_panel_len(reduction);
+        for columns in [1, 11, 12, 13] {
+            // Full panels need AVX2, independently of whether the host has an AVX-512 MMM.
+            if columns >= 12 && !has_transposing_packer() {
+                continue;
+            }
+            let packed = pack_x86_64_nlc(&format, &input, &offsets, 0, columns, 8, 3, reduction)?;
+            for panel in 0..columns.div_ceil(format.r) {
+                let data = unsafe {
+                    std::slice::from_raw_parts(
+                        packed.panel_bytes(panel, None)?.cast::<f32>(),
+                        panel_len,
+                    )
+                };
+                for (index, &actual) in data.iter().enumerate() {
+                    let k = index / format.r;
+                    let column = panel * format.r + index % format.r;
+                    let expected = if k < reduction && column < columns {
+                        input[offsets[column] + k]
+                    } else {
+                        0.0
+                    };
+                    assert_eq!(actual, expected, "columns={columns} panel={panel} index={index}");
+                }
+            }
+        }
+        Ok(())
     }
 
     fn direct_matches_reference(channels_last: bool) -> TractResult<()> {

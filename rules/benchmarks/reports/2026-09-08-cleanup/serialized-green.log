@@ -1,0 +1,33 @@
+   Compiling syn v3.0.3
+   Compiling magika-runtime-abi v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/runtime-abi)
+   Compiling simd-adler32 v0.3.7
+   Compiling magika v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/lib)
+   Compiling magika-runtime v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/runtime)
+   Compiling miniz_oxide v0.8.9
+   Compiling flate2 v1.1.4
+   Compiling serde_derive v1.0.229
+   Compiling serde v1.0.229
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.15s
+     Running unittests src/lib.rs (rust/target/debug/deps/magika-b94506eef8833578)
+
+running 11 tests
+test rules::cache::tests::cache_locks_reject_symlinks_without_touching_the_target ... ok
+test rules::cache::tests::cache_directory_rejects_replaceable_ancestor ... ok
+test rules::cache::tests::cache_identity_covers_source ... ok
+test rules::cache::tests::cache_special_files_never_block ... ok
+test rules::cache::tests::empty_export_is_portable_and_never_clobbers ... ok
+test rules::cache::tests::cache_read_rejects_symlinks_and_other_writable_files ... ok
+test rules::cache::tests::private_variant_enablement_is_cached_as_configuration ... ok
+test rules::cache::tests::shipped_pack_reuse_and_source_edit_fallback ... ok
+test rules::cache::tests::concurrent_processes_compile_once_and_recover_after_interrupted_write ... ok
+test rules::cache::tests::cache_roundtrip_edit_corruption_and_unwritable_directory ... ok
+test rules::cache::tests::cache_lock_contention_falls_back_without_waiting_forever ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 1.03s
+
+     Running tests/rules_loading.rs (rust/target/debug/deps/rules_loading-c0f0f36bb579ff3a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

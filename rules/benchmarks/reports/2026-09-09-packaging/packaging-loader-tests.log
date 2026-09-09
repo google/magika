@@ -1,0 +1,14 @@
+   Compiling magika-runtime-abi v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/runtime-abi)
+   Compiling magika-runtime v0.0.1-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.90s
+     Running unittests src/lib.rs (rust/target/debug/deps/magika_runtime-426992f3ae6cfca9)
+
+running 5 tests
+test tests::cpu_never_attempts_gpu_loading ... ok
+test tests::flat_installer_layout_is_resolved_beside_the_executable ... ok
+test tests::auto_falls_back_but_explicit_gpu_propagates_failure ... ok
+test tests::rejects_incompatible_backend_headers ... ok
+test tests::missing_backend_is_an_error ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

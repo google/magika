@@ -1,13 +1,24 @@
 # Changelog
 
-## 1.2.0-dev
+## 2.0.0-dev
+
+### Major
+
+- Move the Rust CLI to Magika 2.0 alongside the breaking Rust API and embedded tract runtime.
+- Remove the dependency on the ONNX Runtime
 
 ### Minor
 
-- Remove the dependency on the ONNX Runtime
+- Add `--rules=off|enforce`, `--rules-file`, `--write-default-rules`, and `--compile-rules`; optional Vectorscan execution supports full and partial enforced rules, disabled candidates, compiled packs and a persistent compilation cache. Rules remain off by default; requesting enforcement reports initialization failures.
 
 ### Patch
 
+- Use a CPU batch-one plan for automatic inference on one non-recursive input, avoiding GPU startup and padded bulk work; preserve explicit GPU requests and bulk routing.
+- Detect ancestor directory cycles during recursive traversal, report `directory_cycle` in JSON, and continue processing other inputs and legitimate aliases.
+- Preserve completed JSON results and close arrays on classification errors; report invalid UTF-8 paths without panicking and preserve earlier failures when output closes.
+- Reject inference batches with mismatched result counts before dispatching any rows.
+- Reject named pipes and other unsupported special files before reader dispatch; JSON reports `unsupported_file_type` and regular files continue processing.
+- Bound experimental batch sizes to 1–64 and reader/inference worker counts to 1–256 before allocating queues or starting threads.
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

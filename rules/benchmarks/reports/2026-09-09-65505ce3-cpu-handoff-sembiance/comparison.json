@@ -1,0 +1,1241 @@
+{
+  "schema": 1,
+  "dataset": {
+    "corpus_sha256": "a8717d6c58c4487fd92096efc03eb7155fa867efa4ac9a3da39da2ceaa45810a",
+    "id": "sembiance",
+    "name": "Sembiance",
+    "scored_files": 2400,
+    "selection": "evaluation_eligible",
+    "source_files": 33421,
+    "source_manifest_sha256": "08b5a1684079ca9a95360d4c4e868fe3a9d7c9b64d21bba0cd6f75c71eeeb252",
+    "version": "v3"
+  },
+  "before": {
+    "revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+    "measured_at_utc": "2026-09-09T03:08:57.821771+00:00",
+    "results_sha256": "0b00a377e50eaea7b904adf6c9d7fa35c160045405d55ec7a7f76b2145097da0"
+  },
+  "after": {
+    "revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+    "measured_at_utc": "2026-09-09T03:42:18.100538+00:00",
+    "results_sha256": "aa10615dba5139d4059913b293aa3d9cbe209a10c7ce840bb84732a0fa2047a2"
+  },
+  "compatibility": "Same host, dataset, exact natural input lists, command flags, default resources, Hyperfine, trials and warmups. Protocol 1.2.1 adds workload prediction validation; the 1.2.0 timing recipe is unchanged. CPU warmup and GPU admission are the implementation changes under test. This scoped comparison does not relax the general history compatibility gate.",
+  "rows": [
+    {
+      "id": "magika1",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "1.1.0",
+        "software_version": "1.1.0",
+        "source_revision": null,
+        "raw_version": "magika 1.1.0 standard_v3_3",
+        "config": "CPU; ML",
+        "config_id": "9be4a2807ac0489fe553b8b82f935dd81edf3016a07a5df1c2d7d8a6882b5ace",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": "standard_v3_3",
+            "release": "cli/v1.1.0",
+            "resource_policy": "tool defaults"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika1/magika-cli-aarch64-apple-darwin/magika",
+            "--jsonl"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "4ce463f9f59f11a701cd9674e80103005915cd2ef5412a20c57aaaa305d27331",
+        "executable_sha256": "6f594202dd6627e9923cbc01a57e841f30e3ebab8be711c74352d70e39ade6a9",
+        "artifacts": {
+          "binary": "6f594202dd6627e9923cbc01a57e841f30e3ebab8be711c74352d70e39ade6a9"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "1.1.0",
+        "software_version": "1.1.0",
+        "source_revision": null,
+        "raw_version": "magika 1.1.0 standard_v3_3",
+        "config": "CPU; ML",
+        "config_id": "9be4a2807ac0489fe553b8b82f935dd81edf3016a07a5df1c2d7d8a6882b5ace",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": "standard_v3_3",
+            "release": "cli/v1.1.0",
+            "resource_policy": "tool defaults"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika1/magika-cli-aarch64-apple-darwin/magika",
+            "--jsonl"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "4ce463f9f59f11a701cd9674e80103005915cd2ef5412a20c57aaaa305d27331",
+        "executable_sha256": "6f594202dd6627e9923cbc01a57e841f30e3ebab8be711c74352d70e39ade6a9",
+        "artifacts": {
+          "binary": "6f594202dd6627e9923cbc01a57e841f30e3ebab8be711c74352d70e39ade6a9"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 60.710708000000004,
+          "after_ms": 52.79475,
+          "change_percent": -13.03881680971337
+        },
+        "2": {
+          "before_ms": 70.389291,
+          "after_ms": 53.231959,
+          "change_percent": -24.374918053940895
+        },
+        "5": {
+          "before_ms": 59.129917000000006,
+          "after_ms": 54.490084,
+          "change_percent": -7.846845108881184
+        },
+        "10": {
+          "before_ms": 60.791583,
+          "after_ms": 56.127542000000005,
+          "change_percent": -7.6721821835105
+        },
+        "25": {
+          "before_ms": 99.651583,
+          "after_ms": 58.447916,
+          "change_percent": -41.34772951875737
+        },
+        "100": {
+          "before_ms": 146.30120900000003,
+          "after_ms": 90.901583,
+          "change_percent": -37.86682719757977
+        },
+        "1000": {
+          "before_ms": 1051.822334,
+          "after_ms": 416.057958,
+          "change_percent": -60.44408408616279
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "magika2-ml",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 9214192e",
+        "software_version": "2.0.0-dev",
+        "source_revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; ML",
+        "config_id": "cc3270f799cad70041f8dc825d106ed01fa9e89286e4329658b4411ae6511ef1",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "off"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-defaults-9214192e/magika",
+            "--jsonl",
+            "--backend=cpu",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93",
+        "executable_sha256": "b6cb0a4ab3fd1ce15b36be60c90ace61a9a7555cfdd517aa43b77c1ef0a15f88",
+        "artifacts": {
+          "build_receipt": "9d5ea80fc6319b132dc2e97bc7160c7e6703e56c91358e8977332935c8c97c88",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 65505ce3",
+        "software_version": "2.0.0-dev",
+        "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; ML",
+        "config_id": "cc3270f799cad70041f8dc825d106ed01fa9e89286e4329658b4411ae6511ef1",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "off"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cpu-handoff-65505ce3/magika",
+            "--jsonl",
+            "--backend=cpu",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "083b90e2b9a41b98dffe682b295bfca00593a6c40c469aac90f5987eac5335fd",
+        "executable_sha256": "8ff3d15887a81e9d2670ba52aba3ee6ae2f890145013b7dac1d3525f56c80aea",
+        "artifacts": {
+          "build_receipt": "fa87b701ac14441d5c643c78bb8e9caafd8974ba0aa00792b2e9e581fa8d40a8",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777",
+          "runtime_build_receipt": "8eee6547813db38adaf19b85ee51d6060539d8bd2a79ab52a513fa715e5e44e8"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 6.279750000000001,
+          "after_ms": 5.434042,
+          "change_percent": -13.467224013694823
+        },
+        "2": {
+          "before_ms": 7.26825,
+          "after_ms": 5.9964580000000005,
+          "change_percent": -17.49791215216867
+        },
+        "5": {
+          "before_ms": 17.462291,
+          "after_ms": 12.000291,
+          "change_percent": -31.27882819041328
+        },
+        "10": {
+          "before_ms": 14.612167000000001,
+          "after_ms": 12.949042,
+          "change_percent": -11.381782045058753
+        },
+        "25": {
+          "before_ms": 20.930375,
+          "after_ms": 18.404333,
+          "change_percent": -12.068785198545173
+        },
+        "100": {
+          "before_ms": 41.959042000000004,
+          "after_ms": 38.052417000000005,
+          "change_percent": -9.310567672159909
+        },
+        "1000": {
+          "before_ms": 277.025334,
+          "after_ms": 252.80004100000002,
+          "change_percent": -8.744793355253188
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "magika2-rules",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 9214192e",
+        "software_version": "2.0.0-dev",
+        "source_revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; rules + ML",
+        "config_id": "15e7a0f330781a5992d976868945f95dca84903602adfc322213db84d91f17b1",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "enforce"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-defaults-9214192e/magika",
+            "--jsonl",
+            "--backend=cpu",
+            "--rules=enforce"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93",
+        "executable_sha256": "b6cb0a4ab3fd1ce15b36be60c90ace61a9a7555cfdd517aa43b77c1ef0a15f88",
+        "artifacts": {
+          "build_receipt": "9d5ea80fc6319b132dc2e97bc7160c7e6703e56c91358e8977332935c8c97c88",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 65505ce3",
+        "software_version": "2.0.0-dev",
+        "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; rules + ML",
+        "config_id": "15e7a0f330781a5992d976868945f95dca84903602adfc322213db84d91f17b1",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "enforce"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cpu-handoff-65505ce3/magika",
+            "--jsonl",
+            "--backend=cpu",
+            "--rules=enforce"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "083b90e2b9a41b98dffe682b295bfca00593a6c40c469aac90f5987eac5335fd",
+        "executable_sha256": "8ff3d15887a81e9d2670ba52aba3ee6ae2f890145013b7dac1d3525f56c80aea",
+        "artifacts": {
+          "build_receipt": "fa87b701ac14441d5c643c78bb8e9caafd8974ba0aa00792b2e9e581fa8d40a8",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777",
+          "runtime_build_receipt": "8eee6547813db38adaf19b85ee51d6060539d8bd2a79ab52a513fa715e5e44e8"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 3.168625,
+          "after_ms": 2.644375,
+          "change_percent": -16.545031362183906
+        },
+        "2": {
+          "before_ms": 11.726584,
+          "after_ms": 5.991042,
+          "change_percent": -48.910594935404895
+        },
+        "5": {
+          "before_ms": 13.412583,
+          "after_ms": 11.694041,
+          "change_percent": -12.812908594862005
+        },
+        "10": {
+          "before_ms": 12.837708000000001,
+          "after_ms": 11.609417,
+          "change_percent": -9.567837187136519
+        },
+        "25": {
+          "before_ms": 29.675375,
+          "after_ms": 15.777083000000001,
+          "change_percent": -46.83442753461413
+        },
+        "100": {
+          "before_ms": 36.701458,
+          "after_ms": 31.573458,
+          "change_percent": -13.972196962856366
+        },
+        "1000": {
+          "before_ms": 221.602667,
+          "after_ms": 199.85950000000003,
+          "change_percent": -9.811780378978908
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.6520833333333333,
+          "precision": 0.7626705653021443,
+          "decision_coverage": 0.855,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.6520833333333333,
+          "precision": 0.7626705653021443,
+          "decision_coverage": 0.855,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "magika2-gpu-ml",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 9214192e",
+        "software_version": "2.0.0-dev",
+        "source_revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Metal; ML",
+        "config_id": "7e8b755be22817846c85e343ed29d87606446ba3fc63107b22b6f973c5545ea3",
+        "configuration": {
+          "settings": {
+            "backend": "GPU (Metal)",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "off"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-defaults-9214192e/magika",
+            "--jsonl",
+            "--backend=gpu",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93",
+        "executable_sha256": "b6cb0a4ab3fd1ce15b36be60c90ace61a9a7555cfdd517aa43b77c1ef0a15f88",
+        "artifacts": {
+          "build_receipt": "9d5ea80fc6319b132dc2e97bc7160c7e6703e56c91358e8977332935c8c97c88",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 65505ce3",
+        "software_version": "2.0.0-dev",
+        "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Metal; ML; CPU warmup",
+        "config_id": "740ce2ef5a7fae1afef54b8b9ba173a840315ecb422c04c15792833adbfdf2ae",
+        "configuration": {
+          "settings": {
+            "backend": "GPU (Metal)",
+            "gpu_admission": "ready",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "off",
+            "startup_backend": "CPU"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cpu-handoff-65505ce3/magika",
+            "--jsonl",
+            "--backend=gpu",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "083b90e2b9a41b98dffe682b295bfca00593a6c40c469aac90f5987eac5335fd",
+        "executable_sha256": "8ff3d15887a81e9d2670ba52aba3ee6ae2f890145013b7dac1d3525f56c80aea",
+        "artifacts": {
+          "build_receipt": "fa87b701ac14441d5c643c78bb8e9caafd8974ba0aa00792b2e9e581fa8d40a8",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777",
+          "runtime_build_receipt": "8eee6547813db38adaf19b85ee51d6060539d8bd2a79ab52a513fa715e5e44e8"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 79.55179100000001,
+          "after_ms": 6.192041000000001,
+          "change_percent": -92.21633991873294
+        },
+        "2": {
+          "before_ms": 103.238792,
+          "after_ms": 5.968125000000001,
+          "change_percent": -94.21910612824684
+        },
+        "5": {
+          "before_ms": 80.019875,
+          "after_ms": 12.386542,
+          "change_percent": -84.52066814650735
+        },
+        "10": {
+          "before_ms": 103.44395800000001,
+          "after_ms": 14.363417000000002,
+          "change_percent": -86.11478400700793
+        },
+        "25": {
+          "before_ms": 108.26533400000001,
+          "after_ms": 20.440917000000002,
+          "change_percent": -81.11961027155748
+        },
+        "100": {
+          "before_ms": 96.637208,
+          "after_ms": 37.849041,
+          "change_percent": -60.83388398389986
+        },
+        "1000": {
+          "before_ms": 210.56075,
+          "after_ms": 163.17558300000002,
+          "change_percent": -22.504273469770595
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "magika2-gpu-rules",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 9214192e",
+        "software_version": "2.0.0-dev",
+        "source_revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Metal; rules + ML",
+        "config_id": "0dec6350a530a10b4b9f36001d82a636d7debc2ef7c0f5893d082482bce99a9b",
+        "configuration": {
+          "settings": {
+            "backend": "GPU (Metal)",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "enforce"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-defaults-9214192e/magika",
+            "--jsonl",
+            "--backend=gpu",
+            "--rules=enforce"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93",
+        "executable_sha256": "b6cb0a4ab3fd1ce15b36be60c90ace61a9a7555cfdd517aa43b77c1ef0a15f88",
+        "artifacts": {
+          "build_receipt": "9d5ea80fc6319b132dc2e97bc7160c7e6703e56c91358e8977332935c8c97c88",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 65505ce3",
+        "software_version": "2.0.0-dev",
+        "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Metal; rules + ML; CPU warmup",
+        "config_id": "39d2c09a30e4e0cc148d8082b74ab0e16b2e495d5635e1004872d30aec22ba19",
+        "configuration": {
+          "settings": {
+            "backend": "GPU (Metal)",
+            "gpu_admission": "ready",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "enforce",
+            "startup_backend": "CPU"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cpu-handoff-65505ce3/magika",
+            "--jsonl",
+            "--backend=gpu",
+            "--rules=enforce"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "083b90e2b9a41b98dffe682b295bfca00593a6c40c469aac90f5987eac5335fd",
+        "executable_sha256": "8ff3d15887a81e9d2670ba52aba3ee6ae2f890145013b7dac1d3525f56c80aea",
+        "artifacts": {
+          "build_receipt": "fa87b701ac14441d5c643c78bb8e9caafd8974ba0aa00792b2e9e581fa8d40a8",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777",
+          "runtime_build_receipt": "8eee6547813db38adaf19b85ee51d6060539d8bd2a79ab52a513fa715e5e44e8"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 4.786125,
+          "after_ms": 2.692625,
+          "change_percent": -43.741022225704505
+        },
+        "2": {
+          "before_ms": 88.6905,
+          "after_ms": 6.530667,
+          "change_percent": -92.6365653593113
+        },
+        "5": {
+          "before_ms": 84.18275,
+          "after_ms": 12.157250000000001,
+          "change_percent": -85.5585021872058
+        },
+        "10": {
+          "before_ms": 86.093625,
+          "after_ms": 12.499333000000002,
+          "change_percent": -85.48169739629385
+        },
+        "25": {
+          "before_ms": 89.120125,
+          "after_ms": 16.545792,
+          "change_percent": -81.43428097750088
+        },
+        "100": {
+          "before_ms": 106.78941700000001,
+          "after_ms": 31.177375,
+          "change_percent": -70.80480830792438
+        },
+        "1000": {
+          "before_ms": 178.91841700000003,
+          "after_ms": 139.442416,
+          "change_percent": -22.063687831532754
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.6520833333333333,
+          "precision": 0.7626705653021443,
+          "decision_coverage": 0.855,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.6520833333333333,
+          "precision": 0.7626705653021443,
+          "decision_coverage": 0.855,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "magika2-auto-ml",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 9214192e",
+        "software_version": "2.0.0-dev",
+        "source_revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Auto; ML",
+        "config_id": "11c2b636f6ed1ee801440aee130af10b679e2a6a741184f39eb84a3363c8b6c2",
+        "configuration": {
+          "settings": {
+            "backend": "Auto",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "off"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-defaults-9214192e/magika",
+            "--jsonl",
+            "--backend=auto",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93",
+        "executable_sha256": "b6cb0a4ab3fd1ce15b36be60c90ace61a9a7555cfdd517aa43b77c1ef0a15f88",
+        "artifacts": {
+          "build_receipt": "9d5ea80fc6319b132dc2e97bc7160c7e6703e56c91358e8977332935c8c97c88",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 65505ce3",
+        "software_version": "2.0.0-dev",
+        "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Auto; ML; CPU warmup",
+        "config_id": "2bf84c20bc1786c2bd79ac4c4d8222bb29eeabce967071137727b0d33a18c568",
+        "configuration": {
+          "settings": {
+            "backend": "Auto",
+            "gpu_admission": "ready, at least eight files in the current batch",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "off",
+            "startup_backend": "CPU"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cpu-handoff-65505ce3/magika",
+            "--jsonl",
+            "--backend=auto",
+            "--rules=off"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "083b90e2b9a41b98dffe682b295bfca00593a6c40c469aac90f5987eac5335fd",
+        "executable_sha256": "8ff3d15887a81e9d2670ba52aba3ee6ae2f890145013b7dac1d3525f56c80aea",
+        "artifacts": {
+          "build_receipt": "fa87b701ac14441d5c643c78bb8e9caafd8974ba0aa00792b2e9e581fa8d40a8",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777",
+          "runtime_build_receipt": "8eee6547813db38adaf19b85ee51d6060539d8bd2a79ab52a513fa715e5e44e8"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 8.047333,
+          "after_ms": 4.8882080000000006,
+          "change_percent": -39.25679476666368
+        },
+        "2": {
+          "before_ms": 87.160875,
+          "after_ms": 6.344292,
+          "change_percent": -92.72116990564861
+        },
+        "5": {
+          "before_ms": 86.96120900000001,
+          "after_ms": 12.008958,
+          "change_percent": -86.19044268347281
+        },
+        "10": {
+          "before_ms": 80.44675000000001,
+          "after_ms": 14.1165,
+          "change_percent": -82.45236755990763
+        },
+        "25": {
+          "before_ms": 86.16362500000001,
+          "after_ms": 20.236834,
+          "change_percent": -76.51348350304436
+        },
+        "100": {
+          "before_ms": 116.57962500000001,
+          "after_ms": 38.332416,
+          "change_percent": -67.1191119374419
+        },
+        "1000": {
+          "before_ms": 186.096583,
+          "after_ms": 178.21525000000003,
+          "change_percent": -4.235076685959349
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.5829166666666666,
+          "precision": 0.7126846663270504,
+          "decision_coverage": 0.8179166666666666,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "magika2-auto-rules",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 9214192e",
+        "software_version": "2.0.0-dev",
+        "source_revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Auto; rules + ML",
+        "config_id": "f28555abe85f790d0661db82238475283e54bb21080a8c43f4ea1c3b9b2a3ebd",
+        "configuration": {
+          "settings": {
+            "backend": "Auto",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "enforce"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-defaults-9214192e/magika",
+            "--jsonl",
+            "--backend=auto",
+            "--rules=enforce"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93",
+        "executable_sha256": "b6cb0a4ab3fd1ce15b36be60c90ace61a9a7555cfdd517aa43b77c1ef0a15f88",
+        "artifacts": {
+          "build_receipt": "9d5ea80fc6319b132dc2e97bc7160c7e6703e56c91358e8977332935c8c97c88",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 65505ce3",
+        "software_version": "2.0.0-dev",
+        "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "Auto; rules + ML; CPU warmup",
+        "config_id": "d8d1d1cf0439a5d82e6b2bb0a7fd17fefce8591cff402e0aab776253db20dea6",
+        "configuration": {
+          "settings": {
+            "backend": "Auto",
+            "gpu_admission": "ready, at least eight files in the current batch",
+            "model": "standard_v3_3",
+            "resource_policy": "tool defaults",
+            "rules": "enforce",
+            "startup_backend": "CPU"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cpu-handoff-65505ce3/magika",
+            "--jsonl",
+            "--backend=auto",
+            "--rules=enforce"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "083b90e2b9a41b98dffe682b295bfca00593a6c40c469aac90f5987eac5335fd",
+        "executable_sha256": "8ff3d15887a81e9d2670ba52aba3ee6ae2f890145013b7dac1d3525f56c80aea",
+        "artifacts": {
+          "build_receipt": "fa87b701ac14441d5c643c78bb8e9caafd8974ba0aa00792b2e9e581fa8d40a8",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777",
+          "runtime_build_receipt": "8eee6547813db38adaf19b85ee51d6060539d8bd2a79ab52a513fa715e5e44e8"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 3.684334,
+          "after_ms": 2.801875,
+          "change_percent": -23.95165584879113
+        },
+        "2": {
+          "before_ms": 88.64466700000001,
+          "after_ms": 6.232583000000001,
+          "change_percent": -92.96902655181727
+        },
+        "5": {
+          "before_ms": 93.41425000000001,
+          "after_ms": 12.168541000000001,
+          "change_percent": -86.97357094875781
+        },
+        "10": {
+          "before_ms": 81.689625,
+          "after_ms": 12.533667,
+          "change_percent": -84.65696592437536
+        },
+        "25": {
+          "before_ms": 88.74683300000001,
+          "after_ms": 17.778708,
+          "change_percent": -79.96693808780759
+        },
+        "100": {
+          "before_ms": 117.987167,
+          "after_ms": 31.230500000000003,
+          "change_percent": -73.53059591641859
+        },
+        "1000": {
+          "before_ms": 172.29812500000003,
+          "after_ms": 140.40608300000002,
+          "change_percent": -18.509802123499597
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.6520833333333333,
+          "precision": 0.7626705653021443,
+          "decision_coverage": 0.855,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.6520833333333333,
+          "precision": 0.7626705653021443,
+          "decision_coverage": 0.855,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "magika2-rules-only",
+      "before_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 9214192e",
+        "software_version": "2.0.0-dev",
+        "source_revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; rules-only",
+        "config_id": "f8f02ebed90453711b7f409fc4cb25de7c8b88bb667f0c7db536868f5577e774",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": null,
+            "resource_policy": "tool defaults",
+            "rules": "only"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-defaults-9214192e/magika",
+            "--jsonl",
+            "--rules=only"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93",
+        "executable_sha256": "b6cb0a4ab3fd1ce15b36be60c90ace61a9a7555cfdd517aa43b77c1ef0a15f88",
+        "artifacts": {
+          "build_receipt": "9d5ea80fc6319b132dc2e97bc7160c7e6703e56c91358e8977332935c8c97c88",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777"
+        }
+      },
+      "after_tool": {
+        "tool": "Magika",
+        "version": "2.0.0-dev @ 65505ce3",
+        "software_version": "2.0.0-dev",
+        "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+        "raw_version": "magika 2.0.0-dev standard_v3_3",
+        "config": "CPU; rules-only",
+        "config_id": "f8f02ebed90453711b7f409fc4cb25de7c8b88bb667f0c7db536868f5577e774",
+        "configuration": {
+          "settings": {
+            "backend": "CPU",
+            "model": null,
+            "resource_policy": "tool defaults",
+            "rules": "only"
+          },
+          "command": [
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cpu-handoff-65505ce3/magika",
+            "--jsonl",
+            "--rules=only"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "083b90e2b9a41b98dffe682b295bfca00593a6c40c469aac90f5987eac5335fd",
+        "executable_sha256": "8ff3d15887a81e9d2670ba52aba3ee6ae2f890145013b7dac1d3525f56c80aea",
+        "artifacts": {
+          "build_receipt": "fa87b701ac14441d5c643c78bb8e9caafd8974ba0aa00792b2e9e581fa8d40a8",
+          "lib/libmagika_runtime_cpu.dylib": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5",
+          "lib/libmagika_runtime_metal.dylib": "5e564676766550abf1e88d2fc93d9144e46e53d7df31ee4ffd40979b1f612fb6",
+          "native": "4e55152f0339037040a9979554281623d0cdd11eabc341ffb32caaa9939fd777",
+          "runtime_build_receipt": "8eee6547813db38adaf19b85ee51d6060539d8bd2a79ab52a513fa715e5e44e8"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 3.199958,
+          "after_ms": 2.4744580000000003,
+          "change_percent": -22.672172572265005
+        },
+        "2": {
+          "before_ms": 3.457666,
+          "after_ms": 2.763542,
+          "change_percent": -20.074929157414278
+        },
+        "5": {
+          "before_ms": 6.493167000000001,
+          "after_ms": 2.7430000000000003,
+          "change_percent": -57.75559137782842
+        },
+        "10": {
+          "before_ms": 6.107875000000001,
+          "after_ms": 3.2074580000000004,
+          "change_percent": -47.4865153592698
+        },
+        "25": {
+          "before_ms": 4.6711670000000005,
+          "after_ms": 4.048042,
+          "change_percent": -13.339814226295077
+        },
+        "100": {
+          "before_ms": 8.98775,
+          "after_ms": 7.796375,
+          "change_percent": -13.255542265861864
+        },
+        "1000": {
+          "before_ms": 67.931167,
+          "after_ms": 53.635542,
+          "change_percent": -21.044280013620252
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.22208333333333333,
+          "precision": 1.0,
+          "decision_coverage": 0.22208333333333333,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.22208333333333333,
+          "precision": 1.0,
+          "decision_coverage": 0.22208333333333333,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "libmagic",
+      "before_tool": {
+        "tool": "libmagic",
+        "version": "5.41",
+        "software_version": "5.41",
+        "source_revision": null,
+        "raw_version": "file-5.41\nmagic file from /usr/share/file/magic",
+        "config": "MIME; serial",
+        "config_id": "b787da2e606b67698c800019a1796d4f0886cd50daaad253975768d057e9f6fb",
+        "configuration": {
+          "settings": {
+            "output": "NUL-framed MIME",
+            "resource_policy": "tool defaults"
+          },
+          "command": [
+            "/usr/bin/file",
+            "-0",
+            "-0",
+            "--mime-type",
+            "--no-pad",
+            "--magic-file",
+            "/usr/share/file/magic.mgc"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "808833b8da07e23b5cd32ef92460cfc4b80472e8ce612ebc39d3c5580afb98b5",
+        "executable_sha256": "a4ba66d26a9cfdc70637c78cdacef920f94147f6aa45ccc73858e493589ef94d",
+        "artifacts": {
+          "definitions": "38fc8af9d342a3a1d32a626195314a913ee255d8cbd259067d665ea55735b7c0"
+        }
+      },
+      "after_tool": {
+        "tool": "libmagic",
+        "version": "5.41",
+        "software_version": "5.41",
+        "source_revision": null,
+        "raw_version": "file-5.41\nmagic file from /usr/share/file/magic",
+        "config": "MIME; serial",
+        "config_id": "b787da2e606b67698c800019a1796d4f0886cd50daaad253975768d057e9f6fb",
+        "configuration": {
+          "settings": {
+            "output": "NUL-framed MIME",
+            "resource_policy": "tool defaults"
+          },
+          "command": [
+            "/usr/bin/file",
+            "-0",
+            "-0",
+            "--mime-type",
+            "--no-pad",
+            "--magic-file",
+            "/usr/share/file/magic.mgc"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "808833b8da07e23b5cd32ef92460cfc4b80472e8ce612ebc39d3c5580afb98b5",
+        "executable_sha256": "a4ba66d26a9cfdc70637c78cdacef920f94147f6aa45ccc73858e493589ef94d",
+        "artifacts": {
+          "definitions": "38fc8af9d342a3a1d32a626195314a913ee255d8cbd259067d665ea55735b7c0"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 1.6003340000000001,
+          "after_ms": 1.105,
+          "change_percent": -30.951913787996766
+        },
+        "2": {
+          "before_ms": 10.359292000000002,
+          "after_ms": 7.731166,
+          "change_percent": -25.369745345531346
+        },
+        "5": {
+          "before_ms": 9.12475,
+          "after_ms": 7.937958,
+          "change_percent": -13.006296062905843
+        },
+        "10": {
+          "before_ms": 16.40725,
+          "after_ms": 10.983708,
+          "change_percent": -33.05576498194396
+        },
+        "25": {
+          "before_ms": 9.994334,
+          "after_ms": 8.236208,
+          "change_percent": -17.591227189325476
+        },
+        "100": {
+          "before_ms": 77.63225,
+          "after_ms": 78.82629200000001,
+          "change_percent": 1.5380747047779808
+        },
+        "1000": {
+          "before_ms": 626.604292,
+          "after_ms": 630.3044580000001,
+          "change_percent": 0.5905107972034251
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.3329166666666667,
+          "precision": 0.966142684401451,
+          "decision_coverage": 0.34458333333333335,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.3329166666666667,
+          "precision": 0.966142684401451,
+          "decision_coverage": 0.34458333333333335,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "id": "trid",
+      "before_tool": {
+        "tool": "TrID",
+        "version": "2.48",
+        "software_version": "2.48",
+        "source_revision": null,
+        "raw_version": "TrID - File Identifier v2.48 - (C) 2003-2026 By Marco Pontello\n\nPlatform Informations\n  Operating System: Darwin\n  OS release: 25.5.0\n  OS details: macOS-26.5.2-arm64-arm-64bit-Mach-O\n  Machine architecture (CPU): arm64\n  Python: 3.14.4 (main, Apr 14 2026, 14:46:33)\n          [Clang 22.1.3 ]\n  Using Stringzilla: False",
+        "config": "strings=True; StringZilla=5.1.2",
+        "config_id": "cf7a7915cac9a37fdb262d23225710dd012a00a94643fa000de038b3c4e760b9",
+        "configuration": {
+          "settings": {
+            "resource_policy": "tool defaults",
+            "strings": true,
+            "stringzilla": "5.1.2"
+          },
+          "command": [
+            "/Users/elie/.local/share/uv/python/cpython-3.14.4-macos-aarch64-none/bin/python3.14",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/trid/trid.py",
+            "-d",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/trid/triddefs.trd"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "25209e1003e1393dee001c56ff193a828c9a3e84ceac724ff58edd85543fcf9f",
+        "executable_sha256": "bf4ea26231212e330b8e9b6f24969a30f894fec88665bf42754070d114ac7fc6",
+        "artifacts": {
+          "definitions": "eb9244ae3fc02d64a9f7ad8ac5b803b38a0cc9869d668108ad2d373320fefe71",
+          "script": "5e8b5a15168595de54c4e002a0082e221e7ee368225f2277ec2d7a5f81fa3897",
+          "stringzilla": "c07c42dfdbea10aa30d13f9588093d9e324f360203ef108e40998851c6100736"
+        }
+      },
+      "after_tool": {
+        "tool": "TrID",
+        "version": "2.48",
+        "software_version": "2.48",
+        "source_revision": null,
+        "raw_version": "TrID - File Identifier v2.48 - (C) 2003-2026 By Marco Pontello\n\nPlatform Informations\n  Operating System: Darwin\n  OS release: 25.5.0\n  OS details: macOS-26.5.2-arm64-arm-64bit-Mach-O\n  Machine architecture (CPU): arm64\n  Python: 3.14.4 (main, Apr 14 2026, 14:46:33)\n          [Clang 22.1.3 ]\n  Using Stringzilla: False",
+        "config": "strings=True; StringZilla=5.1.2",
+        "config_id": "cf7a7915cac9a37fdb262d23225710dd012a00a94643fa000de038b3c4e760b9",
+        "configuration": {
+          "settings": {
+            "resource_policy": "tool defaults",
+            "strings": true,
+            "stringzilla": "5.1.2"
+          },
+          "command": [
+            "/Users/elie/.local/share/uv/python/cpython-3.14.4-macos-aarch64-none/bin/python3.14",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/trid/trid.py",
+            "-d",
+            "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/trid/triddefs.trd"
+          ],
+          "environment": {
+            "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/perf-crc/libhs.dylib"
+          }
+        },
+        "build_id": "25209e1003e1393dee001c56ff193a828c9a3e84ceac724ff58edd85543fcf9f",
+        "executable_sha256": "bf4ea26231212e330b8e9b6f24969a30f894fec88665bf42754070d114ac7fc6",
+        "artifacts": {
+          "definitions": "eb9244ae3fc02d64a9f7ad8ac5b803b38a0cc9869d668108ad2d373320fefe71",
+          "script": "5e8b5a15168595de54c4e002a0082e221e7ee368225f2277ec2d7a5f81fa3897",
+          "stringzilla": "c07c42dfdbea10aa30d13f9588093d9e324f360203ef108e40998851c6100736"
+        }
+      },
+      "timings": {
+        "1": {
+          "before_ms": 95.114583,
+          "after_ms": 66.85308300000001,
+          "change_percent": -29.71310929260972
+        },
+        "2": {
+          "before_ms": 75.12866700000001,
+          "after_ms": 66.332291,
+          "change_percent": -11.708414845161574
+        },
+        "5": {
+          "before_ms": 75.02908300000001,
+          "after_ms": 68.19920800000001,
+          "change_percent": -9.102970110936848
+        },
+        "10": {
+          "before_ms": 99.48187500000002,
+          "after_ms": 83.654166,
+          "change_percent": -15.91014343065007
+        },
+        "25": {
+          "before_ms": 186.17125000000001,
+          "after_ms": 173.628625,
+          "change_percent": -6.737143893055464
+        },
+        "100": {
+          "before_ms": 197.238042,
+          "after_ms": 181.236667,
+          "change_percent": -8.112722493970004
+        },
+        "1000": {
+          "before_ms": 1685.3235419999999,
+          "after_ms": 1286.276042,
+          "change_percent": -23.677797767332198
+        }
+      },
+      "quality": {
+        "before": {
+          "accuracy": 0.42583333333333334,
+          "precision": 0.906832298136646,
+          "decision_coverage": 0.46958333333333335,
+          "errors": 0
+        },
+        "after": {
+          "accuracy": 0.42583333333333334,
+          "precision": 0.906832298136646,
+          "decision_coverage": 0.46958333333333335,
+          "errors": 0
+        }
+      }
+    }
+  ]
+}

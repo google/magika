@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "measured_at_utc": "2026-09-09T01:41:08Z",
+  "method": "fresh process, CPU ABI create(1), library loaded before interval",
+  "rows": [
+    {
+      "shared_prepare_ns": 15986750,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 14803416,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2171041,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1955459,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2122500,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1980500,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2067417,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1932166,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2113625,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1888083,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2103125,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1889875,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2088375,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1978250,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2081250,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1921292,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2120917,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1985625,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2109708,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1940542,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2114166,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1931208,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    },
+    {
+      "shared_prepare_ns": 2154292,
+      "variant": "before",
+      "library_sha256": "568d574aedea1ca241e6c0e18313b4a7aa5206fa545a2746a58ec7687ee02dc4"
+    },
+    {
+      "shared_prepare_ns": 1971834,
+      "variant": "after",
+      "library_sha256": "a49ba76851db7613d15b782ec74802bb3e243b29929eeef76454397e6b1f5ee5"
+    }
+  ]
+}

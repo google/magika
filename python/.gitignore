@@ -10,3 +10,6 @@ venv/
 dist/*
 *.pickle
 .s.yml
+
+# Generated native runtime files for binary wheels.
+/magika.data/

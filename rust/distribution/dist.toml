@@ -1,0 +1,13 @@
+[package]
+name = "magika-cli"
+version = "2.0.0-dev"
+description = "Determines file content types using AI"
+repository = "https://github.com/google/magika"
+license = "Apache-2.0"
+binaries = ["magika"]
+cdylibs = ["magika_runtime_cpu", "magika_runtime_gpu"]
+build-command = ["python3", "build.py"]
+
+[dist]
+package-libraries = ["cdylib"]
+install-libraries = ["cdylib"]

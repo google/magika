@@ -1,0 +1,362 @@
+{
+  "access": {
+    "description": "Microsoft Access database",
+    "extensions": [
+      "accdb",
+      "mdb"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "aout": {
+    "description": "a.out object / executable",
+    "extensions": [
+      "out"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  },
+  "bam": {
+    "description": "BAM alignment",
+    "extensions": [
+      "bam"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "beam": {
+    "description": "Erlang BEAM",
+    "extensions": [
+      "beam"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  },
+  "berkeleydb": {
+    "description": "Berkeley DB",
+    "extensions": [
+      "db"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "blend": {
+    "description": "Blender scene",
+    "extensions": [
+      "blend"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "cinema4d": {
+    "description": "Cinema 4D scene",
+    "extensions": [
+      "c4d"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "cram": {
+    "description": "CRAM alignment",
+    "extensions": [
+      "cram"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "dbase": {
+    "description": "dBASE / FoxPro table",
+    "extensions": [
+      "dbf"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "duckdb": {
+    "description": "DuckDB database",
+    "extensions": [
+      "duckdb"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "fbx": {
+    "description": "Autodesk FBX",
+    "extensions": [
+      "fbx"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "filemaker": {
+    "description": "FileMaker database",
+    "extensions": [
+      "fmp12",
+      "fp7"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "fits": {
+    "description": "FITS astronomy data",
+    "extensions": [
+      "fit",
+      "fits",
+      "fts"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "flatgeobuf": {
+    "description": "FlatGeobuf",
+    "extensions": [
+      "fgb"
+    ],
+    "group": "gis",
+    "is_text": false,
+    "mime_type": null
+  },
+  "gguf": {
+    "description": "GGUF",
+    "extensions": [
+      "gguf"
+    ],
+    "group": "model",
+    "is_text": false,
+    "mime_type": null
+  },
+  "gltf": {
+    "description": "glTF",
+    "extensions": [
+      "glb",
+      "gltf"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "hdf4": {
+    "description": "HDF4",
+    "extensions": [
+      "h4",
+      "hdf"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "lightwave": {
+    "description": "LightWave object / scene",
+    "extensions": [
+      "lwo",
+      "lws"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "llvm_bitcode": {
+    "description": "LLVM bitcode",
+    "extensions": [
+      "bc"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  },
+  "lmdb": {
+    "description": "LMDB",
+    "extensions": [
+      "mdb"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "luabytecode": {
+    "description": "Lua bytecode",
+    "extensions": [
+      "luac"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  },
+  "mat": {
+    "description": "MATLAB MAT data",
+    "extensions": [
+      "mat"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "netcdf": {
+    "description": "NetCDF",
+    "extensions": [
+      "cdf",
+      "nc"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "orc": {
+    "description": "Apache ORC",
+    "extensions": [
+      "orc"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "paradox": {
+    "description": "Paradox database",
+    "extensions": [
+      "db"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "pcapng": {
+    "description": "Packet capture PCAPNG",
+    "extensions": [
+      "pcapng"
+    ],
+    "group": "binary",
+    "is_text": false,
+    "mime_type": null
+  },
+  "postgres_dump": {
+    "description": "PostgreSQL dump",
+    "extensions": [
+      "backup",
+      "dump",
+      "sql"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "rdata": {
+    "description": "R serialized data",
+    "extensions": [
+      "rda",
+      "rdata",
+      "rds"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "redis_rdb": {
+    "description": "Redis snapshot",
+    "extensions": [
+      "rdb"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "rhinoceros": {
+    "description": "Rhino 3DM",
+    "extensions": [
+      "3dm"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "sas": {
+    "description": "SAS dataset / transport",
+    "extensions": [
+      "sas7bdat",
+      "xpt"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "shapefile": {
+    "description": "ESRI Shapefile",
+    "extensions": [
+      "dbf",
+      "prj",
+      "shp",
+      "shx"
+    ],
+    "group": "gis",
+    "is_text": false,
+    "mime_type": null
+  },
+  "sketchup": {
+    "description": "SketchUp model",
+    "extensions": [
+      "skp"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "spirv": {
+    "description": "SPIR-V",
+    "extensions": [
+      "spv"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  },
+  "spss": {
+    "description": "SPSS dataset",
+    "extensions": [
+      "por",
+      "sav",
+      "zsav"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "stata": {
+    "description": "Stata dataset",
+    "extensions": [
+      "dta"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "uf2": {
+    "description": "UF2 firmware",
+    "extensions": [
+      "uf2"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  },
+  "xcoff": {
+    "description": "XCOFF",
+    "extensions": [
+      "o"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-09-09T01:44:30Z",
+  "source_revision": "754c063e2a1ec6a81d54456d7e00323c2c68e02e",
+  "source_dirty": true,
+  "benchmark_run": "rules/benchmarks/results/v1/2026-09-09-754c063e-fusion",
+  "original_handoff_sha256": "02837addff2666e9815d11eea47f6dac1dbc3b066a30950a396a4f8e3daf6307",
+  "files": {
+    "preparation.json": "38e7d3edf49e008fae5bad7d7e8f1f4f382754fce1389fc3ce4940de470354f8",
+    "thread-default.json": "6a8bd64fbd9eec92a059631c470401bac28cdbc2bd5d93ddc905e87a04acd863",
+    "crc-oracle.json": "8d704e8405b7ceb4474352dc7cf73d4bfbb1fae5c19b4e6241c5cf117612325f",
+    "confirmation-5.json": "c660e3d8c1ce712615b70f05593d2589120b67341f06d7861cf76f17f5d12716",
+    "fusion-profile.json": "d6e3d7fc378d290c4488a38fc82d427027df4cedd050241bf133e3452c27307f",
+    "measurements.md": "572520972787233ce39618b2ddad1a3fe639e69cd46781c11037766dd5aee81b",
+    "unfused-model.graph.json": "33d3850b98188be9b575b646891db379ad7947d506c71b0d53afcefb96d076b6",
+    "fusion-regression.log": "8c22dba1cd07d039b56d17c261f2e2729454500f8809ab0b2006aae39a6c5d60",
+    "handoff-clippy.log": "0849e1825ba46129caed0190357a2bd2dfcc48969fb6298fde3903e9aa91e1eb",
+    "patched-crc-rules-tests.log": "dc8389ee57f5c5f7d8468b64d2b2e566e282569c93467c5aac0e78fab9c5b8eb",
+    "fusion-profile.log": "e288824a889915d38bf1eb493515283270636fd2ff599095536d82d0d74f6785",
+    "crc-cmake-command.txt": "9948bd934bcaf2f062dae7acf6f39bbb8aa60c6773cd595fd84b25cdd066f2bc",
+    "confirmation-1000.json": "5ee3048fb95ba2ad62882d636285f6f8042de163ae514fee50034c1d8c581e68",
+    "dispositions.md": "e1c2f5ec8d596ae692ba1d624e21556d5a66308b8de8a20886df9d1d7e446803",
+    "handoff-cli-tests.log": "ed96f3e9605561d9989bf879b5590b61d9faf1ef0294136dff45b1b39c951244",
+    "prepare.py": "980576bb8fc054c1f500c660c57823f8da931e428aff8b6de4683211f3aedc1d",
+    "crc-scratch.json": "bc6e6fa6405d05e3420d9ac0f60e091de58c170e0c3e08f37291d6a72224b208",
+    "teardown.json": "73b3db88c6fcd403a2e7ad15ee7825560360083f1894bf29a94a37f81a4201df"
+  },
+  "generator_sha256": "42645b39625f4282ca4f5c51a675937fc17473995334b1873b08f8eff48d66c9",
+  "previous_receipt": {
+    "git_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+    "sha256": "0969824a4f3dd1f31a095c244d3fa823341d5d4dedfd397cfe1a4b5bd074d4f3"
+  }
+}

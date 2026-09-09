@@ -1,0 +1,22 @@
+[package]
+name = "magika-runtime-plugin"
+version = "0.0.1-dev"
+edition = "2024"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1"
+magika-runtime-abi = { version = "0.0.1-dev", path = "../runtime-abi" }
+magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime", default-features = false }
+
+[features]
+metal = ["magika-tract-runtime/metal"]
+cuda = ["magika-tract-runtime/cuda"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+

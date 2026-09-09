@@ -1,14 +1,74 @@
 # Magika tract runtime
 
 This crate is the inference layer shared by the Rust `magika` library, CLI, and runtime benchmark.
-It loads the checked NNEF release artifact, binds fixed batch classes `1, 4, 8, 16, 32, 64`, and
+It loads release-generated portable graphs and shared weights for batch classes `1, 4, 8, 16, 32, 64`, and
 prepares their target-specific tract plans once. Each inference thread then spawns private mutable
-state from those shared plans.
+state from those shared plans. When a CPU caller declares a maximum batch, only its largest
+reachable plan is prepared; smaller requests pad through that plan and discard padding outputs.
+This keeps partial batches from allocating additional execution states. CPU convolution fusion
+applies to every batch class. Regenerate the graphs from the verified NNEF model with:
+
+```sh
+cargo run --release --manifest-path rust/tract-bench/Cargo.toml --no-default-features \
+  --features convert --bin export-runtime -- \
+  rust/tract-runtime/models/model.nnef.tgz /absolute/path/to/new-artifact
+```
+
+Compare scores and decisions before replacing the shipped graph. The release qualification
+tests check every batch class against the source model; graph generation alone is not validation.
 
 The public device choice is intentionally generic: automatic, CPU, or GPU. On macOS the compiled
 GPU implementation is Metal. CUDA can be compiled on supported systems with the `cuda` feature.
+The CLI enables CUDA only outside macOS, where that backend is reachable.
 Callers do not select Metal or CUDA directly; the resolved implementation is available through
 `BackendInfo` for verbose diagnostics.
 
+Automatic selection attempts GPU preparation and its correctness probe, then falls
+back to CPU if either fails. It reports the selected backend through `BackendInfo`;
+it does not retain a diagnostic history of rejected GPU candidates. Request `Gpu`
+explicitly when GPU initialization or probe errors need to reach the caller.
+Preparation is synchronous and has no driver timeout. Explicit `Cpu` skips GPU
+initialization entirely. Startup latency and steady-state throughput are separate
+measurements in the existing benchmark; a faster GPU inference rate alone does not
+establish lower latency for a short command.
+
+The CLI uses CPU directly for one explicitly supplied nonrecursive input in Auto
+mode, avoiding GPU preparation for that known small request. Explicit GPU and
+larger or recursive requests retain the existing device-selection behavior.
+
+CUDA hardware execution has not been qualified by the current CI, which checks
+that the CUDA feature compiles. In particular, cudarc 0.19.9 loads CUDA/NVRTC by
+library name; on Windows its default DLL search can include the current directory.
+The secure loader for optional signature rules does not protect these separate
+CUDA loads. Windows CUDA remains a release hold pending secure dependency loading
+and hardware execution tests. Explicit CPU skips these CUDA loads; this is a
+known limitation, not a claim that the loader issue has been fixed.
+
 Inference is synchronous. Async file reading and batch accumulation belong above this crate, so
 CPU- or GPU-bound model execution never occupies an async executor thread.
+
+GPU preparation retains the model's original normalization variance expression,
+`max(E[x*x] - E[x]*E[x], 0)`. Replacing it with the mean squared centered input changes
+floating-point behavior, especially for nearly constant activations. CPU and GPU kernels can
+still accumulate in different orders. The startup probe checks every row of every resident GPU batch plan using a stored CPU
+reference for one repeated input;
+it does not establish score agreement for every file or batch class.
+
+Confidence scores can vary with the backend, batch class and position within a batch because
+floating-point reductions can run in different orders. Regression qualification checks final
+classification and overwrite decisions across varied reference files and every batch class.
+
+The existing `MAGIKA_DIRECT_TILE_COLUMNS` and `MAGIKA_DIRECT_TILE_BATCHES` environment variables
+control CPU convolution tiling when plans are prepared. Both accept positive integers, clamped
+to the graph's columns or batch count. `TILE_COLUMNS` takes precedence for the column tile;
+setting `TILE_BATCHES` selects batch-based tiling instead of the x86 default. They can change
+kernel selection, speed and floating-point rounding. See the [existing benchmark](../tract-bench/README.md#retuning-the-x86_64-convolution-tile)
+for measuring a tuning change on the target machine. These controls do not change GPU tiling.
+
+GPU convolution expands an intermediate tensor to `[batch, 508, 1280]` f32 values: 83,230,720
+bytes at batch 32 and 166,461,440 bytes at batch 64. Those are individual tensor sizes, not
+measurements of peak memory; weights, other intermediates and concurrently active session
+states add to memory use. `with_max_batch` limits the prepared GPU batch classes, and session
+execution states are created when a class first runs. CPU plans explicitly use tract's
+single-thread executor; GPU plans use the GPU runtime's executor settings. In an embedding
+application, changing tract's global executor can affect CPU operations within GPU plans.

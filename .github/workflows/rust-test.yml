@@ -9,6 +9,7 @@ on:
     paths:
       - ".github/workflows/rust-*"
       - "assets/**"
+      - "rules/**"
       - "rust/**"
       - "tests_data/**"
 
@@ -16,11 +17,21 @@ permissions:
   contents: read
 
 jobs:
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install 1.93.0 --profile minimal
+      - run: cargo +1.93.0 check --locked --manifest-path rust/lib/Cargo.toml --all-features --all-targets
+      - run: cargo +1.93.0 check --locked --manifest-path rust/cli/Cargo.toml --all-features --all-targets
   changelog:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
+          persist-credentials: false
           fetch-depth: 0
       - run: ./changelog.sh
         working-directory: rust
@@ -32,6 +43,15 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: rustup default ${{ matrix.toolchain }}
       - run: rustup component add rustfmt clippy
       - run: ./test.sh
@@ -40,6 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
       - run: rustup default stable
       - run: rustup component add rustfmt clippy
       - run: ./test.sh
@@ -55,6 +77,15 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: rustup default stable
       - run: rustup component add rustfmt clippy
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
@@ -76,6 +107,8 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
       - run: rustup default stable
       - run: rust/tract-bench/scripts/verify-model-conversion.sh
         shell: bash
@@ -91,6 +124,111 @@ jobs:
         os: [ubuntu, macos, windows]
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: cargo build --profile=release-fast
         working-directory: rust/cli
       - run: rust/target/release-fast/magika -r tests_data/basic
+  rules:
+    name: Optional rules (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
+      - run: rustup default stable
+      - run: rustup component add rustfmt clippy
+      - run: cargo test --locked
+        working-directory: rust/lib
+      - run: cargo test --locked --features yara-rules
+        working-directory: rust/lib
+      - run: cargo clippy --locked --features yara-rules --all-targets -- -D warnings
+        working-directory: rust/lib
+      - run: cargo test --locked
+        working-directory: rust/cli
+      - run: cargo test --locked --features yara-rules
+        working-directory: rust/cli
+  rules-native:
+    name: Rules parity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
+      - run: rustup default stable
+      - name: Install native build dependencies
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install ragel boost cmake
+          else
+            sudo apt-get update
+            sudo apt-get install -y ragel libboost-dev cmake
+          fi
+          python3 -m venv "$RUNNER_TEMP/uv"
+          "$RUNNER_TEMP/uv/bin/pip" install uv==0.8.22
+          echo "$RUNNER_TEMP/uv/bin" >> "$GITHUB_PATH"
+      - name: Build pinned Vectorscan
+        shell: bash
+        run: |
+          git init "$RUNNER_TEMP/vectorscan"
+          git -C "$RUNNER_TEMP/vectorscan" fetch --depth 1 https://github.com/VectorCamp/vectorscan.git acd7363aadea43da9c5246542d9969db843dd132
+          git -C "$RUNNER_TEMP/vectorscan" checkout --detach FETCH_HEAD
+          git -C "$RUNNER_TEMP/vectorscan" apply "$GITHUB_WORKSPACE/rules/native/arm-crc32c.patch"
+          cmake -S "$RUNNER_TEMP/vectorscan" -B "$RUNNER_TEMP/vectorscan-build" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON \
+            -DBUILD_UNIT=OFF -DBUILD_EXAMPLES=OFF -DFAT_RUNTIME=OFF
+          # Parity uses libhs only; optional upstream tools require unrelated PCRE headers.
+          cmake --build "$RUNNER_TEMP/vectorscan-build" --target hs_shared --parallel 2
+          if [[ "$RUNNER_OS" == "macOS" && "$(uname -m)" == "arm64" ]]; then
+            cc -O2 -g -fsanitize=address,undefined -march=armv8-a+crc \
+              -I "$RUNNER_TEMP/vectorscan-build" -I "$RUNNER_TEMP/vectorscan" \
+              -I "$RUNNER_TEMP/vectorscan/src" \
+              rules/native/crc32c_test.c "$RUNNER_TEMP/vectorscan/src/crc32.c" \
+              -o "$RUNNER_TEMP/crc32c-test"
+            ASAN_OPTIONS=detect_leaks=0 "$RUNNER_TEMP/crc32c-test"
+          fi
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "MAGIKA_VECTORSCAN_LIBRARY=$RUNNER_TEMP/vectorscan-build/lib/libhs.dylib" >> "$GITHUB_ENV"
+          else
+            echo "MAGIKA_VECTORSCAN_LIBRARY=$RUNNER_TEMP/vectorscan-build/lib/libhs.so" >> "$GITHUB_ENV"
+          fi
+          echo "MAGIKA_TEST_BINARY=$GITHUB_WORKSPACE/rust/target/debug/magika" >> "$GITHUB_ENV"
+      - run: cargo build --locked --manifest-path rust/cli/Cargo.toml --features yara-rules
+      - run: env MAGIKA_RULES_MMAP=0 cargo test --locked --manifest-path rust/lib/Cargo.toml --features yara-rules -- --include-ignored --skip rules::cache::tests::process_probe --skip rules::cache::mapped_tests --skip rules::mapped
+      - run: cargo test --locked --manifest-path rust/lib/Cargo.toml --features yara-rules mapped_ -- --ignored
+      - run: cargo test --locked --manifest-path rust/cli/Cargo.toml --features yara-rules -- --include-ignored
+      - run: uv sync --directory rules --locked
+      - run: uv run --directory rules --locked ruff check .
+      - run: uv run --directory rules --locked ruff format --check .
+      - run: uv run --directory rules --locked pytest --run-native --run-packaging

@@ -1,0 +1,27 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_source_stage_contains_canonical_inputs_and_no_research __________
+
+tmp_path = PosixPath('/private/var/folders/l5/jg8zh4215ll399vd5mcp9sp40000gn/T/pytest-of-elie/pytest-5111/test_source_stage_contains_can0')
+
+    def test_source_stage_contains_canonical_inputs_and_no_research(tmp_path):
+        library = stage(tmp_path / "source")
+        assert (library / "README.md").read_bytes() == (ROOT.parent / "rust/lib/README.md").read_bytes()
+        for bucket in ("full", "partial", "notworking"):
+            assert (library / "rulesets" / bucket / "formats.yar").read_bytes() == (
+                ROOT / "rulesets" / bucket / "formats.yar"
+            ).read_bytes()
+        assert (library / "RULES-LICENSES").read_bytes() == (ROOT / "LICENSES").read_bytes()
+        assert not (library / "src/rules/promoted.yar").exists()
+        for crate in ("runtime", "runtime-abi"):
+            manifest = library.parent / crate / "Cargo.toml"
+>           assert manifest.is_file(), f"missing local runtime dependency {crate}"
+E           AssertionError: missing local runtime dependency runtime
+E           assert False
+E            +  where False = is_file()
+E            +    where is_file = PosixPath('/private/var/folders/l5/jg8zh4215ll399vd5mcp9sp40000gn/T/pytest-of-elie/pytest-5111/test_source_stage_contains_can0/source/runtime/Cargo.toml').is_file
+
+rules/benchmark/tests/test_packaging.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED rules/benchmark/tests/test_packaging.py::test_source_stage_contains_canonical_inputs_and_no_research
+1 failed, 4 deselected in 0.08s

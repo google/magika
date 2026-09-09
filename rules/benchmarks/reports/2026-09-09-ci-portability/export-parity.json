@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "timestamp": "2026-09-09T02:26:29.310486+00:00",
+  "source_revision": "14efd02eaedadb184fc99845b1466d1d5c04021b",
+  "source_dirty": true,
+  "export_target": "x86_64-apple-darwin",
+  "execution_host": "arm64",
+  "release_weights_sha256": "84d629f69b8e86733056b7a382a0c757a76fa54bd25f186f7ecebda5124135e2",
+  "candidate_weights_sha256": "ee627e1b076e534b29b26814e68312f65523bf411f57de75c406b1768b9a8aff",
+  "graph_byte_identical": true,
+  "different_parameters": [
+    {
+      "parameter": 0,
+      "shape": [
+        257,
+        64
+      ],
+      "max_absolute_error": 1.1920928955078125e-07
+    }
+  ],
+  "candidate_execution_log": "\nrunning 1 test\ntest artifact::tests::exported_cpu_artifact_preserves_release_contract ... exported_embedding_max_error\t1.1920929e-7\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 8.61s\n\n",
+  "negative_cases": [
+    {
+      "case": "folded-large-change",
+      "rejected": true,
+      "output": "\nrunning 1 test\ntest artifact::tests::exported_cpu_artifact_preserves_release_contract ... FAILED\n\nfailures:\n\nfailures:\n    artifact::tests::exported_cpu_artifact_preserves_release_contract\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.01s\n\nError: folded embedding error 5.97706e-1\n"
+    },
+    {
+      "case": "unfolded-weight-change",
+      "rejected": true,
+      "output": "\nrunning 1 test\nexported_embedding_max_error\t0e0\ntest artifact::tests::exported_cpu_artifact_preserves_release_contract ... FAILED\n\nfailures:\n\nfailures:\n    artifact::tests::exported_cpu_artifact_preserves_release_contract\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s\n\nError: unfolded parameter 1 changed\n"
+    }
+  ],
+  "ci_red": {
+    "url": "https://github.com/google/magika/actions/runs/34301988264/job/102310645229",
+    "failure": "Portable weights differ at byte9; repeated same-host exports and graph comparison passed before this cross-host byte comparison."
+  },
+  "contract": {
+    "same_host_export": "byte identical",
+    "graph": "byte identical",
+    "unfolded_parameters": "byte identical",
+    "folded_embedding_max_absolute_error": 1e-05,
+    "output_max_absolute_error": 1e-05,
+    "winning_labels": "identical",
+    "confidence_threshold_decisions": "identical",
+    "batches": [
+      1,
+      4,
+      8,
+      16,
+      32,
+      64
+    ]
+  }
+}

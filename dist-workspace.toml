@@ -1,5 +1,5 @@
 [workspace]
-members = ["cargo:rust/cli"]
+members = ["dist:rust/distribution"]
 
 # Config for 'dist'
 [dist]
@@ -9,6 +9,7 @@ allow-dirty = ["ci"]
 cargo-dist-version = "0.31.0"
 # CI backends to support
 ci = "github"
+pr-run-mode = "upload"
 # The installers to generate for each app
 installers = ["shell", "powershell"]
 # Target platforms to build apps for (Rust target-triple syntax)

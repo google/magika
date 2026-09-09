@@ -31,7 +31,7 @@ fail() {
   fi
 }
 
-for dir in lib cli; do
+for dir in lib cli tract-runtime; do
   ( cd $dir
     info "Checking $dir"
     ref=$(git log -n1 --pretty=format:%H origin/main.. -- CHANGELOG.md)
@@ -39,7 +39,7 @@ for dir in lib cli; do
     git diff --quiet $ref -- Cargo.toml src || fail stale $dir
     cver="$(sed -n '3s/^## //p' CHANGELOG.md)"
     [ -n "$cver" ] || fail format $dir
-    pver="$(sed -n '/^\[package]$/,/^$/{s/^version = "\(.*\)"$/\1/p}' Cargo.toml)"
+    pver="$(sed -n '/^\[package]$/,/^$/s/^version = "\(.*\)"$/\1/p' Cargo.toml)"
     [ "$pver" = "$cver" ] || fail diff $dir
   )
 done

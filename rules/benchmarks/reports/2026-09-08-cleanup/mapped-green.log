@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running unittests src/lib.rs (rust/target/debug/deps/magika-b94506eef8833578)
+
+running 3 tests
+test rules::mapped::tests::mapped_image_is_relocatable_readonly_and_lives_with_worker ... ok
+test rules::mapped::tests::mapped_bounds_and_versions_are_checked_before_native_access ... ok
+test rules::cache::mapped_tests::mapped_pack_validation_and_source_changes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 39 filtered out; finished in 0.04s
+
+     Running tests/rules_loading.rs (rust/target/debug/deps/rules_loading-c0f0f36bb579ff3a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

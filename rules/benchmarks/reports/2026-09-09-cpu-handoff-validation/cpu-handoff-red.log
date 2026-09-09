@@ -1,0 +1,24 @@
+   Compiling magika-cli v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.57s
+     Running unittests src/main.rs (rust/target/debug/deps/magika-fc7bb32364c5b9bc)
+
+running 1 test
+test reorder_tests::cpu_workers_finish_claimed_work_and_leave_queued_batches_for_ready_gpu ... FAILED
+
+failures:
+
+---- reorder_tests::cpu_workers_finish_claimed_work_and_leave_queued_batches_for_ready_gpu stdout ----
+
+thread 'reorder_tests::cpu_workers_finish_claimed_work_and_leave_queued_batches_for_ready_gpu' (190105327) panicked at src/main.rs:1602:9:
+assertion `left == right` failed: CPU worker must retire after its claimed batch
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    reorder_tests::cpu_workers_finish_claimed_work_and_leave_queued_batches_for_ready_gpu
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `--bin magika`

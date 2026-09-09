@@ -1,0 +1,12 @@
+{
+  "schema": 2,
+  "code_sha256": {
+    "full_table.py": "0701388b6fa5b9ed957697e690a41fe430cf842cbaebd9e3834f0b973101befe",
+    "catalog.py": "cda952cc0247360e3992be9772fd381ea63cb8613e4dd4cd54424a4f27ab87a3",
+    "../benchmark/src/magika_rules_benchmark/identity.py": "49c5f2de3515e2e84b69c03c3579ae57f2d693053d628439e1498346228643d8"
+  },
+  "files": {
+    "overview.json": "ce9406d98e90f42e125fc3f6a01acdc830cc724d510789d287c386b87f2e332b",
+    "overview.md": "a28407d4a40d3b8a77078177fe27612eca2d4e16762d658387b31f9d148df1c5"
+  }
+}

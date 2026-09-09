@@ -1,0 +1,32 @@
+{
+  "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb": {
+    "id": "adjudicated-combined",
+    "name": "Adjudicated combined corpus",
+    "version": "snapshot-1411a5c0fd4a",
+    "source_files": 25421,
+    "selection": "validated combined snapshot with APK patch 136",
+    "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
+    "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
+    "scored_files": 25421
+  },
+  "a8717d6c58c4487fd92096efc03eb7155fa867efa4ac9a3da39da2ceaa45810a": {
+    "id": "sembiance",
+    "name": "Sembiance",
+    "version": "v3",
+    "source_files": 33421,
+    "selection": "evaluation_eligible",
+    "source_manifest_sha256": "08b5a1684079ca9a95360d4c4e868fe3a9d7c9b64d21bba0cd6f75c71eeeb252",
+    "corpus_sha256": "a8717d6c58c4487fd92096efc03eb7155fa867efa4ac9a3da39da2ceaa45810a",
+    "scored_files": 2400
+  },
+  "8ebfde0fc8304792c0553f6533e4047a4154fc1def0facfe48f4a9a0f0874f34": {
+    "id": "adjudicated-combined",
+    "name": "Adjudicated combined corpus \u2014 natural workload subset",
+    "version": "snapshot-1411a5c0fd4a-natural-workloads",
+    "source_files": 25421,
+    "scored_files": 1018,
+    "selection": "union of saved natural 1,2,5,10,1000-file workloads",
+    "corpus_sha256": "8ebfde0fc8304792c0553f6533e4047a4154fc1def0facfe48f4a9a0f0874f34",
+    "parent_snapshot": "snapshot-1411a5c0fd4a"
+  }
+}

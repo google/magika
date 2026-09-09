@@ -3,6 +3,10 @@
 This binary crate implements a command-line interface (CLI) to the library crate
 [magika](https://crates.io/crates/magika) which provides file content type detection using AI.
 
+For piped input, pass the literal path `-`, for example `cat sample.bin | magika -`.
+Named input paths must be regular files (or directories for traversal); device paths
+such as `/dev/stdin` and process-substitution paths are not substitutes for `-`.
+
 ## Disclaimer
 
 This project is not an official Google project. It is not supported by Google and Google
@@ -41,29 +45,30 @@ You can install the latest version from a powershell:
 powershell -ExecutionPolicy Bypass -c "irm https://securityresearch.google/magika/install.ps1 | iex"
 ```
 
-You can install the latest version from crates.io:
+Magika 2 loads inference runtimes on demand. The installers and binary Python
+wheels include those libraries. A bare `cargo install` installs only the executable;
+it requires matching libraries supplied through `MAGIKA_RUNTIME_DIR`.
 
-```shell
-cargo install --locked magika-cli
-```
-
-It is also possible to install from the git repository, in which case the version (accessible with
-`magika --version`) will be suffixed by `-dev` (e.g. `0.1.0-dev`) to indicate that the binary is the
-development version of the version prefix (e.g. `0.1.0` for the previous example).
-
-To install the latest version from the git repository:
-
-```shell
-cargo install --locked --git=https://github.com/google/magika.git magika-cli
-```
-
-To install from a local clone of the git repository (possibly with custom changes):
+To build a complete directory from a local clone (possibly with custom changes):
 
 ```shell
 git clone https://github.com/google/magika.git
 cd magika
-cargo install --locked --path=rust/cli
+python3 rust/build-runtime.py --output "$PWD/tmp/magika-dist"
+tmp/magika-dist/magika --backend=cpu tests_data/basic/rust/code.rs
 ```
+
+Add `--gpu metal` on macOS or `--gpu cuda` on CUDA hosts. Keep the executable and
+its `lib/` directory together. See [runtime packaging](../runtime/README.md).
+
+### Optional signature rules
+
+Standard CLI installers and the source helper enable the optional `yara-rules`
+feature; binary Python wheels do not. Follow the
+[native-engine installation instructions](../../rules/README.md#native-engine-installation)
+to supply its native library.
+`MAGIKA_VECTORSCAN_LIBRARY` selects the native library; `MAGIKA_RULES_CACHE` optionally
+selects the compiled-rule cache. Enforcement remains off until `--rules=enforce`.
 
 ## Examples
 
@@ -136,6 +141,21 @@ Arguments:
           Use a dash (-) to read from standard input (can only be used once).
 
 Options:
+      --rules <RULES>
+          Selects off, enforce (ML fallback), or only (unknown on misses; no model). Requires the yara-rules feature unless off
+
+          [default: off]
+          [possible values: off, enforce, only]
+
+      --rules-file <RULES_FILE>
+          Loads a YARA pack with per-rule enforcement metadata. Requires --rules=enforce or --rules=only
+
+      --compile-rules <COMPILE_RULES>
+          Compiles a YARA file to a sibling .hsdb file and exits; refuses to overwrite
+
+      --write-default-rules <WRITE_DEFAULT_RULES>
+          Writes the bundled YARA source to a new file and exits
+
   -r, --recursive
           Identifies files within directories instead of identifying the directory itself
 
@@ -190,3 +210,39 @@ Options:
 See the [docs on Magika's core
 concepts](https://securityresearch.google/magika/core-concepts/how-magika-works/) for more details
 about the output format and other important aspects.
+
+## Rule and inference concurrency
+
+For exactly one non-recursive input (including `-`), automatic backend selection
+uses a CPU batch-one plan. All modes cap known two/three-file requests to avoid
+padding through a larger CPU plan. Recursive and larger requests retain the bulk
+batch policy; the CLI does not prewalk directories to estimate their file counts.
+
+The CLI prepares the model on a background coordinator while its readers extract and classify
+files. Rule hits can reach ordered output before model preparation completes; misses queue in
+bounded inference batches. CPU inference starts as soon as its model is ready.
+In `--backend auto` and `--backend gpu`, GPU preparation then runs in the background
+while CPU workers process files. Neither mode waits for GPU preparation when the
+input is exhausted; failed GPU preparation leaves CPU processing available.
+
+GPU mode prefers the GPU as soon as it is ready. Auto uses it for batches with at
+least eight files; small tails stay on CPU. At most the normal GPU worker count
+uses GPU sessions; other workers finish their current CPU batch and retire once
+GPU work starts. Each worker owns its sessions,
+and output retains input order across both backends. These modes can therefore
+produce CPU results during warmup and GPU results later in the same invocation.
+Explicit CPU mode never loads the GPU. `--backend-info` remains a synchronous
+availability diagnostic; `--backend gpu --backend-info` requires a working GPU.
+
+On CPU, a declared maximum batch retains one model plan. Partial batches are padded through that
+plan and padding outputs are discarded, avoiding extra unfused plans and their retained buffers.
+When traversal fills the bounded output window, it requests a batch flush after the outstanding
+reads complete. Scheduling delays never trigger partial inference batches.
+
+CPU session buffers scale with the inference worker count and batch size; sharing
+model plans does not share each worker's mutable execution buffers. The default CPU
+worker count follows available parallelism (including CPU quota and affinity),
+capped at 256. On x86_64 Linux it uses all available logical CPUs up to that cap;
+other targets reserve one when possible. `--threads` and `--batch-size` control
+the concurrency and batch size when memory is constrained. GPU concurrency has a
+separate, smaller default limit. Reducing these settings also changes throughput.

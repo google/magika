@@ -1,8 +1,9 @@
 [package]
 name = "magika-cli"
-version = "1.2.0-dev"
+version = "2.0.0-dev"
 license = "Apache-2.0"
 edition = "2021"
+rust-version = "1.93"
 description = "Determines file content types using AI"
 repository = "https://github.com/google/magika"
 homepage = "https://securityresearch.google/magika"
@@ -20,11 +21,16 @@ clap = { version = "4.5.9", features = ["cargo", "derive", "string"] }
 colored = "3.0.0"
 cpu-time = { version = "1.0.0", optional = true }
 crossbeam-channel = "0.5.16"
-magika = { version = "2.0.0-dev", path = "../lib", features = ["cuda", "serde"] }
+magika = { version = "2.0.0-dev", path = "../lib", features = ["serde"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 
+# macOS uses Metal; CUDA is reachable only on the other targets.
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+magika = { version = "2.0.0-dev", path = "../lib", features = ["cuda"] }
+
 [features]
+yara-rules = ["magika/yara-rules"]
 _trace = ["dep:cpu-time"]
 
 [profile.release]

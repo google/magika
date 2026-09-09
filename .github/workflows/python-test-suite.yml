@@ -9,6 +9,7 @@ on:
     paths:
       - "python/**"
       - "rust/**"
+      - "rules/**"
       - "tests_data/**"
       - ".github/workflows/python-test-suite.yml"
 
@@ -68,6 +69,12 @@ jobs:
         working-directory: python
         run: uv run --python ${{ matrix.python-version }} magika --version
         shell: bash # Allows for cross-platform
+
+      - name: Build native backend for the editable Rust CLI
+        shell: bash
+        run: |
+          python3 rust/build-runtime.py --backends-only --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
 
       - name: Run magika with tests_data
         working-directory: python

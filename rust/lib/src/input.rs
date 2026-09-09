@@ -17,7 +17,7 @@ use std::io::{Read, Seek, SeekFrom};
 use anyhow::Result;
 
 use crate::config::ModelConfig;
-use crate::ContentType;
+use crate::{ContentType, RulesMode};
 
 /// Features to identify a file using AI.
 pub struct Features(pub(crate) Vec<i32>);
@@ -83,12 +83,48 @@ impl FeaturesOrRuled {
     ///
     /// Returns the content type directly if the file cannot be identified using AI.
     pub fn extract(file: impl Input) -> Result<Self> {
-        let config = &crate::model::CONFIG;
+        Self::extract_with_rules(file, RulesMode::Off)
+    }
+
+    /// Extracts features or applies the promoted rule allowlist to original bytes.
+    ///
+    /// Abstention reuses the prefix and preserves ordinary feature extraction.
+    pub fn extract_with_rules(file: impl Input, mode: RulesMode) -> Result<Self> {
+        mode.check()?;
+        Self::extract_with_matcher(file, |prefix, size| crate::rules::identify(prefix, size, mode))
+    }
+
+    /// Applies a loaded custom ruleset to original bytes, then extracts ML features on abstention.
+    #[cfg(feature = "yara-rules")]
+    pub fn extract_with_ruleset(file: impl Input, rules: &crate::RuleSet) -> Result<Self> {
+        Self::extract_with_matcher(file, |prefix, size| rules.identify(prefix, size))
+    }
+
+    pub(crate) fn extract_with_matcher(
+        file: impl Input, identify: impl FnOnce(&[u8], u64) -> Option<ContentType>,
+    ) -> Result<Self> {
+        Self::extract_with_config(&crate::model::CONFIG, file, identify)
+    }
+
+    fn extract_with_config(
+        config: &ModelConfig, mut file: impl Input,
+        identify: impl FnOnce(&[u8], u64) -> Option<ContentType>,
+    ) -> Result<Self> {
         let file_len = file.length()?;
         if file_len == 0 {
             return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
         }
-        let (first_block, features) = extract_features(config, file, file_len)?;
+        let read_size = config.block_size.max(crate::rules::PREFIX_LIMIT);
+        let mut first_block = vec![0; file_len.min(read_size as u64) as usize];
+        file.read_at(&mut first_block, 0)?;
+        let prefix = &first_block[..first_block.len().min(crate::rules::PREFIX_LIMIT)];
+        if let Some(content_type) = identify(prefix, file_len) {
+            return Ok(FeaturesOrRuled::Ruled(content_type));
+        }
+        // Rule lookahead must not change the model's whitespace trimming or tail window.
+        first_block.truncate(config.block_size);
+        let (first_block, features) =
+            extract_features_with_prefix(config, file, file_len, first_block)?;
         if features[config.min_file_size_for_dl - 1] != config.padding_token {
             return Ok(FeaturesOrRuled::Features(Features(features)));
         }
@@ -101,6 +137,7 @@ impl FeaturesOrRuled {
     }
 }
 
+#[cfg(test)]
 fn extract_features(
     config: &ModelConfig, mut file: impl Input, file_len: u64,
 ) -> Result<(Vec<u8>, Vec<i32>)> {
@@ -109,10 +146,24 @@ fn extract_features(
     let buffer_size = std::cmp::min(config.block_size as u64, file_len) as usize;
     let mut content_beg = vec![0; buffer_size];
     file.read_at(&mut content_beg, 0)?;
+    extract_features_with_prefix(config, file, file_len, content_beg)
+}
+
+fn extract_features_with_prefix(
+    config: &ModelConfig, mut file: impl Input, file_len: u64, content_beg: Vec<u8>,
+) -> Result<(Vec<u8>, Vec<i32>)> {
+    let buffer_size = content_beg.len();
     let beg = strip_prefix(&content_beg);
-    let mut end = vec![0; buffer_size];
-    file.read_at(&mut end, file_len - buffer_size as u64)?;
-    let end = strip_suffix(&end);
+    let mut tail = Vec::new();
+    let end = if file_len == buffer_size as u64 {
+        // The prefix already holds the complete file, including its tail.
+        content_beg.as_slice()
+    } else {
+        tail.resize(buffer_size, 0);
+        file.read_at(&mut tail, file_len - buffer_size as u64)?;
+        tail.as_slice()
+    };
+    let end = strip_suffix(end);
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
@@ -162,6 +213,127 @@ mod tests {
     use serde::Deserialize;
 
     use super::*;
+
+    struct CountingInput {
+        bytes: Vec<u8>,
+        reads: Vec<(u64, usize)>,
+    }
+    impl Input for CountingInput {
+        fn length(&self) -> Result<u64> {
+            Ok(self.bytes.len() as u64)
+        }
+        fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
+            self.reads.push((offset, buffer.len()));
+            buffer.copy_from_slice(&self.bytes[offset as usize..offset as usize + buffer.len()]);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn a_complete_prefix_is_not_read_again_for_the_tail() {
+        let block_size = crate::model::CONFIG.block_size;
+        for len in [1, 7, 8, 9, 1023, 1024, 2048, block_size - 1, block_size, block_size + 1] {
+            let mut input = CountingInput {
+                bytes: (0..len).map(|i| (i % 256) as u8).collect(),
+                reads: Vec::new(),
+            };
+            FeaturesOrRuled::extract_with_matcher(&mut input, |_, _| None).unwrap();
+            let expected = if len <= block_size {
+                vec![(0, len)]
+            } else {
+                vec![(0, block_size), (1, block_size)]
+            };
+            assert_eq!(input.reads, expected, "input length {len}");
+        }
+    }
+
+    #[test]
+    fn rule_prefix_is_independent_of_model_block_size() {
+        for block_size in [2048, 4096, 8192] {
+            let config = ModelConfig { block_size, ..crate::model::CONFIG };
+            // Whitespace spanning the smaller block boundary makes accidental feature
+            // extraction with the larger rule prefix observably wrong.
+            let mut bytes = vec![b' '; 2000];
+            bytes.extend((0..10000).map(|i| (i % 256) as u8));
+            let expected =
+                extract_features(&config, bytes.as_slice(), bytes.len() as u64).unwrap().1;
+            let result =
+                FeaturesOrRuled::extract_with_config(&config, bytes.as_slice(), |prefix, _| {
+                    assert_eq!(prefix.len(), 4096, "model block size {block_size}");
+                    assert!(prefix == &bytes[..4096]);
+                    None
+                })
+                .unwrap();
+            let FeaturesOrRuled::Features(features) = result else { panic!("expected features") };
+            assert_eq!(features.0, expected, "model block size {block_size}");
+        }
+    }
+
+    #[test]
+    fn rule_hit_skips_tail_and_miss_preserves_reference_features() {
+        let mut input = CountingInput {
+            bytes: (0..10000).map(|i| (i % 256) as u8).collect(),
+            reads: Vec::new(),
+        };
+        let expected =
+            extract_features(&crate::model::CONFIG, input.bytes.as_slice(), 10000).unwrap().1;
+        let hit = FeaturesOrRuled::extract_with_matcher(&mut input, |prefix, size| {
+            assert_eq!(size, 10000);
+            assert_eq!(prefix.len(), 4096);
+            assert_eq!(&prefix[..3], &[0, 1, 2]);
+            Some(ContentType::Png)
+        })
+        .unwrap();
+        assert!(matches!(hit, FeaturesOrRuled::Ruled(ContentType::Png)));
+        assert_eq!(input.reads, [(0, 4096)]);
+        input.reads.clear();
+        let FeaturesOrRuled::Features(actual) =
+            FeaturesOrRuled::extract_with_matcher(&mut input, |_, _| None).unwrap()
+        else {
+            panic!("expected features")
+        };
+        assert_eq!(actual.0, expected);
+        assert_eq!(input.reads, [(0, 4096), (5904, 4096)]);
+    }
+
+    #[test]
+    fn original_whitespace_empty_tiny_and_io_error_semantics() {
+        FeaturesOrRuled::extract_with_matcher(&b"  \0header"[..], |prefix, _| {
+            assert_eq!(prefix, b"  \0header");
+            None
+        })
+        .unwrap();
+        assert!(matches!(
+            FeaturesOrRuled::extract_with_matcher(&b""[..], |_, _| panic!("empty must not scan"))
+                .unwrap(),
+            FeaturesOrRuled::Ruled(ContentType::Empty)
+        ));
+        for (bytes, expected) in
+            [(&b"abc"[..], ContentType::Txt), (&b"\xff"[..], ContentType::Unknown)]
+        {
+            assert!(
+                matches!(FeaturesOrRuled::extract(bytes).unwrap(), FeaturesOrRuled::Ruled(ct) if ct == expected)
+            );
+        }
+        struct Unreadable;
+        impl Input for Unreadable {
+            fn length(&self) -> Result<u64> {
+                Ok(4096)
+            }
+            fn read_at(&mut self, _: &mut [u8], _: u64) -> Result<()> {
+                Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "changed input").into())
+            }
+        }
+        let error = FeaturesOrRuled::extract_with_matcher(Unreadable, |_, _| {
+            panic!("must not scan unread bytes")
+        })
+        .err()
+        .unwrap();
+        assert_eq!(
+            error.downcast_ref::<std::io::Error>().unwrap().kind(),
+            std::io::ErrorKind::UnexpectedEof
+        );
+    }
 
     #[test]
     fn features_extraction_reference() {

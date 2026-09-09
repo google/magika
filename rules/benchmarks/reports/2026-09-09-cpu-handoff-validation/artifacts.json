@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+  "files": {
+    "adaptive-benchmark-red.log": "13c794fcb3e54892a23602bfe25b5b167b9266b7d19d422aacaf18062e2961f7",
+    "cpu-first-cli-tests.log": "fa6b42f64ebb8bc335980a70379b150d6efbcd58c82170d287ff2534529d194a",
+    "cpu-handoff-green.log": "c23bac97a8b7bbc94febe770b4da9010b8bd973007aa615e40c362b96d566205",
+    "cpu-handoff-clippy.log": "251ff141636bd0c953791c9e8d3e0f8d84af3ab9fab63ccda7590d9d94fdadb9",
+    "cpu-first-red.log": "f05d9c27e047542eec7134e09ec8095993ad96f527541ac1481453120ee01764",
+    "gpu-clean-1000-trace.log": "2b8845fd83b07aa27aece20d08fbe69905824414f5a004566adbf02edb3cca87",
+    "cpu-handoff-red.log": "f60f34b8313373af0022c6ba0edea73d2a86632a021b88d9be9c6750b610d0e6",
+    "held-trace-clean.log": "2a3a2e7887d62b9e63a54061adf13bd49de41a22dc6a7cf8509eab100a61bf4f"
+  },
+  "notes": [
+    "CPU handoff regression was observed red: a CPU worker consumed both queued batches instead of retiring after its claimed batch. Final 22 CLI unit tests and all-feature Clippy pass.",
+    "The earlier CLI integration run passed ten tests; five native-dependent cases remained ignored locally and are covered by the native CI jobs.",
+    "Trace logs are functional diagnostics, not benchmark timing samples. They use debug CLI code with release CPU/Metal libraries and the benchmark isolated environment.",
+    "The first mixed CPU/GPU candidate is retained as a superseded measured run. Final default-policy benchmark reports cover both datasets."
+  ]
+}

@@ -75,6 +75,9 @@ dev = [
 requires = ["maturin>=1.12.2"]
 build-backend = "maturin"
 
+[tool.uv]
+exclude-newer = "2 weeks"
+
 [[tool.uv.index]]
 url = "https://pypi.org/simple"
 default = true

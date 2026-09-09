@@ -20,9 +20,9 @@ from pathlib import Path
 
 from tabulate import tabulate
 
-from . import corpus, runner
+from . import corpus, runner, trid
 
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 
 def validate_default_policy(spec):
@@ -584,6 +584,42 @@ def invoke(command, env, timeout, cwd=None):
     return runner.run_cli(command, env, timeout, cwd=cwd)[1]
 
 
+def identify_tool(tool, env, timeout):
+    # Resolving a venv's Python symlink invokes the base interpreter and loses its packages.
+    executable = str(Path(shutil.which(tool["command"][0]) or tool["command"][0]).absolute())
+    tool["command"][0] = executable
+    identity = dict(
+        version=invoke(tool["version_command"], env, timeout).decode().strip(),
+        executable_sha256=corpus.file_hash(executable),
+        artifacts={role: corpus.file_hash(path) for role, path in tool["artifacts"].items()},
+        command=tool["command"],
+    )
+    if tool["adapter"] == Adapter.TRID:
+        if tool["version_command"] != [*tool["command"][:2], "-v"]:
+            raise ValueError("TrID version probe must use the measured interpreter and script")
+        expected = tool.get("settings", {}).get("stringzilla")
+        actual = trid.enabled(identity["version"])
+        if expected is None or actual is None or actual != (expected != "off"):
+            raise ValueError("TrID StringZilla configuration differs from runtime evidence")
+        if actual:
+            module = json.loads(
+                invoke(
+                    [executable, "-c", trid.MODULE_PROBE, str(Path(tool["command"][1]).parent)],
+                    env,
+                    timeout,
+                )
+            )
+            module["sha256"] = corpus.file_hash(module["path"])
+            if module["version"] != expected or module["sha256"] != identity["artifacts"].get(
+                "stringzilla"
+            ):
+                raise ValueError(
+                    "TrID loaded StringZilla version/artifact differs from configuration"
+                )
+            identity["stringzilla"] = module
+    return identity
+
+
 def tool_command(tool, paths, directory):
     if tool["adapter"] == Adapter.TRID:
         listing = directory / (fingerprint(paths) + ".txt")
@@ -700,14 +736,7 @@ def run(args):
             continue
         if not tool.get("artifacts") or not tool.get("version_command"):
             raise ValueError("Every tool requires artifact hashes and a version command")
-        executable = str(Path(shutil.which(tool["command"][0]) or tool["command"][0]).resolve())
-        tool["command"][0] = executable
-        identity = dict(
-            version=invoke(tool["version_command"], env, args.timeout).decode().strip(),
-            executable_sha256=corpus.file_hash(executable),
-            artifacts={role: corpus.file_hash(path) for role, path in tool["artifacts"].items()},
-            command=tool["command"],
-        )
+        identity = identify_tool(tool, env, args.timeout)
         result["tools"][tool_id] = identity
         mapping = label_mapping(source["classes"], Adapter(tool["adapter"]))
         mappings[tool_id] = mapping

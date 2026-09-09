@@ -29,6 +29,7 @@ TOOLS = [
     ("magika2-rules-only", "Magika 2 rules-only CPU", "rules-only"),
     ("libmagic", "libmagic", "cpu"),
     ("trid", "TrID", "cpu"),
+    ("trid-stringzilla", "TrID with StringZilla", "cpu"),
 ]
 COUNTS = [1, 2, 5, 10, 25, 100, 1000]
 
@@ -52,6 +53,8 @@ def gpu_crossover(rows):
         ("ML", "magika2-ml", "magika2-gpu-ml"),
         ("rules + ML", "magika2-rules", "magika2-gpu-rules"),
     ]:
+        if cpu not in by_id or gpu not in by_id:
+            continue
         comparisons = []
         for count in COUNTS:
             a, b = by_id[cpu]["timings"][str(count)], by_id[gpu]["timings"][str(count)]
@@ -109,6 +112,8 @@ def derive(source, destination):
         "magika2-auto-rules": "magika2-auto-ml",
     }
     for tool, label, _ in TOOLS:
+        if tool not in current["quality"]:
+            continue
         quality = current["quality"][tool]
         assert quality["files"] == len(samples) and quality["errors"] == 0
         rule_matches = None
@@ -184,6 +189,7 @@ def render(path, output):
             *[f"{row['timings'][str(n)]['median_seconds'] * 1000:,.2f}" for n in COUNTS],
         ]
         lines.append("| " + " | ".join(cells) + " |")
+    crossover_heading = len(lines)
     lines += [
         "",
         "## CPU/GPU configuration crossover",
@@ -208,6 +214,8 @@ def render(path, output):
             )
             + " |"
         )
+    if not summary["gpu_crossover"]:
+        lines = lines[:crossover_heading]
     lines += [
         "",
         f"Quality evaluation uses invocations of up to {summary.get('quality_chunk_files', 128)} files. "

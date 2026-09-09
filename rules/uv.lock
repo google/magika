@@ -22,7 +22,7 @@ wheels = [
 
 [[package]]
 name = "magika-rules-benchmark"
-version = "1.2.1"
+version = "1.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "pyarrow" },

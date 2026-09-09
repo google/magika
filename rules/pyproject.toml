@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "magika-rules-benchmark"
-version = "1.2.1"
+version = "1.2.2"
 description = "Correctness, coverage and disk performance evaluation for Magika rules"
 requires-python = ">=3.12"
 license = "Apache-2.0"

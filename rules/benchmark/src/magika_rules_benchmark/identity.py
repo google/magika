@@ -7,6 +7,7 @@ import re
 from datetime import UTC, datetime
 
 from .comparison import command_settings, fingerprint, load_json
+from .trid import enabled
 
 
 def utc_timestamp(value):
@@ -43,7 +44,8 @@ def tool_record(result, tool_id):
     spec = next(t for t in result["config"]["tools"] if t["id"] == tool_id)
     identity = result["tools"][tool_id]
     raw = identity["version"]
-    settings = spec.get("settings") or {}
+    settings = dict(spec.get("settings") or {})
+    corrections = []
     adapter = spec["adapter"]
     revision = spec.get("source_revision")
     if adapter == "magika-jsonl":
@@ -77,6 +79,19 @@ def tool_record(result, tool_id):
         if not match:
             raise ValueError("Unrecognized TrID version output")
         software = match[1]
+        observed = enabled(raw)
+        verified = identity.get("stringzilla", {}).get("version")
+        effective = "off" if observed is False else verified or "unverified"
+        if settings.get("stringzilla") != effective:
+            corrections.append(
+                {
+                    "field": "stringzilla",
+                    "declared": settings.get("stringzilla"),
+                    "observed": effective,
+                    "basis": "saved runtime version output and module probe",
+                }
+            )
+        settings["stringzilla"] = effective
         config = (
             f"strings={settings.get('strings')}; StringZilla={settings.get('stringzilla', 'off')}"
         )
@@ -89,7 +104,10 @@ def tool_record(result, tool_id):
         "environment": result["config"].get("environment", {}),
     }
     config_id = fingerprint(
-        {"tool": command_settings(spec), "environment": configuration["environment"]}
+        {
+            "tool": command_settings(spec | {"settings": settings}),
+            "environment": configuration["environment"],
+        }
     )
     build = {
         "executable_sha256": identity["executable_sha256"],
@@ -105,6 +123,7 @@ def tool_record(result, tool_id):
         "config_id": config_id,
         "configuration": configuration,
         "build_id": fingerprint(build),
+        "corrections": corrections,
         **build,
     }
 
@@ -167,4 +186,11 @@ def report_identity_lines(summary):
         "</details>",
         "",
     ]
+    if any(r["tool_identity"].get("corrections") for r in summary["rows"]):
+        lines += [
+            "Configuration correction: TrID acceleration is labeled from saved runtime evidence. "
+            "Earlier declared StringZilla settings were inaccurate; the raw records and timings "
+            "are preserved unchanged. Correction details are recorded in `overview.json`.",
+            "",
+        ]
     return lines

@@ -73,6 +73,8 @@ def compare(previous, current, destination):
         "rows": [],
     }
     for tool, _, _ in TOOLS:
+        if tool not in old["quality"] or tool not in new["quality"]:
+            continue
         summary["rows"].append(
             {
                 "id": tool,

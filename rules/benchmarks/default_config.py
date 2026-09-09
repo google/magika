@@ -4,9 +4,12 @@
 
 import argparse
 import json
+import os
+import subprocess
 from pathlib import Path
 
 from magika_rules_benchmark.comparison import validate_default_policy
+from magika_rules_benchmark.trid import MODULE_PROBE
 
 
 def build(args):
@@ -81,10 +84,29 @@ def build(args):
             {
                 "script": args.trid,
                 "definitions": args.trid_definitions,
-                "stringzilla": args.stringzilla,
             },
-            {"strings": True, "stringzilla": "5.1.2"},
+            {"strings": True, "stringzilla": "off"},
             [args.python, args.trid, "-v"],
+        )
+    )
+    module = json.loads(
+        subprocess.check_output(
+            [str(args.python_stringzilla), "-c", MODULE_PROBE, str(args.trid.parent)],
+            env={"PATH": os.defpath, "LC_ALL": "C"},
+        )
+    )
+    tools.append(
+        tool(
+            "trid-stringzilla",
+            "trid",
+            [args.python_stringzilla, args.trid, "-d", args.trid_definitions],
+            {
+                "script": args.trid,
+                "definitions": args.trid_definitions,
+                "stringzilla": module["path"],
+            },
+            {"strings": True, "stringzilla": module["version"]},
+            [args.python_stringzilla, args.trid, "-v"],
         )
     )
     spec = {
@@ -116,10 +138,10 @@ if __name__ == "__main__":
         "python",
         "trid",
         "trid-definitions",
-        "stringzilla",
+        "python-stringzilla",
         "dataset",
         "output",
     ]:
-        parser.add_argument("--" + name, type=lambda p: Path(p).resolve(), required=True)
+        parser.add_argument("--" + name, type=lambda p: Path(p).absolute(), required=True)
     args = parser.parse_args()
     args.output.write_text(json.dumps(build(args), indent=2) + "\n")

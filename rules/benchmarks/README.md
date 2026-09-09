@@ -124,6 +124,26 @@ SHA-256 receipts. Reports are regenerable from this evidence. The history API
 refuses speedup claims across changed datasets, workload lists, machines,
 execution settings, protocol or benchmark code.
 
+The CPU-warmup follow-up replays the seven natural file-count workloads on both
+datasets and reevaluates all eligible files. Unchanged external-tool quality
+output is reused only when its input, command, environment and artifact identity
+match; every timing is measured again. The baseline retains the additional
+controlled rule-hit mixtures. The superseded `a8429b03` candidate remains in the
+catalogue so its bulk regression is visible.
+
+Generate the scoped startup-change comparison from two stored runs:
+
+```sh
+PYTHONPATH=rules/benchmark/src rules/.venv/bin/python rules/benchmarks/startup_comparison.py \
+  rules/benchmarks/results/v1/BASELINE rules/benchmarks/results/v1/CURRENT \
+  rules/benchmarks/reports/CURRENT
+```
+
+This checks identical natural input lists, host, tool flags, default resource
+policy and timing controls. It covers the documented 1.2.0-to-1.2.1 validation
+update and CPU-warmup configuration change; the general history compatibility
+gate remains strict. Percent changes are calculated from saved medians.
+
 The former fixed-thread comparison tables have been removed. The
 [original performance handoff](handoffs/perf-handoff-2026-09-08.md) and
 [measured implementation decisions](reports/2026-09-09-handoff-validation/dispositions.md)

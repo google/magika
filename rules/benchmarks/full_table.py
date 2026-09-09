@@ -125,14 +125,19 @@ def derive(source, destination):
                 if tool.startswith("magika2")
                 else None
             )
-            times[str(m["file_count"])] = m | {"inference_files": inference}
+            timing = {k: v for k, v in m.items() if k not in ("command", "workload_quality")}
+            if "workload_quality" in m:
+                timing["workload_quality"] = {
+                    k: v for k, v in m["workload_quality"].items() if k != "per_class"
+                }
+            times[str(m["file_count"])] = timing | {"inference_files": inference}
         assert set(times) == set(map(str, COUNTS))
         summary["rows"].append(
             {
                 "id": tool,
                 "label": label,
                 "tool_identity": tool_record(current, tool),
-                "quality": quality,
+                "quality": {k: v for k, v in quality.items() if k != "per_class"},
                 "rule_matches": rule_matches,
                 "timings": times,
             }

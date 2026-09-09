@@ -11,7 +11,7 @@
     "crc-oracle.json": "8d704e8405b7ceb4474352dc7cf73d4bfbb1fae5c19b4e6241c5cf117612325f",
     "confirmation-5.json": "c660e3d8c1ce712615b70f05593d2589120b67341f06d7861cf76f17f5d12716",
     "fusion-profile.json": "d6e3d7fc378d290c4488a38fc82d427027df4cedd050241bf133e3452c27307f",
-    "measurements.md": "78d26e5e1fd74cf8940df854b95befdb7c9264750df69fddd3134e37b525e966",
+    "measurements.md": "572520972787233ce39618b2ddad1a3fe639e69cd46781c11037766dd5aee81b",
     "unfused-model.graph.json": "33d3850b98188be9b575b646891db379ad7947d506c71b0d53afcefb96d076b6",
     "fusion-regression.log": "8c22dba1cd07d039b56d17c261f2e2729454500f8809ab0b2006aae39a6c5d60",
     "handoff-clippy.log": "0849e1825ba46129caed0190357a2bd2dfcc48969fb6298fde3903e9aa91e1eb",
@@ -25,5 +25,9 @@
     "crc-scratch.json": "bc6e6fa6405d05e3420d9ac0f60e091de58c170e0c3e08f37291d6a72224b208",
     "teardown.json": "73b3db88c6fcd403a2e7ad15ee7825560360083f1894bf29a94a37f81a4201df"
   },
-  "generator_sha256": "ae21c016a72149c802e54a9d704bee6aea546d4bcd64ac8c2f1e51f6c7bc5832"
+  "generator_sha256": "42645b39625f4282ca4f5c51a675937fc17473995334b1873b08f8eff48d66c9",
+  "previous_receipt": {
+    "git_revision": "65505ce38363b63d2c07d1370168a95451cf339a",
+    "sha256": "0969824a4f3dd1f31a095c244d3fa823341d5d4dedfd397cfe1a4b5bd074d4f3"
+  }
 }

@@ -225,8 +225,8 @@ In `--backend auto` and `--backend gpu`, GPU preparation then runs in the backgr
 while CPU workers process files. Neither mode waits for GPU preparation when the
 input is exhausted; failed GPU preparation leaves CPU processing available.
 
-GPU mode prefers the GPU as soon as it is ready. Auto uses it only when the queue
-has enough batches to feed the GPU workers. At most the normal GPU worker count
+GPU mode prefers the GPU as soon as it is ready. Auto uses it for batches with at
+least eight files; small tails stay on CPU. At most the normal GPU worker count
 uses GPU sessions; other workers continue on CPU. Each worker owns its sessions,
 and output retains input order across both backends. These modes can therefore
 produce CPU results during warmup and GPU results later in the same invocation.

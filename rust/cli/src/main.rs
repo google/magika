@@ -965,19 +965,29 @@ impl GpuRuntime {
         std::thread::Builder::new().name("magika-gpu-load".to_string()).spawn({
             let prepared = prepared.clone();
             move || {
-                let _ = prepared.set((preparation.prepare)());
+                #[cfg(feature = "_trace")]
+                let start = std::time::Instant::now();
+                let result = (preparation.prepare)();
+                #[cfg(feature = "_trace")]
+                eprintln!(
+                    "trace GPU preparation: {:?} after {:?}",
+                    result.as_ref().map(|_| "ready"),
+                    start.elapsed()
+                );
+                let _ = prepared.set(result);
             }
         })?;
         Ok(Self { prepared, mode: preparation.mode, threads })
     }
 
-    fn runtime_for(&self, worker: usize, pending_batches: usize) -> Option<&Runtime> {
+    fn runtime_for(&self, worker: usize, batch_files: usize) -> Option<&Runtime> {
         if worker >= self.threads {
             return None;
         }
-        // Preparation cost is already paid when ready. Auto requires enough queued batches
-        // to feed the GPU workers; it never waits for the queue or the loader to fill.
-        if self.mode == BackendChoice::Auto && pending_batches < self.threads {
+        // Preparation cost is already paid when ready. One normal eight-file batch can use
+        // the GPU; requiring a deeper queue leaves it idle when readers pace the pipeline.
+        // Auto keeps small tails on CPU and never waits for additional input or GPU loading.
+        if self.mode == BackendChoice::Auto && batch_files < 8 {
             return None;
         }
         self.prepared.get()?.as_ref().ok()
@@ -1064,7 +1074,7 @@ fn infer_batches(
     #[cfg(feature = "_trace")]
     let mut batch_counts = std::collections::BTreeMap::<(&str, usize), usize>::new();
     for InferenceBatch { pending, features } in first.into_iter().chain(receiver.iter()) {
-        let ready_gpu = gpu.and_then(|gpu| gpu.runtime_for(worker, receiver.len() + 1));
+        let ready_gpu = gpu.and_then(|gpu| gpu.runtime_for(worker, features.len()));
         let (runtime, session) = match ready_gpu {
             Some(runtime) => (runtime, &mut gpu_session),
             None => (runtime, &mut session),
@@ -1546,7 +1556,7 @@ mod reorder_tests {
     }
 
     #[test]
-    fn ready_gpu_admission_respects_mode_backlog_and_worker_limit() {
+    fn ready_gpu_admission_respects_mode_work_size_and_worker_limit() {
         let prepared = Arc::new(std::sync::OnceLock::new());
         let mut gpu =
             GpuRuntime { prepared: prepared.clone(), mode: BackendChoice::Auto, threads: 4 };
@@ -1559,8 +1569,8 @@ mod reorder_tests {
                 .build()
                 .unwrap()))
             .is_ok());
-        assert!(gpu.runtime_for(0, 3).is_none());
-        assert!(gpu.runtime_for(0, 4).is_some());
+        assert!(gpu.runtime_for(0, 7).is_none());
+        assert!(gpu.runtime_for(0, 8).is_some());
         assert!(gpu.runtime_for(4, 100).is_none());
         gpu.mode = BackendChoice::Gpu;
         assert!(gpu.runtime_for(0, 1).is_some());

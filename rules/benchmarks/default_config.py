@@ -48,6 +48,11 @@ def build(args):
                 libraries | {"native": args.native},
                 {"backend": label, "rules": mode, "model": "standard_v3_3"},
             )
+            if backend in ("gpu", "auto"):
+                entry["settings"].update(
+                    startup_backend="CPU",
+                    gpu_admission="ready" if backend == "gpu" else "ready with queued work",
+                )
             entry["source_revision"] = receipt["source_revision"]
             tools.append(entry)
     entry = tool(

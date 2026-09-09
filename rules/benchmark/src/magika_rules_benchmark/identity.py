@@ -62,6 +62,8 @@ def tool_record(result, tool_id):
         elif "GPU" in backend:
             backend = "Metal" if "Metal" in backend else "GPU"
         config = f"{backend}; {mode}"
+        if settings.get("startup_backend") == "CPU":
+            config += "; CPU warmup"
     elif adapter == "file-mime":
         name = "libmagic"
         match = re.match(r"file-(\S+)", raw)

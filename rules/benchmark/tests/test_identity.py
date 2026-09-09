@@ -65,3 +65,5 @@ def test_tool_identity_distinguishes_same_version_revisions_and_builds():
     assert tool_record(other, "magika2-ml")["build_id"] != second["build_id"]
     other["config"]["tools"][0]["settings"]["threads"] = 4
     assert tool_record(other, "magika2-ml")["config_id"] != first["config_id"]
+    other["config"]["tools"][0]["settings"]["startup_backend"] = "CPU"
+    assert "CPU warmup" in tool_record(other, "magika2-ml")["config"]

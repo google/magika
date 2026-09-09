@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::cell::RefCell;
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::Arc;
 
-use magika::{FileType, OverwriteReason, Session, MODEL_NAME};
+use magika::{FileType, OverwriteReason, Runtime, Session, MODEL_NAME};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
@@ -121,26 +122,51 @@ fn from_io_error(e: &std::io::Error, path: Option<String>) -> PyMagikaResult {
     }
 }
 
+struct ThreadSession {
+    runtime_ptr: usize,
+    session: Session,
+}
+
+thread_local! {
+    static SESSIONS: RefCell<Vec<ThreadSession>> = const { RefCell::new(Vec::new()) };
+}
+
 #[pyclass(name = "Magika")]
 pub struct PyMagika {
-    session: Mutex<Session>,
+    runtime: Arc<Runtime>,
+}
+
+impl PyMagika {
+    fn with_session<R>(&self, f: impl FnOnce(&mut Session) -> anyhow::Result<R>) -> anyhow::Result<R> {
+        let runtime_ptr = Arc::as_ptr(&self.runtime) as usize;
+        SESSIONS.with(|sessions| {
+            let mut sessions = sessions.borrow_mut();
+            if let Some(entry) = sessions.iter_mut().find(|s| s.runtime_ptr == runtime_ptr) {
+                f(&mut entry.session)
+            } else {
+                let session = self.runtime.session()?;
+                sessions.push(ThreadSession { runtime_ptr, session });
+                let entry = sessions.last_mut().unwrap();
+                f(&mut entry.session)
+            }
+        })
+    }
 }
 
 #[pymethods]
 impl PyMagika {
     #[new]
     fn new() -> PyResult<Self> {
-        let session = Session::new()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to initialize Magika session: {e}")))?;
+        let runtime = Runtime::new()
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e}")))?;
         Ok(Self {
-            session: Mutex::new(session),
+            runtime: Arc::new(runtime),
         })
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
         let result = py.allow_threads(|| {
-            let mut session = self.session.lock().unwrap();
-            session.identify_content_sync(data)
+            self.with_session(|session| session.identify_content(data))
         });
         match result {
             Ok(file_type) => Ok(from_file_type(&file_type, None)),
@@ -150,46 +176,59 @@ impl PyMagika {
 
     fn identify_path(&self, py: Python<'_>, path: &str) -> PyResult<PyMagikaResult> {
         let p = Path::new(path);
-        let result = py.allow_threads(|| {
-            let mut session = self.session.lock().unwrap();
-            session.identify_file_sync(p)
+        let result: anyhow::Result<FileType> = py.allow_threads(|| {
+            self.with_session(|session| session.identify_file(p))
         });
         match result {
             Ok(file_type) => Ok(from_file_type(&file_type, Some(path.to_string()))),
-            Err(magika::Error::IOError(e)) => Ok(from_io_error(&e, Some(path.to_string()))),
-            Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
+            Err(e) => {
+                if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
+                    Ok(from_io_error(io_err, Some(path.to_string())))
+                } else {
+                    Err(PyRuntimeError::new_err(format!("Inference error: {e}")))
+                }
+            }
         }
     }
 
     fn identify_paths(&self, py: Python<'_>, paths: Vec<String>) -> PyResult<Vec<PyMagikaResult>> {
-        let results = py.allow_threads(|| {
-            let mut session = self.session.lock().unwrap();
-            paths
-                .iter()
-                .map(|path_str| {
+        let results: anyhow::Result<Vec<PyMagikaResult>> = py.allow_threads(|| {
+            self.with_session(|session| {
+                let mut results = Vec::with_capacity(paths.len());
+                for path_str in &paths {
                     let p = Path::new(path_str);
-                    match session.identify_file_sync(p) {
+                    let res = match session.identify_file(p) {
                         Ok(file_type) => from_file_type(&file_type, Some(path_str.clone())),
-                        Err(magika::Error::IOError(e)) => from_io_error(&e, Some(path_str.clone())),
-                        Err(e) => PyMagikaResult {
-                            path: Some(path_str.clone()),
-                            status: "unknown".to_string(),
-                            ok: false,
-                            label: String::new(),
-                            mime_type: String::new(),
-                            group: String::new(),
-                            description: e.to_string(),
-                            extensions: Vec::new(),
-                            is_text: false,
-                            score: 0.0,
-                            dl_label: String::new(),
-                            overwrite_reason: "none".to_string(),
-                        },
-                    }
-                })
-                .collect()
+                        Err(e) => {
+                            if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
+                                from_io_error(io_err, Some(path_str.clone()))
+                            } else {
+                                PyMagikaResult {
+                                    path: Some(path_str.clone()),
+                                    status: "unknown".to_string(),
+                                    ok: false,
+                                    label: String::new(),
+                                    mime_type: String::new(),
+                                    group: String::new(),
+                                    description: e.to_string(),
+                                    extensions: Vec::new(),
+                                    is_text: false,
+                                    score: 0.0,
+                                    dl_label: String::new(),
+                                    overwrite_reason: "none".to_string(),
+                                }
+                            }
+                        }
+                    };
+                    results.push(res);
+                }
+                Ok(results)
+            })
         });
-        Ok(results)
+        match results {
+            Ok(res) => Ok(res),
+            Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
+        }
     }
 
     #[staticmethod]

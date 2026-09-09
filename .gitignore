@@ -10,6 +10,12 @@ dist/*
 *.pickle
 .s.yml
 
+# Unit test / coverage reports
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
 */models-data/*
 
 .vscode

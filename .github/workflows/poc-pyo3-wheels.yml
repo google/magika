@@ -36,14 +36,19 @@ jobs:
           - os: Windows
             runner: windows-latest
             target: x86_64-pc-windows-msvc
+          - os: Linux
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            manylinux: 2_28
+          - os: Windows
+            runner: windows-latest
+            target: aarch64-pc-windows-msvc
           # --- Stretch targets ---
+          # Generic Linux for Raspberry Pi (32-bit ARMv7):
           # - os: Linux
           #   runner: ubuntu-latest
-          #   target: aarch64-unknown-linux-gnu
-          #   manylinux: 2_28
-          # - os: Windows
-          #   runner: windows-latest
-          #   target: aarch64-pc-windows-msvc
+          #   target: armv7-unknown-linux-gnueabihf
+          #   manylinux: 2014
 
     steps:
       - uses: actions/checkout@v4

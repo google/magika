@@ -1,12 +1,12 @@
 {
   "schema": 2,
   "code_sha256": {
-    "full_table.py": "0701388b6fa5b9ed957697e690a41fe430cf842cbaebd9e3834f0b973101befe",
+    "full_table.py": "56fc667e00379c827463edb069c42421d52dfe1a92b46970f6cc34dfc7db8e0e",
     "catalog.py": "cda952cc0247360e3992be9772fd381ea63cb8613e4dd4cd54424a4f27ab87a3",
-    "../benchmark/src/magika_rules_benchmark/identity.py": "49c5f2de3515e2e84b69c03c3579ae57f2d693053d628439e1498346228643d8"
+    "../benchmark/src/magika_rules_benchmark/identity.py": "580039dd5f4b04f624458cc3a8b948b631b025adbe365475e7a251a45e7dc935"
   },
   "files": {
-    "overview.json": "7ee2ec99b4daff7628663408784b9c799c88332a89ee86ac6ee33e6fdaa89aa4",
-    "overview.md": "3cb55395483b60d290c00e6d65841f5c3f62667e9865edabfec78e3ad0ae5de9"
+    "overview.json": "7f4c9d6397cad10866ab312948986e61457fbc034d147fa96473f67304909e73",
+    "overview.md": "69265e68a5238493b25f66dc91d0fa19f856a9d093d2073bace82b375f8e524f"
   }
 }

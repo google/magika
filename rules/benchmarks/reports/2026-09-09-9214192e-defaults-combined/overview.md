@@ -13,11 +13,13 @@ Dataset: **Adjudicated combined corpus**, version `snapshot-1411a5c0fd4a`. Measu
 - **Magika 2.0.0-dev @ 9214192e** — config `f28555ab`, build `37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93`: `{"backend": "Auto", "model": "standard_v3_3", "resource_policy": "tool defaults", "rules": "enforce"}`
 - **Magika 2.0.0-dev @ 9214192e** — config `f8f02ebe`, build `37b7a08529533473cfbed9e91ad8e5a61f907a07191b9c82467992710c87ac93`: `{"backend": "CPU", "model": null, "resource_policy": "tool defaults", "rules": "only"}`
 - **libmagic 5.41** — config `b787da2e`, build `808833b8da07e23b5cd32ef92460cfc4b80472e8ce612ebc39d3c5580afb98b5`: `{"output": "NUL-framed MIME", "resource_policy": "tool defaults"}`
-- **TrID 2.48** — config `cf7a7915`, build `25209e1003e1393dee001c56ff193a828c9a3e84ceac724ff58edd85543fcf9f`: `{"resource_policy": "tool defaults", "strings": true, "stringzilla": "5.1.2"}`
+- **TrID 2.48** — config `477850ab`, build `25209e1003e1393dee001c56ff193a828c9a3e84ceac724ff58edd85543fcf9f`: `{"resource_policy": "tool defaults", "strings": true, "stringzilla": "off"}`
 
 Full commands, environment, source revisions and executable/artifact hashes are retained in `overview.json`.
 
 </details>
+
+Configuration correction: TrID acceleration is labeled from saved runtime evidence. Earlier declared StringZilla settings were inaccurate; the raw records and timings are preserved unchanged. Correction details are recorded in `overview.json`.
 
 Accuracy on 25,421 files; 30 saved workloads, 3 measured runs after 1 warmup. Every tool uses its default worker, reader and internal batch policy. No thread-cap environment variables are set.
 
@@ -34,7 +36,7 @@ Whole-process median milliseconds, including startup, I/O, output and shutdown; 
 | Magika | 2.0.0-dev @ 9214192e | Auto; rules + ML (`f28555ab`); defaults | 78.93% | 84.38% | 93.53% | 37.86% | 3.78 | 83.97 | 87.28 | 110.39 | 78.55 | 93.31 | 135.84 |
 | Magika | 2.0.0-dev @ 9214192e | CPU; rules-only (`f8f02ebe`); defaults | 37.86% | 100.00% | 37.86% | 37.86% | 3.35 | 3.81 | 3.43 | 4.08 | 5.64 | 9.33 | 67.09 |
 | libmagic | 5.41 | MIME; serial (`b787da2e`); defaults | 25.46% | 93.24% | 27.31% | — | 1.63 | 2.05 | 4.51 | 6.09 | 13.13 | 35.27 | 347.32 |
-| TrID | 2.48 | strings=True; StringZilla=5.1.2 (`cf7a7915`); defaults | 55.25% | 78.32% | 70.55% | — | 83.06 | 104.00 | 76.64 | 109.84 | 100.82 | 304.64 | 5,156.85 |
+| TrID | 2.48 | strings=True; StringZilla=off (`477850ab`); defaults | 55.25% | 78.32% | 70.55% | — | 83.06 | 104.00 | 76.64 | 109.84 | 100.82 | 304.64 | 5,156.85 |
 
 ## CPU/GPU configuration crossover
 

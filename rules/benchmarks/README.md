@@ -1,6 +1,6 @@
 # Cross-tool benchmark
 
-Protocol **1.2.1** measures each tool with its shipping resource defaults.
+Protocol **1.2.2** measures each tool with its shipping resource defaults.
 `magika-compare` records tool output and Hyperfine JSON; ordinary code generates
 all tables, scores and revision comparisons from those observations. No LLM
 participates in measurement, label mapping, scoring or report generation.
@@ -8,7 +8,7 @@ participates in measurement, label mapping, scoring or report generation.
 ## Measurement contract
 
 - Run the released Magika 1 CLI, Magika 2 CPU/GPU/Auto with ML and rules + ML,
-  Magika 2 rules-only, libmagic and TrID. Record Tool, Version and Config,
+  Magika 2 rules-only, libmagic and TrID with and without StringZilla. Record Tool, Version and Config,
   executable/model/database hashes, full commands and the machine environment.
 - Use default worker counts, readers and internal batch sizes. The harness
   rejects overrides and thread-cap environment variables. Its isolated process
@@ -34,7 +34,10 @@ participates in measurement, label mapping, scoring or report generation.
   scheduling can change a borderline inference decision: each workload's raw
   validation output, quality metrics and differences from the full quality pass
   are recorded explicitly. Protocol 1.2.1 adds this validation evidence without
-  changing the timing method used by the 1.2.0 baseline.
+  changing the timing method used by the 1.2.0 baseline. Protocol 1.2.2 preserves
+  Python virtual-environment executable paths and rejects TrID configurations
+  whose acceleration flag, loaded StringZilla version or module hash disagrees
+  with the requested configuration.
 - CPU/GPU crossover compares measured medians at the tested file counts. No
   crossover is interpolated between workloads. A workload resolved entirely by
   rules does not demonstrate a GPU inference advantage.
@@ -83,16 +86,40 @@ PYTHONPATH=rules/benchmark/src rules/.venv/bin/python rules/benchmarks/default_c
   --magika2 /path/to/magika2 \
   --native /path/to/libhs.dylib \
   --file /usr/bin/file --magic /usr/share/file/magic.mgc \
-  --python /path/to/benchmark/python \
+  --python /path/to/trid-plain/bin/python \
+  --python-stringzilla /path/to/trid-stringzilla/bin/python \
   --trid /path/to/trid.py --trid-definitions /path/to/triddefs.trd \
-  --stringzilla /path/to/stringzilla.so \
   --dataset /path/to/dataset-descriptor.json --output /path/to/config.json
 ```
 
 Use the versions and artifacts recorded in the selected run. The comparison
 uses the official `cli/v1.1.0` Magika 1 release, current Magika 2, macOS `file`
-5.41, TrID 2.48 with StringZilla 5.1.2, and Hyperfine 1.20.0. TrID definitions
+5.41, TrID 2.48 without acceleration and with StringZilla 5.1.2, and Hyperfine 1.20.0. TrID definitions
 and the native rules engine are external dependencies.
+
+Use the same Python version/build for both TrID environments. The plain
+environment must have no StringZilla installed; install the pinned version in
+the accelerated environment:
+
+```sh
+uv venv --python /path/to/base/python /path/to/trid-plain
+uv venv --python /path/to/base/python /path/to/trid-stringzilla
+uv pip install --python /path/to/trid-stringzilla/bin/python stringzilla==5.1.2
+```
+
+Keep the `bin/python` paths intact: resolving their symlinks bypasses the virtual
+environment. The builder discovers StringZilla's version and module path, and
+the measurement harness verifies what TrID actually loads.
+
+**Historical TrID correction:** the five 1.2.0/1.2.1 runs originally declared
+StringZilla 5.1.2, but their saved runtime probes reported `Using Stringzilla:
+False`. Their derived tables now say `StringZilla=off`, with explicit correction
+metadata. Raw records and timings remain unchanged. The separate 1.2.2 paired
+runs measure both configurations again on the same seven saved natural
+workloads; unchanged Magika ML and libmagic measurements are not rerun.
+
+- [Combined corpus: paired TrID measurements](reports/2026-09-09-7599ca96-trid-combined/trid-comparison.md)
+- [Sembiance v3: paired TrID measurements](reports/2026-09-09-7599ca96-trid-sembiance/trid-comparison.md)
 
 Hydrate the snapshot by SHA-256 into `CORPUS_FILES`, then run:
 
@@ -117,6 +144,20 @@ PYTHONPATH=rules/benchmark/src rules/.venv/bin/python rules/benchmarks/full_tabl
   rules/benchmarks/results/v1/RUN_ID rules/benchmarks/reports/RUN_ID
 PYTHONPATH=rules/benchmark/src rules/.venv/bin/python rules/benchmarks/catalog.py
 ```
+
+For a paired TrID run, keep `trid`, `trid-stringzilla` and the rules-only control
+in the config, and supply the saved natural workloads. Generate the acceleration
+comparison from the stored evidence:
+
+```sh
+PYTHONPATH=rules/benchmark/src rules/.venv/bin/python rules/benchmarks/trid_comparison.py \
+  rules/benchmarks/results/v1/RUN_ID rules/benchmarks/reports/RUN_ID
+```
+
+This checks matching interpreter bytes, TrID script, definitions, non-acceleration
+settings and exact workload inputs/trials, and records normalized output
+differences alongside the arithmetic speedups. Each run retains its own UTC
+timestamp; the paired comparison does not substitute new timings into older runs.
 
 `inputs.json.gz`, `workloads.json`, `config.json`, `label-mappings.json`, normalized
 observations, compressed raw tool output and Hyperfine JSON are retained with

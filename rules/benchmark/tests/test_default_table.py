@@ -45,3 +45,40 @@ def test_revision_timing_comparison_rejects_changed_inputs_or_trials(monkeypatch
     for change in [{"input_order_sha256": "b" * 64}, {"trials": 1}, {"distinct_files": 1}]:
         with pytest.raises(ValueError):
             compare.timing_change(before, after | change)
+
+
+@pytest.mark.parametrize("change", [None, "python", "definitions", "backend", "flags"])
+def test_trid_pair_rejects_unmatched_configurations(monkeypatch, change):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[2] / "benchmarks"))
+    compare = importlib.import_module("trid_comparison")
+    result = {"status": "complete", "config": {"tools": []}, "tools": {}}
+    for identifier, accelerated in [("trid", False), ("trid-stringzilla", True)]:
+        result["config"]["tools"].append(
+            {
+                "id": identifier,
+                "adapter": "trid",
+                "command": ["python", "trid.py", "-d", "defs"],
+                "artifacts": {"script": "trid.py", "definitions": "defs"},
+                "settings": {"strings": True, "stringzilla": "5.1.2" if accelerated else "off"},
+            }
+        )
+        result["tools"][identifier] = {
+            "version": f"TrID - File Identifier v2.48\n  Using Stringzilla: {accelerated}",
+            "executable_sha256": "python",
+            "artifacts": {"script": "script", "definitions": "defs"},
+            "stringzilla": {"version": "5.1.2"} if accelerated else None,
+        }
+    accelerated = result["tools"]["trid-stringzilla"]
+    if change == "python":
+        accelerated["executable_sha256"] = "other"
+    elif change == "definitions":
+        accelerated["artifacts"]["definitions"] = "other"
+    elif change == "backend":
+        accelerated["version"] = "TrID - File Identifier v2.48\n  Using Stringzilla: False"
+    elif change == "flags":
+        result["config"]["tools"][1]["command"].append("-ns")
+    if change:
+        with pytest.raises(ValueError):
+            compare.validate_pair(result)
+    else:
+        assert compare.validate_pair(result) == ("trid", "trid-stringzilla")

@@ -1,15 +1,15 @@
 {
   "schema": 2,
   "code_sha256": {
-    "full_table.py": "0701388b6fa5b9ed957697e690a41fe430cf842cbaebd9e3834f0b973101befe",
-    "startup_comparison.py": "037b9d82ac5e3fba4725a38f97324828a3853e889b5b771e38f44fe4235c5481",
+    "full_table.py": "56fc667e00379c827463edb069c42421d52dfe1a92b46970f6cc34dfc7db8e0e",
+    "startup_comparison.py": "0f4bc41e8a8cbcf7a0a6209284e24d96a19b4db73878dc604ad882f94d12c57c",
     "catalog.py": "cda952cc0247360e3992be9772fd381ea63cb8613e4dd4cd54424a4f27ab87a3",
-    "../benchmark/src/magika_rules_benchmark/identity.py": "49c5f2de3515e2e84b69c03c3579ae57f2d693053d628439e1498346228643d8"
+    "../benchmark/src/magika_rules_benchmark/identity.py": "580039dd5f4b04f624458cc3a8b948b631b025adbe365475e7a251a45e7dc935"
   },
   "files": {
-    "overview.json": "a880e043d1a4519eb9c719f889004ba8116e8dd7da3f1d7e72ec458ef7601f00",
-    "overview.md": "a479161f9a878164cab9761a4304c3e66da4b359fea6b788016e94642e28ff86",
-    "comparison.json": "0a5a8f443f324d733348deaadb2f85ce0f0a22954c309f9476c98e419a5de5f0",
-    "comparison.md": "ab0f51f72ddf4220746cb9866c9ab9db02681c198a34c85fef810afd8d7d8a72"
+    "overview.json": "f93fa9bee471e5b49aa17182e6f78a37287d062476667eecd338be124c85f517",
+    "overview.md": "68a97a92eb66aa3a10f580fbc12271f15b2ba0ef42bd4ffde56897c0d34bc08b",
+    "comparison.json": "f933e89210aa83e84cecd4694eee6a54011973d39b2413abfde5e148aeba0bd3",
+    "comparison.md": "82a7a6829bf2f6fb54cd4141858c4438d94e9086e078c63a667b7e0d86764dd0"
   }
 }

@@ -236,9 +236,8 @@ fn inference_configuration(flags: &Flags) -> (usize, BackendChoice) {
     // The shipped CPU plans have classes 1, 4, 8, ... . Capping five inputs
     // at five selects class four and runs it twice, which measured slower than
     // one fused batch-eight call. Restrict this optimization to the class-one
-    // range until small multirow plans are qualified. Keep GPU policy unchanged.
-    let batch = if flags.path.len() == 1 || (backend == BackendChoice::Cpu && flags.path.len() < 4)
-    {
+    // range until small multirow plans are qualified. Every mode starts on CPU.
+    let batch = if flags.path.len() < 4 {
         flags.experimental.batch_size.min(flags.path.len())
     } else {
         flags.experimental.batch_size
@@ -464,8 +463,29 @@ fn main() -> Result<()> {
             #[cfg(feature = "_trace")]
             let trace = trace.clone();
             move || {
+                let gpu = (backend != BackendChoice::Cpu).then(|| {
+                    let builder = builder.clone();
+                    GpuPreparation {
+                        mode: backend,
+                        prepare: Box::new(move || builder.with_backend(Backend::Gpu).build()),
+                    }
+                });
                 let result = prepare_and_infer(
-                    move || builder.build(),
+                    move || {
+                        // Load the CPU library before starting GPU preparation: dynamic library
+                        // loading may serialize internally even though our load locks are separate.
+                        let cpu = builder.clone().with_backend(Backend::Cpu).build();
+                        if backend == BackendChoice::Cpu {
+                            cpu
+                        } else {
+                            cpu.or_else(|cpu_error| {
+                                builder.with_backend(Backend::Gpu).build().with_context(|| {
+                                    format!("CPU preparation also failed: {cpu_error:#}")
+                                })
+                            })
+                        }
+                    },
+                    gpu,
                     requested_threads,
                     &batch_receiver,
                     &result_sender,
@@ -928,10 +948,46 @@ fn process_path(
     Ok(ProcessPath::Content)
 }
 
-/// Model preparation runs concurrently with readers; only inference waits for it.
+struct GpuPreparation {
+    mode: BackendChoice,
+    prepare: Box<dyn FnOnce() -> Result<Runtime> + Send>,
+}
+
+struct GpuRuntime {
+    prepared: Arc<std::sync::OnceLock<Result<Runtime>>>,
+    mode: BackendChoice,
+    threads: usize,
+}
+
+impl GpuRuntime {
+    fn start(preparation: GpuPreparation, threads: usize) -> Result<Self> {
+        let prepared = Arc::new(std::sync::OnceLock::new());
+        std::thread::Builder::new().name("magika-gpu-load".to_string()).spawn({
+            let prepared = prepared.clone();
+            move || {
+                let _ = prepared.set((preparation.prepare)());
+            }
+        })?;
+        Ok(Self { prepared, mode: preparation.mode, threads })
+    }
+
+    fn runtime_for(&self, worker: usize, pending_batches: usize) -> Option<&Runtime> {
+        if worker >= self.threads {
+            return None;
+        }
+        // Preparation cost is already paid when ready. Auto requires enough queued batches
+        // to feed the GPU workers; it never waits for the queue or the loader to fill.
+        if self.mode == BackendChoice::Auto && pending_batches < self.threads {
+            return None;
+        }
+        self.prepared.get()?.as_ref().ok()
+    }
+}
+
+/// CPU preparation overlaps readers; GPU preparation then overlaps CPU inference.
 fn prepare_and_infer(
-    prepare: impl FnOnce() -> Result<Runtime> + Send + 'static, requested_threads: Option<usize>,
-    batch_receiver: &crossbeam_channel::Receiver<InferenceBatch>,
+    prepare: impl FnOnce() -> Result<Runtime> + Send + 'static, gpu: Option<GpuPreparation>,
+    requested_threads: Option<usize>, batch_receiver: &crossbeam_channel::Receiver<InferenceBatch>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
     #[cfg(feature = "_trace")] trace: &Trace,
 ) -> Result<()> {
@@ -948,11 +1004,23 @@ fn prepare_and_infer(
         runtime_rx.recv().context("model loader stopped before returning a runtime")??;
     let threads = requested_threads
         .unwrap_or_else(|| default_inference_threads(runtime.backend_info().backend()));
+    let gpu = if runtime.backend_info().backend() == Backend::Cpu {
+        gpu.map(|preparation| {
+            GpuRuntime::start(
+                preparation,
+                requested_threads.unwrap_or_else(|| default_inference_threads(Backend::Gpu)),
+            )
+        })
+        .transpose()?
+    } else {
+        None
+    };
     let result = std::thread::scope(|scope| -> Result<()> {
         let mut workers = Vec::new();
         let mut first = Some(first);
         for index in 0..threads {
             let runtime = &runtime;
+            let gpu = gpu.as_ref();
             let first = first.take();
             #[cfg(feature = "_trace")]
             let trace = trace.clone();
@@ -963,7 +1031,7 @@ fn prepare_and_infer(
                         #[cfg(feature = "_trace")]
                         let start = Stage::start();
                         if let Err(error) =
-                            infer_batches(runtime, first, batch_receiver, result_sender)
+                            infer_batches(runtime, gpu, index, first, batch_receiver, result_sender)
                         {
                             let _ = result_sender.send(Err(error));
                         }
@@ -985,21 +1053,29 @@ fn prepare_and_infer(
 }
 
 fn infer_batches(
-    runtime: &Runtime, first: Option<InferenceBatch>,
+    runtime: &Runtime, gpu: Option<&GpuRuntime>, worker: usize, first: Option<InferenceBatch>,
     receiver: &crossbeam_channel::Receiver<InferenceBatch>,
     sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
     // Create a session only when a thread receives its first batch. A short run never reaches most
     // threads, so spawning their private execution state up front would be pure startup overhead.
     let mut session = None;
+    let mut gpu_session = None;
     #[cfg(feature = "_trace")]
-    let mut batch_counts = std::collections::BTreeMap::<usize, usize>::new();
+    let mut batch_counts = std::collections::BTreeMap::<(&str, usize), usize>::new();
     for InferenceBatch { pending, features } in first.into_iter().chain(receiver.iter()) {
+        let ready_gpu = gpu.and_then(|gpu| gpu.runtime_for(worker, receiver.len() + 1));
+        let (runtime, session) = match ready_gpu {
+            Some(runtime) => (runtime, &mut gpu_session),
+            None => (runtime, &mut session),
+        };
         #[cfg(feature = "_trace")]
         {
-            *batch_counts.entry(features.len()).or_default() += 1;
+            *batch_counts
+                .entry((if ready_gpu.is_some() { "gpu" } else { "cpu" }, features.len()))
+                .or_default() += 1;
         }
-        let magika = match &mut session {
+        let magika = match session {
             Some(session) => session,
             slot => slot.insert(runtime.session()?),
         };
@@ -1013,6 +1089,7 @@ fn infer_batches(
     #[cfg(feature = "yara-rules")]
     let _teardown = magika::startup_trace::span("inference_session_drop");
     drop(session);
+    drop(gpu_session);
     Ok(())
 }
 
@@ -1103,11 +1180,7 @@ mod reorder_tests {
                     let mut flags = Flags::try_parse_from(args.clone()).unwrap();
                     flags.experimental.backend = backend;
                     flags.experimental.batch_size = limit;
-                    let expected = if backend == BackendChoice::Cpu && count < 4 {
-                        count.min(limit)
-                    } else {
-                        limit
-                    };
+                    let expected = if count < 4 { count.min(limit) } else { limit };
                     assert_eq!(inference_configuration(&flags), (expected, backend));
                     flags.recursive = true;
                     assert_eq!(inference_configuration(&flags), (limit, backend));
@@ -1357,6 +1430,7 @@ mod reorder_tests {
                     release_rx.recv().unwrap();
                     anyhow::bail!("test model unavailable")
                 },
+                None,
                 Some(1),
                 &batch_rx,
                 &inference_tx,
@@ -1402,6 +1476,7 @@ mod reorder_tests {
             .unwrap();
         let error = prepare_and_infer(
             || anyhow::bail!("test model unavailable"),
+            None,
             Some(1),
             &batch_rx,
             &result_tx,
@@ -1410,6 +1485,88 @@ mod reorder_tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("test model unavailable"));
+    }
+
+    #[test]
+    fn cpu_output_and_shutdown_do_not_wait_for_gpu_preparation() {
+        use std::time::Duration;
+
+        for mode in [BackendChoice::Auto, BackendChoice::Gpu] {
+            let (started_tx, started_rx) = std::sync::mpsc::channel();
+            let (release_tx, release_rx) = std::sync::mpsc::channel();
+            let (batch_tx, batch_rx) = crossbeam_channel::bounded(2);
+            let (result_tx, result_rx) = std::sync::mpsc::sync_channel(2);
+            for order in 0..2 {
+                let FeaturesOrRuled::Features(features) =
+                    FeaturesOrRuled::extract(&[65_u8; 128][..]).unwrap()
+                else {
+                    panic!("expected ML features");
+                };
+                batch_tx
+                    .send(InferenceBatch {
+                        pending: vec![OrderPath { order, path: PathBuf::from("miss") }],
+                        features: vec![features],
+                    })
+                    .unwrap();
+            }
+            drop(batch_tx);
+            let model = std::thread::spawn(move || {
+                prepare_and_infer(
+                    || Runtime::builder().with_backend(Backend::Cpu).with_max_batch(1).build(),
+                    Some(GpuPreparation {
+                        mode,
+                        prepare: Box::new(move || {
+                            started_tx.send(()).unwrap();
+                            release_rx.recv().unwrap();
+                            anyhow::bail!("delayed GPU unavailable")
+                        }),
+                    }),
+                    Some(1),
+                    &batch_rx,
+                    &result_tx,
+                    #[cfg(feature = "_trace")]
+                    &Trace::default(),
+                )
+            });
+            let started = started_rx.recv_timeout(Duration::from_secs(10));
+            let first = result_rx.recv_timeout(Duration::from_secs(10));
+            let second = result_rx.recv_timeout(Duration::from_secs(10));
+            let closed = result_rx.recv_timeout(Duration::from_secs(1));
+            // Release even when an assertion will fail; never leave a blocked test loader.
+            let _ = release_tx.send(());
+            assert!(model.join().unwrap().is_ok());
+            started.unwrap();
+            assert!(matches!(closed, Err(std::sync::mpsc::RecvTimeoutError::Disconnected)));
+            for (order, row) in [first, second].into_iter().enumerate() {
+                let row = row.unwrap().unwrap();
+                assert_eq!(row.order, order);
+                assert!(matches!(row.result, Ok(FileType::Inferred(_))));
+            }
+        }
+    }
+
+    #[test]
+    fn ready_gpu_admission_respects_mode_backlog_and_worker_limit() {
+        let prepared = Arc::new(std::sync::OnceLock::new());
+        let mut gpu =
+            GpuRuntime { prepared: prepared.clone(), mode: BackendChoice::Auto, threads: 4 };
+        assert!(gpu.runtime_for(0, 100).is_none());
+        // Use a CPU runtime as the ready-device fixture so this test is portable.
+        assert!(prepared
+            .set(Ok(Runtime::builder()
+                .with_backend(Backend::Cpu)
+                .with_max_batch(1)
+                .build()
+                .unwrap()))
+            .is_ok());
+        assert!(gpu.runtime_for(0, 3).is_none());
+        assert!(gpu.runtime_for(0, 4).is_some());
+        assert!(gpu.runtime_for(4, 100).is_none());
+        gpu.mode = BackendChoice::Gpu;
+        assert!(gpu.runtime_for(0, 1).is_some());
+        assert!(gpu.runtime_for(4, 100).is_none());
+        gpu.prepared = Arc::new(std::sync::OnceLock::from(Err(anyhow::anyhow!("GPU unavailable"))));
+        assert!(gpu.runtime_for(0, 100).is_none());
     }
 
     #[test]

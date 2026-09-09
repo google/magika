@@ -214,16 +214,24 @@ about the output format and other important aspects.
 ## Rule and inference concurrency
 
 For exactly one non-recursive input (including `-`), automatic backend selection
-uses a CPU batch-one plan. This avoids GPU startup and padding a single file through
-the configured bulk batch. Explicit `--backend gpu` still selects the GPU, with a
-batch-one plan. Recursive and multiple-input requests retain the bulk backend and
+uses a CPU batch-one plan. All modes cap known two/three-file requests to avoid
+padding through a larger CPU plan. Recursive and larger requests retain the bulk
 batch policy; the CLI does not prewalk directories to estimate their file counts.
 
 The CLI prepares the model on a background coordinator while its readers extract and classify
 files. Rule hits can reach ordered output before model preparation completes; misses queue in
-bounded inference batches. Once the backend is ready, the coordinator starts the normal CPU or
-GPU worker count (`--threads` overrides it). Each worker owns its inference session. An earlier
-ML miss can still hold up later rule hits because output preserves input order.
+bounded inference batches. CPU inference starts as soon as its model is ready.
+In `--backend auto` and `--backend gpu`, GPU preparation then runs in the background
+while CPU workers process files. Neither mode waits for GPU preparation when the
+input is exhausted; failed GPU preparation leaves CPU processing available.
+
+GPU mode prefers the GPU as soon as it is ready. Auto uses it only when the queue
+has enough batches to feed the GPU workers. At most the normal GPU worker count
+uses GPU sessions; other workers continue on CPU. Each worker owns its sessions,
+and output retains input order across both backends. These modes can therefore
+produce CPU results during warmup and GPU results later in the same invocation.
+Explicit CPU mode never loads the GPU. `--backend-info` remains a synchronous
+availability diagnostic; `--backend gpu --backend-info` requires a working GPU.
 
 On CPU, a declared maximum batch retains one model plan. Partial batches are padded through that
 plan and padding outputs are discarded, avoiding extra unfused plans and their retained buffers.

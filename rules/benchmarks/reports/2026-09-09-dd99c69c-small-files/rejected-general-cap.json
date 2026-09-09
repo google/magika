@@ -1,0 +1,67 @@
+{
+  "revision": "7a0a720c3d4b5e85782ba0f7e0b24cab3e983951",
+  "reason": "Five inputs selected a batch-four plan and required two calls; keep existing multirow policy until small fused plans are qualified.",
+  "measurements": [
+    {
+      "case": "files-5-hits-natural",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/magika",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=off",
+        "--",
+        "files/197238cc702be055a67ed529998a5eba379bf196f4133cb6be28875609098552",
+        "files/55fa67d485aec38180711a44683ea9eb315d500bb46cc9e9af9c5c87e5f6e5c0",
+        "files/72f0dfae17b8c07eb29647926a7a2b40c645dfe95c5efb8ca036f6b5bae307f9",
+        "files/c9fa6e98ce9d8e2d98d0b8f1a3d02bf0201d79c1be9d2770d53b8e6f88881691",
+        "files/f9e6bd5840508be379f04ad7cb7ae181eb12bdddb28bcc0d9334db071f85782a"
+      ],
+      "distinct_files": 5,
+      "file_count": 5,
+      "files_per_second": 300.59517242950693,
+      "input_order_sha256": "a2d3efa41db664d7fb5b9a96d552b5c2e436dfee036f84f3a7a3c58de926e780",
+      "max_seconds": 0.01679825,
+      "median_seconds": 0.016633667,
+      "min_seconds": 0.016469750000000002,
+      "observed_rule_hit_percent": null,
+      "raw": "raw/after-files-5-hits-natural.json",
+      "requested_rule_hit_percent": null,
+      "tool": "after",
+      "trials": 5
+    },
+    {
+      "case": "files-5-hits-natural",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-cleanup/magika",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=off",
+        "--",
+        "files/197238cc702be055a67ed529998a5eba379bf196f4133cb6be28875609098552",
+        "files/55fa67d485aec38180711a44683ea9eb315d500bb46cc9e9af9c5c87e5f6e5c0",
+        "files/72f0dfae17b8c07eb29647926a7a2b40c645dfe95c5efb8ca036f6b5bae307f9",
+        "files/c9fa6e98ce9d8e2d98d0b8f1a3d02bf0201d79c1be9d2770d53b8e6f88881691",
+        "files/f9e6bd5840508be379f04ad7cb7ae181eb12bdddb28bcc0d9334db071f85782a"
+      ],
+      "distinct_files": 5,
+      "file_count": 5,
+      "files_per_second": 409.86267305221776,
+      "input_order_sha256": "a2d3efa41db664d7fb5b9a96d552b5c2e436dfee036f84f3a7a3c58de926e780",
+      "max_seconds": 0.013032666,
+      "median_seconds": 0.012199208000000001,
+      "min_seconds": 0.012005,
+      "observed_rule_hit_percent": null,
+      "raw": "raw/before-files-5-hits-natural.json",
+      "requested_rule_hit_percent": null,
+      "tool": "before",
+      "trials": 5
+    }
+  ],
+  "raw_run": "../../results/v1/2026-09-09-7a0a720c-small-files"
+}

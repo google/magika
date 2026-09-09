@@ -264,3 +264,19 @@ label-basis breakdowns, selection metadata and hashes accompany the overview.
 
 [Complete timing cells and raw evidence](results/v1/2026-09-08-e5f7e339-sembiance-v3/report.md)
 are retained alongside the previous runs.
+
+
+## Small-file CPU batching
+
+[Paired results](reports/2026-09-09-dd99c69c-small-files/overview.md) use the
+existing comparator and Hyperfine on 1,018 files selected by the saved natural
+1/2/5/10/1,000-file workloads. This subset has its own named snapshot identity;
+it does not replace either full-dataset report. Both binaries share the same
+CPU runtime artifact and explicit command settings. The run records five trials
+and one warmup per cell, plus normalized decision parity.
+
+The first, broader cap regressed five-file workloads and is retained as
+[an experiment](results/v1/2026-09-09-7a0a720c-small-files/report.md).
+The final change caps only the CPU class-one range (two or three known inputs),
+preserving GPU and multirow behavior. `small_files_table.py` derives the paired
+table from saved JSON; render-only mode never invokes a detector.

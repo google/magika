@@ -90,6 +90,42 @@
       "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
       "status": "complete",
       "artifacts_sha256": "1be3b57196d9ce242a1e12ceaf367b59fea492da5e285b88c761bae9c5cc067b"
+    },
+    {
+      "id": "2026-09-09-7a0a720c-small-files",
+      "dataset": {
+        "id": "adjudicated-combined",
+        "name": "Adjudicated combined corpus \u2014 natural workload subset",
+        "version": "snapshot-1411a5c0fd4a-natural-workloads",
+        "source_files": 25421,
+        "scored_files": 1018,
+        "selection": "union of saved natural 1,2,5,10,1000-file workloads",
+        "corpus_sha256": "8ebfde0fc8304792c0553f6533e4047a4154fc1def0facfe48f4a9a0f0874f34",
+        "parent_snapshot": "snapshot-1411a5c0fd4a"
+      },
+      "measured_at_utc": "2026-09-09T00:50:31.823098Z",
+      "benchmark_version": "1.1.0",
+      "revision": "7a0a720c3d4b5e85782ba0f7e0b24cab3e983951",
+      "status": "complete",
+      "artifacts_sha256": "2b92952c3736e8dd13c8d3f8343795ab21a696e4c371a9fafee622a68261bc89"
+    },
+    {
+      "id": "2026-09-09-dd99c69c-small-files",
+      "dataset": {
+        "id": "adjudicated-combined",
+        "name": "Adjudicated combined corpus \u2014 natural workload subset",
+        "version": "snapshot-1411a5c0fd4a-natural-workloads",
+        "source_files": 25421,
+        "scored_files": 1018,
+        "selection": "union of saved natural 1,2,5,10,1000-file workloads",
+        "corpus_sha256": "8ebfde0fc8304792c0553f6533e4047a4154fc1def0facfe48f4a9a0f0874f34",
+        "parent_snapshot": "snapshot-1411a5c0fd4a"
+      },
+      "measured_at_utc": "2026-09-09T00:53:12.166857Z",
+      "benchmark_version": "1.1.0",
+      "revision": "dd99c69c1b0de205937dedf7ebb58fd16e675905",
+      "status": "complete",
+      "artifacts_sha256": "9b6eeb1cdbd5020916cfd2046a1c23d13d555a08c973b471d24f70dd993876f2"
     }
   ]
 }

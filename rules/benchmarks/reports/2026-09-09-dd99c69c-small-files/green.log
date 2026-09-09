@@ -1,0 +1,27 @@
+   Compiling magika-cli v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/rust/cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.53s
+     Running unittests src/main.rs (rust/target/debug/deps/magika-773e3487b0ebf9b1)
+
+running 19 tests
+test progress::tests::backpressure_notification_does_not_hold_the_output_lock ... ok
+test reorder_tests::ordered_results_advance_progress_and_drop_closes_it ... ok
+test reorder_tests::wrong_inference_row_count_errors_before_dispatch ... ok
+test reorder_tests::ml_input_observes_model_preparation_failure ... ok
+test reorder_tests::full_batch_backpressure_does_not_split_the_next_batch ... ok
+test reorder_tests::non_utf8_json_path_is_a_fallible_error_not_a_panic ... ok
+test reorder_tests::rule_only_pipeline_finishes_while_model_preparation_is_blocked ... ok
+test reorder_tests::flush_waits_for_outstanding_readers_before_releasing_a_partial_batch ... ok
+test reorder_tests::a_broken_pipe_while_closing_json_does_not_mask_input_errors ... ok
+test reorder_tests::pipeline_failure_before_any_output_still_writes_an_empty_json_array ... ok
+test reorder_tests::pipeline_errors_close_json_and_preserve_buffered_results ... ok
+test reorder_tests::a_later_broken_pipe_does_not_mask_a_pipeline_failure ... ok
+test reorder_tests::one_known_input_avoids_gpu_startup_and_cpu_batch_padding ... ok
+test reorder_tests::experimental_resource_limits_reject_invalid_values_before_execution ... ok
+test reorder_tests::sparse_misses_fill_batches_without_unbounded_lookahead ... ok
+test reorder_tests::named_pipes_are_rejected_before_reader_dispatch ... ok
+test reorder_tests::small_cpu_inputs_avoid_padding_without_splitting_multirow_plans ... ok
+test progress::tests::window_waits_for_ordered_progress ... ok
+test progress::tests::closing_output_releases_waiters_and_stays_closed ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+

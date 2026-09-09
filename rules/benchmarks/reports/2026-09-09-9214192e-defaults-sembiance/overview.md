@@ -36,13 +36,15 @@ Whole-process median milliseconds, including startup, I/O, output and shutdown; 
 | libmagic | 5.41 | MIME; serial (`b787da2e`); defaults | 33.29% | 96.61% | 34.46% | — | 1.60 | 10.36 | 9.12 | 16.41 | 9.99 | 77.63 | 626.60 |
 | TrID | 2.48 | strings=True; StringZilla=5.1.2 (`cf7a7915`); defaults | 42.58% | 90.68% | 46.96% | — | 95.11 | 75.13 | 75.03 | 99.48 | 186.17 | 197.24 | 1,685.32 |
 
-## CPU/GPU crossover
+## CPU/GPU configuration crossover
 
-Winners below compare measured medians on the same natural workloads. No crossover is interpolated between file counts. A rules-only hit with no inference is excluded from CPU/GPU crossover claims.
+Winners below compare requested CPU and GPU configurations on the same natural workloads. GPU configurations include CPU warmup when their Config column says so. No crossover is interpolated between file counts. A rules-only hit with no inference is excluded from CPU/GPU crossover claims.
 
 | Mode | 1 files | 2 files | 5 files | 10 files | 25 files | 100 files | 1,000 files | First measured GPU win |
 |---|---|---|---|---|---|---|---|---|
 | ML | CPU | CPU | CPU | CPU | CPU | CPU | GPU | 1000 |
 | rules + ML | no inference | CPU | CPU | CPU | CPU | CPU | GPU | 1000 |
+
+Quality evaluation uses invocations of up to 128 files. For CPU warmup runs, per-workload validation metrics and inference differences are retained in the result JSON.
 
 Raw observations, exact commands, executable/model/database hashes and per-workload timings are retained in the run JSON. GPU means Metal on this host.

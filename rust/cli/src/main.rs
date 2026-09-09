@@ -957,6 +957,7 @@ struct GpuRuntime {
     prepared: Arc<std::sync::OnceLock<Result<Runtime>>>,
     mode: BackendChoice,
     threads: usize,
+    active: std::sync::atomic::AtomicBool,
 }
 
 impl GpuRuntime {
@@ -977,20 +978,23 @@ impl GpuRuntime {
                 let _ = prepared.set(result);
             }
         })?;
-        Ok(Self { prepared, mode: preparation.mode, threads })
+        Ok(Self { prepared, mode: preparation.mode, threads, active: false.into() })
     }
 
     fn runtime_for(&self, worker: usize, batch_files: usize) -> Option<&Runtime> {
-        if worker >= self.threads {
-            return None;
-        }
         // Preparation cost is already paid when ready. One normal eight-file batch can use
         // the GPU; requiring a deeper queue leaves it idle when readers pace the pipeline.
         // Auto keeps small tails on CPU and never waits for additional input or GPU loading.
         if self.mode == BackendChoice::Auto && batch_files < 8 {
             return None;
         }
-        self.prepared.get()?.as_ref().ok()
+        let runtime = self.prepared.get()?.as_ref().ok()?;
+        self.active.store(true, std::sync::atomic::Ordering::Relaxed);
+        (worker < self.threads).then_some(runtime)
+    }
+
+    fn should_retire(&self, worker: usize) -> bool {
+        worker >= self.threads && self.active.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 
@@ -1091,6 +1095,11 @@ fn infer_batches(
         };
         let batch = magika.identify_features_batch(&features)?;
         dispatch_inference_results(pending, batch, sender)?;
+        // Finish the batch already claimed before retiring a CPU worker. Leaving the
+        // remaining queue to the GPU avoids running a full CPU pool alongside the device.
+        if gpu.is_some_and(|gpu| gpu.should_retire(worker)) {
+            break;
+        }
     }
     #[cfg(feature = "_trace")]
     if !batch_counts.is_empty() {
@@ -1558,8 +1567,12 @@ mod reorder_tests {
     #[test]
     fn ready_gpu_admission_respects_mode_work_size_and_worker_limit() {
         let prepared = Arc::new(std::sync::OnceLock::new());
-        let mut gpu =
-            GpuRuntime { prepared: prepared.clone(), mode: BackendChoice::Auto, threads: 4 };
+        let mut gpu = GpuRuntime {
+            prepared: prepared.clone(),
+            mode: BackendChoice::Auto,
+            threads: 4,
+            active: false.into(),
+        };
         assert!(gpu.runtime_for(0, 100).is_none());
         // Use a CPU runtime as the ready-device fixture so this test is portable.
         assert!(prepared
@@ -1577,6 +1590,45 @@ mod reorder_tests {
         assert!(gpu.runtime_for(4, 100).is_none());
         gpu.prepared = Arc::new(std::sync::OnceLock::from(Err(anyhow::anyhow!("GPU unavailable"))));
         assert!(gpu.runtime_for(0, 100).is_none());
+    }
+
+    #[test]
+    fn cpu_workers_finish_claimed_work_and_leave_queued_batches_for_ready_gpu() {
+        let cpu = Runtime::builder().with_backend(Backend::Cpu).with_max_batch(8).build().unwrap();
+        let prepared = Arc::new(std::sync::OnceLock::new());
+        assert!(prepared
+            .set(Ok(Runtime::builder()
+                .with_backend(Backend::Cpu)
+                .with_max_batch(8)
+                .build()
+                .unwrap()))
+            .is_ok());
+        let gpu =
+            GpuRuntime { prepared, mode: BackendChoice::Auto, threads: 4, active: false.into() };
+        let (batch_tx, batch_rx) = crossbeam_channel::bounded(2);
+        let (result_tx, result_rx) = std::sync::mpsc::sync_channel(16);
+        for start in [0, 8] {
+            let mut pending = Vec::new();
+            let mut features = Vec::new();
+            for order in start..start + 8 {
+                let FeaturesOrRuled::Features(row) =
+                    FeaturesOrRuled::extract(&[65_u8; 128][..]).unwrap()
+                else {
+                    panic!("expected ML features")
+                };
+                pending.push(OrderPath { order, path: PathBuf::from("miss") });
+                features.push(row);
+            }
+            batch_tx.send(InferenceBatch { pending, features }).unwrap();
+        }
+        drop(batch_tx);
+        infer_batches(&cpu, Some(&gpu), 4, None, &batch_rx, &result_tx).unwrap();
+        assert_eq!(batch_rx.len(), 1, "CPU worker must retire after its claimed batch");
+        infer_batches(&cpu, Some(&gpu), 0, None, &batch_rx, &result_tx).unwrap();
+        drop(result_tx);
+        let rows: Vec<_> = result_rx.into_iter().map(|r| r.unwrap()).collect();
+        assert_eq!(rows.iter().map(|r| r.order).collect::<Vec<_>>(), (0..16).collect::<Vec<_>>());
+        assert!(rows.iter().all(|r| matches!(r.result, Ok(FileType::Inferred(_)))));
     }
 
     #[test]

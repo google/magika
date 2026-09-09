@@ -96,6 +96,7 @@ def derive(source, destination):
         "files": len(samples),
         "runs": current["config"]["runs"],
         "warmup": current["config"]["warmup"],
+        "quality_chunk_files": current["config"].get("quality_chunk_files", 128),
         "workloads": len(cases),
         "results_sha256": corpus.file_hash(path),
         "rows": [],
@@ -180,9 +181,10 @@ def render(path, output):
         lines.append("| " + " | ".join(cells) + " |")
     lines += [
         "",
-        "## CPU/GPU crossover",
+        "## CPU/GPU configuration crossover",
         "",
-        "Winners below compare measured medians on the same natural workloads. "
+        "Winners below compare requested CPU and GPU configurations on the same natural workloads. "
+        "GPU configurations include CPU warmup when their Config column says so. "
         "No crossover is interpolated between file counts. A rules-only hit with no inference is excluded from CPU/GPU crossover claims.",
         "",
         "| Mode | " + " | ".join(f"{n:,} files" for n in COUNTS) + " | First measured GPU win |",
@@ -202,6 +204,9 @@ def render(path, output):
             + " |"
         )
     lines += [
+        "",
+        f"Quality evaluation uses invocations of up to {summary.get('quality_chunk_files', 128)} files. "
+        "For CPU warmup runs, per-workload validation metrics and inference differences are retained in the result JSON.",
         "",
         "Raw observations, exact commands, executable/model/database hashes and per-workload timings are retained in the run JSON. GPU means Metal on this host.",
         "",

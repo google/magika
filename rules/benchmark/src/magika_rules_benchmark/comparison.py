@@ -22,7 +22,39 @@ from tabulate import tabulate
 
 from . import corpus, runner
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
+
+
+def validate_default_policy(spec):
+    """Cross-tool measurements use each tool's own resource policy."""
+    flags = {
+        "--threads",
+        "--readers",
+        "--batch-size",
+        "--intra-threads",
+        "--inter-threads",
+        "--num-tasks",
+    }
+    variables = {
+        "OMP_NUM_THREADS",
+        "OMP_THREAD_LIMIT",
+        "OMP_DYNAMIC",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "MKL_DYNAMIC",
+        "RAYON_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    }
+    if variables.intersection(spec.get("environment", {})):
+        raise ValueError(
+            "Benchmark requires tool defaults; remove thread-cap environment variables"
+        )
+    for tool in spec["tools"]:
+        if any(argument.split("=", 1)[0] in flags for argument in tool["command"]):
+            raise ValueError(
+                f"{tool['id']}: benchmark requires tool defaults; remove resource overrides"
+            )
 
 
 class Adapter(StrEnum):
@@ -544,6 +576,7 @@ def run(args):
     spec = load_json(args.config)
     if spec["schema"] != 1:
         raise ValueError("Unsupported comparison config schema")
+    validate_default_policy(spec)
     reference_mode = RuleReference(spec.get("rules_reference_mode", "hybrid"))
     counts, rates = spec["file_counts"], spec["rule_hit_percentages"]
     if (

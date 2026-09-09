@@ -5,10 +5,7 @@
 import argparse
 from pathlib import Path
 
-import external_table
 import full_table
-import paired_table
-import small_files_table
 from magika_rules_benchmark import comparison as c
 from magika_rules_benchmark import corpus
 from magika_rules_benchmark.identity import index_entry, report_metadata, tool_record
@@ -36,22 +33,13 @@ def refresh(root, descriptors):
         for row in summary["rows"]:
             row["tool_identity"] = tool_record(result, row["id"])
         corpus.atomic_json(report / "overview.json", summary)
-        generator = (
-            paired_table
-            if summary.get("report_kind") == "paired"
-            else small_files_table
-            if summary.get("report_kind") == "small-files"
-            else external_table
-            if "selection" in summary
-            else full_table
-        )
+        generator = full_table
         generator.render(report / "overview.json", report / "overview.md")
         receipt = c.load_json(report / "artifacts.json")
         receipt["schema"] = 2
         receipt.pop("generator_sha256", None)
         receipt["code_sha256"] = receipt.get("code_sha256", {}) | {
-            name: corpus.file_hash(root / name)
-            for name in ["catalog.py", "full_table.py", "external_table.py", "small_files_table.py"]
+            name: corpus.file_hash(root / name) for name in ["catalog.py", "full_table.py"]
         }
         receipt["code_sha256"]["../benchmark/src/magika_rules_benchmark/identity.py"] = (
             corpus.file_hash(root.parent / "benchmark/src/magika_rules_benchmark/identity.py")

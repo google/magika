@@ -1,6 +1,6 @@
 # Copyright 2026 Google LLC
 # SPDX-License-Identifier: Apache-2.0
-"""Generate the eight-mode overview and historical arithmetic from saved JSON."""
+"""Render tool-default comparisons and measured GPU crossover from saved JSON."""
 
 import argparse
 import gzip
@@ -24,11 +24,13 @@ TOOLS = [
     ("magika2-rules", "Magika 2 CPU rules + ML", "cpu"),
     ("magika2-gpu-ml", "Magika 2 GPU ML", "gpu"),
     ("magika2-gpu-rules", "Magika 2 GPU rules + ML", "gpu"),
+    ("magika2-auto-ml", "Magika 2 Auto ML", "auto"),
+    ("magika2-auto-rules", "Magika 2 Auto rules + ML", "auto"),
     ("magika2-rules-only", "Magika 2 rules-only CPU", "rules-only"),
     ("libmagic", "libmagic", "cpu"),
     ("trid", "TrID", "cpu"),
 ]
-COUNTS = [1, 10, 100, 1000]
+COUNTS = [1, 2, 5, 10, 25, 100, 1000]
 
 
 def observations(source):
@@ -43,47 +45,69 @@ def result_file(source):
     return path if path.exists() else source / "results.json.gz"
 
 
-def derive(source, previous, destination):
-    result_path = result_file(source)
-    current = c.load_json(result_path)
+def gpu_crossover(rows):
+    by_id = {row["id"]: row for row in rows}
+    result = {}
+    for mode, cpu, gpu in [
+        ("ML", "magika2-ml", "magika2-gpu-ml"),
+        ("rules + ML", "magika2-rules", "magika2-gpu-rules"),
+    ]:
+        comparisons = []
+        for count in COUNTS:
+            a, b = by_id[cpu]["timings"][str(count)], by_id[gpu]["timings"][str(count)]
+            cpu_ms, gpu_ms = a["median_seconds"] * 1000, b["median_seconds"] * 1000
+            inference_files = a["inference_files"]
+            comparisons.append(
+                {
+                    "files": count,
+                    "cpu_ms": cpu_ms,
+                    "gpu_ms": gpu_ms,
+                    "inference_files": inference_files,
+                    "winner": "no inference"
+                    if not inference_files
+                    else "GPU"
+                    if gpu_ms < cpu_ms
+                    else "CPU",
+                }
+            )
+        result[mode] = {
+            "measurements": comparisons,
+            "first_measured_gpu_win": next(
+                (r["files"] for r in comparisons if r["winner"] == "GPU"), None
+            ),
+        }
+    return result
+
+
+def derive(source, destination):
+    path = result_file(source)
+    current = c.load_json(path)
+    c.validate_default_policy(current["config"])
     assert current["status"] == "complete"
-    current_inputs = c.load_json(source / "inputs.json.gz")
-    samples = sorted(current_inputs["samples"], key=lambda s: s["sha256"])
+    inputs = c.load_json(source / "inputs.json.gz")
+    samples = sorted(inputs["samples"], key=lambda s: s["sha256"])
     observed = observations(source)
-    old = {name: c.load_json(result_file(path)) for name, path in previous.items()}
-    old_observations = {name: observations(path) for name, path in previous.items()}
-    for path in previous.values():
-        assert c.input_identity(current_inputs) == c.input_identity(
-            c.load_json(path / "inputs.json.gz")
-        )
-        assert c.load_json(source / "workloads.json") == c.load_json(path / "workloads.json")
+    lookup = {s["sha256"]: i for i, s in enumerate(samples)}
+    cases = {w["id"]: w for w in c.load_json(source / "workloads.json")}
     summary = {
         "schema": 2,
+        "report_kind": "defaults",
         "revision": current["revision"],
         "files": len(samples),
         "runs": current["config"]["runs"],
         "warmup": current["config"]["warmup"],
-        "results_sha256": corpus.file_hash(result_path),
-        "previous_results_sha256": {
-            name: corpus.file_hash(result_file(path)) for name, path in previous.items()
-        },
-        "historical_compatibility": {
-            name: c.compare_previous(current, value) for name, value in old.items()
-        },
+        "workloads": len(cases),
+        "results_sha256": corpus.file_hash(path),
         "rows": [],
+        **report_metadata(current, source_dataset(source, current)),
     }
-    summary.update(report_metadata(current, source_dataset(source, current)))
     controls = {
         "magika2-rules": "magika2-ml",
         "magika2-gpu-rules": "magika2-gpu-ml",
         "magika2-rules-only": None,
+        "magika2-auto-rules": "magika2-auto-ml",
     }
-    for tool, label, group in TOOLS:
-        before = old[group]
-        assert current["compatibility"]["corpus"] == before["compatibility"]["corpus"]
-        assert (
-            current["compatibility"]["mappings"][tool] == before["compatibility"]["mappings"][tool]
-        )
+    for tool, label, _ in TOOLS:
         quality = current["quality"][tool]
         assert quality["files"] == len(samples) and quality["errors"] == 0
         rule_matches = None
@@ -91,33 +115,17 @@ def derive(source, previous, destination):
             control = observed[controls[tool]] if controls[tool] else None
             rule_matches = len(c.rule_hit_hashes(samples, observed[tool], control)) / len(samples)
         times = {}
-        for count in COUNTS:
-            new = [
-                m
-                for m in current["measurements"]
-                if m["tool"] == tool
-                and m["file_count"] == count
-                and m["requested_rule_hit_percent"] is None
-            ]
-            prior = [
-                m
-                for m in before["measurements"]
-                if m["tool"] == tool
-                and m["file_count"] == count
-                and m["requested_rule_hit_percent"] is None
-            ]
-            assert len(new) == len(prior) == 1
-            new, prior = new[0], prior[0]
-            assert new["input_order_sha256"] == prior["input_order_sha256"]
-            times[str(count)] = {
-                "before_ms": 1000 * prior["median_seconds"],
-                "after_ms": 1000 * new["median_seconds"],
-                "min_ms": 1000 * new["min_seconds"],
-                "max_ms": 1000 * new["max_seconds"],
-                "historical_ratio": prior["median_seconds"] / new["median_seconds"],
-                "elapsed_reduction_percent": 100
-                * (1 - new["median_seconds"] / prior["median_seconds"]),
-            }
+        for m in current["measurements"]:
+            if m["tool"] != tool or m["requested_rule_hit_percent"] is not None:
+                continue
+            case = cases[m["case"]]
+            inference = (
+                sum(not observed[tool][lookup[h]]["deterministic"] for h in case["samples"])
+                if tool.startswith("magika2")
+                else None
+            )
+            times[str(m["file_count"])] = m | {"inference_files": inference}
+        assert set(times) == set(map(str, COUNTS))
         summary["rows"].append(
             {
                 "id": tool,
@@ -126,99 +134,84 @@ def derive(source, previous, destination):
                 "quality": quality,
                 "rule_matches": rule_matches,
                 "timings": times,
-                "observation_changes": sum(
-                    a != b
-                    for a, b in zip(observed[tool], old_observations[group][tool], strict=True)
-                ),
-                "quality_changes": {
-                    key: quality[key] - before["quality"][tool][key]
-                    for key in ["correct", "wrong", "errors", "decisions"]
-                },
             }
         )
-    destination.mkdir(parents=True, exist_ok=True)
+    summary["gpu_crossover"] = gpu_crossover(summary["rows"])
+    destination.mkdir(parents=True, exist_ok=False)
     corpus.atomic_json(destination / "overview.json", summary)
     render(destination / "overview.json", destination / "overview.md")
+    corpus.atomic_json(
+        destination / "artifacts.json",
+        {
+            "schema": 2,
+            "code_sha256": {"full_table.py": corpus.file_hash(Path(__file__))},
+            "files": {p.name: corpus.file_hash(p) for p in sorted(destination.iterdir())},
+        },
+    )
 
 
 def render(path, output):
     summary = c.load_json(path)
     lines = [
-        f"# Magika benchmark — {summary['revision'][:8]}",
+        "# Tool-default benchmark",
         "",
-        f"Fresh accuracy evaluation on {summary['files']:,} files. All eight modes rerun on the same "
-        f"30 saved workloads; {summary['runs']} measured runs after {summary['warmup']} warmup. "
-        "Times are median milliseconds for natural file mixes, including startup and shutdown; warm OS caches.",
+        *report_identity_lines(summary),
+        f"Accuracy on {summary['files']:,} files; {summary['workloads']} saved workloads, "
+        f"{summary['runs']} measured runs after {summary['warmup']} warmup. "
+        "Every tool uses its default worker, reader and internal batch policy. No thread-cap environment variables are set.",
         "",
-        "| Tool | Version | Config | Accuracy | Precision | Coverage | Rule matches | 1 file | 10 files | 100 files | 1,000 files |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "Whole-process median milliseconds, including startup, I/O, output and shutdown; warm OS caches. "
+        "Default settings are measured here; this is not a claim that every tool has been exhaustively tuned.",
+        "",
+        "| Tool | Version | Config | Accuracy | Precision | Coverage | Rule matches | "
+        + " | ".join(f"{n:,} file" + ("s" if n != 1 else "") for n in COUNTS)
+        + " |",
+        "|---|---|---|" + "---:|" * (4 + len(COUNTS)),
     ]
     for row in summary["rows"]:
         q = row["quality"]
-        cells = [
-            *tool_cells(row),
-            *[f"{100 * q[key]:.2f}%" for key in ["accuracy", "precision", "decision_coverage"]],
+        cells = tool_cells(row)
+        cells[2] += "; defaults"
+        cells += [
+            *[f"{100 * q[k]:.2f}%" for k in ["accuracy", "precision", "decision_coverage"]],
             "—" if row["rule_matches"] is None else f"{100 * row['rule_matches']:.2f}%",
-            *[f"{row['timings'][str(n)]['after_ms']:,.2f}" for n in COUNTS],
+            *[f"{row['timings'][str(n)]['median_seconds'] * 1000:,.2f}" for n in COUNTS],
         ]
         lines.append("| " + " | ".join(cells) + " |")
     lines += [
         "",
-        "## Elapsed-time reduction versus the previous published table",
+        "## CPU/GPU crossover",
         "",
-        "Positive percentages mean less time; negative percentages mean more time. "
-        "These historical differences include all intervening changes and host variation. "
-        "They are not an isolated measurement of asynchronous loading. The original measurements remain unchanged.",
+        "Winners below compare measured medians on the same natural workloads. "
+        "No crossover is interpolated between file counts. A rules-only hit with no inference is excluded from CPU/GPU crossover claims.",
         "",
-        "| Tool | Version | Config | 1 file | 10 files | 100 files | 1,000 files |",
-        "|---|---|---|---:|---:|---:|---:|",
+        "| Mode | " + " | ".join(f"{n:,} files" for n in COUNTS) + " | First measured GPU win |",
+        "|---|" + "---|" * (len(COUNTS) + 1),
     ]
-    for row in summary["rows"]:
+    for mode, result in summary["gpu_crossover"].items():
+        first = result["first_measured_gpu_win"]
         lines.append(
             "| "
             + " | ".join(
                 [
-                    *tool_cells(row),
-                    *[
-                        f"{row['timings'][str(n)]['elapsed_reduction_percent']:+.1f}%"
-                        for n in COUNTS
-                    ],
+                    mode,
+                    *[r["winner"] for r in result["measurements"]],
+                    "none observed" if first is None else str(first),
                 ]
             )
             + " |"
         )
     lines += [
         "",
-        "Full precision, raw ranges, historical ratios, quality-count changes and compatibility checks are stored "
-        "in `overview.json`. The strict historical compatibility check flags the changed reference/configuration and "
-        "loader environment; the overview reports historical arithmetic rather than a controlled causal speedup. "
-        "The corpus, labels, mapping and ordered file lists are verified identical. "
-        "Magika 2 uses the deferred CPU/Metal distribution and the mapped rule pack. "
-        "GPU means Metal; rules-only runs CPU signatures without model initialization.",
+        "Raw observations, exact commands, executable/model/database hashes and per-workload timings are retained in the run JSON. GPU means Metal on this host.",
+        "",
     ]
-    lines[2:2] = report_identity_lines(summary)
-    Path(output).write_text("\n".join(lines) + "\n")
+    output.write_text("\n".join(lines))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path)
-    parser.add_argument("--previous-cpu", type=Path)
-    parser.add_argument("--previous-gpu", type=Path)
-    parser.add_argument("--previous-rules-only", type=Path)
-    parser.add_argument("--destination", type=Path)
-    parser.add_argument("--render", type=Path)
-    parser.add_argument("--output", type=Path)
+    parser.add_argument("source", type=Path)
+    parser.add_argument("destination", type=Path)
     args = parser.parse_args()
-    if args.render:
-        render(args.render, args.output)
-    else:
-        derive(
-            args.source,
-            {
-                "cpu": args.previous_cpu,
-                "gpu": args.previous_gpu,
-                "rules-only": args.previous_rules_only,
-            },
-            args.destination,
-        )
+    derive(args.source, args.destination)

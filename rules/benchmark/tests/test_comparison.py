@@ -218,3 +218,45 @@ def test_hybrid_rule_hits_still_require_the_ml_control():
     control = [dict(deterministic=x) for x in [False, True, False]]
     rows[2] = c.mapped(["unknown"], {}, abstain=True, deterministic=True)
     assert c.rule_hit_hashes(samples, rows, control) == {"0"}
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "--threads=2",
+        "--readers=2",
+        "--batch-size=8",
+        "--intra-threads=2",
+        "--num-tasks=1",
+        "--threads",
+    ],
+)
+def test_default_benchmark_rejects_resource_overrides(flag):
+    with pytest.raises(ValueError, match="defaults"):
+        c.validate_default_policy({"tools": [{"id": "magika", "command": ["magika", flag]}]})
+
+
+@pytest.mark.parametrize(
+    "variable",
+    [
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "RAYON_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+    ],
+)
+def test_default_benchmark_rejects_thread_cap_environment(variable):
+    with pytest.raises(ValueError, match="defaults"):
+        c.validate_default_policy({"tools": [], "environment": {variable: "2"}})
+
+
+def test_default_benchmark_allows_backend_rules_and_output_selection():
+    c.validate_default_policy(
+        {
+            "tools": [
+                {"id": "magika", "command": ["magika", "--jsonl", "--backend=cpu", "--rules=only"]}
+            ],
+            "environment": {"MAGIKA_VECTORSCAN_LIBRARY": "/engine/libhs.dylib"},
+        }
+    )

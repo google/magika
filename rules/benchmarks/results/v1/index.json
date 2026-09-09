@@ -2,7 +2,7 @@
   "schema": 2,
   "runs": [
     {
-      "id": "2026-09-08-425a5e38-cpu",
+      "id": "2026-09-09-9214192e-defaults-combined",
       "dataset": {
         "id": "adjudicated-combined",
         "name": "Adjudicated combined corpus",
@@ -13,68 +13,14 @@
         "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
         "scored_files": 25421
       },
-      "measured_at_utc": "2026-09-08T18:22:05.748172Z",
-      "benchmark_version": "1.0.0",
-      "revision": "425a5e38",
+      "measured_at_utc": "2026-09-09T03:03:17.576954Z",
+      "benchmark_version": "1.2.0",
+      "revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
       "status": "complete",
-      "artifacts_sha256": "606fcf7506e7781f0ff31475c793c0996387e2c393446b733e6692a62b9d2b74"
+      "artifacts_sha256": "e5c6cd2f67d68cdacd4fbabbbe20befd1fff6907a12dca7878e0cd9bf20227ee"
     },
     {
-      "id": "2026-09-08-425a5e38-gpu",
-      "dataset": {
-        "id": "adjudicated-combined",
-        "name": "Adjudicated combined corpus",
-        "version": "snapshot-1411a5c0fd4a",
-        "source_files": 25421,
-        "selection": "validated combined snapshot with APK patch 136",
-        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
-        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
-        "scored_files": 25421
-      },
-      "measured_at_utc": "2026-09-08T18:30:12.121784Z",
-      "benchmark_version": "1.0.0",
-      "revision": "425a5e38",
-      "status": "partial",
-      "artifacts_sha256": "df378a354c363c0d8b0efe9c53d20c42b17d5b731a2088d9a95f61fb44482363"
-    },
-    {
-      "id": "2026-09-08-2d6c3992-rules-only",
-      "dataset": {
-        "id": "adjudicated-combined",
-        "name": "Adjudicated combined corpus",
-        "version": "snapshot-1411a5c0fd4a",
-        "source_files": 25421,
-        "selection": "validated combined snapshot with APK patch 136",
-        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
-        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
-        "scored_files": 25421
-      },
-      "measured_at_utc": "2026-09-08T18:55:28.159122Z",
-      "benchmark_version": "1.1.0",
-      "revision": "2d6c39928b157746630a2efdd4da874cc90da75c",
-      "status": "complete",
-      "artifacts_sha256": "4a36dcb07cbed4d40538e19610be360d93bbde31c8d6257a76fd1e17995f856d"
-    },
-    {
-      "id": "2026-09-08-e5f7e339-all",
-      "dataset": {
-        "id": "adjudicated-combined",
-        "name": "Adjudicated combined corpus",
-        "version": "snapshot-1411a5c0fd4a",
-        "source_files": 25421,
-        "selection": "validated combined snapshot with APK patch 136",
-        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
-        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
-        "scored_files": 25421
-      },
-      "measured_at_utc": "2026-09-08T22:36:35.070300Z",
-      "benchmark_version": "1.1.0",
-      "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
-      "status": "complete",
-      "artifacts_sha256": "edebf5f87e62d432172cfd8e17595b1dcd35685d74e7adaeb7b27532fc335991"
-    },
-    {
-      "id": "2026-09-08-e5f7e339-sembiance-v3",
+      "id": "2026-09-09-9214192e-defaults-sembiance",
       "dataset": {
         "id": "sembiance",
         "name": "Sembiance",
@@ -85,65 +31,11 @@
         "corpus_sha256": "a8717d6c58c4487fd92096efc03eb7155fa867efa4ac9a3da39da2ceaa45810a",
         "scored_files": 2400
       },
-      "measured_at_utc": "2026-09-08T23:11:38.675067Z",
-      "benchmark_version": "1.1.0",
-      "revision": "e5f7e339ffdf034767b1fed089e90a09b7a83bbb",
+      "measured_at_utc": "2026-09-09T03:08:57.821771Z",
+      "benchmark_version": "1.2.0",
+      "revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
       "status": "complete",
-      "artifacts_sha256": "1be3b57196d9ce242a1e12ceaf367b59fea492da5e285b88c761bae9c5cc067b"
-    },
-    {
-      "id": "2026-09-09-7a0a720c-small-files",
-      "dataset": {
-        "id": "adjudicated-combined",
-        "name": "Adjudicated combined corpus \u2014 natural workload subset",
-        "version": "snapshot-1411a5c0fd4a-natural-workloads",
-        "source_files": 25421,
-        "scored_files": 1018,
-        "selection": "union of saved natural 1,2,5,10,1000-file workloads",
-        "corpus_sha256": "8ebfde0fc8304792c0553f6533e4047a4154fc1def0facfe48f4a9a0f0874f34",
-        "parent_snapshot": "snapshot-1411a5c0fd4a"
-      },
-      "measured_at_utc": "2026-09-09T00:50:31.823098Z",
-      "benchmark_version": "1.1.0",
-      "revision": "7a0a720c3d4b5e85782ba0f7e0b24cab3e983951",
-      "status": "complete",
-      "artifacts_sha256": "2b92952c3736e8dd13c8d3f8343795ab21a696e4c371a9fafee622a68261bc89"
-    },
-    {
-      "id": "2026-09-09-dd99c69c-small-files",
-      "dataset": {
-        "id": "adjudicated-combined",
-        "name": "Adjudicated combined corpus \u2014 natural workload subset",
-        "version": "snapshot-1411a5c0fd4a-natural-workloads",
-        "source_files": 25421,
-        "scored_files": 1018,
-        "selection": "union of saved natural 1,2,5,10,1000-file workloads",
-        "corpus_sha256": "8ebfde0fc8304792c0553f6533e4047a4154fc1def0facfe48f4a9a0f0874f34",
-        "parent_snapshot": "snapshot-1411a5c0fd4a"
-      },
-      "measured_at_utc": "2026-09-09T00:53:12.166857Z",
-      "benchmark_version": "1.1.0",
-      "revision": "dd99c69c1b0de205937dedf7ebb58fd16e675905",
-      "status": "complete",
-      "artifacts_sha256": "9b6eeb1cdbd5020916cfd2046a1c23d13d555a08c973b471d24f70dd993876f2"
-    },
-    {
-      "id": "2026-09-09-754c063e-fusion",
-      "dataset": {
-        "id": "adjudicated-combined",
-        "name": "Adjudicated combined corpus",
-        "version": "snapshot-1411a5c0fd4a",
-        "source_files": 25421,
-        "selection": "validated combined snapshot with APK patch 136",
-        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
-        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
-        "scored_files": 25421
-      },
-      "measured_at_utc": "2026-09-09T01:36:40.400275Z",
-      "benchmark_version": "1.1.0",
-      "revision": "754c063e-fusion-dirty",
-      "status": "complete",
-      "artifacts_sha256": "39bd7c63ea2dd5229d34cf2a91bfa72f34e136395700a54d41de4aa902ae5f84"
+      "artifacts_sha256": "403ecfc3b71715e8eb4bce634033bb43585be1a61e83fc05686e4005207d54d1"
     }
   ]
 }

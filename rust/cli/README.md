@@ -142,13 +142,13 @@ Arguments:
 
 Options:
       --rules <RULES>
-          Enables the selected ruleset (requires the yara-rules feature)
+          Selects off, enforce (ML fallback), or only (unknown on misses; no model). Requires the yara-rules feature unless off
 
           [default: off]
-          [possible values: off, enforce]
+          [possible values: off, enforce, only]
 
       --rules-file <RULES_FILE>
-          Loads a YARA pack with per-rule enforcement metadata. Requires --rules=enforce
+          Loads a YARA pack with per-rule enforcement metadata. Requires --rules=enforce or --rules=only
 
       --compile-rules <COMPILE_RULES>
           Compiles a YARA file to a sibling .hsdb file and exits; refuses to overwrite

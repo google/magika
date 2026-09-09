@@ -83,6 +83,7 @@ default = true
 python-source = "src"
 module-name = "magika"
 bindings = "bin"
+data = "magika.data"
 manifest-path = "../rust/cli/Cargo.toml"
 locked = true
 

@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! Deferred runtime loading for CPU and GPU inference.
 use anyhow::{Context, Result, ensure};
 use libloading::Library;
@@ -124,20 +127,46 @@ impl Loaded {
     }
 }
 
-fn backend_path(kind: Kind) -> Result<PathBuf> {
-    // This override names trusted, caller-installed native code, not model data.
-    let directory = if let Some(path) = std::env::var_os("MAGIKA_RUNTIME_DIR") {
-        PathBuf::from(path)
-    } else {
-        std::env::current_exe()?.parent().context("executable has no parent")?.join("lib")
-    };
-    let directory = directory.canonicalize().context("locating inference backend directory")?;
-    Ok(directory.join(format!(
+fn installed_backend_path(executable: &Path, kind: Kind) -> Result<PathBuf> {
+    let directory = executable.parent().context("executable has no parent")?;
+    let filename = format!(
         "{}magika_runtime_{}{}",
         std::env::consts::DLL_PREFIX,
         kind.name(),
         std::env::consts::DLL_SUFFIX
+    );
+    let nested = directory.join("lib").join(&filename);
+    // Maintainer bundles use lib/. Wheel and cargo-dist installers put libraries
+    // next to the executable. Neither lookup searches cwd or the system PATH.
+    if nested.is_file() {
+        return Ok(nested);
+    }
+    let flat = directory.join(filename);
+    if kind == Kind::Cpu || flat.is_file() {
+        return Ok(flat);
+    }
+    // cargo-dist installs one platform-specific GPU artifact under a stable name.
+    // The ABI still verifies whether that artifact implements Metal or CUDA.
+    Ok(directory.join(format!(
+        "{}magika_runtime_gpu{}",
+        std::env::consts::DLL_PREFIX,
+        std::env::consts::DLL_SUFFIX
     )))
+}
+
+fn backend_path(kind: Kind) -> Result<PathBuf> {
+    if let Some(directory) = std::env::var_os("MAGIKA_RUNTIME_DIR") {
+        let directory = PathBuf::from(directory)
+            .canonicalize()
+            .context("locating inference backend directory")?;
+        return Ok(directory.join(format!(
+            "{}magika_runtime_{}{}",
+            std::env::consts::DLL_PREFIX,
+            kind.name(),
+            std::env::consts::DLL_SUFFIX
+        )));
+    }
+    installed_backend_path(&std::env::current_exe()?, kind)
 }
 
 fn load(kind: Kind) -> Result<Arc<Loaded>> {
@@ -265,6 +294,17 @@ impl Drop for Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn flat_installer_layout_is_resolved_beside_the_executable() {
+        let executable = Path::new("/installed/bin/magika");
+        let expected = executable.parent().unwrap().join(format!(
+            "{}magika_runtime_cpu{}",
+            std::env::consts::DLL_PREFIX,
+            std::env::consts::DLL_SUFFIX
+        ));
+        assert_eq!(installed_backend_path(executable, Kind::Cpu).unwrap(), expected);
+    }
 
     #[test]
     fn cpu_never_attempts_gpu_loading() {

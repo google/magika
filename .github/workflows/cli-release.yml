@@ -148,6 +148,13 @@ jobs:
           # Actually do builds and make zips and whatnot
           dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
+      # Install the archives in an isolated prefix before uploading them.
+      # The global artifact job regenerates these local installer files.
+      - name: Verify installed runtime
+        run: |
+          dist build --artifacts=global --output-format=json > installer-test-manifest.json
+          python3 rust/distribution/fix_installer.py target/distrib/magika-cli-installer.sh
+          python3 rust/distribution/verify_install.py target/distrib
       - name: Attest
         uses: actions/attest-build-provenance@v3
         with:
@@ -204,6 +211,7 @@ jobs:
         shell: bash
         run: |
           dist build ${NEEDS_PLAN_OUTPUTS_TAG_FLAG} --output-format=json "--artifacts=global" > dist-manifest.json
+          python3 rust/distribution/fix_installer.py target/distrib/magika-cli-installer.sh
           echo "dist ran successfully"
 
           # Parse out what we just built and upload it to scratch storage

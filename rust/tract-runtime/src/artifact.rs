@@ -169,8 +169,7 @@ fn tensor(p: &Parameter, bytes: &[u8]) -> TractResult<Arc<Tensor>> {
     ensure!(len.checked_mul(4) == Some(p.bytes), "tensor length mismatch");
     let end = p.offset.checked_add(p.bytes).context("tensor offset overflow")?;
     let data = bytes.get(p.offset..end).context("truncated tensor")?;
-    let values: Vec<f32> =
-        data.chunks_exact(4).map(|b| f32::from_le_bytes(b.try_into().unwrap())).collect();
+    let values: Vec<f32> = data.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b)).collect();
     Ok(Arc::new(Tensor::from_shape(&p.shape, &values)?))
 }
 fn shape(f: &TypedFact) -> TractResult<Vec<usize>> {

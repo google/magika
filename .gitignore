@@ -11,6 +11,7 @@ tmp/
 *.swp
 *.egg-info
 dist/*
+/target/
 *.pickle
 .s.yml
 

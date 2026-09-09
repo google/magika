@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! Run against the packaged distribution with MAGIKA_RUNTIME_DIR set.
 use magika_runtime::{Backend, BackendRequest, FEATURE_SIZE, NUM_LABELS, Runtime};
 

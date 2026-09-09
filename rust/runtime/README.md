@@ -32,3 +32,14 @@ Mapped rule caches are enabled on Unix by the normal `yara-rules` feature;
 `MAGIKA_RULES_MMAP=0` selects serialized caches for diagnostics. Startup spans are
 available through `MAGIKA_STARTUP_TRACE=1`; historical spike commands require
 their recorded source revisions.
+
+The standard cargo-dist archives and binary Python wheels install runtime libraries
+beside `magika`. The loader supports both layouts. The platform GPU library in
+cargo-dist archives is named `magika_runtime_gpu` (with the platform prefix and
+extension); its ABI identifies Metal or CUDA. Python wheels include CPU on every
+platform and Metal on macOS. Rules still require a separately installed Vectorscan
+library unless supplied by `rules/package.py bundle`.
+
+Release CI builds the native payload with `rust/distribution/build.py` and tests
+installation before publishing. The shell installer needs a narrowly checked
+postprocessing fix for cargo-dist 0.31's library chmod path; see `fix_installer.py`.

@@ -1,0 +1,12 @@
+Using CPython 3.14.4
+Creating virtual environment at: tmp/wheel-installed
+Activate with: source tmp/wheel-installed/bin/activate
+Using Python 3.14.4 environment at: tmp/wheel-installed
+Resolved 1 package in 0.82ms
+Prepared 1 package in 42ms
+error: Failed to install: magika-1.0.3-py3-none-macosx_11_0_arm64.whl (magika==1.0.3 (from file:///Users/elie/git/magika/tmp/rules-pr-worktree/tmp/wheel-runtime-check-mixed/magika-1.0.3-py3-none-macosx_11_0_arm64.whl))
+  Caused by: The wheel is invalid: Wheel contains an invalid entry (directory) in the `scripts` directory: /Users/elie/git/magika/tmp/rules-pr-worktree/tmp/wheel-installed/lib/python3.14/site-packages/magika-1.0.3.data/scripts/lib
+Error: locating inference backend directory
+
+Caused by:
+    No such file or directory (os error 2)

@@ -203,7 +203,9 @@ impl Runtime {
             let candidate =
                 run_plan(plan.runnable.spawn()?.as_mut(), &input.repeat(plan.batch), plan.batch)?;
             if !candidate
-                .chunks_exact(NUM_LABELS)
+                .as_chunks::<NUM_LABELS>()
+                .0
+                .iter()
                 .all(|row| scores_agree_with_bytes(EMBEDDED_GPU_PROBE, row))
             {
                 return Ok(false);

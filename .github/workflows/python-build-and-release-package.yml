@@ -94,6 +94,9 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      - name: Prepare native wheel runtime (macOS and Windows)
+        if: runner.os != 'Linux'
+        run: python python/scripts/prepare_runtime_wheel.py
       - name: Build wheels
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
@@ -101,6 +104,8 @@ jobs:
           args: --release --out=../dist
           # Preserve the existing Linux glibc baseline instead of building on the runner host.
           manylinux: "2_28"
+          # Build the dlopen libraries inside the same manylinux container as the CLI.
+          before-script-linux: python3 scripts/prepare_runtime_wheel.py
           working-directory: python
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

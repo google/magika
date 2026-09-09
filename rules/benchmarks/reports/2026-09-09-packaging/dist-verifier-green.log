@@ -1,0 +1,9 @@
+downloading magika-cli 2.0.0-dev aarch64-apple-darwin
+127.0.0.1 - - [08/Sep/2026 21:22:08] "GET /magika-cli-aarch64-apple-darwin.tar.xz HTTP/1.1" 200 -
+no checksums to verify
+installing to /var/folders/l5/jg8zh4215ll399vd5mcp9sp40000gn/T/magika-installed-zt91vn7t
+  magika
+  libmagika_runtime_cpu.dylib
+  libmagika_runtime_gpu.dylib
+everything's installed!
+Clean installation: CPU classification passed without runtime overrides

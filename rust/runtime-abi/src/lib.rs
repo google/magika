@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! Internal, versioned C boundary for the deferred inference backends.
 //!
 //! Callers supply valid, aligned, non-overlapping buffers with the stated lengths.

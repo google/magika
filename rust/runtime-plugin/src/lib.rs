@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! CPU or GPU implementation of Magika's internal C runtime ABI.
 use anyhow::{Result, ensure};
 use magika_runtime_abi as abi;

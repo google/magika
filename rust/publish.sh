@@ -29,6 +29,7 @@ from pathlib import Path
 
 for pattern, old, new in (
     ("*/Cargo.*", b'-dev"', b'"'),
+    ("*/dist.toml", b'-dev"', b'"'),
     ("*/CHANGELOG.md", b"-dev", b""),
 ):
     for name in subprocess.check_output(["git", "ls-files", "-z", "--", pattern]).split(b"\0"):

@@ -11,7 +11,7 @@
     "crc-oracle.json": "8d704e8405b7ceb4474352dc7cf73d4bfbb1fae5c19b4e6241c5cf117612325f",
     "confirmation-5.json": "c660e3d8c1ce712615b70f05593d2589120b67341f06d7861cf76f17f5d12716",
     "fusion-profile.json": "d6e3d7fc378d290c4488a38fc82d427027df4cedd050241bf133e3452c27307f",
-    "measurements.md": "ba18e0f37afda046fbad86e8f6d67d99332c96c75515fc1a3fda300c17d59d1f",
+    "measurements.md": "78d26e5e1fd74cf8940df854b95befdb7c9264750df69fddd3134e37b525e966",
     "unfused-model.graph.json": "33d3850b98188be9b575b646891db379ad7947d506c71b0d53afcefb96d076b6",
     "fusion-regression.log": "8c22dba1cd07d039b56d17c261f2e2729454500f8809ab0b2006aae39a6c5d60",
     "handoff-clippy.log": "0849e1825ba46129caed0190357a2bd2dfcc48969fb6298fde3903e9aa91e1eb",
@@ -25,5 +25,5 @@
     "crc-scratch.json": "bc6e6fa6405d05e3420d9ac0f60e091de58c170e0c3e08f37291d6a72224b208",
     "teardown.json": "73b3db88c6fcd403a2e7ad15ee7825560360083f1894bf29a94a37f81a4201df"
   },
-  "generator_sha256": "e85b4502e627187bc63bb82533a680de3622328aa9feae00110e526c6d3a5d82"
+  "generator_sha256": "ae21c016a72149c802e54a9d704bee6aea546d4bcd64ac8c2f1e51f6c7bc5832"
 }

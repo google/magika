@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "timestamp": "2026-09-09T01:52:49Z",
+  "removed": [
+    {
+      "path": "tmp/perf-crc/source",
+      "bytes_removed": 66780841
+    },
+    {
+      "path": "tmp/perf-crc/build",
+      "bytes_removed": 1182384
+    },
+    {
+      "path": "tmp/wheel-installed",
+      "bytes_removed": 40292779
+    },
+    {
+      "path": "tmp/wheel-installed-flat",
+      "bytes_removed": 40293390
+    },
+    {
+      "path": "tmp/wheel-runtime-check",
+      "bytes_removed": 612778
+    },
+    {
+      "path": "tmp/wheel-runtime-check-mixed",
+      "bytes_removed": 20646104
+    },
+    {
+      "path": "tmp/dist-installed",
+      "bytes_removed": 16404848
+    }
+  ],
+  "preserved": [
+    "original handoff",
+    "other worktrees",
+    "before/after benchmark executables and libraries",
+    "installed distribution used in CRC trace",
+    "raw benchmark evidence"
+  ]
+}

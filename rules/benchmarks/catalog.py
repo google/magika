@@ -7,6 +7,7 @@ from pathlib import Path
 
 import external_table
 import full_table
+import paired_table
 import small_files_table
 from magika_rules_benchmark import comparison as c
 from magika_rules_benchmark import corpus
@@ -36,7 +37,9 @@ def refresh(root, descriptors):
             row["tool_identity"] = tool_record(result, row["id"])
         corpus.atomic_json(report / "overview.json", summary)
         generator = (
-            small_files_table
+            paired_table
+            if summary.get("report_kind") == "paired"
+            else small_files_table
             if summary.get("report_kind") == "small-files"
             else external_table
             if "selection" in summary

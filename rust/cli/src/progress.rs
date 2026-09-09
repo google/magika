@@ -55,9 +55,10 @@ impl Progress {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::sync::{mpsc, Arc};
     use std::time::Duration;
+
+    use super::*;
 
     #[test]
     fn backpressure_notification_does_not_hold_the_output_lock() {

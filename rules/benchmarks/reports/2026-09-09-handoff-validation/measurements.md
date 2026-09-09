@@ -25,4 +25,4 @@ Median session drop: 0.46 µs; runtime drop: 17.04 µs.
 
 CRC oracle: 65,696 passing cases under ASan/UBSan. Maximum differing probe-score bits: 0.
 
-The full 25,421-file comparison retained every normalized decision and recorded zero tool errors. [Full accuracy and timing table](../../results/v1/2026-09-09-754c063e-fusion/report.md). The follow-up timings above retain the confirmation run after outliers in the initial run; neither run was discarded.
+The full 25,421-file comparison retained every normalized decision and recorded zero tool errors. [Full accuracy and timing table](../2026-09-09-754c063e-fusion/overview.md). The follow-up timings above retain the confirmation run after outliers in the initial run; neither run was discarded.

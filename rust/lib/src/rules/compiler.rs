@@ -12,7 +12,8 @@ use yara_x_parser::ast::{
     Expr, HexSubPattern, HexToken, Item, MatchAnchor, MetaValue, Pattern, Rule, RuleFlags, AST,
 };
 
-use super::{metadata::enforced, EXTERNAL_BYTES, PREFIX_LIMIT};
+use super::metadata::enforced;
+use super::{EXTERNAL_BYTES, PREFIX_LIMIT};
 use crate::ContentType;
 
 const HS_FLAG_SINGLEMATCH: u32 = 8;

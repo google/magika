@@ -2,17 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! Deferred runtime loading for CPU and GPU inference.
+use std::ffi::c_void;
+use std::path::{Path, PathBuf};
+use std::ptr::NonNull;
+use std::sync::{Arc, Mutex, OnceLock};
+
+pub use abi::{FEATURE_SIZE, NUM_LABELS};
 use anyhow::{Context, Result, ensure};
 use libloading::Library;
 use magika_runtime_abi as abi;
-use std::{
-    ffi::c_void,
-    path::{Path, PathBuf},
-    ptr::NonNull,
-    sync::{Arc, Mutex, OnceLock},
-};
-
-pub use abi::{FEATURE_SIZE, NUM_LABELS};
 pub const BATCH_CLASSES: [usize; 6] = [1, 4, 8, 16, 32, 64];
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

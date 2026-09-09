@@ -3,9 +3,10 @@
 
 //! Read-only native rule images on Unix; serialized packs remain available for diagnostics.
 
-use anyhow::{ensure, Result};
 use std::fs::File;
 use std::os::fd::AsRawFd;
+
+use anyhow::{ensure, Result};
 
 pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x03";
 pub(super) const ALIGNMENT: usize = 4096;
@@ -58,7 +59,8 @@ impl Drop for Mapping {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rules::{native::Api, RuleSet};
+    use crate::rules::native::Api;
+    use crate::rules::RuleSet;
 
     #[test]
     #[ignore = "requires a native Vectorscan compiler library"]

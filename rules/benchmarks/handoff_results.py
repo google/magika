@@ -87,7 +87,7 @@ def render(directory):
         f"Maximum differing probe-score bits: {max(r['score_bit_differences'] for r in profile)}.",
         "",
         "The full 25,421-file comparison retained every normalized decision and recorded zero tool errors. "
-        "[Full accuracy and timing table](../../results/v1/2026-09-09-754c063e-fusion/report.md). "
+        "[Full accuracy and timing table](../2026-09-09-754c063e-fusion/overview.md). "
         "The follow-up timings above retain the confirmation run after outliers in the initial run; neither run was discarded.",
         "",
     ]

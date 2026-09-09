@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! CPU or GPU implementation of Magika's internal C runtime ABI.
+use std::ffi::c_void;
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::ptr;
+
 use anyhow::{Result, ensure};
 use magika_runtime_abi as abi;
 use magika_tract_runtime::{BackendRequest, Runtime, Session};
-use std::{
-    ffi::c_void,
-    panic::{AssertUnwindSafe, catch_unwind},
-    ptr,
-};
 
 #[cfg(all(feature = "metal", feature = "cuda"))]
 compile_error!("build one GPU implementation per backend library");

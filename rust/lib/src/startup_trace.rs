@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 //! Opt-in structured timings for startup diagnostics.
 
-use serde::Serialize;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
+
+use serde::Serialize;
 
 static ENABLED: OnceLock<bool> = OnceLock::new();
 static START: OnceLock<Instant> = OnceLock::new();

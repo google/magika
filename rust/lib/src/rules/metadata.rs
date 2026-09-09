@@ -70,8 +70,9 @@ pub(super) fn enforced(rule: &Rule<'_>, bucket: Option<&str>) -> Result<bool> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use yara_x_parser::ast::AST;
+
+    use super::*;
 
     #[test]
     fn bucket_membership_requires_matching_evidence_and_enablement() {

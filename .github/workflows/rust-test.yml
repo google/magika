@@ -204,10 +204,19 @@ jobs:
           git init "$RUNNER_TEMP/vectorscan"
           git -C "$RUNNER_TEMP/vectorscan" fetch --depth 1 https://github.com/VectorCamp/vectorscan.git acd7363aadea43da9c5246542d9969db843dd132
           git -C "$RUNNER_TEMP/vectorscan" checkout --detach FETCH_HEAD
+          git -C "$RUNNER_TEMP/vectorscan" apply "$GITHUB_WORKSPACE/rules/native/arm-crc32c.patch"
           cmake -S "$RUNNER_TEMP/vectorscan" -B "$RUNNER_TEMP/vectorscan-build" \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON \
             -DBUILD_UNIT=OFF -DBUILD_EXAMPLES=OFF -DFAT_RUNTIME=OFF
           cmake --build "$RUNNER_TEMP/vectorscan-build" --parallel 2
+          if [[ "$RUNNER_OS" == "macOS" && "$(uname -m)" == "arm64" ]]; then
+            cc -O2 -g -fsanitize=address,undefined -march=armv8-a+crc \
+              -I "$RUNNER_TEMP/vectorscan-build" -I "$RUNNER_TEMP/vectorscan" \
+              -I "$RUNNER_TEMP/vectorscan/src" \
+              rules/native/crc32c_test.c "$RUNNER_TEMP/vectorscan/src/crc32.c" \
+              -o "$RUNNER_TEMP/crc32c-test"
+            ASAN_OPTIONS=detect_leaks=0 "$RUNNER_TEMP/crc32c-test"
+          fi
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             echo "MAGIKA_VECTORSCAN_LIBRARY=$RUNNER_TEMP/vectorscan-build/lib/libhs.dylib" >> "$GITHUB_ENV"
           else

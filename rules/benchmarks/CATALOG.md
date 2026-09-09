@@ -11,5 +11,6 @@ UTC measurement timestamps and dataset versions come from saved evidence. The ad
 | Sembiance | `v3` | 2,400 / 33,421 | 2026-09-08T23:11:38.675067Z | 1.1.0 | `e5f7e339` | [2026-09-08-e5f7e339-sembiance-v3](reports/2026-09-08-e5f7e339-sembiance-v3/overview.md) |
 | Adjudicated combined corpus — natural workload subset | `snapshot-1411a5c0fd4a-natural-workloads` | 1,018 / 25,421 | 2026-09-09T00:50:31.823098Z | 1.1.0 | `7a0a720c` | [2026-09-09-7a0a720c-small-files](results/v1/2026-09-09-7a0a720c-small-files/report.md) |
 | Adjudicated combined corpus — natural workload subset | `snapshot-1411a5c0fd4a-natural-workloads` | 1,018 / 25,421 | 2026-09-09T00:53:12.166857Z | 1.1.0 | `dd99c69c` | [2026-09-09-dd99c69c-small-files](reports/2026-09-09-dd99c69c-small-files/overview.md) |
+| Adjudicated combined corpus | `snapshot-1411a5c0fd4a` | 25,421 / 25,421 | 2026-09-09T01:36:40.400275Z | 1.1.0 | `754c063e` | [2026-09-09-754c063e-fusion](results/v1/2026-09-09-754c063e-fusion/report.md) |
 
 The [JSON index](results/v1/index.json) retains full revisions, corpus fingerprints and artifact receipts. Each overview separates Tool, Version and Config; its JSON retains exact commands, settings, environment and binary/database hashes.

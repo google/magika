@@ -43,3 +43,14 @@ library unless supplied by `rules/package.py bundle`.
 Release CI builds the native payload with `rust/distribution/build.py` and tests
 installation before publishing. The shell installer needs a narrowly checked
 postprocessing fix for cargo-dist 0.31's library chmod path; see `fix_installer.py`.
+
+For an editable Python checkout (`uv sync`) or a library development build, build
+the backend once and point the process to it:
+
+```sh
+python3 rust/build-runtime.py --backends-only --output "$PWD/tmp/dev-runtime"
+export MAGIKA_RUNTIME_DIR="$PWD/tmp/dev-runtime/lib"
+```
+
+Rebuild that directory after changing the runtime or model; the helper requires a
+new output directory so an old backend cannot silently masquerade as a new build.

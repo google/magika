@@ -60,7 +60,7 @@ pub const FEATURE_SIZE: usize = 2048;
 pub const NUM_LABELS: usize = 214;
 const PADDING_TOKEN: i32 = 256;
 #[cfg(any(test, feature = "_model-release"))]
-const DIRECT_FUSED_MIN_BATCH: usize = 8;
+const DIRECT_FUSED_MIN_BATCH: usize = 1;
 #[cfg(any(
     test,
     feature = "_model-release",
@@ -147,7 +147,7 @@ impl Runtime {
     /// Prepares plans for requests accumulated up to `max_batch` items.
     ///
     /// CPU inference keeps only the largest reachable class: smaller requests are padded into
-    /// that graph and their extra scores discarded. This avoids retaining slower unfused plans
+    /// that graph and their extra scores discarded. This avoids retaining additional plans
     /// and their intermediate tensors when rule hits leave a partial batch. GPU routing is unchanged.
     pub fn with_max_batch(request: BackendRequest, max_batch: usize) -> Result<Self> {
         ensure!(max_batch > 0, "the maximum batch cannot be zero");

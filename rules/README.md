@@ -73,6 +73,7 @@ mkdir -p tmp
 git init tmp/vectorscan-source
 git -C tmp/vectorscan-source fetch --depth 1 https://github.com/VectorCamp/vectorscan.git acd7363aadea43da9c5246542d9969db843dd132
 git -C tmp/vectorscan-source checkout --detach FETCH_HEAD
+git -C tmp/vectorscan-source apply "$PWD/rules/native/arm-crc32c.patch"
 cmake -S tmp/vectorscan-source -B tmp/vectorscan-build \
   -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON \
   -DBUILD_UNIT=OFF -DBUILD_EXAMPLES=OFF -DFAT_RUNTIME=OFF

@@ -1,0 +1,78 @@
+{
+  "results": [
+    {
+      "command": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fusion-before/magika --jsonl --backend=cpu --readers=2 --threads=2 --batch-size=8 --rules=off -- files/197238cc702be055a67ed529998a5eba379bf196f4133cb6be28875609098552 files/55fa67d485aec38180711a44683ea9eb315d500bb46cc9e9af9c5c87e5f6e5c0 files/72f0dfae17b8c07eb29647926a7a2b40c645dfe95c5efb8ca036f6b5bae307f9 files/c9fa6e98ce9d8e2d98d0b8f1a3d02bf0201d79c1be9d2770d53b8e6f88881691 files/f9e6bd5840508be379f04ad7cb7ae181eb12bdddb28bcc0d9334db071f85782a",
+      "mean": 0.013826333285714285,
+      "stddev": 0.0015651585450028919,
+      "median": 0.013186333000000001,
+      "user": 0.010624428571428571,
+      "system": 0.002605285714285714,
+      "min": 0.012924459000000001,
+      "max": 0.01730025,
+      "times": [
+        0.013186333000000001,
+        0.012955833000000002,
+        0.012924459000000001,
+        0.013826791000000001,
+        0.013088500000000001,
+        0.013502167,
+        0.01730025
+      ],
+      "memory_usage_byte": [
+        28852224,
+        28852224,
+        28852224,
+        28852224,
+        28852224,
+        28852224,
+        28852224
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "command": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fused/magika --jsonl --backend=cpu --readers=2 --threads=2 --batch-size=8 --rules=off -- files/197238cc702be055a67ed529998a5eba379bf196f4133cb6be28875609098552 files/55fa67d485aec38180711a44683ea9eb315d500bb46cc9e9af9c5c87e5f6e5c0 files/72f0dfae17b8c07eb29647926a7a2b40c645dfe95c5efb8ca036f6b5bae307f9 files/c9fa6e98ce9d8e2d98d0b8f1a3d02bf0201d79c1be9d2770d53b8e6f88881691 files/f9e6bd5840508be379f04ad7cb7ae181eb12bdddb28bcc0d9334db071f85782a",
+      "mean": 0.013868708285714288,
+      "stddev": 0.002158096337938656,
+      "median": 0.012975083,
+      "user": 0.010752571428571427,
+      "system": 0.002646714285714285,
+      "min": 0.012571834,
+      "max": 0.01860975,
+      "times": [
+        0.013175292000000002,
+        0.012800083,
+        0.012571834,
+        0.012748958000000001,
+        0.01860975,
+        0.012975083,
+        0.014199958
+      ],
+      "memory_usage_byte": [
+        28852224,
+        28852224,
+        28852224,
+        28852224,
+        28852224,
+        28852224,
+        28852224
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

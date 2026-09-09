@@ -16,6 +16,11 @@ path = "src/bin/convert_model.rs"
 required-features = ["convert"]
 
 [[bin]]
+name = "export-runtime"
+path = "src/bin/export_runtime.rs"
+required-features = ["convert"]
+
+[[bin]]
 name = "optimize-onnx"
 path = "src/bin/optimize_onnx.rs"
 required-features = ["ort-runtime"]

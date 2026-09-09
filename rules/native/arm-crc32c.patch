@@ -1,0 +1,45 @@
+--- a/src/crc32.c
++++ b/src/crc32.c
+@@ -584,10 +584,31 @@
+ #include <assert.h>
+ #endif
+ 
++#if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32) && defined(__AARCH64EL__)
++#include <arm_acle.h>
++#include <string.h>
++
++static u32 crc32c_arm(u32 crc, const unsigned char *buf, size_t len) {
++    while (len >= sizeof(uint64_t)) {
++        uint64_t word;
++        memcpy(&word, buf, sizeof(word));
++        crc = __crc32cd(crc, word);
++        buf += sizeof(word);
++        len -= sizeof(word);
++    }
++    while (len--) {
++        crc = __crc32cb(crc, *buf++);
++    }
++    return crc;
++}
++#endif
++
+ // Externally visible function
+ u32 Crc32c_ComputeBuf(u32 inCrc32, const void *buf, size_t bufLen) {
+ #if defined(HAVE_SSE42)
+     u32 crc = crc32c_sse42(inCrc32, (const unsigned char *)buf, bufLen);
++#elif defined(__aarch64__) && defined(__ARM_FEATURE_CRC32) && defined(__AARCH64EL__)
++    u32 crc = crc32c_arm(inCrc32, (const unsigned char *)buf, bufLen);
+ #else
+     u32 crc = crc32c_sb8_64_bit(inCrc32, (const unsigned char *)buf, bufLen);
+ #endif
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1217,3 +1217,8 @@
+ if(BUILD_DOC)
+     add_subdirectory(doc/dev-reference)
+ endif()
++
++# Apple Silicon supports CRC32C. Keep every other target's instruction baseline.
++if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
++    set_property(SOURCE src/crc32.c APPEND PROPERTY COMPILE_OPTIONS "-march=armv8-a+crc")
++endif()

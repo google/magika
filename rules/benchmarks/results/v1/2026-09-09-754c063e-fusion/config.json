@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "seed": 20260908,
+  "quality_chunk_files": 128,
+  "environment": {
+    "MAGIKA_VECTORSCAN_LIBRARY": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib",
+    "OMP_NUM_THREADS": "2",
+    "OPENBLAS_NUM_THREADS": "2"
+  },
+  "file_counts": [
+    1,
+    2,
+    5,
+    10,
+    100,
+    1000
+  ],
+  "rule_hit_percentages": [],
+  "runs": 5,
+  "warmup": 1,
+  "rules_reference": "rules-reference",
+  "rules_reference_mode": "only",
+  "tools": [
+    {
+      "id": "before",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fusion-before/magika",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=off"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fusion-before/magika",
+        "--version"
+      ],
+      "artifacts": {
+        "cpu_backend": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fusion-before/lib/libmagika_runtime_cpu.dylib"
+      },
+      "settings": {
+        "backend": "CPU",
+        "readers": 2,
+        "threads": 2,
+        "internal_batch": 8,
+        "rules": "off",
+        "model": "standard_v3_3",
+        "model_graph": "unfused-small-batches",
+        "source_dirty": true
+      },
+      "source_revision": "754c063e2a1ec6a81d54456d7e00323c2c68e02e"
+    },
+    {
+      "id": "after",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fused/magika",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=off"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fused/magika",
+        "--version"
+      ],
+      "artifacts": {
+        "cpu_backend": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fused/lib/libmagika_runtime_cpu.dylib"
+      },
+      "settings": {
+        "backend": "CPU",
+        "readers": 2,
+        "threads": 2,
+        "internal_batch": 8,
+        "rules": "off",
+        "model": "standard_v3_3",
+        "model_graph": "fused-all-batches",
+        "source_dirty": true
+      },
+      "source_revision": "754c063e2a1ec6a81d54456d7e00323c2c68e02e"
+    },
+    {
+      "id": "rules-reference",
+      "adapter": "magika-jsonl",
+      "command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fused/magika",
+        "--jsonl",
+        "--backend=cpu",
+        "--readers=2",
+        "--threads=2",
+        "--batch-size=8",
+        "--rules=only"
+      ],
+      "version_command": [
+        "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fused/magika",
+        "--version"
+      ],
+      "artifacts": {
+        "cpu_backend": "/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-fused/lib/libmagika_runtime_cpu.dylib",
+        "native": "/Users/elie/git/magika/tmp/rules-research/vectorscan-build/lib/libhs.5.4.13.dylib"
+      },
+      "settings": {
+        "backend": "CPU",
+        "readers": 2,
+        "threads": 0,
+        "internal_batch": 8,
+        "rules": "only",
+        "model": null,
+        "model_graph": "fused-all-batches",
+        "source_dirty": true
+      },
+      "source_revision": "754c063e2a1ec6a81d54456d7e00323c2c68e02e"
+    }
+  ]
+}

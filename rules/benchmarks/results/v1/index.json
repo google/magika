@@ -126,6 +126,24 @@
       "revision": "dd99c69c1b0de205937dedf7ebb58fd16e675905",
       "status": "complete",
       "artifacts_sha256": "9b6eeb1cdbd5020916cfd2046a1c23d13d555a08c973b471d24f70dd993876f2"
+    },
+    {
+      "id": "2026-09-09-754c063e-fusion",
+      "dataset": {
+        "id": "adjudicated-combined",
+        "name": "Adjudicated combined corpus",
+        "version": "snapshot-1411a5c0fd4a",
+        "source_files": 25421,
+        "selection": "validated combined snapshot with APK patch 136",
+        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
+        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
+        "scored_files": 25421
+      },
+      "measured_at_utc": "2026-09-09T01:36:40.400275Z",
+      "benchmark_version": "1.1.0",
+      "revision": "754c063e-fusion-dirty",
+      "status": "complete",
+      "artifacts_sha256": "39bd7c63ea2dd5229d34cf2a91bfa72f34e136395700a54d41de4aa902ae5f84"
     }
   ]
 }

@@ -948,7 +948,7 @@ fn prepare_and_infer(
         runtime_rx.recv().context("model loader stopped before returning a runtime")??;
     let threads = requested_threads
         .unwrap_or_else(|| default_inference_threads(runtime.backend_info().backend()));
-    std::thread::scope(|scope| -> Result<()> {
+    let result = std::thread::scope(|scope| -> Result<()> {
         let mut workers = Vec::new();
         let mut first = Some(first);
         for index in 0..threads {
@@ -977,7 +977,11 @@ fn prepare_and_infer(
             ensure!(worker.join().is_ok(), "inference worker panicked");
         }
         Ok(())
-    })
+    });
+    #[cfg(feature = "yara-rules")]
+    let _teardown = magika::startup_trace::span("inference_runtime_drop");
+    drop(runtime);
+    result
 }
 
 fn infer_batches(
@@ -1006,6 +1010,9 @@ fn infer_batches(
     if !batch_counts.is_empty() {
         eprintln!("trace inference batch sizes: {batch_counts:?}");
     }
+    #[cfg(feature = "yara-rules")]
+    let _teardown = magika::startup_trace::span("inference_session_drop");
+    drop(session);
     Ok(())
 }
 

@@ -18,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use flate2::{Compression, GzBuilder};
 use tract_core::internal::DimLike as _;
 use tract_core::ops::binary::TypedBinOp;

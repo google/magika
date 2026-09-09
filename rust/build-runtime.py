@@ -59,10 +59,14 @@ def build(root, target, output, gpu, backends_only=False):
         "commands": commands,
         "rustflags": env.get("RUSTFLAGS", ""),
         "source_revision": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ["git", "-c", f"safe.directory={root}", "rev-parse", "HEAD"],
+            cwd=root,
+            text=True,
         ).strip(),
         "source_diff_sha256": hashlib.sha256(
-            subprocess.check_output(["git", "diff", "HEAD"], cwd=root)
+            subprocess.check_output(
+                ["git", "-c", f"safe.directory={root}", "diff", "HEAD"], cwd=root
+            )
         ).hexdigest(),
         "rustc": subprocess.check_output(["rustc", "-Vv"], text=True),
         "artifacts": {

@@ -219,7 +219,7 @@ impl Api {
             "invalid native image alignment/offset"
         );
         let db = payload.as_ptr() as *mut c_void;
-        ensure!((db as usize) % 64 == 0, "unaligned native image");
+        ensure!((db as usize).is_multiple_of(64), "unaligned native image");
         type Size = unsafe extern "C" fn(*const c_void, *mut usize) -> c_int;
         let size = unsafe { self.library.get::<Size>(b"hs_database_size")? };
         let mut reported = 0;

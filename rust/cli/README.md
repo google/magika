@@ -45,35 +45,28 @@ You can install the latest version from a powershell:
 powershell -ExecutionPolicy Bypass -c "irm https://securityresearch.google/magika/install.ps1 | iex"
 ```
 
-You can install the latest version from crates.io:
+Magika 2 loads inference runtimes on demand. The installers and binary Python
+wheels include those libraries. A bare `cargo install` installs only the executable;
+it requires matching libraries supplied through `MAGIKA_RUNTIME_DIR`.
 
-```shell
-cargo install --locked magika-cli
-```
-
-It is also possible to install from the git repository, in which case the version (accessible with
-`magika --version`) will be suffixed by `-dev` (e.g. `0.1.0-dev`) to indicate that the binary is the
-development version of the version prefix (e.g. `0.1.0` for the previous example).
-
-To install the latest version from the git repository:
-
-```shell
-cargo install --locked --git=https://github.com/google/magika.git magika-cli
-```
-
-To install from a local clone of the git repository (possibly with custom changes):
+To build a complete directory from a local clone (possibly with custom changes):
 
 ```shell
 git clone https://github.com/google/magika.git
 cd magika
-cargo install --locked --path=rust/cli
+python3 rust/build-runtime.py --output "$PWD/tmp/magika-dist"
+tmp/magika-dist/magika --backend=cpu tests_data/basic/rust/code.rs
 ```
+
+Add `--gpu metal` on macOS or `--gpu cuda` on CUDA hosts. Keep the executable and
+its `lib/` directory together. See [runtime packaging](../runtime/README.md).
 
 ### Optional signature rules
 
-Standard installer and wheel builds do not enable the optional `yara-rules` feature.
-For a source build with rules, use `cargo install --locked --path=rust/cli --features=yara-rules`
-from the repository root, then follow the [native-engine installation instructions](../../rules/README.md#native-engine-installation).
+Standard CLI installers and the source helper enable the optional `yara-rules`
+feature; binary Python wheels do not. Follow the
+[native-engine installation instructions](../../rules/README.md#native-engine-installation)
+to supply its native library.
 `MAGIKA_VECTORSCAN_LIBRARY` selects the native library; `MAGIKA_RULES_CACHE` optionally
 selects the compiled-rule cache. Enforcement remains off until `--rules=enforce`.
 

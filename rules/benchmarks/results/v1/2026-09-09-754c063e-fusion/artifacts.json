@@ -1,0 +1,14 @@
+{
+  "benchmark_version": "1.1.0",
+  "revision": "754c063e-fusion-dirty",
+  "status": "complete",
+  "files": {
+    "config.json": "5ab044f303844a3d829c08c9681c3af6ef3243af988815129fd0c9d5bbbd6ba7",
+    "inputs.json.gz": "b9282127640a745d995c1107825dc116c0c26693b5a135df5a3a9585c4d1b1e6",
+    "label-mappings.json": "37483be3370a7b4a050730a8d315d93887e156842a839b4dcc7711ed6c5b5184",
+    "raw-output.tar.gz": "0ba2f8622fb4e07cc2ea2ad714429c8605d45fa60693a2a25bf332acdcc9a39c",
+    "report.md": "1111614015031c0d168fe3e6bbb93429fa85a18df842a836cf5f43e6a7cfbe6c",
+    "results.json.gz": "abb31317439aaed0c0d7179346273fb4f4f299e9b132fdf1aca34d87a663191b",
+    "workloads.json": "c0f702298b756f14e0e39d505a757d91f9c06a25f204eda4ba95eeebd25ea400"
+  }
+}

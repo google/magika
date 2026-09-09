@@ -32,10 +32,6 @@ jobs:
             manylinux: "2014"
           - os: Linux
             runner: ubuntu-latest
-            target: arm-unknown-linux-gnueabihf
-            manylinux: "auto"
-          - os: Linux
-            runner: ubuntu-latest
             target: riscv64gc-unknown-linux-gnu
             manylinux: "2_31"
           - os: Linux
@@ -46,10 +42,6 @@ jobs:
             runner: ubuntu-latest
             target: aarch64-unknown-linux-musl
             manylinux: "musllinux_1_2"
-          - os: Linux
-            runner: ubuntu-latest
-            target: armv7-unknown-linux-musleabihf
-            manylinux: "musllinux_1_2"
           - os: macOS
             runner: macos-14
             target: aarch64-apple-darwin
@@ -59,9 +51,24 @@ jobs:
           - os: Windows
             runner: windows-latest
             target: x86_64-pc-windows-msvc
-          - os: Windows
-            runner: windows-latest
-            target: aarch64-pc-windows-msvc
+          # --- Targets blocked by upstream tract-linalg 0.23.4 assembly/compiler limitations ---
+          # 1. Windows ARM64: tract-linalg 0.23.4 build.rs fails on MSVC ARM64 (lacks MASM/Clang
+          #    support for arm64simd GNU assembly kernels; causes LNK1181).
+          # - os: Windows
+          #   runner: windows-latest
+          #   target: aarch64-pc-windows-msvc
+          # 2. Linux ARMv7 (musl): tract-linalg 0.23.4 build.rs fails with conflicting FPU flags
+          #    (-mfpu=vfpv3-d16 vs -mfpu=neon) in musllinux GCC cross-compiler.
+          # - os: Linux
+          #   runner: ubuntu-latest
+          #   target: armv7-unknown-linux-musleabihf
+          #   manylinux: "musllinux_1_2"
+          # 3. Linux ARMv6: tract-linalg 0.23.4 build.rs fails looking for arm-linux-gnueabihf-gcc
+          #    which is absent from the manylinux container PATH.
+          # - os: Linux
+          #   runner: ubuntu-latest
+          #   target: arm-unknown-linux-gnueabihf
+          #   manylinux: "auto"
 
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +99,7 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist
           manylinux: ${{ matrix.platform.manylinux }}
-          before-script-linux: "${{ github.workspace }}/python/scripts/stage_cli.sh"
+          before-script-linux: "${{ github.workspace }}/python/scripts/stage_cli.sh ${{ matrix.platform.target }}"
           working-directory: python
 
       # Build PyO3 wheel using maturin-action (macOS/Windows on host)

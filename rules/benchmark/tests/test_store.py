@@ -12,7 +12,19 @@ from magika_rules_benchmark.comparison import load_json, quality_metrics, save_g
 store = runpy.run_path(str(Path(__file__).parents[2] / "benchmarks/store.py"))["store"]
 
 
-def test_store_keeps_json_evidence_and_excludes_corpus_and_caches(tmp_path):
+@pytest.mark.parametrize(
+    ("source_revisions", "expected_revision"),
+    [
+        (None, "abc"),
+        (["abc" + "d" * 37], "abc" + "d" * 37),
+        (["abc" + "d" * 37] * 2, "abc" + "d" * 37),
+        (["abc" + "d" * 37, "abc" + "e" * 37], "abc"),
+        (["f" * 40], "abc"),
+    ],
+)
+def test_store_keeps_json_evidence_and_excludes_corpus_and_caches(
+    tmp_path, source_revisions, expected_revision
+):
     source = tmp_path / "source"
     source.mkdir()
     result = dict(
@@ -24,6 +36,8 @@ def test_store_keeps_json_evidence_and_excludes_corpus_and_caches(tmp_path):
         created_at="2026-09-08T22:36:35+00:00",
         compatibility={"corpus": "a" * 64},
     )
+    if source_revisions is not None:
+        result["config"] = {"tools": [{"source_revision": r} for r in source_revisions]}
     (source / "results.json").write_text(json.dumps(result))
     for name in ("config.json", "workloads.json", "label-mappings.json"):
         (source / name).write_text("{}")
@@ -39,8 +53,11 @@ def test_store_keeps_json_evidence_and_excludes_corpus_and_caches(tmp_path):
         store(source, destination)
     assert not destination.exists()
     receipt = store(source, destination, dataset)
-    assert receipt["revision"] == "abc"
-    assert load_json(destination / "results.json.gz") == result
+    assert receipt["revision"] == expected_revision
+    expected = result.copy()
+    if expected_revision != "abc":
+        expected.update(revision=expected_revision, revision_argument="abc")
+    assert load_json(destination / "results.json.gz") == expected
     with tarfile.open(destination / "raw-output.tar.gz") as archive:
         assert archive.getnames() == ["observations.json.gz", "raw/trial.json"]
     assert json.loads((destination.parent / "index.json").read_text())["runs"][0]["id"] == "run-1"

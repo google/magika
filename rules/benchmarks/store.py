@@ -17,18 +17,18 @@ from magika_rules_benchmark.identity import index_entry
 def store(source, destination, dataset=None):
     source, destination = Path(source), Path(destination)
     result = comparison.load_json(source / "results.json")
+    if result["status"] not in ("complete", "partial"):
+        raise ValueError("Cannot publish unfinished measurements")
     if len(result["revision"]) < 40:
         revisions = {
             t["source_revision"]
-            for t in result["config"]["tools"]
+            for t in result.get("config", {}).get("tools", [])
             if len(t.get("source_revision", "")) == 40
             and t["source_revision"].startswith(result["revision"])
         }
         if len(revisions) == 1:
             result["revision_argument"] = result["revision"]
             result["revision"] = revisions.pop()
-    if result["status"] not in ("complete", "partial"):
-        raise ValueError("Cannot publish unfinished measurements")
     index_path = destination.parent / "index.json"
     index = json.loads(index_path.read_text()) if index_path.exists() else {"schema": 2, "runs": []}
     if destination.exists():

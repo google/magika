@@ -182,17 +182,15 @@ class Magika:
         `seek()` around the stream; 2) the stream _is not closed_ (closing it is
         the responsibility of the caller).
         """
-        if not isinstance(stream, io.IOBase) or not stream.readable():  # type: ignore[unreachable]
-            raise TypeError("Input stream must be a readable BinaryIO object.")
-
         # Explicitly test for the most common error so that we can return an
         # helpful error message.
-        if isinstance(stream, io.TextIOBase):  # type: ignore[unreachable]
+        stream_obj: object = stream
+        if isinstance(stream_obj, io.TextIOBase):
             raise TypeError(
                 "Input stream must be opened in bytes mode, not in text mode."
             )
 
-        if not isinstance(stream, io.BufferedIOBase):
+        if not isinstance(stream_obj, io.BufferedIOBase) or not stream.readable():
             raise TypeError("Input stream must be a readable BinaryIO object.")
 
         if (

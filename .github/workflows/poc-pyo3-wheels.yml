@@ -22,35 +22,35 @@ jobs:
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             manylinux: 2_28
+          - os: Linux
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            manylinux: musllinux_1_2
+          - os: Linux
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            manylinux: musllinux_1_2
           - os: macOS
             runner: macos-14
             target: aarch64-apple-darwin
-          # Note: macos-13 runner was retired by GitHub. Commented out for now.
-          # - os: macOS
-          #   runner: macos-13
-          #   target: x86_64-apple-darwin
           - os: Windows
             runner: windows-latest
             target: x86_64-pc-windows-msvc
-          # --- Stretch targets (mental note: re-enable once native engine replaces ort) ---
+          # --- Stretch targets ---
           # - os: Linux
           #   runner: ubuntu-latest
           #   target: aarch64-unknown-linux-gnu
           #   manylinux: 2_28
-          # - os: Linux (Alpine)
-          #   runner: ubuntu-latest
-          #   target: x86_64-unknown-linux-musl
-          #   manylinux: musllinux_1_2
-          # - os: Linux (Alpine)
-          #   runner: ubuntu-latest
-          #   target: aarch64-unknown-linux-musl
-          #   manylinux: musllinux_1_2
           # - os: Windows
           #   runner: windows-latest
           #   target: aarch64-pc-windows-msvc
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v3
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -106,10 +106,6 @@ jobs:
           - os: macOS
             runner: macos-14
             target: aarch64-apple-darwin
-          # Note: macos-13 runner was retired by GitHub. Commented out for now.
-          # - os: macOS
-          #   runner: macos-13
-          #   target: x86_64-apple-darwin
           - os: Windows
             runner: windows-latest
             target: x86_64-pc-windows-msvc

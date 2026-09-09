@@ -233,7 +233,17 @@ fn inference_configuration(flags: &Flags) -> (usize, BackendChoice) {
         (1, BackendChoice::Auto) => BackendChoice::Cpu,
         (_, explicit) => explicit,
     };
-    (flags.experimental.batch_size.min(flags.path.len()), backend)
+    // The shipped CPU plans have classes 1, 4, 8, ... . Capping five inputs
+    // at five selects class four and runs it twice, which measured slower than
+    // one fused batch-eight call. Restrict this optimization to the class-one
+    // range until small multirow plans are qualified. Keep GPU policy unchanged.
+    let batch = if flags.path.len() == 1 || (backend == BackendChoice::Cpu && flags.path.len() < 4)
+    {
+        flags.experimental.batch_size.min(flags.path.len())
+    } else {
+        flags.experimental.batch_size
+    };
+    (batch, backend)
 }
 
 /// Per-stage busy and waiting time.
@@ -1077,8 +1087,8 @@ mod reorder_tests {
     }
 
     #[test]
-    fn known_file_count_caps_batch_without_changing_explicit_backend() {
-        for count in [2, 3, 5, 10, 65] {
+    fn small_cpu_inputs_avoid_padding_without_splitting_multirow_plans() {
+        for count in [2, 3, 4, 5, 6, 7, 8, 10, 65] {
             let mut args = vec!["magika"; count + 1];
             args[1..].fill("sample");
             for backend in [BackendChoice::Auto, BackendChoice::Cpu, BackendChoice::Gpu] {
@@ -1086,7 +1096,12 @@ mod reorder_tests {
                     let mut flags = Flags::try_parse_from(args.clone()).unwrap();
                     flags.experimental.backend = backend;
                     flags.experimental.batch_size = limit;
-                    assert_eq!(inference_configuration(&flags), (count.min(limit), backend));
+                    let expected = if backend == BackendChoice::Cpu && count < 4 {
+                        count.min(limit)
+                    } else {
+                        limit
+                    };
+                    assert_eq!(inference_configuration(&flags), (expected, backend));
                     flags.recursive = true;
                     assert_eq!(inference_configuration(&flags), (limit, backend));
                 }

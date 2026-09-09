@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
+import dataclasses
 import io
 import signal
 import tempfile
@@ -20,7 +23,7 @@ from typing import Any, List, Optional
 
 import pytest
 
-from magika import Magika, PredictionMode
+from magika import Magika, MagikaError, PredictionMode
 from magika.types import (
     ContentTypeInfo,
     ContentTypeLabel,
@@ -814,3 +817,324 @@ def check_results_vs_expected_results(
 ) -> None:
     for file_path, result in zip(files_paths, results):
         check_result_vs_expected_result(file_path, result)
+
+
+def test_magika_result_asdict() -> None:
+    m = Magika()
+
+    # Successful scan
+    res = m.identify_bytes(b"import os\n")
+    assert res.ok
+    d = res.asdict()
+    assert isinstance(d, dict)
+    assert d["path"] == "-"
+    assert d["status"] == Status.OK
+    assert "prediction" in d
+    pred_dict = d["prediction"]
+    assert "dl" in pred_dict
+    assert "output" in pred_dict
+    assert "score" in pred_dict
+    assert "overwrite_reason" in pred_dict
+    assert isinstance(pred_dict["score"], float)
+    assert pred_dict["overwrite_reason"] in {
+        OverwriteReason.NONE,
+        OverwriteReason.LOW_CONFIDENCE,
+        OverwriteReason.OVERWRITE_MAP,
+    }
+
+    # Verify nested ContentTypeInfo dict fields
+    for key in ("dl", "output"):
+        ct_dict = pred_dict[key]
+        assert "label" in ct_dict
+        assert "mime_type" in ct_dict
+        assert "group" in ct_dict
+        assert "description" in ct_dict
+        assert "extensions" in ct_dict
+        assert "is_text" in ct_dict
+        assert isinstance(ct_dict["extensions"], list)
+        assert isinstance(ct_dict["is_text"], bool)
+
+    # Failed scan
+    res_err = m.identify_path("/non_existing_path_12345.txt")
+    assert not res_err.ok
+    d_err = res_err.asdict()
+    assert d_err["path"] == "/non_existing_path_12345.txt"
+    assert d_err["status"] == Status.FILE_NOT_FOUND_ERROR
+    assert "prediction" not in d_err
+
+
+def test_magika_and_result_str_and_repr() -> None:
+    m = Magika()
+    expected_m_str = (
+        f'Magika(module_version="{m.get_module_version()}", '
+        f'model_name="{m.get_model_name()}")'
+    )
+    assert str(m) == expected_m_str
+    assert repr(m) == expected_m_str
+
+    # Successful result
+    res_ok = m.identify_bytes(b"hello world\n")
+    expected_ok_str = (
+        f"MagikaResult(path={res_ok.path}, status={res_ok.status}, "
+        f"prediction={res_ok.prediction})"
+    )
+    assert str(res_ok) == expected_ok_str
+    assert repr(res_ok) == expected_ok_str
+
+    # Failed result
+    res_err = m.identify_path("/non_existing.txt")
+    expected_err_str = f"MagikaResult(path={res_err.path}, status={res_err.status})"
+    assert str(res_err) == expected_err_str
+    assert repr(res_err) == expected_err_str
+
+
+def test_magika_result_direct_instantiation() -> None:
+    # Direct instantiation with status != OK
+    res_err = MagikaResult(
+        path=Path("foo.txt"),
+        status=Status.FILE_NOT_FOUND_ERROR,
+        prediction=None,
+    )
+    assert not res_err.ok
+    assert res_err.status == Status.FILE_NOT_FOUND_ERROR
+    assert res_err.path == Path("foo.txt")
+    with pytest.raises(ValueError, match="prediction is not set when status != OK"):
+        _ = res_err.prediction
+    with pytest.raises(ValueError, match="prediction is not set when status != OK"):
+        _ = res_err.dl
+    with pytest.raises(ValueError, match="prediction is not set when status != OK"):
+        _ = res_err.output
+    with pytest.raises(ValueError, match="prediction is not set when status != OK"):
+        _ = res_err.score
+
+    # Direct instantiation with status OK and prediction
+    ct_info = ContentTypeInfo(
+        label=ContentTypeLabel.TXT,
+        mime_type="text/plain",
+        group="text",
+        description="Text document",
+        extensions=["txt"],
+        is_text=True,
+    )
+    dummy_pred = MagikaPrediction(
+        dl=ct_info,
+        output=ct_info,
+        score=1.0,
+        overwrite_reason=OverwriteReason.NONE,
+    )
+    res_ok = MagikaResult(
+        path=Path("foo.txt"),
+        status=Status.OK,
+        prediction=dummy_pred,
+    )
+    assert res_ok.ok
+    assert res_ok.status == Status.OK
+    assert res_ok.prediction == dummy_pred
+    assert res_ok.dl == ct_info
+    assert res_ok.output == ct_info
+    assert res_ok.score == 1.0
+
+
+def test_content_type_info_field_types() -> None:
+    m = Magika()
+    res = m.identify_bytes(b"def foo(): pass\n")
+    assert res.ok
+
+    for ct in (res.prediction.dl, res.prediction.output):
+        assert isinstance(ct.label, ContentTypeLabel)
+        assert isinstance(ct.mime_type, str)
+        assert isinstance(ct.group, str)
+        assert isinstance(ct.description, str)
+        assert isinstance(ct.extensions, list)
+        for ext in ct.extensions:
+            assert isinstance(ext, str)
+        assert isinstance(ct.is_text, bool)
+
+
+def test_content_type_label_str_behavior() -> None:
+    # ContentTypeLabel inherits from str
+    assert isinstance(ContentTypeLabel.PYTHON, str)
+    assert ContentTypeLabel.PYTHON.value == "python"
+    assert str(ContentTypeLabel.PYTHON) == "python"
+    assert repr(ContentTypeLabel.PYTHON) == "python"
+    assert ContentTypeLabel.PYTHON.startswith("py")
+    assert ContentTypeLabel("python") == ContentTypeLabel.PYTHON
+
+    py_str: Any = "python"
+    assert ContentTypeLabel.PYTHON == py_str
+
+    # Special labels check
+    assert ContentTypeLabel.UNDEFINED.value == "undefined"
+    assert ContentTypeLabel.EMPTY.value == "empty"
+    assert ContentTypeLabel.DIRECTORY.value == "directory"
+    assert ContentTypeLabel.SYMLINK.value == "symlink"
+    assert ContentTypeLabel.TXT.value == "txt"
+    assert ContentTypeLabel.UNKNOWN.value == "unknown"
+
+
+def test_prediction_mode_enums_and_valid_modes() -> None:
+    modes = PredictionMode.get_valid_prediction_modes()
+    assert isinstance(modes, list)
+    assert len(modes) == 3
+    assert set(modes) == {"best_guess", "medium_confidence", "high_confidence"}
+
+    assert isinstance(PredictionMode.HIGH_CONFIDENCE, str)
+    assert PredictionMode.HIGH_CONFIDENCE.value == "high_confidence"
+    assert PredictionMode.MEDIUM_CONFIDENCE.value == "medium_confidence"
+    assert PredictionMode.BEST_GUESS.value == "best_guess"
+
+    pm_str: Any = "high_confidence"
+    assert PredictionMode.HIGH_CONFIDENCE == pm_str
+
+
+def test_status_and_overwrite_reason_enums() -> None:
+    assert isinstance(Status.OK, str)
+    assert Status.OK.value == "ok"
+    assert Status.FILE_NOT_FOUND_ERROR.value == "file_not_found_error"
+    assert Status.PERMISSION_ERROR.value == "permission_error"
+    assert Status.UNKNOWN.value == "unknown"
+
+    status_str: Any = "ok"
+    assert Status.OK == status_str
+
+    assert isinstance(OverwriteReason.NONE, str)
+    assert OverwriteReason.NONE.value == "none"
+    assert OverwriteReason.LOW_CONFIDENCE.value == "low_confidence"
+    assert OverwriteReason.OVERWRITE_MAP.value == "overwrite_map"
+
+    reason_str: Any = "none"
+    assert OverwriteReason.NONE == reason_str
+
+
+def test_magika_prediction_immutability() -> None:
+    m = Magika()
+    res = m.identify_bytes(b"hello")
+    assert res.ok
+
+    with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
+        res.prediction.score = 0.5  # type: ignore[misc]
+
+    with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
+        res.prediction.output = res.prediction.dl  # type: ignore[misc]
+
+
+def test_magika_constructor_options_and_errors() -> None:
+    # Test verbose, debug, use_colors flags construct successfully
+    _ = Magika(verbose=True)
+    _ = Magika(debug=True)
+    _ = Magika(use_colors=True)
+    _ = Magika(verbose=True, debug=True, use_colors=True)
+
+    # Test invalid model_dir raises MagikaError
+    with pytest.raises(MagikaError, match="model dir not found"):
+        Magika(model_dir=Path("/non_existent_directory_magika_test_12345"))
+
+
+def test_identify_paths_empty_list() -> None:
+    m = Magika()
+    results = m.identify_paths([])
+    assert isinstance(results, list)
+    assert len(results) == 0
+
+
+def test_identify_paths_mixed_statuses() -> None:
+    m = Magika()
+
+    with tempfile.TemporaryDirectory() as td:
+        valid_file = Path(td) / "valid.txt"
+        valid_file.write_text("valid content")
+
+        non_existing = Path(td) / "does_not_exist.txt"
+
+        unreadable_file = Path(td) / "unreadable.txt"
+        unreadable_file.write_text("secret")
+        unreadable_file.chmod(0o000)
+
+        empty_file = Path(td) / "empty.txt"
+        empty_file.write_text("")
+
+        subdir = Path(td) / "subdir"
+        subdir.mkdir()
+
+        batch = [valid_file, non_existing, unreadable_file, empty_file, subdir]
+        results = m.identify_paths(batch)
+
+        assert len(results) == len(batch)
+
+        # valid_file
+        assert results[0].path == valid_file
+        assert results[0].ok
+        assert results[0].status == Status.OK
+        assert results[0].output.label == ContentTypeLabel.TXT
+
+        # non_existing
+        assert results[1].path == non_existing
+        assert not results[1].ok
+        assert results[1].status == Status.FILE_NOT_FOUND_ERROR
+
+        # unreadable_file
+        assert results[2].path == unreadable_file
+        assert not results[2].ok
+        assert results[2].status == Status.PERMISSION_ERROR
+
+        # empty_file
+        assert results[3].path == empty_file
+        assert results[3].ok
+        assert results[3].output.label == ContentTypeLabel.EMPTY
+
+        # subdir
+        assert results[4].path == subdir
+        assert results[4].ok
+        assert results[4].output.label == ContentTypeLabel.DIRECTORY
+
+
+def test_broken_symlink() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        target = Path(td) / "non_existing_target.txt"
+        symlink = Path(td) / "broken_link.txt"
+        symlink.symlink_to(target)
+
+        # Default no_dereference=False follows symlink -> target not found
+        m_follow = Magika(no_dereference=False)
+        res_follow = m_follow.identify_path(symlink)
+        assert res_follow.path == symlink
+        assert not res_follow.ok
+        assert res_follow.status == Status.FILE_NOT_FOUND_ERROR
+
+        # no_dereference=True identifies symlink directly -> SYMLINK, ok=True
+        m_no_follow = Magika(no_dereference=True)
+        res_no_follow = m_no_follow.identify_path(symlink)
+        assert res_no_follow.path == symlink
+        assert res_no_follow.ok
+        assert res_no_follow.output.label == ContentTypeLabel.SYMLINK
+        assert res_no_follow.dl.label == ContentTypeLabel.UNDEFINED
+        assert res_no_follow.score == 1.0
+
+
+def test_prediction_mode_via_identify_apis() -> None:
+    test_path = utils.get_one_basic_test_file_path()
+
+    for mode in (
+        PredictionMode.BEST_GUESS,
+        PredictionMode.MEDIUM_CONFIDENCE,
+        PredictionMode.HIGH_CONFIDENCE,
+    ):
+        m = Magika(prediction_mode=mode)
+        res_path = m.identify_path(test_path)
+        assert res_path.ok
+        assert isinstance(res_path.output.label, ContentTypeLabel)
+
+        res_bytes = m.identify_bytes(b"import json\n")
+        assert res_bytes.ok
+        assert isinstance(res_bytes.output.label, ContentTypeLabel)
+
+
+def test_special_device_file() -> None:
+    null_dev = Path("/dev/null")
+    if null_dev.exists() and not null_dev.is_file() and not null_dev.is_dir():
+        m = Magika()
+        res = m.identify_path(null_dev)
+        assert res.ok
+        assert res.output.label == ContentTypeLabel.UNKNOWN
+        assert res.dl.label == ContentTypeLabel.UNDEFINED
+        assert res.score == 1.0

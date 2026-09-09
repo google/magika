@@ -224,17 +224,16 @@ enum BackendChoice {
 }
 
 fn inference_configuration(flags: &Flags) -> (usize, BackendChoice) {
-    // A non-recursive argument produces at most one input, including stdin. Use
-    // batch one and skip automatic GPU startup for this known single-file case.
-    // Recursive inputs retain the bulk policy without an extra filesystem walk.
-    if !flags.recursive && flags.path.len() == 1 {
-        let backend = match flags.experimental.backend {
-            BackendChoice::Auto => BackendChoice::Cpu,
-            explicit => explicit,
-        };
-        return (1, backend);
+    // Non-recursive arguments bound the number of inputs, including stdin.
+    // Recursive paths can expand without bound; do not add a filesystem walk.
+    if flags.recursive || flags.path.is_empty() {
+        return (flags.experimental.batch_size, flags.experimental.backend);
     }
-    (flags.experimental.batch_size, flags.experimental.backend)
+    let backend = match (flags.path.len(), flags.experimental.backend) {
+        (1, BackendChoice::Auto) => BackendChoice::Cpu,
+        (_, explicit) => explicit,
+    };
+    (flags.experimental.batch_size.min(flags.path.len()), backend)
 }
 
 /// Per-stage busy and waiting time.
@@ -1071,13 +1070,27 @@ mod reorder_tests {
         }
         // A recursive path can expand into any number of files. A backend-info
         // request without inputs must continue to report the default device.
-        for args in [
-            vec!["magika", "--recursive", "sample"],
-            vec!["magika", "first", "second"],
-            vec!["magika", "--backend-info"],
-        ] {
+        for args in [vec!["magika", "--recursive", "sample"], vec!["magika", "--backend-info"]] {
             let flags = Flags::try_parse_from(args).unwrap();
             assert_eq!(inference_configuration(&flags), (8, BackendChoice::Auto));
+        }
+    }
+
+    #[test]
+    fn known_file_count_caps_batch_without_changing_explicit_backend() {
+        for count in [2, 3, 5, 10, 65] {
+            let mut args = vec!["magika"; count + 1];
+            args[1..].fill("sample");
+            for backend in [BackendChoice::Auto, BackendChoice::Cpu, BackendChoice::Gpu] {
+                for limit in [1, 8, 64] {
+                    let mut flags = Flags::try_parse_from(args.clone()).unwrap();
+                    flags.experimental.backend = backend;
+                    flags.experimental.batch_size = limit;
+                    assert_eq!(inference_configuration(&flags), (count.min(limit), backend));
+                    flags.recursive = true;
+                    assert_eq!(inference_configuration(&flags), (limit, backend));
+                }
+            }
         }
     }
 

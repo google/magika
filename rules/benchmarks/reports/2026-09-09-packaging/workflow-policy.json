@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "checked_at_utc": "2026-09-09T02:07:54Z",
+  "reported_run": "https://github.com/google/magika/actions/runs/34301402386",
+  "original_mandatory_findings": 22,
+  "local_remaining_findings": [
+    {
+      "rule": "zizmor/self-repository",
+      "level": "note"
+    }
+  ],
+  "verified_action_commits": {
+    "actions/checkout": "d23441a48e516b6c34aea4fa41551a30e30af803",
+    "actions/upload-artifact": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+    "actions/download-artifact": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+    "actions/attest-build-provenance": "977bb373ede98d70efdf65b84cb5f73e068dcc2a"
+  },
+  "native_target_plans_verified": 4,
+  "shell_template_expansion_sites": 0,
+  "code_sha256": {
+    ".github/workflows/cli-release.yml": "2b6b903791ce528635c1bcd7f9498c97fa62aca2539b8db50e6c00eee145b101",
+    "rust/distribution/build_artifacts.py": "ea149abc1532ddc3a7eb24e30e82cddc4c3f82819c3bd17c551b4411b3d91c19"
+  }
+}

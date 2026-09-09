@@ -9,8 +9,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1"
-magika-runtime-abi = { path = "../runtime-abi" }
-magika-tract-runtime = { path = "../tract-runtime", default-features = false }
+magika-runtime-abi = { version = "0.0.1-dev", path = "../runtime-abi" }
+magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime", default-features = false }
 
 [features]
 metal = ["magika-tract-runtime/metal"]

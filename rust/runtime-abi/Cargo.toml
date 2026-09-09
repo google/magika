@@ -3,4 +3,6 @@ name = "magika-runtime-abi"
 version = "0.0.1-dev"
 edition = "2024"
 license = "Apache-2.0"
+description = "Internal versioned inference backend ABI for Magika"
+repository = "https://github.com/google/magika"
 

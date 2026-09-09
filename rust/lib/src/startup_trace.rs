@@ -1,6 +1,6 @@
 // Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
-//! Opt-in structured timings for the isolated startup spike.
+//! Opt-in structured timings for startup diagnostics.
 
 use serde::Serialize;
 use std::sync::{Mutex, OnceLock};

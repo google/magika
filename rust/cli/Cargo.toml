@@ -30,8 +30,6 @@ serde_json = "1.0.120"
 magika = { version = "2.0.0-dev", path = "../lib", features = ["cuda"] }
 
 [features]
-_mmap-spike = ["yara-rules", "magika/_mmap-spike"]
-_sha2-accel-spike = ["_mmap-spike", "magika/_sha2-accel-spike"]
 yara-rules = ["magika/yara-rules"]
 _trace = ["dep:cpu-time"]
 

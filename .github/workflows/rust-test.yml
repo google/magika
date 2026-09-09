@@ -45,6 +45,13 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
           persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: rustup default ${{ matrix.toolchain }}
       - run: rustup component add rustfmt clippy
       - run: ./test.sh
@@ -72,6 +79,13 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
           persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: rustup default stable
       - run: rustup component add rustfmt clippy
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
@@ -112,6 +126,13 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
           persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: cargo build --profile=release-fast
         working-directory: rust/cli
       - run: rust/target/release-fast/magika -r tests_data/basic
@@ -125,6 +146,13 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
           persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: rustup default stable
       - run: rustup component add rustfmt clippy
       - run: cargo test --locked
@@ -150,6 +178,13 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
           persist-credentials: false
+      - name: Prepare inference backends
+        shell: bash
+        run: |
+          gpu=()
+          if [[ "$RUNNER_OS" == "macOS" ]]; then gpu=(--gpu metal); fi
+          python rust/build-runtime.py --backends-only "${gpu[@]}" --output "$RUNNER_TEMP/magika-runtime"
+          echo "MAGIKA_RUNTIME_DIR=$RUNNER_TEMP/magika-runtime/lib" >> "$GITHUB_ENV"
       - run: rustup default stable
       - name: Install native build dependencies
         shell: bash
@@ -180,7 +215,8 @@ jobs:
           fi
           echo "MAGIKA_TEST_BINARY=$GITHUB_WORKSPACE/rust/target/debug/magika" >> "$GITHUB_ENV"
       - run: cargo build --locked --manifest-path rust/cli/Cargo.toml --features yara-rules
-      - run: cargo test --locked --manifest-path rust/lib/Cargo.toml --features yara-rules -- --include-ignored --skip rules::cache::tests::process_probe
+      - run: env MAGIKA_RULES_MMAP=0 cargo test --locked --manifest-path rust/lib/Cargo.toml --features yara-rules -- --include-ignored --skip rules::cache::tests::process_probe --skip rules::cache::mapped_tests --skip rules::mapped
+      - run: cargo test --locked --manifest-path rust/lib/Cargo.toml --features yara-rules mapped_ -- --ignored
       - run: cargo test --locked --manifest-path rust/cli/Cargo.toml --features yara-rules -- --include-ignored
       - run: uv sync --directory rules --locked
       - run: uv run --directory rules --locked ruff check .

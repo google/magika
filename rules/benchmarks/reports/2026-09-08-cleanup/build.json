@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "commands": [
+    [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--manifest-path",
+      "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/runtime-plugin/Cargo.toml"
+    ],
+    [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--manifest-path",
+      "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/runtime-plugin/Cargo.toml",
+      "--features",
+      "metal"
+    ],
+    [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--manifest-path",
+      "/Users/elie/git/magika/tmp/rules-pr-worktree/rust/cli/Cargo.toml",
+      "--features",
+      "yara-rules"
+    ]
+  ],
+  "rustflags": "",
+  "source_revision": "d04efc117ee2652d7a4a74e45445fe863ff36223",
+  "source_diff_sha256": "4f05fd206b6f3917bfb8214235d30e1b7e08044e74e595aeb0c96ac01bf3b8ad",
+  "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: aarch64-apple-darwin\nrelease: 1.95.0\nLLVM version: 22.1.2\n",
+  "artifacts": {
+    "magika": "95ada3c0c40d3168df2d54b41bcd107de606f86b0c0d2e6a5915a0e7e7efe47a",
+    "lib/libmagika_runtime_cpu.dylib": "90bd178b855e7bc76b3e907adc791ef8a7740f3bc2669c64e4076c83aa239a68",
+    "lib/libmagika_runtime_metal.dylib": "9f83443da933cd5f1209b1401743d9e879cd76dda2ef1ded01296c901991b114"
+  }
+}

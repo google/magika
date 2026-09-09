@@ -32,22 +32,24 @@ inside the crate. No generated pack or evaluation report belongs in git.
 
 ## Build and use
 
-Rules are an opt-in Cargo feature in this first version. The standard installer and
-wheel configurations build without `yara-rules`; their ordinary ML path remains
-available. Use the feature-enabled source build below when testing rules. Enabling
+Rules are an opt-in Cargo feature in this first version. The existing standard
+installer and wheel jobs still need the deferred runtime libraries integrated before
+a Magika 2 release; use the verified distribution helper below for this PR. Use the feature-enabled source build below when testing rules. Enabling
 the Cargo feature makes the rule options available but still leaves enforcement
 off until `--rules=enforce` is requested. The maintainer bundle command below is
 an explicit distribution helper; it is not wired into the standard release jobs.
 
 ```sh
-cargo build --locked --release --manifest-path rust/cli/Cargo.toml --features yara-rules
-rust/target/release/magika --rules=enforce example.png
-rust/target/release/magika --write-default-rules custom.yar
-rust/target/release/magika --compile-rules custom.yar
-rust/target/release/magika --rules=enforce --rules-file custom.yar example.png
+python3 rust/build-runtime.py --gpu metal --output tmp/magika-dist
+tmp/magika-dist/magika --rules=enforce example.png
+tmp/magika-dist/magika --write-default-rules custom.yar
+tmp/magika-dist/magika --compile-rules custom.yar
+tmp/magika-dist/magika --rules=enforce --rules-file custom.yar example.png
 ```
 
-Ordinary Cargo builds require no Python or dataset. Execution and native compilation
+Omit `--gpu metal` for CPU-only builds or use `--gpu cuda` on supported CUDA hosts.
+Keep the executable beside its `lib/` directory; see [runtime packaging](../rust/runtime/README.md).
+Ordinary Cargo builds require no Python or dataset, but execution needs the installed runtime libraries. Execution and native compilation
 need a compatible Vectorscan `libhs`; set `MAGIKA_VECTORSCAN_LIBRARY` to its location,
 or place it in `lib/` beside the executable. Cargo installation does not install libhs.
 Native databases are compiled for the execution target, not by the Cargo build script.
@@ -226,6 +228,7 @@ An explicitly requested native suite fails if its dependencies are absent.
 ```sh
 python3 rules/package.py source --output tmp/rules-source
 python3 rules/package.py bundle --binary /path/to/magika \
+  --runtime-dir /path/to/runtime/lib \
   --library /path/to/libhs.dylib --license /path/to/vectorscan/LICENSE \
   --output tmp/magika-rules.tar.gz
 ```
@@ -236,7 +239,7 @@ them. `rust/publish.sh` uses this staging path. The existing packaging tests ver
 that the staged inputs match the maintained files and build without checkout paths,
 both with and without `yara-rules`.
 
-Source staging preserves the local tract-runtime dependency for verification. Binary
+Source staging preserves the local runtime loader, ABI and tract dependencies for verification. Binary
 bundles export the executable's embedded source, compile a target-specific `.hsdb`,
 and include notices. The embedded source also carries those notices, so an installed
 CLI retains them in its existing `--write-default-rules` export. When distributing

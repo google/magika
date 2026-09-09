@@ -26,12 +26,12 @@ struct Manifest {
 }
 
 fn key(source: &str) -> String {
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _startup_span = crate::startup_trace::span("rules_cache_identity");
 
     let mut hash = Sha256::new();
     hash.update((super::PREFIX_LIMIT as u64).to_le_bytes());
-    #[cfg(all(feature = "_mmap-spike", unix))]
+    #[cfg(all(feature = "yara-rules", unix))]
     if super::mapped::enabled() {
         hash.update(b"mapped-image-v1");
         hash.update(include_bytes!("mapped.rs"));
@@ -71,7 +71,7 @@ pub(super) fn default_directory() -> Option<PathBuf> {
 }
 
 fn prepare_directory(path: &Path) -> Result<()> {
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _startup_span = crate::startup_trace::span("cache_directory_prepare");
 
     let mut builder = std::fs::DirBuilder::new();
@@ -98,7 +98,7 @@ fn prepare_directory(path: &Path) -> Result<()> {
 
 #[cfg(unix)]
 fn validate_ancestors(path: &Path) -> Result<()> {
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _startup_span = crate::startup_trace::span("cache_ancestor_checks");
 
     use std::os::unix::fs::MetadataExt;
@@ -160,11 +160,11 @@ fn lock_with_deadline(file: &File) -> Result<()> {
 }
 
 fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _startup_span = crate::startup_trace::span("rules_pack_read_total");
 
     let mut file = open_cache_file(path, false)?;
-    #[cfg(all(feature = "_mmap-spike", unix))]
+    #[cfg(all(feature = "yara-rules", unix))]
     if super::mapped::enabled() {
         return read_mapped(file, expected_key);
     }
@@ -180,11 +180,11 @@ fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
     let manifest: Manifest = serde_json::from_slice(&bytes)?;
     ensure!(manifest.key == expected_key, "cache source/compiler identity mismatch");
     ensure!(manifest.labels.len() <= 100_000, "invalid output mapping size");
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _payload_read = crate::startup_trace::span("serialized_payload_read");
     let mut payload = Vec::new();
     file.take(MAX_DATABASE_SIZE as u64 + 1).read_to_end(&mut payload)?;
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_payload_read);
     ensure!(payload.len() <= MAX_DATABASE_SIZE, "invalid native payload size");
     let database = if payload.is_empty() {
@@ -212,9 +212,9 @@ fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
     Ok(super::RuleSet { database, loaded_from_cache: true })
 }
 
-#[cfg(all(feature = "_mmap-spike", unix))]
+#[cfg(all(feature = "yara-rules", unix))]
 fn read_mapped(file: File, expected_key: &str) -> Result<super::RuleSet> {
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _startup_span = crate::startup_trace::span("mapped_pack_read_total");
 
     let mapping = super::mapped::Mapping::new(&file)?;
@@ -271,12 +271,12 @@ fn write_payload(
         path.parent().filter(|x| !x.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
     let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
     let magic = MAGIC;
-    #[cfg(all(feature = "_mmap-spike", unix))]
+    #[cfg(all(feature = "yara-rules", unix))]
     let magic = if super::mapped::enabled() { super::mapped::MAGIC } else { magic };
     temporary.write_all(magic)?;
     temporary.write_all(&(manifest.len() as u32).to_le_bytes())?;
     temporary.write_all(&manifest)?;
-    #[cfg(all(feature = "_mmap-spike", unix))]
+    #[cfg(all(feature = "yara-rules", unix))]
     if super::mapped::enabled() {
         let padding =
             (13 + manifest.len()).next_multiple_of(super::mapped::ALIGNMENT) - 13 - manifest.len();
@@ -311,7 +311,7 @@ fn compile(source: &str, output: Option<(&Path, String, bool)>) -> Result<super:
             let payload = database
                 .as_ref()
                 .map(|db| {
-                    #[cfg(all(feature = "_mmap-spike", unix))]
+                    #[cfg(all(feature = "yara-rules", unix))]
                     if super::mapped::enabled() {
                         return db.image();
                     }
@@ -507,6 +507,11 @@ mod tests {
     #[test]
     #[ignore = "requires a native Vectorscan compiler library"]
     fn cache_roundtrip_edit_corruption_and_unwritable_directory() {
+        #[cfg(unix)]
+        assert!(
+            !super::super::mapped::enabled(),
+            "run serialized corruption coverage with MAGIKA_RULES_MMAP=0"
+        );
         let temp = tempfile::tempdir().unwrap();
         let source = temp.path().join("rules.yar");
         let cache = temp.path().join("cache");
@@ -755,13 +760,13 @@ mod tests {
     }
 }
 
-#[cfg(all(test, feature = "_mmap-spike", unix))]
+#[cfg(all(test, feature = "yara-rules", unix))]
 mod mapped_tests {
     use super::*;
 
     #[test]
-    #[ignore = "requires a native Vectorscan compiler library and MAGIKA_RULES_MMAP_SPIKE=1"]
-    fn mmap_spike_pack_validation_and_source_changes() {
+    #[ignore = "requires a native Vectorscan compiler library and MAGIKA_RULES_MMAP enabled (default)"]
+    fn mapped_pack_validation_and_source_changes() {
         assert!(super::super::mapped::enabled());
         let source = r#"rule fixture { meta: label = "png" enabled = true class = "full" fp_rate = 0 fn_rate = 0
             strings: $a = "MAGIKA_MMAP_TEST!" condition: $a at 0 }"#;

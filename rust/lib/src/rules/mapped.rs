@@ -1,7 +1,7 @@
 // Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Unix-only experiment. The original serialized loader remains the default.
+//! Read-only native rule images on Unix; serialized packs remain available for diagnostics.
 
 use anyhow::{ensure, Result};
 use std::fs::File;
@@ -11,7 +11,7 @@ pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x03";
 pub(super) const ALIGNMENT: usize = 4096;
 
 pub(super) fn enabled() -> bool {
-    std::env::var_os("MAGIKA_RULES_MMAP_SPIKE").is_some_and(|x| x == "1")
+    !std::env::var_os("MAGIKA_RULES_MMAP").is_some_and(|x| x == "0")
 }
 
 pub(super) struct Mapping {
@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     #[ignore = "requires a native Vectorscan compiler library"]
-    fn mmap_spike_image_is_relocatable_readonly_and_lives_with_worker() {
+    fn mapped_image_is_relocatable_readonly_and_lives_with_worker() {
         let source = r#"rule fixture {
             meta: label = "png" enabled = true class = "full" fp_rate = 0 fn_rate = 0
             strings: $a = "MAGIKA_MMAP_TEST!" condition: $a at 0
@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     #[ignore = "requires a native Vectorscan compiler library"]
-    fn mmap_spike_bounds_and_versions_are_checked_before_native_access() {
+    fn mapped_bounds_and_versions_are_checked_before_native_access() {
         let api = Api::load().unwrap();
         for (field, value) in [(0, 0), (4, 0), (8, u32::MAX), (36, u32::MAX)] {
             let mut bytes = vec![0; 104];

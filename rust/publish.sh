@@ -53,6 +53,10 @@ git log -1 --pretty=%s | grep -q '^Release Rust crates (#[0-9]*)$' \
 
 [ "$1" = --no-dry-run ] || success "Run with --no-dry-run to actually publish"
 
+info "Publishing the runtime ABI and loader"
+( cd runtime-abi && cargo publish --locked )
+( cd runtime && cargo publish --locked )
+
 info "Publishing the tract runtime"
 ( cd tract-runtime && cargo publish --locked )
 

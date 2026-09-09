@@ -1,8 +1,0 @@
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
-     Running tests/backend.rs (rust/target/debug/deps/backend-dc02684e4a95afe2)
-
-running 1 test
-test packaged_backend_scores_shapes_and_lifetimes ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
-

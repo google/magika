@@ -43,7 +43,7 @@ pub use crate::rules::{RulesMode, DEFAULT_RULES};
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
-#[cfg(feature = "_mmap-spike")]
+#[cfg(feature = "yara-rules")]
 pub mod startup_trace;
 
 mod backend;

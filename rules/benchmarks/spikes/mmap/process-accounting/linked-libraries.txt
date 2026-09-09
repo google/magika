@@ -1,7 +1,0 @@
-/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-mmap-no-checksum-55c3209d:
-	/System/Library/Frameworks/Metal.framework/Versions/A/Metal (compatibility version 1.0.0, current version 373.2.0)
-	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
-	/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics (compatibility version 64.0.0, current version 1965.5.1)
-	/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 5026.5.4)
-	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
-	/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)

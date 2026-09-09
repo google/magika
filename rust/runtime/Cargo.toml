@@ -3,11 +3,13 @@ name = "magika-runtime"
 version = "0.0.1-dev"
 edition = "2024"
 license = "Apache-2.0"
+description = "Deferred CPU and GPU inference backend loader for Magika"
+repository = "https://github.com/google/magika"
 
 [dependencies]
 anyhow = "1"
 libloading = "0.8.9"
-magika-runtime-abi = { path = "../runtime-abi" }
+magika-runtime-abi = { version = "0.0.1-dev", path = "../runtime-abi" }
 
 [features]
 cuda = []

@@ -1,4 +1,4 @@
-//! Deferred runtime loading for the startup spike.
+//! Deferred runtime loading for CPU and GPU inference.
 use anyhow::{Context, Result, ensure};
 use libloading::Library;
 use magika_runtime_abi as abi;

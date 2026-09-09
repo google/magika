@@ -1,5 +1,0 @@
-/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/comparison-tools/magika2-deferred-spike-v3/lib/libmagika_runtime_cpu.dylib:
-	/Users/elie/git/magika/tmp/rules-pr-worktree/rust/target/release/deps/libmagika_runtime_plugin.dylib (compatibility version 0.0.0, current version 0.0.0)
-	/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)
-	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
-

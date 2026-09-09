@@ -1,4 +1,0 @@
-   Compiling blake3 v1.8.5
-   Compiling magika v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/lib)
-   Compiling magika-cli v2.0.0-dev (/Users/elie/git/magika/tmp/rules-pr-worktree/tmp/mmap-spike-worktree/rust/cli)
-    Finished `release` profile [optimized] target(s) in 1m 31s

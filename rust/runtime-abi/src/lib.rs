@@ -1,4 +1,4 @@
-//! Internal, versioned C boundary for the deferred-backend spike.
+//! Internal, versioned C boundary for the deferred inference backends.
 //!
 //! Callers supply valid, aligned, non-overlapping buffers with the stated lengths.
 //! Handles must come from this API; runtime handles allow shared access, session

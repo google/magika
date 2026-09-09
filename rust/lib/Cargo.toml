@@ -19,8 +19,6 @@ cuda = ["magika-tract-runtime/cuda"]
 serde = ["dep:serde"]
 yara-rules = ["dep:yara-x-parser", "dep:regex-syntax", "dep:libloading", "dep:serde", "dep:serde_json", "dep:sha2", "dep:tempfile", "dep:libc"]
 # Internal features.
-_mmap-spike = ["yara-rules"]
-_sha2-accel-spike = ["_mmap-spike", "sha2/asm"]
 _doc = ["serde", "yara-rules"]
 
 [dependencies]

@@ -6,6 +6,7 @@
 
 import argparse
 import os
+import platform
 import shutil
 import subprocess
 import tarfile
@@ -19,6 +20,8 @@ def stage_source(output):
     output.mkdir(parents=True, exist_ok=False)
     for name, paths in {
         "lib": ("Cargo.toml", "Cargo.lock", "LICENSE", "README.md", "build.rs", "src"),
+        "runtime": ("Cargo.toml", "Cargo.lock", "src"),
+        "runtime-abi": ("Cargo.toml", "src"),
         "tract-runtime": ("Cargo.toml", "Cargo.lock", "LICENSE", "README.md", "src", "models"),
     }.items():
         destination = output / name
@@ -34,7 +37,7 @@ def stage_source(output):
     return output / "lib/Cargo.toml"
 
 
-def bundle(binary, library, license_file, output):
+def bundle(binary, library, license_file, output, runtime_dir):
     if output.exists():
         raise FileExistsError(output)
     if library.name.endswith(".dylib"):
@@ -45,6 +48,17 @@ def bundle(binary, library, license_file, output):
         library_name = "libhs.so.5"
     else:
         raise ValueError("Expected a Vectorscan dylib, DLL or shared object")
+
+    suffix = {"Darwin": ".dylib", "Windows": ".dll"}.get(platform.system(), ".so")
+    prefix = "" if platform.system() == "Windows" else "lib"
+    cpu = runtime_dir / f"{prefix}magika_runtime_cpu{suffix}"
+    if not cpu.is_file():
+        raise FileNotFoundError(f"Missing CPU inference runtime: {cpu}")
+    backends = [
+        p
+        for kind in ("cpu", "metal", "cuda")
+        if (p := runtime_dir / f"{prefix}magika_runtime_{kind}{suffix}").is_file()
+    ]
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="magika-package-", dir=output.parent) as temporary:
         work = Path(temporary)
@@ -54,6 +68,8 @@ def bundle(binary, library, license_file, output):
         executable = root / ("magika.exe" if binary.suffix == ".exe" else "magika")
         shutil.copy2(binary, executable)
         shutil.copy2(library, root / "lib" / library_name)
+        for backend in backends:
+            shutil.copy2(backend, root / "lib" / backend.name)
         shutil.copyfile(license_file, root / "licenses/vectorscan.txt")
         shutil.copyfile(ROOT.parent / "LICENSE", root / "licenses/magika.txt")
         shutil.copyfile(ROOT / "LICENSES", root / "licenses/rules.txt")
@@ -61,6 +77,7 @@ def bundle(binary, library, license_file, output):
         source = root / "rules/promoted.yar"
         env = dict(os.environ)
         env.pop("MAGIKA_VECTORSCAN_LIBRARY", None)
+        env.pop("MAGIKA_RUNTIME_DIR", None)
         for arguments in (("--write-default-rules", source), ("--compile-rules", source)):
             subprocess.run(
                 [str(executable), *map(str, arguments)],
@@ -69,6 +86,13 @@ def bundle(binary, library, license_file, output):
                 capture_output=True,
                 timeout=120,
             )
+        subprocess.run(
+            [str(executable), "--backend=cpu", "--backend-info"],
+            env=env,
+            check=True,
+            capture_output=True,
+            timeout=120,
+        )
         # A nonempty probe verifies native discovery even when all bundled rules are disabled.
         probe = work / "probe.yar"
         probe.write_text(
@@ -97,7 +121,7 @@ def main():
     )
     source.add_argument("--output", type=Path, required=True)
     distribution = commands.add_parser("bundle", help="Bundle an already built native CLI")
-    for name in ("binary", "library", "license", "output"):
+    for name in ("binary", "library", "license", "output", "runtime-dir"):
         distribution.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
     if args.mode == "source":
@@ -108,6 +132,7 @@ def main():
             args.library.resolve(),
             args.license.resolve(),
             args.output.resolve(),
+            args.runtime_dir.resolve(),
         )
 
 

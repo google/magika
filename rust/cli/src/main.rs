@@ -347,12 +347,12 @@ fn reorder_window(threads: usize, batch_size: usize) -> usize {
 }
 
 fn main() -> Result<()> {
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _startup_session = magika::startup_trace::Session::begin();
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _parse = magika::startup_trace::span("argument_parsing");
     let flags = Flags::parse();
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_parse);
 
     if let Some(path) = &flags.write_default_rules {
@@ -401,7 +401,7 @@ fn main() -> Result<()> {
         colored::control::set_override(false);
     }
     // CLI inference receives features only; readers own the selected rule pack.
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _builder_config = magika::startup_trace::span("runtime_builder_config");
     let (inference_batch, backend) = inference_configuration(&flags);
     let builder = Runtime::builder().with_max_batch(inference_batch);
@@ -410,7 +410,7 @@ fn main() -> Result<()> {
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
         BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
     };
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_builder_config);
     if flags.experimental.backend_info {
         if matches!(flags.rules, Rules::Only) {
@@ -428,7 +428,7 @@ fn main() -> Result<()> {
     }
     // Reserve bounded queues before backend selection completes. The inference coordinator
     // chooses the existing CPU/GPU worker policy once the background model load finishes.
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _queues = magika::startup_trace::span("pipeline_queue_allocation");
     let threads = flags.experimental.threads.unwrap_or_else(|| {
         default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
@@ -443,7 +443,7 @@ fn main() -> Result<()> {
     let reorder_next = Arc::new(Progress::default());
     #[cfg(feature = "_trace")]
     let trace = Trace::default();
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_queues);
     let mut join_handles = Vec::new();
     // Signature-only extraction never queues inference or initializes a model.
@@ -470,7 +470,7 @@ fn main() -> Result<()> {
         })?);
     }
     // Start backend preparation before loading an explicit pack, so the two can overlap.
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _rules_load = magika::startup_trace::span("rule_pack_load_total");
     let rule_input = RuleInput {
         mode: flags.rules,
@@ -490,9 +490,9 @@ fn main() -> Result<()> {
             None
         },
     };
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_rules_load);
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _thread_launch = magika::startup_trace::span("pipeline_thread_launch");
     join_handles.push(std::thread::Builder::new().name("magika-walk".to_string()).spawn({
         let flags = flags.clone();
@@ -559,9 +559,9 @@ fn main() -> Result<()> {
     drop(batch_sender);
     drop(batch_receiver);
     drop(result_sender);
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_thread_launch);
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _drain = magika::startup_trace::span("pipeline_drain_and_print");
     let print_result = match print(&flags, result_receiver, reorder_next) {
         Err(e)
@@ -573,16 +573,16 @@ fn main() -> Result<()> {
         }
         x => x,
     };
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_drain);
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _join = magika::startup_trace::span("pipeline_thread_join");
     for handle in join_handles {
         ensure!(handle.join().is_ok());
     }
     #[cfg(feature = "_trace")]
     trace.report(readers);
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     drop(_join);
     print_result
 }
@@ -609,7 +609,7 @@ fn print_to(
     let mut write_failed = false;
     {
         let mut output_row = |response: Response| -> Result<()> {
-            #[cfg(feature = "_mmap-spike")]
+            #[cfg(feature = "yara-rules")]
             let _output = magika::startup_trace::span("output_format_and_write");
 
             errors |= response.result.is_err();

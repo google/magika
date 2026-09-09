@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,13 @@ def test_source_stage_contains_canonical_inputs_and_no_research(tmp_path):
         ).read_bytes()
     assert (library / "RULES-LICENSES").read_bytes() == (ROOT / "LICENSES").read_bytes()
     assert not (library / "src/rules/promoted.yar").exists()
+    for crate in ("runtime", "runtime-abi"):
+        manifest = library.parent / crate / "Cargo.toml"
+        assert manifest.is_file(), f"missing local runtime dependency {crate}"
+        spec = tomllib.loads(manifest.read_text())
+        for dependency in spec.get("dependencies", {}).values():
+            if isinstance(dependency, dict) and "path" in dependency:
+                assert (manifest.parent / dependency["path"] / "Cargo.toml").is_file()
     assert not any(
         path.name in ("tmp", "datasets", "reports", ".venv") for path in library.rglob("*")
     )
@@ -102,6 +110,8 @@ def test_bundle_exports_exact_embedded_source_and_compiles(tmp_path):
             binary,
             "--library",
             os.environ["MAGIKA_VECTORSCAN_LIBRARY"],
+            "--runtime-dir",
+            os.environ["MAGIKA_RUNTIME_DIR"],
             "--license",
             str(ROOT.parent / "LICENSE"),
             "--output",
@@ -115,6 +125,7 @@ def test_bundle_exports_exact_embedded_source_and_compiles(tmp_path):
         assert archive.extractfile("rules/promoted.yar").read() == exported.read_bytes()
         assert archive.getmember("rules/promoted.hsdb").size > 0
         assert "README.md" in archive.getnames()
+        assert any("magika_runtime_cpu" in name for name in archive.getnames())
 
 
 def test_release_suffix_update_is_portable_and_stops_before_publishing(tmp_path):

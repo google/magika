@@ -64,7 +64,7 @@ pub(super) struct Api {
 }
 
 fn load_library(path: &std::ffi::OsStr) -> Result<Library> {
-    #[cfg(feature = "_mmap-spike")]
+    #[cfg(feature = "yara-rules")]
     let _startup_span = crate::startup_trace::span("native_library_dlopen");
 
     #[cfg(windows)]
@@ -93,7 +93,7 @@ fn load_library(path: &std::ffi::OsStr) -> Result<Library> {
 
 impl Api {
     pub(super) fn load() -> Result<Arc<Self>> {
-        #[cfg(feature = "_mmap-spike")]
+        #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_api_load_total");
 
         let name = if cfg!(target_os = "macos") {
@@ -195,12 +195,12 @@ impl Api {
             db,
             api: self.clone(),
             outputs: program.outputs,
-            #[cfg(all(feature = "_mmap-spike", unix))]
+            #[cfg(all(feature = "yara-rules", unix))]
             mapping: None,
         }))
     }
 
-    #[cfg(all(feature = "_mmap-spike", unix))]
+    #[cfg(all(feature = "yara-rules", unix))]
     pub(super) fn map_image(
         self: &Arc<Self>, mapping: super::mapped::Mapping, offset: usize,
         outputs: Vec<Option<ContentType>>,
@@ -233,7 +233,7 @@ impl Api {
     pub(super) fn deserialize(
         self: &Arc<Self>, bytes: &[u8], outputs: Vec<Option<ContentType>>,
     ) -> Result<Arc<Database>> {
-        #[cfg(feature = "_mmap-spike")]
+        #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_deserialize");
         type Deserialize = unsafe extern "C" fn(*const c_char, usize, *mut *mut c_void) -> c_int;
         let deserialize = unsafe { self.library.get::<Deserialize>(b"hs_deserialize_database")? };
@@ -244,7 +244,7 @@ impl Api {
             db,
             api: self.clone(),
             outputs,
-            #[cfg(all(feature = "_mmap-spike", unix))]
+            #[cfg(all(feature = "yara-rules", unix))]
             mapping: None,
         }))
     }
@@ -252,7 +252,7 @@ impl Api {
 
 impl Drop for Api {
     fn drop(&mut self) {
-        #[cfg(feature = "_mmap-spike")]
+        #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_library_dlclose");
         unsafe {
             std::mem::ManuallyDrop::drop(&mut self.library);
@@ -265,7 +265,7 @@ pub(super) struct Database {
     outputs: Vec<Option<ContentType>>,
     // Keep the loaded functions alive until every database and worker has been freed.
     api: Arc<Api>,
-    #[cfg(all(feature = "_mmap-spike", unix))]
+    #[cfg(all(feature = "yara-rules", unix))]
     mapping: Option<super::mapped::Mapping>,
 }
 
@@ -314,7 +314,7 @@ impl Database {
         Ok(unsafe { std::slice::from_raw_parts(owned.0.cast(), length) }.to_vec())
     }
 
-    #[cfg(all(feature = "_mmap-spike", unix))]
+    #[cfg(all(feature = "yara-rules", unix))]
     pub(super) fn image(&self) -> Result<Vec<u8>> {
         let serialized = self.serialize()?;
         type Size = unsafe extern "C" fn(*const c_char, usize, *mut usize) -> c_int;
@@ -349,7 +349,7 @@ impl Database {
     }
 
     pub(super) fn worker(self: &Arc<Self>) -> Result<Worker> {
-        #[cfg(feature = "_mmap-spike")]
+        #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_scratch_allocate");
 
         let mut scratch = ptr::null_mut();
@@ -361,10 +361,10 @@ impl Database {
 
 impl Drop for Database {
     fn drop(&mut self) {
-        #[cfg(feature = "_mmap-spike")]
+        #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_database_free");
 
-        #[cfg(all(feature = "_mmap-spike", unix))]
+        #[cfg(all(feature = "yara-rules", unix))]
         if self.mapping.is_some() {
             return;
         }
@@ -381,7 +381,7 @@ pub(super) struct Worker {
 
 impl Drop for Worker {
     fn drop(&mut self) {
-        #[cfg(feature = "_mmap-spike")]
+        #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_scratch_free");
 
         unsafe {
@@ -412,7 +412,7 @@ unsafe extern "C" fn matched(id: u32, _: u64, _: u64, _: u32, context: *mut c_vo
 
 impl Worker {
     pub(super) fn scan(&mut self, prefix: &[u8], original_size: u64) -> Decision {
-        #[cfg(feature = "_mmap-spike")]
+        #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_scan");
 
         if original_size > i64::MAX as u64

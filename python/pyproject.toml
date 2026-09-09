@@ -60,10 +60,10 @@ Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
-    "mypy==1.11.2",
+    "mypy>=1.11.2",
     "ipython>=8.12.3",
     "pytest>=8.3.2",
-    "ruff==0.14.3",
+    "ruff>=0.14.3",
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
     "tqdm>=4.67.1",
@@ -82,6 +82,7 @@ default = true
 
 [tool.uv]
 exclude-newer = "2 weeks"
+required-version = ">=0.9.27"
 
 [tool.maturin]
 python-source = "src"

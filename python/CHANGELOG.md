@@ -66,6 +66,7 @@ This release introduces several breaking changes. Please review this guide caref
 
   ```python
   import magika
+
   m = magika.Magika()
   result = m.identify_path("my_file.py")
   print(result.output.ct_label)  # Assumed success
@@ -74,6 +75,7 @@ This release introduces several breaking changes. Please review this guide caref
 - **After (v0.6.1):**
   ```python
   import magika
+
   m = magika.Magika()
   result = m.identify_path("my_file.py")
   if result.ok():

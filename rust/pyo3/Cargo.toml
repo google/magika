@@ -1,6 +1,6 @@
 [package]
 name = "magika-pyo3"
-version = "1.1.1-dev"
+version = "2.0.0-dev"
 edition = "2021"
 publish = false
 
@@ -9,6 +9,8 @@ name = "_magika"
 crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0.104"
 magika = { path = "../lib" }
-ort = "=2.0.0-rc.12"
 pyo3 = { version = "0.23", features = ["abi3-py38", "extension-module"] }
+
+

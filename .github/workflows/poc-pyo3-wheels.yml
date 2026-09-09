@@ -57,16 +57,9 @@ jobs:
         with:
           targets: ${{ matrix.platform.target }}
 
-      # Cache ONNX Runtime build on Linux
-      - if: matrix.platform.os == 'Linux'
-        uses: actions/cache@v4
-        with:
-          path: rust/onnx/runtime/build/Linux
-          key: maturin-${{ matrix.platform.target }}-${{ hashFiles('rust/onnx/build.sh') }}
-
       # On macOS and Windows (which build on the host, not inside a manylinux container),
       # compile and stage the CLI binary into python/wheel_data/scripts/ before Maturin packages it.
-      # On Linux, this is handled inside the manylinux container by rust/onnx/maturin.sh.
+      # On Linux, this is handled inside the manylinux container by python/scripts/stage_cli.sh via before-script-linux.
       - if: matrix.platform.os != 'Linux'
         name: Build and stage magika CLI (macOS/Windows)
         shell: bash
@@ -80,7 +73,7 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist
           manylinux: ${{ matrix.platform.manylinux }}
-          before-script-linux: "${{ github.workspace }}/rust/onnx/maturin.sh"
+          before-script-linux: "${{ github.workspace }}/python/scripts/stage_cli.sh"
           working-directory: python
 
       # Build PyO3 wheel using maturin-action (macOS/Windows on host)

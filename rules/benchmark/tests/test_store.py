@@ -16,6 +16,8 @@ store = runpy.run_path(str(Path(__file__).parents[2] / "benchmarks/store.py"))["
     ("source_revisions", "expected_revision"),
     [
         (None, "abc"),
+        ([None], "abc"),
+        ([None, "abc" + "d" * 37], "abc" + "d" * 37),
         (["abc" + "d" * 37], "abc" + "d" * 37),
         (["abc" + "d" * 37] * 2, "abc" + "d" * 37),
         (["abc" + "d" * 37, "abc" + "e" * 37], "abc"),

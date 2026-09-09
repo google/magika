@@ -23,7 +23,8 @@ def store(source, destination, dataset=None):
         revisions = {
             t["source_revision"]
             for t in result.get("config", {}).get("tools", [])
-            if len(t.get("source_revision", "")) == 40
+            if isinstance(t.get("source_revision"), str)
+            and len(t["source_revision"]) == 40
             and t["source_revision"].startswith(result["revision"])
         }
         if len(revisions) == 1:

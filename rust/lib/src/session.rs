@@ -64,20 +64,28 @@ impl Session {
 
     /// Identifies a single file from its features.
     pub fn identify_features(&mut self, features: &Features) -> Result<FileType> {
-        let results = self.identify_features_batch(std::slice::from_ref(features))?;
+        let results = self.identify_features_batch([features])?;
         let [result] = results.try_into().ok().unwrap();
         Ok(result)
     }
 
     /// Identifies multiple files in parallel from their features.
-    pub fn identify_features_batch(&mut self, features: &[Features]) -> Result<Vec<FileType>> {
-        if features.is_empty() {
+    pub fn identify_features_batch<'a>(
+        &mut self, features: impl IntoIterator<Item = &'a Features>,
+    ) -> Result<Vec<FileType>> {
+        let features = features.into_iter();
+        let (lower, _) = features.size_hint();
+        let mut input = Vec::with_capacity(lower * crate::model::CONFIG.features_size());
+        let mut count = 0;
+        for feature in features {
+            count += 1;
+            input.extend_from_slice(&feature.0);
+        }
+        if count == 0 {
             return Ok(Vec::new());
         }
-        let input: Vec<_> =
-            features.iter().flat_map(|features| features.0.iter().copied()).collect();
-        let output = self.inner.run(&input, features.len())?;
-        let output = ArrayView2::from_shape((features.len(), crate::model::NUM_LABELS), &output)?;
+        let output = self.inner.run(&input, count)?;
+        let output = ArrayView2::from_shape((count, crate::model::NUM_LABELS), &output)?;
         Ok(FileType::convert(output.into_dyn()))
     }
 }

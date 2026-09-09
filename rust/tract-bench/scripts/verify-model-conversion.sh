@@ -80,13 +80,16 @@ current="$candidate_dir/standard_v3_3.first.nnef.tgz"
 cmp "$repo_dir/rust/tract-runtime/models/model.nnef.tgz" "$current"
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" release_cpu_graph_has_every_required_fusion
 MAGIKA_RELEASE_PROBE="$candidate_dir/model.probe.f32le" cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
-# Neither gate above reaches the fused convolution: the verifier runs the unfused NNEF, the fusion
-# contract only counts matches, and the score probe is batch one, below the batch the fusion needs.
+# The ONNX verifier runs unfused NNEF and the fusion contract only counts matches.
 # These run the fused graph and check the numbers it produces.
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" the_fallback_packing_path_scores_the_release_model_the_same
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" both_packing_paths_agree
 cmp "$repo_dir/rust/tract-runtime/models/model.graph.json" "$candidate_dir/portable/model.graph.json"
-cmp "$repo_dir/rust/tract-runtime/models/model.weights" "$candidate_dir/portable/model.weights"
+# Two exports on this host must still be byte-identical (checked above). The
+# release machine can fold the embedding GELU with different low bits: require
+# exact unfurled weights, bounded embedding roundoff and strict score/decision
+# parity for every batch rather than cross-architecture byte equality there.
+MAGIKA_EXPORTED_ARTIFACT="$candidate_dir/portable" cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" exported_cpu_artifact_preserves_release_contract -- --ignored --nocapture --test-threads=1
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" artifact::tests -- --test-threads=1
 printf 'verified_release_artifacts\t%s\t%s\n' "$current" "$repo_dir/rust/tract-runtime/models/model.probe.f32le"
 

@@ -208,7 +208,8 @@ jobs:
           cmake -S "$RUNNER_TEMP/vectorscan" -B "$RUNNER_TEMP/vectorscan-build" \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON \
             -DBUILD_UNIT=OFF -DBUILD_EXAMPLES=OFF -DFAT_RUNTIME=OFF
-          cmake --build "$RUNNER_TEMP/vectorscan-build" --parallel 2
+          # Parity uses libhs only; optional upstream tools require unrelated PCRE headers.
+          cmake --build "$RUNNER_TEMP/vectorscan-build" --target hs_shared --parallel 2
           if [[ "$RUNNER_OS" == "macOS" && "$(uname -m)" == "arm64" ]]; then
             cc -O2 -g -fsanitize=address,undefined -march=armv8-a+crc \
               -I "$RUNNER_TEMP/vectorscan-build" -I "$RUNNER_TEMP/vectorscan" \

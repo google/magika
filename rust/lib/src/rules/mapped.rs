@@ -12,7 +12,7 @@ pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x03";
 pub(super) const ALIGNMENT: usize = 4096;
 
 pub(super) fn enabled() -> bool {
-    !std::env::var_os("MAGIKA_RULES_MMAP").is_some_and(|x| x == "0")
+    std::env::var_os("MAGIKA_RULES_MMAP").is_none_or(|x| x != "0")
 }
 
 pub(super) struct Mapping {

@@ -16,15 +16,17 @@ fn packaged_backend_scores_shapes_and_lifetimes() {
     drop(runtime);
     let row: Vec<i32> = (0..FEATURE_SIZE).map(|i| (i % 257) as i32).collect();
     let expected: Vec<f32> = include_bytes!("../../tract-runtime/models/model.probe.f32le")
-        .chunks_exact(4)
-        .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|b| f32::from_le_bytes(*b))
         .collect();
     assert_eq!(expected.len(), NUM_LABELS);
     for batch in [1, 9, 1] {
         // Exercise padding, splitting and state reuse.
         let output = session.run(&row.repeat(batch), batch).unwrap();
         assert_eq!(output.len(), batch * NUM_LABELS);
-        for scores in output.chunks_exact(NUM_LABELS) {
+        for scores in output.as_chunks::<NUM_LABELS>().0 {
             for (actual, expected) in scores.iter().zip(&expected) {
                 assert!(
                     actual.is_finite() && (actual - expected).abs() <= 1e-3,

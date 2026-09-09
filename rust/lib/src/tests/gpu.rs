@@ -101,7 +101,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
                 ArrayView2::from_shape((batch, NUM_LABELS), &scores).unwrap().into_dyn(),
             );
             for ((sample, actual), row) in
-                rows.iter().zip(predictions).zip(scores.chunks_exact(NUM_LABELS))
+                rows.iter().zip(predictions).zip(scores.as_chunks::<NUM_LABELS>().0)
             {
                 let context = format!("batch {batch}, {}", sample.name);
                 assert!(

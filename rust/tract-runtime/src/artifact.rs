@@ -633,7 +633,62 @@ mod tests {
 
     #[test]
     fn cpu_artifact_matches_source_for_every_batch() -> TractResult<()> {
-        let mut bundle = Bundle::embedded()?;
+        check_cpu_bundle_scores(Bundle::embedded()?)
+    }
+
+    // The NNEF embedding is folded through the host's GELU implementation. Its
+    // low bits need not reproduce the release machine's constants. Everything
+    // else, including graph topology and unfurled weights, must reproduce exactly.
+    #[test]
+    #[ignore = "requires MAGIKA_EXPORTED_ARTIFACT from the model conversion verifier"]
+    fn exported_cpu_artifact_preserves_release_contract() -> TractResult<()> {
+        let directory = std::path::PathBuf::from(
+            std::env::var_os("MAGIKA_EXPORTED_ARTIFACT").context("missing exported artifact")?,
+        );
+        let graph = std::fs::read(directory.join("model.graph.json"))?;
+        let weights = std::fs::read(directory.join("model.weights"))?;
+        ensure!(graph == include_bytes!("../models/model.graph.json"));
+        let embedded = include_bytes!("../models/model.weights");
+        ensure!(weights.len() == embedded.len());
+        let manifest: Manifest = serde_json::from_slice(&graph)?;
+        let mut folded = std::collections::HashSet::new();
+        for g in manifest.graphs.iter().chain(&manifest.cpu_graphs) {
+            for node in &g.nodes {
+                if node.name == "magika.embedding.table" {
+                    let Operator::Const(index) = node.op else {
+                        bail!("folded embedding must be a constant");
+                    };
+                    folded.insert(index);
+                }
+            }
+        }
+        ensure!(!folded.is_empty(), "missing folded embedding");
+        for (index, p) in manifest.parameters.iter().enumerate() {
+            validate_parameter(p, weights.len())?;
+            let candidate = &weights[p.offset..p.offset + p.bytes];
+            let release = &embedded[p.offset..p.offset + p.bytes];
+            if folded.contains(&index) {
+                let max_error =
+                    candidate.as_chunks::<4>().0.iter().zip(release.as_chunks::<4>().0).try_fold(
+                        0.0f32,
+                        |maximum, (a, b)| -> TractResult<f32> {
+                            let (a, b) = (f32::from_le_bytes(*a), f32::from_le_bytes(*b));
+                            ensure!(a.is_finite() && b.is_finite());
+                            Ok(maximum.max((a - b).abs()))
+                        },
+                    )?;
+                ensure!(max_error <= 1e-5, "folded embedding error {max_error:e}");
+                println!("exported_embedding_max_error\t{max_error:e}");
+            } else {
+                ensure!(candidate == release, "unfolded parameter {index} changed");
+            }
+        }
+        // A test process owns the candidate bytes until exit, like the embedded
+        // static payload. Execute every batch, including padded partial inputs.
+        check_cpu_bundle_scores(Bundle::read(&graph, Box::leak(weights.into_boxed_slice()))?)
+    }
+
+    fn check_cpu_bundle_scores(mut bundle: Bundle) -> TractResult<()> {
         for batch in BATCH_CLASSES {
             let mut source = crate::load_nnef_model(batch)?;
             crate::prepare_cpu_graph(&mut source, batch)?;
@@ -665,7 +720,7 @@ mod tests {
 
     fn check_cpu_artifact_scores(source: &[f32], loaded: &[f32]) -> TractResult<()> {
         ensure!(!source.is_empty() && source.len() == loaded.len());
-        ensure!(source.len() % NUM_LABELS == 0);
+        ensure!(source.len().is_multiple_of(NUM_LABELS));
         // The release graph contains constants folded on the release machine.
         // Source preparation on another architecture can differ in low bits.
         // Use the CPU fusion test's existing 1e-5 bound and independently require
@@ -676,7 +731,9 @@ mod tests {
             source.iter().chain(loaded).all(|x| x.is_finite()) && max_error <= 1e-5,
             "CPU artifact max absolute score error {max_error:e}"
         );
-        for (x, y) in source.chunks_exact(NUM_LABELS).zip(loaded.chunks_exact(NUM_LABELS)) {
+        for (x, y) in
+            source.as_chunks::<NUM_LABELS>().0.iter().zip(loaded.as_chunks::<NUM_LABELS>().0)
+        {
             let winner = |row: &[f32]| {
                 row.iter().enumerate().max_by(|(_, a), (_, b)| a.total_cmp(b)).unwrap().0
             };

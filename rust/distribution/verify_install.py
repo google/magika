@@ -7,6 +7,7 @@ import http.server
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -34,7 +35,13 @@ def verify(artifacts):
                 "magika-cli-installer.ps1" if windows else "magika-cli-installer.sh"
             )
             command = (
-                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
+                [
+                    shutil.which("pwsh") or "powershell",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                ]
                 if windows
                 else ["sh"]
             )

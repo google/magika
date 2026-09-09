@@ -256,6 +256,31 @@ class Magika:
         model_content_types.update(self._model_config.target_labels_space)
         return sorted(model_content_types)
 
+    def get_content_type_info(self, label: ContentTypeLabel) -> ContentTypeInfo:
+        """Returns metadata for a given content type label.
+
+        This provides access to the content type knowledge base, exposing
+        structured metadata such as mime type, group, human-readable
+        description, common file extensions, and whether the type is
+        text-based.
+
+        Args:
+            label: The ContentTypeLabel to look up.
+
+        Returns:
+            The ContentTypeInfo for the given label.
+
+        Raises:
+            MagikaError: If the label is not present in the content type
+                knowledge base.
+        """
+        try:
+            return self._cts_infos[label]
+        except KeyError:
+            raise MagikaError(
+                f"Content type '{label}' is not in the content type knowledge base."
+            ) from None
+
     @staticmethod
     def _get_default_model_name() -> str:
         """Returns the default model name.

@@ -84,6 +84,10 @@ export default defineConfig({
               slug: "cli-and-bindings/js",
             },
             {
+              label: "Go bindings",
+              slug: "cli-and-bindings/go",
+            },
+            {
               label: "Other bindings",
               slug: "cli-and-bindings/other-bindings",
             },

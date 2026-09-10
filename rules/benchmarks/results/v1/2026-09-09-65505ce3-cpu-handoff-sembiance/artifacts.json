@@ -3,12 +3,10 @@
   "revision": "65505ce38363b63d2c07d1370168a95451cf339a",
   "status": "complete",
   "files": {
-    "config.json": "500a782351baaa6c20e548911cdd5593525f9634ff62dcd5ceefc49eea916630",
     "inputs.json.gz": "b4a4369e9899af996dc8cf500efbc1c268b61e400ab2dde6fc4e06deb0059ed2",
-    "label-mappings.json": "823d02044af132cf12071e62b9f5a1d8f05bcf031198193c5ee8e9edd3254cd0",
+    "label-mappings.json.gz": "dd73a430c0ec395a41182fa6c1e10db3cdb017b299c31ea3195b0abb0020b1da",
     "raw-output.tar.gz": "b1e441adb8ac4bc881e4b40f6f928bf2ca6571ae35fa6695cbdee78bdec4a234",
-    "report.md": "e55100a29f17094b567c7a52b9982a62989606a1c879efb48e7cedc749a83088",
     "results.json.gz": "aa10615dba5139d4059913b293aa3d9cbe209a10c7ce840bb84732a0fa2047a2",
-    "workloads.json": "e0e74be7375acb00d1a858fcc462718616294febcfd71704b48c57b5286ab643"
+    "workloads.json.gz": "4e3ee1ec22b4e02a16d6967a03230f57cd12d2f0f9b0dc53854d503df1d975af"
   }
 }

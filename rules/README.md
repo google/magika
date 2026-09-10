@@ -28,16 +28,15 @@ for the reviewed formats, source comparisons, measured coverage and limitations.
 
 The directories contain the sole maintained rule sources. Cargo assembles the
 embedded source into its build output; source distributions stage these same files
-inside the crate. No generated pack or evaluation report belongs in git.
+inside the crate. Benchmark evidence lives in `benchmarks/`; generated rule packs
+and local test output are not source files.
 
 ## Build and use
 
-Rules are an opt-in Cargo feature in this first version. The existing standard
-installer and wheel jobs still need the deferred runtime libraries integrated before
-a Magika 2 release; use the verified distribution helper below for this PR. Use the feature-enabled source build below when testing rules. Enabling
-the Cargo feature makes the rule options available but still leaves enforcement
-off until `--rules=enforce` is requested. The maintainer bundle command below is
-an explicit distribution helper; it is not wired into the standard release jobs.
+Rules require the `yara-rules` Cargo feature and remain off until requested.
+Standard CLI archives and binary Python wheels include inference runtimes;
+Vectorscan is a separate dependency unless supplied in a custom rules bundle.
+To build a rules-enabled CLI and its inference runtimes from this checkout:
 
 ```sh
 python3 rust/build-runtime.py --gpu metal --output tmp/magika-dist
@@ -108,31 +107,17 @@ for the ordinary rules-off path.
 
 ### Rule pack loading and caching
 
-An installed `rules/promoted.yar` beside the executable takes precedence over embedded
-defaults. A paired `.hsdb` is reused when compatible. Modified or incompatible source
-compiles into the user cache. `MAGIKA_RULES_CACHE` selects the cache directory; an empty
-value disables writable caching. Sources and compiled packs are trusted configuration.
-The loader checks structure, native compatibility and recognized labels; Vectorscan
-validates its own database integrity before scanning. There is no outer payload
-checksum or per-launch cryptographic verification of label metadata. Protect the
-source, paired pack and cache directory as application configuration, separately
-from files being classified. Source/compiler hashes only invalidate stale caches.
+An installed `rules/promoted.yar` beside the executable takes precedence over
+embedded defaults. A compatible paired `.hsdb` is reused; otherwise source
+compiles for the current engine and CPU. `MAGIKA_RULES_CACHE` selects a writable
+cache directory; an empty value disables writes. Unavailable caches fall back
+to in-memory compilation. `RuleSet::loaded_from_cache()` reports reuse.
 
-Compatibility includes the loaded engine, OS, architecture and CPU tuning/features.
-A release pack built for a different CPU may need compilation on its first use;
-the resulting user cache serves subsequent loads. An unavailable, unsafe or unwritable
-cache does not prevent classification: the source compiles in memory. Optional cache
-write failures are nonfatal, whereas explicit compiled-pack export reports failures.
-`RuleSet::loaded_from_cache()` reports whether initialization reused a compiled pack.
-Cache-lock contention waits at most one second before compiling without a cache write.
-Old source/compiler entries are retained; remove disposable cache entries only while
-no Magika process is using that cache, so active lock files are not replaced.
-
-Scanning reuses one native scratch allocation per thread for its current pack.
-Switching that thread to a different `RuleSet` replaces the scratch and keeps the
-new database alive while it is in use. The CLI uses one pack per run. Applications
-that alternate packs on one thread pay for that replacement; scratch for every
-previously visited pack is not retained.
+Packs and caches are trusted configuration, separate from classified inputs.
+The loader checks structure, recognized labels and native compatibility. Cache
+write failures are nonfatal; explicit compiled-pack export reports failures.
+Unix uses mapped packs by default; `MAGIKA_RULES_MMAP=0` selects serialization
+for diagnostics. Each thread reuses one scratch allocation for its current pack.
 
 Terminals require a canonical Magika `label`, `enforced`, `class`, `fp_rate` and
 `fn_rate`. Active full rules require both rates zero; partial rules require FP rate
@@ -164,7 +149,7 @@ From the repository root:
 
 ```sh
 uv sync --project rules --locked
-uv run --project rules magika-rules-benchmark \
+uv run --project rules magika-rules-benchmark --phase quality \
   --dataset /path/to/parquet-corpus \
   --model-config /path/to/model-config.json \
   --binary /path/to/magika \
@@ -177,39 +162,17 @@ disk files beneath the output directory. It neither acquires data nor imports da
 project code. Supplied annotations are ground truth; ML or signature-tool agreement
 does not establish labels.
 
-For this first version, the acceptance target is zero observed false positives on
-that supplied, quality-reviewed corpus. Coverage can improve in later versions;
-false negatives can fall through to ML. The report describes the supplied evaluation
-set. Stored `split` and `group` annotations are provenance; this command does not
-create or claim a held-out evaluation. A new collection or split is not a prerequisite
-for this first version.
+The qualification target is zero observed false positives on the supplied corpus.
+Misses remain coverage limitations. `--phase quality` runs correctness only;
+`--phase performance` uses saved observations for the same binary/rules/model;
+`--phase render` rebuilds the report from JSON. See `--help` for explicit matrix
+settings. Use the [cross-tool benchmark](benchmarks/README.md) for comparisons
+with shipping resource defaults.
 
-The command writes `report.md` and raw JSON. By default it exports the binary's exact
-embedded source; `--rules-file` selects a custom pack. `--phase quality` runs correctness
-only, `--phase performance` uses saved observations for the same binary/rules/model,
-and `--phase render --output tmp/rules-release` regenerates Markdown without inference.
-An enforced-rule false positive or unadjudicated match, required-abstention violation, reference scan error or
-engine mismatch returns a failing exit status after writing the report. Such failures
-also prevent the `all` phase from starting performance work. Disabled candidates remain
-in the report without failing this gate. Saved input bytes are verified before timing.
-
-Performance defaults are 10/100/1000 files, four workers, CPU, exact rule-hit percentages
-from 0 through 100 by five, and three shuffled trials per case. Configure `--counts`,
-`--workers`, `--hit-rates`, `--backends cpu gpu`, `--repeats`, and `--seed` as needed.
-Impossible whole-file mixtures are skipped. Available inputs repeat in shuffled cycles
-when necessary; repeated samples do not count as independent evidence.
-
-Times are median complete CLI invocation times, including startup, reads, classification,
-output and shutdown. File and rule caches are warmed; Parquet decoding is outside timed
-work. Memory is maximum measured process peak RSS, not GPU allocation. Worker counts
-on a shared machine do not establish isolated physical-core scaling.
-
-The report leads with supported-class accuracy, rule coverage and speed; additional
-classes are separate. Family tables use full/partial/not_working/none plus FP/FN and
-conflicting types/extensions. FP means assigning another class's file; FN includes
-abstaining on this class's file. Any observed FP blocks the affected rule. Missing
-denominators are unmeasured. ROC AUC uses the reported label confidence, zero for other
-labels and one for rule matches; the full model probability vector is unavailable.
+Enforced false positives, unadjudicated matches, required-abstention violations,
+reference errors and native/reference disagreements fail the quality gate.
+Disabled candidates remain visible without failing it. Metadata and reports
+record observed FP/FN rates; they do not prove universal precision.
 
 ## Tests
 
@@ -252,7 +215,7 @@ and architecture. The native-test CI recipe uses host tuning (`FAT_RUNTIME=OFF`)
 it is not a portable distribution build recipe. A compatible `.hsdb` check cannot
 protect against unsupported instructions inside the native library itself. Choose
 and verify the engine's CPU baseline before distributing a bundle.
-# Cross-tool revision comparisons
+## Cross-tool revision comparisons
 
 The versioned [cross-tool benchmark](benchmarks/README.md) compares Magika 1,
 Magika 2 with and without rules, libmagic and TrID. It stores quality observations

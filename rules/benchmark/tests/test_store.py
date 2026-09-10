@@ -60,6 +60,12 @@ def test_store_keeps_json_evidence_and_excludes_corpus_and_caches(
     if expected_revision != "abc":
         expected.update(revision=expected_revision, revision_argument="abc")
     assert load_json(destination / "results.json.gz") == expected
+    assert not (destination / "config.json").exists()
+    assert not (destination / "report.md").exists()
+    for name in ("workloads", "label-mappings"):
+        assert (destination / f"{name}.json.gz").exists()
+        assert not (destination / f"{name}.json").exists()
+        assert load_json(destination / f"{name}.json") == {}
     with tarfile.open(destination / "raw-output.tar.gz") as archive:
         assert archive.getnames() == ["observations.json.gz", "raw/trial.json"]
     assert json.loads((destination.parent / "index.json").read_text())["runs"][0]["id"] == "run-1"

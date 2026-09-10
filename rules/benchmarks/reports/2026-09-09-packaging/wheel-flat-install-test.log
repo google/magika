@@ -1,9 +1,0 @@
-Using CPython 3.14.4
-Creating virtual environment at: tmp/wheel-installed-flat
-Activate with: source tmp/wheel-installed-flat/bin/activate
-Using Python 3.14.4 environment at: tmp/wheel-installed-flat
-Resolved 1 package in 0.86ms
-Prepared 1 package in 46ms
-Installed 1 package in 2ms
- + magika==1.0.3 (from file:///Users/elie/git/magika/tmp/rules-pr-worktree/tmp/wheel-runtime-flat/magika-1.0.3-py3-none-macosx_11_0_arm64.whl)
-tests_data/basic/rust/code.rs: Rust source (code)

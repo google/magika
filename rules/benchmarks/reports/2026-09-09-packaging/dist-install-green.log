@@ -1,9 +1,0 @@
-downloading magika-cli 2.0.0-dev aarch64-apple-darwin
-no checksums to verify
-installing to /Users/elie/git/magika/tmp/rules-pr-worktree/tmp/dist-installed-fixed
-  magika
-  libmagika_runtime_cpu.dylib
-  libmagika_runtime_gpu.dylib
-everything's installed!
-{"path":"tests_data/basic/rust/code.rs","result":{"status":"ok","value":{"dl":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"output":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"score":0.5759999752044678}}}
-{"path":"tests_data/basic/rust/code.rs","result":{"status":"ok","value":{"dl":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"output":{"description":"Rust source","extensions":["rs"],"group":"code","is_text":true,"label":"rust","mime_type":"application/x-rust"},"score":0.5759999752044678}}}

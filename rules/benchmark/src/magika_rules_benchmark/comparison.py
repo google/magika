@@ -559,6 +559,8 @@ def render(result):
 
 def load_json(path):
     path = Path(path)
+    if path.suffix == ".json" and not path.exists():
+        path = path.with_suffix(".json.gz")
     return json.loads(
         gzip.decompress(path.read_bytes()) if path.suffix == ".gz" else path.read_bytes()
     )

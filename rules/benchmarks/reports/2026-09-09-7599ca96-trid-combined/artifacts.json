@@ -1,15 +1,16 @@
 {
-  "schema": 2,
+  "schema": 3,
+  "results_sha256": "7fe301784c391108d3db6f7fc87cb08cb35cb51486bc7e4072ab7257f0624c74",
   "code_sha256": {
-    "full_table.py": "56fc667e00379c827463edb069c42421d52dfe1a92b46970f6cc34dfc7db8e0e",
-    "trid_comparison.py": "f99c9edb2e94459b05f99c52dec29d6b97f9d3f9689b32a69405bfa431a009b8",
-    "catalog.py": "cda952cc0247360e3992be9772fd381ea63cb8613e4dd4cd54424a4f27ab87a3",
-    "../benchmark/src/magika_rules_benchmark/identity.py": "580039dd5f4b04f624458cc3a8b948b631b025adbe365475e7a251a45e7dc935"
+    "../benchmark/src/magika_rules_benchmark/comparison.py": "fc8fba6c638028b36d9e67c6117badc56fa7bc38a8963bf90b708e0a31dd800d",
+    "../benchmark/src/magika_rules_benchmark/identity.py": "580039dd5f4b04f624458cc3a8b948b631b025adbe365475e7a251a45e7dc935",
+    "../benchmark/src/magika_rules_benchmark/trid.py": "0ca36f4d36f4e7f951b0c5656d0811cabfc0858e792027dbde30740ec2e6544b",
+    "catalog.py": "cbdebf3aaf02ce17a361568bccedb61998b855bc6d56ec0f6f76883426bd2c77",
+    "full_table.py": "08c7eed320707f2e8317ea24ab39dd52015434276c23949edec010427e6f811d",
+    "trid_comparison.py": "98da12d621624accb0c02e1dd9ef665b40b4fab5a40f546b8b9917b604365a47"
   },
   "files": {
-    "overview.json": "ccad3df4a378f8a3f7ee6687448f73d4cb280525f1cbb7b02376f65c86c185a7",
     "overview.md": "21e14d4b277ca69d4d4c9aab92f344e6402e8eba777560bcec8f65ce294fe1f8",
-    "trid-comparison.json": "396d0688c6178a62165af9a47065696781d14c24973407a30d88d3332a2c7eea",
     "trid-comparison.md": "17b497686554e5612764951e7434a21ff806392f3e98fd308c8e26dd75bf1de1"
   }
 }

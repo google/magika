@@ -17,7 +17,7 @@
       "benchmark_version": "1.2.0",
       "revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
       "status": "complete",
-      "artifacts_sha256": "e5c6cd2f67d68cdacd4fbabbbe20befd1fff6907a12dca7878e0cd9bf20227ee"
+      "artifacts_sha256": "c18a64508c22083cbc608ae0c84ed9f95e40b88d0141293b1cb1de8397a177d8"
     },
     {
       "id": "2026-09-09-9214192e-defaults-sembiance",
@@ -35,25 +35,7 @@
       "benchmark_version": "1.2.0",
       "revision": "9214192eda842d02c8d50d9af75f7d5a043901f3",
       "status": "complete",
-      "artifacts_sha256": "403ecfc3b71715e8eb4bce634033bb43585be1a61e83fc05686e4005207d54d1"
-    },
-    {
-      "id": "2026-09-09-a8429b03-cpu-first-combined",
-      "dataset": {
-        "id": "adjudicated-combined",
-        "name": "Adjudicated combined corpus",
-        "version": "snapshot-1411a5c0fd4a",
-        "source_files": 25421,
-        "selection": "validated combined snapshot with APK patch 136",
-        "accepted_sha_truth_digest": "1411a5c0fd4a4270c00cfa00983d1a16d35e69bcbcd678007319e9a1ee57f5c3",
-        "corpus_sha256": "76851f2fd190eb017a3221a16b38d636cfcdb17799caef2736fdfeeb8cebdbbb",
-        "scored_files": 25421
-      },
-      "measured_at_utc": "2026-09-09T03:31:45.835824Z",
-      "benchmark_version": "1.2.1",
-      "revision": "a8429b03b514730254e628a12c2b0cf48591a480",
-      "status": "complete",
-      "artifacts_sha256": "40901ad91e6f21e49e0748849b1c88eb93c143ac9b9a006cb5735518035235d3"
+      "artifacts_sha256": "ced8f45fcd239df41117ffe589b6bf383d5f4f9b3786197201aa3bfb390fb60c"
     },
     {
       "id": "2026-09-09-65505ce3-cpu-handoff-combined",
@@ -71,7 +53,8 @@
       "benchmark_version": "1.2.1",
       "revision": "65505ce38363b63d2c07d1370168a95451cf339a",
       "status": "complete",
-      "artifacts_sha256": "705223e0010ace636543a11b3bb6101713ae74a76196f959013b5ef2eafca0cc"
+      "artifacts_sha256": "9b80852d8343811034770de9ca599af16a90071bd7675f7f92c73f9746535db6",
+      "comparison_base": "2026-09-09-9214192e-defaults-combined"
     },
     {
       "id": "2026-09-09-65505ce3-cpu-handoff-sembiance",
@@ -89,7 +72,8 @@
       "benchmark_version": "1.2.1",
       "revision": "65505ce38363b63d2c07d1370168a95451cf339a",
       "status": "complete",
-      "artifacts_sha256": "dc228dfeed55ab0834e16f0dde35e932d1c8b6e55f62272e672667e8535f29e2"
+      "artifacts_sha256": "eaebea48c4a4089eef7fec4806e9c2552a08ebd76be6c08f8788d399509119a1",
+      "comparison_base": "2026-09-09-9214192e-defaults-sembiance"
     },
     {
       "id": "2026-09-09-7599ca96-trid-combined",
@@ -107,7 +91,7 @@
       "benchmark_version": "1.2.2",
       "revision": "7599ca9665df180e5aa39e7f91376a61a354151d",
       "status": "complete",
-      "artifacts_sha256": "a1d639e04d81b889a6f6737f5640bbc8d8ee709e95cbabb146810aa39992dd83"
+      "artifacts_sha256": "5f335b665cf5e53956cb5e75675575b197c8d4167f812c1c34840c343db842db"
     },
     {
       "id": "2026-09-09-7599ca96-trid-sembiance",
@@ -125,7 +109,7 @@
       "benchmark_version": "1.2.2",
       "revision": "7599ca9665df180e5aa39e7f91376a61a354151d",
       "status": "complete",
-      "artifacts_sha256": "3a1d41b8f1c02e49824638a034d018a2c550a5af51900cdbbae83ee02d2c3beb"
+      "artifacts_sha256": "13e0636708b2eae24f04387cf753565d31a60444b97cfa47783aa29dff57c832"
     }
   ]
 }

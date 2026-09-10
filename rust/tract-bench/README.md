@@ -85,32 +85,6 @@ warm-up, timed wall duration, and files per second. Use `/usr/bin/time -lp` arou
 invocation when recording peak memory. Alternate backend order across short trials to reduce cache
 and thermal bias.
 
-### Historical Linux end-to-end CLI comparison
-
-The following report was recorded in commit `152b6bd4`. It describes the defaults at that time;
-it does not establish the throughput of the current revision or isolate the inference engine's
-contribution. The original raw trial report is no longer in this checkout.
-
-On 2026-08-21, release builds of `origin/main` (ONNX Runtime, commit `94ffd1d`) and this
-branch (tract) were run over the same 4,000-file corpus on an 8-core/16-thread Intel Xeon
-2.8 GHz Google Cloud VM. The 76 MiB corpus was made by cycling the repository's 185
-`tests_data` fixtures into distinct files. Each binary processed the corpus recursively with its
-production defaults and stdout discarded, so the measurement includes startup, traversal, feature
-extraction, batching, inference, and ordered output.
-
-Both binaries were warmed once. Seven measured pairs alternated which runtime ran first, and the
-machine was checked for competing build or test processes before and after each block.
-
-| Runtime | Median wall time | Range | Median throughput |
-| --- | ---: | ---: | ---: |
-| `origin/main`, ONNX Runtime | 5.181 s | 5.061–5.533 s | 772 files/s |
-| historical tract CPU branch | 3.730 s | 3.711–3.786 s | 1,072 files/s |
-
-That historical run reported 1.39 times the throughput, or 28.0% lower wall time, end to end.
-It compared production defaults, including different batch and worker settings, rather than
-matched runtime configurations. Use the runtime benchmark above for an explicit backend/batch/
-thread comparison and the rules benchmark below for current CLI measurements.
-
 ### The machine must be idle
 
 Every inference thread runs flat out, so anything else competing for a core is subtracted straight
@@ -143,10 +117,7 @@ the compute-only benchmark.
 
 ## File classification and rules
 
-The [rules benchmark](../../rules/README.md) evaluates the actual CLI on supplied
-Parquet corpus files, including correctness, coverage, throughput and memory.
-For a before/after comparison, run its existing matrix once per binary into separate result files,
-using the same corpus, rules pack, seed, counts, workers, and backends. Compare matching cells and
-retain both reports' binary and input fingerprints. For example, `--counts 1,1000 --workers 1,4
---backends cpu gpu` selects single-file and bulk cases with explicit worker and backend settings.
-Those measurements describe the selected settings, not necessarily the CLI defaults.
+The [cross-tool benchmark](../../rules/benchmarks/README.md) measures whole-process
+CLI accuracy, coverage and timing with shipping defaults. The separate
+[rule evaluation tool](../../rules/README.md#run-the-benchmark-and-report) qualifies
+rule precision and compares explicit backend/worker configurations.

@@ -1,6 +1,0 @@
-downloading magika-cli 2.0.0-dev aarch64-apple-darwin
-no checksums to verify
-installing to /Users/elie/git/magika/tmp/rules-pr-worktree/tmp/dist-installed
-  magika
-chmod: /Users/elie/git/magika/tmp/rules-pr-worktree/tmp/dist-installed/libmagika_runtime_cpu.dylib: No such file or directory
-ERROR: command failed: chmod +x /Users/elie/git/magika/tmp/rules-pr-worktree/tmp/dist-installed/libmagika_runtime_cpu.dylib

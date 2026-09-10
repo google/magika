@@ -5,7 +5,7 @@
 import argparse
 from pathlib import Path
 
-from full_table import COUNTS, TOOLS, result_file
+from full_table import COUNTS, TOOLS, result_file, write_receipt
 from magika_rules_benchmark import comparison as c
 from magika_rules_benchmark import corpus
 from magika_rules_benchmark.identity import source_dataset, tool_record
@@ -129,16 +129,7 @@ def compare(previous, current, destination):
         "",
     ]
     (destination / "comparison.md").write_text("\n".join(lines))
-    receipt_path = destination / "artifacts.json"
-    receipt = c.load_json(receipt_path)
-    receipt["code_sha256"]["startup_comparison.py"] = corpus.file_hash(Path(__file__))
-    receipt["files"].update(
-        {
-            name: corpus.file_hash(destination / name)
-            for name in ("comparison.json", "comparison.md")
-        }
-    )
-    corpus.atomic_json(receipt_path, receipt)
+    write_receipt(destination, result_file(current), Path(__file__))
 
 
 if __name__ == "__main__":

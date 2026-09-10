@@ -12,8 +12,10 @@ use `RUSTFLAGS='-C target-cpu=native'` for a local-machine build, and distribute
 only to compatible CPUs. The builder uses the release profile and locked dependencies.
 
 Keep the executable and `lib/` together. Explicit CPU mode loads only the CPU
-runtime; rules-only initializes neither inference backend. Auto tries the GPU
-runtime before CPU fallback. A library caller can set `MAGIKA_RUNTIME_DIR` to an
+runtime; rules-only initializes neither inference backend. The CLI's Auto and GPU
+modes process on CPU while GPU preparation runs in the background; see
+[CLI scheduling](../cli/README.md). The library loader's Auto request tries GPU
+before synchronous CPU fallback. A library caller can set `MAGIKA_RUNTIME_DIR` to an
 absolute directory containing its installed native runtimes. Backend libraries
 are executable code and must come from the same trusted distribution.
 
@@ -30,8 +32,7 @@ The bundle command verifies CPU backend discovery and native rules compilation
 from the assembled directory. Source staging includes the loader and ABI crates.
 Mapped rule caches are enabled on Unix by the normal `yara-rules` feature;
 `MAGIKA_RULES_MMAP=0` selects serialized caches for diagnostics. Startup spans are
-available through `MAGIKA_STARTUP_TRACE=1`; historical spike commands require
-their recorded source revisions.
+available through `MAGIKA_STARTUP_TRACE=1`.
 
 The standard cargo-dist archives and binary Python wheels install runtime libraries
 beside `magika`. The loader supports both layouts. The platform GPU library in

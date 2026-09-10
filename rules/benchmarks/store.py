@@ -57,9 +57,11 @@ def store(source, destination, dataset=None):
                 )
     destination.mkdir(parents=True, exist_ok=False)
     comparison.save_gzip(destination / "results.json.gz", result)
-    for name in ("config.json", "inputs.json.gz", "workloads.json", "label-mappings.json"):
-        (destination / name).write_bytes((source / name).read_bytes())
-    (destination / "report.md").write_text(comparison.render(result))
+    (destination / "inputs.json.gz").write_bytes((source / "inputs.json.gz").read_bytes())
+    for name in ("workloads", "label-mappings"):
+        comparison.save_gzip(
+            destination / f"{name}.json.gz", comparison.load_json(source / f"{name}.json")
+        )
     files = [source / "observations.json.gz", *sorted((source / "raw").glob("*"))]
     with (destination / "raw-output.tar.gz").open("wb") as output:
         with gzip.GzipFile(fileobj=output, mode="wb", filename="", mtime=0) as compressed:

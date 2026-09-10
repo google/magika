@@ -6,6 +6,9 @@ venv/
 /rules/.pytest_cache/
 /rules/.ruff_cache/
 /rules/dist/
+/rules/benchmarks/reports/*/overview.json
+/rules/benchmarks/reports/*/comparison.json
+/rules/benchmarks/reports/*/trid-comparison.json
 tmp/
 .env
 *.swp

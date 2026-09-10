@@ -5,7 +5,7 @@
 import argparse
 from pathlib import Path
 
-from full_table import COUNTS, observations, result_file
+from full_table import COUNTS, observations, result_file, write_receipt
 from magika_rules_benchmark import comparison as c
 from magika_rules_benchmark import corpus
 from magika_rules_benchmark.identity import source_dataset, tool_record
@@ -98,16 +98,7 @@ def derive(source, destination):
             f"| {count:,} | {t['before_ms']:.2f} | {t['after_ms']:.2f} | {t['speedup']:.2f}× | {t['change_percent']:+.1f}% |"
         )
     (destination / "trid-comparison.md").write_text("\n".join(lines) + "\n")
-    receipt_path = destination / "artifacts.json"
-    receipt = c.load_json(receipt_path)
-    receipt["code_sha256"]["trid_comparison.py"] = corpus.file_hash(Path(__file__))
-    receipt["files"].update(
-        {
-            name: corpus.file_hash(destination / name)
-            for name in ("trid-comparison.json", "trid-comparison.md")
-        }
-    )
-    corpus.atomic_json(receipt_path, receipt)
+    write_receipt(destination, result_file(source), Path(__file__))
 
 
 if __name__ == "__main__":

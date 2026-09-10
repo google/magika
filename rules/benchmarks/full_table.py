@@ -148,15 +148,30 @@ def derive(source, destination):
             }
         )
     summary["gpu_crossover"] = gpu_crossover(summary["rows"])
-    destination.mkdir(parents=True, exist_ok=False)
+    destination.mkdir(parents=True, exist_ok=True)
     corpus.atomic_json(destination / "overview.json", summary)
     render(destination / "overview.json", destination / "overview.md")
+    write_receipt(destination, path, Path(__file__))
+
+
+def write_receipt(destination, source_result, generator):
+    path = destination / "artifacts.json"
+    previous = c.load_json(path) if path.exists() else {}
+    code = set(previous.get("code_sha256", {})) | {
+        generator.name,
+        "../benchmark/src/magika_rules_benchmark/comparison.py",
+        "../benchmark/src/magika_rules_benchmark/identity.py",
+        "../benchmark/src/magika_rules_benchmark/trid.py",
+    }
     corpus.atomic_json(
-        destination / "artifacts.json",
+        path,
         {
-            "schema": 2,
-            "code_sha256": {"full_table.py": corpus.file_hash(Path(__file__))},
-            "files": {p.name: corpus.file_hash(p) for p in sorted(destination.iterdir())},
+            "schema": 3,
+            "results_sha256": corpus.file_hash(source_result),
+            "code_sha256": {
+                name: corpus.file_hash(Path(__file__).parent / name) for name in sorted(code)
+            },
+            "files": {p.name: corpus.file_hash(p) for p in sorted(destination.glob("*.md"))},
         },
     )
 

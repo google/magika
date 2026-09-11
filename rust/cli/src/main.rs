@@ -17,8 +17,6 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::io::{ErrorKind, Read, Write as _};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
 use anyhow::{ensure, Result};
@@ -306,32 +304,24 @@ fn main() -> Result<()> {
         None => default_inference_threads(runtime.backend_info().backend()),
     };
     let readers = flags.experimental.readers;
-    let (work_sender, work_receiver) = crossbeam_channel::bounded::<OrderPath>(readers);
+    let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
     let (read_sender, read_receiver) =
         std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
     let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
     let (result_sender, result_receiver) =
         std::sync::mpsc::sync_channel::<Result<Response>>(threads * batch_size);
-    let reorder_next = Arc::new(AtomicUsize::new(0));
     #[cfg(feature = "_trace")]
     let trace = Trace::default();
     let mut join_handles = Vec::new();
     join_handles.push(std::thread::Builder::new().name("magika-walk".to_string()).spawn({
         let flags = flags.clone();
         let result_sender = result_sender.clone();
-        let reorder_next = reorder_next.clone();
         #[cfg(feature = "_trace")]
         let trace = trace.clone();
         move || {
             #[cfg(feature = "_trace")]
             let start = Stage::start();
-            if let Err(e) = walk_paths(
-                &flags,
-                &work_sender,
-                &result_sender,
-                &reorder_next,
-                4 * threads * batch_size,
-            ) {
+            if let Err(e) = walk_paths(&flags, &work_sender, &result_sender) {
                 let _ = result_sender.send(Err(e));
             }
             #[cfg(feature = "_trace")]
@@ -397,7 +387,7 @@ fn main() -> Result<()> {
     }
     drop(batch_receiver);
     drop(result_sender);
-    let print_result = match print(&flags, result_receiver, reorder_next) {
+    let print_result = match print(&flags, result_receiver) {
         Err(e)
             if e.root_cause()
                 .downcast_ref::<std::io::Error>()
@@ -417,20 +407,19 @@ fn main() -> Result<()> {
 
 fn print(
     flags: &Flags, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
-    reorder_next: Arc<AtomicUsize>,
 ) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     if flags.format.json {
         write!(stdout, "[")?;
     }
-    let mut reorder = Reorder::new(reorder_next);
+    let mut reorder = Reorder::default();
     let mut errors = false;
     while let Ok(response) = result_receiver.recv() {
         reorder.push(response?);
         while let Some(response) = reorder.pop() {
             errors |= response.result.is_err();
             if flags.format.json {
-                if reorder.next.load(Relaxed) != 1 {
+                if reorder.next != 1 {
                     write!(stdout, ",")?;
                 }
                 for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
@@ -443,7 +432,7 @@ fn print(
     }
     debug_assert!(reorder.is_empty());
     if flags.format.json {
-        if reorder.next.load(Relaxed) != 0 {
+        if reorder.next != 0 {
             writeln!(stdout)?;
         }
         writeln!(stdout, "]")?;
@@ -459,9 +448,8 @@ fn print(
 /// This task only traverses and stats. Reading file content is left to [`read_files`] so that it
 /// happens on several threads at once instead of serializing behind traversal.
 fn walk_paths(
-    flags: &Flags, work_sender: &crossbeam_channel::Sender<OrderPath>,
-    result_sender: &std::sync::mpsc::SyncSender<Result<Response>>, reorder_next: &AtomicUsize,
-    max_dist: usize,
+    flags: &Flags, work_sender: &crossbeam_channel::Sender<Pending>,
+    result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
     let mut flags_paths: Vec<(PathBuf, Option<std::fs::FileType>)> =
         flags.path.iter().rev().map(|path| (path.clone(), None)).collect();
@@ -471,12 +459,7 @@ fn walk_paths(
         if matches!(processed, Ok(ProcessPath::Recursive)) {
             continue;
         }
-        // Make sure a specific non-recursive path does not get stranded for too long in the
-        // pipeline. This bounds the reorder buffer without starving the pipeline.
-        while reorder_next.load(Relaxed) + max_dist < order {
-            std::hint::spin_loop();
-        }
-        let pending = OrderPath { order, path };
+        let pending = Pending { order, path };
         match processed {
             Ok(ProcessPath::Content) => work_sender.send(pending)?,
             Ok(ProcessPath::Ruled(file_type)) => {
@@ -497,7 +480,7 @@ fn walk_paths(
 /// on a dedicated thread costs a system call per block instead, and there is nothing else for the
 /// thread to interleave anyway.
 fn read_files(
-    work_receiver: &crossbeam_channel::Receiver<OrderPath>,
+    work_receiver: &crossbeam_channel::Receiver<Pending>,
     sender: &std::sync::mpsc::SyncSender<ReadItem>,
 ) {
     while let Ok(pending) = work_receiver.recv() {
@@ -555,18 +538,18 @@ enum ProcessPath {
     Ruled(FileType),
 }
 
-struct OrderPath {
+struct Pending {
     order: usize,
     path: PathBuf,
 }
 
 struct ReadItem {
-    pending: OrderPath,
+    pending: Pending,
     extracted: Result<FeaturesOrRuled>,
 }
 
 struct BatchItem {
-    pending: OrderPath,
+    pending: Pending,
     features: Features,
 }
 
@@ -634,30 +617,26 @@ fn infer_batches(
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Reorder {
-    next: Arc<AtomicUsize>,
+    next: usize,
     todo: HashMap<usize, Response>,
 }
 
 impl Reorder {
-    fn new(next: Arc<AtomicUsize>) -> Self {
-        Reorder { next, todo: HashMap::new() }
-    }
-
     fn is_empty(&self) -> bool {
         self.todo.is_empty()
     }
 
     fn push(&mut self, response: Response) {
-        debug_assert!(self.next.load(Relaxed) <= response.order);
+        debug_assert!(self.next <= response.order);
         let prev = self.todo.insert(response.order, response);
         debug_assert!(prev.is_none());
     }
 
     fn pop(&mut self) -> Option<Response> {
-        let result = self.todo.remove(&self.next.load(Relaxed))?;
-        self.next.fetch_add(1, Relaxed);
+        let result = self.todo.remove(&self.next)?;
+        self.next += 1;
         Some(result)
     }
 }
@@ -670,7 +649,7 @@ struct Response {
 }
 
 impl Response {
-    fn new(pending: OrderPath, result: Result<FileType>) -> Self {
+    fn new(pending: Pending, result: Result<FileType>) -> Self {
         Self { order: pending.order, path: pending.path, result }
     }
 }

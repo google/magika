@@ -1,0 +1,31 @@
+# Dataset builder credentials (run commands from rules/dataset/).
+#
+# 1. Copy this reference once: cp -n env-config .env
+# 2. Edit .env and paste your tokens after the equals signs below.
+# 3. Load them when running authenticated commands:
+#      uv run --no-sync --env-file .env magika-datasets hydrate --download --workers 8 --output .local/my-corpus
+# Install dependencies first as described in README.md.
+#
+# .env is gitignored. This visible, versioned reference must keep empty values.
+# Existing environment variables take precedence over values loaded from .env.
+
+# VirusTotal:
+# - Sign in at https://www.virustotal.com/ and open your user menu > API key.
+# - Copy the key to VT_API_KEY in .env.
+# - Intelligence search and file downloads require the corresponding premium
+#   account privileges. A free API key alone does not enable this workflow.
+# - Requests consume your account quota; begin with a small --limit.
+# Docs: https://docs.virustotal.com/reference/authentication
+#       https://docs.virustotal.com/reference/intelligence-search
+#       https://docs.virustotal.com/reference/files-download-url
+VT_API_KEY=
+
+# GitHub (optional; increases API quota for issue discovery):
+# - Open https://github.com/settings/personal-access-tokens/new
+# - Name the fine-grained token "dataset-builder" and choose an expiration.
+# - Select public repository access; no additional permissions are needed for
+#   the builder's public reads. Do not grant write or administration access.
+# - Generate the token and copy it to GITHUB_TOKEN in .env.
+# Public Git repository downloads work without this token.
+# Docs: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+GITHUB_TOKEN=

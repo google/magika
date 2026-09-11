@@ -1,0 +1,46 @@
+{
+  "github_extensions": {
+    "ada": [
+      "adb",
+      "ads"
+    ],
+    "less": [
+      "less"
+    ],
+    "nim": [
+      "nim"
+    ],
+    "scriptwsf": [
+      "wsf"
+    ]
+  },
+  "scope": "Filename discovery hints only; no taxonomy mutation or label admission.",
+  "evidence": [
+    {
+      "formats": [
+        "ada",
+        "nim"
+      ],
+      "source": "https://gitlab.freedesktop.org/xdg/shared-mime-info/-/blob/c1e7df8beebfde9a8ebeb3266030382dae8db78d/data/freedesktop.org.xml.in",
+      "sha256": "0503f12631ead6a619095ab197bf919bdef6f9f34103852c79bf2f095f423654",
+      "basis": "text/x-adasrc globs adb/ads; text/x-nim glob nim. Nimscript is separate and omitted."
+    },
+    {
+      "formats": [
+        "less"
+      ],
+      "source": "https://lesscss.org/usage/",
+      "accessed": "2026-09-06",
+      "basis": "Official command-line usage describes .less inputs and .css outputs."
+    },
+    {
+      "formats": [
+        "scriptwsf"
+      ],
+      "source": "https://mark0.net/soft-trid-deflist.html",
+      "definition": "w/wsf.trid.xml",
+      "sha256": "0d4ab3308fc25a097e37307a6ea6ee9600499a209f53989eb371f5fae8f9dc05",
+      "basis": "Downloaded TrID definition FileType Windows Script File, Ext WSF."
+    }
+  ]
+}

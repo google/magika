@@ -1,0 +1,755 @@
+{
+  "archive/ace": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "ace",
+    "tags": []
+  },
+  "archive/appleSingle": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "applesingle",
+    "tags": []
+  },
+  "archive/arc": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "arc",
+    "tags": []
+  },
+  "archive/arj": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "arj",
+    "tags": []
+  },
+  "archive/cab": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "cab",
+    "tags": []
+  },
+  "archive/dmg": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "dmg",
+    "tags": []
+  },
+  "archive/iso": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "iso",
+    "tags": []
+  },
+  "archive/jar": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "jar",
+    "tags": []
+  },
+  "archive/jarARJ": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "jar_arj",
+    "tags": []
+  },
+  "archive/lha": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "lha",
+    "tags": []
+  },
+  "archive/lrzip": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "lrz",
+    "tags": []
+  },
+  "archive/lzip": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "lz",
+    "tags": []
+  },
+  "archive/lzx": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "lzx",
+    "tags": []
+  },
+  "archive/msCompress": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "mscompress",
+    "tags": []
+  },
+  "archive/rar": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "rar",
+    "tags": []
+  },
+  "archive/riff": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "riff",
+    "tags": []
+  },
+  "archive/rpm": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "rpm",
+    "tags": []
+  },
+  "archive/sevenZip": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "sevenzip",
+    "tags": []
+  },
+  "archive/squashFS": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "squashfs",
+    "tags": []
+  },
+  "archive/swf": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "swf",
+    "tags": []
+  },
+  "archive/tar": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "tar",
+    "tags": []
+  },
+  "archive/wad": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "wad",
+    "tags": []
+  },
+  "archive/wim": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "wim",
+    "tags": []
+  },
+  "archive/xar": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "xar",
+    "tags": []
+  },
+  "archive/xz": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "xz",
+    "tags": []
+  },
+  "archive/zip": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "zip",
+    "tags": []
+  },
+  "audio/au": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "au",
+    "tags": []
+  },
+  "audio/flac": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "flac",
+    "tags": []
+  },
+  "audio/mp2": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "mp2",
+    "tags": []
+  },
+  "audio/mp3": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "mp3",
+    "tags": []
+  },
+  "audio/ogg": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "ogg",
+    "tags": []
+  },
+  "audio/wav": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "wav",
+    "tags": []
+  },
+  "audio/wma": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "wma",
+    "tags": []
+  },
+  "document/chm": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "chm",
+    "tags": []
+  },
+  "document/docx": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "docx",
+    "tags": []
+  },
+  "document/epub": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "epub",
+    "tags": []
+  },
+  "document/hlp": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "hlp",
+    "tags": []
+  },
+  "document/latex": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "latex",
+    "tags": []
+  },
+  "document/paradoxDatabase": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "paradox",
+    "tags": []
+  },
+  "document/pdf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "pdf",
+    "tags": []
+  },
+  "document/rtf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "rtf",
+    "tags": []
+  },
+  "document/visio": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "visio",
+    "tags": []
+  },
+  "document/wordDoc": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "doc",
+    "tags": []
+  },
+  "document/xls": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "xls",
+    "tags": []
+  },
+  "executable/dll": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "pe",
+    "tags": []
+  },
+  "executable/elf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "elf",
+    "tags": []
+  },
+  "executable/exe": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "pe",
+    "tags": []
+  },
+  "font/otf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "otf",
+    "tags": []
+  },
+  "font/ttf": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "ttf",
+    "tags": []
+  },
+  "font/woff": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "woff",
+    "tags": []
+  },
+  "image/acornSprite": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "acorn_sprite",
+    "tags": []
+  },
+  "image/ani": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "ani",
+    "tags": []
+  },
+  "image/avif": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "avif",
+    "tags": []
+  },
+  "image/bigTIFF": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "tiff",
+    "tags": [
+      "bigtiff"
+    ]
+  },
+  "image/bmp": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "bmp",
+    "tags": []
+  },
+  "image/bpg": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "bpg",
+    "tags": []
+  },
+  "image/degasHi": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "compressed"
+    ]
+  },
+  "image/degasHiPI": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "uncompressed"
+    ]
+  },
+  "image/degasLow": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "compressed"
+    ]
+  },
+  "image/degasLowPI": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "uncompressed"
+    ]
+  },
+  "image/degasMed": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "compressed"
+    ]
+  },
+  "image/degasMedPI": {
+    "basis": "DEGAS variants; resolution/compression are properties",
+    "format_id": "degas",
+    "tags": [
+      "atari_st",
+      "uncompressed"
+    ]
+  },
+  "image/dicom": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "dicom",
+    "tags": []
+  },
+  "image/dwg": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "dwg",
+    "tags": []
+  },
+  "image/emf": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "emf",
+    "tags": []
+  },
+  "image/fits": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "fits",
+    "tags": []
+  },
+  "image/fpx": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "fpx",
+    "tags": []
+  },
+  "image/gif": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "gif",
+    "tags": []
+  },
+  "image/hdf4": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "hdf4",
+    "tags": []
+  },
+  "image/hdf5": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "h5",
+    "tags": []
+  },
+  "image/icns": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "icns",
+    "tags": []
+  },
+  "image/ico": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "ico",
+    "tags": []
+  },
+  "image/iffILBM": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "ilbm",
+    "tags": []
+  },
+  "image/jng": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "jng",
+    "tags": []
+  },
+  "image/jpeg2000": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "jp2",
+    "tags": []
+  },
+  "image/jpegXL": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "jxl",
+    "tags": []
+  },
+  "image/koalaMicroillustrator": {
+    "basis": "Reviewed source format description; individual bytes remain source claims",
+    "format_id": "koala",
+    "tags": []
+  },
+  "image/nrrd": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "nrrd",
+    "tags": []
+  },
+  "image/pbm": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "pbm",
+    "tags": []
+  },
+  "image/pcPaint": {
+    "basis": "PCPaint/Pictor PIC; distinct from PCX; individual bytes remain source claims",
+    "format_id": "pcpaint",
+    "tags": []
+  },
+  "image/png": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "png",
+    "tags": []
+  },
+  "image/printfox": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "printfox",
+    "tags": []
+  },
+  "image/psd": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "psd",
+    "tags": []
+  },
+  "image/svg": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "svg",
+    "tags": []
+  },
+  "image/tga": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "tga",
+    "tags": []
+  },
+  "image/tiff": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "tiff",
+    "tags": []
+  },
+  "image/webp": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "webp",
+    "tags": []
+  },
+  "image/wmf": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "wmf",
+    "tags": []
+  },
+  "image/xcf": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "xcf",
+    "tags": []
+  },
+  "other/dsstore": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "dsstore",
+    "tags": []
+  },
+  "poly/blend": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "blend",
+    "tags": []
+  },
+  "poly/cinema4D": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "cinema4d",
+    "tags": []
+  },
+  "poly/dxf": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "dxf",
+    "tags": []
+  },
+  "poly/fbx": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "fbx",
+    "tags": []
+  },
+  "poly/glTF": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "gltf",
+    "tags": []
+  },
+  "poly/lightWave": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "lightwave",
+    "tags": []
+  },
+  "poly/sketchUp": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "sketchup",
+    "tags": []
+  },
+  "poly/stl": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "stl",
+    "tags": []
+  },
+  "poly/wavefrontOBJ": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "obj",
+    "tags": []
+  },
+  "text/Makefile": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "makefile",
+    "tags": []
+  },
+  "text/asm": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "asm",
+    "tags": []
+  },
+  "text/awk": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "awk",
+    "tags": []
+  },
+  "text/bitTorrentFile": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "torrent",
+    "tags": []
+  },
+  "text/css": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "css",
+    "tags": []
+  },
+  "text/csv": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "csv",
+    "tags": []
+  },
+  "text/haskellSource": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "haskell",
+    "tags": []
+  },
+  "text/html": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "html",
+    "tags": []
+  },
+  "text/iges": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "iges",
+    "tags": []
+  },
+  "text/ini": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "ini",
+    "tags": []
+  },
+  "text/intelHEX": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "intelhex",
+    "tags": []
+  },
+  "text/javaSource": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "java",
+    "tags": []
+  },
+  "text/json": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "json",
+    "tags": []
+  },
+  "text/m3uPlaylist": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "m3u",
+    "tags": []
+  },
+  "text/m4": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "m4",
+    "tags": []
+  },
+  "text/pemCertificate": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "pem",
+    "tags": []
+  },
+  "text/php": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "php",
+    "tags": []
+  },
+  "text/pointCloudData": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "pcd",
+    "tags": []
+  },
+  "text/prologSource": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "prolog",
+    "tags": []
+  },
+  "text/pythonSource": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "python",
+    "tags": []
+  },
+  "text/rData": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "rdata",
+    "tags": []
+  },
+  "text/rubySource": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "ruby",
+    "tags": []
+  },
+  "text/sgml": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "sgml",
+    "tags": []
+  },
+  "text/txt": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "txt",
+    "tags": []
+  },
+  "text/vCard": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "vcard",
+    "tags": []
+  },
+  "text/webVideoTextTracks": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "vtt",
+    "tags": []
+  },
+  "text/xml": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "xml",
+    "tags": []
+  },
+  "video/avi": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "avi",
+    "tags": []
+  },
+  "video/flv": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "flv",
+    "tags": []
+  },
+  "video/mkv": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "mkv",
+    "tags": []
+  },
+  "video/mp4": {
+    "basis": "Source catalogue identity; individual bytes remain source claims",
+    "format_id": "mp4",
+    "tags": []
+  },
+  "video/wmv": {
+    "basis": "Reviewed matching catalogue identity; source claims, not byte validation",
+    "definition_url": "https://github.com/Sembiance/dexvert/blob/fb2ff1ee43b123d4374749b8ba3a185b8e93f2cb/SUPPORTED.md",
+    "format_id": "wmv",
+    "tags": []
+  }
+}

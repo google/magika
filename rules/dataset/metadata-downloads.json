@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "download_url": "https://drive.google.com/file/d/1ffmSHtDTJWHpjKiwMIJepsa2cscsXemE/view?usp=sharing",
+  "scope": "Public metadata only. Extract the Magika archive in this directory and the Sembiance archive in a separate directory.",
+  "files": [
+    {
+      "name": "classes.parquet",
+      "sha256": "1703cd3ed356f530bc6c051799cf99537edf06f5380f6f9c42a3f90250cb8bb3",
+      "bytes": 682690
+    },
+    {
+      "name": "github-used.parquet",
+      "sha256": "636eeea270fc2b01fb79c09016e89c9b9cec14ffc2d9ff7161fb59371b1a0b22",
+      "bytes": 181697
+    },
+    {
+      "name": "repositories.parquet",
+      "sha256": "dfa1c36ca11abfe5d44a84b2edbd9d359ae47232f64c1cf78fbf1c2d3fabc69b",
+      "bytes": 3004175
+    },
+    {
+      "name": "repository-files.parquet",
+      "sha256": "fd7c3771aecb20df4bcf695e47dd6a78f386105cd5ca3ad50b7430a8c71896f1",
+      "bytes": 117360304
+    },
+    {
+      "name": "samples.parquet",
+      "sha256": "e9f5546abbc807f38e5ba52727a776876e4d3ab16f9fb93b1981d240ec3738c2",
+      "bytes": 22485367
+    }
+  ],
+  "archives": [
+    {
+      "dataset": "magika-eval",
+      "version": "0.1",
+      "name": "magika-eval-dataset-v0.1-metadata.tar.gz",
+      "download_url": "https://drive.google.com/file/d/1ffmSHtDTJWHpjKiwMIJepsa2cscsXemE/view?usp=sharing",
+      "sha256": "73b4de058e082ecbca58bf130af65187b558bc8de3fb6e758c84016189fecc6d",
+      "bytes": 236816527
+    },
+    {
+      "dataset": "sembiance-eval",
+      "version": "3.0",
+      "name": "sembiance-eval-dataset-v3.0-metadata.tar.gz",
+      "download_url": "https://drive.google.com/file/d/1XwoERSuli_H2Xk8jBt3zwekkguF5XwqZ/view?usp=drive_link",
+      "sha256": "383c9c60b89c4eefda87cf381099af174c3503876b067df5cd2240d340172434",
+      "bytes": 10228691
+    }
+  ]
+}

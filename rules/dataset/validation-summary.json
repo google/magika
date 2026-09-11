@@ -1,0 +1,11 @@
+{
+  "samples": 29523,
+  "counts": {
+    "conflicting": 5036,
+    "llm-validated": 0,
+    "unknown": 23894,
+    "validated_auto": 593,
+    "validated_manual": 0
+  },
+  "taxonomy_corrections": 100
+}

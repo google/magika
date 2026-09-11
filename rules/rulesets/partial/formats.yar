@@ -402,6 +402,25 @@ rule taxonomy_ico
         and uint8(9) == 0 and uint32(14) >= 8 and uint32(18) >= 22
 }
 
+rule taxonomy_ilbm
+{
+	meta:
+        source_refs = "spec:Amiga IFF ILBM (EA IFF 85 FORM ILBM/ACBM/PBM)"
+		label = "ilbm"
+        enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.11290322580645162
+    // EA IFF 85 container whose form type is a bitmap image (ILBM, ACBM or PBM).
+    strings:
+        $form = "FORM"
+        $ilbm = "ILBM"
+        $acbm = "ACBM"
+        $pbm = "PBM "
+    condition:
+        prefix_size >= 12 and $form at 0 and ($ilbm at 8 or $acbm at 8 or $pbm at 8)
+}
+
 rule taxonomy_intelhex
 {
 	meta:
@@ -467,6 +486,22 @@ rule taxonomy_kmz
     // KMZ: a zip whose central directory names the KML entry doc.kml.
     condition:
         zip_valid == 1 and zip_names contains "\ndoc.kml\n"
+}
+
+rule taxonomy_koala
+{
+	meta:
+        source_refs = "spec:Commodore 64 Koala Painter compressed image header"
+		label = "koala"
+        enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.17142857142857143
+    // The fixed four-byte header of a compressed Koala Painter image.
+    strings:
+        $magic = { FF 80 C9 C7 }
+    condition:
+        prefix_size >= 16 and $magic at 0
 }
 
 rule taxonomy_macho

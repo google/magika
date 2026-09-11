@@ -994,7 +994,7 @@ PREFIX_SIGNATURES = {
     "postscript": (b"%!PS-Adobe-3.0\n%%EndComments\n", b"%!PS\n%%Title: short opening\n"),
     "pem": (
         b"-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
-        b"-----BEGIN PGP PUBLIC KEY BLOCK-----\nmQIN\n-----END PGP PUBLIC KEY BLOCK-----\n",
+        b"-----BEGIN SSH2 PUBLIC KEY-----\nAAAA\n-----END SSH2 PUBLIC KEY-----\n",
     ),
     "arrow": (b"ARROW1\0\0\xff\xff\xff\xff", b"ARROW2\0\0\xff\xff\xff\xff"),
     "asf": (
@@ -1111,6 +1111,19 @@ PREFIX_SIGNATURES = {
         b'<?xml version="1.0"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document/></kml>\n',
         b'<?xml version="1.0"?>\n<kmlx><Document/></kmlx>\n',
     ),
+    "pgp": (
+        b"-----BEGIN PGP MESSAGE-----\nVersion: x\n\nhQEMA\n-----END PGP MESSAGE-----\n",
+        b"-----BEGIN SSH2 PUBLIC KEY-----\nAAAA\n-----END SSH2 PUBLIC KEY-----\n",
+    ),
+    "ilbm": (
+        b"FORM" + (2000).to_bytes(4, "big") + b"ILBMBMHD" + bytes(20),
+        b"FORM" + (2000).to_bytes(4, "big") + b"AIFFCOMM" + bytes(20),
+    ),
+    "step": (
+        b"ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION((''),'2;1');\n",
+        b"ISO-10303-28;\n<express xmlns='urn:iso'>\n",
+    ),
+    "koala": (b"\xff\x80\xc9\xc7" + bytes(60), b"\xff\x80\xc9\xc8" + bytes(60)),
 }
 
 

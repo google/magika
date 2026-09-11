@@ -665,27 +665,6 @@ rule taxonomy_paradox
 		(($p0_0 at 2) or ($p1_0 at 2) or ($p2_0 at 2) or ($p3_0 at 2))
 }
 
-rule taxonomy_pgp
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/pgp:libmagic_7a78c07f093563b10b8a_line_28; libmagic:magic/Magdir/pgp:libmagic_e7aa59b1cca0df9e5f46_line_32; puremagic:puremagic/magic_data.json:headers[649]; puremagic:puremagic/magic_data.json:headers[650]; puremagic:puremagic/magic_data.json:headers[651]"
-		label = "pgp"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0000677874186551
-        fn_rate = 0.78947368421052633
-
-	strings:
-		$p0_0 = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-		$p1_0 = { 2d 2d 2d 42 45 47 49 4e 20 50 47 50 20 50 55 42 4c 49 43 20 4b 45 59 20 42 4c 4f 43 4b 2d }
-		$p2_0 = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
-		$p3_0 = { 99 00 }
-		$p4_0 = { 2d 2d 2d 42 45 47 49 4e 20 50 47 50 20 50 52 49 56 41 54 45 20 4b 45 59 20 42 4c 4f 43 4b 2d }
-
-	condition:
-		((prefix_size >= 36 and original_size >= 36 and $p0_0 at 0) or (prefix_size >= 32 and $p1_0 at 2) or (prefix_size >= 37 and original_size >= 37 and $p2_0 at 0) or (prefix_size >= 2 and original_size >= 2 and $p3_0 at 0) or (prefix_size >= 33 and $p4_0 at 2))
-}
-
 rule taxonomy_png
 {
 	meta:

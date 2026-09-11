@@ -1176,6 +1176,22 @@ rule taxonomy_pbm
         $header at 0
 }
 
+rule taxonomy_pgp
+{
+	meta:
+        source_refs = "spec:OpenPGP ASCII armor (RFC 9580)"
+		label = "pgp"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // OpenPGP ASCII armor header; the PEM rule excludes these, so they fall through to the model.
+    strings:
+        $armor = "-----BEGIN PGP "
+    condition:
+        $armor at 0
+}
+
 rule taxonomy_ply
 {
 	meta:
@@ -1465,6 +1481,22 @@ rule taxonomy_spss
          (((uint32(64) == 2 or uint32(64) == 3) and uint32(72) <= 2) or
           ((uint32be(64) == 2 or uint32be(64) == 3) and uint32be(72) <= 2))) or
         (prefix_size >= 464 and $portable at 0)
+}
+
+rule taxonomy_step
+{
+	meta:
+        source_refs = "spec:ISO 10303-21 STEP exchange file header"
+		label = "step"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // A STEP exchange file opens with the ISO 10303-21 header keyword.
+    strings:
+        $iso = "ISO-10303-21;"
+    condition:
+        $iso at 0
 }
 
 rule taxonomy_swf

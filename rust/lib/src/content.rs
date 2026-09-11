@@ -1139,6 +1139,15 @@ pub(crate) static IGNOREFILE: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static ILBM: TypeInfo = TypeInfo {
+    label: "ilbm",
+    mime_type: "image/x-ilbm",
+    group: "image",
+    description: "Amiga IFF ILBM image",
+    extensions: &["iff", "ilbm", "lbm"],
+    is_text: false,
+};
+
 pub(crate) static INI: TypeInfo = TypeInfo {
     label: "ini",
     mime_type: "text/plain",
@@ -1316,6 +1325,15 @@ pub(crate) static KMZ: TypeInfo = TypeInfo {
     group: "gis",
     description: "Keyhole Markup Language archive",
     extensions: &["kmz"],
+    is_text: false,
+};
+
+pub(crate) static KOALA: TypeInfo = TypeInfo {
+    label: "koala",
+    mime_type: "application/octet-stream",
+    group: "image",
+    description: "Commodore 64 Koala Painter image",
+    extensions: &["koa"],
     is_text: false,
 };
 
@@ -2390,6 +2408,15 @@ pub(crate) static STATA: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static STEP: TypeInfo = TypeInfo {
+    label: "step",
+    mime_type: "model/step",
+    group: "geometry",
+    description: "ISO 10303 STEP CAD model",
+    extensions: &["step", "stp"],
+    is_text: true,
+};
+
 pub(crate) static STLBINARY: TypeInfo = TypeInfo {
     label: "stlbinary",
     mime_type: "application/sla",
@@ -3189,6 +3216,8 @@ pub enum ContentType {
     Ics,
     /// Ignorefile
     Ignorefile,
+    /// Amiga IFF ILBM image
+    Ilbm,
     /// INI configuration file
     Ini,
     /// Intel HEX
@@ -3229,6 +3258,8 @@ pub enum ContentType {
     Kml,
     /// Keyhole Markup Language archive
     Kmz,
+    /// Commodore 64 Koala Painter image
+    Koala,
     /// Kotlin source
     Kotlin,
     /// LAS point cloud
@@ -3467,6 +3498,8 @@ pub enum ContentType {
     Srt,
     /// Stata dataset
     Stata,
+    /// ISO 10303 STEP CAD model
+    Step,
     /// Stereolithography CAD (binary)
     Stlbinary,
     /// Stereolithography CAD (text)
@@ -3590,7 +3623,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 322;
+    pub(crate) const SIZE: usize = 325;
 
     /// Looks up an exact, canonical content label for a regular file.
     /// Filesystem labels `directory` and `symlink` belong to `FileType` and return `None`.
@@ -3719,6 +3752,7 @@ impl ContentType {
             "ico" => Self::Ico,
             "ics" => Self::Ics,
             "ignorefile" => Self::Ignorefile,
+            "ilbm" => Self::Ilbm,
             "ini" => Self::Ini,
             "intelhex" => Self::Intelhex,
             "internetshortcut" => Self::Internetshortcut,
@@ -3739,6 +3773,7 @@ impl ContentType {
             "keras" => Self::Keras,
             "kml" => Self::Kml,
             "kmz" => Self::Kmz,
+            "koala" => Self::Koala,
             "kotlin" => Self::Kotlin,
             "las" => Self::Las,
             "latex" => Self::Latex,
@@ -3858,6 +3893,7 @@ impl ContentType {
             "squashfs" => Self::Squashfs,
             "srt" => Self::Srt,
             "stata" => Self::Stata,
+            "step" => Self::Step,
             "stlbinary" => Self::Stlbinary,
             "stltext" => Self::Stltext,
             "sum" => Self::Sum,
@@ -4048,6 +4084,7 @@ impl ContentType {
             ContentType::Ico => &ICO,
             ContentType::Ics => &ICS,
             ContentType::Ignorefile => &IGNOREFILE,
+            ContentType::Ilbm => &ILBM,
             ContentType::Ini => &INI,
             ContentType::Intelhex => &INTELHEX,
             ContentType::Internetshortcut => &INTERNETSHORTCUT,
@@ -4068,6 +4105,7 @@ impl ContentType {
             ContentType::Keras => &KERAS,
             ContentType::Kml => &KML,
             ContentType::Kmz => &KMZ,
+            ContentType::Koala => &KOALA,
             ContentType::Kotlin => &KOTLIN,
             ContentType::Las => &LAS,
             ContentType::Latex => &LATEX,
@@ -4187,6 +4225,7 @@ impl ContentType {
             ContentType::Squashfs => &SQUASHFS,
             ContentType::Srt => &SRT,
             ContentType::Stata => &STATA,
+            ContentType::Step => &STEP,
             ContentType::Stlbinary => &STLBINARY,
             ContentType::Stltext => &STLTEXT,
             ContentType::Sum => &SUM,

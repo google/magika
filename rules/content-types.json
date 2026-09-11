@@ -215,6 +215,17 @@
     "is_text": false,
     "mime_type": null
   },
+  "ilbm": {
+    "description": "Amiga IFF ILBM image",
+    "extensions": [
+      "iff",
+      "ilbm",
+      "lbm"
+    ],
+    "group": "image",
+    "is_text": false,
+    "mime_type": "image/x-ilbm"
+  },
   "intelhex": {
     "description": "Intel HEX",
     "extensions": [
@@ -251,6 +262,15 @@
     "group": "gis",
     "is_text": false,
     "mime_type": "application/vnd.google-earth.kmz"
+  },
+  "koala": {
+    "description": "Commodore 64 Koala Painter image",
+    "extensions": [
+      "koa"
+    ],
+    "group": "image",
+    "is_text": false,
+    "mime_type": null
   },
   "las": {
     "description": "LAS point cloud",
@@ -518,6 +538,16 @@
     "group": "scientific",
     "is_text": false,
     "mime_type": null
+  },
+  "step": {
+    "description": "ISO 10303 STEP CAD model",
+    "extensions": [
+      "step",
+      "stp"
+    ],
+    "group": "geometry",
+    "is_text": true,
+    "mime_type": "model/step"
   },
   "uf2": {
     "description": "UF2 firmware",

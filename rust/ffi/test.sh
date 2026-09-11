@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,23 @@
 # limitations under the License.
 
 set -e
-. ./color.sh
+. ../color.sh
 
-TOOLCHAINS='stable nightly'
-[ -z "$CI" ] || TOOLCHAINS=$(rustup show active-toolchain | sed 's/-.*//')
+x cargo check
+x cargo fmt -- --check
+x cargo clippy -- --deny=warnings
 
-for toolchain in $TOOLCHAINS; do
-  for dir in gen tract-runtime lib ffi cli; do
-    info "Running tests from $dir with $toolchain"
-    ( cd $dir && rustup run $toolchain ./test.sh; )
-  done
+x cargo build --release
+
+compile_test() {
+  x $cc -fsanitize=address,undefined -fno-omit-frame-pointer "$@"
+  x ./test
+  x rm test
+}
+
+TARGET_DIR=../target/release
+for cc in gcc clang; do
+  which $cc >/dev/null 2>&1 || continue
+  compile_test -Iinclude test.c $TARGET_DIR/libmagika.a -lpthread -ldl -lm -o test
+  compile_test -Iinclude test.c -L$TARGET_DIR -lmagika -Wl,-rpath,$TARGET_DIR -o test
 done
-
-./sync.sh --check

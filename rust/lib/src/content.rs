@@ -50,6 +50,15 @@ pub(crate) static _3GP: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static _3MF: TypeInfo = TypeInfo {
+    label: "3mf",
+    mime_type: "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
+    group: "image",
+    description: "3D Manufacturing Format",
+    extensions: &["3mf"],
+    is_text: false,
+};
+
 pub(crate) static ACCESS: TypeInfo = TypeInfo {
     label: "access",
     mime_type: "application/octet-stream",
@@ -455,6 +464,15 @@ pub(crate) static COFFEESCRIPT: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static COLLADA: TypeInfo = TypeInfo {
+    label: "collada",
+    mime_type: "model/vnd.collada+xml",
+    group: "geometry",
+    description: "COLLADA digital asset",
+    extensions: &["dae"],
+    is_text: true,
+};
+
 pub(crate) static CPP: TypeInfo = TypeInfo {
     label: "cpp",
     mime_type: "text/x-c",
@@ -525,6 +543,15 @@ pub(crate) static CSV: TypeInfo = TypeInfo {
     description: "CSV document",
     extensions: &["csv"],
     is_text: true,
+};
+
+pub(crate) static CUBIN: TypeInfo = TypeInfo {
+    label: "cubin",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "NVIDIA CUDA binary",
+    extensions: &["cubin"],
+    is_text: false,
 };
 
 pub(crate) static DART: TypeInfo = TypeInfo {
@@ -842,6 +869,24 @@ pub(crate) static GEMSPEC: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static GEOJSON: TypeInfo = TypeInfo {
+    label: "geojson",
+    mime_type: "application/geo+json",
+    group: "gis",
+    description: "GeoJSON",
+    extensions: &["geojson"],
+    is_text: true,
+};
+
+pub(crate) static GEOPACKAGE: TypeInfo = TypeInfo {
+    label: "geopackage",
+    mime_type: "application/geopackage+sqlite3",
+    group: "gis",
+    description: "OGC GeoPackage",
+    extensions: &["gpkg"],
+    is_text: false,
+};
+
 pub(crate) static GGUF: TypeInfo = TypeInfo {
     label: "gguf",
     mime_type: "application/octet-stream",
@@ -887,6 +932,15 @@ pub(crate) static GLTF: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static GML: TypeInfo = TypeInfo {
+    label: "gml",
+    mime_type: "application/gml+xml",
+    group: "gis",
+    description: "Geography Markup Language",
+    extensions: &["gml"],
+    is_text: true,
+};
+
 pub(crate) static GO: TypeInfo = TypeInfo {
     label: "go",
     mime_type: "text/x-golang",
@@ -896,6 +950,15 @@ pub(crate) static GO: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static GPX: TypeInfo = TypeInfo {
+    label: "gpx",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "XML document",
+    extensions: &["gpx"],
+    is_text: false,
+};
+
 pub(crate) static GRADLE: TypeInfo = TypeInfo {
     label: "gradle",
     mime_type: "text/x-groovy",
@@ -903,6 +966,15 @@ pub(crate) static GRADLE: TypeInfo = TypeInfo {
     description: "Gradle source",
     extensions: &["gradle"],
     is_text: true,
+};
+
+pub(crate) static GRIB: TypeInfo = TypeInfo {
+    label: "grib",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "GRIB meteorological data",
+    extensions: &["grb", "grb2", "grib", "grib2"],
+    is_text: false,
 };
 
 pub(crate) static GROOVY: TypeInfo = TypeInfo {
@@ -1004,6 +1076,15 @@ pub(crate) static HTML: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static HVE: TypeInfo = TypeInfo {
+    label: "hve",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "hve",
+    extensions: &[],
+    is_text: false,
+};
+
 pub(crate) static HWP: TypeInfo = TypeInfo {
     label: "hwp",
     mime_type: "application/x-hwp",
@@ -1064,6 +1145,15 @@ pub(crate) static INI: TypeInfo = TypeInfo {
     group: "text",
     description: "INI configuration file",
     extensions: &["ini"],
+    is_text: true,
+};
+
+pub(crate) static INTELHEX: TypeInfo = TypeInfo {
+    label: "intelhex",
+    mime_type: "text/plain",
+    group: "executable",
+    description: "Intel HEX",
+    extensions: &["hex", "ihex"],
     is_text: true,
 };
 
@@ -1139,6 +1229,15 @@ pub(crate) static JINJA: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static JNG: TypeInfo = TypeInfo {
+    label: "jng",
+    mime_type: "image/jng",
+    group: "image",
+    description: "JPEG network graphics",
+    extensions: &["jng"],
+    is_text: false,
+};
+
 pub(crate) static JP2: TypeInfo = TypeInfo {
     label: "jp2",
     mime_type: "image/jpeg2000",
@@ -1193,6 +1292,33 @@ pub(crate) static JXL: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static KERAS: TypeInfo = TypeInfo {
+    label: "keras",
+    mime_type: "application/octet-stream",
+    group: "model",
+    description: "Keras model archive",
+    extensions: &["keras"],
+    is_text: false,
+};
+
+pub(crate) static KML: TypeInfo = TypeInfo {
+    label: "kml",
+    mime_type: "application/vnd.google-earth.kml+xml",
+    group: "gis",
+    description: "Keyhole Markup Language",
+    extensions: &["kml"],
+    is_text: true,
+};
+
+pub(crate) static KMZ: TypeInfo = TypeInfo {
+    label: "kmz",
+    mime_type: "application/vnd.google-earth.kmz",
+    group: "gis",
+    description: "Keyhole Markup Language archive",
+    extensions: &["kmz"],
+    is_text: false,
+};
+
 pub(crate) static KOTLIN: TypeInfo = TypeInfo {
     label: "kotlin",
     mime_type: "text/plain",
@@ -1200,6 +1326,15 @@ pub(crate) static KOTLIN: TypeInfo = TypeInfo {
     description: "Kotlin source",
     extensions: &["kt", "kts"],
     is_text: true,
+};
+
+pub(crate) static LAS: TypeInfo = TypeInfo {
+    label: "las",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "LAS point cloud",
+    extensions: &["las"],
+    is_text: false,
 };
 
 pub(crate) static LATEX: TypeInfo = TypeInfo {
@@ -1382,6 +1517,15 @@ pub(crate) static MATLAB: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static MBTILES: TypeInfo = TypeInfo {
+    label: "mbtiles",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "MBTiles tile set",
+    extensions: &["mbtiles"],
+    is_text: false,
+};
+
 pub(crate) static MHT: TypeInfo = TypeInfo {
     label: "mht",
     mime_type: "application/x-mimearchive",
@@ -1397,6 +1541,15 @@ pub(crate) static MIDI: TypeInfo = TypeInfo {
     group: "audio",
     description: "Midi",
     extensions: &["mid"],
+    is_text: false,
+};
+
+pub(crate) static MINIDUMP: TypeInfo = TypeInfo {
+    label: "minidump",
+    mime_type: "application/octet-stream",
+    group: "application",
+    description: "Windows minidump",
+    extensions: &["dmp", "mdmp"],
     is_text: false,
 };
 
@@ -1454,6 +1607,15 @@ pub(crate) static MSI: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static MSIX: TypeInfo = TypeInfo {
+    label: "msix",
+    mime_type: "application/msix",
+    group: "application",
+    description: "Windows app package",
+    extensions: &["msix"],
+    is_text: false,
+};
+
 pub(crate) static MUM: TypeInfo = TypeInfo {
     label: "mum",
     mime_type: "text/xml",
@@ -1472,6 +1634,15 @@ pub(crate) static NETCDF: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static NIFTI: TypeInfo = TypeInfo {
+    label: "nifti",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "NIfTI neuroimaging data",
+    extensions: &["nii"],
+    is_text: false,
+};
+
 pub(crate) static NPY: TypeInfo = TypeInfo {
     label: "npy",
     mime_type: "application/octet-stream",
@@ -1487,6 +1658,15 @@ pub(crate) static NPZ: TypeInfo = TypeInfo {
     group: "archive",
     description: "Numpy Arrays Archive",
     extensions: &["npz"],
+    is_text: false,
+};
+
+pub(crate) static NRRD: TypeInfo = TypeInfo {
+    label: "nrrd",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "Nearly Raw Raster Data",
+    extensions: &["nhdr", "nrrd"],
     is_text: false,
 };
 
@@ -1580,6 +1760,15 @@ pub(crate) static ORC: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static OSM: TypeInfo = TypeInfo {
+    label: "osm",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "OpenStreetMap data",
+    extensions: &["osm", "pbf"],
+    is_text: false,
+};
+
 pub(crate) static OTF: TypeInfo = TypeInfo {
     label: "otf",
     mime_type: "font/otf",
@@ -1594,6 +1783,15 @@ pub(crate) static OUTLOOK: TypeInfo = TypeInfo {
     mime_type: "application/vnd.ms-outlook",
     group: "application",
     description: "MS Outlook Message",
+    extensions: &[],
+    is_text: false,
+};
+
+pub(crate) static PALMOS: TypeInfo = TypeInfo {
+    label: "palmos",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "palmos",
     extensions: &[],
     is_text: false,
 };
@@ -1623,6 +1821,15 @@ pub(crate) static PASCAL: TypeInfo = TypeInfo {
     description: "Pascal source",
     extensions: &["pas", "pp"],
     is_text: true,
+};
+
+pub(crate) static PBM: TypeInfo = TypeInfo {
+    label: "pbm",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "pbm",
+    extensions: &[],
+    is_text: false,
 };
 
 pub(crate) static PCAP: TypeInfo = TypeInfo {
@@ -1712,6 +1919,15 @@ pub(crate) static PICKLE: TypeInfo = TypeInfo {
     group: "application",
     description: "Python pickle",
     extensions: &["pickle", "pkl"],
+    is_text: false,
+};
+
+pub(crate) static PLY: TypeInfo = TypeInfo {
+    label: "ply",
+    mime_type: "application/octet-stream",
+    group: "geometry",
+    description: "Polygon File Format",
+    extensions: &["ply"],
     is_text: false,
 };
 
@@ -1847,6 +2063,15 @@ pub(crate) static PYTORCH: TypeInfo = TypeInfo {
     group: "application",
     description: "Pytorch storage file",
     extensions: &["pt", "pth"],
+    is_text: false,
+};
+
+pub(crate) static QGIS: TypeInfo = TypeInfo {
+    label: "qgis",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "QGIS project archive",
+    extensions: &["qgz"],
     is_text: false,
 };
 
@@ -1991,6 +2216,15 @@ pub(crate) static RZIP: TypeInfo = TypeInfo {
     group: "unknown",
     description: "Rzip",
     extensions: &["rz"],
+    is_text: false,
+};
+
+pub(crate) static SAFETENSORS: TypeInfo = TypeInfo {
+    label: "safetensors",
+    mime_type: "application/octet-stream",
+    group: "model",
+    description: "Safetensors",
+    extensions: &["safetensors"],
     is_text: false,
 };
 
@@ -2417,6 +2651,15 @@ pub(crate) static VHDL: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static VISIO: TypeInfo = TypeInfo {
+    label: "visio",
+    mime_type: "application/vnd.ms-visio.drawing.main+xml",
+    group: "document",
+    description: "Microsoft Visio",
+    extensions: &["vsd", "vsdm", "vsdx", "vdw"],
+    is_text: false,
+};
+
 pub(crate) static VTT: TypeInfo = TypeInfo {
     label: "vtt",
     mime_type: "text/vtt",
@@ -2615,6 +2858,15 @@ pub(crate) static XPI: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static XSD: TypeInfo = TypeInfo {
+    label: "xsd",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "xsd",
+    extensions: &["xsd"],
+    is_text: false,
+};
+
 pub(crate) static XZ: TypeInfo = TypeInfo {
     label: "xz",
     mime_type: "application/x-xz",
@@ -2688,6 +2940,8 @@ pub enum ContentType {
     _3dsx,
     /// 3GPP multimedia file
     _3gp,
+    /// 3D Manufacturing Format
+    _3mf,
     /// Microsoft Access database
     Access,
     /// ACE archive
@@ -2778,6 +3032,8 @@ pub enum ContentType {
     Coff,
     /// CoffeeScript
     Coffeescript,
+    /// COLLADA digital asset
+    Collada,
     /// C++ source
     Cpp,
     /// CRAM alignment
@@ -2794,6 +3050,8 @@ pub enum ContentType {
     Css,
     /// CSV document
     Csv,
+    /// NVIDIA CUDA binary
+    Cubin,
     /// Dart source
     Dart,
     /// dBASE / FoxPro table
@@ -2862,6 +3120,10 @@ pub enum ContentType {
     Gemfile,
     /// Gemspec file
     Gemspec,
+    /// GeoJSON
+    Geojson,
+    /// OGC GeoPackage
+    Geopackage,
     /// GGUF
     Gguf,
     /// GIF image data
@@ -2872,10 +3134,16 @@ pub enum ContentType {
     Gitmodules,
     /// glTF
     Gltf,
+    /// Geography Markup Language
+    Gml,
     /// Golang source
     Go,
+    /// XML document
+    Gpx,
     /// Gradle source
     Gradle,
+    /// GRIB meteorological data
+    Grib,
     /// Groovy source
     Groovy,
     /// gzip compressed data
@@ -2898,6 +3166,8 @@ pub enum ContentType {
     Htaccess,
     /// HTML document
     Html,
+    /// hve
+    Hve,
     /// Hangul Word Processor
     Hwp,
     /// ICC profile
@@ -2912,6 +3182,8 @@ pub enum ContentType {
     Ignorefile,
     /// INI configuration file
     Ini,
+    /// Intel HEX
+    Intelhex,
     /// MS Windows Internet shortcut
     Internetshortcut,
     /// Jupyter notebook
@@ -2928,6 +3200,8 @@ pub enum ContentType {
     Javascript,
     /// Jinja template
     Jinja,
+    /// JPEG network graphics
+    Jng,
     /// jpeg2000
     Jp2,
     /// JPEG image data
@@ -2940,8 +3214,16 @@ pub enum ContentType {
     Julia,
     /// JPEG XL
     Jxl,
+    /// Keras model archive
+    Keras,
+    /// Keyhole Markup Language
+    Kml,
+    /// Keyhole Markup Language archive
+    Kmz,
     /// Kotlin source
     Kotlin,
+    /// LAS point cloud
+    Las,
     /// LaTeX document
     Latex,
     /// LHarc archive
@@ -2982,10 +3264,14 @@ pub enum ContentType {
     Mat,
     /// Matlab Source
     Matlab,
+    /// MBTiles tile set
+    Mbtiles,
     /// MHTML document
     Mht,
     /// Midi
     Midi,
+    /// Windows minidump
+    Minidump,
     /// Matroska
     Mkv,
     /// MP3 media file
@@ -2998,14 +3284,20 @@ pub enum ContentType {
     Mscompress,
     /// Microsoft Installer file
     Msi,
+    /// Windows app package
+    Msix,
     /// Windows Update Package file
     Mum,
     /// NetCDF
     Netcdf,
+    /// NIfTI neuroimaging data
+    Nifti,
     /// Numpy Array
     Npy,
     /// Numpy Arrays Archive
     Npz,
+    /// Nearly Raw Raster Data
+    Nrrd,
     /// NuGet Package
     Nupkg,
     /// ObjectiveC source
@@ -3026,16 +3318,22 @@ pub enum ContentType {
     Onnx,
     /// Apache ORC
     Orc,
+    /// OpenStreetMap data
+    Osm,
     /// OpenType font
     Otf,
     /// MS Outlook Message
     Outlook,
+    /// palmos
+    Palmos,
     /// Paradox database
     Paradox,
     /// Apache Parquet
     Parquet,
     /// Pascal source
     Pascal,
+    /// pbm
+    Pbm,
     /// pcap capture file
     Pcap,
     /// Packet capture PCAPNG
@@ -3056,6 +3354,8 @@ pub enum ContentType {
     Php,
     /// Python pickle
     Pickle,
+    /// Polygon File Format
+    Ply,
     /// PNG image
     Png,
     /// Portable Object (PO) for i18n
@@ -3086,6 +3386,8 @@ pub enum ContentType {
     Pythonbytecode,
     /// Pytorch storage file
     Pytorch,
+    /// QGIS project archive
+    Qgis,
     /// Quite Ok Image
     Qoi,
     /// QuickTime
@@ -3118,6 +3420,8 @@ pub enum ContentType {
     Rust,
     /// Rzip
     Rzip,
+    /// Safetensors
+    Safetensors,
     /// SAS dataset / transport
     Sas,
     /// Scala source
@@ -3210,6 +3514,8 @@ pub enum ContentType {
     Vhd,
     /// VHDL source
     Vhdl,
+    /// Microsoft Visio
+    Visio,
     /// Web Video Text Tracks
     Vtt,
     /// Vue source
@@ -3254,6 +3560,8 @@ pub enum ContentType {
     Xml,
     /// Compressed installation archive (XPI)
     Xpi,
+    /// xsd
+    Xsd,
     /// XZ compressed data
     Xz,
     /// YAML source
@@ -3271,7 +3579,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 293;
+    pub(crate) const SIZE: usize = 321;
 
     /// Looks up an exact, canonical content label for a regular file.
     /// Filesystem labels `directory` and `symlink` belong to `FileType` and return `None`.
@@ -3280,6 +3588,7 @@ impl ContentType {
             "3dsm" => Self::_3dsm,
             "3dsx" => Self::_3dsx,
             "3gp" => Self::_3gp,
+            "3mf" => Self::_3mf,
             "access" => Self::Access,
             "ace" => Self::Ace,
             "ai" => Self::Ai,
@@ -3325,6 +3634,7 @@ impl ContentType {
             "cobol" => Self::Cobol,
             "coff" => Self::Coff,
             "coffeescript" => Self::Coffeescript,
+            "collada" => Self::Collada,
             "cpp" => Self::Cpp,
             "cram" => Self::Cram,
             "crt" => Self::Crt,
@@ -3333,6 +3643,7 @@ impl ContentType {
             "csproj" => Self::Csproj,
             "css" => Self::Css,
             "csv" => Self::Csv,
+            "cubin" => Self::Cubin,
             "dart" => Self::Dart,
             "dbase" => Self::Dbase,
             "deb" => Self::Deb,
@@ -3367,13 +3678,18 @@ impl ContentType {
             "fortran" => Self::Fortran,
             "gemfile" => Self::Gemfile,
             "gemspec" => Self::Gemspec,
+            "geojson" => Self::Geojson,
+            "geopackage" => Self::Geopackage,
             "gguf" => Self::Gguf,
             "gif" => Self::Gif,
             "gitattributes" => Self::Gitattributes,
             "gitmodules" => Self::Gitmodules,
             "gltf" => Self::Gltf,
+            "gml" => Self::Gml,
             "go" => Self::Go,
+            "gpx" => Self::Gpx,
             "gradle" => Self::Gradle,
+            "grib" => Self::Grib,
             "groovy" => Self::Groovy,
             "gzip" => Self::Gzip,
             "h5" => Self::H5,
@@ -3385,6 +3701,7 @@ impl ContentType {
             "hlp" => Self::Hlp,
             "htaccess" => Self::Htaccess,
             "html" => Self::Html,
+            "hve" => Self::Hve,
             "hwp" => Self::Hwp,
             "icc" => Self::Icc,
             "icns" => Self::Icns,
@@ -3392,6 +3709,7 @@ impl ContentType {
             "ics" => Self::Ics,
             "ignorefile" => Self::Ignorefile,
             "ini" => Self::Ini,
+            "intelhex" => Self::Intelhex,
             "internetshortcut" => Self::Internetshortcut,
             "ipynb" => Self::Ipynb,
             "iso" => Self::Iso,
@@ -3400,13 +3718,18 @@ impl ContentType {
             "javabytecode" => Self::Javabytecode,
             "javascript" => Self::Javascript,
             "jinja" => Self::Jinja,
+            "jng" => Self::Jng,
             "jp2" => Self::Jp2,
             "jpeg" => Self::Jpeg,
             "json" => Self::Json,
             "jsonl" => Self::Jsonl,
             "julia" => Self::Julia,
             "jxl" => Self::Jxl,
+            "keras" => Self::Keras,
+            "kml" => Self::Kml,
+            "kmz" => Self::Kmz,
             "kotlin" => Self::Kotlin,
+            "las" => Self::Las,
             "latex" => Self::Latex,
             "lha" => Self::Lha,
             "lightwave" => Self::Lightwave,
@@ -3427,18 +3750,23 @@ impl ContentType {
             "markdown" => Self::Markdown,
             "mat" => Self::Mat,
             "matlab" => Self::Matlab,
+            "mbtiles" => Self::Mbtiles,
             "mht" => Self::Mht,
             "midi" => Self::Midi,
+            "minidump" => Self::Minidump,
             "mkv" => Self::Mkv,
             "mp3" => Self::Mp3,
             "mp4" => Self::Mp4,
             "mpegts" => Self::Mpegts,
             "mscompress" => Self::Mscompress,
             "msi" => Self::Msi,
+            "msix" => Self::Msix,
             "mum" => Self::Mum,
             "netcdf" => Self::Netcdf,
+            "nifti" => Self::Nifti,
             "npy" => Self::Npy,
             "npz" => Self::Npz,
+            "nrrd" => Self::Nrrd,
             "nupkg" => Self::Nupkg,
             "objectivec" => Self::Objectivec,
             "ocaml" => Self::Ocaml,
@@ -3449,11 +3777,14 @@ impl ContentType {
             "one" => Self::One,
             "onnx" => Self::Onnx,
             "orc" => Self::Orc,
+            "osm" => Self::Osm,
             "otf" => Self::Otf,
             "outlook" => Self::Outlook,
+            "palmos" => Self::Palmos,
             "paradox" => Self::Paradox,
             "parquet" => Self::Parquet,
             "pascal" => Self::Pascal,
+            "pbm" => Self::Pbm,
             "pcap" => Self::Pcap,
             "pcapng" => Self::Pcapng,
             "pdb" => Self::Pdb,
@@ -3464,6 +3795,7 @@ impl ContentType {
             "pgp" => Self::Pgp,
             "php" => Self::Php,
             "pickle" => Self::Pickle,
+            "ply" => Self::Ply,
             "png" => Self::Png,
             "po" => Self::Po,
             "postgres_dump" => Self::PostgresDump,
@@ -3479,6 +3811,7 @@ impl ContentType {
             "python" => Self::Python,
             "pythonbytecode" => Self::Pythonbytecode,
             "pytorch" => Self::Pytorch,
+            "qgis" => Self::Qgis,
             "qoi" => Self::Qoi,
             "qt" => Self::Qt,
             "r" => Self::R,
@@ -3495,6 +3828,7 @@ impl ContentType {
             "ruby" => Self::Ruby,
             "rust" => Self::Rust,
             "rzip" => Self::Rzip,
+            "safetensors" => Self::Safetensors,
             "sas" => Self::Sas,
             "scala" => Self::Scala,
             "scss" => Self::Scss,
@@ -3541,6 +3875,7 @@ impl ContentType {
             "verilog" => Self::Verilog,
             "vhd" => Self::Vhd,
             "vhdl" => Self::Vhdl,
+            "visio" => Self::Visio,
             "vtt" => Self::Vtt,
             "vue" => Self::Vue,
             "wad" => Self::Wad,
@@ -3563,6 +3898,7 @@ impl ContentType {
             "xlsx" => Self::Xlsx,
             "xml" => Self::Xml,
             "xpi" => Self::Xpi,
+            "xsd" => Self::Xsd,
             "xz" => Self::Xz,
             "yaml" => Self::Yaml,
             "yara" => Self::Yara,
@@ -3580,6 +3916,7 @@ impl ContentType {
             ContentType::_3dsm => &_3DSM,
             ContentType::_3dsx => &_3DSX,
             ContentType::_3gp => &_3GP,
+            ContentType::_3mf => &_3MF,
             ContentType::Access => &ACCESS,
             ContentType::Ace => &ACE,
             ContentType::Ai => &AI,
@@ -3625,6 +3962,7 @@ impl ContentType {
             ContentType::Cobol => &COBOL,
             ContentType::Coff => &COFF,
             ContentType::Coffeescript => &COFFEESCRIPT,
+            ContentType::Collada => &COLLADA,
             ContentType::Cpp => &CPP,
             ContentType::Cram => &CRAM,
             ContentType::Crt => &CRT,
@@ -3633,6 +3971,7 @@ impl ContentType {
             ContentType::Csproj => &CSPROJ,
             ContentType::Css => &CSS,
             ContentType::Csv => &CSV,
+            ContentType::Cubin => &CUBIN,
             ContentType::Dart => &DART,
             ContentType::Dbase => &DBASE,
             ContentType::Deb => &DEB,
@@ -3667,13 +4006,18 @@ impl ContentType {
             ContentType::Fortran => &FORTRAN,
             ContentType::Gemfile => &GEMFILE,
             ContentType::Gemspec => &GEMSPEC,
+            ContentType::Geojson => &GEOJSON,
+            ContentType::Geopackage => &GEOPACKAGE,
             ContentType::Gguf => &GGUF,
             ContentType::Gif => &GIF,
             ContentType::Gitattributes => &GITATTRIBUTES,
             ContentType::Gitmodules => &GITMODULES,
             ContentType::Gltf => &GLTF,
+            ContentType::Gml => &GML,
             ContentType::Go => &GO,
+            ContentType::Gpx => &GPX,
             ContentType::Gradle => &GRADLE,
+            ContentType::Grib => &GRIB,
             ContentType::Groovy => &GROOVY,
             ContentType::Gzip => &GZIP,
             ContentType::H5 => &H5,
@@ -3685,6 +4029,7 @@ impl ContentType {
             ContentType::Hlp => &HLP,
             ContentType::Htaccess => &HTACCESS,
             ContentType::Html => &HTML,
+            ContentType::Hve => &HVE,
             ContentType::Hwp => &HWP,
             ContentType::Icc => &ICC,
             ContentType::Icns => &ICNS,
@@ -3692,6 +4037,7 @@ impl ContentType {
             ContentType::Ics => &ICS,
             ContentType::Ignorefile => &IGNOREFILE,
             ContentType::Ini => &INI,
+            ContentType::Intelhex => &INTELHEX,
             ContentType::Internetshortcut => &INTERNETSHORTCUT,
             ContentType::Ipynb => &IPYNB,
             ContentType::Iso => &ISO,
@@ -3700,13 +4046,18 @@ impl ContentType {
             ContentType::Javabytecode => &JAVABYTECODE,
             ContentType::Javascript => &JAVASCRIPT,
             ContentType::Jinja => &JINJA,
+            ContentType::Jng => &JNG,
             ContentType::Jp2 => &JP2,
             ContentType::Jpeg => &JPEG,
             ContentType::Json => &JSON,
             ContentType::Jsonl => &JSONL,
             ContentType::Julia => &JULIA,
             ContentType::Jxl => &JXL,
+            ContentType::Keras => &KERAS,
+            ContentType::Kml => &KML,
+            ContentType::Kmz => &KMZ,
             ContentType::Kotlin => &KOTLIN,
+            ContentType::Las => &LAS,
             ContentType::Latex => &LATEX,
             ContentType::Lha => &LHA,
             ContentType::Lightwave => &LIGHTWAVE,
@@ -3727,18 +4078,23 @@ impl ContentType {
             ContentType::Markdown => &MARKDOWN,
             ContentType::Mat => &MAT,
             ContentType::Matlab => &MATLAB,
+            ContentType::Mbtiles => &MBTILES,
             ContentType::Mht => &MHT,
             ContentType::Midi => &MIDI,
+            ContentType::Minidump => &MINIDUMP,
             ContentType::Mkv => &MKV,
             ContentType::Mp3 => &MP3,
             ContentType::Mp4 => &MP4,
             ContentType::Mpegts => &MPEGTS,
             ContentType::Mscompress => &MSCOMPRESS,
             ContentType::Msi => &MSI,
+            ContentType::Msix => &MSIX,
             ContentType::Mum => &MUM,
             ContentType::Netcdf => &NETCDF,
+            ContentType::Nifti => &NIFTI,
             ContentType::Npy => &NPY,
             ContentType::Npz => &NPZ,
+            ContentType::Nrrd => &NRRD,
             ContentType::Nupkg => &NUPKG,
             ContentType::Objectivec => &OBJECTIVEC,
             ContentType::Ocaml => &OCAML,
@@ -3749,11 +4105,14 @@ impl ContentType {
             ContentType::One => &ONE,
             ContentType::Onnx => &ONNX,
             ContentType::Orc => &ORC,
+            ContentType::Osm => &OSM,
             ContentType::Otf => &OTF,
             ContentType::Outlook => &OUTLOOK,
+            ContentType::Palmos => &PALMOS,
             ContentType::Paradox => &PARADOX,
             ContentType::Parquet => &PARQUET,
             ContentType::Pascal => &PASCAL,
+            ContentType::Pbm => &PBM,
             ContentType::Pcap => &PCAP,
             ContentType::Pcapng => &PCAPNG,
             ContentType::Pdb => &PDB,
@@ -3764,6 +4123,7 @@ impl ContentType {
             ContentType::Pgp => &PGP,
             ContentType::Php => &PHP,
             ContentType::Pickle => &PICKLE,
+            ContentType::Ply => &PLY,
             ContentType::Png => &PNG,
             ContentType::Po => &PO,
             ContentType::PostgresDump => &POSTGRES_DUMP,
@@ -3779,6 +4139,7 @@ impl ContentType {
             ContentType::Python => &PYTHON,
             ContentType::Pythonbytecode => &PYTHONBYTECODE,
             ContentType::Pytorch => &PYTORCH,
+            ContentType::Qgis => &QGIS,
             ContentType::Qoi => &QOI,
             ContentType::Qt => &QT,
             ContentType::R => &R,
@@ -3795,6 +4156,7 @@ impl ContentType {
             ContentType::Ruby => &RUBY,
             ContentType::Rust => &RUST,
             ContentType::Rzip => &RZIP,
+            ContentType::Safetensors => &SAFETENSORS,
             ContentType::Sas => &SAS,
             ContentType::Scala => &SCALA,
             ContentType::Scss => &SCSS,
@@ -3841,6 +4203,7 @@ impl ContentType {
             ContentType::Verilog => &VERILOG,
             ContentType::Vhd => &VHD,
             ContentType::Vhdl => &VHDL,
+            ContentType::Visio => &VISIO,
             ContentType::Vtt => &VTT,
             ContentType::Vue => &VUE,
             ContentType::Wad => &WAD,
@@ -3863,6 +4226,7 @@ impl ContentType {
             ContentType::Xlsx => &XLSX,
             ContentType::Xml => &XML,
             ContentType::Xpi => &XPI,
+            ContentType::Xsd => &XSD,
             ContentType::Xz => &XZ,
             ContentType::Yaml => &YAML,
             ContentType::Yara => &YARA,

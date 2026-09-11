@@ -63,12 +63,30 @@
     "is_text": false,
     "mime_type": null
   },
+  "collada": {
+    "description": "COLLADA digital asset",
+    "extensions": [
+      "dae"
+    ],
+    "group": "geometry",
+    "is_text": true,
+    "mime_type": "model/vnd.collada+xml"
+  },
   "cram": {
     "description": "CRAM alignment",
     "extensions": [
       "cram"
     ],
     "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "cubin": {
+    "description": "NVIDIA CUDA binary",
+    "extensions": [
+      "cubin"
+    ],
+    "group": "executable",
     "is_text": false,
     "mime_type": null
   },
@@ -129,6 +147,24 @@
     "is_text": false,
     "mime_type": null
   },
+  "geojson": {
+    "description": "GeoJSON",
+    "extensions": [
+      "geojson"
+    ],
+    "group": "gis",
+    "is_text": true,
+    "mime_type": "application/geo+json"
+  },
+  "geopackage": {
+    "description": "OGC GeoPackage",
+    "extensions": [
+      "gpkg"
+    ],
+    "group": "gis",
+    "is_text": false,
+    "mime_type": "application/geopackage+sqlite3"
+  },
   "gguf": {
     "description": "GGUF",
     "extensions": [
@@ -148,6 +184,27 @@
     "is_text": false,
     "mime_type": null
   },
+  "gml": {
+    "description": "Geography Markup Language",
+    "extensions": [
+      "gml"
+    ],
+    "group": "gis",
+    "is_text": true,
+    "mime_type": "application/gml+xml"
+  },
+  "grib": {
+    "description": "GRIB meteorological data",
+    "extensions": [
+      "grb",
+      "grb2",
+      "grib",
+      "grib2"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
   "hdf4": {
     "description": "HDF4",
     "extensions": [
@@ -155,6 +212,52 @@
       "hdf"
     ],
     "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "intelhex": {
+    "description": "Intel HEX",
+    "extensions": [
+      "hex",
+      "ihex"
+    ],
+    "group": "executable",
+    "is_text": true,
+    "mime_type": null
+  },
+  "keras": {
+    "description": "Keras model archive",
+    "extensions": [
+      "keras"
+    ],
+    "group": "model",
+    "is_text": false,
+    "mime_type": null
+  },
+  "kml": {
+    "description": "Keyhole Markup Language",
+    "extensions": [
+      "kml"
+    ],
+    "group": "gis",
+    "is_text": true,
+    "mime_type": "application/vnd.google-earth.kml+xml"
+  },
+  "kmz": {
+    "description": "Keyhole Markup Language archive",
+    "extensions": [
+      "kmz"
+    ],
+    "group": "gis",
+    "is_text": false,
+    "mime_type": "application/vnd.google-earth.kmz"
+  },
+  "las": {
+    "description": "LAS point cloud",
+    "extensions": [
+      "las"
+    ],
+    "group": "gis",
     "is_text": false,
     "mime_type": null
   },
@@ -204,11 +307,49 @@
     "is_text": false,
     "mime_type": null
   },
+  "mbtiles": {
+    "description": "MBTiles tile set",
+    "extensions": [
+      "mbtiles"
+    ],
+    "group": "gis",
+    "is_text": false,
+    "mime_type": null
+  },
+  "minidump": {
+    "description": "Windows minidump",
+    "extensions": [
+      "dmp",
+      "mdmp"
+    ],
+    "group": "application",
+    "is_text": false,
+    "mime_type": null
+  },
   "netcdf": {
     "description": "NetCDF",
     "extensions": [
       "cdf",
       "nc"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "nifti": {
+    "description": "NIfTI neuroimaging data",
+    "extensions": [
+      "nii"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "nrrd": {
+    "description": "Nearly Raw Raster Data",
+    "extensions": [
+      "nhdr",
+      "nrrd"
     ],
     "group": "scientific",
     "is_text": false,
@@ -220,6 +361,16 @@
       "orc"
     ],
     "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "osm": {
+    "description": "OpenStreetMap data",
+    "extensions": [
+      "osm",
+      "pbf"
+    ],
+    "group": "gis",
     "is_text": false,
     "mime_type": null
   },
@@ -241,6 +392,15 @@
     "is_text": false,
     "mime_type": null
   },
+  "ply": {
+    "description": "Polygon File Format",
+    "extensions": [
+      "ply"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
   "postgres_dump": {
     "description": "PostgreSQL dump",
     "extensions": [
@@ -249,6 +409,15 @@
       "sql"
     ],
     "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "qgis": {
+    "description": "QGIS project archive",
+    "extensions": [
+      "qgz"
+    ],
+    "group": "gis",
     "is_text": false,
     "mime_type": null
   },
@@ -278,6 +447,15 @@
       "3dm"
     ],
     "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "safetensors": {
+    "description": "Safetensors",
+    "extensions": [
+      "safetensors"
+    ],
+    "group": "model",
     "is_text": false,
     "mime_type": null
   },

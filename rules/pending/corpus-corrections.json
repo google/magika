@@ -1,0 +1,1258 @@
+{
+  "corpus": "adjudicated-combined snapshot-1411a5c0fd4a",
+  "mechanism": "identity.label_adjudication.changes overlay applied to samples[].truth, as APK patch 136",
+  "accepted_sha_truth_digest": "b2f86528d705e83a1a459ec0becce958d9e70b8371a9f25c11186c78b4bb92f4",
+  "corpus_sha256": "27e48c7c0fb417c7effb9ad64e9569d755d4b49d0c740cd2e213d0256b9f4889",
+  "corrections": {
+    "010f5d919c56ae3dd45dfca2f59dd936758193104abf4b690689f89fc268bc38": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "01290cb21c77c91cbec8ba2e50c27ab257f2f689b605251c52a5da6ac7612a09": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "019b68debb4dabf3d5a3921140615de3b98f641de08614b30d1d8e4af93a54d6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "02be22316f2051e9afdb88ea8409632433075f7fc197b878ab2727d360a73d93": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "04bd105d14e61a988a55bcc785532f62cf38732141457006dda0b63fb780f1c6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "04bf6ea5491408af56b42b5b7370d5f6084048b6d7e22752a59ff5904c3ad301": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "06340ad6633d026c618f819073b5524c6d8c3eab9c7348264f0f12b7fe422a82": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0641c2c17aaee502eb3ee4eaa9209262882a62e148b9ee0c1c0e5325b9be934c": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0644b246a06f7fcfd59a4093486e33c206ec228003724144941388c18c70f47e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "066568ad851338c6d7969c0a813a40462cebe28378a255a3d529f779768be931": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "06adaee476587f705f1665c9bd068ca92807b0226d1eb9e0215e620484d788f6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "07c29c478d8df47e9cc5e899e162c71547f80f2d99ecd65a96948fac5d048b67": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0806b8f424dc634491f4affa4e6b536c9bbd0f615c70a99a3c272a50b27a8842": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "080ed3f479e997fbd4709ccbbc7b254087aa1f669e0de31d9d168ffb4c7b500c": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "0854d137e68964208cd954603001c46cfed41d848c988fe38bc02ed186548dff": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "091baf1d5311163ce0645eed4c546ae40a4f227978e25406ae94849dbf03e236": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "09e370b2448f12e20fa8f922d4499681c9fa79a3f0a8b41d9a0fbc477d2ee249": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0a0ccf354745ffac3fd4c8762c9cbb6ea59eaf18793e97e16b7ffade70c482d6": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "0b30942f5abf47765e82851210f9e6835343cdbb4245640aebe9dcfbd08dda80": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0b8ad3a844237cb8a4fc20d7a0790995d7be74c5f50521d6681f602224e045ad": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0c001d5c11670f22755eb082c7af2e2ca0e7622157a1633699097fa454c83f22": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0c57fd4c91d2c9951bbe9cdd0cecc09122af3789fd85ef3fc5d9b35b6599a961": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0de0fc2acd92ef7df1fe9bdbc75954736e5df5591639060a672e83ea4050fbbe": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "0e9ccde6f2b3e1d06569b3c385bf54dc1858ca2e81b945a9bae0a8f40a3a189d": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "1066fc524103356fe2ac2b94169d8b4251bc4c8610f0ecf3863b10f48104e4c4": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "113514fd840e339a52cd271b31cf0564a293cef6c009baf35218f3e38d1f9a67": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "120bca18d1a371f24b7229d577ed6f21cdf4cfd2b5d4c9833957281640d4e3b6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "12c9fe6fd9907a1bf950e5473a24ca41aae13570f7e2ea2cf67774c4e8e4d776": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "12f98724d7e921ea11f9136965e7169f1aa83e91fde2046810db62b2d6132483": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "142a0d3c1e211b615dcf9e6368196a5c723ff615241239686b84b98795873286": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "154e87e99c5681766c760a4a6ca9b56820f777a7142b515962a3a448e83c04df": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "15c9e426e5f8ede4007a79da4e9d26ad7b1d33df4def575c308ecc518c8f3352": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "17950dca99418e9dacb557d5914fa38b3f2d6eaea08247eb43b6836df1534818": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "1932090dd97ebebd112b15a93f188384c9b2b24e7657c03bc56b304a7b273a16": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "196335a17aa1febfb9b600b75e496ed0a62a034a903f18c271127c894b34e986": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "1b9e1490103ebc12706437e19a3520493ec3682e509c034428966d8d2d3d4d8d": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "1fc04c9a1ff4e7b0df4a7c18290ec43245805e617064db7c33c876e4bef3e06a": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "20343662c0157b282e62f21c51bacc5caf2bf7886ec9e33b5cfef16d913d2f44": {
+      "previous_truth": "pem",
+      "truth": "powershell",
+      "evidence": "PEM block at byte 1078; primary content is powershell"
+    },
+    "21a9d190c2a8c8978c7af84540bce809970a7174ad320327c53c4f60ecab3b3e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2220a8e843d7d0df80eb2582a96a87a1c38999e809b68b6bf943be17be1f68f7": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "231770ebb8025ef7eb98d110505bc6670d37fa8d336c2d07c04a9129fd0a891a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "23d7fd672645d700b85e535e2fe18d21f9d98806f7d12cb17ad282e6fb614e3a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "244d77de46254f089b8e4f2b84de2d1e31658890b316591b8c7545f03f42ced6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2534bb93aa3d581a78180b24d6d3de356adbdcd93685b7844f13a4636e6a2fde": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "262002f021bf2b327d21ebfc0570584aa45b80c99e50be16ca4e2776c740efe6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "26c8cd98e0662a92cff973234404b272b136b19a254896f877f6d785892629a4": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "26e9fd47a8bc6db5cc9711c91716842c4ec932d029fa9bbd5fa7a8e02f5ff14c": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2819e150b0868e292ed8d30608f8134bacb2eeef13b4bcfd04e3e2d3717f2613": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "283c6a0bd21119fd1829659e3480c2a1fe31258b88b3e4e59447923d2c5ba1d9": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "289e2ce5fc9db54f9319a1e914504f8f6bcc8a975c9e2cb1850fde4fa6e17d2c": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "28bdd74e2d74cfe4985c086ca0fb2a63cd7fd14d0eb9eba6314cd47e835ced15": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "28e9c681dad8fd918f8630d139538562a11021a04f9fa3d9da86d2a7f7fa247a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "293e422451a176d818b989563720c5828e6d3be64d9b21b1238062f934eca7e4": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "2a408a7572fb0ee8b5a1b20b9cd8cd8cad783a1381813a4c4f2753e35bd7ea48": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2a918b9653ed51c3f83c306d682e388d0ff6be84faf955e4a49c954cc44ab7ea": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2ba9a09738f07591f6d2a770fdac8aa676b3ae9d4be948ac3cae76abe33a7e95": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2c5a83ce9016f2e0a81bf346539e59a0490a853c9c73b85c168e1e50aa8be4eb": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2c6054c8eedc0515ada6ebbf38d21242bcbbf9c8c87ecbe03b40c42f1edbfc0f": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2e0b257994495874482db340bf393d4df31036571da6d7fbfb6872a78270168d": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2eb052bc41a77a366f0432026bb2c6b06cb5df9c48dd2c111f69f1bf6af8e815": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2f082a5fd7e4c3e56f032a8bb24394b05bf024f2454ecbc5a012f179a787da75": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2f0c30ad7ba72c154665f103664990566961b3067f0527f6d1c312bb343167a4": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "2f3f7ab595524925b083f892e7a72fc512c1d4c5f20b8945d84b37d2cc1342b8": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "30a1d89fde661228c1d068c02c1c4c565f6a813e2a2667cec5d68dce104752e8": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "32fff46db4da7d03ac1a230f9afea8346acddfff00b86dce12adc8408c197ce2": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "346a3587dfc7795755357279ae644396979ea5187b73f287ec3dd5fe23800bb5": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "3527d0deb93ff8f92d0d1733b99bcb2a6271d27dbb16b740d19aaa15abff69cf": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "35340572a9c3b404e3b7ce962ac5222f86b9967322d307145901bd042b4461e6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "363e05bf7e710d8a212114622bb774080a3ba365018fd76cb63b356232eb7818": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "36e7772e87bcd06f86c53150ebfbd0590462f57724b18b16a4688394dd78f43e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "381581eeb03437d19fcaf576918bdba870b34817b129a03dbce2b5c0cb4d5899": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "388d2726d990a41f503f0def1ea44063462825fd47079339063e45b204ad63e1": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "39f3a6dd41be1637f4f84655b50d32d6d61a6576faa869211b6e9de0e21ac534": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "3c3ac6b23176ea5d5291b8231015cd727a8274b2a33b85c34fb156ad2cf359b3": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "3c64d318055ee0151c5d939405254920d96c89f6d520da3d0264a8a9f9da0016": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "3ca73e95ead51dad8eb6f08edf4283c26870ec87e4eb29a5e1d96b54005458a7": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "41fa9c1b189b39975e13be2de6a876166724072e3d95b510a207ccea65d60303": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4305e1de5a66c9cfbb335becd7715a488bc38672fc08690297474b804043014a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "435e1bd87a4825527e5145eb5ae04b81fea7039f2ed1b5aa9b2ec4d88cfdefc2": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4458cbb3d8a3125806ffd33bd462cff1e4bdf96f7442dee71381e50c0afd75ea": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4489e545829167f9d34393b843b1a0a919454ae3ab858333c4319d60645d8212": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "44d3993d663cd8418223d26321a085748cd841cfbf2a0c4408c01dc1fcd0b729": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "45a527b16926fb1c1b5eaa06c6a2a5553ff54ceeda00509928a861ba03d61b75": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "45aeebfe3372f9a10bce5c6e311ca7194b6f10156e14a795d8c56ab2ceb755c9": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "48a6a6c10d34b6c762ff76d055fc806342a0c1d5fabe16fa69bebd2bab4120e1": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "48daf1afe293f0b19cac66de797c95bc4cd430fa5ce49a56bebfbce3d6fc9407": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "4b1521a8a32365bf7855d03e6ea6e996c7c9a1c2b6415e0b625829240e758f90": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4b3df03ed853036f1890e018ea45ef1b423bbcd6408fcb58089d35c13e2655a7": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4b893d5c49830c7fde5c5713b26e1ff62c10246e2ccc4f8678e069ad582e90e2": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4c1856b993a8ceca9475fc8cb5dac1d1462dd08bf8cbf219a720675e444d33c4": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "4c287f7abc79263c95172031e848d81588426afa5c0080943e57592d03377dbf": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "4c97dfd955ac9e5a0e5a88935aa117b5a7cad21da2ba584fcaf001bce3f30012": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4d53c69a310adfbabcebf493800d9c8671a63411d64a19daf887790e9aa9f3c4": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4dd390b7adb27d5f426fadfb68b7f8167b179ce3b7b7ba6451e509c8106c35ca": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4f53cfbdf6e58f37ef4973921ae261e502c999cda1a0d92d13c7b361ca975932": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4fb2dc8bac6fdc320d7f8e7851713014363a48b80d864ede45864af313ee3aa0": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "4fff699eca00f7f37069710ac0c8f3b2388ce490fd8e40aad5d444ba932c2163": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5031177054bcc8487f3e481eb69c2353abcbd9f8ae2a72887fbde428e7d1db8a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "512fd69d33abc3bbf134e12f3bab8b472e965525e062fa963c3ad6bb8caaa193": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "51b52844812eb4d35aa551a17868e80d31c30f02299363a5cffd40dd636ab58a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5364fc3ffb2e96d3a58fd8d4b4ab016f32363c81c1f48cb6dec7c051ce61b7b7": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "5470f13abc7b936350806d88756e2d42445b7ae0895c398cdf083ea9fc702df8": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "54733b8b6446928403a871142ecfa59fb45548f93eb030a4e0e12c6cd0241466": {
+      "previous_truth": "pem",
+      "truth": "tsv",
+      "evidence": "PEM block at byte 2759; primary content is tsv"
+    },
+    "555922c764a30780ed052586175a351e0c2442b5f75f5e17f82a694529c8c1e3": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5877c2013f2ae4c17e602ce2e9c2e6f331bf0dc0557ca2495d8db001e417f1a3": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5929c7a4a19cb5f098fecc95b67e904cf8db7bd536d995ebf32da0ee94ed12bc": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "599e929090b0ca7a9b1a856aba460acf46415aa053678672504d352ab0d08a0c": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "5a233702de30fbe505a8dbe622f70f6cddf3aabfbed01f10697920ab6dc8aa7e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5a34bdeae7ba1e0711c1f7cfd4f7c54a09e1f08ed60e1590103fd66ad2911bae": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5b6c974f9917a0dfa86084940847b9cfd20dc4fa7ef90f356ef065f610c5f067": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5b863da22766536c5ea3003480990a6e09d4a520d93e332ec012aaf73f2a232f": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5c7984aa6f2ac1cd7983f526b9e528180511ff5b559702164a30fd6d6e8fc7ff": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "5f31df9318335bf44ec7c54b424d564a8174cd8ea6cb1678dc2d590e2cc4f008": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "60c1841a470ec128a2ea9f520016abf7d08ef58bfae5fa348949358c5bfaa34d": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "61ba45da78df9c048179a1645d9aa71519e88f39957e7b0318e718cdb4872bf1": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "64598307aa06b66bbde691d6673aee163666f892138f6a6c9c009d3351e2a18c": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "673d341ca0b30fcf907fed0e2e8c8ee3c01f23cedfd920bbedc76bacaca40353": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "697de81721227e1e759ff06a5b78cb809e6bcd64dc6c9a9e32d19d2a25a482cf": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "6991c4dba19ab211a9a633466d36fb14ed6945c11aed7cbc505d4b56f4d4ab71": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "6a71186322ba51f0f65c34313ab978024b1bc1ede9ecc9e81a8828605705a638": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "6bddf0857f004ee81d28b4d75ea0d47dbeae1f6202054a7e711b80026828bccd": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "6c7970fba846e7df48db920d65f73a9198527a550ff9ea8b60f61afbbec7dfec": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "6ea1f85224153971190549b7995135aa1f0fa1e45e5d696ab33241b415cc9157": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "6eda929f24c93c036d4e7a66e0de662735829427cb494ae35e4deb2a71b4253b": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "70fc669866c1300967f3544de5789a7f7077b5ac8555cd8f325d4ee338b191cd": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "71c6f64cb5367653f9760f57e662e0d222b805f8ec3ded0c2f83e9ec0d8dd56b": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "73c5193e48a7df6abd4fa76955d0a4c13a75a0d825360a9fd2a8ee2189a5be62": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "742e339d3a53a1aaf63c810c6f469fd95acf0ef59d5cf19b7240d69b93e07406": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "750e8faafffebc71004ff5cd63e31c485ac6e9c55a284c664eac9ac80f25a533": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "75c5f14217ae97e11dcb42e61b0a98881e032570d5c81b336dfcfa4ea4153c1b": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "77a55d66390dd48835db8cd2f3e817044557a132d618bbf49eade08b8d73a8cd": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "77ae1bd5bae5e8f2dfdc35c85a4cad8ad49a521b27fd65f98164c343f1b28fce": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "7813c561c45f484a572eb7921f14b803085c3c0d11ebb9e45bb73a81e9240090": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "79442cf47bd39463d1e8c6022b7360dae5541a0878f6ffa36e44d317c25f495b": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "7b37ed87a767e4cf007099e54d142c64c614e95121df2892da11cf86214c91d0": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "7ebca267faa6d79cc2c1d019d4cbb33d60ac99f980ac8f29e3ad70d04486cacb": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "7f664f3af5ecc21de90ba752669338793193c642d9aa4c4702e6f999f880bf17": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "7facc17dbcc9013ba47241501ffe25e253056349c64757334100078b70714b6c": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "805af23950beddd066f316a8d39bb89cec8f639fb459ab07c4bb271f8f6d99d4": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "807b5e0a5cb67d3ccef341477743e6d41460646415a98505ffdeb7d78e379be2": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "80eb83148ffe29d80b05a528e9472c6fcf3f2f7b3c1e1bcd22f47864f92169dd": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "81b5dc52c4a7def433d91ffde6de9e45dde77b0cc3282a58ec0420af9969ee2b": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "8711f88b49ccaab74301ec528867ef632f407be1659bbaef27f77c6ee20ea482": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "872e0befa3e0b5049846f8714dec393644ecb43fef3f3a619ba77c47bc1c3acb": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "8a82eb44037a277c1e7d0092769812e18b5f6c48ab2b8f821577ada3d1f06644": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "8b43fb566252f9e4d8b5b2a85d30e5d5f3e727463f0b420c3b23f5642fbe39a6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "8d4c19133a5d82d83de5e6550fc30290161ce731b644101f4350bd6d45b4587c": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "9305e1ccf3fc3f42d262fa7318571a903fa560712d12a7745cec71dec6f95203": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "93cdfeae838571f3be614f84d722518743630093e1b399ed9d1b1772806218bf": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "94758d93478894d72b49d273a4d1bd1f7bce15f4a41da1fc0644cc085b62b8c4": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "94814149102853e102abd3ff7bdf945206c486cf614cbb0991ff270b39678b38": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "96c5dbc0f2ceaa0a7433886e3067d94e6f7310e9e8b1520dc648f74baccb48b3": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "974dcf15c936257cabcd4882fa05cdfd7c241f7687a8e09cb280d4aa4b656631": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "984578482395e358a122f7b956f4f44b3715f6dabbf95c7ef89e58421b0dd7d4": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "9884b213337935f394a0df94676528a808d6ee6ff609954ee8b4c46d784b379b": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "996da24502e3f135d3e5ae8ed2d443379b9b3fdab196f1d70d9ebc5f8ef37cf6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "99aa9fccd4571789824b347903b175ddd9cebec62bac064d0cd0711d4ac5d4b3": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "9a503f5808881618e6d057c18f54b76e6a2b6e0d43a965306f4ce27a5e41f57c": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "9b5e4bf28f35d17e13819115bfb90b81a2705dcd7a5b42ad2ebe8c6b828e06fb": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "9feb8b3d7b8acd543f0caefddcb5f26a29d0412e6c871c3694a17c2e0c4eee2c": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "a0c1818462c7e53729111449d93f5812c778c1f411f34ce4d4daae372d5c3cb0": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "a1dfa372f07f02b382cfb73a79cad6b2168f7959b454ca650ce8c4554c8801af": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "a36645c9f9a3a91feb7213529435528b73c0898182913e82e3f32254e9ff2a8b": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "a5c0231c8145c7505f4773de652db1e093fea8202ee5108a92bb822ab4186c1a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "a8f43418d8a544fa193ebc88921d2a2934ed3ee8b4f670cc37b5c930ded6522b": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "a94f005ff0d698b0cccebd23ef0389c9a594c3b2d319ec1457f32fe0d52f06fa": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "aa09dd6e36e85d102661d092979739033be0a787c31e745f92839201a636d722": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "aae38874aab56c26b516b9b0f283f0c60c102ff77af6fdedf0e870f306f0ad69": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "acbaa2e886b8fb40184ba5a4672e1e5d3e2225e604ba5720081ae1fefbdd9fc9": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "ae8c48e6ba27613d8d20aa349cc012fbae3e05ffb5e6222546e4b1eef764d853": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "aef42addfcae4409b2ed6f86bad479a593ff68ad729810a8b15fe38d46f66e5e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "af077cf8db7fef45b4311574c83445095e82b43f84a48b7925fc06f3054d57de": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "af4817cb3eb2f7192e907c4b7d44b738595a2e7f5f5d9a10ce5db84fe3f45ffc": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "b11541682733110177d7b04d15419a151b9f09c2dc607ef3e4dc9d622dad475d": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "b16b0ba09ae796f563af6269fba5c5eac4c1dbc13611feef4b793f32d677c70e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "b26895e3ec47c3593736ceef4b44b49a4a339c5f9956630a10edea58e038434e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "b2cb35c0ec1e6594df7b42fbd64d89d22aea7fbb1d6cda4003fd5e1c723c8efe": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "b2eeb839a9b2b534a1de1b850c2711ef7ee4348bc4905d826824c5f69fbe23b0": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "b52084dfb426bd58ef04ae4a157655e9e859de789449b80b070cb6258f74a2f6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "b5590bedbbdbb20528d22ecca66a62fb5cabb3715f07b61d4d4025c6e913edce": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "b5985463e2e1750ddca18b66d81da9848a4408edee130135f6a38e4feb83a6af": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "b8276268373f13e8a3d4ee1c3d71a9b7f921c9fee65756243d29ada25d84da99": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "ba3264962341e7646b3fc864ac126b6f9adec1762a1cb21b60f016750045150a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "ba7847fb8ca0c0d6fc06418aedc893d20773fddd0bcec6be72f51846545bde6a": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "bad6f36db99c6cf3a879c237f9f226efef9c7d1bb12e6fcfd293fa5f802c7d27": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "bc2bda670813268ebbce31a7955a8b9474582d7534e1097d8cd6179260dabab6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "bcbfead2768f6ffcb253382db97d05d200ec22ed1753fd13812a1151dc93fe79": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "be8d4600b9f8bf3c44e698b44b7ba8ded06decff79601a11146d5c8cea169371": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "bf01c757195863a5219b1e54cce52ac841c7b4e16b459f8b0f8a94d6f60ac099": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "bfb47c31f12c9626cff112d3d7a7c6549a7d1585d4b2227efba28b9aac5220ec": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c0114193f2d29d97079b530a0f9887f6ac1c91a0055caa5423df38319088cf20": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c011754b3d2b237403d9ac4598238ff4ca6432b57b6b76a99b5e2536c5d20bce": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c04151b1beb11aea00aea326eb507e3937e684dead61d434886fa45550576435": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "c10eff388db745dcdc2d481e5bacd3e3789cbba8519720667eb6fab9350a52c1": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c253c757e640a78f821b916f85136988a61b23be132b5e81ff0eda1570590440": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c3f0fff89c67590c32b14d483cf6872d1c2e84fd9257fb8875f6ec0906fcd833": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c428a7d782264d5a53e9aa181b4f2750537dd2502708d0cdff765d4b511425ae": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "c4c063d35662c46cbe66fea12d7b8756983bf7749b64de1a77523d574d4f2197": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c5266de3c31c756a52e50e8010e05878052090153b9aa1e13664f63aac84f0a6": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c61dc733f863e7052cb953cdcc69b94ab03ed7f93c32aea17eabe67d90f2feff": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "c8671b2e28d1784f51af5f818765b85b65776f27af8285ac2b8decda449a4de3": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "c89304d36b460fc6b5ff10b4eee4ce918e64a64a349f091dbf5663e18f1da6f9": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "c9c36b10ffd124208f4c527c55103e1c4b2f494c67ecd2e1557439ecba3adc30": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "ca103014f8908a57ade801cfc5470156717a7fe4bbdfa60633993af5a704a472": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "cac9b54d005ce527c2ea52ec0880a0b5b019ce6773b3ae49e5dbe72188d254b7": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "cc3df50d0a1849091ecffc30f1f900912c20a8d5e5217fd382c338c2b90317ff": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "cc41b1d4596cb36df5dfbbebf1a8783d5057edc7feb9e9dd25c70d0f141373ed": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "cdf7af1b96feec3191528760fe009245efd9bcc6e8375e31c5c33f6607549e7e": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "cf7b57a4449a62b0e22a4b32cd2f77f9934b5f2fbbddc21b5a442633633a976f": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "d0003d9733557871c9c21ad21c44f4e556f39b19ca29235ac66d854977505233": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "d0d808923806f3396729618618067a66e743ad3031a4001ad4f7c24b54ba1c28": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "d576dab1e38f025d6d7b77c8021ac711ee12e5420239ce79725173af68a5787f": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "d6fed5b1089057a8ce50802a31b07537731ac34ac0d094b9ff08bf0dd8912513": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "d709d6cfd337d33e72a8c13cc5ed14da565a6159a5c99f186dddd3a0d90c42e2": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "d7e8e48450e52ba0c32146f7e56d7c91243a144449668cb3914f288593bfd25d": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "d82ccda5c7aa4075315f214ad463a51048fa090d1ba2ca7db0be158d6690a42d": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "d87daadd6b5abf6098538a2222adf78cafc5bee0be8e655d833766044033df73": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "dc5cdb1e436c5d6adeb2f9ce0bd66b53b087a494353bf6527ff68dc042a84611": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "dd6887b20520e266a8350487aac9aefca2840462bf4fd33d2ad2110d9088a00c": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "e0f3c21eeb1f249a4b7a369674e7b7393a3696edd79e58a89c6347cdbb58fd18": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "e170d78446c0fa89399a47e7ea914a14b53026416bc8abe150c12e5ec73e8f90": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "e3d96040dab05444f585379fb7cf18b4008866031898a1ac97bf8abc044ee061": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "e3f880de75c5159c62f9ba5c1e463a24640aec5320e20d3f0df64cce2c74c30a": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "e6240a640aaf216f121a5b743c95e2fab871cdf3d89f97a88bc13832d9f1a2b0": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "e690160b8252cf3190a153269f38669764104eb07dcc66aff3e32a9369735dd7": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "e7477485d1a15bbc45746b4e82c2beff0f5b8e0a935ce4ffbd42dec3a61fc718": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "e8768c47817551240d1334d396b23c5ea559c9d7e05101724ca5dc35d26af219": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "ea7cad2f848488833844717d9d42239ddfc0f5d048b3183ea179345afd68eade": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "ee2991405131767654c05cc9eb7815c49f44ca06819b74099769cc127077da99": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "ee8febb206c27b98d21134d92e4ce368a82f67644e56231b2be45460f08acdae": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "eec46419f2077e61f85b15d0b6a3903f59704f716a31ab3a2afe8e8de3de4517": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "ef8db1f5ebbe695ae8062e41af0f9f22fe75bffb17fb7ab528278265e78ee133": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "efceefe753b0bf14ecaea5b9a9dd687defb429f7204a3a35198f6d5391e74b65": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "f06eea524b39db81a0277c2e2516ea8c1e62300c56d6ad8b866add17522e5c32": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "f2bd08d93148042b4aec7a70acad0aeb203399403fd7f8940e32190bc0e81325": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "f3410f3fcea3c672b7af6bce04e570b9e3bf65dbc9bda95fe1af544c6e33ee8d": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "f40505513ce29391084ca289acc9f39d2508eb112796fb4595b50b42e6626c9f": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "f51f489028bef31bc9207f23c735d5416a9dc17585b8b6ff93249b81b91ef12d": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "f6d3ba9da7985e4ec0f72d92d46008f49abb147b3fce6924324b31d38b96095d": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "f715ed88d876188cdee34bd2a960e15cb75cdc975092eb4186ed74364e2ac8ae": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "f7ca0a5c672eedbdb058901671a06a2a20087cdfab4a7dede0678396dc9e676a": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "f8336493a00c14c5de3c1d40f28266db73245afde30aba8d361323812db80aa0": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "f9d727b8dd7685066062c5b0c30d9b07d26d26e3503c329819459aeca9e43211": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "fa1a4b23b5fe84332eea6c463263321fcd29c482717dc6b998b5e397fb97ec08": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "fa9425e56e473b66b7d9ce67d3b149a4773d01dee40b1c84e9d868af98841c62": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "fb34470d1969200385c6b9ff93273f0a248d0954c1944c60b739a0b1ba22f2c5": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    },
+    "fb40e4ffa968e00c808ea17998f77a71ce8e688345cab4358da118e3518d5c8e": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "fc5cbcd9be6dbbd850c653ff5cc4805b10794e75dc343bb7d50f6755a24f2c2b": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "fcdb4ef14a9cea7c55a09704d0cdbd4b34dfb83fdcfee59332e00b0f4485a1bd": {
+      "previous_truth": "pem",
+      "truth": "vib",
+      "evidence": "ar archive; descriptor.xml first member; <vib version at offset 68"
+    },
+    "fe0752143f0249afc14cab516bf8bfbff12d70853e3dc22863f1807e90529a71": {
+      "previous_truth": "pdf",
+      "truth": "ai",
+      "evidence": "Adobe Illustrator private/editing data or illustrator:Type=Document"
+    }
+  }
+}

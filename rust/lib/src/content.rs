@@ -2651,6 +2651,15 @@ pub(crate) static VHDL: TypeInfo = TypeInfo {
     is_text: true,
 };
 
+pub(crate) static VIB: TypeInfo = TypeInfo {
+    label: "vib",
+    mime_type: "application/octet-stream",
+    group: "archive",
+    description: "VMware Installation Bundle",
+    extensions: &["vib"],
+    is_text: false,
+};
+
 pub(crate) static VISIO: TypeInfo = TypeInfo {
     label: "visio",
     mime_type: "application/vnd.ms-visio.drawing.main+xml",
@@ -3514,6 +3523,8 @@ pub enum ContentType {
     Vhd,
     /// VHDL source
     Vhdl,
+    /// VMware Installation Bundle
+    Vib,
     /// Microsoft Visio
     Visio,
     /// Web Video Text Tracks
@@ -3579,7 +3590,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 321;
+    pub(crate) const SIZE: usize = 322;
 
     /// Looks up an exact, canonical content label for a regular file.
     /// Filesystem labels `directory` and `symlink` belong to `FileType` and return `None`.
@@ -3875,6 +3886,7 @@ impl ContentType {
             "verilog" => Self::Verilog,
             "vhd" => Self::Vhd,
             "vhdl" => Self::Vhdl,
+            "vib" => Self::Vib,
             "visio" => Self::Visio,
             "vtt" => Self::Vtt,
             "vue" => Self::Vue,
@@ -4203,6 +4215,7 @@ impl ContentType {
             ContentType::Verilog => &VERILOG,
             ContentType::Vhd => &VHD,
             ContentType::Vhdl => &VHDL,
+            ContentType::Vib => &VIB,
             ContentType::Visio => &VISIO,
             ContentType::Vtt => &VTT,
             ContentType::Vue => &VUE,

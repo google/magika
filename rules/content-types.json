@@ -528,6 +528,15 @@
     "is_text": false,
     "mime_type": null
   },
+  "vib": {
+    "description": "VMware Installation Bundle",
+    "extensions": [
+      "vib"
+    ],
+    "group": "archive",
+    "is_text": false,
+    "mime_type": null
+  },
   "xcoff": {
     "description": "XCOFF",
     "extensions": [

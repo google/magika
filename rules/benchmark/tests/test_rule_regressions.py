@@ -1070,6 +1070,26 @@ PREFIX_SIGNATURES = {
     ),
     "nrrd": (b"NRRD0004\ntype: uint8\n", b"NRRD0009\ntype: uint8\n"),
     "osm": (b"\0\0\0\x0d\x0a\x09OSMHeader\x18\x2f", b"\0\0\0\x0d\x0a\x07OSMData\x18\x2f\0\0\0\0"),
+    "vib": (
+        b"!<arch>\n"
+        + b"descriptor.xml".ljust(16)
+        + b"0".ljust(12)
+        + b"0".ljust(6)
+        + b"0".ljust(6)
+        + b"100644".ljust(8)
+        + b"64".ljust(10)
+        + b"`\n"
+        + b'<vib version="5.0"><type>bootbank</type></vib>\n',
+        b"!<arch>\n"
+        + b"debian-binary".ljust(16)
+        + b"0".ljust(12)
+        + b"0".ljust(6)
+        + b"0".ljust(6)
+        + b"100644".ljust(8)
+        + b"4".ljust(10)
+        + b"`\n"
+        + b"2.0\n",
+    ),
 }
 
 

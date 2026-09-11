@@ -1459,6 +1459,27 @@ rule taxonomy_vhd
         uint32be(60) >= 2 and uint32be(60) <= 4 and uint8(84) <= 1
 }
 
+rule taxonomy_vib
+{
+	meta:
+        source_refs = "spec:VMware Installation Bundle (ar archive, descriptor.xml VIB descriptor)"
+		label = "vib"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // A Unix ar archive whose first member is descriptor.xml holding a <vib version="..."> root.
+    // The ar magic is 8 bytes and the first member header is a fixed 60 bytes, so the descriptor
+    // content begins at offset 68.
+    strings:
+        $ar = "!<arch>\n"
+        $name = "descriptor.xml"
+        $vib = "<vib version"
+    condition:
+        prefix_size >= 80 and $ar at 0 and $name at 8 and $vib at 68
+}
+
 rule taxonomy_wad
 {
 	meta:

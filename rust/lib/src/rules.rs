@@ -30,6 +30,7 @@ impl RulesMode {
 }
 
 pub(crate) const PREFIX_LIMIT: usize = 4096;
+/// Size of the stream A header: `original_size` and `prefix_size`, big-endian.
 #[cfg(feature = "yara-rules")]
 const EXTERNAL_BYTES: usize = 2 * std::mem::size_of::<u64>();
 
@@ -57,6 +58,8 @@ mod mapped;
 mod metadata;
 #[cfg(feature = "yara-rules")]
 mod native;
+#[cfg(feature = "yara-rules")]
+mod preprocess;
 
 /// A compiled, shareable YARA pack executed by Vectorscan.
 ///
@@ -158,11 +161,20 @@ impl RuleSet {
         }
         #[cfg(feature = "yara-rules")]
         drop(_input_read);
-        Ok(self.identify(&prefix, size))
+        Ok(self.identify(&prefix, size, None))
     }
 
-    pub(crate) fn identify(&self, prefix: &[u8], size: u64) -> Option<ContentType> {
-        engine::scan(self.database.as_ref()?, prefix, size).content_type()
+    /// Scans one input: the bounded prefix, its original size and, when the caller has read
+    /// one, the trailing block. Preprocessing derives the synthetic stream views from them.
+    pub(crate) fn identify(
+        &self, prefix: &[u8], size: u64, tail: Option<&[u8]>,
+    ) -> Option<ContentType> {
+        let database = self.database.as_ref()?;
+        // Preprocessing only feeds stream B: a pack without facts rules never pays for it.
+        let synthetic = database
+            .uses_facts()
+            .then(|| preprocess::prepare(&preprocess::Blocks { prefix, size, tail }));
+        engine::scan(database, synthetic.as_ref(), prefix, size).content_type()
     }
 }
 
@@ -266,7 +278,12 @@ mod native_tests {
         ] {
             assert!(DEFAULT_RULES.contains(notice), "missing bundled attribution: {notice}");
         }
-        assert!(compiler::compile(DEFAULT_RULES).unwrap().outputs.iter().any(Option::is_some));
+        assert!(compiler::compile(DEFAULT_RULES)
+            .unwrap()
+            .prefix
+            .outputs
+            .iter()
+            .any(Option::is_some));
         assert!(RuleSet::from_source(
             "rule a { meta: label = \"png\" enabled = false condition: filesize > 0 }"
         )
@@ -284,12 +301,33 @@ mod native_tests {
             "original_size % 4 >= 0",
             "unknown",
             "for all i in (0..1000): (true)",
+            // Views support only `contains`/`startswith` with a literal, inside a view.
+            "zip_names icontains \"a\"",
+            "zip_names istartswith \"a\"",
+            "zip_names endswith \"a\"",
+            "zip_names iendswith \"a\"",
+            "zip_names matches /a/",
+            "zip_names contains zip_names",
+            "zip_names contains \"\"",
+            "zip_names == \"a\"",
+            "pe_machine contains \"a\"",
+            "\"a\" contains \"b\"",
+            // Preprocessor facts cannot be combined with prefix bytes in one rule.
+            "uint8(0) == 1 and pe_valid == 1",
+            "uint8(0) == 1 or zip_names contains \"a\"",
         ] {
             assert!(
                 RuleSet::from_source(&rule("bad", "png", "", condition)).is_err(),
                 "{condition}"
             );
         }
+        assert!(RuleSet::from_source(&rule(
+            "bad",
+            "png",
+            "strings: $a = \"AB\"",
+            "$a at 0 and zip_valid == 1"
+        ))
+        .is_err());
         for patterns in
             ["strings: $a = /a.*/", "strings: $a = /^abc/", "strings: $a = { 41 [-] 42 }"]
         {
@@ -331,15 +369,15 @@ mod native_tests {
             let mut data = std::fs::read(path).unwrap();
             let size = data.len() as u64;
             let prefix = data.len().min(PREFIX_LIMIT);
-            assert_eq!(pack.identify(&data[..prefix], size), Some(expected));
+            assert_eq!(pack.identify(&data[..prefix], size, None), Some(expected));
             let mut misaligned = data.clone();
             misaligned.push(0);
             assert_eq!(
-                pack.identify(&misaligned[..misaligned.len().min(PREFIX_LIMIT)], size + 1),
+                pack.identify(&misaligned[..misaligned.len().min(PREFIX_LIMIT)], size + 1, None),
                 None
             );
             data[identifying_byte] ^= 1;
-            assert_eq!(pack.identify(&data[..prefix], size), None);
+            assert_eq!(pack.identify(&data[..prefix], size, None), None);
         }
     }
 
@@ -366,12 +404,12 @@ mod native_tests {
                     let bytes = if be { &bytes[4 - width..] } else { &bytes[..width] };
                     let actual = value as u64 & ((1_u64 << (width * 8)) - 1);
                     assert_eq!(
-                        pack.identify(bytes, width as u64).is_some(),
+                        pack.identify(bytes, width as u64, None).is_some(),
                         actual % divisor == remainder,
                         "{function}: {actual} % {divisor}"
                     );
                     for end in 0..width {
-                        assert!(pack.identify(&bytes[..end], end as u64).is_none());
+                        assert!(pack.identify(&bytes[..end], end as u64, None).is_none());
                     }
                 }
             }
@@ -385,7 +423,7 @@ mod native_tests {
                 let available = size.min(PREFIX_LIMIT as u64);
                 let value = if variable == "original_size" { size } else { available };
                 assert_eq!(
-                    pack.identify(&prefix[..available as usize], size).is_some(),
+                    pack.identify(&prefix[..available as usize], size, None).is_some(),
                     value % 4 == 0
                 );
             }
@@ -460,11 +498,12 @@ mod native_tests {
             assert_eq!(pack.loaded_from_cache(), cached);
             for label in labels {
                 let marker = format!("{label}!");
-                let content_type = pack.identify(marker.as_bytes(), marker.len() as u64).unwrap();
+                let content_type =
+                    pack.identify(marker.as_bytes(), marker.len() as u64, None).unwrap();
                 assert_eq!(Some(content_type), ContentType::from_label(label));
                 assert_eq!(crate::FileType::Ruled(content_type).info().label, label);
             }
-            assert_eq!(pack.identify(b"miss", 4), None);
+            assert_eq!(pack.identify(b"miss", 4, None), None);
         }
     }
 
@@ -491,16 +530,16 @@ mod native_tests {
             (b"ABC", None),
             (b"xABCD", None),
         ] {
-            assert_eq!(pack.identify(data, data.len() as u64), expected, "{data:?}");
+            assert_eq!(pack.identify(data, data.len() as u64, None), expected, "{data:?}");
         }
-        assert_eq!(pack.identify(b"ABCD", 5000), None); // Caller did not supply the available prefix.
+        assert_eq!(pack.identify(b"ABCD", 5000, None), None); // Caller did not supply the available prefix.
         let handles: Vec<_> = (0..4)
             .map(|_| {
                 let pack = pack.clone();
                 std::thread::spawn(move || {
                     for _ in 0..100 {
-                        assert_eq!(pack.identify(b"ABCD", 4), Some(ContentType::Png));
-                        assert_eq!(pack.identify(b"ABCDxx", 6), None);
+                        assert_eq!(pack.identify(b"ABCD", 4, None), Some(ContentType::Png));
+                        assert_eq!(pack.identify(b"ABCDxx", 6, None), None);
                     }
                 })
             })
@@ -511,8 +550,8 @@ mod native_tests {
         let other =
             RuleSet::from_source(&rule("other", "gif", "strings: $a = \"ABCD\"", "$a at 0"))
                 .unwrap();
-        assert_eq!(other.identify(b"ABCD", 4), Some(ContentType::Gif));
-        assert_eq!(pack.identify(b"ABCD", 4), Some(ContentType::Png));
+        assert_eq!(other.identify(b"ABCD", 4, None), Some(ContentType::Gif));
+        assert_eq!(pack.identify(b"ABCD", 4, None), Some(ContentType::Png));
     }
 
     #[test]
@@ -533,13 +572,13 @@ mod native_tests {
             .unwrap();
             for value in 0..=255_u8 {
                 assert_eq!(
-                    pack.identify(&[value, 0], 2).is_some(),
+                    pack.identify(&[value, 0], 2, None).is_some(),
                     alternatives.contains(&value),
                     "{pattern}: {value}"
                 );
-                assert_eq!(pack.identify(&[value], 1), None);
-                assert_eq!(pack.identify(&[value, 1], 2), None);
-                assert_eq!(pack.identify(&[128, value, 0], 3), None);
+                assert_eq!(pack.identify(&[value], 1, None), None);
+                assert_eq!(pack.identify(&[value, 1], 2, None), None);
+                assert_eq!(pack.identify(&[128, value, 0], 3, None), None);
             }
         }
     }
@@ -581,13 +620,13 @@ mod native_tests {
                         value.to_le_bytes()[..width].to_vec()
                     };
                     assert_eq!(
-                        pack.identify(&bytes, width as u64).is_some(),
+                        pack.identify(&bytes, width as u64, None).is_some(),
                         predicate(value, threshold),
                         "{read} {op} {threshold}, input {value}"
                     );
                 }
                 for len in 1..width {
-                    assert_eq!(pack.identify(&vec![0; len], len as u64), None);
+                    assert_eq!(pack.identify(&vec![0; len], len as u64, None), None);
                 }
             }
         }
@@ -601,7 +640,218 @@ mod native_tests {
         let mut bytes = vec![0; 4096];
         bytes[..2].copy_from_slice(b"AB");
         for size in [5000, 6000, 4096, 5000, u64::MAX, 5000] {
-            assert_eq!(pack.identify(&bytes, size), (size == 5000).then_some(ContentType::Png));
+            assert_eq!(
+                pack.identify(&bytes, size, None),
+                (size == 5000).then_some(ContentType::Png)
+            );
+        }
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_pattern_placement_respects_at_and_in_bounds() {
+        // The exact `at` placement and the inclusive `in` range, on fixed and variable widths.
+        let at =
+            RuleSet::from_source(&rule("exact", "png", "strings: $a = \"AB\"", "$a at 5")).unwrap();
+        for (data, expected) in [
+            (&b"xxxxxAB"[..], Some(ContentType::Png)),
+            (b"xxxxAB", None),
+            (b"xxxxxxAB", None),
+            (b"xxxxxABxx", Some(ContentType::Png)),
+            (b"ABxxxAB", Some(ContentType::Png)),
+            (b"xxxxxA", None),
+        ] {
+            assert_eq!(at.identify(data, data.len() as u64, None), expected, "{data:?}");
+        }
+        let range =
+            RuleSet::from_source(&rule("ranged", "png", "strings: $a = \"AB\"", "$a in (3..5)"))
+                .unwrap();
+        for placement in 0..8 {
+            let mut data = vec![b'x'; 10];
+            data[placement..placement + 2].copy_from_slice(b"AB");
+            assert_eq!(
+                range.identify(&data, data.len() as u64, None),
+                (3..=5).contains(&placement).then_some(ContentType::Png),
+                "placement {placement}"
+            );
+        }
+        // Bounds still apply when the same literal also appears elsewhere, and a
+        // combination needs every operand satisfied within its own bounds.
+        let both = RuleSet::from_source(&rule(
+            "both",
+            "png",
+            "strings: $a = \"AB\" $b = { 43 [1-2] 44 }",
+            "$a at 0 and $b in (2..3)",
+        ))
+        .unwrap();
+        for (data, expected) in [
+            (&b"ABCxD"[..], Some(ContentType::Png)),
+            (b"ABxCxxD", Some(ContentType::Png)),
+            (b"ABxxCxD", None),
+            (b"xABCxD", None),
+            (b"ABABCxD", None),
+        ] {
+            assert_eq!(both.identify(data, data.len() as u64, None), expected, "{data:?}");
+        }
+    }
+
+    /// Scans with a hand-built stream B, bypassing the preprocessors.
+    fn scan(pack: &RuleSet, synthetic: &preprocess::Synthetic, data: &[u8]) -> Option<ContentType> {
+        let database = pack.database.as_ref().unwrap();
+        engine::scan(database, Some(synthetic), data, data.len() as u64).content_type()
+    }
+
+    fn synthetic(data: &[u8]) -> preprocess::Synthetic {
+        preprocess::prepare(&preprocess::Blocks {
+            prefix: data,
+            size: data.len() as u64,
+            tail: None,
+        })
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_facts_rules_scan_only_an_active_facts_stream() {
+        let pack = RuleSet::from_source(&rule(
+            "document",
+            "docx",
+            "",
+            "zip_valid == 1 and zip_names contains \"word/document.xml\"",
+        ))
+        .unwrap();
+        let mut zip = synthetic(b"PK");
+        assert_eq!(scan(&pack, &zip, b"PK"), None);
+        preprocess::write_fact(&mut zip.facts, preprocess::fact("zip_valid").unwrap(), 1);
+        assert_eq!(scan(&pack, &zip, b"PK"), None);
+        zip.names[..19].copy_from_slice(b"\nword/document.xml\n");
+        assert_eq!(scan(&pack, &zip, b"PK"), Some(ContentType::Docx));
+        zip.facts[16] = 0;
+        assert_eq!(scan(&pack, &zip, b"PK"), None);
+        // Nothing preprocessed: stream B is not scanned at all, even for a facts rule whose
+        // atoms an all-zero header would satisfy.
+        let hollow = RuleSet::from_source(&rule(
+            "hollow",
+            "png",
+            "",
+            "pe_valid == 0 and original_size >= 0",
+        ))
+        .unwrap();
+        assert_eq!(scan(&hollow, &synthetic(b"PK"), b"PK"), None);
+        assert_eq!(hollow.identify(b"PK", 2, None), None);
+        let mut active = synthetic(b"PK");
+        active.names[0] = b'\n';
+        assert_eq!(scan(&hollow, &active, b"PK"), Some(ContentType::Png));
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_prefix_only_packs_skip_preprocessing() {
+        let signature = rule("signature", "png", "strings: $a = \"AB\"", "$a at 0");
+        let prefix_only = RuleSet::from_source(&signature).unwrap();
+        let empty = RuleSet::from_source("// Empty test pack.").unwrap();
+        let facts = RuleSet::from_source(&rule("fact", "gif", "", "pe_valid == 1")).unwrap();
+        let before = preprocess::PREPARATIONS.get();
+        assert_eq!(prefix_only.identify(b"AB", 2, None), Some(ContentType::Png));
+        assert_eq!(prefix_only.identify(b"xx", 2, None), None);
+        assert_eq!(empty.identify(b"AB", 2, None), None);
+        assert_eq!(preprocess::PREPARATIONS.get(), before, "no facts stream, no preprocessing");
+        assert_eq!(facts.identify(b"AB", 2, None), None);
+        assert_eq!(preprocess::PREPARATIONS.get(), before + 1);
+        let both = RuleSet::from_source(&format!(
+            "{signature}{}",
+            rule("fact", "gif", "", "pe_valid == 1")
+        ))
+        .unwrap();
+        assert_eq!(both.identify(b"AB", 2, None), Some(ContentType::Png));
+        assert_eq!(preprocess::PREPARATIONS.get(), before + 2);
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_view_membership_respects_view_boundaries() {
+        let contains =
+            RuleSet::from_source(&rule("view", "png", "", "zip_names contains \"needle\""))
+                .unwrap();
+        let starts =
+            RuleSet::from_source(&rule("view", "png", "", "zip_names startswith \"needle\""))
+                .unwrap();
+        // A nonempty view starts with its `\n` separator; only `startswith` sees offset 0.
+        for at in [0, 1, 100, preprocess::ZIP_NAMES_BYTES - 6] {
+            let mut names = synthetic(b"x");
+            names.names[0] = b'\n';
+            names.names[at..at + 6].copy_from_slice(b"needle");
+            assert_eq!(scan(&contains, &names, b"x"), Some(ContentType::Png), "{at}");
+            assert_eq!(scan(&starts, &names, b"x"), (at == 0).then_some(ContentType::Png), "{at}");
+        }
+        // Cut off by the end of the view.
+        let mut cut = synthetic(b"x");
+        cut.names[0] = b'\n';
+        cut.names[preprocess::ZIP_NAMES_BYTES - 3..].copy_from_slice(b"nee");
+        assert_eq!(scan(&contains, &cut, b"x"), None);
+        // Inside the facts header only: active, but not part of the view.
+        let mut header = synthetic(b"x");
+        header.facts[20..26].copy_from_slice(b"needle");
+        assert!(header.is_active());
+        assert_eq!(scan(&contains, &header, b"x"), None);
+        // Straddling the header and the view.
+        let mut straddling = synthetic(b"x");
+        straddling.facts[61..].copy_from_slice(b"nee");
+        straddling.names[..3].copy_from_slice(b"dle");
+        assert_eq!(scan(&contains, &straddling, b"x"), None);
+        assert_eq!(scan(&starts, &straddling, b"x"), None);
+        // The prefix is never the view.
+        assert_eq!(contains.identify(b"needle", 6, None), None);
+        let mut active = synthetic(b"needle");
+        active.names[0] = b'\n';
+        assert_eq!(scan(&contains, &active, b"needle"), None);
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_streams_report_into_one_decision() {
+        let signature = rule("signature", "png", "strings: $a = \"AB\"", "$a at 0");
+        let agreeing = RuleSet::from_source(&format!(
+            "{signature}{}",
+            rule("fact", "png", "", "pe_valid == 1")
+        ))
+        .unwrap();
+        let disagreeing = RuleSet::from_source(&format!(
+            "{signature}{}",
+            rule("fact", "gif", "", "pe_valid == 1")
+        ))
+        .unwrap();
+        let mut executable = synthetic(b"AB");
+        preprocess::write_fact(&mut executable.facts, preprocess::fact("pe_valid").unwrap(), 1);
+        assert_eq!(scan(&agreeing, &executable, b"AB"), Some(ContentType::Png));
+        assert_eq!(scan(&disagreeing, &executable, b"AB"), None, "conflict across streams");
+        assert_eq!(scan(&disagreeing, &synthetic(b"AB"), b"AB"), Some(ContentType::Png));
+        assert_eq!(scan(&disagreeing, &executable, b"xx"), Some(ContentType::Gif));
+        assert_eq!(scan(&disagreeing, &synthetic(b"xx"), b"xx"), None);
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_two_stream_packs_survive_the_cache() {
+        let signature = rule("signature", "png", "strings: $a = \"AB\"", "$a at 0");
+        let fact = rule("fact", "gif", "", "pe_valid == 1 and zip_names startswith \"\\n\"");
+        let directory = tempfile::tempdir().unwrap();
+        let mut executable = synthetic(b"AB");
+        preprocess::write_fact(&mut executable.facts, preprocess::fact("pe_valid").unwrap(), 1);
+        executable.names[0] = b'\n';
+        for (name, source, prefix, facts) in [
+            ("both", format!("{signature}{fact}"), Some(ContentType::Png), Some(ContentType::Gif)),
+            ("prefix", signature.clone(), Some(ContentType::Png), None),
+            ("facts", fact.clone(), None, Some(ContentType::Gif)),
+        ] {
+            let path = directory.path().join(format!("{name}.yar"));
+            std::fs::write(&path, source).unwrap();
+            for cached in [false, true] {
+                let pack = RuleSet::from_file_with_cache(&path, Some(directory.path())).unwrap();
+                assert_eq!(pack.loaded_from_cache(), cached, "{name}");
+                assert_eq!(pack.identify(b"AB", 2, None), prefix, "{name} {cached}");
+                assert_eq!(scan(&pack, &executable, b"xx"), facts, "{name} {cached}");
+                assert_eq!(scan(&pack, &synthetic(b"xx"), b"xx"), None, "{name} {cached}");
+            }
         }
     }
 }

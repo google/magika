@@ -91,24 +91,28 @@ impl FeaturesOrRuled {
     /// Abstention reuses the prefix and preserves ordinary feature extraction.
     pub fn extract_with_rules(file: impl Input, mode: RulesMode) -> Result<Self> {
         mode.check()?;
-        Self::extract_with_matcher(file, |prefix, size| crate::rules::identify(prefix, size, mode))
+        Self::extract_with_matcher(file, |prefix, size, _| {
+            crate::rules::identify(prefix, size, mode)
+        })
     }
 
     /// Applies a loaded custom ruleset to original bytes, then extracts ML features on abstention.
     #[cfg(feature = "yara-rules")]
     pub fn extract_with_ruleset(file: impl Input, rules: &crate::RuleSet) -> Result<Self> {
-        Self::extract_with_matcher(file, |prefix, size| rules.identify(prefix, size))
+        Self::extract_with_matcher(file, |prefix, size, tail| rules.identify(prefix, size, tail))
     }
 
+    /// The matcher receives the bounded prefix, the original size and, when one was read
+    /// ahead of matching, the trailing block of the input.
     pub(crate) fn extract_with_matcher(
-        file: impl Input, identify: impl FnOnce(&[u8], u64) -> Option<ContentType>,
+        file: impl Input, identify: impl FnOnce(&[u8], u64, Option<&[u8]>) -> Option<ContentType>,
     ) -> Result<Self> {
         Self::extract_with_config(&crate::model::CONFIG, file, identify)
     }
 
     fn extract_with_config(
         config: &ModelConfig, mut file: impl Input,
-        identify: impl FnOnce(&[u8], u64) -> Option<ContentType>,
+        identify: impl FnOnce(&[u8], u64, Option<&[u8]>) -> Option<ContentType>,
     ) -> Result<Self> {
         let file_len = file.length()?;
         if file_len == 0 {
@@ -118,7 +122,7 @@ impl FeaturesOrRuled {
         let mut first_block = vec![0; file_len.min(read_size as u64) as usize];
         file.read_at(&mut first_block, 0)?;
         let prefix = &first_block[..first_block.len().min(crate::rules::PREFIX_LIMIT)];
-        if let Some(content_type) = identify(prefix, file_len) {
+        if let Some(content_type) = identify(prefix, file_len, None) {
             return Ok(FeaturesOrRuled::Ruled(content_type));
         }
         // Rule lookahead must not change the model's whitespace trimming or tail window.
@@ -237,7 +241,7 @@ mod tests {
                 bytes: (0..len).map(|i| (i % 256) as u8).collect(),
                 reads: Vec::new(),
             };
-            FeaturesOrRuled::extract_with_matcher(&mut input, |_, _| None).unwrap();
+            FeaturesOrRuled::extract_with_matcher(&mut input, |_, _, _| None).unwrap();
             let expected = if len <= block_size {
                 vec![(0, len)]
             } else {
@@ -258,7 +262,7 @@ mod tests {
             let expected =
                 extract_features(&config, bytes.as_slice(), bytes.len() as u64).unwrap().1;
             let result =
-                FeaturesOrRuled::extract_with_config(&config, bytes.as_slice(), |prefix, _| {
+                FeaturesOrRuled::extract_with_config(&config, bytes.as_slice(), |prefix, _, _| {
                     assert_eq!(prefix.len(), 4096, "model block size {block_size}");
                     assert!(prefix == &bytes[..4096]);
                     None
@@ -277,7 +281,7 @@ mod tests {
         };
         let expected =
             extract_features(&crate::model::CONFIG, input.bytes.as_slice(), 10000).unwrap().1;
-        let hit = FeaturesOrRuled::extract_with_matcher(&mut input, |prefix, size| {
+        let hit = FeaturesOrRuled::extract_with_matcher(&mut input, |prefix, size, _| {
             assert_eq!(size, 10000);
             assert_eq!(prefix.len(), 4096);
             assert_eq!(&prefix[..3], &[0, 1, 2]);
@@ -288,7 +292,7 @@ mod tests {
         assert_eq!(input.reads, [(0, 4096)]);
         input.reads.clear();
         let FeaturesOrRuled::Features(actual) =
-            FeaturesOrRuled::extract_with_matcher(&mut input, |_, _| None).unwrap()
+            FeaturesOrRuled::extract_with_matcher(&mut input, |_, _, _| None).unwrap()
         else {
             panic!("expected features")
         };
@@ -298,14 +302,16 @@ mod tests {
 
     #[test]
     fn original_whitespace_empty_tiny_and_io_error_semantics() {
-        FeaturesOrRuled::extract_with_matcher(&b"  \0header"[..], |prefix, _| {
+        FeaturesOrRuled::extract_with_matcher(&b"  \0header"[..], |prefix, _, _| {
             assert_eq!(prefix, b"  \0header");
             None
         })
         .unwrap();
         assert!(matches!(
-            FeaturesOrRuled::extract_with_matcher(&b""[..], |_, _| panic!("empty must not scan"))
-                .unwrap(),
+            FeaturesOrRuled::extract_with_matcher(&b""[..], |_, _, _| panic!(
+                "empty must not scan"
+            ))
+            .unwrap(),
             FeaturesOrRuled::Ruled(ContentType::Empty)
         ));
         for (bytes, expected) in
@@ -324,7 +330,7 @@ mod tests {
                 Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "changed input").into())
             }
         }
-        let error = FeaturesOrRuled::extract_with_matcher(Unreadable, |_, _| {
+        let error = FeaturesOrRuled::extract_with_matcher(Unreadable, |_, _, _| {
             panic!("must not scan unread bytes")
         })
         .err()

@@ -4,6 +4,7 @@
 use std::cell::RefCell;
 use std::sync::{Arc, OnceLock};
 
+use super::preprocess::Synthetic;
 use super::{native, RuleSet};
 use crate::ContentType;
 
@@ -33,7 +34,11 @@ thread_local! {
     static SCANNER: RefCell<Option<native::Worker>> = const { RefCell::new(None) };
 }
 
-pub(super) fn scan(database: &Arc<native::Database>, prefix: &[u8], size: u64) -> Decision {
+/// Scans one input on this thread's worker. `synthetic` is stream B, prepared only for a
+/// database that scans facts.
+pub(super) fn scan(
+    database: &Arc<native::Database>, synthetic: Option<&Synthetic>, prefix: &[u8], size: u64,
+) -> Decision {
     SCANNER.with(|cell| {
         let Ok(mut slot) = cell.try_borrow_mut() else { return Decision::EngineError };
         if slot.as_ref().is_none_or(|worker| !Arc::ptr_eq(&worker.database, database)) {
@@ -45,7 +50,7 @@ pub(super) fn scan(database: &Arc<native::Database>, prefix: &[u8], size: u64) -
                 }
             }
         }
-        let decision = slot.as_mut().unwrap().scan(prefix, size);
+        let decision = slot.as_mut().unwrap().scan(synthetic, prefix, size);
         // A failed scan cannot poison the next identification.
         if decision == Decision::EngineError {
             *slot = None;
@@ -65,5 +70,5 @@ pub(super) fn bundled() -> anyhow::Result<&'static RuleSet> {
 }
 
 pub(super) fn scan_promoted(prefix: &[u8], size: u64) -> Option<ContentType> {
-    bundled().ok()?.identify(prefix, size)
+    bundled().ok()?.identify(prefix, size, None)
 }

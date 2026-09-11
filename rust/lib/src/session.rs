@@ -110,7 +110,7 @@ mod rules_tests {
         let runtime =
             Runtime::builder().with_backend(crate::Backend::Cpu).with_max_batch(1).build().unwrap();
         let mut session = runtime.session().unwrap();
-        let ruled = FeaturesOrRuled::extract_with_matcher(&b"known file"[..], |_, _| {
+        let ruled = FeaturesOrRuled::extract_with_matcher(&b"known file"[..], |_, _, _| {
             Some(crate::ContentType::Png)
         })
         .unwrap();
@@ -209,9 +209,11 @@ mod rules_tests {
             let bytes = std::fs::read(root.join(path)).unwrap();
             let data = bytes.as_slice();
             let before = session.inference_runs;
-            if let Some(label) = pack
-                .identify(&data[..data.len().min(crate::rules::PREFIX_LIMIT)], data.len() as u64)
-            {
+            if let Some(label) = pack.identify(
+                &data[..data.len().min(crate::rules::PREFIX_LIMIT)],
+                data.len() as u64,
+                None,
+            ) {
                 assert!(
                     matches!(session.identify_content(NoTail(data)).unwrap(), FileType::Ruled(actual) if actual == label),
                     "{path}"

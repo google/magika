@@ -7,22 +7,91 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use anyhow::{ensure, Result};
+use anyhow::{ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::compiler::Streams;
 use super::native::Api;
 
-const MAGIC: &[u8; 9] = b"MAGIKAHS\x04";
+const MAGIC: &[u8; 9] = b"MAGIKAHS\x05";
 pub(super) const MAX_DATABASE_SIZE: usize = 64 * 1024 * 1024;
 const MAX_MANIFEST_SIZE: usize = 4 * 1024 * 1024;
+/// Mapped images must be 64-byte aligned; the payload starts page-aligned in a mapped pack.
+const FRAME_ALIGNMENT: usize = 64;
+/// Two databases plus the frame header and its padding.
+pub(super) const MAX_PAYLOAD_SIZE: usize = 2 * (MAX_DATABASE_SIZE + FRAME_ALIGNMENT);
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Manifest {
     key: String,
-    labels: Vec<Option<String>>,
+    /// The label of each expression ID, per stream; absent streams have none.
+    labels: Streams<Vec<Option<String>>>,
     engine: String,
+}
+
+/// Frames both stream payloads: `[u64 len_a][u64 len_b]`, then each payload at the next
+/// 64-byte boundary. An absent stream has length zero and occupies nothing.
+fn frame(streams: Streams<&[u8]>) -> Vec<u8> {
+    let mut payload = Vec::new();
+    payload.extend_from_slice(&(streams.prefix.len() as u64).to_le_bytes());
+    payload.extend_from_slice(&(streams.facts.len() as u64).to_le_bytes());
+    for bytes in [streams.prefix, streams.facts] {
+        if !bytes.is_empty() {
+            payload.resize(payload.len().next_multiple_of(FRAME_ALIGNMENT), 0);
+            payload.extend_from_slice(bytes);
+        }
+    }
+    payload
+}
+
+/// The payload range of each stream; empty when absent. Validates the frame completely
+/// so no native reader sees unbounded bytes.
+fn unframe(payload: &[u8]) -> Result<Streams<std::ops::Range<usize>>> {
+    // Untrusted on-disk bytes: every slice below is bounds-checked, never indexed.
+    let header = payload.get(..16).context("invalid payload frame")?;
+    ensure!(payload.len() <= MAX_PAYLOAD_SIZE, "invalid payload frame");
+    let length = |at: usize| u64::from_le_bytes(header[at..at + 8].try_into().unwrap());
+    let mut next = 16_usize;
+    let mut ranges = Streams { prefix: 0..0, facts: 0..0 };
+    for (at, range) in [(0, &mut ranges.prefix), (8, &mut ranges.facts)] {
+        let length = usize::try_from(length(at))?;
+        ensure!(length <= MAX_DATABASE_SIZE, "invalid native payload size");
+        if length > 0 {
+            let start = next.next_multiple_of(FRAME_ALIGNMENT);
+            let padding = payload.get(next..start).context("truncated payload frame")?;
+            ensure!(padding.iter().all(|x| *x == 0), "invalid payload padding");
+            next = start.checked_add(length).context("invalid payload frame")?;
+            ensure!(next <= payload.len(), "truncated payload frame");
+            *range = start..next;
+        }
+    }
+    ensure!(next == payload.len(), "trailing payload bytes");
+    ensure!(!ranges.prefix.is_empty() || !ranges.facts.is_empty(), "empty payload frame");
+    Ok(ranges)
+}
+
+/// Converts the labels of one stream to outputs, which must be consistent with presence.
+fn outputs(labels: &[Option<String>], present: bool) -> Result<Vec<Option<crate::ContentType>>> {
+    ensure!(labels.len() <= 100_000, "invalid output mapping size");
+    let outputs = labels
+        .iter()
+        .map(|label| {
+            label
+                .as_deref()
+                .map(|label| {
+                    crate::ContentType::from_label(label)
+                        .ok_or_else(|| anyhow::anyhow!("invalid cached label: {label}"))
+                })
+                .transpose()
+        })
+        .collect::<Result<Vec<_>>>()?;
+    ensure!(
+        outputs.iter().any(Option::is_some) == present,
+        "native pack streams need a terminal label"
+    );
+    Ok(outputs)
 }
 
 fn key(source: &str) -> String {
@@ -38,6 +107,7 @@ fn key(source: &str) -> String {
     }
     // Source and compiler identity are available without constructing an AST or program.
     // Parser/regex versions are pinned; bump this identity when changing those pins.
+    // Compiled patterns embed the stream layouts, which the preprocess module defines.
     for part in [
         source.as_bytes(),
         b"yara-x-parser=1.20.0;regex-syntax=0.8.11",
@@ -45,6 +115,7 @@ fn key(source: &str) -> String {
         include_bytes!("metadata.rs"),
         include_bytes!("native.rs"),
         include_bytes!("cache.rs"),
+        include_bytes!("preprocess/mod.rs"),
         env!("CARGO_PKG_VERSION").as_bytes(),
         crate::MODEL_NAME.as_bytes(),
     ] {
@@ -179,35 +250,27 @@ fn read(path: &Path, expected_key: &str) -> Result<super::RuleSet> {
     file.read_exact(&mut bytes)?;
     let manifest: Manifest = serde_json::from_slice(&bytes)?;
     ensure!(manifest.key == expected_key, "cache source/compiler identity mismatch");
-    ensure!(manifest.labels.len() <= 100_000, "invalid output mapping size");
     #[cfg(feature = "yara-rules")]
     let _payload_read = crate::startup_trace::span("serialized_payload_read");
     let mut payload = Vec::new();
-    file.take(MAX_DATABASE_SIZE as u64 + 1).read_to_end(&mut payload)?;
+    file.take(MAX_PAYLOAD_SIZE as u64 + 1).read_to_end(&mut payload)?;
     #[cfg(feature = "yara-rules")]
     drop(_payload_read);
-    ensure!(payload.len() <= MAX_DATABASE_SIZE, "invalid native payload size");
     let database = if payload.is_empty() {
-        ensure!(manifest.labels.is_empty() && manifest.engine == "empty", "invalid empty pack");
+        ensure!(
+            manifest.labels == Streams::default() && manifest.engine == "empty",
+            "invalid empty pack"
+        );
         None
     } else {
-        let outputs = manifest
-            .labels
-            .iter()
-            .map(|label| {
-                label
-                    .as_deref()
-                    .map(|label| {
-                        crate::ContentType::from_label(label)
-                            .ok_or_else(|| anyhow::anyhow!("invalid cached label: {label}"))
-                    })
-                    .transpose()
-            })
-            .collect::<Result<Vec<_>>>()?;
-        ensure!(outputs.iter().any(Option::is_some), "native pack needs a terminal label");
+        let ranges = unframe(&payload)?;
+        let streams = ranges.zip(manifest.labels).try_map(|(range, labels)| {
+            let bytes = &payload[range];
+            Ok((bytes, outputs(&labels, !bytes.is_empty())?))
+        })?;
         let api = Api::load()?;
         ensure!(manifest.engine == api.identity(), "cache engine/CPU identity mismatch");
-        Some(api.deserialize(&payload, outputs)?)
+        Some(api.deserialize(streams)?)
     };
     Ok(super::RuleSet { database, loaded_from_cache: true })
 }
@@ -227,41 +290,31 @@ fn read_mapped(file: File, expected_key: &str) -> Result<super::RuleSet> {
     ensure!(length <= MAX_MANIFEST_SIZE && 13 + length <= bytes.len(), "invalid mapped manifest");
     let manifest: Manifest = serde_json::from_slice(&bytes[13..13 + length])?;
     ensure!(manifest.key == expected_key, "mapped source/compiler identity mismatch");
-    ensure!(manifest.labels.len() <= 100_000, "invalid mapped output mapping size");
     let offset = (13 + length).next_multiple_of(super::mapped::ALIGNMENT);
     ensure!(offset <= bytes.len(), "truncated mapped pack");
     let payload = &bytes[offset..];
-    ensure!(payload.len() <= MAX_DATABASE_SIZE, "invalid mapped payload size");
     let database = if payload.is_empty() {
         ensure!(
-            manifest.labels.is_empty() && manifest.engine == "empty",
+            manifest.labels == Streams::default() && manifest.engine == "empty",
             "invalid empty mapped pack"
         );
         None
     } else {
-        let outputs = manifest
-            .labels
-            .iter()
-            .map(|label| {
-                label
-                    .as_deref()
-                    .map(|label| {
-                        crate::ContentType::from_label(label)
-                            .ok_or_else(|| anyhow::anyhow!("invalid mapped label"))
-                    })
-                    .transpose()
-            })
-            .collect::<Result<Vec<_>>>()?;
-        ensure!(outputs.iter().any(Option::is_some), "mapped pack needs a terminal label");
+        // Frame ranges are relative to the page-aligned payload, so images stay aligned.
+        let ranges = unframe(payload)?;
+        let streams = ranges.zip(manifest.labels).try_map(|(range, labels)| {
+            let outputs = outputs(&labels, !range.is_empty())?;
+            Ok((offset + range.start..offset + range.end, outputs))
+        })?;
         let api = Api::load()?;
         ensure!(manifest.engine == api.identity(), "mapped engine/CPU identity mismatch");
-        Some(api.map_image(mapping, offset, outputs)?)
+        Some(api.map_image(mapping, streams)?)
     };
     Ok(super::RuleSet { database, loaded_from_cache: true })
 }
 
 fn write_payload(
-    path: &Path, key: String, engine: String, labels: Vec<Option<String>>, payload: &[u8],
+    path: &Path, key: String, engine: String, labels: Streams<Vec<Option<String>>>, payload: &[u8],
     replace: bool,
 ) -> Result<()> {
     let manifest = Manifest { key, engine, labels };
@@ -298,8 +351,12 @@ fn write_payload(
 
 fn compile(source: &str, output: Option<(&Path, String, bool)>) -> Result<super::RuleSet> {
     let program = super::compiler::compile(source)?;
-    let labels = program.outputs.iter().map(|x| x.map(|x| x.info().label.to_owned())).collect();
-    let (database, engine) = if program.outputs.iter().all(Option::is_none) {
+    let labels = program.as_ref().map(|stream| {
+        stream.outputs.iter().map(|x| x.map(|x| x.info().label.to_owned())).collect()
+    });
+    let terminal =
+        |stream: &super::compiler::Expressions| stream.outputs.iter().any(Option::is_some);
+    let (database, engine) = if !terminal(&program.prefix) && !terminal(&program.facts) {
         (None, "empty".to_owned())
     } else {
         let api = Api::load()?;
@@ -318,6 +375,7 @@ fn compile(source: &str, output: Option<(&Path, String, bool)>) -> Result<super:
                     db.serialize()
                 })
                 .transpose()?
+                .map(|streams| frame(streams.as_ref().map(Vec::as_slice)))
                 .unwrap_or_default();
             write_payload(path, key, engine, labels, &payload, replace)
         };
@@ -384,7 +442,7 @@ mod tests {
             let directory = PathBuf::from(directory);
             let rules = load("", Some(&directory), None).unwrap();
             assert!(!rules.loaded_from_cache());
-            assert_eq!(rules.identify(b"ABCD", 4), None);
+            assert_eq!(rules.identify(b"ABCD", 4, None), None);
             std::fs::write(directory.join("completed"), b"compiled without cache").unwrap();
             return;
         }
@@ -505,6 +563,87 @@ mod tests {
     }
 
     #[test]
+    fn payload_frames_locate_each_stream_and_reject_damage() {
+        let a = vec![1_u8; 100];
+        let b = vec![2_u8; 70];
+        for (prefix, facts) in [(&a[..], &b[..]), (&a[..], &[][..]), (&[][..], &b[..])] {
+            let payload = frame(Streams { prefix, facts });
+            let ranges = unframe(&payload).unwrap();
+            assert_eq!(&payload[ranges.prefix.clone()], prefix);
+            assert_eq!(&payload[ranges.facts.clone()], facts);
+            for range in [ranges.prefix, ranges.facts] {
+                assert!(range.is_empty() || range.start.is_multiple_of(FRAME_ALIGNMENT));
+            }
+            let mut trailing = payload.clone();
+            trailing.push(0);
+            assert!(unframe(&trailing).is_err(), "trailing bytes");
+            assert!(unframe(&payload[..payload.len() - 1]).is_err(), "truncated stream");
+            let mut padding = payload.clone();
+            padding[16] = 1;
+            assert!(unframe(&padding).is_err(), "damaged padding");
+        }
+        assert_eq!(frame(Streams { prefix: &a, facts: &b }).len(), 128 + 64 + 70);
+        assert!(unframe(&frame(Streams { prefix: &[], facts: &[] })).is_err(), "no stream");
+        assert!(unframe(&[0; 15]).is_err());
+        let mut oversized = frame(Streams { prefix: &a, facts: &[] });
+        oversized[..8].copy_from_slice(&(MAX_DATABASE_SIZE as u64 + 1).to_le_bytes());
+        assert!(unframe(&oversized).is_err(), "oversized stream");
+        // Hostile short frames must fail cleanly, never slice past the end of the payload.
+        let mut short = [0; 20];
+        short[..8].copy_from_slice(&1_u64.to_le_bytes());
+        assert!(unframe(&short).is_err(), "stream length beyond a short frame");
+        let mut dangling = frame(Streams { prefix: &a, facts: &[] });
+        dangling[8..16].copy_from_slice(&1_u64.to_le_bytes());
+        assert!(unframe(&dangling).is_err(), "facts length without facts bytes");
+        let mut padding_only = frame(Streams { prefix: &a, facts: &[] });
+        padding_only.truncate(FRAME_ALIGNMENT - 1);
+        assert!(unframe(&padding_only).is_err(), "frame cut inside its padding");
+    }
+
+    #[test]
+    fn manifest_rejects_unknown_fields_inside_labels() {
+        let manifest = |labels: &str| {
+            serde_json::from_str::<Manifest>(&format!(
+                r#"{{"key":"k","labels":{labels},"engine":"empty"}}"#
+            ))
+        };
+        assert!(manifest(r#"{"prefix":[],"facts":[]}"#).is_ok());
+        assert!(manifest(r#"{"prefix":[],"facts":[],"extra":[]}"#).is_err());
+        assert!(manifest(r#"{"prefix":[]}"#).is_err());
+    }
+
+    #[test]
+    fn stream_labels_must_agree_with_stream_presence() {
+        let labels = [None, Some("png".to_owned())];
+        assert_eq!(outputs(&labels, true).unwrap(), [None, Some(ContentType::Png)]);
+        assert!(outputs(&labels, false).is_err());
+        assert!(outputs(&[], false).unwrap().is_empty());
+        assert!(outputs(&[None], true).is_err());
+        assert!(outputs(&[Some("not-a-label".to_owned())], true).is_err());
+    }
+
+    #[test]
+    fn previous_pack_formats_are_never_reused() {
+        // Packs now carry two streams: a single-stream pack must be rebuilt even when its
+        // manifest key would otherwise agree.
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("empty.yar");
+        let pack = source.with_extension("hsdb");
+        std::fs::write(&source, SOURCE.replace("enabled = true", "enabled = false")).unwrap();
+        RuleSet::compile_file(&source, &pack).unwrap();
+        assert!(RuleSet::from_file_with_cache(&source, None).unwrap().loaded_from_cache());
+        let mut bytes = std::fs::read(&pack).unwrap();
+        #[cfg(all(feature = "yara-rules", unix))]
+        let previous: &[u8; 9] =
+            if super::super::mapped::enabled() { b"MAGIKAMM\x03" } else { b"MAGIKAHS\x04" };
+        #[cfg(not(all(feature = "yara-rules", unix)))]
+        let previous: &[u8; 9] = b"MAGIKAHS\x04";
+        bytes[..9].copy_from_slice(previous);
+        std::fs::write(&pack, bytes).unwrap();
+        assert!(!RuleSet::from_file_with_cache(&source, None).unwrap().loaded_from_cache());
+    }
+
+    #[test]
     #[ignore = "requires a native Vectorscan compiler library"]
     fn cache_roundtrip_edit_corruption_and_unwritable_directory() {
         #[cfg(unix)]
@@ -519,7 +658,7 @@ mod tests {
         let load = || RuleSet::from_file_with_cache(&source, Some(&cache)).unwrap();
         let first = load();
         assert!(!first.loaded_from_cache());
-        assert_eq!(first.identify(b"ABCD", 4), Some(ContentType::Png));
+        assert_eq!(first.identify(b"ABCD", 4, None), Some(ContentType::Png));
         let calls = super::super::compiler::COMPILATIONS.get();
         let second = load();
         assert!(second.loaded_from_cache());
@@ -528,8 +667,8 @@ mod tests {
             calls,
             "cache hit must skip parsing/lowering"
         );
-        assert_eq!(second.identify(b"ABCD", 4), Some(ContentType::Png));
-        assert_eq!(second.identify(b"ABCE", 4), None);
+        assert_eq!(second.identify(b"ABCD", 4, None), Some(ContentType::Png));
+        assert_eq!(second.identify(b"ABCE", 4, None), None);
         let pack = std::fs::read_dir(&cache)
             .unwrap()
             .map(|x| x.unwrap().path())
@@ -539,21 +678,23 @@ mod tests {
         for damaged in [b"partial write".to_vec(), {
             let mut bytes = valid.clone();
             let length = u32::from_le_bytes(bytes[9..13].try_into().unwrap()) as usize;
-            // Serialized bytecode starts after eight native u32 header words.
-            bytes[13 + length + 32 + 16] ^= 1;
+            // Serialized bytecode starts after the payload frame header and eight native
+            // u32 header words.
+            bytes[13 + length + FRAME_ALIGNMENT + 32 + 16] ^= 1;
             bytes
         }] {
             std::fs::write(&pack, damaged).unwrap();
             let repaired = load();
             assert!(!repaired.loaded_from_cache());
-            assert_eq!(repaired.identify(b"ABCD", 4), Some(ContentType::Png));
+            assert_eq!(repaired.identify(b"ABCD", 4, None), Some(ContentType::Png));
             assert!(load().loaded_from_cache());
         }
         // Native deserialization rejects invalid database bytes without an outer hash.
         let length = u32::from_le_bytes(valid[9..13].try_into().unwrap()) as usize;
         let manifest: Manifest = serde_json::from_slice(&valid[13..13 + length]).unwrap();
         let mut payload = valid[13 + length..].to_vec();
-        payload[0] ^= 1; // Invalid native magic; deserializer must reject it before use.
+        // Invalid native magic after the frame header; the deserializer must reject it.
+        payload[FRAME_ALIGNMENT] ^= 1;
         let header = serde_json::to_vec(&manifest).unwrap();
         let mut bytes = MAGIC.to_vec();
         bytes.extend_from_slice(&(header.len() as u32).to_le_bytes());
@@ -562,7 +703,7 @@ mod tests {
         std::fs::write(&pack, bytes).unwrap();
         let rebuilt = load();
         assert!(!rebuilt.loaded_from_cache());
-        assert_eq!(rebuilt.identify(b"ABCD", 4), Some(ContentType::Png));
+        assert_eq!(rebuilt.identify(b"ABCD", 4, None), Some(ContentType::Png));
         assert!(load().loaded_from_cache());
         for damage in ["engine", "unknown-label"] {
             let mut manifest: Manifest = serde_json::from_slice(&valid[13..13 + length]).unwrap();
@@ -570,7 +711,7 @@ mod tests {
             if damage == "engine" {
                 manifest.engine = "different-engine-or-cpu".into();
             } else {
-                *manifest.labels.iter_mut().find(|x| x.is_some()).unwrap() =
+                *manifest.labels.prefix.iter_mut().find(|x| x.is_some()).unwrap() =
                     Some("not-a-label".into());
             }
             let header = serde_json::to_vec(&manifest).unwrap();
@@ -581,14 +722,14 @@ mod tests {
             std::fs::write(&pack, bytes).unwrap();
             let repaired = load();
             assert!(!repaired.loaded_from_cache(), "{damage}");
-            assert_eq!(repaired.identify(b"ABCD", 4), Some(ContentType::Png));
+            assert_eq!(repaired.identify(b"ABCD", 4, None), Some(ContentType::Png));
         }
         std::fs::write(&source, SOURCE.replace("\"png\"", "\"gif\"")).unwrap();
         let edited = load();
         assert!(!edited.loaded_from_cache());
-        assert_eq!(edited.identify(b"ABCD", 4), Some(ContentType::Gif));
+        assert_eq!(edited.identify(b"ABCD", 4, None), Some(ContentType::Gif));
         std::fs::write(&source, SOURCE.replace("enabled = true", "enabled = false")).unwrap();
-        assert_eq!(load().identify(b"ABCD", 4), None);
+        assert_eq!(load().identify(b"ABCD", 4, None), None);
         std::fs::write(&source, format!("include \"other.yar\"\n{SOURCE}")).unwrap();
         assert!(RuleSet::from_file_with_cache(&source, Some(&cache)).is_err());
         std::fs::write(&source, SOURCE).unwrap();
@@ -597,7 +738,7 @@ mod tests {
         std::fs::write(&no_directory, b"keep").unwrap();
         let uncached = RuleSet::from_file_with_cache(&source, Some(&no_directory)).unwrap();
         assert!(!uncached.loaded_from_cache());
-        assert_eq!(uncached.identify(b"ABCD", 4), Some(ContentType::Png));
+        assert_eq!(uncached.identify(b"ABCD", 4, None), Some(ContentType::Png));
         assert_eq!(std::fs::read(&no_directory).unwrap(), b"keep");
     }
 
@@ -615,24 +756,24 @@ mod tests {
         std::fs::write(&source, text).unwrap();
         let load = || RuleSet::from_file_with_cache(&source, Some(&cache)).unwrap();
         let disabled = load();
-        assert_eq!(disabled.identify(b"ABCD", 4), None);
-        assert_eq!(disabled.identify(b"EFGH", 4), Some(ContentType::Png));
+        assert_eq!(disabled.identify(b"ABCD", 4, None), None);
+        assert_eq!(disabled.identify(b"EFGH", 4, None), Some(ContentType::Png));
         assert!(load().loaded_from_cache());
         std::fs::write(&source, text.replace("enabled = false", "enabled = true")).unwrap();
         let enabled = load();
         assert!(!enabled.loaded_from_cache());
-        assert_eq!(enabled.identify(b"ABCD", 4), Some(ContentType::Png));
+        assert_eq!(enabled.identify(b"ABCD", 4, None), Some(ContentType::Png));
         let public = text
             .replace("private rule variant", "rule variant")
             .replace("meta: enabled = false", "meta: label = \"png\" enabled = false");
-        assert_eq!(RuleSet::from_source(&public).unwrap().identify(b"ABCD", 4), None);
+        assert_eq!(RuleSet::from_source(&public).unwrap().identify(b"ABCD", 4, None), None);
         assert_eq!(
             RuleSet::from_source(&public.replace(
                 "enabled = false",
                 "enabled = true class = \"full\" fp_rate = 0 fn_rate = 0"
             ))
             .unwrap()
-            .identify(b"ABCD", 4),
+            .identify(b"ABCD", 4, None),
             Some(ContentType::Png)
         );
         let unsupported = text.replace("condition: $a at 0 }", "condition: filesize > 0 }");
@@ -660,7 +801,7 @@ mod tests {
         let loaded = RuleSet::from_file_with_cache(&source, None).unwrap();
         assert_eq!(super::super::compiler::COMPILATIONS.get(), calls);
         assert!(loaded.loaded_from_cache());
-        assert_eq!(loaded.identify(b"ABCD", 4), None);
+        assert_eq!(loaded.identify(b"ABCD", 4, None), None);
         assert!(RuleSet::compile_file(&source, &pack).is_err());
         assert_eq!(std::fs::read(&pack).unwrap(), bytes);
         assert!(RuleSet::compile_file(&source, &source).is_err());
@@ -686,12 +827,12 @@ mod tests {
             "paired pack must skip parsing/lowering"
         );
         assert!(!cache.exists(), "a compatible shipped pack must not need a writable cache");
-        assert_eq!(first.identify(b"ABCD", 4), Some(ContentType::Png));
-        assert_eq!(first.identify(b"ABCE", 4), None);
+        assert_eq!(first.identify(b"ABCD", 4, None), Some(ContentType::Png));
+        assert_eq!(first.identify(b"ABCE", 4, None), None);
         std::fs::write(&source, SOURCE.replace("\"png\"", "\"gif\"")).unwrap();
         let edited = RuleSet::from_file_with_cache(&source, Some(&cache)).unwrap();
         assert!(!edited.loaded_from_cache());
-        assert_eq!(edited.identify(b"ABCD", 4), Some(ContentType::Gif));
+        assert_eq!(edited.identify(b"ABCD", 4, None), Some(ContentType::Gif));
         assert!(RuleSet::from_file_with_cache(&source, Some(&cache)).unwrap().loaded_from_cache());
         assert_eq!(
             std::fs::read(&pack).unwrap(),
@@ -702,7 +843,7 @@ mod tests {
         std::fs::write(&pack, b"incompatible pack").unwrap();
         let rebuilt = RuleSet::from_file_with_cache(&source, Some(&cache)).unwrap();
         assert!(!rebuilt.loaded_from_cache());
-        assert_eq!(rebuilt.identify(b"ABCD", 4), Some(ContentType::Png));
+        assert_eq!(rebuilt.identify(b"ABCD", 4, None), Some(ContentType::Png));
     }
 
     // Invoked in separate test processes below, so lock and cache behavior cannot be hidden by
@@ -714,7 +855,7 @@ mod tests {
         let directory = std::env::var_os("MAGIKA_TEST_CACHE_DIRECTORY").unwrap();
         let report = std::env::var_os("MAGIKA_TEST_CACHE_REPORT").unwrap();
         let rules = RuleSet::from_file_with_cache(source, Some(Path::new(&directory))).unwrap();
-        assert_eq!(rules.identify(b"ABCD", 4), Some(ContentType::Png));
+        assert_eq!(rules.identify(b"ABCD", 4, None), Some(ContentType::Png));
         std::fs::write(report, if rules.loaded_from_cache() { "hit" } else { "compiled" }).unwrap();
     }
 

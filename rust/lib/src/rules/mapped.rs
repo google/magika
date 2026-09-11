@@ -8,7 +8,7 @@ use std::os::fd::AsRawFd;
 
 use anyhow::{ensure, Result};
 
-pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x03";
+pub(super) const MAGIC: &[u8; 9] = b"MAGIKAMM\x04";
 pub(super) const ALIGNMENT: usize = 4096;
 
 pub(super) fn enabled() -> bool {
@@ -23,7 +23,7 @@ impl Mapping {
     pub(super) fn new(file: &File) -> Result<Self> {
         let length = usize::try_from(file.metadata()?.len())?;
         ensure!(
-            length > 0 && length <= super::cache::MAX_DATABASE_SIZE + 8 * 1024 * 1024,
+            length > 0 && length <= super::cache::MAX_PAYLOAD_SIZE + 8 * 1024 * 1024,
             "invalid mapped pack size"
         );
         let pointer = unsafe {
@@ -59,6 +59,7 @@ impl Drop for Mapping {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rules::compiler::Streams;
     use crate::rules::native::Api;
     use crate::rules::RuleSet;
 
@@ -70,26 +71,44 @@ mod tests {
             strings: $a = "MAGIKA_MMAP_TEST!" condition: $a at 0
         }"#;
         let rules = RuleSet::from_source(source).unwrap();
-        let outputs = crate::rules::compiler::compile(source).unwrap().outputs;
+        let program = crate::rules::compiler::compile(source).unwrap();
         let original = rules.database.as_ref().unwrap();
-        let bytes = original.image().unwrap();
+        let images = original.image().unwrap();
+        assert!(images.facts.is_empty());
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("image");
-        std::fs::write(&path, &bytes).unwrap();
+        std::fs::write(&path, &images.prefix).unwrap();
         let first = Mapping::new(&File::open(&path).unwrap()).unwrap();
         let second = Mapping::new(&File::open(&path).unwrap()).unwrap();
         assert_ne!(first.bytes().as_ptr(), second.bytes().as_ptr());
         let api = Api::load().unwrap();
-        let first = api.map_image(first, 0, outputs.clone()).unwrap();
-        let second = api.map_image(second, 0, outputs).unwrap();
+        let streams = || Streams {
+            prefix: (0..images.prefix.len(), program.prefix.outputs.clone()),
+            facts: (0..0, Vec::new()),
+        };
+        let first = api.map_image(first, streams()).unwrap();
+        let second = api.map_image(second, streams()).unwrap();
         let mut worker = first.worker().unwrap();
         drop(first);
         std::fs::remove_file(path).unwrap();
         for input in [b"MAGIKA_MMAP_TEST!".as_slice(), b"unrecognized content".as_slice()] {
-            let expected = original.worker().unwrap().scan(input, input.len() as u64);
-            assert_eq!(worker.scan(input, input.len() as u64), expected);
-            assert_eq!(second.worker().unwrap().scan(input, input.len() as u64), expected);
+            let size = input.len() as u64;
+            let synthetic = crate::rules::preprocess::prepare(&crate::rules::preprocess::Blocks {
+                prefix: input,
+                size,
+                tail: None,
+            });
+            let expected = original.worker().unwrap().scan(Some(&synthetic), input, size);
+            assert_eq!(worker.scan(Some(&synthetic), input, size), expected);
+            assert_eq!(second.worker().unwrap().scan(Some(&synthetic), input, size), expected);
         }
+        // Mapped images are borrowed from their mapping and must never reach the native free.
+        let freed = crate::rules::native::FREED.get();
+        drop(worker);
+        drop(second);
+        assert_eq!(crate::rules::native::FREED.get(), freed, "a mapped image was freed");
+        drop(rules);
+        assert_eq!(crate::rules::native::FREED.get(), freed + 1, "the compiled original leaked");
     }
 
     #[test]
@@ -104,7 +123,11 @@ mod tests {
             let mut file = tempfile::tempfile().unwrap();
             std::io::Write::write_all(&mut file, &bytes).unwrap();
             let mapped = Mapping::new(&file).unwrap();
-            assert!(api.map_image(mapped, 0, vec![Some(crate::ContentType::Png)]).is_err());
+            let streams = Streams {
+                prefix: (0..bytes.len(), vec![Some(crate::ContentType::Png)]),
+                facts: (0..0, Vec::new()),
+            };
+            assert!(api.map_image(mapped, streams).is_err());
         }
         let file = tempfile::tempfile().unwrap();
         assert!(Mapping::new(&file).is_err());

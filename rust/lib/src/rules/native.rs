@@ -10,8 +10,9 @@ use std::sync::Arc;
 use anyhow::{bail, ensure, Context, Result};
 use libloading::Library;
 
-use super::compiler::Program;
+use super::compiler::{Expressions, Program, Streams};
 use super::engine::Decision;
+use super::preprocess::Synthetic;
 use crate::ContentType;
 
 type Free = unsafe extern "C" fn(*mut c_void) -> c_int;
@@ -27,10 +28,13 @@ type Scan = unsafe extern "C" fn(
     Option<Callback>,
     *mut c_void,
 ) -> c_int;
+/// `hs_compile_ext_multi`: the only compile entry point, so every expression can carry
+/// extended parameters; a null `hs_expr_ext_t*` means none.
 type Compile = unsafe extern "C" fn(
     *const *const c_char,
     *const c_uint,
     *const c_uint,
+    *const *const ExpressionExt,
     c_uint,
     c_uint,
     *const c_void,
@@ -42,6 +46,33 @@ type Compile = unsafe extern "C" fn(
 struct CompileError {
     message: *const c_char,
     expression: c_int,
+}
+
+const HS_EXT_FLAG_MIN_OFFSET: u64 = 1;
+const HS_EXT_FLAG_MAX_OFFSET: u64 = 2;
+
+/// `hs_expr_ext_t`: `min_offset`/`max_offset` bound the inclusive end offset of a match.
+#[repr(C)]
+struct ExpressionExt {
+    flags: u64,
+    min_offset: u64,
+    max_offset: u64,
+    min_length: u64,
+    edit_distance: c_uint,
+    hamming_distance: c_uint,
+}
+
+impl ExpressionExt {
+    fn bounded(bounds: super::compiler::Bounds) -> Self {
+        Self {
+            flags: HS_EXT_FLAG_MIN_OFFSET | HS_EXT_FLAG_MAX_OFFSET,
+            min_offset: bounds.min_end_offset,
+            max_offset: bounds.max_end_offset,
+            min_length: 0,
+            edit_distance: 0,
+            hamming_distance: 0,
+        }
+    }
 }
 
 #[repr(C)]
@@ -148,13 +179,29 @@ impl Api {
         )
     }
 
+    /// Compiles both streams; a stream without a terminal rule has no database.
     pub(super) fn compile(self: &Arc<Self>, program: Program) -> Result<Arc<Database>> {
+        let streams = program.try_map(|expressions| self.compile_stream(&expressions))?;
+        Ok(Arc::new(Database::new(self.clone(), streams)?))
+    }
+
+    fn compile_stream(self: &Arc<Self>, program: &Expressions) -> Result<Option<Stream>> {
+        if program.outputs.iter().all(Option::is_none) {
+            return Ok(None);
+        }
         let (compile, free_error) = unsafe {
             (
-                *self.library.get::<Compile>(b"hs_compile_multi")?,
+                *self.library.get::<Compile>(b"hs_compile_ext_multi")?,
                 *self.library.get::<Free>(b"hs_free_compile_error")?,
             )
         };
+        let count = program.expressions.len();
+        ensure!(
+            program.flags.len() == count
+                && program.bounds.len() == count
+                && program.outputs.len() == count,
+            "malformed rules program"
+        );
         let expressions: Vec<_> = program
             .expressions
             .iter()
@@ -162,6 +209,14 @@ impl Api {
             .collect::<Result<_, _>>()?;
         let pointers: Vec<_> = expressions.iter().map(|x| x.as_ptr()).collect();
         let ids: Vec<_> = (0..expressions.len() as u32).collect();
+        // Extended parameters are owned here for the duration of the call; the pointer
+        // array is built only after `extended` is complete so it never reallocates.
+        let extended: Vec<_> =
+            program.bounds.iter().map(|x| x.map(ExpressionExt::bounded)).collect();
+        let ext: Vec<*const ExpressionExt> = extended
+            .iter()
+            .map(|x| x.as_ref().map_or(ptr::null(), |x| x as *const ExpressionExt))
+            .collect();
         let mut db = ptr::null_mut();
         let mut error: *mut CompileError = ptr::null_mut();
         // All arrays have equal length. Compile for exactly the CPU target in the cache key.
@@ -170,6 +225,7 @@ impl Api {
                 pointers.as_ptr(),
                 program.flags.as_ptr(),
                 ids.as_ptr(),
+                ext.as_ptr(),
                 ids.len() as u32,
                 4,
                 (&self.platform as *const Platform).cast(),
@@ -191,21 +247,32 @@ impl Api {
             bail!("Vectorscan compilation failed: {message}");
         }
         ensure!(!db.is_null(), "Vectorscan returned a null database");
-        Ok(Arc::new(Database {
-            db,
-            api: self.clone(),
-            outputs: program.outputs,
-            #[cfg(all(feature = "yara-rules", unix))]
-            mapping: None,
-        }))
+        Ok(Some(Stream { db, outputs: program.outputs.clone(), owned: true, api: self.clone() }))
+    }
+
+    /// Pins both stream images inside one mapping; an empty range is an absent stream.
+    #[cfg(all(feature = "yara-rules", unix))]
+    pub(super) fn map_image(
+        self: &Arc<Self>, mapping: super::mapped::Mapping,
+        streams: Streams<(std::ops::Range<usize>, Vec<Option<ContentType>>)>,
+    ) -> Result<Arc<Database>> {
+        let bytes = mapping.bytes();
+        let streams = streams.try_map(|(range, outputs)| {
+            let payload = bytes.get(range).context("truncated native image")?;
+            self.map_stream(payload, outputs)
+        })?;
+        let mut database = Database::new(self.clone(), streams)?;
+        database.mapping = Some(mapping);
+        Ok(Arc::new(database))
     }
 
     #[cfg(all(feature = "yara-rules", unix))]
-    pub(super) fn map_image(
-        self: &Arc<Self>, mapping: super::mapped::Mapping, offset: usize,
-        outputs: Vec<Option<ContentType>>,
-    ) -> Result<Arc<Database>> {
-        let payload = &mapping.bytes()[offset..];
+    fn map_stream(
+        self: &Arc<Self>, payload: &[u8], outputs: Vec<Option<ContentType>>,
+    ) -> Result<Option<Stream>> {
+        if payload.is_empty() {
+            return Ok(None);
+        }
         // The pinned Vectorscan database header uses a relative bytecode offset.
         // Before passing mapped bytes to C, bound every region C will checksum/read.
         ensure!(payload.len() >= 104, "truncated native image header");
@@ -227,26 +294,31 @@ impl Api {
             unsafe { size(db, &mut reported) } == 0 && reported == payload.len(),
             "incompatible native image"
         );
-        Ok(Arc::new(Database { db, api: self.clone(), outputs, mapping: Some(mapping) }))
+        // Borrowed from the mapping: the image is read-only and never freed.
+        Ok(Some(Stream { db, outputs, owned: false, api: self.clone() }))
     }
 
+    /// Deserializes both streams; empty bytes are an absent stream.
     pub(super) fn deserialize(
-        self: &Arc<Self>, bytes: &[u8], outputs: Vec<Option<ContentType>>,
+        self: &Arc<Self>, streams: Streams<(&[u8], Vec<Option<ContentType>>)>,
     ) -> Result<Arc<Database>> {
         #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_deserialize");
         type Deserialize = unsafe extern "C" fn(*const c_char, usize, *mut *mut c_void) -> c_int;
         let deserialize = unsafe { self.library.get::<Deserialize>(b"hs_deserialize_database")? };
-        let mut db = ptr::null_mut();
-        let code = unsafe { deserialize(bytes.as_ptr().cast(), bytes.len(), &mut db) };
-        ensure!(code == 0 && !db.is_null(), "Vectorscan database deserialization failed: {code}");
-        Ok(Arc::new(Database {
-            db,
-            api: self.clone(),
-            outputs,
-            #[cfg(all(feature = "yara-rules", unix))]
-            mapping: None,
-        }))
+        let streams = streams.try_map(|(bytes, outputs)| {
+            if bytes.is_empty() {
+                return Ok(None);
+            }
+            let mut db = ptr::null_mut();
+            let code = unsafe { deserialize(bytes.as_ptr().cast(), bytes.len(), &mut db) };
+            ensure!(
+                code == 0 && !db.is_null(),
+                "Vectorscan database deserialization failed: {code}"
+            );
+            Ok(Some(Stream { db, outputs, owned: true, api: self.clone() }))
+        })?;
+        Ok(Arc::new(Database::new(self.clone(), streams)?))
     }
 }
 
@@ -260,11 +332,52 @@ impl Drop for Api {
     }
 }
 
-pub(super) struct Database {
+/// One compiled stream: its native database and the label of each expression ID.
+///
+/// A stream compiled or deserialized in memory owns its database and releases it when
+/// dropped, including when the other stream of the same pack fails to build. A stream
+/// pinned inside a read-only image borrows the mapping's bytes instead: the [`Database`]
+/// keeps that mapping alive and nothing ever passes the image to `hs_free_database`.
+struct Stream {
     db: *mut c_void,
     outputs: Vec<Option<ContentType>>,
+    owned: bool,
+    // Keep `hs_free_database` loaded for as long as this stream may call it.
+    api: Arc<Api>,
+}
+
+impl Drop for Stream {
+    fn drop(&mut self) {
+        if !self.owned {
+            return;
+        }
+        #[cfg(feature = "yara-rules")]
+        let _startup_span = crate::startup_trace::span("native_database_free");
+        #[cfg(test)]
+        FREED.set(FREED.get() + 1);
+        unsafe {
+            (self.api.free_db)(self.db);
+        }
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Native databases released through `hs_free_database` on this thread.
+    pub(super) static FREED: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// The native databases of one pack: one per scan stream, sharing one engine.
+///
+/// `streams.prefix` scans stream A, `[16-byte size header][original prefix]`, for every
+/// input. `streams.facts` scans stream B, `[facts header][zip_names view]`, and only when
+/// preprocessing produced something for it. A pack has at least one stream; each present
+/// stream has its own expression IDs and output table, and both report into one decision.
+pub(super) struct Database {
+    streams: Streams<Option<Stream>>,
     // Keep the loaded functions alive until every database and worker has been freed.
     api: Arc<Api>,
+    // Owns the image every mapped stream borrows; declared last so it outlives them.
     #[cfg(all(feature = "yara-rules", unix))]
     mapping: Option<super::mapped::Mapping>,
 }
@@ -274,17 +387,43 @@ unsafe impl Send for Database {}
 unsafe impl Sync for Database {}
 
 impl Database {
+    fn new(api: Arc<Api>, streams: Streams<Option<Stream>>) -> Result<Self> {
+        ensure!(streams.prefix.is_some() || streams.facts.is_some(), "empty native pack");
+        Ok(Database {
+            streams,
+            api,
+            #[cfg(all(feature = "yara-rules", unix))]
+            mapping: None,
+        })
+    }
+
     #[cfg(test)]
     pub(super) fn compile(program: Program) -> Result<Arc<Self>> {
         Api::load()?.compile(program)
     }
 
-    pub(super) fn serialize(&self) -> Result<Vec<u8>> {
+    fn present(&self) -> impl Iterator<Item = &Stream> {
+        [&self.streams.prefix, &self.streams.facts].into_iter().flatten()
+    }
+
+    /// Whether any rule scans the facts stream, and so whether inputs need preprocessing.
+    pub(super) fn uses_facts(&self) -> bool {
+        self.streams.facts.is_some()
+    }
+
+    /// Serializes each stream; an absent stream serializes to nothing.
+    pub(super) fn serialize(&self) -> Result<Streams<Vec<u8>>> {
+        self.streams
+            .as_ref()
+            .try_map(|stream| stream.as_ref().map_or(Ok(Vec::new()), |x| self.serialize_stream(x)))
+    }
+
+    fn serialize_stream(&self, stream: &Stream) -> Result<Vec<u8>> {
         type Size = unsafe extern "C" fn(*const c_void, *mut usize) -> c_int;
         let size = unsafe { self.api.library.get::<Size>(b"hs_database_size")? };
         let mut allocated = 0;
         ensure!(
-            unsafe { size(self.db, &mut allocated) } == 0
+            unsafe { size(stream.db, &mut allocated) } == 0
                 && allocated <= super::cache::MAX_DATABASE_SIZE,
             "compiled database exceeds cache size limit"
         );
@@ -292,7 +431,7 @@ impl Database {
         let serialize = unsafe { self.api.library.get::<Serialize>(b"hs_serialize_database")? };
         let mut bytes = ptr::null_mut();
         let mut length = 0;
-        let code = unsafe { serialize(self.db, &mut bytes, &mut length) };
+        let code = unsafe { serialize(stream.db, &mut bytes, &mut length) };
         ensure!(code == 0 && !bytes.is_null(), "Vectorscan serialization failed: {code}");
         // Vectorscan's default miscellaneous allocator is malloc. This wrapper never changes
         // engine-global allocators; callers sharing libhs must not replace them while in use.
@@ -314,9 +453,19 @@ impl Database {
         Ok(unsafe { std::slice::from_raw_parts(owned.0.cast(), length) }.to_vec())
     }
 
+    /// Builds the relocatable image of each stream; an absent stream has none.
     #[cfg(all(feature = "yara-rules", unix))]
-    pub(super) fn image(&self) -> Result<Vec<u8>> {
-        let serialized = self.serialize()?;
+    pub(super) fn image(&self) -> Result<Streams<Vec<u8>>> {
+        self.serialize()?.try_map(|serialized| {
+            if serialized.is_empty() {
+                return Ok(Vec::new());
+            }
+            self.image_of(&serialized)
+        })
+    }
+
+    #[cfg(all(feature = "yara-rules", unix))]
+    fn image_of(&self, serialized: &[u8]) -> Result<Vec<u8>> {
         type Size = unsafe extern "C" fn(*const c_char, usize, *mut usize) -> c_int;
         type At = unsafe extern "C" fn(*const c_char, usize, *mut c_void) -> c_int;
         let size = unsafe { self.api.library.get::<Size>(b"hs_serialized_database_size")? };
@@ -352,25 +501,21 @@ impl Database {
         #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_scratch_allocate");
 
+        // One scratch serves both streams: each allocation grows it to fit the new database
+        // while keeping it valid for the previous ones.
         let mut scratch = ptr::null_mut();
-        let code = unsafe { (self.api.alloc)(self.db, &mut scratch) };
-        ensure!(code == 0 && !scratch.is_null(), "Vectorscan scratch allocation failed: {code}");
+        for stream in self.present() {
+            let code = unsafe { (self.api.alloc)(stream.db, &mut scratch) };
+            if code != 0 || scratch.is_null() {
+                if !scratch.is_null() {
+                    unsafe {
+                        (self.api.free_scratch)(scratch);
+                    }
+                }
+                bail!("Vectorscan scratch allocation failed: {code}");
+            }
+        }
         Ok(Worker { database: self.clone(), scratch })
-    }
-}
-
-impl Drop for Database {
-    fn drop(&mut self) {
-        #[cfg(feature = "yara-rules")]
-        let _startup_span = crate::startup_trace::span("native_database_free");
-
-        #[cfg(all(feature = "yara-rules", unix))]
-        if self.mapping.is_some() {
-            return;
-        }
-        unsafe {
-            (self.api.free_db)(self.db);
-        }
     }
 }
 
@@ -411,7 +556,11 @@ unsafe extern "C" fn matched(id: u32, _: u64, _: u64, _: u32, context: *mut c_vo
 }
 
 impl Worker {
-    pub(super) fn scan(&mut self, prefix: &[u8], original_size: u64) -> Decision {
+    /// Scans one input. `synthetic` is the preprocessed stream B, which a caller may skip
+    /// building when the database has no facts stream.
+    pub(super) fn scan(
+        &mut self, synthetic: Option<&Synthetic>, prefix: &[u8], original_size: u64,
+    ) -> Decision {
         #[cfg(feature = "yara-rules")]
         let _startup_span = crate::startup_trace::span("native_scan");
 
@@ -421,31 +570,49 @@ impl Worker {
         {
             return Decision::InsufficientInput;
         }
-        // Two vectors form one logical input. Original bytes are neither copied nor rewritten.
-        // The compiler reserves bytes 0..16 for these refreshed, big-endian external values.
-        let mut header = [0_u8; super::EXTERNAL_BYTES];
-        header[..8].copy_from_slice(&original_size.to_be_bytes());
-        header[8..].copy_from_slice(&(prefix.len() as u64).to_be_bytes());
-        let buffers = [header.as_ptr().cast(), prefix.as_ptr().cast()];
-        let lengths = [header.len() as u32, prefix.len() as u32];
-        let mut matches = Matches { outputs: &self.database.outputs, decision: Decision::NoMatch };
+        // Both streams report into one decision, so a facts rule and a prefix rule agreeing
+        // on a label match, and disagreeing ones conflict, exactly like two prefix rules.
+        let mut matches = Matches { outputs: &[], decision: Decision::NoMatch };
+        // Stream A: two vectors form one logical input. Original bytes are neither copied nor
+        // rewritten. The compiler reserves bytes 0..16 for these refreshed, big-endian values.
+        if let Some(stream) = &self.database.streams.prefix {
+            let mut header = [0_u8; super::EXTERNAL_BYTES];
+            header[..8].copy_from_slice(&original_size.to_be_bytes());
+            header[8..].copy_from_slice(&(prefix.len() as u64).to_be_bytes());
+            matches.outputs = &stream.outputs;
+            if !self.run(stream, [header.as_slice(), prefix], &mut matches) {
+                return Decision::EngineError;
+            }
+        }
+        // Stream B: the facts header and the views, only when preprocessing produced any.
+        let active = synthetic.filter(|synthetic| synthetic.is_active());
+        if let (Some(stream), Some(synthetic)) = (&self.database.streams.facts, active) {
+            matches.outputs = &stream.outputs;
+            let buffers = [synthetic.facts.as_slice(), synthetic.names.as_slice()];
+            if !self.run(stream, buffers, &mut matches) {
+                return Decision::EngineError;
+            }
+        }
+        matches.decision
+    }
+
+    /// Scans `buffers` as one logical stream; false on any engine or callback failure.
+    fn run(&self, stream: &Stream, buffers: [&[u8]; 2], matches: &mut Matches<'_>) -> bool {
+        let pointers = buffers.map(|x| x.as_ptr().cast());
+        let lengths = buffers.map(|x| x.len() as u32);
         let code = unsafe {
             (self.database.api.scan)(
-                self.database.db,
-                buffers.as_ptr(),
+                stream.db,
+                pointers.as_ptr(),
                 lengths.as_ptr(),
-                2,
+                buffers.len() as u32,
                 0,
                 self.scratch,
                 Some(matched),
-                (&mut matches as *mut Matches<'_>).cast(),
+                (matches as *mut Matches<'_>).cast(),
             )
         };
-        if code == 0 {
-            matches.decision
-        } else {
-            Decision::EngineError
-        }
+        code == 0
     }
 }
 
@@ -455,23 +622,66 @@ mod tests {
 
     #[test]
     #[ignore = "requires a native Vectorscan compiler library"]
-    fn terminated_scan_discards_matches_and_releases_worker() {
+    fn invalid_output_id_from_native_terminates_scan_and_discards_worker() {
         // Exercise an actual native scan termination through an invalid output ID. A valid
         // match in the same scan must never escape after any callback or engine failure.
         let mut database = Database::compile(Program {
-            expressions: vec!["^.{16}A".into(), "^.{16}A".into()],
-            flags: vec![8, 8],
-            outputs: vec![Some(ContentType::Png), None],
+            prefix: Expressions {
+                expressions: vec!["^.{16}A".into(), "^.{16}A".into()],
+                flags: vec![8, 8],
+                bounds: vec![None, None],
+                outputs: vec![Some(ContentType::Png), None],
+            },
+            facts: Expressions::default(),
         })
         .unwrap();
-        assert_eq!(super::super::engine::scan(&database, b"A", 1), Decision::EngineError);
-        assert_eq!(Arc::strong_count(&database), 1, "failed worker must be discarded");
-        Arc::get_mut(&mut database).unwrap().outputs[1] = Some(ContentType::Png);
+        assert!(database.streams.facts.is_none());
+        let synthetic = super::super::preprocess::prepare(&super::super::preprocess::Blocks {
+            prefix: b"A",
+            size: 1,
+            tail: None,
+        });
         assert_eq!(
-            super::super::engine::scan(&database, b"A", 1),
+            super::super::engine::scan(&database, Some(&synthetic), b"A", 1),
+            Decision::EngineError
+        );
+        assert_eq!(Arc::strong_count(&database), 1, "failed worker must be discarded");
+        let stream = Arc::get_mut(&mut database).unwrap().streams.prefix.as_mut().unwrap();
+        stream.outputs[1] = Some(ContentType::Png);
+        assert_eq!(
+            super::super::engine::scan(&database, Some(&synthetic), b"A", 1),
             Decision::Match(ContentType::Png)
         );
         assert_eq!(Arc::strong_count(&database), 2, "successful worker should remain cached");
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn failed_facts_stream_frees_the_compiled_prefix_stream() {
+        let valid = || Expressions {
+            expressions: vec!["^.{16}A".into()],
+            flags: vec![8],
+            bounds: vec![None],
+            outputs: vec![Some(ContentType::Png)],
+        };
+        let invalid = Expressions {
+            expressions: vec!["(".into()],
+            flags: vec![8],
+            bounds: vec![None],
+            outputs: vec![Some(ContentType::Png)],
+        };
+        let before = FREED.get();
+        let error = match Database::compile(Program { prefix: valid(), facts: invalid }) {
+            Ok(_) => panic!("an invalid facts expression compiled"),
+            Err(error) => error.to_string(),
+        };
+        assert!(error.contains("Vectorscan compilation failed"), "{error}");
+        assert_eq!(FREED.get(), before + 1, "the prefix database leaked when the facts failed");
+        // A complete database releases each of its streams exactly once.
+        let database = Database::compile(Program { prefix: valid(), facts: valid() }).unwrap();
+        let before = FREED.get();
+        drop(database);
+        assert_eq!(FREED.get(), before + 2);
     }
 }
 

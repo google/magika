@@ -48,7 +48,6 @@ fn generate_content_types(
         serde_json::from_reader(File::open("../../rules/content-types.json")?)?;
     for (label, entry) in extra {
         ensure!(labels.contains(label.as_str()), "unselected rule-only output: {label}");
-        ensure!(!entry.is_text, "rule-only output must be binary: {label}");
         ensure!(!content_types.contains_key(&label), "duplicate KB output: {label}");
         content_types.insert(label, entry);
     }

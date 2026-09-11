@@ -24,7 +24,7 @@ for the reviewed formats, source comparisons, measured coverage and limitations.
 - `benchmark/`: one Python tool and its own pytest suite for correctness, coverage,
   disk throughput and memory. Its `src/` contains input handling, execution and reporting.
 - `package.py`: source staging and binary distribution helper, using Python's standard library.
-- `content-types.json`: metadata needed to regenerate binary rule-only output labels.
+- `content-types.json`: metadata needed to regenerate rule-only output labels.
 - `LICENSES`: rule-source notices; exact source references stay with the YARA definitions.
 
 The directories contain the sole maintained rule sources. Cargo assembles the

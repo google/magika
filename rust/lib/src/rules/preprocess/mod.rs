@@ -16,6 +16,12 @@
 //! `original_size` and `prefix_size` occupy the same offsets in both streams, so the
 //! size guards lower to identical patterns in either domain.
 
+mod pe;
+mod zip;
+
+#[cfg(test)]
+pub(crate) use zip::tests::{archive, stored};
+
 /// Size of the facts header at the start of stream B.
 pub(crate) const FACTS_BYTES: usize = 64;
 /// Size of the `zip_names` view following the facts header.
@@ -66,10 +72,45 @@ pub(crate) const FACTS: &[Fact] = &[
     fact_at("pe_is_executable_image", 57, 1),
 ];
 
-/// Looks a fact up by the identifier used in conditions.
+/// Looks a fact up by the identifier used in conditions; the compiler resolves names once.
 pub(crate) fn fact(name: &str) -> Option<&'static Fact> {
     FACTS.iter().find(|fact| fact.name == name)
 }
+
+/// The facts written for every input, resolved once by position in [`FACTS`] so that
+/// preparing an input never searches the table; the tests pin the name at each position.
+const ORIGINAL_SIZE: &Fact = &FACTS[0];
+const PREFIX_SIZE: &Fact = &FACTS[1];
+/// The value a zip fact takes from an analysis.
+type ZipValue = fn(&zip::ZipFacts) -> u64;
+/// The zip facts, resolved the same way, each with the value it takes from an analysis.
+const ZIP_FACTS: [(&Fact, ZipValue); 7] = [
+    (&FACTS[2], |zip| u64::from(zip.valid)),
+    (&FACTS[3], |zip| u64::from(zip.flags)),
+    (&FACTS[4], |zip| u64::from(zip.entries)),
+    (&FACTS[5], |zip| u64::from(zip.names_entries)),
+    (&FACTS[6], |zip| u64::from(zip.names_len)),
+    (&FACTS[7], |zip| u64::from(zip.comment_len)),
+    (&FACTS[8], |zip| u64::from(zip.cd_size)),
+];
+/// The value a PE fact takes from an analysis.
+type PeValue = fn(&pe::PeFacts) -> u64;
+/// The PE facts, resolved the same way, each with the value it takes from an analysis.
+const PE_FACTS: [(&Fact, PeValue); 13] = [
+    (&FACTS[9], |pe| u64::from(pe.valid)),
+    (&FACTS[10], |pe| u64::from(pe.flags)),
+    (&FACTS[11], |pe| u64::from(pe.machine)),
+    (&FACTS[12], |pe| u64::from(pe.characteristics)),
+    (&FACTS[13], |pe| u64::from(pe.subsystem)),
+    (&FACTS[14], |pe| u64::from(pe.dll_characteristics)),
+    (&FACTS[15], |pe| u64::from(pe.sections)),
+    (&FACTS[16], |pe| u64::from(pe.magic)),
+    (&FACTS[17], |pe| u64::from(pe.clr)),
+    (&FACTS[18], |pe| u64::from(pe.signed)),
+    (&FACTS[19], |pe| pe.overlay),
+    (&FACTS[20], |pe| u64::from(pe.is_dll)),
+    (&FACTS[21], |pe| u64::from(pe.is_executable_image)),
+];
 
 /// A named fixed window of stream B whose bytes conditions may search with `contains`
 /// and `startswith`.
@@ -104,10 +145,50 @@ pub(crate) struct Synthetic {
 }
 
 impl Synthetic {
+    /// An empty stream B, to be filled by [`Self::prepare`] once per input.
+    pub(crate) fn new() -> Self {
+        Self { facts: [0; FACTS_BYTES], names: Box::new([0; ZIP_NAMES_BYTES]) }
+    }
+
     /// Whether a preprocessor produced anything worth scanning: any fact beyond the size
     /// header, or a nonempty `zip_names` view. Stream A already covers the sizes alone.
     pub(crate) fn is_active(&self) -> bool {
         self.facts[super::EXTERNAL_BYTES..].iter().any(|byte| *byte != 0) || self.names[0] != 0
+    }
+
+    /// Derives stream B for one input, forgetting whatever the previous input left behind.
+    ///
+    /// The size facts always describe the input. The zip facts and the `zip_names` view are
+    /// derived by [`zip::analyze`] from the prefix, the size and the tail, only for a prefix
+    /// that [`wants_tail`]; the tail is the prefix itself when it holds the whole input and
+    /// empty when the caller read none, in which case only the first block is known. The PE
+    /// facts are derived by [`pe::analyze`] from the prefix and the size alone, only for a
+    /// prefix that [`pe::wants`]. The signatures are exclusive, so at most one preprocessor
+    /// runs, and any other input pays nothing beyond the size facts.
+    pub(crate) fn prepare(&mut self, blocks: &Blocks<'_>) {
+        #[cfg(test)]
+        PREPARATIONS.set(PREPARATIONS.get() + 1);
+        let Blocks { prefix, size, tail } = *blocks;
+        self.facts = [0; FACTS_BYTES];
+        // A nonempty view opens with `\n` and is zero beyond its length, so a view whose
+        // first byte is clear is clear throughout: most inputs skip the 4 KiB clear.
+        if self.names[0] != 0 {
+            self.names.fill(0);
+        }
+        write_fact(&mut self.facts, ORIGINAL_SIZE, size);
+        write_fact(&mut self.facts, PREFIX_SIZE, prefix.len() as u64);
+        if wants_tail(prefix) {
+            let tail = tail.unwrap_or(if size == prefix.len() as u64 { prefix } else { &[] });
+            let zip = zip::analyze(prefix, size, tail, &mut self.names);
+            for (fact, value) in ZIP_FACTS {
+                write_fact(&mut self.facts, fact, value(&zip));
+            }
+        } else if pe::wants(prefix) {
+            let pe = pe::analyze(prefix, size);
+            for (fact, value) in PE_FACTS {
+                write_fact(&mut self.facts, fact, value(&pe));
+            }
+        }
     }
 }
 
@@ -116,8 +197,7 @@ impl Synthetic {
 pub(crate) struct Blocks<'a> {
     pub prefix: &'a [u8],
     pub size: u64,
-    /// Read by the container preprocessors (zip central directories live at the end).
-    #[allow(dead_code)]
+    /// The last `ZIP_TAIL_BYTES` (or fewer) bytes of the input, read by [`read_tail`].
     pub tail: Option<&'a [u8]>,
 }
 
@@ -127,21 +207,90 @@ thread_local! {
     pub(crate) static PREPARATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-/// Derives stream B for one input. Only the size facts are populated so far; container
-/// preprocessors will fill the remaining facts and the `zip_names` view.
+/// The little-endian u16 at `at`. Get-based and checked: a field not lying entirely
+/// inside `bytes` (or an `at` that overflows) reads as `None`, never panics.
+fn u16_at(bytes: &[u8], at: usize) -> Option<u16> {
+    Some(u16::from_le_bytes(bytes.get(at..at.checked_add(2)?)?.try_into().ok()?))
+}
+
+/// The little-endian u32 at `at`; see [`u16_at`].
+fn u32_at(bytes: &[u8], at: usize) -> Option<u32> {
+    Some(u32::from_le_bytes(bytes.get(at..at.checked_add(4)?)?.try_into().ok()?))
+}
+
+/// Derives stream B for one input into a fresh allocation; see [`Synthetic::prepare`].
+/// Production scans reuse a thread-local `Synthetic` instead.
+#[cfg(test)]
 pub(crate) fn prepare(blocks: &Blocks<'_>) -> Synthetic {
-    #[cfg(test)]
-    PREPARATIONS.set(PREPARATIONS.get() + 1);
-    let Blocks { prefix, size, tail: _ } = *blocks;
-    let mut facts = [0; FACTS_BYTES];
-    write_fact(&mut facts, fact("original_size").unwrap(), size);
-    write_fact(&mut facts, fact("prefix_size").unwrap(), prefix.len() as u64);
-    Synthetic { facts, names: Box::new([0; ZIP_NAMES_BYTES]) }
+    let mut synthetic = Synthetic::new();
+    synthetic.prepare(blocks);
+    synthetic
+}
+
+/// Size of the trailing window read for archives: the central directory of most documents
+/// fits in it, and the model's end block is its suffix.
+pub(crate) const ZIP_TAIL_BYTES: usize = 16 * 1024;
+
+/// Whether the prefix opens a zip archive (a local file header, or the end record of an
+/// empty one), the only inputs whose tail is read ahead of matching.
+pub(crate) fn wants_tail(prefix: &[u8]) -> bool {
+    prefix.starts_with(b"PK\x03\x04") || prefix.starts_with(b"PK\x05\x06")
+}
+
+/// Reads the trailing window `[size - min(size, ZIP_TAIL_BYTES), size)` of an input whose
+/// prefix [`wants_tail`], unless the prefix already holds the whole input. Any other input
+/// costs no read at all.
+pub(crate) fn read_tail(
+    input: &mut impl crate::Input, size: u64, prefix: &[u8],
+) -> anyhow::Result<Option<Vec<u8>>> {
+    if !wants_tail(prefix) || size <= prefix.len() as u64 {
+        return Ok(None);
+    }
+    let _span = crate::startup_trace::span("input_tail_read");
+    let len = size.min(ZIP_TAIL_BYTES as u64);
+    let mut tail = vec![0; len as usize];
+    input.read_at(&mut tail, size - len)?;
+    Ok(Some(tail))
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn hot_path_facts_are_resolved_to_the_named_entries() {
+        let resolved = [(ORIGINAL_SIZE, "original_size"), (PREFIX_SIZE, "prefix_size")]
+            .into_iter()
+            .chain(ZIP_FACTS.iter().map(|(fact, _)| *fact).zip([
+                "zip_valid",
+                "zip_flags",
+                "zip_entries",
+                "zip_names_entries",
+                "zip_names_len",
+                "zip_comment_len",
+                "zip_cd_size",
+            ]))
+            .chain(PE_FACTS.iter().map(|(fact, _)| *fact).zip([
+                "pe_valid",
+                "pe_flags",
+                "pe_machine",
+                "pe_characteristics",
+                "pe_subsystem",
+                "pe_dll_characteristics",
+                "pe_sections",
+                "pe_magic",
+                "pe_clr",
+                "pe_signed",
+                "pe_overlay",
+                "pe_is_dll",
+                "pe_is_executable_image",
+            ]));
+        for (resolved, name) in resolved {
+            let named = fact(name).unwrap();
+            assert_eq!(resolved.name, name);
+            assert_eq!((resolved.offset, resolved.width), (named.offset, named.width), "{name}");
+        }
+    }
 
     #[test]
     fn facts_are_disjoint_and_fit_the_header() {
@@ -205,6 +354,214 @@ mod tests {
         assert!(synthetic.facts[16..].iter().all(|x| *x == 0));
         assert!(synthetic.names.iter().all(|x| *x == 0));
         assert_eq!(synthetic.names.len(), ZIP_NAMES_BYTES);
+    }
+
+    #[test]
+    fn only_zip_signatures_want_a_tail() {
+        assert!(wants_tail(b"PK\x03\x04\x14\x00"));
+        assert!(wants_tail(b"PK\x05\x06"));
+        for prefix in [&b""[..], b"PK", b"PK\x03", b"PK\x01\x02", b"PK\x07\x08", b"\x89PNG"] {
+            assert!(!wants_tail(prefix), "{prefix:?}");
+        }
+    }
+
+    /// An input of `size` bytes of `A`, opening with a local file header when `zip`, or
+    /// of the bytes given to [`Self::serving`]; it records its reads and fails them all
+    /// when `fail`.
+    pub(crate) struct Probe {
+        pub size: u64,
+        pub zip: bool,
+        pub fail: bool,
+        pub reads: Vec<(u64, usize)>,
+        bytes: Option<Vec<u8>>,
+    }
+    impl Probe {
+        pub(crate) fn new(size: u64, zip: bool) -> Self {
+            Probe { size, zip, fail: false, reads: Vec::new(), bytes: None }
+        }
+
+        /// An input serving exactly `bytes`.
+        pub(crate) fn serving(bytes: &[u8]) -> Self {
+            Probe { bytes: Some(bytes.to_vec()), ..Self::new(bytes.len() as u64, false) }
+        }
+    }
+    impl crate::Input for Probe {
+        fn length(&self) -> anyhow::Result<u64> {
+            Ok(self.size)
+        }
+        fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> anyhow::Result<()> {
+            self.reads.push((offset, buffer.len()));
+            anyhow::ensure!(!self.fail, "input read failed");
+            if let Some(bytes) = &self.bytes {
+                return crate::Input::read_at(&mut bytes.as_slice(), buffer, offset);
+            }
+            buffer.fill(b'A');
+            if self.zip && offset == 0 {
+                let head = buffer.len().min(4);
+                buffer[..head].copy_from_slice(&b"PK\x03\x04"[..head]);
+            }
+            Ok(())
+        }
+    }
+    fn prefix_of(input: &mut Probe) -> Vec<u8> {
+        use crate::Input;
+        let mut prefix = vec![0; input.size.min(4096) as usize];
+        if !prefix.is_empty() {
+            input.read_at(&mut prefix, 0).unwrap();
+        }
+        input.reads.clear();
+        prefix
+    }
+
+    #[test]
+    fn read_tail_reads_one_bounded_window_only_for_unheld_zips() {
+        for (size, expected) in [
+            (100_000, Some((83_616, 16_384))),
+            (16_384, Some((0, 16_384))),
+            (10_000, Some((0, 10_000))),
+            (4097, Some((0, 4097))),
+            (4096, None),
+            (4000, None),
+            (4, None),
+        ] {
+            let mut input = Probe::new(size, true);
+            let prefix = prefix_of(&mut input);
+            let tail = read_tail(&mut input, size, &prefix).unwrap();
+            assert_eq!(tail.as_ref().map(|x| x.len()), expected.map(|x| x.1), "{size}");
+            assert_eq!(input.reads, expected.into_iter().collect::<Vec<_>>(), "{size}");
+            if let Some(tail) = tail {
+                assert!(tail.iter().skip(4).all(|x| *x == b'A'), "tail bytes are the input's");
+            }
+        }
+        let mut other = Probe::new(100_000, false);
+        let prefix = prefix_of(&mut other);
+        assert!(read_tail(&mut other, 100_000, &prefix).unwrap().is_none());
+        assert_eq!(other.reads, []);
+        let mut broken = Probe::new(100_000, true);
+        let prefix = prefix_of(&mut broken);
+        broken.fail = true;
+        let error = read_tail(&mut broken, 100_000, &prefix).unwrap_err();
+        assert!(error.to_string().contains("input read failed"));
+    }
+
+    fn zip_facts(synthetic: &Synthetic) -> [u8; 14] {
+        synthetic.facts[16..30].try_into().unwrap()
+    }
+
+    #[test]
+    fn prepare_analyzes_zips_from_the_held_blocks() {
+        let bytes = zip::tests::archive(
+            &[zip::tests::stored(b"word/document.xml", b"<w/>"), zip::tests::stored(b"x", b"")],
+            b"!!",
+        );
+        let size = bytes.len() as u64;
+        let cd_size = (2 * 46 + 17 + 1_u32).to_be_bytes();
+        let expected_facts =
+            [1, 0, 0, 2, 0, 2, 0, 21, 0, 2, cd_size[0], cd_size[1], cd_size[2], cd_size[3]];
+        let expected_view = b"\nword/document.xml\nx\n";
+        // A file held entirely in the prefix needs no tail.
+        let held = prepare(&Blocks { prefix: &bytes, size, tail: None });
+        assert_eq!(zip_facts(&held), expected_facts);
+        assert_eq!(&held.names[..expected_view.len()], expected_view);
+        assert!(held.names[expected_view.len()..].iter().all(|x| *x == 0));
+        assert!(held.is_active());
+        // The same archive behind a stub, seen through the bounded blocks.
+        let mut big = vec![0; 100_000];
+        big[..4].copy_from_slice(b"PK\x03\x04");
+        big.extend_from_slice(&bytes);
+        let prefix = &big[..4096];
+        let tail = &big[big.len() - 16 * 1024..];
+        let bounded = prepare(&Blocks { prefix, size: big.len() as u64, tail: Some(tail) });
+        let mut prepended = expected_facts;
+        prepended[1] = 1 << 5;
+        assert_eq!(zip_facts(&bounded), prepended);
+        assert_eq!(&bounded.names[..expected_view.len()], expected_view);
+        // Without a tail nothing beyond the first block is known: the zip facts stay zero.
+        let blind = prepare(&Blocks { prefix, size: big.len() as u64, tail: None });
+        assert_eq!(zip_facts(&blind), [0; 14]);
+        assert!(!blind.is_active());
+        // The size facts are written alongside.
+        assert_eq!(bounded.facts[..8], (big.len() as u64).to_be_bytes());
+        assert_eq!(bounded.facts[8..16], 4096_u64.to_be_bytes());
+        // A prefix without the zip signature never takes the zip path, whatever the tail holds.
+        let mut foreign = big.clone();
+        foreign[..4].copy_from_slice(b"\x89PNG");
+        let skipped = prepare(&Blocks {
+            prefix: &foreign[..4096],
+            size: foreign.len() as u64,
+            tail: Some(&foreign[foreign.len() - 16 * 1024..]),
+        });
+        assert_eq!(zip_facts(&skipped), [0; 14]);
+        assert!(!skipped.is_active());
+    }
+
+    fn pe_facts(synthetic: &Synthetic) -> [u8; 26] {
+        synthetic.facts[32..58].try_into().unwrap()
+    }
+
+    #[test]
+    fn prepare_analyzes_executables_from_the_first_block() {
+        let mut bytes = pe::tests::pe32().build();
+        bytes.extend_from_slice(&[0; 0x1234]);
+        let size = bytes.len() as u64;
+        let overlay = 0x1234_u64.to_be_bytes();
+        let mut expected = [0; 26];
+        expected[..14]
+            .copy_from_slice(&[1, 0, 0x01, 0x4c, 0x01, 0x02, 0, 3, 0x81, 0x40, 0, 1, 0x01, 0x0b]);
+        expected[16..24].copy_from_slice(&overlay);
+        expected[25] = 1; // pe_is_executable_image
+        let held = prepare(&Blocks { prefix: &bytes, size, tail: None });
+        assert_eq!(pe_facts(&held), expected);
+        assert!(held.is_active());
+        assert!(held.names.iter().all(|x| *x == 0), "no view is written for executables");
+        // Only the first block is used: the same facts come from the bounded prefix.
+        let bounded = prepare(&Blocks { prefix: &bytes[..4096], size, tail: None });
+        assert_eq!(pe_facts(&bounded), expected);
+        // The size facts are written alongside, and the zip facts stay clear.
+        assert_eq!(bounded.facts[..8], size.to_be_bytes());
+        assert_eq!(bounded.facts[8..16], 4096_u64.to_be_bytes());
+        assert!(bounded.facts[16..32].iter().all(|x| *x == 0));
+        // A plain DOS executable is wanted but yields nothing: stream B stays inactive.
+        let dos = prepare(&Blocks { prefix: &bytes[..0x40], size: 0x40, tail: None });
+        assert_eq!(pe_facts(&dos), [0; 26]);
+        assert!(!dos.is_active());
+        // A prefix without the `MZ` signature never takes the PE path, whatever follows.
+        let mut foreign = bytes.clone();
+        foreign[..2].copy_from_slice(b"\x7fE");
+        let skipped = prepare(&Blocks { prefix: &foreign[..4096], size, tail: None });
+        assert_eq!(pe_facts(&skipped), [0; 26]);
+        assert!(!skipped.is_active());
+        // An archive prefix takes the zip path only: a PE header behind it is not read.
+        let mut archive = bytes.clone();
+        archive[..4].copy_from_slice(b"PK\x03\x04");
+        let zipped = prepare(&Blocks { prefix: &archive[..4096], size, tail: Some(&[]) });
+        assert_eq!(pe_facts(&zipped), [0; 26]);
+        assert!(!zipped.is_active());
+    }
+
+    #[test]
+    fn a_reused_synthetic_forgets_the_previous_input() {
+        let bytes = zip::tests::archive(&[zip::tests::stored(b"word/document.xml", b"")], b"");
+        let mut synthetic =
+            prepare(&Blocks { prefix: &bytes, size: bytes.len() as u64, tail: None });
+        assert!(synthetic.is_active());
+        synthetic.prepare(&Blocks { prefix: b"\x89PNG", size: 4, tail: None });
+        assert!(!synthetic.is_active());
+        assert!(synthetic.facts[16..].iter().all(|x| *x == 0));
+        assert!(synthetic.names.iter().all(|x| *x == 0));
+        assert_eq!(synthetic.facts[..8], 4_u64.to_be_bytes());
+        // An executable followed by an archive: each leaves only its own facts.
+        let executable = pe::tests::pe32().build();
+        synthetic.prepare(&Blocks {
+            prefix: &executable,
+            size: executable.len() as u64,
+            tail: None,
+        });
+        assert_eq!(synthetic.facts[32], 1, "pe_valid");
+        assert!(synthetic.facts[16..32].iter().all(|x| *x == 0));
+        synthetic.prepare(&Blocks { prefix: &bytes, size: bytes.len() as u64, tail: None });
+        assert_eq!(synthetic.facts[16], 1, "zip_valid");
+        assert!(synthetic.facts[32..].iter().all(|x| *x == 0));
     }
 
     #[test]

@@ -1,0 +1,817 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
+//! Bounded zip analysis: the end-of-central-directory record, the central directory names
+//! and the stored `mimetype` entry, derived from the two held blocks only.
+//!
+//! Everything here is a pure function of `(first block, input size, tail block)`, so an
+//! independent implementation can reproduce the facts and the view byte for byte. Every
+//! line of the view is `\n` followed by a payload in which the bytes 0x00 and 0x0A are
+//! replaced by 0x01; the `mimetype=<data>` line is sanitized like any other. The contract,
+//! in evaluation order:
+//!
+//! 1. **`mimetype` line.** If `first` starts with a local file header (`PK\x03\x04`) whose
+//!    method (u16 at 8) is 0, name length (u16 at 26) is 8, name (at 30) is `mimetype`,
+//!    uncompressed size (u32 at 22) is 1..=128, and whose data at `38 + extra_len` (u16 at
+//!    28) lies entirely inside `first`, the line `\nmimetype=<data>` is written first, with
+//!    `<data>` sanitized. It counts towards `names_len`, not `names_entries`, and needs no
+//!    EOCD.
+//! 2. **EOCD.** The last 22-byte window of `tail` and every earlier one is tried, walking
+//!    backwards; the first `PK\x05\x06` whose comment length (u16 at 20) equals the bytes
+//!    remaining after its 22 bytes is the EOCD. `tail` must end at the input's end and be
+//!    no longer than the input, otherwise nothing is found. Without an EOCD all facts are
+//!    zero, `flags` included, and only the `mimetype` line may be in the view.
+//! 3. **EOCD facts.** `entries` is the total entry count (u16 at 10), `comment_len` the
+//!    comment length. `flags` bit 0 (zip64) is set by any sentinel: 0xFFFF in the disk
+//!    (u16 at 4), directory disk (6), entries on this disk (8) or total (10) fields,
+//!    0xFFFFFFFF in the directory size (u32 at 12) or offset (16), or a zip64 locator
+//!    (`PK\x06\x07`, 20 bytes) ending exactly where the EOCD starts. Bit 1 (multi-disk)
+//!    is set when the disk or directory disk is nonzero or the per-disk count differs
+//!    from the total. Either bit ends the analysis: `cd_size` and the `names_*` facts stay
+//!    zero and no name is written.
+//! 4. **Directory placement.** `cd_size` is reported. The directory is anchored at the
+//!    EOCD, not at the declared offset: it is the `cd_size` bytes ending at the EOCD's
+//!    absolute offset `eocd_abs = size - tail.len() + position`, so it starts at
+//!    `eocd_abs - cd_size`. This keeps self-extractors walkable, and it is deliberate: any
+//!    bytes between the directory's end and the EOCD (a `PK\x05\x05` digital signature
+//!    record, say) shift the anchor into the directory, so such an archive reads as
+//!    malformed and prepended. A reimplementation must mirror this. Bit 5 (prepended
+//!    data) is set when the declared offset (u32 at 16) plus `cd_size` is smaller than
+//!    `eocd_abs`. A `cd_size` beyond `eocd_abs` sets bit 3 (malformed) and ends the
+//!    analysis. The directory must lie entirely inside `tail` or, failing that, entirely
+//!    inside `first`; otherwise bit 2 (not held) is set and the analysis ends.
+//! 5. **Walk.** Up to `min(entries, ZIP_MAX_ENTRIES)` headers are read in order. Each needs
+//!    `PK\x01\x02`, 46 bytes, and `46 + name_len (u16 at 28) + extra_len (30) +
+//!    comment_len (32)` bytes inside the directory; any shortfall sets bit 3 and ends the
+//!    walk without writing that entry. Each name is written as `\n` followed by the name
+//!    with bytes 0x00 and 0x0A replaced by 0x01. A name that would not leave room for
+//!    the final terminator (`written + 1 + name_len + 1 > 4096`) is not written; bit 4
+//!    (names truncated) is set and the walk ends. `names_entries` counts written names.
+//! 6. **Terminator.** If any line was written, a final `\n` follows it. `names_len` is the
+//!    total number of bytes written; bytes beyond it are left untouched (zero).
+//! 7. `valid` is set iff an EOCD was found and bits 0 to 3 are all clear.
+
+use super::{u16_at, u32_at, ZIP_NAMES_BYTES};
+
+/// Most central directory entries walked for one input.
+const ZIP_MAX_ENTRIES: usize = 96;
+
+/// The archive uses zip64 sentinels or carries a zip64 locator.
+const FLAG_ZIP64: u8 = 1 << 0;
+/// The archive spans several disks.
+const FLAG_MULTIDISK: u8 = 1 << 1;
+/// The central directory lies outside the two held blocks.
+const FLAG_CD_NOT_HELD: u8 = 1 << 2;
+/// The central directory does not parse as declared.
+const FLAG_MALFORMED: u8 = 1 << 3;
+/// At least one name did not fit the view.
+const FLAG_NAMES_TRUNCATED: u8 = 1 << 4;
+/// Bytes precede the archive: a self-extractor or an appended archive.
+const FLAG_PREPENDED: u8 = 1 << 5;
+
+const LOCAL_SIGNATURE: &[u8] = b"PK\x03\x04";
+const CENTRAL_SIGNATURE: &[u8] = b"PK\x01\x02";
+const EOCD_SIGNATURE: &[u8] = b"PK\x05\x06";
+const ZIP64_LOCATOR_SIGNATURE: &[u8] = b"PK\x06\x07";
+const LOCAL_HEADER_LEN: usize = 30;
+const CENTRAL_HEADER_LEN: usize = 46;
+const EOCD_LEN: usize = 22;
+const ZIP64_LOCATOR_LEN: usize = 20;
+/// Longest stored `mimetype` payload copied into the view.
+const MIMETYPE_MAX_LEN: u32 = 128;
+
+/// The zip facts of one input, all zero when the input holds no usable archive.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ZipFacts {
+    pub valid: bool,
+    pub flags: u8,
+    pub entries: u16,
+    pub names_entries: u16,
+    pub names_len: u16,
+    pub comment_len: u16,
+    pub cd_size: u32,
+}
+
+/// Analyzes the archive held in `first` (the block at offset 0) and `tail` (the block ending
+/// at `size`, the input length), writing the `zip_names` view into `names_out`. Never panics
+/// and never reads outside the two blocks; see the module documentation for the contract.
+pub(super) fn analyze(
+    first: &[u8], size: u64, tail: &[u8], names_out: &mut [u8; ZIP_NAMES_BYTES],
+) -> ZipFacts {
+    let mut view = ViewWriter { out: names_out, len: 0 };
+    let mut facts = ZipFacts::default();
+    if let Some(mimetype) = stored_mimetype(first) {
+        // The line always fits: it is at most 1 + 9 + 128 bytes into an empty view.
+        view.line(b"mimetype=", mimetype);
+    }
+    if let Some(eocd) = find_eocd(tail) {
+        walk_directory(first, size, tail, eocd, &mut view, &mut facts);
+    }
+    facts.names_len = view.finish();
+    facts
+}
+
+/// Appends `\n`-led lines to the view and terminates the sequence once at the end.
+struct ViewWriter<'a> {
+    out: &'a mut [u8; ZIP_NAMES_BYTES],
+    len: usize,
+}
+
+impl ViewWriter<'_> {
+    /// Whether a line of `prefix` and `text` fits, keeping one byte for the terminator.
+    fn fits(&self, prefix: &[u8], text: &[u8]) -> bool {
+        // Line: the leading `\n`, the prefix and the text; the terminator needs one more.
+        let line = 1 + prefix.len() + text.len();
+        self.len + line < ZIP_NAMES_BYTES
+    }
+
+    /// Writes `\n`, `prefix` verbatim and `text` sanitized. The caller checks [`Self::fits`].
+    fn line(&mut self, prefix: &[u8], text: &[u8]) {
+        debug_assert!(self.fits(prefix, text));
+        self.out[self.len] = b'\n';
+        self.len += 1;
+        self.out[self.len..self.len + prefix.len()].copy_from_slice(prefix);
+        self.len += prefix.len();
+        for &byte in text {
+            self.out[self.len] = if byte == 0 || byte == b'\n' { 1 } else { byte };
+            self.len += 1;
+        }
+    }
+
+    /// Terminates a nonempty view and returns its length.
+    fn finish(self) -> u16 {
+        if self.len == 0 {
+            return 0;
+        }
+        self.out[self.len] = b'\n';
+        (self.len + 1) as u16
+    }
+}
+
+/// The payload of a stored, short `mimetype` first entry, when `first` holds it entirely.
+fn stored_mimetype(first: &[u8]) -> Option<&[u8]> {
+    if !first.starts_with(LOCAL_SIGNATURE) || u16_at(first, 8)? != 0 || u16_at(first, 26)? != 8 {
+        return None;
+    }
+    let length = u32_at(first, 22)?;
+    if !(1..=MIMETYPE_MAX_LEN).contains(&length) {
+        return None;
+    }
+    let extra_len = usize::from(u16_at(first, 28)?);
+    let name_end = LOCAL_HEADER_LEN + 8;
+    if first.get(LOCAL_HEADER_LEN..name_end)? != b"mimetype" {
+        return None;
+    }
+    let data_start = name_end.checked_add(extra_len)?;
+    first.get(data_start..data_start.checked_add(length as usize)?)
+}
+
+/// Position in `tail` of the end-of-central-directory record whose comment reaches the end.
+fn find_eocd(tail: &[u8]) -> Option<usize> {
+    let last = tail.len().checked_sub(EOCD_LEN)?;
+    (0..=last).rev().find(|&at| {
+        tail[at..].starts_with(EOCD_SIGNATURE)
+            && u16_at(tail, at + 20)
+                .is_some_and(|comment_len| usize::from(comment_len) == tail.len() - at - EOCD_LEN)
+    })
+}
+
+/// Decodes the EOCD at `eocd` in `tail`, places the directory and walks its names.
+fn walk_directory(
+    first: &[u8], size: u64, tail: &[u8], eocd: usize, view: &mut ViewWriter<'_>,
+    facts: &mut ZipFacts,
+) {
+    let Some(tail_start) = size.checked_sub(tail.len() as u64) else { return };
+    let record = &tail[eocd..eocd + EOCD_LEN];
+    let disk = u16_at(record, 4).unwrap_or(0);
+    let cd_disk = u16_at(record, 6).unwrap_or(0);
+    let entries_disk = u16_at(record, 8).unwrap_or(0);
+    let entries = u16_at(record, 10).unwrap_or(0);
+    let cd_size = u32_at(record, 12).unwrap_or(0);
+    let cd_offset = u32_at(record, 16).unwrap_or(0);
+    facts.entries = entries;
+    facts.comment_len = u16_at(record, 20).unwrap_or(0);
+    let locator = eocd
+        .checked_sub(ZIP64_LOCATOR_LEN)
+        .is_some_and(|at| tail[at..].starts_with(ZIP64_LOCATOR_SIGNATURE));
+    if [disk, cd_disk, entries_disk, entries].contains(&u16::MAX)
+        || cd_size == u32::MAX
+        || cd_offset == u32::MAX
+        || locator
+    {
+        facts.flags |= FLAG_ZIP64;
+    }
+    if disk != 0 || cd_disk != 0 || entries_disk != entries {
+        facts.flags |= FLAG_MULTIDISK;
+    }
+    if facts.flags != 0 {
+        return;
+    }
+    facts.cd_size = cd_size;
+    let eocd_abs = tail_start + eocd as u64;
+    if u64::from(cd_offset) + u64::from(cd_size) < eocd_abs {
+        facts.flags |= FLAG_PREPENDED;
+    }
+    let Some(cd_abs) = eocd_abs.checked_sub(u64::from(cd_size)) else {
+        facts.flags |= FLAG_MALFORMED;
+        return;
+    };
+    // The directory ends at the EOCD, so it is inside `tail` iff it starts there; `first`
+    // starts at 0, so it is inside `first` iff it ends there.
+    let directory = if cd_abs >= tail_start {
+        &tail[(cd_abs - tail_start) as usize..eocd]
+    } else if eocd_abs <= first.len() as u64 {
+        // Reached with production blocks only when a long archive comment keeps the EOCD
+        // inside `first` while the 16 KiB tail starts after the directory.
+        &first[cd_abs as usize..eocd_abs as usize]
+    } else {
+        facts.flags |= FLAG_CD_NOT_HELD;
+        return;
+    };
+    let mut at = 0;
+    for _ in 0..usize::from(entries).min(ZIP_MAX_ENTRIES) {
+        let Some((name, len)) = entry_name(directory, at) else {
+            facts.flags |= FLAG_MALFORMED;
+            break;
+        };
+        if !view.fits(b"", name) {
+            facts.flags |= FLAG_NAMES_TRUNCATED;
+            break;
+        }
+        view.line(b"", name);
+        facts.names_entries += 1;
+        at += len;
+    }
+    facts.valid =
+        facts.flags & (FLAG_ZIP64 | FLAG_MULTIDISK | FLAG_CD_NOT_HELD | FLAG_MALFORMED) == 0;
+}
+
+/// The name of the central directory header at `at` and the length of the whole entry,
+/// name, extra field and comment included, when all of it lies inside the directory.
+fn entry_name(directory: &[u8], at: usize) -> Option<(&[u8], usize)> {
+    let header = directory.get(at..at.checked_add(CENTRAL_HEADER_LEN)?)?;
+    if !header.starts_with(CENTRAL_SIGNATURE) {
+        return None;
+    }
+    let name_len = usize::from(u16_at(header, 28)?);
+    let trailer = usize::from(u16_at(header, 30)?) + usize::from(u16_at(header, 32)?);
+    let name_start = at + CENTRAL_HEADER_LEN;
+    let name_end = name_start.checked_add(name_len)?;
+    // The extra field and comment must fit as well, or the next header cannot be found.
+    let entry_end = name_end.checked_add(trailer)?;
+    if entry_end > directory.len() {
+        return None;
+    }
+    Some((directory.get(name_start..name_end)?, entry_end - at))
+}
+
+#[cfg(test)]
+pub(super) mod tests {
+    use super::*;
+
+    pub(crate) struct Entry {
+        name: Vec<u8>,
+        data: Vec<u8>,
+        method: u16,
+    }
+
+    pub(crate) fn stored(name: &[u8], data: &[u8]) -> Entry {
+        Entry { name: name.to_vec(), data: data.to_vec(), method: 0 }
+    }
+
+    /// A single-disk archive: local entries, the central directory, the EOCD and its comment.
+    pub(crate) fn archive(entries: &[Entry], comment: &[u8]) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut offsets = Vec::new();
+        for entry in entries {
+            offsets.push(out.len() as u32);
+            out.extend_from_slice(b"PK\x03\x04");
+            out.extend_from_slice(&[20, 0, 0, 0]); // version, flags
+            out.extend_from_slice(&entry.method.to_le_bytes());
+            out.extend_from_slice(&[0; 8]); // time, date, crc
+            out.extend_from_slice(&(entry.data.len() as u32).to_le_bytes());
+            out.extend_from_slice(&(entry.data.len() as u32).to_le_bytes());
+            out.extend_from_slice(&(entry.name.len() as u16).to_le_bytes());
+            out.extend_from_slice(&[0, 0]); // extra length
+            out.extend_from_slice(&entry.name);
+            out.extend_from_slice(&entry.data);
+        }
+        let cd_offset = out.len() as u32;
+        for (entry, offset) in entries.iter().zip(&offsets) {
+            out.extend_from_slice(b"PK\x01\x02");
+            out.extend_from_slice(&[20, 0, 20, 0, 0, 0]); // made by, needed, flags
+            out.extend_from_slice(&entry.method.to_le_bytes());
+            out.extend_from_slice(&[0; 8]); // time, date, crc
+            out.extend_from_slice(&(entry.data.len() as u32).to_le_bytes());
+            out.extend_from_slice(&(entry.data.len() as u32).to_le_bytes());
+            out.extend_from_slice(&(entry.name.len() as u16).to_le_bytes());
+            out.extend_from_slice(&[0, 0, 0, 0]); // extra length, comment length
+            out.extend_from_slice(&[0; 8]); // disk, internal and external attributes
+            out.extend_from_slice(&offset.to_le_bytes());
+            out.extend_from_slice(&entry.name);
+        }
+        let cd_size = out.len() as u32 - cd_offset;
+        out.extend_from_slice(b"PK\x05\x06");
+        out.extend_from_slice(&[0, 0, 0, 0]); // disk, central directory disk
+        out.extend_from_slice(&(entries.len() as u16).to_le_bytes());
+        out.extend_from_slice(&(entries.len() as u16).to_le_bytes());
+        out.extend_from_slice(&cd_size.to_le_bytes());
+        out.extend_from_slice(&cd_offset.to_le_bytes());
+        out.extend_from_slice(&(comment.len() as u16).to_le_bytes());
+        out.extend_from_slice(comment);
+        out
+    }
+
+    /// Offset of the EOCD record of an archive built by [`archive`] with `comment` bytes.
+    fn eocd_at(bytes: &[u8], comment_len: usize) -> usize {
+        bytes.len() - EOCD_LEN - comment_len
+    }
+
+    fn put_u16(bytes: &mut [u8], at: usize, value: u16) {
+        bytes[at..at + 2].copy_from_slice(&value.to_le_bytes());
+    }
+
+    fn put_u32(bytes: &mut [u8], at: usize, value: u32) {
+        bytes[at..at + 4].copy_from_slice(&value.to_le_bytes());
+    }
+
+    /// Analyzes a small input held entirely in one block, as `first` and `tail` alike.
+    fn small(bytes: &[u8]) -> (ZipFacts, Box<[u8; ZIP_NAMES_BYTES]>) {
+        let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+        let facts = analyze(bytes, bytes.len() as u64, bytes, &mut names);
+        (facts, names)
+    }
+
+    /// Analyzes with the bounded blocks the pipeline holds: 4096 bytes at 0, 16 KiB at the end.
+    fn blocks(bytes: &[u8]) -> (ZipFacts, Box<[u8; ZIP_NAMES_BYTES]>) {
+        let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+        let first = &bytes[..bytes.len().min(4096)];
+        let tail = &bytes[bytes.len().saturating_sub(16 * 1024)..];
+        let facts = analyze(first, bytes.len() as u64, tail, &mut names);
+        (facts, names)
+    }
+
+    fn view(names: &[u8; ZIP_NAMES_BYTES], len: usize) -> &[u8] {
+        assert!(names[len..].iter().all(|x| *x == 0), "bytes beyond the view are untouched");
+        &names[..len]
+    }
+
+    /// Grows the central directory of a single-entry archive built by [`archive`] without a
+    /// comment by `pad` bytes of extra field on that entry, keeping the EOCD consistent.
+    fn pad_directory(bytes: &mut Vec<u8>, pad: u16) {
+        let eocd = eocd_at(bytes, 0);
+        let cd_size = u32_at(bytes, eocd + 12).unwrap();
+        let cd = eocd - cd_size as usize;
+        assert_eq!(u16_at(bytes, eocd + 10), Some(1), "single entry");
+        assert_eq!(u16_at(bytes, cd + 30), Some(0), "no extra field yet");
+        put_u16(bytes, cd + 30, pad);
+        bytes.splice(eocd..eocd, std::iter::repeat_n(0, usize::from(pad)));
+        put_u32(bytes, eocd + usize::from(pad) + 12, cd_size + u32::from(pad));
+    }
+
+    /// The invariants every analysis upholds, whatever the input.
+    fn check(facts: &ZipFacts, names: &[u8; ZIP_NAMES_BYTES]) {
+        let names_len = usize::from(facts.names_len);
+        assert!(names_len <= ZIP_NAMES_BYTES, "{facts:?}");
+        assert!(
+            usize::from(facts.names_entries) <= usize::from(facts.entries).min(ZIP_MAX_ENTRIES),
+            "{facts:?}"
+        );
+        if names_len > 0 {
+            assert_eq!((names[0], names[names_len - 1]), (b'\n', b'\n'), "{facts:?}");
+        }
+        if facts.valid {
+            assert_eq!(facts.flags & 0b1111, 0, "{facts:?}");
+        }
+    }
+
+    #[test]
+    fn minimal_archive_yields_exact_facts_and_view() {
+        let bytes = archive(&[stored(b"a.txt", b"hello"), stored(b"dir/b.bin", b"")], b"");
+        let (facts, names) = small(&bytes);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: true,
+                flags: 0,
+                entries: 2,
+                names_entries: 2,
+                names_len: 17,
+                comment_len: 0,
+                cd_size: 2 * 46 + 5 + 9,
+            }
+        );
+        assert_eq!(view(&names, 17), b"\na.txt\ndir/b.bin\n");
+    }
+
+    #[test]
+    fn archive_comment_is_measured_and_eocd_found_before_it() {
+        let bytes = archive(&[stored(b"x", b"1")], b"a comment");
+        let (facts, names) = small(&bytes);
+        assert!(facts.valid);
+        assert_eq!(facts.comment_len, 9);
+        assert_eq!(facts.entries, 1);
+        assert_eq!(view(&names, 3), b"\nx\n");
+    }
+
+    #[test]
+    fn empty_archive_is_valid_with_an_empty_view() {
+        let bytes = archive(&[], b"");
+        let (facts, names) = small(&bytes);
+        assert_eq!(
+            facts,
+            ZipFacts { valid: true, flags: 0, entries: 0, cd_size: 0, ..ZipFacts::default() }
+        );
+        assert_eq!(view(&names, 0), b"");
+    }
+
+    #[test]
+    fn stored_mimetype_first_entry_adds_a_line_before_the_names() {
+        let bytes =
+            archive(&[stored(b"mimetype", b"application/epub+zip"), stored(b"OEBPS/x", b"")], b"");
+        let (facts, names) = small(&bytes);
+        let expected = b"\nmimetype=application/epub+zip\nmimetype\nOEBPS/x\n";
+        assert!(facts.valid);
+        assert_eq!(facts.names_entries, 2);
+        assert_eq!(facts.names_len as usize, expected.len());
+        assert_eq!(view(&names, expected.len()), expected);
+        // The line is derived from the first block alone: a truncated archive keeps it.
+        let (facts, names) = small(&bytes[..60]);
+        assert_eq!(facts, ZipFacts { names_len: 31, ..ZipFacts::default() });
+        assert_eq!(view(&names, 31), b"\nmimetype=application/epub+zip\n");
+        // Only a stored, 1..=128 byte, in-block payload qualifies.
+        let mut deflated = bytes.clone();
+        put_u16(&mut deflated, 8, 8);
+        assert_eq!(view(&small(&deflated).1, 18), b"\nmimetype\nOEBPS/x\n");
+        let mut empty = bytes.clone();
+        put_u32(&mut empty, 22, 0);
+        assert_eq!(view(&small(&empty).1, 18), b"\nmimetype\nOEBPS/x\n");
+        let mut huge = bytes.clone();
+        put_u32(&mut huge, 22, 129);
+        assert_eq!(view(&small(&huge).1, 18), b"\nmimetype\nOEBPS/x\n");
+        let mut beyond = bytes.clone();
+        put_u16(&mut beyond, 28, 4096);
+        assert_eq!(view(&small(&beyond).1, 18), b"\nmimetype\nOEBPS/x\n");
+        let mut other = bytes.clone();
+        other[30..38].copy_from_slice(b"mimetypX");
+        // Only the local header was renamed: the directory still lists `mimetype`.
+        assert_eq!(view(&small(&other).1, 18), b"\nmimetype\nOEBPS/x\n");
+        let mut sanitized = bytes.clone();
+        sanitized[38] = b'\n';
+        sanitized[39] = 0;
+        assert_eq!(view(&small(&sanitized).1, 49)[..12], *b"\nmimetype=\x01\x01");
+    }
+
+    #[test]
+    fn eocd_with_a_mismatched_comment_length_is_rejected() {
+        let mut bytes = archive(&[stored(b"a", b"1")], b"");
+        let eocd = eocd_at(&bytes, 0);
+        put_u16(&mut bytes, eocd + 20, 5);
+        let (facts, names) = small(&bytes);
+        assert_eq!(facts, ZipFacts::default());
+        assert_eq!(view(&names, 0), b"");
+        // A shorter comment than declared is rejected too; a longer one is not an EOCD.
+        let mut bytes = archive(&[stored(b"a", b"1")], b"abc");
+        let eocd = eocd_at(&bytes, 3);
+        put_u16(&mut bytes, eocd + 20, 2);
+        assert_eq!(small(&bytes).0, ZipFacts::default());
+    }
+
+    #[test]
+    fn eocd_at_the_very_start_of_the_tail_uses_the_first_block_directory() {
+        let bytes = archive(&[stored(b"a", b"1"), stored(b"bb", b"22")], b"");
+        let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+        let tail = &bytes[bytes.len() - EOCD_LEN..];
+        let facts = analyze(&bytes, bytes.len() as u64, tail, &mut names);
+        assert!(facts.valid, "{facts:?}");
+        assert_eq!(facts.names_entries, 2);
+        assert_eq!(view(&names, 6), b"\na\nbb\n");
+        // Without the first block, the directory is held by neither block.
+        let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+        let facts = analyze(&bytes[..4], bytes.len() as u64, tail, &mut names);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: false,
+                flags: FLAG_CD_NOT_HELD,
+                entries: 2,
+                cd_size: 2 * 46 + 3,
+                ..ZipFacts::default()
+            }
+        );
+        assert_eq!(view(&names, 0), b"");
+    }
+
+    #[test]
+    fn directory_filling_the_tail_window_exactly_is_held() {
+        // The directory ends at the EOCD, which ends the 16 KiB tail: it is held iff it
+        // starts at or after the tail's first byte.
+        let mut held = archive(&[stored(b"a", b"1")], b"");
+        pad_directory(&mut held, (16 * 1024 - EOCD_LEN - 47) as u16);
+        assert!(held.len() > 16 * 1024);
+        let (facts, names) = blocks(&held);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: true,
+                flags: 0,
+                entries: 1,
+                names_entries: 1,
+                names_len: 3,
+                comment_len: 0,
+                cd_size: (16 * 1024 - EOCD_LEN) as u32,
+            }
+        );
+        assert_eq!(view(&names, 3), b"\na\n");
+        let mut unheld = archive(&[stored(b"a", b"1")], b"");
+        pad_directory(&mut unheld, (16 * 1024 - EOCD_LEN - 47 + 1) as u16);
+        let (facts, names) = blocks(&unheld);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: false,
+                flags: FLAG_CD_NOT_HELD,
+                entries: 1,
+                cd_size: (16 * 1024 - EOCD_LEN + 1) as u32,
+                ..ZipFacts::default()
+            }
+        );
+        assert_eq!(view(&names, 0), b"");
+    }
+
+    #[test]
+    fn long_comment_keeps_the_eocd_and_directory_in_the_first_block() {
+        // With the production blocks, the tail starts inside the local entries while the
+        // comment pushes the EOCD, and so the directory, into the first block.
+        let entries: Vec<_> = (b'a'..=b'h').map(|name| stored(&[name], b"1")).collect();
+        let bytes = archive(&entries, &[b'c'; 16_000]);
+        let eocd_abs = 8 * 32 + 8 * 47;
+        assert_eq!(bytes.len(), eocd_abs + EOCD_LEN + 16_000);
+        assert!(bytes.len() > 16 * 1024 && eocd_abs < 4096);
+        let (facts, names) = blocks(&bytes);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: true,
+                flags: 0,
+                entries: 8,
+                names_entries: 8,
+                names_len: 17,
+                comment_len: 16_000,
+                cd_size: 8 * 47,
+            }
+        );
+        assert_eq!(view(&names, 17), b"\na\nb\nc\nd\ne\nf\ng\nh\n");
+    }
+
+    #[test]
+    fn directory_larger_than_the_tail_window_is_not_held() {
+        let entries: Vec<_> =
+            (0..400).map(|i| stored(format!("{i:0>40}").as_bytes(), b"")).collect();
+        let bytes = archive(&entries, b"");
+        let (facts, names) = blocks(&bytes);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: false,
+                flags: FLAG_CD_NOT_HELD,
+                entries: 400,
+                cd_size: 400 * 86,
+                ..ZipFacts::default()
+            }
+        );
+        assert_eq!(view(&names, 0), b"");
+    }
+
+    #[test]
+    fn directory_size_beyond_the_file_is_malformed() {
+        let mut bytes = archive(&[stored(b"a", b"1")], b"");
+        let eocd = eocd_at(&bytes, 0);
+        put_u32(&mut bytes, eocd + 12, 0xffff_0000);
+        let (facts, names) = small(&bytes);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: false,
+                flags: FLAG_MALFORMED,
+                entries: 1,
+                cd_size: 0xffff_0000,
+                ..ZipFacts::default()
+            }
+        );
+        assert_eq!(view(&names, 0), b"");
+        // One byte too many is malformed as well; the exact size is fine.
+        let mut bytes = archive(&[stored(b"a", b"1")], b"");
+        put_u32(&mut bytes, eocd + 12, eocd as u32 + 1);
+        assert_eq!(small(&bytes).0.flags, FLAG_MALFORMED);
+        put_u32(&mut bytes, eocd + 12, eocd as u32);
+        assert_eq!(small(&bytes).0.flags, FLAG_MALFORMED, "a directory spanning the entries");
+    }
+
+    #[test]
+    fn directory_offset_overflow_does_not_disturb_the_walk() {
+        let mut bytes = archive(&[stored(b"a", b"1")], b"");
+        let eocd = eocd_at(&bytes, 0);
+        put_u32(&mut bytes, eocd + 16, 0xffff_fffe);
+        let (facts, names) = small(&bytes);
+        assert_eq!(facts.flags, 0);
+        assert!(facts.valid);
+        assert_eq!(view(&names, 3), b"\na\n");
+    }
+
+    #[test]
+    fn name_running_past_the_directory_end_is_malformed() {
+        let mut bytes = archive(&[stored(b"first", b"1"), stored(b"second", b"2")], b"");
+        let eocd = eocd_at(&bytes, 0);
+        let cd = eocd - (2 * 46 + 5 + 6);
+        put_u16(&mut bytes, cd + 46 + 5 + 28, 0xffff);
+        let (facts, names) = small(&bytes);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: false,
+                flags: FLAG_MALFORMED,
+                entries: 2,
+                names_entries: 1,
+                names_len: 7,
+                comment_len: 0,
+                cd_size: 2 * 46 + 5 + 6,
+            }
+        );
+        assert_eq!(view(&names, 7), b"\nfirst\n");
+        // A bad signature stops the walk the same way.
+        let mut bytes = archive(&[stored(b"first", b"1"), stored(b"second", b"2")], b"");
+        bytes[cd + 46 + 5] = b'Q';
+        let (facts, names) = small(&bytes);
+        assert_eq!(facts.flags, FLAG_MALFORMED);
+        assert_eq!(view(&names, 7), b"\nfirst\n");
+        // An extra or comment length past the end drops that entry without writing it.
+        let mut bytes = archive(&[stored(b"first", b"1"), stored(b"second", b"2")], b"");
+        put_u16(&mut bytes, cd + 46 + 5 + 32, 1);
+        let (facts, names) = small(&bytes);
+        assert_eq!((facts.flags, facts.names_entries), (FLAG_MALFORMED, 1));
+        assert_eq!(view(&names, 7), b"\nfirst\n");
+    }
+
+    #[test]
+    fn names_are_sanitized_of_newlines_and_nuls() {
+        let bytes = archive(&[stored(b"a\nb\0c", b""), stored(b"\n", b"")], b"");
+        let (facts, names) = small(&bytes);
+        assert!(facts.valid);
+        assert_eq!(view(&names, 9), b"\na\x01b\x01c\n\x01\n");
+    }
+
+    #[test]
+    fn entries_are_capped_and_truncation_only_flags_a_full_view() {
+        let entries: Vec<_> = (0..100).map(|i| stored(format!("n{i}").as_bytes(), b"")).collect();
+        let mut bytes = archive(&entries, b"");
+        let eocd = eocd_at(&bytes, 0);
+        put_u16(&mut bytes, eocd + 8, 0xfffe);
+        put_u16(&mut bytes, eocd + 10, 0xfffe);
+        let (facts, names) = small(&bytes);
+        assert!(facts.valid, "{facts:?}");
+        assert_eq!(facts.flags, 0);
+        assert_eq!(facts.entries, 0xfffe);
+        assert_eq!(facts.names_entries, 96);
+        let expected: Vec<u8> =
+            (0..96).flat_map(|i| format!("\nn{i}").into_bytes()).chain([b'\n']).collect();
+        assert_eq!(facts.names_len as usize, expected.len());
+        assert_eq!(view(&names, expected.len()), expected);
+        // Long names fill the view: whole names are dropped and the truncation flagged.
+        let entries: Vec<_> =
+            (0..100).map(|i| stored(format!("{i:0>60}").as_bytes(), b"")).collect();
+        let bytes = archive(&entries, b"");
+        let (facts, names) = small(&bytes);
+        assert!(facts.valid);
+        assert_eq!(facts.flags, FLAG_NAMES_TRUNCATED);
+        assert_eq!(facts.names_entries, 67);
+        assert_eq!(facts.names_len, 67 * 61 + 1);
+        let expected: Vec<u8> =
+            (0..67).flat_map(|i| format!("\n{i:0>60}").into_bytes()).chain([b'\n']).collect();
+        assert_eq!(view(&names, expected.len()), expected);
+        // A name filling the view exactly, terminator included, still fits.
+        let name = vec![b'z'; ZIP_NAMES_BYTES - 2];
+        let bytes = archive(&[stored(&name, b""), stored(b"q", b"")], b"");
+        let (facts, names) = small(&bytes);
+        assert_eq!((facts.flags, facts.names_entries), (FLAG_NAMES_TRUNCATED, 1));
+        assert_eq!(facts.names_len as usize, ZIP_NAMES_BYTES);
+        assert_eq!(names[0], b'\n');
+        assert_eq!(names[ZIP_NAMES_BYTES - 1], b'\n');
+        assert!(names[1..ZIP_NAMES_BYTES - 1].iter().all(|x| *x == b'z'));
+    }
+
+    #[test]
+    fn zip64_sentinels_and_locator_report_a_plain_invalid_zip() {
+        let base = archive(&[stored(b"a", b"1")], b"");
+        let eocd = eocd_at(&base, 0);
+        let expected = |entries| ZipFacts {
+            valid: false,
+            flags: FLAG_ZIP64,
+            entries,
+            cd_size: 0,
+            ..ZipFacts::default()
+        };
+        let mut total = base.clone();
+        put_u16(&mut total, eocd + 8, 0xffff);
+        put_u16(&mut total, eocd + 10, 0xffff);
+        assert_eq!(small(&total), (expected(0xffff), Box::new([0; ZIP_NAMES_BYTES])));
+        let mut size = base.clone();
+        put_u32(&mut size, eocd + 12, 0xffff_ffff);
+        assert_eq!(small(&size).0, expected(1));
+        let mut offset = base.clone();
+        put_u32(&mut offset, eocd + 16, 0xffff_ffff);
+        assert_eq!(small(&offset).0, expected(1));
+        let mut disk = base.clone();
+        put_u16(&mut disk, eocd + 4, 0xffff);
+        assert_eq!(small(&disk).0.flags & FLAG_ZIP64, FLAG_ZIP64);
+        // A zip64 locator immediately before a plain EOCD marks zip64 as well.
+        let mut located = base[..eocd].to_vec();
+        located.extend_from_slice(b"PK\x06\x07");
+        located.extend_from_slice(&[0; 16]);
+        located.extend_from_slice(&base[eocd..]);
+        assert_eq!(small(&located).0, expected(1));
+    }
+
+    #[test]
+    fn multi_disk_archives_are_invalid() {
+        let base = archive(&[stored(b"a", b"1")], b"");
+        let eocd = eocd_at(&base, 0);
+        let expected =
+            ZipFacts { valid: false, flags: FLAG_MULTIDISK, entries: 1, ..ZipFacts::default() };
+        let mut disk = base.clone();
+        put_u16(&mut disk, eocd + 4, 1);
+        assert_eq!(small(&disk), (expected, Box::new([0; ZIP_NAMES_BYTES])));
+        let mut cd_disk = base.clone();
+        put_u16(&mut cd_disk, eocd + 6, 1);
+        assert_eq!(small(&cd_disk).0, expected);
+        let mut split = base.clone();
+        put_u16(&mut split, eocd + 8, 0);
+        assert_eq!(small(&split).0, expected);
+    }
+
+    #[test]
+    fn prepended_data_is_flagged_and_still_walked() {
+        let mut bytes = vec![b'M'; 100];
+        bytes.extend(archive(&[stored(b"payload.bin", b"xyz")], b""));
+        let (facts, names) = small(&bytes);
+        assert_eq!(
+            facts,
+            ZipFacts {
+                valid: true,
+                flags: FLAG_PREPENDED,
+                entries: 1,
+                names_entries: 1,
+                names_len: 13,
+                comment_len: 0,
+                cd_size: 46 + 11,
+            }
+        );
+        assert_eq!(view(&names, 13), b"\npayload.bin\n");
+        // The same archive behind a large stub, with only the bounded blocks held.
+        let mut bytes = vec![b'M'; 100_000];
+        bytes.extend(archive(&[stored(b"payload.bin", b"xyz")], b""));
+        let (facts, names) = blocks(&bytes);
+        assert_eq!((facts.valid, facts.flags), (true, FLAG_PREPENDED));
+        assert_eq!(view(&names, 13), b"\npayload.bin\n");
+    }
+
+    #[test]
+    fn short_or_foreign_tails_yield_nothing() {
+        let bytes = archive(&[stored(b"a", b"1")], b"");
+        for tail in [&b""[..], &b"PK\x05\x06"[..], &bytes[bytes.len() - 21..]] {
+            let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+            let facts = analyze(&bytes, bytes.len() as u64, tail, &mut names);
+            assert_eq!(facts, ZipFacts::default(), "{tail:?}");
+            assert_eq!(view(&names, 0), b"");
+        }
+        // A tail longer than the file cannot be placed and yields nothing.
+        let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+        assert_eq!(analyze(&bytes, 10, &bytes, &mut names), ZipFacts::default());
+        assert_eq!(small(b"PK\x03\x04 not an archive").0, ZipFacts::default());
+    }
+
+    #[test]
+    fn every_byte_mutation_of_the_fixtures_is_survived() {
+        for name in ["simple.zip", "zip64.zip", "volumecomment.zip", "filecomment.zip"] {
+            let path = format!("../../tests_data/mitra/zip/{name}");
+            let original = std::fs::read(&path).unwrap();
+            let (facts, _) = blocks(&original);
+            assert!(facts.entries > 0, "{name}: {facts:?}");
+            for at in 0..original.len() {
+                for value in [0x00, 0xff, 0x50, original[at] ^ 0x01, original[at] ^ 0x80] {
+                    let mut mutated = original.clone();
+                    mutated[at] = value;
+                    let (facts, names) = blocks(&mutated);
+                    check(&facts, &names);
+                    let (facts, names) = small(&mutated);
+                    check(&facts, &names);
+                    // Truncations and the two-block split are reachable states as well.
+                    let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+                    let facts =
+                        analyze(&mutated[..at], mutated.len() as u64, &mutated[at..], &mut names);
+                    check(&facts, &names);
+                }
+            }
+        }
+    }
+}

@@ -110,7 +110,7 @@ mod rules_tests {
         let runtime =
             Runtime::builder().with_backend(crate::Backend::Cpu).with_max_batch(1).build().unwrap();
         let mut session = runtime.session().unwrap();
-        let ruled = FeaturesOrRuled::extract_with_matcher(&b"known file"[..], |_, _, _| {
+        let ruled = FeaturesOrRuled::extract_with_matcher(&b"known file"[..], false, |_, _, _| {
             Some(crate::ContentType::Png)
         })
         .unwrap();

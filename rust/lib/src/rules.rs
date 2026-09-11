@@ -34,13 +34,29 @@ pub(crate) const PREFIX_LIMIT: usize = 4096;
 #[cfg(feature = "yara-rules")]
 const EXTERNAL_BYTES: usize = 2 * std::mem::size_of::<u64>();
 
-pub(crate) fn identify(prefix: &[u8], original_size: u64, mode: RulesMode) -> Option<ContentType> {
+/// Identifies an input with the bundled pack under `mode`: the bounded prefix, the original
+/// size and, when the caller read one, the trailing window of an archive.
+pub(crate) fn identify(
+    prefix: &[u8], original_size: u64, tail: Option<&[u8]>, mode: RulesMode,
+) -> Option<ContentType> {
     #[cfg(feature = "yara-rules")]
     if mode == RulesMode::Enforce {
-        return engine::scan_promoted(prefix, original_size);
+        return engine::scan_promoted(prefix, original_size, tail);
     }
-    let _ = (prefix, original_size, mode);
+    let _ = (prefix, original_size, tail, mode);
     None
+}
+
+/// Whether identification under `mode` scans facts, and so wants the trailing window of
+/// archives read ahead of matching. Rules off, or a bundled pack that cannot be loaded or
+/// has no facts rule, keep the default pipeline's reads exactly.
+pub(crate) fn uses_facts(mode: RulesMode) -> bool {
+    #[cfg(feature = "yara-rules")]
+    if mode == RulesMode::Enforce {
+        return engine::bundled().is_ok_and(RuleSet::uses_facts);
+    }
+    let _ = mode;
+    false
 }
 
 /// Bundled YARA source, including disabled rules retained for evaluation.
@@ -59,7 +75,7 @@ mod metadata;
 #[cfg(feature = "yara-rules")]
 mod native;
 #[cfg(feature = "yara-rules")]
-mod preprocess;
+pub(crate) mod preprocess;
 
 /// A compiled, shareable YARA pack executed by Vectorscan.
 ///
@@ -146,11 +162,18 @@ impl RuleSet {
         cache::load(source, directory, shipped)
     }
 
+    /// Whether any selected rule scans the facts stream, and so whether identification reads
+    /// the trailing window of archives ahead of matching.
+    pub(crate) fn uses_facts(&self) -> bool {
+        self.database.as_ref().is_some_and(|database| database.uses_facts())
+    }
+
     /// Identifies an input using only the selected signatures, without loading a model.
     ///
-    /// Reads at most the first 4096 bytes and preserves the original file size for guards.
-    /// A miss, conflict or scan failure returns `None`; input errors remain errors.
-    /// Empty and short text inputs receive no implicit fallback classification.
+    /// Reads at most the first 4096 bytes, plus the trailing window of an archive when a
+    /// rule scans facts, and preserves the original file size for guards. A miss, conflict
+    /// or scan failure returns `None`; input errors remain errors. Empty and short text
+    /// inputs receive no implicit fallback classification.
     pub fn identify_input(&self, mut input: impl crate::Input) -> Result<Option<ContentType>> {
         #[cfg(feature = "yara-rules")]
         let _input_read = crate::startup_trace::span("input_prefix_read");
@@ -161,7 +184,13 @@ impl RuleSet {
         }
         #[cfg(feature = "yara-rules")]
         drop(_input_read);
-        Ok(self.identify(&prefix, size, None))
+        // Only a pack scanning facts can use an archive's tail; no other pays the read.
+        let tail = if self.uses_facts() {
+            preprocess::read_tail(&mut input, size, &prefix)?
+        } else {
+            None
+        };
+        Ok(self.identify(&prefix, size, tail.as_deref()))
     }
 
     /// Scans one input: the bounded prefix, its original size and, when the caller has read
@@ -171,10 +200,8 @@ impl RuleSet {
     ) -> Option<ContentType> {
         let database = self.database.as_ref()?;
         // Preprocessing only feeds stream B: a pack without facts rules never pays for it.
-        let synthetic = database
-            .uses_facts()
-            .then(|| preprocess::prepare(&preprocess::Blocks { prefix, size, tail }));
-        engine::scan(database, synthetic.as_ref(), prefix, size).content_type()
+        let blocks = preprocess::Blocks { prefix, size, tail };
+        engine::identify(database, &blocks, database.uses_facts()).content_type()
     }
 }
 
@@ -184,8 +211,11 @@ mod tests {
 
     #[test]
     fn off_and_unpromoted_never_override() {
-        assert_eq!(identify(b"\x89PNG\r\n\x1a\n", 100, RulesMode::Off), None);
-        assert_eq!(identify(b"\x89PNG\r\n\x1a\n", 100, RulesMode::Enforce), None);
+        for tail in [None, Some(&b"PK\x05\x06"[..])] {
+            assert_eq!(identify(b"\x89PNG\r\n\x1a\n", 100, tail, RulesMode::Off), None);
+            assert_eq!(identify(b"\x89PNG\r\n\x1a\n", 100, tail, RulesMode::Enforce), None);
+        }
+        assert!(!uses_facts(RulesMode::Off), "rules off never read ahead of the model");
         assert!(RulesMode::Off.check().is_ok());
         assert_eq!(RulesMode::Enforce.check().is_ok(), cfg!(feature = "yara-rules"));
     }
@@ -193,45 +223,99 @@ mod tests {
 
 #[cfg(all(test, feature = "yara-rules"))]
 mod native_tests {
+    use preprocess::tests::Probe;
+
     use super::*;
 
     fn rule(id: &str, label: &str, patterns: &str, condition: &str) -> String {
         format!("rule {id} {{ meta: label = \"{label}\" enabled = true class = \"full\" fp_rate = 0 fn_rate = 0 {patterns} condition: {condition} }}")
     }
 
+    /// The reads of an archive of `size` bytes: its prefix, then its bounded tail when
+    /// `tail`, unless the prefix already holds it whole.
+    fn archive_reads(size: u64, tail: bool) -> Vec<(u64, usize)> {
+        let mut reads = vec![(0, size.min(4096) as usize)];
+        if tail && size > 4096 {
+            let len = size.min(16_384);
+            reads.push((size - len, len as usize));
+        }
+        reads
+    }
+
     #[test]
     fn rules_only_reads_one_bounded_prefix_and_preserves_input_errors() {
-        struct Probe {
-            size: u64,
-            reads: Vec<(u64, usize)>,
-            fail: bool,
-        }
-        impl crate::Input for Probe {
-            fn length(&self) -> Result<u64> {
-                Ok(self.size)
-            }
-            fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-                self.reads.push((offset, buffer.len()));
-                anyhow::ensure!(!self.fail, "input read failed");
-                buffer.fill(b'A');
-                Ok(())
-            }
-        }
         let pack = RuleSet::from_source("// Empty test pack.").unwrap();
         for size in [0, 1, 4096, 4097, u64::MAX] {
-            let mut input = Probe { size, reads: Vec::new(), fail: false };
+            let mut input = Probe::new(size, false);
             assert_eq!(pack.identify_input(&mut input).unwrap(), None);
             assert_eq!(
                 input.reads,
                 if size == 0 { vec![] } else { vec![(0, size.min(4096) as usize)] }
             );
         }
-        let mut broken = Probe { size: 8192, reads: Vec::new(), fail: true };
+        // An empty pack has no facts rule to feed: archives keep the single prefix read.
+        for size in [4, 4096, 4097, 100_000] {
+            let mut input = Probe::new(size, true);
+            assert_eq!(pack.identify_input(&mut input).unwrap(), None);
+            assert_eq!(input.reads, archive_reads(size, false), "{size}");
+        }
+        let mut broken = Probe::new(8192, false);
+        broken.fail = true;
         assert!(pack
             .identify_input(&mut broken)
             .unwrap_err()
             .to_string()
             .contains("input read failed"));
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_only_facts_packs_read_an_archives_tail() {
+        let prefix_only =
+            RuleSet::from_source(&rule("signature", "zip", "strings: $a = \"PK\"", "$a at 0"))
+                .unwrap();
+        let facts = RuleSet::from_source(&rule("fact", "gif", "", "pe_valid == 1")).unwrap();
+        assert!(!prefix_only.uses_facts());
+        assert!(facts.uses_facts());
+        for size in [4, 4096, 4097, 16_384, 16_385, 100_000] {
+            // A prefix-only pack decides on the prefix alone, hit or not.
+            let mut input = Probe::new(size, true);
+            assert_eq!(prefix_only.identify_input(&mut input).unwrap(), Some(ContentType::Zip));
+            assert_eq!(input.reads, archive_reads(size, false), "{size}");
+            // A facts pack reads the bounded tail of an archive the prefix does not hold.
+            let mut input = Probe::new(size, true);
+            assert_eq!(facts.identify_input(&mut input).unwrap(), None);
+            assert_eq!(input.reads, archive_reads(size, true), "{size}");
+            // Never of another input.
+            let mut input = Probe::new(size, false);
+            assert_eq!(facts.identify_input(&mut input).unwrap(), None);
+            assert_eq!(input.reads, [(0, size.min(4096) as usize)], "{size}");
+        }
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_enforce_mode_hands_the_tail_to_the_bundled_pack() {
+        use preprocess::{archive, stored};
+        let bundled = RuleSet::bundled().unwrap();
+        // Enforcement wants the tail exactly when the bundled pack scans facts.
+        assert_eq!(uses_facts(RulesMode::Enforce), bundled.uses_facts());
+        let docx = archive(
+            &[stored(b"[Content_Types].xml", b"<Types/>"), stored(b"word/document.xml", b"<w/>")],
+            b"",
+        );
+        let size = docx.len() as u64;
+        // Whatever the bundled pack decides, enforcement decides the same, tail included.
+        let before = preprocess::PREPARATIONS.get();
+        for tail in [None, Some(docx.as_slice())] {
+            assert_eq!(identify(&docx, size, tail, RulesMode::Off), None);
+            assert_eq!(
+                identify(&docx, size, tail, RulesMode::Enforce),
+                bundled.identify(&docx, size, tail)
+            );
+        }
+        let preparations = preprocess::PREPARATIONS.get() - before;
+        assert_eq!(preparations, if bundled.uses_facts() { 4 } else { 0 });
     }
 
     #[test]
@@ -741,6 +825,93 @@ mod native_tests {
         let mut active = synthetic(b"PK");
         active.names[0] = b'\n';
         assert_eq!(scan(&hollow, &active, b"PK"), Some(ContentType::Png));
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_zip_names_rules_identify_archives_end_to_end() {
+        use preprocess::{archive, stored};
+        let pack = RuleSet::from_source(&rule(
+            "document",
+            "docx",
+            "",
+            "zip_valid == 1 and zip_names contains \"\\n[Content_Types].xml\\n\" and zip_names contains \"\\nword/document.xml\\n\"",
+        ))
+        .unwrap();
+        let types = b"<Types/>";
+        let docx = archive(
+            &[stored(b"[Content_Types].xml", types), stored(b"word/document.xml", b"<w/>")],
+            b"",
+        );
+        assert_eq!(pack.identify_input(docx.as_slice()).unwrap(), Some(ContentType::Docx));
+        // Same layout, other names: the reused stream B must not remember the previous names.
+        let other = archive(
+            &[stored(b"[Content_Types].xml", types), stored(b"word/other.xml", b"<w/>")],
+            b"",
+        );
+        assert_eq!(pack.identify_input(other.as_slice()).unwrap(), None);
+        // An archive too large for the prefix takes the tail read for its directory.
+        let large = archive(
+            &[
+                stored(b"[Content_Types].xml", &vec![b' '; 100_000]),
+                stored(b"word/document.xml", b""),
+            ],
+            b"",
+        );
+        assert_eq!(pack.identify_input(large.as_slice()).unwrap(), Some(ContentType::Docx));
+        // Truncated before its directory, the archive is not valid.
+        assert_eq!(pack.identify_input(&large[..large.len() - 30]).unwrap(), None);
+        let real = std::fs::File::open("../../tests_data/basic/docx/doc.docx").unwrap();
+        assert_eq!(pack.identify_input(real).unwrap(), Some(ContentType::Docx));
+        // A facts pack preprocesses every input, but only archives take the zip path.
+        let before = preprocess::PREPARATIONS.get();
+        assert_eq!(pack.identify_input(&b"\x89PNG\r\n\x1a\n"[..]).unwrap(), None);
+        assert_eq!(preprocess::PREPARATIONS.get(), before + 1);
+        // A prefix-only pack never preprocesses, archives included.
+        let prefix_only =
+            RuleSet::from_source(&rule("signature", "zip", "strings: $a = \"PK\"", "$a at 0"))
+                .unwrap();
+        assert_eq!(prefix_only.identify_input(docx.as_slice()).unwrap(), Some(ContentType::Zip));
+        assert_eq!(preprocess::PREPARATIONS.get(), before + 1);
+    }
+
+    #[test]
+    #[ignore = "requires a native Vectorscan compiler library"]
+    fn native_pe_facts_rules_identify_executables_end_to_end() {
+        let pack = RuleSet::from_source(&rule(
+            "executable",
+            "pebin",
+            "",
+            "pe_valid == 1 and pe_is_executable_image == 1 and (pe_machine == 0x14c or pe_machine == 0x8664)",
+        ))
+        .unwrap();
+        for name in ["pe32.exe", "pe64.exe"] {
+            let bytes = std::fs::read(format!("../../tests_data/mitra/pebin/{name}")).unwrap();
+            assert_eq!(pack.identify_input(bytes.as_slice()).unwrap(), Some(ContentType::Pebin));
+            let real = std::fs::File::open(format!("../../tests_data/mitra/pebin/{name}")).unwrap();
+            assert_eq!(pack.identify_input(real).unwrap(), Some(ContentType::Pebin), "{name}");
+            // The same bytes without the PE signature are a plain DOS executable.
+            let mut corrupted = bytes.clone();
+            assert_eq!(&corrupted[0x40..0x44], b"PE\0\0");
+            corrupted[0x42] = b'X';
+            assert_eq!(pack.identify_input(corrupted.as_slice()).unwrap(), None, "{name}");
+            // A facts pack reads nothing beyond the prefix of an executable: no tail.
+            let mut recorded = Probe::serving(&bytes);
+            assert_eq!(pack.identify_input(&mut recorded).unwrap(), Some(ContentType::Pebin));
+            assert_eq!(recorded.reads, [(0, bytes.len())], "{name}");
+        }
+        let png = std::fs::read("../../tests_data/basic/png/magika_test.png").unwrap();
+        assert_eq!(pack.identify_input(png.as_slice()).unwrap(), None);
+        // A machine the rule does not name is not matched, valid as the image is.
+        let arm = RuleSet::from_source(&rule(
+            "arm",
+            "pebin",
+            "",
+            "pe_valid == 1 and pe_machine == 0xaa64",
+        ))
+        .unwrap();
+        let pe32 = std::fs::read("../../tests_data/mitra/pebin/pe32.exe").unwrap();
+        assert_eq!(arm.identify_input(pe32.as_slice()).unwrap(), None);
     }
 
     #[test]

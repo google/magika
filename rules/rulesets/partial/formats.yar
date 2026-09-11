@@ -208,6 +208,21 @@ rule taxonomy_dbase
          uint16(6) >= 1 and uint8(20) >= 1)
 }
 
+rule taxonomy_degas
+{
+	meta:
+        source_refs = "spec:Atari ST DEGAS / DEGAS Elite image (resolution word and screen dump size)"
+		label = "degas"
+        enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.5950413223140496
+    // Uncompressed Atari ST DEGAS image: a resolution word of 0, 1 or 2 and the exact screen-dump
+    // size (32034, or 32066 with an animation footer). Compressed PC1/PC2/PC3 are not covered.
+    condition:
+        prefix_size >= 34 and uint16be(0) <= 2 and (original_size == 32034 or original_size == 32066)
+}
+
 rule taxonomy_docx
 {
 	meta:

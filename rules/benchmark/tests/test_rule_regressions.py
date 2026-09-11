@@ -1124,6 +1124,10 @@ PREFIX_SIGNATURES = {
         b"ISO-10303-28;\n<express xmlns='urn:iso'>\n",
     ),
     "koala": (b"\xff\x80\xc9\xc7" + bytes(60), b"\xff\x80\xc9\xc8" + bytes(60)),
+    "degas": (
+        (1).to_bytes(2, "big") + bytes(32032),
+        (1).to_bytes(2, "big") + bytes(30000),
+    ),
 }
 
 

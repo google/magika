@@ -99,6 +99,20 @@
     "is_text": false,
     "mime_type": null
   },
+  "degas": {
+    "description": "Atari ST DEGAS image",
+    "extensions": [
+      "pi1",
+      "pi2",
+      "pi3",
+      "pc1",
+      "pc2",
+      "pc3"
+    ],
+    "group": "image",
+    "is_text": false,
+    "mime_type": null
+  },
   "duckdb": {
     "description": "DuckDB database",
     "extensions": [

@@ -581,6 +581,15 @@ pub(crate) static DEB: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static DEGAS: TypeInfo = TypeInfo {
+    label: "degas",
+    mime_type: "application/octet-stream",
+    group: "image",
+    description: "Atari ST DEGAS image",
+    extensions: &["pi1", "pi2", "pi3", "pc1", "pc2", "pc3"],
+    is_text: false,
+};
+
 pub(crate) static DEX: TypeInfo = TypeInfo {
     label: "dex",
     mime_type: "application/x-android-dex",
@@ -3094,6 +3103,8 @@ pub enum ContentType {
     Dbase,
     /// Debian binary package
     Deb,
+    /// Atari ST DEGAS image
+    Degas,
     /// Dalvik dex file
     Dex,
     /// DICOM
@@ -3623,7 +3634,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 325;
+    pub(crate) const SIZE: usize = 326;
 
     /// Looks up an exact, canonical content label for a regular file.
     /// Filesystem labels `directory` and `symlink` belong to `FileType` and return `None`.
@@ -3691,6 +3702,7 @@ impl ContentType {
             "dart" => Self::Dart,
             "dbase" => Self::Dbase,
             "deb" => Self::Deb,
+            "degas" => Self::Degas,
             "dex" => Self::Dex,
             "dicom" => Self::Dicom,
             "diff" => Self::Diff,
@@ -4023,6 +4035,7 @@ impl ContentType {
             ContentType::Dart => &DART,
             ContentType::Dbase => &DBASE,
             ContentType::Deb => &DEB,
+            ContentType::Degas => &DEGAS,
             ContentType::Dex => &DEX,
             ContentType::Dicom => &DICOM,
             ContentType::Diff => &DIFF,

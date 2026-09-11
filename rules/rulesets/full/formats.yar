@@ -167,6 +167,24 @@ rule taxonomy_applesingle
         prefix_size >= 26 and $header at 0
 }
 
+rule taxonomy_asf
+{
+	meta:
+        source_refs = "pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:80; spec:Microsoft Advanced Systems Format header object"
+		label = "asf"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // ASF header object: its GUID, a header object count of 1 to 64 and the reserved bytes 1 and 2.
+    strings:
+        $header = { 30 26 B2 75 8E 66 CF 11 A6 D9 00 AA 00 62 CE 6C }
+    condition:
+        prefix_size >= 30 and $header at 0 and uint32(24) >= 1 and uint32(24) <= 64 and
+        uint16be(28) == 258
+}
+
 rule taxonomy_au
 {
 	meta:
@@ -478,7 +496,7 @@ rule taxonomy_ese
 rule taxonomy_fbx
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/cad:libmagic_6357ac41d93e626ef3d0_line_378"
+        source_refs = "libmagic:magic/Magdir/cad:libmagic_6357ac41d93e626ef3d0_line_378; spec:Autodesk FBX SDK ASCII header comment"
 		label = "fbx"
 		enforced = true
         class = "full"
@@ -488,9 +506,12 @@ rule taxonomy_fbx
     strings:
         // ufbx binary header and supported versions, including legacy 3000; little-endian variant.
         $magic = { 4B 61 79 64 61 72 61 20 46 42 58 20 42 69 6E 61 72 79 20 20 00 1A 00 }
+        // ASCII export: the FBX SDK's header comment with a three-part version.
+        $ascii = /; FBX [0-9]\.[0-9]\.[0-9] project file/
 
     condition:
-        prefix_size >= 27 and $magic at 0 and uint32(23) >= 3000 and uint32(23) <= 7700
+        (prefix_size >= 27 and $magic at 0 and uint32(23) >= 3000 and uint32(23) <= 7700) or
+        $ascii at 0
 }
 
 rule taxonomy_fits
@@ -551,7 +572,7 @@ rule taxonomy_gguf
 rule taxonomy_gltf
 {
 	meta:
-        source_refs = "libmagic:magic/Magdir/cad:libmagic_5e370f253c9f71913267_line_370"
+        source_refs = "libmagic:magic/Magdir/cad:libmagic_5e370f253c9f71913267_line_370; spec:Khronos glTF 2.0 JSON schema"
 		label = "gltf"
 		enforced = true
         class = "full"
@@ -563,10 +584,19 @@ rule taxonomy_gltf
         $magic = { 67 6C 54 46 02 00 00 00 }
         $json = "JSON"
         $object = /[ \t\r\n]{0,64}\{/
+        // JSON glTF, anchored at the start so ordinary JSON fails at its first key: the object opens
+        // with the accessor array, corroborated by a component type, or with a flat asset object
+        // followed by a glTF top-level key or a KHR_/EXT_ extension list. A 3D Tiles tileset, which
+        // also opens with an asset object, continues with its own keys and abstains.
+        $open_accessors = /[ \t\r\n]{0,64}\{[ \t\r\n]{0,64}"accessors"[ \t\r\n]{0,16}:[ \t\r\n]{0,16}\[/
+        $component_type = "\"componentType\""
+        $asset_then_gltf = /[ \t\r\n]{0,64}\{[ \t\r\n]{0,64}"asset"[ \t\r\n]{0,16}:[ \t\r\n]{0,16}\{[^{}]{0,512}\}[ \t\r\n]{0,16},[ \t\r\n]{0,16}("(scene|scenes|nodes|accessors|bufferViews|buffers|meshes)"|"extensionsUsed"[ \t\r\n]{0,16}:[ \t\r\n]{0,16}\[[ \t\r\n]{0,64}"(KHR|EXT)_)/
 
     condition:
-        prefix_size >= 24 and $magic at 0 and uint32(8) >= 24 and uint32(8) % 4 == 0 and
-        uint32(12) >= 4 and uint32(12) % 4 == 0 and $json at 16 and $object at 20
+        (prefix_size >= 24 and $magic at 0 and uint32(8) >= 24 and uint32(8) % 4 == 0 and
+         uint32(12) >= 4 and uint32(12) % 4 == 0 and $json at 16 and $object at 20) or
+        ($open_accessors at 0 and $component_type in (0 .. 1024)) or
+        $asset_then_gltf at 0
 }
 
 rule taxonomy_gzip
@@ -716,6 +746,45 @@ rule taxonomy_lrz
         $magic = "LRZI"
     condition:
         prefix_size >= 24 and $magic at 0 and uint8(4) == 0 and uint8(5) >= 1
+}
+
+rule taxonomy_luabytecode
+{
+	meta:
+        source_refs = "libmagic:magic/Magdir/lua:libmagic_328f668b9e354b26ac15_line_21; spec:LuaJIT bytecode dump format (lj_bcdump.h)"
+		label = "luabytecode"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // Lua's own loaders: retain legacy layouts and configured numeric representations.
+    // Modern chunks carry format, size and binary conversion-check fields, including LNUM modes.
+    // LuaJIT dumps: ESC L J, version 1 or 2 and known flag bits, then either the first
+    // stripped prototype (length, flags, parameter count, frame size) or a chunk name at @ or =.
+    strings:
+        $v24 = { 1B 4C 75 61 23 (12 34 | 34 12) }
+        $v25 = { 1B 4C 75 61 25 02 04 ?? (12 34 | 34 12) }
+        $v31 = { 1B 4C 75 61 31 (6C | 66 | 64 | 3F) }
+        $v32 = { 1B 4C 75 61 32 }
+        $v40 = /\x1bLua\x40[\x00\x01][\x01-\xff]{7}/
+        $v50 = /\x1bLua\x50[\x00\x01][\x01-\xff]{8}/
+        $v51 = /\x1bLua\x51\x00[\x00\x01][\x01-\xff]{4}[\x00\x01\x02\x04\x08\x82\x84\x88]/
+        $v52 = /\x1bLua\x52\x00[\x00\x01][\x01-\xff]{4}[\x00\x01\x02\x04\x08\x82\x84\x88]\x19\x93\x0d\x0a\x1a\x0a/
+        $v53 = /\x1bLua\x53\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]{5}/
+        $v54 = /\x1bLua\x54\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]{3}/
+        $v55 = /\x1bLua\x55\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]/
+        $luajit_stripped = /\x1bLJ[\x01\x02][\x02\x03\x06\x07\x0a\x0b\x0e\x0f]([\x08-\x7f]|[\x80-\xff][\x01-\x7f]|[\x80-\xff][\x80-\xff][\x01-\x7f])[\x00-\x1f][\x00-\xff][\x01-\xfa]/
+        $luajit_named = /\x1bLJ[\x01\x02][\x00\x01\x04\x05\x08\x09\x0c\x0d]([\x02-\x7f]|[\x80-\xff][\x01-\x7f])[@=][\x20-\x7e]/
+    condition:
+        prefix_size >= 8 and (
+            ($v24 at 0 and prefix_size >= 11) or
+            ($v25 at 0 and prefix_size >= 14 and uint8(7) >= 1) or
+            ($v31 at 0 and uint8(6) >= 1) or $v32 at 0 or
+            ($v40 at 0 and prefix_size >= 14) or ($v50 at 0 and prefix_size >= 15) or
+            $v51 at 0 or $v52 at 0 or $v53 at 0 or $v54 at 0 or $v55 at 0 or
+            $luajit_stripped at 0 or $luajit_named at 0
+        )
 }
 
 rule taxonomy_lz

@@ -95,23 +95,6 @@ rule taxonomy_arj
 		(prefix_size >= 2 and original_size >= 2 and $p0_0 at 0)
 }
 
-rule taxonomy_asf
-{
-	meta:
-        source_refs = "pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:80"
-		label = "asf"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0
-        fn_rate = 1
-
-	strings:
-		$p0_0 = /\x30\x26\xb2\x75\x8e\x66\xcf\x11\xa6\xd9\x00\xaa\x00\x62\xce\x6c(([\x00-\xff]){12}\x01\x02)/
-
-	condition:
-		($p0_0 at 0)
-}
-
 rule taxonomy_berkeleydb
 {
 	meta:

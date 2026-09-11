@@ -426,40 +426,6 @@ rule taxonomy_jp2
         uint32be(12) >= 16 and uint32be(12) % 4 == 0
 }
 
-rule taxonomy_luabytecode
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/lua:libmagic_328f668b9e354b26ac15_line_21"
-		label = "luabytecode"
-		enforced = true
-        class = "partial"
-        fp_rate = 0
-        fn_rate = 0.47999999999999998
-
-    // Lua's own loaders: retain legacy layouts and configured numeric representations.
-    // Modern chunks carry format, size and binary conversion-check fields, including LNUM modes.
-    strings:
-        $v24 = { 1B 4C 75 61 23 (12 34 | 34 12) }
-        $v25 = { 1B 4C 75 61 25 02 04 ?? (12 34 | 34 12) }
-        $v31 = { 1B 4C 75 61 31 (6C | 66 | 64 | 3F) }
-        $v32 = { 1B 4C 75 61 32 }
-        $v40 = /\x1bLua\x40[\x00\x01][\x01-\xff]{7}/
-        $v50 = /\x1bLua\x50[\x00\x01][\x01-\xff]{8}/
-        $v51 = /\x1bLua\x51\x00[\x00\x01][\x01-\xff]{4}[\x00\x01\x02\x04\x08\x82\x84\x88]/
-        $v52 = /\x1bLua\x52\x00[\x00\x01][\x01-\xff]{4}[\x00\x01\x02\x04\x08\x82\x84\x88]\x19\x93\x0d\x0a\x1a\x0a/
-        $v53 = /\x1bLua\x53\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]{5}/
-        $v54 = /\x1bLua\x54\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]{3}/
-        $v55 = /\x1bLua\x55\x00\x19\x93\x0d\x0a\x1a\x0a[\x01-\xff]/
-    condition:
-        prefix_size >= 8 and (
-            ($v24 at 0 and prefix_size >= 11) or
-            ($v25 at 0 and prefix_size >= 14 and uint8(7) >= 1) or
-            ($v31 at 0 and uint8(6) >= 1) or $v32 at 0 or
-            ($v40 at 0 and prefix_size >= 14) or ($v50 at 0 and prefix_size >= 15) or
-            $v51 at 0 or $v52 at 0 or $v53 at 0 or $v54 at 0 or $v55 at 0
-        )
-}
-
 rule taxonomy_macho
 {
 	meta:

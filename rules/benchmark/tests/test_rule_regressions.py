@@ -988,6 +988,30 @@ PREFIX_SIGNATURES = {
         b"-----BEGIN PGP PUBLIC KEY BLOCK-----\nmQIN\n-----END PGP PUBLIC KEY BLOCK-----\n",
     ),
     "arrow": (b"ARROW1\0\0\xff\xff\xff\xff", b"ARROW2\0\0\xff\xff\xff\xff"),
+    "asf": (
+        bytes.fromhex("3026B2758E66CF11A6D900AA0062CE6C")
+        + (5000).to_bytes(8, "little")
+        + _u32(6)
+        + b"\x01\x02"
+        + bytes(16),
+        bytes.fromhex("3026B2758E66CF11A6D900AA0062CE6C")
+        + (5000).to_bytes(8, "little")
+        + _u32(6)
+        + b"\x01\x01"
+        + bytes(16),
+    ),
+    "fbx": (
+        b"; FBX 7.3.0 project file\n; Copyright (C) 1997-2010 Autodesk Inc.\n",
+        b"; FBX project file\n; Copyright (C) 1997-2010 Autodesk Inc.\n",
+    ),
+    "luabytecode": (
+        b"\x1bLJ\x02\x02\x1c\x00\x01\x03\x01\x00\x01" + bytes(20),
+        b"\x1bLJ\x02\x12\x1c\x00\x01\x03\x01\x00\x01" + bytes(20),
+    ),
+    "gltf": (
+        b'{"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[0]}],"nodes":[{"mesh":0}]}',
+        b'{"asset":{"version":"1.0"},"geometricError":500,"root":{"refine":"ADD","children":[]}}',
+    ),
 }
 
 

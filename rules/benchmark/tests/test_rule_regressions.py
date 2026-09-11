@@ -751,6 +751,11 @@ def names_archive(*names, comment=b""):
     "names,label",
     [
         ((b"[Content_Types].xml", b"xl/workbook.xml"), "xlsx"),
+        ((b"doc.kml", b"files/overlay.png"), "kmz"),
+        ((b"3D/3dmodel.model", b"[Content_Types].xml"), "3mf"),
+        ((b"project.qgs", b"project.qgd"), "qgis"),
+        ((b"visio/document.xml", b"[Content_Types].xml"), "visio"),
+        ((b"metadata.json", b"config.json", b"model.weights.h5"), "keras"),
         ((b"xl/workbook.xml", b"_rels/.rels", b"[Content_Types].xml"), "xlsx"),
         ((b"[Content_Types].xml", b"ppt/presentation.xml"), "pptx"),
         ((b"ppt/slides/slide1.xml", b"ppt/presentation.xml", b"[Content_Types].xml"), "pptx"),
@@ -790,6 +795,10 @@ def test_central_directory_names_decide_the_package(scan_rules, names, label):
         (b"resources.arsc", b"classes.dex"),
         (b"assets/AndroidManifest.xml", b"classes.dex"),
         (b"notes.txt",),
+        (b"other.kml",),
+        (b"3D/other.model",),
+        (b"metadata.json", b"config.json"),
+        (b"visio/masters.xml",),
     ],
 )
 def test_partial_or_lookalike_names_abstain(scan_rules, names):
@@ -1090,7 +1099,30 @@ PREFIX_SIGNATURES = {
         + b"`\n"
         + b"2.0\n",
     ),
+    "collada": (
+        b'<?xml version="1.0"?>\n<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema">\n',
+        b'<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>\n',
+    ),
+    "gpx": (
+        b'<?xml version="1.0"?>\n<gpx version="1.1" creator="x"><trk/></gpx>\n',
+        b'<?xml version="1.0"?>\n<trk><trkseg/></trk>\n',
+    ),
+    "kml": (
+        b'<?xml version="1.0"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document/></kml>\n',
+        b'<?xml version="1.0"?>\n<kmlx><Document/></kmlx>\n',
+    ),
 }
+
+
+def test_osm_xml_root_decides_and_osmchange_abstains(scan_rules):
+    # taxonomy_osm covers the XML encoding; the "osm" prefix signature above covers the PBF blob.
+    assert scan_rules(
+        b'<?xml version="1.0"?>\n<osm version="0.6" generator="x"><node/></osm>\n'
+    ) == {"osm"}
+    assert (
+        scan_rules(b'<?xml version="1.0"?>\n<osmChange version="0.6"><create/></osmChange>\n')
+        == set()
+    )
 
 
 @pytest.mark.parametrize("label", sorted(PREFIX_SIGNATURES))

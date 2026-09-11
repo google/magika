@@ -362,6 +362,22 @@ rule taxonomy_bzip
         (($empty at 4) or (prefix_size >= 20 and $block at 4))
 }
 
+rule taxonomy_collada
+{
+	meta:
+		label = "collada"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // COLLADA digital asset: an XML document whose root element is <COLLADA>.
+    strings:
+        $xml = "<?xml"
+        $root = "<COLLADA"
+    condition:
+        $xml at 0 and $root in (0 .. 256)
+}
+
 rule taxonomy_cram
 {
 	meta:
@@ -635,6 +651,21 @@ rule taxonomy_gltf
         $asset_then_gltf at 0
 }
 
+rule taxonomy_gpx
+{
+	meta:
+		label = "gpx"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // GPS Exchange Format: an XML document whose root element is <gpx>.
+    strings:
+        $root = /<gpx[ \t\r\n]/
+    condition:
+        uint16(0) != 0x4B50 and $root in (0 .. 256)
+}
+
 rule taxonomy_grib
 {
 	meta:
@@ -779,6 +810,34 @@ rule taxonomy_jng
         $header = { 8B 4A 4E 47 0D 0A 1A 0A 00 00 00 10 4A 48 44 52 }
     condition:
         prefix_size >= 16 and $header at 0
+}
+
+rule taxonomy_keras
+{
+	meta:
+		label = "keras"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // Keras v3 model archive: a zip whose central directory names the weights and metadata parts.
+    condition:
+        zip_valid == 1 and zip_names contains "\nmodel.weights.h5\n" and zip_names contains "\nmetadata.json\n"
+}
+
+rule taxonomy_kml
+{
+	meta:
+		label = "kml"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // Keyhole Markup Language: an XML document whose root element is <kml>.
+    strings:
+        $root = /<kml[ \t\r\n>]/
+    condition:
+        uint16(0) != 0x4B50 and $root in (0 .. 256)
 }
 
 rule taxonomy_llvm_bitcode
@@ -1181,6 +1240,19 @@ rule taxonomy_psd
         and uint16be(24) <= 9
 }
 
+rule taxonomy_qgis
+{
+	meta:
+		label = "qgis"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // QGIS project archive: a zip whose central directory names a .qgs project.
+    condition:
+        zip_valid == 1 and zip_names contains ".qgs\n"
+}
+
 rule taxonomy_qoi
 {
 	meta:
@@ -1478,6 +1550,19 @@ rule taxonomy_vib
         $vib = "<vib version"
     condition:
         prefix_size >= 80 and $ar at 0 and $name at 8 and $vib at 68
+}
+
+rule taxonomy_visio
+{
+	meta:
+		label = "visio"
+        enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+    // Visio drawing: an Office Open XML package whose central directory names visio/document.xml.
+    condition:
+        zip_valid == 1 and zip_names contains "\nvisio/document.xml\n"
 }
 
 rule taxonomy_wad

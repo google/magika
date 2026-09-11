@@ -52,6 +52,19 @@ private rule zip_content_types
         zip_first_entry startswith "[Content_Types].xml\n"
 }
 
+rule taxonomy_3mf
+{
+	meta:
+		label = "3mf"
+        enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.3591160220994475
+    // 3MF: a zip whose central directory names the 3D model part.
+    condition:
+        zip_valid == 1 and zip_names contains "\n3D/3dmodel.model\n"
+}
+
 rule taxonomy_apk
 {
 	meta:
@@ -443,6 +456,19 @@ rule taxonomy_jp2
         uint32be(12) >= 16 and uint32be(12) % 4 == 0
 }
 
+rule taxonomy_kmz
+{
+	meta:
+		label = "kmz"
+        enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.2222222222222222
+    // KMZ: a zip whose central directory names the KML entry doc.kml.
+    condition:
+        zip_valid == 1 and zip_names contains "\ndoc.kml\n"
+}
+
 rule taxonomy_macho
 {
 	meta:
@@ -598,6 +624,21 @@ rule taxonomy_ogg
 
     condition:
         prefix_size >= 28 and $header at 0 and uint32(18) == 0 and uint8(26) >= 1
+}
+
+rule taxonomy_osm
+{
+	meta:
+		label = "osm"
+        enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.40562248995983935
+    // OpenStreetMap XML: an XML document whose root element is <osm>. PBF is a separate rule.
+    strings:
+        $root = /<osm[ \t\r\n]/
+    condition:
+        uint16(0) != 0x4B50 and $root in (0 .. 256)
 }
 
 rule taxonomy_osm_pbf

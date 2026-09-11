@@ -959,3 +959,40 @@ def test_pe_fixture_headers_must_be_held(scan_rules, relative):
     assert scan_rules(content[:headers_end]) == {"pebin"}
     for length in range(headers_end):
         assert scan_rules(content[:length]) == set(), length
+
+
+def _u16(value):
+    return value.to_bytes(2, "little")
+
+
+def _u32(value):
+    return value.to_bytes(4, "little")
+
+
+PREFIX_SIGNATURES = {
+    "pcapng": (
+        b"\n\r\r\n" + _u32(28) + b"\x4d\x3c\x2b\x1a" + _u16(1) + _u16(0) + b"\xff" * 8 + _u32(28),
+        b"\n\r\r\n" + _u32(28) + b"\x4d\x3c\x2b\x1a" + _u16(2) + _u16(0) + b"\xff" * 8 + _u32(28),
+    ),
+    "xcoff": (
+        b"\x01\xf7\x00\x04" + bytes(12) + b"\x00\x78\x00\x02" + bytes(4),
+        b"\x01\xf7\x00\x04" + bytes(12) + b"\x00\x63\x00\x02" + bytes(4),
+    ),
+    "ani": (
+        b"RIFF" + _u32(100) + b"ACONanih" + bytes(4),
+        b"RIFF" + _u32(100) + b"ACOXfmt " + bytes(4),
+    ),
+    "postscript": (b"%!PS-Adobe-3.0\n%%EndComments\n", b"%!PS\n%%Title: short opening\n"),
+    "pem": (
+        b"-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
+        b"-----BEGIN PGP PUBLIC KEY BLOCK-----\nmQIN\n-----END PGP PUBLIC KEY BLOCK-----\n",
+    ),
+    "arrow": (b"ARROW1\0\0\xff\xff\xff\xff", b"ARROW2\0\0\xff\xff\xff\xff"),
+}
+
+
+@pytest.mark.parametrize("label", sorted(PREFIX_SIGNATURES))
+def test_prefix_signatures_for_labels_the_model_lacks_or_misses(scan_rules, label):
+    positive, near_miss = PREFIX_SIGNATURES[label]
+    assert scan_rules(positive) == {label}
+    assert scan_rules(near_miss) == set()

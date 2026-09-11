@@ -56,23 +56,6 @@ rule taxonomy_access
 		(($p0_0 at 0) or ($p1_0 at 0) or ($p2_0 at 0) or ($p3_0 at 0) or ($p4_0 at 0) or ($p5_0 at 0))
 }
 
-rule taxonomy_ani
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/riff:libmagic_b2aac9f8242bb4da4291_line_666; puremagic:puremagic/magic_data.json:headers[516]"
-		label = "ani"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0101281310539374
-        fn_rate = 0
-
-	strings:
-		$p0_0 = "RIFF"
-
-	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
-}
-
 rule taxonomy_aout
 {
 	meta:
@@ -110,23 +93,6 @@ rule taxonomy_arj
 
 	condition:
 		(prefix_size >= 2 and original_size >= 2 and $p0_0 at 0)
-}
-
-rule taxonomy_arrow
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/apache:libmagic_c24b0fc3b5e0d2781f77_line_16"
-		label = "arrow"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0
-        fn_rate = "unmeasured"
-
-	strings:
-		$p0_0 = { 41 52 52 4f 57 31 }
-
-	condition:
-		(prefix_size >= 6 and $p0_0 at 0)
 }
 
 rule taxonomy_asf
@@ -716,23 +682,6 @@ rule taxonomy_paradox
 		(($p0_0 at 2) or ($p1_0 at 2) or ($p2_0 at 2) or ($p3_0 at 2))
 }
 
-rule taxonomy_pcapng
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/sniffer:libmagic_46f6367e781d4176898f_line_319; libmagic:magic/Magdir/sniffer:libmagic_dfb99b3410acff36a157_line_314; puremagic:puremagic/magic_data.json:headers[1069]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[769]/magic[0]"
-		label = "pcapng"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.00061176630527139
-        fn_rate = 0
-
-	strings:
-		$p0_0 = { 0A 0D 0D 0A }
-
-	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
-}
-
 rule taxonomy_pgp
 {
 	meta:
@@ -770,28 +719,6 @@ rule taxonomy_png
 
 	condition:
 		((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0) or (prefix_size >= 7 and original_size >= 7 and $p1_0 at 0))
-}
-
-rule taxonomy_postscript
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/printer:libmagic_1ef82717f63e9c3388a8_line_19; libmagic:magic/Magdir/printer:libmagic_2cdb14a02199c304d8f2_line_8; puremagic:puremagic/magic_data.json:headers[1004]; puremagic:puremagic/magic_data.json:headers[1005]; puremagic:puremagic/magic_data.json:headers[355]; puremagic:puremagic/magic_data.json:headers[563]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[166]/magic[0]"
-		label = "postscript"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.00006797403391904
-        fn_rate = 0.17999999999999999
-
-	strings:
-		$p0_0 = { 04 25 21 }
-		$p1_0 = "%!"
-		$p2_0 = "%!PS-Adobe-3.0 EPSF-3.0"
-		$p3_0 = { C5 D0 D3 C6 }
-		$p4_0 = "\\004%!"
-		$p5_0 = "%!PS-Ado"
-
-	condition:
-		((prefix_size >= 3 and $p0_0 at 0) or (prefix_size >= 2 and original_size >= 2 and $p1_0 at 0) or (prefix_size >= 23 and $p2_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p3_0 at 0) or (prefix_size >= 6 and original_size >= 6 and $p4_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p5_0 at 0))
 }
 
 rule taxonomy_ppt
@@ -1228,22 +1155,4 @@ rule taxonomy_orc
 
 	condition:
 		(prefix_size >= 3 and $p0_0 at 0)
-}
-
-// Two-byte XCOFF magic is insufficient; section/symbol table validation remains pending.
-rule taxonomy_xcoff
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/ibm6000:libmagic_72f92e57f4bd2f191a75_line_28"
-		label = "xcoff"
-		enforced = false
-        class = "not-working"
-        fp_rate = "unmeasured"
-        fn_rate = "unmeasured"
-
-	strings:
-		$p0_0 = { 01 f7 }
-
-	condition:
-		(prefix_size >= 2 and $p0_0 at 0)
 }

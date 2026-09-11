@@ -848,3 +848,39 @@ rule taxonomy_xlsb
         zip_first_entry contains "application/vnd.ms-excel.sheet.binary.macroEnabled.main"
 }
 
+// Prefix signatures for labels the model cannot output or often misses: adjudicated combined corpus,
+// 25,421 whole files (rules/QUALITY.md, "Prefix signatures for labels the model lacks or misses").
+
+rule taxonomy_pem
+{
+	meta:
+        source_refs = "spec:RFC 7468 textual encodings"
+		label = "pem"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.36257309941520466
+
+    // An RFC 7468 label from the certificate and key families at the start; PGP armor is excluded.
+    strings:
+        $pem = /-----BEGIN (CERTIFICATE|TRUSTED CERTIFICATE|CERTIFICATE REQUEST|NEW CERTIFICATE REQUEST|X509 CRL|PUBLIC KEY|PRIVATE KEY|ENCRYPTED PRIVATE KEY|RSA PRIVATE KEY|RSA PUBLIC KEY|DSA PRIVATE KEY|DSA PARAMETERS|EC PRIVATE KEY|EC PARAMETERS|DH PARAMETERS|PKCS7|CMS)-----\r?\n/
+    condition:
+        $pem at 0
+}
+
+rule taxonomy_postscript
+{
+	meta:
+        source_refs = "spec:Adobe PostScript Document Structuring Conventions"
+		label = "postscript"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.6273291925465838
+
+    // The conforming DSC header %!PS-Adobe; a bare %!PS or %! opening is too short to establish identity.
+    strings:
+        $ps = "%!PS-Adobe"
+    condition:
+        $ps at 0
+}

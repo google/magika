@@ -1375,3 +1375,75 @@ rule taxonomy_zst
             $legacy at 0 or (prefix_size >= 9 and $modern at 0)
         )
 }
+
+// Prefix signatures for labels the model cannot output or often misses: adjudicated combined corpus,
+// 25,421 whole files (rules/QUALITY.md, "Prefix signatures for labels the model lacks or misses").
+
+rule taxonomy_ani
+{
+	meta:
+        source_refs = "spec:Microsoft RIFF ACON animated cursor"
+		label = "ani"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // RIFF form type ACON; plain RIFF WAVE, AVI and WebP carry other form types.
+    strings:
+        $riff = "RIFF"
+    condition:
+        prefix_size >= 12 and $riff at 0 and uint32be(8) == 0x41434F4E
+}
+
+rule taxonomy_arrow
+{
+	meta:
+        source_refs = "spec:Apache Arrow IPC file format (ARROW1 magic)"
+		label = "arrow"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // Arrow IPC file (Feather v2): ARROW1 magic padded to eight bytes.
+    strings:
+        $magic = { 41 52 52 4F 57 31 00 00 }
+    condition:
+        prefix_size >= 12 and $magic at 0
+}
+
+rule taxonomy_pcapng
+{
+	meta:
+        source_refs = "spec:IETF pcapng Section Header Block"
+		label = "pcapng"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // Section Header Block in either byte order: block type, byte-order magic and major version 1.
+    strings:
+        $le = { 0A 0D 0D 0A ?? ?? ?? ?? 4D 3C 2B 1A 01 00 }
+        $be = { 0A 0D 0D 0A ?? ?? ?? ?? 1A 2B 3C 4D 00 01 }
+    condition:
+        prefix_size >= 28 and ($le at 0 or $be at 0)
+}
+
+rule taxonomy_xcoff
+{
+	meta:
+        source_refs = "spec:IBM AIX XCOFF32 and XCOFF64 file headers"
+		label = "xcoff"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // XCOFF64 (0x01F7) or XCOFF32 (0x01DF) with a sane section count and a known auxiliary header size.
+    condition:
+        prefix_size >= 24 and uint16be(2) >= 1 and uint16be(2) <= 1024 and
+        ((uint16be(0) == 503 and (uint16be(16) == 120 or uint16be(16) == 0)) or
+         (uint16be(0) == 479 and (uint16be(16) == 72 or uint16be(16) == 28 or uint16be(16) == 0)))
+}

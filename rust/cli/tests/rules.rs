@@ -524,9 +524,10 @@ fn bundled_rules_decide_containers_and_executables_from_facts() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests_data");
     let directory = std::env::temp_dir().join(format!("magika-facts-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
-    // A spreadsheet and a presentation are decided from their central directory names, an
-    // executable from its PE headers; a zip64 archive and a Word document (whose names a
-    // template shares) stay unknown.
+    // A spreadsheet and an OpenDocument text are decided from their central directory names,
+    // an executable from its PE headers; a zip64 archive stays unknown, and so does this Word
+    // document, whose streamed first entry (a data descriptor, not the content types) cannot
+    // separate it from a template.
     let cases = [
         ("basic/xlsx/magika_test.xlsx", "xlsx"),
         ("basic/odt/doc.odt", "odt"),

@@ -305,44 +305,6 @@ rule taxonomy_doc
 		(((prefix_size >= 8 and $p13_0 at 4) and ((prefix_size >= 4 and $p3_0 at 0) or (prefix_size >= 4 and $p10_0 at 0) or (prefix_size >= 4 and $p15_0 at 0) or (prefix_size >= 4 and $p16_0 at 0))) or ((prefix_size >= 516 and original_size >= 516 and $p0_0 at 512) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p2_0 at 0) or (prefix_size >= 550 and original_size >= 550 and $p4_0 at 546) or (prefix_size >= 550 and original_size >= 550 and $p5_0 at 546) or (prefix_size >= 14 and original_size >= 14 and $p6_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p7_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p8_0 at 0) or (prefix_size >= 2140 and original_size >= 2140 and $p9_0 at 2112) or (prefix_size >= 15 and original_size >= 15 and $p11_0 at 0) or (prefix_size >= 16 and original_size >= 16 and $p12_0 at 0) or (prefix_size >= 5 and original_size >= 5 and $p14_0 at 0)))
 }
 
-rule taxonomy_docx
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[66]; puremagic:puremagic/magic_data.json:headers[967]"
-		label = "docx"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.007389855014257601
-        fn_rate = 0.0019157088122605363
-
-	// ECMA-376 part 2 (OPC): the content types stream plus the WordprocessingML main part.
-	// Not enforced: a Word template (dotx) carries the same names, differing only in the
-	// content type declared inside [Content_Types].xml, so every dotx would be labelled
-	// docx (184 of 184 corpus templates; rules/QUALITY.md, container preprocessor rules).
-	condition:
-		zip_valid == 1 and zip_entries >= 1 and zip_names_entries >= 1 and
-		zip_names contains "\n[Content_Types].xml\n" and
-		zip_names contains "\nword/document.xml\n"
-}
-
-rule taxonomy_dotx
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[74]"
-		label = "dotx"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0653910206301193
-        fn_rate = 0
-
-	// Central directory names alone cannot separate a Word template from a document.
-	strings:
-		$p0_0 = { 50 4B 03 04 }
-
-	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
-}
-
 rule taxonomy_elf
 {
 	meta:
@@ -1140,24 +1102,6 @@ rule taxonomy_xls
 
 	condition:
 		(prefix_size >= 2109 and original_size >= 2109 and $p0_0 at 2080)
-}
-
-rule taxonomy_xlsb
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[69]"
-		label = "xlsb"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0653910206301193
-        fn_rate = 0
-
-	// A binary workbook could be named by its xl/workbook.bin part; deferred until measured.
-	strings:
-		$p0_0 = { 50 4B 03 04 }
-
-	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
 }
 
 rule xz_v1 {

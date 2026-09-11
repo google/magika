@@ -44,6 +44,14 @@ private rule zip_directory_names
         zip_valid == 1 and zip_entries >= 1 and zip_names_entries >= 1
 }
 
+// An OPC package whose first entry is its content types stream, held whole in the first
+// block and inflated into the `zip_first_entry` view (ECMA-376 part 2, section 10.1.2.2).
+private rule zip_content_types
+{
+    condition:
+        zip_first_entry startswith "[Content_Types].xml\n"
+}
+
 rule taxonomy_apk
 {
 	meta:
@@ -86,7 +94,7 @@ rule taxonomy_apk_names
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.11745513866231648
+        fn_rate = 0.011419249592169658
 
     // Central directory evidence for packages the prefix cannot settle, manifest first or
     // not: the binary manifest plus compiled code or resources. A DEX-only archive is not
@@ -187,6 +195,43 @@ rule taxonomy_dbase
          uint16(6) >= 1 and uint8(20) >= 1)
 }
 
+rule taxonomy_docx
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[66]; puremagic:puremagic/magic_data.json:headers[967]"
+		label = "docx"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.04597701149425287
+
+    // ECMA-376 part 2 (OPC): the main part's content type, declared in the content types
+    // stream, separates a document (or its macro-enabled form) from a template, which lists
+    // the same part names.
+    condition:
+        zip_content_types and
+        (zip_first_entry contains "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" or
+         zip_first_entry contains "application/vnd.ms-word.document.macroEnabled.main+xml")
+}
+
+rule taxonomy_dotx
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[74]"
+		label = "dotx"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.03804347826086957
+
+    // ECMA-376 part 2 (OPC): a Word template (or its macro-enabled form) declares the
+    // template main part content type in the content types stream.
+    condition:
+        zip_content_types and
+        (zip_first_entry contains "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml" or
+         zip_first_entry contains "application/vnd.ms-word.template.macroEnabledTemplate.main+xml")
+}
+
 rule taxonomy_emf
 {
 	meta:
@@ -249,7 +294,7 @@ rule taxonomy_epub_names
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.3008130081300813
+        fn_rate = 0.2845528455284553
 
     // EPUB OCF 3.3 section 4.1: the stored first `mimetype` entry names the media type, and the
     // container descriptor is a central directory entry. The exact media type line excludes
@@ -352,7 +397,7 @@ rule taxonomy_jar
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.47008547008547008
+        fn_rate = 0.3162393162393162
 
     // JAR File Specification: the manifest entry plus at least one compiled class in the
     // central directory, as Tika's JarDetector examines. Resource-only archives with a
@@ -511,7 +556,7 @@ rule taxonomy_odp
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.039603960396039604
+        fn_rate = 0.0297029702970297
 
     // ODF 1.3 part 2 section 2.2.4: the stored first `mimetype` entry holds the exact media
     // type, terminated so that presentation-template and other subtypes abstain, and the
@@ -642,7 +687,7 @@ rule taxonomy_pptx
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.1111111111111111
+        fn_rate = 0.044444444444444446
 
     // ECMA-376 part 2 (OPC): the content types stream plus the PresentationML main part,
     // both as whole central directory names.
@@ -786,19 +831,20 @@ rule taxonomy_unixcompress
         prefix_size >= 8 and $header at 0
 }
 
-rule taxonomy_xlsx
+rule taxonomy_xlsb
 {
 	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[68]"
-		label = "xlsx"
+        source_refs = "puremagic:puremagic/magic_data.json:headers[69]"
+		label = "xlsb"
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.064
+        fn_rate = 0.07058823529411765
 
-    // ECMA-376 part 2 (OPC): the content types stream plus the SpreadsheetML workbook part.
-    // A binary workbook (xlsb) carries xl/workbook.bin instead and abstains.
+    // ECMA-376 part 2 (OPC) as used by Excel: a binary workbook declares its main part
+    // content type in the content types stream.
     condition:
-        zip_directory_names and zip_names contains "\n[Content_Types].xml\n" and
-        zip_names contains "\nxl/workbook.xml\n"
+        zip_content_types and
+        zip_first_entry contains "application/vnd.ms-excel.sheet.binary.macroEnabled.main"
 }
+

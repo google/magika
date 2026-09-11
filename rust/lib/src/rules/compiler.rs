@@ -890,19 +890,24 @@ mod tests {
         // Stream B holds the container and PE rules: every floating atom is a view literal
         // bounded to the view, every anchored atom reads the facts header.
         let facts = labels(&program.facts);
-        for label in ["apk", "epub", "jar", "odp", "ods", "odt", "pebin", "pptx", "xlsx"] {
+        let expected = [
+            "apk", "docx", "dotx", "epub", "jar", "odp", "ods", "odt", "pebin", "pptx", "xlsb",
+            "xlsx",
+        ];
+        for label in expected {
             assert!(facts.contains(&label), "{label} is decided from the facts stream");
         }
-        assert!(!facts.contains(&"docx"), "docx names cannot exclude a Word template");
         for ((expression, flags), bounds) in
             program.facts.expressions.iter().zip(&program.facts.flags).zip(&program.facts.bounds)
         {
             if *flags == HS_FLAG_QUIET {
                 assert_eq!(expression.starts_with('^'), bounds.is_none(), "{expression}");
                 if let Some(bounds) = bounds {
-                    let view = preprocess::view("zip_names").unwrap();
-                    assert!(bounds.min_end_offset > view.offset as u64, "{expression}");
-                    assert!(bounds.max_end_offset <= (view.offset + view.size) as u64);
+                    let within = preprocess::VIEWS.iter().any(|view| {
+                        bounds.min_end_offset > view.offset as u64
+                            && bounds.max_end_offset <= (view.offset + view.size) as u64
+                    });
+                    assert!(within, "{expression}");
                 }
             } else {
                 assert_eq!(*flags, HS_FLAG_COMBINATION | HS_FLAG_SINGLEMATCH, "{expression}");

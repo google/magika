@@ -1336,6 +1336,25 @@ rule taxonomy_xcf
         prefix_size >= 26 and $header at 0 and uint32be(22) <= 2
 }
 
+rule taxonomy_xlsx
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[68]"
+		label = "xlsx"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // ECMA-376 part 2 (OPC): the content types stream plus the SpreadsheetML workbook part,
+    // named in a held single-disk central directory (rules/QUALITY.md, container rules).
+    // A binary workbook (xlsb) carries xl/workbook.bin instead and abstains.
+    condition:
+        zip_valid == 1 and zip_entries >= 1 and zip_names_entries >= 1 and
+        zip_names contains "\n[Content_Types].xml\n" and
+        zip_names contains "\nxl/workbook.xml\n"
+}
+
 rule taxonomy_zst
 {
 	meta:

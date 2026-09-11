@@ -813,10 +813,22 @@ def test_manifest_first_package_needs_code_or_resources_in_the_prefix_or_the_dir
         assert scan_rules(deferred[:4096]) == set()
 
 
-def test_docx_names_are_not_enforced(scan_rules):
-    # A Word template (dotx) lists the same parts: the docx candidate stays unenforced.
-    for path in sorted((ROOT / "tests_data/basic/docx").glob("*.docx")):
-        assert scan_rules(path.read_bytes()) == set(), path
+def test_word_documents_and_templates_are_told_apart_by_content_type(scan_rules):
+    # A document and a template list the same parts; only the declared main content type
+    # in the content types stream, the archive's first entry, separates them.
+    def package(main):
+        types = b'<Types><Override PartName="/word/document.xml" ContentType="' + main + b'"/>'
+        return archive([stored(b"[Content_Types].xml", types), stored(b"word/document.xml", b"")])
+
+    office = b"application/vnd.openxmlformats-officedocument.wordprocessingml."
+    assert scan_rules(package(office + b"document.main+xml")) == {"docx"}
+    assert scan_rules(package(office + b"template.main+xml")) == {"dotx"}
+    assert scan_rules(package(b"application/vnd.ms-word.document.macroEnabled.main+xml")) == {
+        "docx"
+    }
+    # The same names without the content types stream first decide nothing.
+    names = archive([stored(b"word/document.xml", b""), stored(b"[Content_Types].xml", b"")])
+    assert scan_rules(names) == set()
 
 
 def test_names_in_the_comment_or_member_data_do_not_count(scan_rules):

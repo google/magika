@@ -309,7 +309,7 @@ fn main() -> Result<()> {
     let (work_sender, work_receiver) = crossbeam_channel::bounded::<OrderPath>(readers);
     let (read_sender, read_receiver) =
         std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
-    let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<InferenceBatch>(threads);
+    let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
     let (result_sender, result_receiver) =
         std::sync::mpsc::sync_channel::<Result<Response>>(threads * batch_size);
     let reorder_next = Arc::new(AtomicUsize::new(0));
@@ -511,15 +511,17 @@ fn read_files(
 /// Accumulates every reader's output into one global inference batch stream.
 fn batch_files(
     batch_size: usize, receiver: &std::sync::mpsc::Receiver<ReadItem>,
-    batch_sender: &crossbeam_channel::Sender<InferenceBatch>,
+    batch_sender: &crossbeam_channel::Sender<Vec<BatchItem>>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
-    let mut batcher = Batcher::new(batch_size);
+    let mut batch = Vec::with_capacity(batch_size);
     while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
             Ok(FeaturesOrRuled::Features(features)) => {
-                if let Some(batch) = batcher.push(pending, features) {
-                    batch_sender.send(batch)?;
+                batch.push(BatchItem { pending, features });
+                if batch.len() == batch_size {
+                    let full = std::mem::replace(&mut batch, Vec::with_capacity(batch_size));
+                    batch_sender.send(full)?;
                 }
             }
             Ok(FeaturesOrRuled::Ruled(content_type)) => {
@@ -531,7 +533,7 @@ fn batch_files(
             }
         }
     }
-    if let Some(batch) = batcher.finish() {
+    if !batch.is_empty() {
         batch_sender.send(batch)?;
     }
     Ok(())
@@ -561,6 +563,11 @@ struct OrderPath {
 struct ReadItem {
     pending: OrderPath,
     extracted: Result<FeaturesOrRuled>,
+}
+
+struct BatchItem {
+    pending: OrderPath,
+    features: Features,
 }
 
 fn process_path(
@@ -606,22 +613,22 @@ fn process_path(
 }
 
 fn infer_batches(
-    runtime: &Runtime, receiver: &crossbeam_channel::Receiver<InferenceBatch>,
+    runtime: &Runtime, receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>,
     sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
     // Create a session only when a thread receives its first batch. A short run never reaches most
     // threads, so spawning their private execution state up front would be pure startup overhead.
     let mut session = None;
-    while let Ok(InferenceBatch { pending, features }) = receiver.recv() {
+    while let Ok(batch) = receiver.recv() {
         let magika = match &mut session {
             Some(session) => session,
             slot => slot.insert(runtime.session()?),
         };
-        let batch = magika.identify_features_batch(&features)?;
-        debug_assert_eq!(batch.len(), pending.len());
-        for (pending, output) in pending.into_iter().zip(batch) {
+        let results = magika.identify_features_batch(batch.iter().map(|x| &x.features))?;
+        debug_assert_eq!(results.len(), batch.len());
+        for (item, output) in batch.into_iter().zip(results) {
             let result = Ok(output);
-            sender.send(Ok(Response::new(pending, result)))?;
+            sender.send(Ok(Response::new(item.pending, result)))?;
         }
     }
     Ok(())
@@ -652,44 +659,6 @@ impl Reorder {
         let result = self.todo.remove(&self.next.load(Relaxed))?;
         self.next.fetch_add(1, Relaxed);
         Some(result)
-    }
-}
-
-struct InferenceBatch {
-    pending: Vec<OrderPath>,
-    features: Vec<Features>,
-}
-
-struct Batcher {
-    batch_size: usize,
-    pending: Vec<OrderPath>,
-    features: Vec<Features>,
-}
-
-impl Batcher {
-    fn new(batch_size: usize) -> Self {
-        Self {
-            batch_size,
-            pending: Vec::with_capacity(batch_size),
-            features: Vec::with_capacity(batch_size),
-        }
-    }
-
-    fn push(&mut self, pending: OrderPath, features: Features) -> Option<InferenceBatch> {
-        self.pending.push(pending);
-        self.features.push(features);
-        (self.features.len() == self.batch_size).then(|| self.take())
-    }
-
-    fn finish(mut self) -> Option<InferenceBatch> {
-        (!self.features.is_empty()).then(|| self.take())
-    }
-
-    fn take(&mut self) -> InferenceBatch {
-        InferenceBatch {
-            pending: std::mem::replace(&mut self.pending, Vec::with_capacity(self.batch_size)),
-            features: std::mem::replace(&mut self.features, Vec::with_capacity(self.batch_size)),
-        }
     }
 }
 

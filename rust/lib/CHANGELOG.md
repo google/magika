@@ -15,6 +15,7 @@
 
 ### Minor
 
+- Change `Session::identify_features_batch()` to take an iterator of features
 - Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
 - Add `Runtime` to prepare the model once and create one `Session` per inference thread
 - Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference

@@ -16,6 +16,7 @@ import sys
 import time
 from pathlib import Path
 
+from . import preprocess
 from .corpus import atomic_json, file_hash
 
 DEFAULT_COUNTS = [*range(1, 51), *range(60, 101, 10), 500, 1000]
@@ -37,11 +38,18 @@ def command(binary, pack, mode, paths, backend="cpu", workers=4, batch_size=8):
 
 
 def observe(binary, pack, records, canonical, env, backend="cpu", timeout=60):
+    """Classify `records` with the product in both modes and with YARA-X as the reference.
+
+    YARA-X scans the same 4 KiB prefix the native engine scans, and takes the facts the
+    native preprocessors derive (the sizes, the zip and PE facts and the `zip_names` view)
+    as globals computed by `preprocess.prepare` from the same held blocks: each input is
+    opened once, for its first block and, for an unheld archive, its tail window. The
+    manifest's `size` is the original size and must be the file's.
+    """
     import yara_x
 
     compiler = yara_x.Compiler(includes_enabled=False)
-    compiler.define_global("original_size", 0)
-    compiler.define_global("prefix_size", 0)
+    preprocess.define_globals(compiler)
     compiler.add_source(pack.read_text())
     compiled = compiler.build()
     rules = {}
@@ -63,10 +71,13 @@ def observe(binary, pack, records, canonical, env, backend="cpu", timeout=60):
             outputs[mode] = predictions(raw, paths)
         for original, ml, hybrid in zip(batch, outputs["ml"], outputs["hybrid"], strict=True):
             row = original.copy()
+            size = row["size"]
             with Path(row["path"]).open("rb") as stream:
-                prefix = stream.read(4096)
-            scanner.set_global("original_size", row["size"])
-            scanner.set_global("prefix_size", len(prefix))
+                if os.fstat(stream.fileno()).st_size != size:
+                    raise ValueError(f"Manifest size of {row['path']} differs from the file")
+                prefix = stream.read(preprocess.PREFIX_BYTES)
+                tail = preprocess.read_tail(stream, size, prefix)
+            preprocess.set_globals(scanner, *preprocess.prepare(prefix, size, tail))
             matches, error = [], None
             try:
                 matches = [

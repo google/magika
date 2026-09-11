@@ -33,6 +33,16 @@ SUCH DAMAGE.
 // Format predicates adapted from the pinned sources listed in rules/LICENSES.
 // Rules are grouped by observed development evidence; defaults remain off.
 // Evidence corpus: parquet-v56, 29,523 whole files; independent qualification remains pending.
+// Container rules on the facts stream: adjudicated combined corpus, 25,421 whole files
+// (rules/QUALITY.md, "Container and PE preprocessor rules").
+
+// A single-disk, non-zip64 archive whose central directory was held and walked, with at
+// least one name in the `zip_names` view (PKWARE APPNOTE 6.3.10, sections 4.3.12-4.3.16).
+private rule zip_directory_names
+{
+    condition:
+        zip_valid == 1 and zip_entries >= 1 and zip_names_entries >= 1
+}
 
 rule taxonomy_apk
 {
@@ -42,16 +52,21 @@ rule taxonomy_apk
 		enforced = true
         class = "partial"
         fp_rate = 0
-        fn_rate = 0.26000000000000001
+        fn_rate = 0.2365415986949429
 
     // Android ZIP members use stored/deflated data; retain ignored ZIP versions, including 0.
     // Lengths may be deferred to a data descriptor. DEX-only ZIP/JAR files are not APKs:
-    // a DEX-first package also needs an Android manifest local entry within the prefix.
+    // a DEX-first package also needs an Android manifest local entry within the prefix,
+    // and a manifest-first package needs a classes.dex or resources.arsc local entry
+    // there, since an Android library (AAR) also opens with AndroidManifest.xml.
+    // Manifest-first packages whose code follows later are decided by taxonomy_apk_names.
     strings:
         $zip = { 50 4B 03 04 }
         $dex = "classes.dex"
         $manifest = "AndroidManifest.xml"
         $manifest_entry = { 50 4B 03 04 [22] 13 00 ?? ?? 41 6E 64 72 6F 69 64 4D 61 6E 69 66 65 73 74 2E 78 6D 6C }
+        $dex_entry = { 50 4B 03 04 [22] 0B 00 ?? ?? 63 6C 61 73 73 65 73 2E 64 65 78 }
+        $arsc_entry = { 50 4B 03 04 [22] 0E 00 ?? ?? 72 65 73 6F 75 72 63 65 73 2E 61 72 73 63 }
     condition:
         prefix_size >= 41 and $zip at 0 and uint16(6) % 2 == 0 and
         (uint16(8) == 0 or uint16(8) == 8) and
@@ -59,7 +74,26 @@ rule taxonomy_apk
          uint16(6) % 16 == 8 or uint16(6) % 16 == 10 or
          uint16(6) % 16 == 12 or uint16(6) % 16 == 14) and
         ((uint16(26) == 11 and $dex at 30 and $manifest_entry in (41..4047)) or
-         (prefix_size >= 49 and uint16(26) == 19 and $manifest at 30))
+         (prefix_size >= 49 and uint16(26) == 19 and $manifest at 30 and
+          ($dex_entry in (49..4055) or $arsc_entry in (49..4052))))
+}
+
+rule taxonomy_apk_names
+{
+	meta:
+        source_refs = "libmagic:magic/Magdir/archive:libmagic_9418b81d75bfd1980625_line_1861; libmagic:magic/Magdir/archive:libmagic_9418b81d75bfd1980625_line_1876"
+		label = "apk"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.11745513866231648
+
+    // Central directory evidence for packages the prefix cannot settle, manifest first or
+    // not: the binary manifest plus compiled code or resources. A DEX-only archive is not
+    // an APK, and an Android library (AAR) carries classes.jar rather than classes.dex.
+    condition:
+        zip_directory_names and zip_names contains "\nAndroidManifest.xml\n" and
+        (zip_names contains "\nclasses.dex\n" or zip_names contains "\nresources.arsc\n")
 }
 
 rule taxonomy_bmp
@@ -207,6 +241,24 @@ rule taxonomy_epub
         and uint16(26) == 8 and uint16(28) == 0
 }
 
+rule taxonomy_epub_names
+{
+	meta:
+        source_refs = "libmagic:magic/Magdir/archive:libmagic_9418b81d75bfd1980625_line_2058; puremagic:puremagic/magic_data.json:headers[84]; puremagic:puremagic/magic_data.json:headers[85]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[52]/magic[0]"
+		label = "epub"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.3008130081300813
+
+    // EPUB OCF 3.3 section 4.1: the stored first `mimetype` entry names the media type, and the
+    // container descriptor is a central directory entry. The exact media type line excludes
+    // other OCF-style containers; a deflated or misplaced `mimetype` yields no line.
+    condition:
+        zip_names startswith "\nmimetype=application/epub+zip\n" and
+        zip_names contains "\nMETA-INF/container.xml\n"
+}
+
 rule taxonomy_flac
 {
 	meta:
@@ -290,6 +342,24 @@ rule taxonomy_ico
     condition:
         prefix_size >= 22 and $header at 0 and uint16(4) >= 1
         and uint8(9) == 0 and uint32(14) >= 8 and uint32(18) >= 22
+}
+
+rule taxonomy_jar
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[243]; puremagic:puremagic/magic_data.json:headers[244]; puremagic:puremagic/magic_data.json:headers[308]; puremagic:puremagic/magic_data.json:headers[555]"
+		label = "jar"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.47008547008547008
+
+    // JAR File Specification: the manifest entry plus at least one compiled class in the
+    // central directory, as Tika's JarDetector examines. Resource-only archives with a
+    // manifest, and APKs, WARs or Android libraries without top-level classes, abstain.
+    condition:
+        zip_directory_names and zip_names contains "\nMETA-INF/MANIFEST.MF\n" and
+        zip_names contains ".class\n"
 }
 
 rule taxonomy_jp2
@@ -433,6 +503,57 @@ rule taxonomy_netcdf
         (uint32be(12) == 0 or uint32be(8) == 10)
 }
 
+rule taxonomy_odp
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[1251]; puremagic:puremagic/magic_data.json:headers[561]; puremagic:puremagic/magic_data.json:headers[687]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[608]/magic[0]"
+		label = "odp"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.039603960396039604
+
+    // ODF 1.3 part 2 section 2.2.4: the stored first `mimetype` entry holds the exact media
+    // type, terminated so that presentation-template and other subtypes abstain, and the
+    // package carries a content.xml entry.
+    condition:
+        zip_names startswith "\nmimetype=application/vnd.oasis.opendocument.presentation\n" and
+        zip_names contains "\ncontent.xml\n"
+}
+
+rule taxonomy_ods
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[1252]; puremagic:puremagic/magic_data.json:headers[689]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[610]/magic[0]"
+		label = "ods"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.13274336283185842
+
+    // ODF 1.3 part 2 section 2.2.4, as for odp: exact spreadsheet media type plus content.xml.
+    condition:
+        zip_names startswith "\nmimetype=application/vnd.oasis.opendocument.spreadsheet\n" and
+        zip_names contains "\ncontent.xml\n"
+}
+
+rule taxonomy_odt
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[1250]; puremagic:puremagic/magic_data.json:headers[560]; puremagic:puremagic/magic_data.json:headers[681]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[612]/magic[0]"
+		label = "odt"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.2376237623762376
+
+    // ODF 1.3 part 2 section 2.2.4, as for odp: exact text media type plus content.xml.
+    // The terminator excludes text-template, text-master and text-web.
+    condition:
+        zip_names startswith "\nmimetype=application/vnd.oasis.opendocument.text\n" and
+        zip_names contains "\ncontent.xml\n"
+}
+
 rule taxonomy_ogg
 {
 	meta:
@@ -489,6 +610,45 @@ rule taxonomy_pdb
         (prefix_size >= 56 and $modern at 0 and $page_size at 32 and
          (uint32(36) == 1 or uint32(36) == 2)) or
         (prefix_size >= 60 and $old at 0 and $page_size at 44)
+}
+
+rule taxonomy_pebin
+{
+	meta:
+        source_refs = ""
+		label = "pebin"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.0015515903801396431
+
+    // PE/COFF specification (COFF file header, optional header): a located image whose
+    // section table is held, linked as an executable image, with a documented Windows
+    // subsystem and a machine type of a shipping Windows target. DOS executables, objects
+    // and images whose headers exceed the first block yield no PE facts.
+    condition:
+        pe_valid == 1 and pe_is_executable_image == 1 and
+        pe_subsystem >= 1 and pe_subsystem <= 16 and
+        (pe_machine == 0x14c or pe_machine == 0x8664 or pe_machine == 0x1c0 or
+         pe_machine == 0x1c4 or pe_machine == 0xaa64 or pe_machine == 0x200 or
+         pe_machine == 0x1c2 or pe_machine == 0x5032 or pe_machine == 0x5064)
+}
+
+rule taxonomy_pptx
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[67]"
+		label = "pptx"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.1111111111111111
+
+    // ECMA-376 part 2 (OPC): the content types stream plus the PresentationML main part,
+    // both as whole central directory names.
+    condition:
+        zip_directory_names and zip_names contains "\n[Content_Types].xml\n" and
+        zip_names contains "\nppt/presentation.xml\n"
 }
 
 rule taxonomy_pythonbytecode
@@ -624,4 +784,21 @@ rule taxonomy_unixcompress
         $header = { 1F 9D (09 | 0A | 0B | 0C | 0D | 0E | 0F | 10 | 89 | 8A | 8B | 8C | 8D | 8E | 8F | 90) }
     condition:
         prefix_size >= 8 and $header at 0
+}
+
+rule taxonomy_xlsx
+{
+	meta:
+        source_refs = "puremagic:puremagic/magic_data.json:headers[68]"
+		label = "xlsx"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.064
+
+    // ECMA-376 part 2 (OPC): the content types stream plus the SpreadsheetML workbook part.
+    // A binary workbook (xlsb) carries xl/workbook.bin instead and abstains.
+    condition:
+        zip_directory_names and zip_names contains "\n[Content_Types].xml\n" and
+        zip_names contains "\nxl/workbook.xml\n"
 }

@@ -3,10 +3,13 @@
 
 """Exercise maintained signatures directly, including adversarial format lookalikes."""
 
+import struct
 from pathlib import Path
 
 import pytest
 import yara_x
+from magika_rules_benchmark import preprocess
+from preprocess_fixtures import archive, pe32, pe32plus, stored
 
 ROOT = Path(__file__).resolve().parents[3]
 NEGATIVES = sorted(p for p in (ROOT / "tests_data/rules_negative").iterdir() if p.suffix != ".md")
@@ -127,23 +130,33 @@ def test_ftyp_existing_brand_variants(scan_rules, brand, label):
 
 
 @pytest.fixture(scope="module")
-def scan_rules():
+def matching_rules():
+    """The rules YARA-X matches for `content`, enforced or not, given the native facts as globals.
+
+    Maps each matching rule's identifier to its metadata.
+    """
     compiler = yara_x.Compiler(includes_enabled=False)
-    compiler.define_global("original_size", 0)
-    compiler.define_global("prefix_size", 0)
+    preprocess.define_globals(compiler)
     for path in sorted((ROOT / "rules/rulesets").rglob("*.yar")):
         compiler.add_source(path.read_text())
     scanner = yara_x.Scanner(compiler.build())
 
     def scan(content):
-        prefix = bytes(content[:4096])
-        scanner.set_global("original_size", len(content))
-        scanner.set_global("prefix_size", len(prefix))
+        prefix = bytes(content[: preprocess.PREFIX_BYTES])
+        preprocess.set_globals(scanner, *preprocess.facts_for(content))
         return {
-            dict(rule.metadata)["label"]
-            for rule in scanner.scan(prefix).matching_rules
-            if dict(rule.metadata).get("enforced", False)
+            rule.identifier: dict(rule.metadata) for rule in scanner.scan(prefix).matching_rules
         }
+
+    return scan
+
+
+@pytest.fixture(scope="module")
+def scan_rules(matching_rules):
+    """The enforced labels YARA-X decides for `content`."""
+
+    def scan(content):
+        return {meta["label"] for meta in matching_rules(content).values() if meta.get("enforced")}
 
     return scan
 
@@ -229,6 +242,15 @@ POSITIVE_FILES = [
     ("wasm", "mitra_candidates/wasm.wasm"),
     ("swf", "rules_positive/zws-0.swf"),
     ("swf", "rules_positive/zws-1.swf"),
+    # Decided from the central directory names and the PE headers (preprocessor facts).
+    ("xlsx", "basic/xlsx/magika_test.xlsx"),
+    ("pptx", "basic/pptx/magika_test.pptx"),
+    ("odt", "basic/odt/doc.odt"),
+    ("odt", "basic/odt/magika_test.odt"),
+    ("ods", "basic/ods/magika_test.ods"),
+    ("odp", "basic/odp/magika_test.odp"),
+    ("pebin", "mitra/pebin/pe32.exe"),
+    ("pebin", "mitra/pebin/pe64.exe"),
 ]
 
 
@@ -538,10 +560,14 @@ def test_epub_stored_entries_allow_non_encryption_zip_flags(scan_rules, flags):
 
 
 @pytest.mark.parametrize("flags", [1, 3, 7, 23, 2049, 2071])
-def test_epub_encrypted_mimetype_is_not_accepted(scan_rules, flags):
+def test_epub_encrypted_mimetype_is_not_accepted_by_the_prefix_rule(matching_rules, flags):
     content = bytearray((ROOT / "tests_data/basic/epub/doc.epub").read_bytes())
     content[6:8] = flags.to_bytes(2, "little")
-    assert "epub" not in scan_rules(content)
+    matched = matching_rules(content)
+    assert "taxonomy_epub" not in matched
+    # The directory names rule reads the stored media type and the container entry, which
+    # a flipped local flag leaves in place: the package is still decided as EPUB by it.
+    assert {name for name in matched if name.startswith("taxonomy_epub")} == {"taxonomy_epub_names"}
 
 
 def test_epub_with_zip_data_descriptor(scan_rules):
@@ -711,3 +737,213 @@ def test_3dsx_standard_and_extended_headers(scan_rules, size):
     content = struct.pack("<4sHH6I", b"3DSX", size, 8, 0, 0, 4, 0, 0, 0)
     content += bytes(size - 32 + 24) + bytes.fromhex("1e ff 2f e1")
     assert scan_rules(content) == {"3dsx"}
+
+
+# --- container and PE preprocessor rules ------------------------------------------------------
+
+
+def names_archive(*names, comment=b""):
+    """A stored archive listing `names` in order, each with a short payload."""
+    return archive([stored(name, b"<x/>") for name in names], comment)
+
+
+@pytest.mark.parametrize(
+    "names,label",
+    [
+        ((b"[Content_Types].xml", b"xl/workbook.xml"), "xlsx"),
+        ((b"xl/workbook.xml", b"_rels/.rels", b"[Content_Types].xml"), "xlsx"),
+        ((b"[Content_Types].xml", b"ppt/presentation.xml"), "pptx"),
+        ((b"ppt/slides/slide1.xml", b"ppt/presentation.xml", b"[Content_Types].xml"), "pptx"),
+        ((b"META-INF/MANIFEST.MF", b"com/example/Main.class"), "jar"),
+        ((b"a/b/C.class", b"META-INF/MANIFEST.MF"), "jar"),
+        ((b"AndroidManifest.xml", b"classes.dex"), "apk"),
+        ((b"AndroidManifest.xml", b"res/values.xml", b"classes.dex"), "apk"),
+        ((b"res/values.xml", b"AndroidManifest.xml", b"resources.arsc"), "apk"),
+        ((b"META-INF/MANIFEST.MF", b"AndroidManifest.xml", b"classes.dex"), "apk"),
+    ],
+)
+def test_central_directory_names_decide_the_package(scan_rules, names, label):
+    assert scan_rules(names_archive(*names)) == {label}
+
+
+@pytest.mark.parametrize(
+    "names",
+    [
+        (b"[Content_Types].xml",),
+        (b"xl/workbook.xml",),
+        (b"ppt/presentation.xml",),
+        (b"[Content_Types].xml", b"xl/workbook.bin"),
+        (b"[Content_Types].xml", b"word/document.xml"),
+        (b"[Content_Types].xml", b"backup/xl/workbook.xml"),
+        (b"[Content_Types].xml", b"xl/workbook.xml.bak"),
+        (b"[Content_Types].xml", b"XL/WORKBOOK.XML"),
+        (b"META-INF/MANIFEST.MF",),
+        (b"META-INF/MANIFEST.MF", b"resources/strings.properties"),
+        (b"com/example/Main.class",),
+        (b"META-INF/MANIFEST.MF", b".classpath"),
+        (b"META-INF/MANIFEST.MF", b"Main.class/"),
+        (b"META-INF/manifest.mf", b"Main.class"),
+        (b"AndroidManifest.xml", b"classes.jar", b"R.txt"),
+        (b"R.txt", b"AndroidManifest.xml", b"classes.jar"),
+        (b"AndroidManifest.xml", b"res/values.xml"),
+        (b"classes.dex",),
+        (b"resources.arsc", b"classes.dex"),
+        (b"assets/AndroidManifest.xml", b"classes.dex"),
+        (b"notes.txt",),
+    ],
+)
+def test_partial_or_lookalike_names_abstain(scan_rules, names):
+    assert scan_rules(names_archive(*names)) == set()
+
+
+def test_manifest_first_package_needs_code_or_resources_in_the_prefix_or_the_directory(
+    scan_rules,
+):
+    # An Android library opens with AndroidManifest.xml too: the prefix rule needs a
+    # classes.dex or resources.arsc local entry, the names rule needs the directory entry.
+    manifest = stored(b"AndroidManifest.xml", b"<manifest/>")
+    library = archive([manifest, stored(b"classes.jar", b"PK"), stored(b"R.txt", b"")])
+    assert scan_rules(library) == set()
+    for code in (b"classes.dex", b"resources.arsc"):
+        package = archive([manifest, stored(code, b"data")])
+        assert scan_rules(package) == {"apk"}
+        # The code entry beyond the prefix leaves the decision to the directory names.
+        deferred = archive([manifest, stored(b"res/big.bin", bytes(8192)), stored(code, b"x")])
+        assert scan_rules(deferred) == {"apk"}
+        assert scan_rules(deferred[:4096]) == set()
+
+
+def test_docx_names_are_not_enforced(scan_rules):
+    # A Word template (dotx) lists the same parts: the docx candidate stays unenforced.
+    for path in sorted((ROOT / "tests_data/basic/docx").glob("*.docx")):
+        assert scan_rules(path.read_bytes()) == set(), path
+
+
+def test_names_in_the_comment_or_member_data_do_not_count(scan_rules):
+    names = b"\n[Content_Types].xml\n\nxl/workbook.xml\n\nMETA-INF/MANIFEST.MF\n\nMain.class\n"
+    assert scan_rules(archive([stored(b"readme.txt", names)], names)) == set()
+
+
+def test_names_beyond_the_view_are_not_seen(scan_rules):
+    filler = [stored(f"{i:0>60}".encode(), b"") for i in range(100)]
+    parts = [stored(b"[Content_Types].xml", b""), stored(b"xl/workbook.xml", b"")]
+    assert scan_rules(archive(filler + parts)) == set()
+    assert scan_rules(archive(parts + filler)) == {"xlsx"}
+
+
+@pytest.mark.parametrize(
+    "offset,value",
+    [(4, 1), (6, 1), (8, 0), (4, 0xFFFF), (10, 0xFFFF), (12, 0xFFFFFFFF), (16, 0xFFFFFFFF)],
+)
+def test_split_and_zip64_end_records_abstain(scan_rules, offset, value):
+    content = bytearray(names_archive(b"[Content_Types].xml", b"xl/workbook.xml"))
+    assert scan_rules(content) == {"xlsx"}
+    width = "<I" if value > 0xFFFF else "<H"
+    struct.pack_into(width, content, len(content) - 22 + offset, value)
+    assert scan_rules(content) == set()
+
+
+def opendocument(media, *names, method=0, first=True):
+    """An ODF-style package: a `mimetype` entry naming `media`, stored by default and first."""
+    mimetype = (b"mimetype", b"application/vnd.oasis.opendocument." + media, method)
+    others = [stored(name, b"<x/>") for name in names]
+    return archive([mimetype, *others] if first else [*others, mimetype])
+
+
+@pytest.mark.parametrize(
+    "media,label", [(b"text", "odt"), (b"spreadsheet", "ods"), (b"presentation", "odp")]
+)
+def test_opendocument_media_type_and_content_decide(scan_rules, media, label):
+    assert scan_rules(opendocument(media, b"content.xml", b"styles.xml")) == {label}
+    assert scan_rules(opendocument(media, b"styles.xml", b"meta.xml")) == set()
+    assert scan_rules(opendocument(media, b"content.xml", first=False)) == set()
+    assert scan_rules(opendocument(media, b"content.xml", method=8)) == set()
+    for suffix in (b"-template", b"-master", b"-web", b"\n", b" ", b"s"):
+        assert scan_rules(opendocument(media + suffix, b"content.xml")) == set(), suffix
+
+
+@pytest.mark.parametrize("media", [b"graphics", b"chart", b"formula", b"image", b"database"])
+def test_other_opendocument_media_types_abstain(scan_rules, media):
+    assert scan_rules(opendocument(media, b"content.xml")) == set()
+
+
+def ocf_with_extra_fields(members):
+    """A stored archive whose local headers carry an extra field, so prefix rules abstain."""
+    import io
+    import zipfile
+
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as package:
+        for name, data in members.items():
+            info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
+            info.extra = b"UT\x05\x00\x01\x00\x00\x00\x00"
+            package.writestr(info, data)
+    content = output.getvalue()
+    assert content[28:30] != b"\x00\x00", "the first local header carries an extra field"
+    return content
+
+
+def test_epub_directory_names_decide_when_the_local_header_is_not_canonical(scan_rules):
+    package = {"mimetype": b"application/epub+zip", "META-INF/container.xml": b"<c/>"}
+    assert scan_rules(ocf_with_extra_fields(package)) == {"epub"}
+    package = {"mimetype": b"application/epub+zip", "OEBPS/content.opf": b"<p/>"}
+    assert scan_rules(ocf_with_extra_fields(package)) == set()
+    package = {"mimetype": b"application/epub+zip ", "META-INF/container.xml": b"<c/>"}
+    assert scan_rules(ocf_with_extra_fields(package)) == set()
+    package = {"META-INF/container.xml": b"<c/>", "mimetype": b"application/epub+zip"}
+    assert scan_rules(ocf_with_extra_fields(package)) == set()
+
+
+@pytest.mark.parametrize(
+    "build,overrides",
+    [
+        (pe32, {}),
+        (pe32plus, {}),
+        (pe32, {"characteristics": 0x2102}),
+        (pe32, {"subsystem": 1}),
+        (pe32, {"subsystem": 16}),
+        (pe32, {"machine": 0x1C0}),
+        (pe32, {"machine": 0x1C2}),
+        (pe32, {"machine": 0x1C4}),
+        (pe32, {"machine": 0x5032}),
+        (pe32plus, {"machine": 0xAA64}),
+        (pe32plus, {"machine": 0x200}),
+        (pe32plus, {"machine": 0x5064}),
+    ],
+)
+def test_windows_images_are_pebin(scan_rules, build, overrides):
+    assert scan_rules(build(**overrides).build()) == {"pebin"}
+
+
+@pytest.mark.parametrize(
+    "build,overrides",
+    [
+        (pe32, {"characteristics": 0x0100}),
+        (pe32, {"characteristics": 0x2000}),
+        (pe32, {"subsystem": 0}),
+        (pe32, {"subsystem": 17}),
+        (pe32, {"subsystem": 0xFFFF}),
+        (pe32, {"machine": 0}),
+        (pe32, {"machine": 0x166}),
+        (pe32, {"machine": 0xEC20}),
+        (pe32, {"magic": 0x107}),
+        (pe32, {"section_count": 0}),
+        (pe32, {"section_count": 200}),
+        (pe32, {"size_of_optional_header": 95}),
+        (pe32plus, {"size_of_optional_header": 111}),
+    ],
+)
+def test_images_outside_the_pe_contract_abstain(scan_rules, build, overrides):
+    assert scan_rules(build(**overrides).build()) == set()
+
+
+@pytest.mark.parametrize("relative", ["mitra/pebin/pe32.exe", "mitra/pebin/pe64.exe"])
+def test_pe_fixture_headers_must_be_held(scan_rules, relative):
+    content = (ROOT / "tests_data" / relative).read_bytes()
+    e_lfanew = int.from_bytes(content[0x3C:0x40], "little")
+    sections = int.from_bytes(content[e_lfanew + 6 : e_lfanew + 8], "little")
+    optional = int.from_bytes(content[e_lfanew + 20 : e_lfanew + 22], "little")
+    headers_end = e_lfanew + 24 + optional + 40 * sections
+    assert scan_rules(content[:headers_end]) == {"pebin"}
+    for length in range(headers_end):
+        assert scan_rules(content[:length]) == set(), length

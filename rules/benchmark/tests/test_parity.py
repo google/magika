@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from magika_rules_benchmark.runner import observe
+from preprocess_fixtures import FACTS_CASES
 
 pytestmark = pytest.mark.native
 
@@ -121,6 +122,11 @@ def test_ftyp_native_bounds(tmp_path, brand, label):
             [b"ABCD", b"EFGH", b"ABGH", b"EFCD"],
             [True, True, False, False],
         ),
+        # The facts stream: the oracle's Python preprocessors against the native ones.
+        *(
+            (condition, "", payloads, expected)
+            for condition, payloads, expected in FACTS_CASES.values()
+        ),
     ],
     ids=[
         "fixed-offset",
@@ -131,6 +137,7 @@ def test_ftyp_native_bounds(tmp_path, brand, label):
         "original-length",
         "prefix-boundary",
         "correlated-alternatives",
+        *FACTS_CASES,
     ],
 )
 def test_supported_predicates_match_yara_x(tmp_path, condition, patterns, payloads, expected):

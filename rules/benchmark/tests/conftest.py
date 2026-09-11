@@ -407,15 +407,22 @@ def reviewed_binary_header_variants():
                     0 if flags & 8 else 1,
                     0 if flags & 8 else 1,
                     len(name),
-                    4 if name == b"classes.dex" else 4096,
+                    4,
                 )
-                extra = bytes(4 if name == b"classes.dex" else 4096)
-                content = header + name + extra + b"x"
+                content = header + name + bytes(4) + b"x"
+                # A DEX-first package needs its manifest entry within the prefix, and a
+                # manifest-first package a code or resource entry, since an Android
+                # library also opens with the manifest.
                 if name == b"classes.dex":
                     content += struct.pack(
                         "<4s5H3I2H", b"PK\x03\x04", 0, 0, 0, 0, 0, 0, 8, 8, 19, 0
                     )
                     content += b"AndroidManifest.xml" + b"\x03\x00\x08\x00\x08\x00\x00\x00"
+                else:
+                    content += struct.pack(
+                        "<4s5H3I2H", b"PK\x03\x04", 0, 0, 0, 0, 0, 0, 8, 8, 14, 0
+                    )
+                    content += b"resources.arsc" + b"\x02\x00\x0c\x00\x08\x00\x00\x00"
                 variants.append(("apk", content))
     for version in (3, 4, 0x43, 0x63, 0x7B, 0x83, 0x8B, 0x8E, 0xCB):
         header = bytearray(65)

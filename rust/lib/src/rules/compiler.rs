@@ -29,6 +29,8 @@ pub(super) enum Domain {
     /// Stream A: the size header and the original prefix; patterns and integer reads.
     Prefix,
     /// Stream B: the facts header and views, scanned only when preprocessing produced them.
+    /// A terminal rule here must therefore be unsatisfiable by the inactive synthetic (the
+    /// all-zero header and the empty view); the compiler rejects one that is not.
     Facts,
 }
 
@@ -102,6 +104,13 @@ pub(super) struct Expressions {
 /// `[facts header][views]` layout that [`preprocess`] defines. Every terminal rule lands in
 /// exactly one of them; a stream with no terminal rule stays empty and is never compiled
 /// into a native database.
+///
+/// Stream B is scanned only when a preprocessor produced something
+/// ([`preprocess::Synthetic::is_active`]), so a facts rule never matches an input no
+/// preprocessor touched. Compilation keeps that exact: every terminal of `facts` is
+/// checked to be unsatisfiable by the inactive synthetic, where every fact beyond the
+/// sizes reads zero and every view is empty, and a rule that would hold there is rejected
+/// rather than shipped as a rule that silently never fires.
 pub(super) type Program = Streams<Expressions>;
 
 #[cfg(test)]
@@ -124,6 +133,7 @@ pub(super) fn compile(source: &str) -> Result<Program> {
         requirements: HashMap::new(),
         visiting: HashSet::new(),
         compiled: HashMap::new(),
+        inactive: HashMap::new(),
         domain: Domain::Prefix,
         targets: Streams::default(),
     };
@@ -154,6 +164,9 @@ pub(super) fn compile(source: &str) -> Result<Program> {
         compiler.domain =
             compiler.requirement(rule).with_context(context)?.unwrap_or(Domain::Prefix);
         let expression = compiler.rule(rule).with_context(context)?;
+        if compiler.domain == Domain::Facts {
+            compiler.anchored(rule).with_context(context)?;
+        }
         let present = compiler.constant(true)?;
         compiler.push(
             format!("({expression})&{present}"),
@@ -181,6 +194,8 @@ struct Compiler<'a> {
     visiting: HashSet<&'a str>,
     /// Lowered rules per domain: a neutral helper may serve terminals of both.
     compiled: HashMap<(&'a str, Domain), String>,
+    /// Whether each rule's condition may hold on the inactive synthetic; see [`Self::holds_inactive`].
+    inactive: HashMap<&'a str, bool>,
     /// The domain of the terminal rule being lowered.
     domain: Domain,
     targets: Streams<Target>,
@@ -435,7 +450,7 @@ impl<'a> Compiler<'a> {
                     _ => bail!("comparisons require an external size or fixed unsigned read"),
                 };
                 let value = number(&node.rhs)?;
-                let max = if width == 8 { i64::MAX as u64 } else { (1_u64 << (8 * width)) - 1 };
+                let max = field_maximum(width);
                 if let Some(divisor) = modulus {
                     if value >= divisor || value > max {
                         return self.constant(false);
@@ -465,16 +480,7 @@ impl<'a> Compiler<'a> {
                         if offset == 0 { String::new() } else { format!("{ANY}{{{offset}}}") };
                     return self.atom(format!("^{skip}{}", bytes.concat()));
                 }
-                let mut ranges = Vec::new();
-                if matches!(expr, Expr::Eq(_) | Expr::Le(_) | Expr::Ge(_)) && value <= max {
-                    ranges.push((value, value));
-                }
-                if matches!(expr, Expr::Ne(_) | Expr::Lt(_) | Expr::Le(_)) && value > 0 {
-                    ranges.push((0, (value - 1).min(max)));
-                }
-                if matches!(expr, Expr::Ne(_) | Expr::Gt(_) | Expr::Ge(_)) && value < max {
-                    ranges.push((value + 1, max));
-                }
+                let ranges = accepted(expr, value, max);
                 if ranges.is_empty() {
                     return self.constant(false);
                 }
@@ -520,6 +526,124 @@ impl<'a> Compiler<'a> {
             Ok(format!("({}&{})", self.atom("^\\x00".into())?, self.atom("^\\x01".into())?))
         }
     }
+
+    /// Rejects a facts terminal that the inactive synthetic would satisfy: stream B is not
+    /// scanned for an input no preprocessor touched, so such a rule could never match what
+    /// its condition claims to match.
+    fn anchored(&mut self, rule: &'a Rule<'a>) -> Result<()> {
+        ensure!(
+            !self.holds_inactive(rule)?,
+            "rule `{}` would match inputs no preprocessor touched; \
+             anchor it on a nonzero fact or a view membership",
+            rule.identifier.name
+        );
+        Ok(())
+    }
+
+    /// Whether `rule` may hold on the inactive synthetic: every fact beyond the sizes reads
+    /// zero and every view is empty, while the sizes are unknown, so any comparison of
+    /// them may hold. Evaluated transitively through references, like lowering, and only
+    /// after lowering succeeded, so every construct here is one lowering accepted.
+    fn holds_inactive(&mut self, rule: &'a Rule<'a>) -> Result<bool> {
+        let name = rule.identifier.name;
+        if let Some(holds) = self.inactive.get(name) {
+            return Ok(*holds);
+        }
+        // Unenforced variants lower to a constant `false`.
+        let holds = if enforced(rule, None)? {
+            ensure!(
+                self.visiting.len() < 128 && self.visiting.insert(name),
+                "cyclic or excessively deep rule references"
+            );
+            let result = self.inactive_condition(&rule.condition);
+            self.visiting.remove(name);
+            result?
+        } else {
+            false
+        };
+        self.inactive.insert(name, holds);
+        Ok(holds)
+    }
+
+    fn inactive_condition(&mut self, expr: &'a Expr<'a>) -> Result<bool> {
+        Ok(match expr {
+            Expr::And(node) => {
+                let mut holds = true;
+                for operand in &node.operands {
+                    holds &= self.inactive_condition(operand)?;
+                }
+                holds
+            }
+            Expr::Or(node) => {
+                let mut holds = false;
+                for operand in &node.operands {
+                    holds |= self.inactive_condition(operand)?;
+                }
+                holds
+            }
+            Expr::Ident(id) => {
+                let target = *self.rules.get(id.name).context("unknown rule reference")?;
+                self.holds_inactive(target)?
+            }
+            Expr::Eq(node)
+            | Expr::Ne(node)
+            | Expr::Lt(node)
+            | Expr::Le(node)
+            | Expr::Gt(node)
+            | Expr::Ge(node) => {
+                let (lhs, modulus) = match &node.lhs {
+                    Expr::Mod(remainder) => (&remainder.operands[0], Some(&remainder.operands[1])),
+                    lhs => (lhs, None),
+                };
+                let Expr::Ident(id) = lhs else {
+                    bail!("internal: a facts rule compares something other than a fact")
+                };
+                let fact = preprocess::fact(id.name)
+                    .with_context(|| format!("unknown fact `{}`", id.name))?;
+                let value = number(&node.rhs)?;
+                if fact.is_shared() {
+                    true
+                } else if modulus.is_some() {
+                    // Zero is a multiple of every divisor; lowering already made an
+                    // impossible remainder a constant `false`.
+                    value == 0
+                } else {
+                    accepted(expr, value, field_maximum(fact.width)).iter().any(|(lo, _)| *lo == 0)
+                }
+            }
+            // Nothing is contained in, or starts, an empty view.
+            Expr::Contains(_) | Expr::StartsWith(_) => false,
+            Expr::True { .. } => true,
+            Expr::False { .. } => false,
+            _ => bail!("internal: a facts rule holds a construct lowering did not accept"),
+        })
+    }
+}
+
+/// The largest value an unsigned field of `width` bytes holds; a 64-bit field is capped
+/// at `i64::MAX`, the largest integer a YARA literal expresses.
+fn field_maximum(width: usize) -> u64 {
+    if width == 8 {
+        i64::MAX as u64
+    } else {
+        (1_u64 << (8 * width)) - 1
+    }
+}
+
+/// The closed intervals of field values the comparison `expr` against the literal `value`
+/// accepts, within `0..=max`: empty when it is contradictory.
+fn accepted(expr: &Expr<'_>, value: u64, max: u64) -> Vec<(u64, u64)> {
+    let mut ranges = Vec::new();
+    if matches!(expr, Expr::Eq(_) | Expr::Le(_) | Expr::Ge(_)) && value <= max {
+        ranges.push((value, value));
+    }
+    if matches!(expr, Expr::Ne(_) | Expr::Lt(_) | Expr::Le(_)) && value > 0 {
+        ranges.push((0, (value - 1).min(max)));
+    }
+    if matches!(expr, Expr::Ne(_) | Expr::Gt(_) | Expr::Ge(_)) && value < max {
+        ranges.push((value + 1, max));
+    }
+    ranges
 }
 
 /// The view and literal bytes of a `contains`/`startswith` membership test.
@@ -750,9 +874,9 @@ mod tests {
     }
 
     #[test]
-    fn bundled_rules_compile_entirely_into_the_prefix_stream() {
+    fn bundled_rules_compile_into_both_streams() {
         let program = compile(super::super::DEFAULT_RULES).unwrap();
-        assert_eq!(program.facts, Expressions::default());
+        // Stream A lowers as before: anchored atoms and combinations, no view bounds.
         assert!(program.prefix.bounds.iter().all(Option::is_none));
         assert!(!labels(&program.prefix).is_empty());
         for (expression, flags) in program.prefix.expressions.iter().zip(&program.prefix.flags) {
@@ -761,6 +885,28 @@ mod tests {
             } else {
                 assert_eq!(*flags, HS_FLAG_COMBINATION | HS_FLAG_SINGLEMATCH, "{expression}");
                 assert!(expression.starts_with('('), "{expression}");
+            }
+        }
+        // Stream B holds the container and PE rules: every floating atom is a view literal
+        // bounded to the view, every anchored atom reads the facts header.
+        let facts = labels(&program.facts);
+        for label in ["apk", "epub", "jar", "odp", "ods", "odt", "pebin", "pptx", "xlsx"] {
+            assert!(facts.contains(&label), "{label} is decided from the facts stream");
+        }
+        assert!(!facts.contains(&"docx"), "docx names cannot exclude a Word template");
+        for ((expression, flags), bounds) in
+            program.facts.expressions.iter().zip(&program.facts.flags).zip(&program.facts.bounds)
+        {
+            if *flags == HS_FLAG_QUIET {
+                assert_eq!(expression.starts_with('^'), bounds.is_none(), "{expression}");
+                if let Some(bounds) = bounds {
+                    let view = preprocess::view("zip_names").unwrap();
+                    assert!(bounds.min_end_offset > view.offset as u64, "{expression}");
+                    assert!(bounds.max_end_offset <= (view.offset + view.size) as u64);
+                }
+            } else {
+                assert_eq!(*flags, HS_FLAG_COMBINATION | HS_FLAG_SINGLEMATCH, "{expression}");
+                assert!(bounds.is_none(), "{expression}");
             }
         }
     }
@@ -865,6 +1011,86 @@ mod tests {
                 "{condition}: {error}"
             );
         }
+    }
+
+    #[test]
+    fn facts_rules_an_inactive_header_would_satisfy_are_rejected() {
+        // Stream B is only scanned when a preprocessor produced something, so a facts
+        // rule that the all-zero header and the empty view satisfy could never match.
+        for condition in [
+            "zip_valid == 1 and zip_names contains \"\\na\\n\"",
+            "zip_names startswith \"\\nmimetype\"",
+            "pe_valid == 1 and original_size >= 0",
+            "zip_entries > 0",
+            "zip_flags != 0",
+            "pe_valid % 2 == 1",
+            "pe_overlay >= 1",
+            "zip_valid == 1 or zip_names contains \"x\"",
+            "(zip_valid == 1 and zip_entries <= 5) or (pe_valid == 1 and pe_is_dll == 0)",
+        ] {
+            compiled("", condition).unwrap_or_else(|error| panic!("{condition}: {error:#}"));
+        }
+        for condition in [
+            "pe_valid == 0 and original_size >= 0",
+            "zip_entries <= 5",
+            "pe_is_dll == 0",
+            "zip_valid == 1 or pe_is_dll == 0",
+            "pe_valid % 2 == 0",
+            "zip_valid != 1",
+            "pe_overlay < 10",
+            "pe_valid == 1 or true",
+            "zip_valid == 1 and (zip_entries <= 5 or pe_is_dll == 0) or pe_signed == 0",
+        ] {
+            let error = error("", condition);
+            assert!(
+                error.contains(
+                    "rule `fact` would match inputs no preprocessor touched; \
+                     anchor it on a nonzero fact or a view membership"
+                ),
+                "{condition}: {error}"
+            );
+        }
+        // Prefix rules are untouched: the sizes and constants alone are stream A's business.
+        for (patterns, condition) in [
+            ("", "original_size >= 0"),
+            ("", "true"),
+            ("", "uint8(0) == 0 or false"),
+            ("strings: $a = \"AB\"", "$a at 0 or prefix_size == 0"),
+        ] {
+            compiled(patterns, condition).unwrap_or_else(|error| panic!("{condition}: {error:#}"));
+        }
+    }
+
+    #[test]
+    fn inactive_satisfiability_is_evaluated_through_rule_references() {
+        let source = format!(
+            r#"
+            private rule sized {{ condition: original_size >= 4 }}
+            private rule unsigned {{ condition: pe_signed == 0 }}
+            private rule executable {{ condition: pe_valid == 1 and unsigned }}
+            rule off {{ meta: label = "gif" enabled = false condition: pe_signed == 0 }}
+            rule image {{ {META} condition: sized and executable }}
+            rule other {{ meta: label = "gif" enabled = true class = "full" fp_rate = 0 fn_rate = 0
+                condition: off or executable }}
+            "#
+        );
+        let program = compile(&source).unwrap();
+        assert_eq!((labels(&program.prefix), labels(&program.facts)), (vec![], vec!["png", "gif"]));
+        // The anchoring helper is what makes the terminal sound: without it the terminal
+        // is reported, not the helper that only reads a zero fact.
+        let loose =
+            source.replace("condition: sized and executable", "condition: sized and unsigned");
+        let error = format!("{:#}", compile(&loose).unwrap_err());
+        assert!(
+            error.starts_with("rule image: rule `image` would match inputs no preprocessor"),
+            "{error}"
+        );
+        // An unenforced variant is false wherever it is referenced, never a zero read;
+        // enabling it makes it a terminal of its own that reads nothing else.
+        let enabled = source
+            .replace("enabled = false", "enabled = true class = \"full\" fp_rate = 0 fn_rate = 0");
+        let error = format!("{:#}", compile(&enabled).unwrap_err());
+        assert!(error.starts_with("rule off: rule `off` would match"), "{error}");
     }
 
     #[test]

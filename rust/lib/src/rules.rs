@@ -811,20 +811,30 @@ mod native_tests {
         assert_eq!(scan(&pack, &zip, b"PK"), Some(ContentType::Docx));
         zip.facts[16] = 0;
         assert_eq!(scan(&pack, &zip, b"PK"), None);
-        // Nothing preprocessed: stream B is not scanned at all, even for a facts rule whose
-        // atoms an all-zero header would satisfy.
+        // Nothing preprocessed: stream B is not scanned at all, so a facts rule whose atoms
+        // an all-zero header would satisfy could never match what it claims; loading
+        // rejects it rather than shipping a rule that never fires.
         let hollow = RuleSet::from_source(&rule(
             "hollow",
             "png",
             "",
             "pe_valid == 0 and original_size >= 0",
         ))
-        .unwrap();
-        assert_eq!(scan(&hollow, &synthetic(b"PK"), b"PK"), None);
-        assert_eq!(hollow.identify(b"PK", 2, None), None);
+        .unwrap_err();
+        assert!(
+            format!("{hollow:#}")
+                .contains("rule `hollow` would match inputs no preprocessor touched"),
+            "{hollow:#}"
+        );
+        // A view membership anchors a rule on the nonempty view that activates the stream.
+        let anchored =
+            RuleSet::from_source(&rule("anchored", "png", "", "zip_names startswith \"\\n\""))
+                .unwrap();
+        assert_eq!(scan(&anchored, &synthetic(b"PK"), b"PK"), None);
+        assert_eq!(anchored.identify(b"PK", 2, None), None);
         let mut active = synthetic(b"PK");
         active.names[0] = b'\n';
-        assert_eq!(scan(&hollow, &active, b"PK"), Some(ContentType::Png));
+        assert_eq!(scan(&anchored, &active, b"PK"), Some(ContentType::Png));
     }
 
     #[test]

@@ -312,15 +312,17 @@ rule taxonomy_docx
 		label = "docx"
 		enforced = false
         class = "not-working"
-        fp_rate = 0.0653910206301193
-        fn_rate = 0
+        fp_rate = 0.007389855014257601
+        fn_rate = 0.0019157088122605363
 
-	strings:
-		$p0_0 = { 50 4B 03 04 14 00 06 00 }
-		$p1_0 = { 50 4B 03 04 }
-
+	// ECMA-376 part 2 (OPC): the content types stream plus the WordprocessingML main part.
+	// Not enforced: a Word template (dotx) carries the same names, differing only in the
+	// content type declared inside [Content_Types].xml, so every dotx would be labelled
+	// docx (184 of 184 corpus templates; rules/QUALITY.md, container preprocessor rules).
 	condition:
-		((prefix_size >= 8 and original_size >= 8 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0))
+		zip_valid == 1 and zip_entries >= 1 and zip_names_entries >= 1 and
+		zip_names contains "\n[Content_Types].xml\n" and
+		zip_names contains "\nword/document.xml\n"
 }
 
 rule taxonomy_dotx
@@ -333,6 +335,7 @@ rule taxonomy_dotx
         fp_rate = 0.0653910206301193
         fn_rate = 0
 
+	// Central directory names alone cannot separate a Word template from a document.
 	strings:
 		$p0_0 = { 50 4B 03 04 }
 
@@ -446,26 +449,6 @@ rule taxonomy_iso
 
 	condition:
 		false
-}
-
-rule taxonomy_jar
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[243]; puremagic:puremagic/magic_data.json:headers[244]; puremagic:puremagic/magic_data.json:headers[308]; puremagic:puremagic/magic_data.json:headers[555]"
-		label = "jar"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0653910206301193
-        fn_rate = 0
-
-	strings:
-		$p0_0 = { 5F 27 A8 89 }
-		$p1_0 = { 50 4B 03 04 14 00 08 00 }
-		$p2_0 = { 50 4B 03 04 14 00 08 00 08 00 }
-		$p3_0 = { 50 4B 03 04 }
-
-	condition:
-		((prefix_size >= 4 and original_size >= 4 and $p0_0 at 0) or (prefix_size >= 8 and original_size >= 8 and $p1_0 at 0) or (prefix_size >= 10 and original_size >= 10 and $p2_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p3_0 at 0))
 }
 
 rule taxonomy_javabytecode
@@ -720,68 +703,6 @@ rule taxonomy_msi
 		false
 }
 
-rule taxonomy_odp
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[1251]; puremagic:puremagic/magic_data.json:headers[561]; puremagic:puremagic/magic_data.json:headers[687]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[608]/magic[0]"
-		label = "odp"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0653910206301193
-        fn_rate = 0
-
-	strings:
-		$p0_0 = "PK\\003\\004"
-		$p1_0 = "presentation"
-		$p2_0 = "mimetypeapplication/vnd.oasis.opendocument.presentation"
-		$p3_0 = { 50 4B 03 04 }
-		$p4_0 = "PK"
-
-	condition:
-		((prefix_size >= 10 and original_size >= 10 and $p0_0 at 0) or (prefix_size >= 85 and original_size >= 85 and $p1_0 at 73) or ((prefix_size >= 85 and $p2_0 at 30) and (prefix_size >= 2 and $p4_0 at 0)) or (prefix_size >= 4 and original_size >= 4 and $p3_0 at 0))
-}
-
-rule taxonomy_ods
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[1252]; puremagic:puremagic/magic_data.json:headers[689]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[610]/magic[0]"
-		label = "ods"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.00003398701695952
-        fn_rate = 0.02
-
-	strings:
-		$p0_0 = "PK\\003\\004"
-		$p1_0 = "spreadsheet"
-		$p2_0 = "mimetypeapplication/vnd.oasis.opendocument.spreadsheet"
-		$p3_0 = "PK"
-
-	condition:
-		((prefix_size >= 10 and original_size >= 10 and $p0_0 at 0) or (prefix_size >= 84 and original_size >= 84 and $p1_0 at 73) or ((prefix_size >= 84 and $p2_0 at 30) and (prefix_size >= 2 and $p3_0 at 0)))
-}
-
-rule taxonomy_odt
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[1250]; puremagic:puremagic/magic_data.json:headers[560]; puremagic:puremagic/magic_data.json:headers[681]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[612]/magic[0]"
-		label = "odt"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.06559494273187642
-        fn_rate = 0
-
-	strings:
-		$p0_0 = "PK\\003\\004"
-		$p1_0 = "mimetypeapplication/vnd.oasis.opendocument.text"
-		$p2_0 = "text"
-		$p3_0 = { 50 4B 03 04 }
-		$p4_0 = "PK"
-
-	condition:
-		((prefix_size >= 10 and original_size >= 10 and $p0_0 at 0) or ((prefix_size >= 77 and $p1_0 at 30) and (prefix_size >= 2 and $p4_0 at 0)) or (prefix_size >= 77 and original_size >= 77 and $p2_0 at 73) or (prefix_size >= 4 and original_size >= 4 and $p3_0 at 0))
-}
-
 rule taxonomy_otf
 {
 	meta:
@@ -929,23 +850,6 @@ rule taxonomy_ppt
 
 	condition:
 		((prefix_size >= 516 and original_size >= 516 and $p0_0 at 512) or (prefix_size >= 516 and original_size >= 516 and $p1_0 at 512) or (prefix_size >= 516 and original_size >= 516 and $p2_0 at 512) or (prefix_size >= 516 and original_size >= 516 and $p3_0 at 512))
-}
-
-rule taxonomy_pptx
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[67]"
-		label = "pptx"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0653910206301193
-        fn_rate = 0
-
-	strings:
-		$p0_0 = { 50 4B 03 04 }
-
-	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
 }
 
 rule taxonomy_pub
@@ -1248,23 +1152,7 @@ rule taxonomy_xlsb
         fp_rate = 0.0653910206301193
         fn_rate = 0
 
-	strings:
-		$p0_0 = { 50 4B 03 04 }
-
-	condition:
-		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
-}
-
-rule taxonomy_xlsx
-{
-	meta:
-        source_refs = "puremagic:puremagic/magic_data.json:headers[68]"
-		label = "xlsx"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.0653910206301193
-        fn_rate = 0
-
+	// A binary workbook could be named by its xl/workbook.bin part; deferred until measured.
 	strings:
 		$p0_0 = { 50 4B 03 04 }
 

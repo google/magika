@@ -520,6 +520,44 @@ fn rules_only_empty_pack_abstains_and_reports_no_inference_backend() {
 #[cfg(feature = "yara-rules")]
 #[test]
 #[ignore = "requires a native Vectorscan compiler library"]
+fn bundled_rules_decide_containers_and_executables_from_facts() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests_data");
+    let directory = std::env::temp_dir().join(format!("magika-facts-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    // A spreadsheet and a presentation are decided from their central directory names, an
+    // executable from its PE headers; a zip64 archive and a Word document (whose names a
+    // template shares) stay unknown.
+    let cases = [
+        ("basic/xlsx/magika_test.xlsx", "xlsx"),
+        ("basic/odt/doc.odt", "odt"),
+        ("mitra/pebin/pe64.exe", "pebin"),
+        ("mitra/zip/zip64.zip", "unknown"),
+        ("basic/docx/doc.docx", "unknown"),
+    ];
+    let result = command()
+        .args(["--rules=only", "--jsonl"])
+        .env("MAGIKA_RULES_CACHE", directory.join("cache"))
+        .args(cases.iter().map(|(path, _)| root.join(path)))
+        .output()
+        .unwrap();
+    std::fs::remove_dir_all(&directory).unwrap();
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let rows: Vec<serde_json::Value> = String::from_utf8(result.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(rows.len(), cases.len());
+    for (row, (path, label)) in rows.iter().zip(cases) {
+        assert_eq!(row["path"], root.join(path).to_str().unwrap());
+        assert_eq!(row["result"]["value"]["output"]["label"], label, "{path}");
+        assert_eq!(row["result"]["value"]["dl"]["label"], "undefined");
+    }
+}
+
+#[cfg(feature = "yara-rules")]
+#[test]
+#[ignore = "requires a native Vectorscan compiler library"]
 fn rules_only_mixed_hits_misses_and_errors_preserve_order() {
     let directory = std::env::temp_dir().join(format!("magika-only-mixed-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();

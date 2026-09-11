@@ -564,6 +564,87 @@ pub(crate) mod tests {
         assert!(synthetic.facts[32..].iter().all(|x| *x == 0));
     }
 
+    /// Repository fixtures whose native facts and view pin the Python oracle: containers
+    /// decided from their names, executables, the crafted probes and one plain image.
+    const GOLDEN_FIXTURES: &[&str] = &[
+        "basic/docx/doc.docx",
+        "basic/epub/doc.epub",
+        "basic/odp/magika_test.odp",
+        "basic/ods/magika_test.ods",
+        "basic/odt/doc.odt",
+        "basic/png/magika_test.png",
+        "basic/pptx/magika_test.pptx",
+        "basic/xlsx/magika_test.xlsx",
+        "basic/zip/magika_test.zip",
+        "mitra/pebin/pe32.exe",
+        "mitra/pebin/pe64.exe",
+        "mitra/zip/simple.zip",
+        "mitra/zip/zip64.zip",
+        "rules_negative/aar_manifest_classes_jar.zip",
+        "rules_negative/docx_names_in_comment.zip",
+        "rules_negative/jar_manifest_only.zip",
+        "rules_negative/mz_garbage.bin",
+        "rules_negative/odf_deflated_mimetype.zip",
+        "rules_negative/odf_text_template.ott",
+        "rules_negative/pe_lfanew_out_of_range.bin",
+        "rules_negative/zip64_docx_names.zip",
+        "rules_negative/zip_plain_names.zip",
+    ];
+
+    fn repository() -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    /// The golden file the Python oracle reads (`rules/benchmark/tests/test_preprocess.py`).
+    fn golden_file() -> std::path::PathBuf {
+        repository().join("rules/benchmark/tests/golden/preprocess.json")
+    }
+
+    /// The facts and the view digest of one fixture, derived exactly as identification
+    /// does: the bounded prefix, the size and the tail window an archive reads.
+    fn golden_record(relative: &str) -> serde_json::Value {
+        use sha2::Digest;
+        let bytes = std::fs::read(repository().join("tests_data").join(relative)).unwrap();
+        let size = bytes.len() as u64;
+        let prefix = &bytes[..bytes.len().min(crate::rules::PREFIX_LIMIT)];
+        let tail = read_tail(&mut bytes.as_slice(), size, prefix).unwrap();
+        let synthetic = prepare(&Blocks { prefix, size, tail: tail.as_deref() });
+        let facts: serde_json::Map<_, _> = FACTS
+            .iter()
+            .map(|fact| {
+                let mut value = [0; 8];
+                value[8 - fact.width..]
+                    .copy_from_slice(&synthetic.facts[fact.offset..fact.offset + fact.width]);
+                (fact.name.to_string(), u64::from_be_bytes(value).into())
+            })
+            .collect();
+        let digest = sha2::Sha256::digest(synthetic.names.as_slice());
+        serde_json::json!({
+            "path": format!("tests_data/{relative}"),
+            "facts": facts,
+            "view_sha256": data_encoding::HEXLOWER.encode(&digest),
+        })
+    }
+
+    #[test]
+    fn golden_facts_are_written_on_request() {
+        // `MAGIKA_WRITE_GOLDEN=<path>` records the native facts for the Python oracle.
+        let Some(path) = std::env::var_os("MAGIKA_WRITE_GOLDEN") else { return };
+        let records: Vec<_> = GOLDEN_FIXTURES.iter().map(|x| golden_record(x)).collect();
+        let text = serde_json::to_string_pretty(&records).unwrap() + "\n";
+        std::fs::write(path, text).unwrap();
+    }
+
+    #[test]
+    fn golden_facts_are_reproduced() {
+        let Ok(text) = std::fs::read_to_string(golden_file()) else { return };
+        let records: Vec<serde_json::Value> = serde_json::from_str(&text).unwrap();
+        assert_eq!(records.len(), GOLDEN_FIXTURES.len(), "regenerate with MAGIKA_WRITE_GOLDEN");
+        for (record, relative) in records.iter().zip(GOLDEN_FIXTURES) {
+            assert_eq!(*record, golden_record(relative), "{relative}");
+        }
+    }
+
     #[test]
     fn write_fact_uses_big_endian_field_width() {
         let mut facts = [0; FACTS_BYTES];

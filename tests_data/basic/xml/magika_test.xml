@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<magika>
+    <name>Magika</name>
+    <developer>Google</developer>
+    <type>AI File Type Detection</type>
+    <description>
+        Magika is a machine learning based tool used to identify file types
+        based on content rather than file extensions.
+    </description>
+    <features>
+        <feature>Supports 200+ file types</feature>
+        <feature>High accuracy (~99%)</feature>
+        <feature>Fast detection on CPU</feature>
+        <feature>Works with CLI, Python, and other bindings</feature>
+    </features>
+    <example>
+        <input>&lt;root&gt;&lt;name&gt;XML&lt;/name&gt;&lt;/root&gt;</input>
+        <expected_output>application/xml</expected_output>
+    </example>
+</magika>

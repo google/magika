@@ -4,10 +4,11 @@
 """Python reimplementation of the native preprocessors, so YARA-X can act as the oracle.
 
 The native engine scans two streams: stream A is the file prefix, stream B a 64-byte facts
-header followed by a 4096-byte `zip_names` view, derived from the first 4 KiB block, the
-input size and (for archives only) a 16 KiB tail window. YARA-X cannot run those
+header followed by the 4096-byte `zip_names` view and the 16 KiB `zip_first_entry` view,
+derived from the first 4 KiB block, the input size and (for archives only) a 16 KiB tail
+window, extended back to a central directory of at most 256 KiB. YARA-X cannot run those
 preprocessors, but it evaluates the same conditions when every fact is an integer global
-and `zip_names` a bytes global. This module is a stdlib-only, byte-exact port of the
+and every view a bytes global. This module is a stdlib-only, byte-exact port of the
 contracts documented at the top of `rust/lib/src/rules/preprocess/{mod,zip,pe}.rs`: the
 facts table, the tail window (`read_tail`), the zip analysis, the PE analysis and
 `prepare`, which derives the facts and the view from the held blocks. The benchmark
@@ -28,6 +29,7 @@ sees. Passing it as `str` instead (decoded as latin-1) would not: YARA-X re-enco
 """
 
 import os
+import zlib
 from pathlib import Path
 
 # The facts header, `(name, offset, width)` big-endian unsigned fields; offsets are stable
@@ -55,6 +57,7 @@ FACTS = (
     ("pe_overlay", 48, 8),
     ("pe_is_dll", 56, 1),
     ("pe_is_executable_image", 57, 1),
+    ("zip_first_entry_len", 30, 2),
 )
 FACT_NAMES = tuple(name for name, _, _ in FACTS)
 ZIP_FACT_NAMES = tuple(name for name in FACT_NAMES if name.startswith("zip_"))
@@ -62,9 +65,15 @@ PE_FACT_NAMES = tuple(name for name in FACT_NAMES if name.startswith("pe_"))
 
 FACTS_BYTES = 64
 ZIP_NAMES_BYTES = 4096
-# The views: `(name, stream B offset, size)`.
-VIEWS = (("zip_names", FACTS_BYTES, ZIP_NAMES_BYTES),)
+ZIP_FIRST_ENTRY_BYTES = 16 * 1024
+# The views: `(name, stream B offset, size)`, contiguous after the facts header.
+VIEWS = (
+    ("zip_names", FACTS_BYTES, ZIP_NAMES_BYTES),
+    ("zip_first_entry", FACTS_BYTES + ZIP_NAMES_BYTES, ZIP_FIRST_ENTRY_BYTES),
+)
 VIEW_NAMES = tuple(name for name, _, _ in VIEWS)
+# The bytes of stream B after the facts header: every view, in stream order.
+VIEWS_BYTES = ZIP_NAMES_BYTES + ZIP_FIRST_ENTRY_BYTES
 
 # The first block every input pays for, and the trailing window read for archives.
 PREFIX_BYTES = 4096
@@ -72,13 +81,16 @@ ZIP_TAIL_BYTES = 16 * 1024
 
 # --- zip ---------------------------------------------------------------------------------
 
-ZIP_MAX_ENTRIES = 96
+# Largest central directory read on its own when the tail window does not hold it.
+ZIP_DIRECTORY_MAX_BYTES = 256 * 1024
 ZIP_FLAG_ZIP64 = 1 << 0
 ZIP_FLAG_MULTIDISK = 1 << 1
 ZIP_FLAG_CD_NOT_HELD = 1 << 2
 ZIP_FLAG_MALFORMED = 1 << 3
 ZIP_FLAG_NAMES_TRUNCATED = 1 << 4
 ZIP_FLAG_PREPENDED = 1 << 5
+ZIP_FLAG_FIRST_ENTRY_FILLED = 1 << 6
+ZIP_FLAG_FIRST_ENTRY_UNDECODABLE = 1 << 7
 # Any of these bits clears `zip_valid`; names truncated and prepended data do not.
 _ZIP_INVALID = ZIP_FLAG_ZIP64 | ZIP_FLAG_MULTIDISK | ZIP_FLAG_CD_NOT_HELD | ZIP_FLAG_MALFORMED
 
@@ -158,7 +170,29 @@ def read_tail(stream, size, first):
         return None
     start, end = window
     stream.seek(start)
-    return stream.read(end - start)
+    tail = stream.read(end - start)
+    extension = directory_start(tail, size)
+    if extension is not None:
+        stream.seek(extension)
+        tail = stream.read(start - extension) + tail
+    return tail
+
+
+def directory_start(tail, size):
+    """Where to start reading so that the central directory is held, as the native
+    `directory_start`: `tail` (ending at `size`) holds the end record of a single-disk,
+    non-zip64 archive whose directory starts before `tail` and spans at most
+    `ZIP_DIRECTORY_MAX_BYTES`; None otherwise.
+    """
+    eocd = _find_eocd(tail)
+    tail_start = size - len(tail)
+    if eocd is None or tail_start < 0:
+        return None
+    _, _, cd_size, _, flags = _decode_eocd(tail, eocd)
+    if flags or cd_size > ZIP_DIRECTORY_MAX_BYTES:
+        return None
+    start = tail_start + eocd - cd_size
+    return start if 0 <= start < tail_start else None
 
 
 def _stored_mimetype(first):
@@ -244,24 +278,9 @@ def _walk_directory(first, size, tail, eocd, view, facts):
     tail_start = size - len(tail)
     if tail_start < 0:
         return
-    record = tail[eocd : eocd + _EOCD_LEN]
-    disk, cd_disk = _u16(record, 4), _u16(record, 6)
-    entries_disk, entries = _u16(record, 8), _u16(record, 10)
-    cd_size, cd_offset = _u32(record, 12), _u32(record, 16)
+    entries, comment_len, cd_size, cd_offset, flags = _decode_eocd(tail, eocd)
     facts["zip_entries"] = entries
-    facts["zip_comment_len"] = _u16(record, 20)
-    locator = eocd >= _ZIP64_LOCATOR_LEN and tail[eocd - _ZIP64_LOCATOR_LEN :].startswith(
-        _ZIP64_LOCATOR_SIGNATURE
-    )
-    flags = 0
-    if (
-        0xFFFF in (disk, cd_disk, entries_disk, entries)
-        or 0xFFFF_FFFF in (cd_size, cd_offset)
-        or locator
-    ):
-        flags |= ZIP_FLAG_ZIP64
-    if disk != 0 or cd_disk != 0 or entries_disk != entries:
-        flags |= ZIP_FLAG_MULTIDISK
+    facts["zip_comment_len"] = comment_len
     if flags:
         facts["zip_flags"] = flags
         return
@@ -283,21 +302,90 @@ def _walk_directory(first, size, tail, eocd, view, facts):
     else:
         facts["zip_flags"] = flags | ZIP_FLAG_CD_NOT_HELD
         return
-    at = 0
-    for _ in range(min(entries, ZIP_MAX_ENTRIES)):
-        entry = _entry_name(directory, at)
-        if entry is None:
-            flags |= ZIP_FLAG_MALFORMED
+    # Top-level names first, then nested ones: both passes walk the same headers.
+    for nested in (False, True):
+        at, stopped = 0, False
+        for _ in range(entries):
+            entry = _entry_name(directory, at)
+            if entry is None:
+                flags |= ZIP_FLAG_MALFORMED
+                stopped = True
+                break
+            name, length = entry
+            at += length
+            if (b"/" in name) != nested:
+                continue
+            if not view.fits(b"", name):
+                flags |= ZIP_FLAG_NAMES_TRUNCATED
+                stopped = True
+                break
+            view.line(b"", name)
+            facts["zip_names_entries"] += 1
+        if stopped:
             break
-        name, length = entry
-        if not view.fits(b"", name):
-            flags |= ZIP_FLAG_NAMES_TRUNCATED
-            break
-        view.line(b"", name)
-        facts["zip_names_entries"] += 1
-        at += length
     facts["zip_flags"] = flags
     facts["zip_valid"] = int(flags & _ZIP_INVALID == 0)
+
+
+def _decode_eocd(tail, eocd):
+    """`(entries, comment_len, cd_size, cd_offset, flags)` of the end record at `eocd`,
+    `flags` holding the zip64 and multi-disk bits of the native step 3.
+    """
+    record = tail[eocd : eocd + _EOCD_LEN]
+    disk, cd_disk = _u16(record, 4), _u16(record, 6)
+    entries_disk, entries = _u16(record, 8), _u16(record, 10)
+    cd_size, cd_offset = _u32(record, 12), _u32(record, 16)
+    locator = eocd >= _ZIP64_LOCATOR_LEN and tail[eocd - _ZIP64_LOCATOR_LEN :].startswith(
+        _ZIP64_LOCATOR_SIGNATURE
+    )
+    flags = 0
+    if (
+        0xFFFF in (disk, cd_disk, entries_disk, entries)
+        or 0xFFFF_FFFF in (cd_size, cd_offset)
+        or locator
+    ):
+        flags |= ZIP_FLAG_ZIP64
+    if disk != 0 or cd_disk != 0 or entries_disk != entries:
+        flags |= ZIP_FLAG_MULTIDISK
+    return entries, _u16(record, 20), cd_size, cd_offset, flags
+
+
+def first_entry(first):
+    """The unpadded `zip_first_entry` view and its flag bits, as the native step 8.
+
+    The name (sanitized) and `\\n`, then the data of a stored or deflated first entry
+    held in `first`: copied, or inflated as raw deflate, up to the view's end.
+    """
+    first = bytes(first)
+    if not first.startswith(_LOCAL_SIGNATURE):
+        return b"", 0
+    flags, method, compressed = _u16(first, 6), _u16(first, 8), _u32(first, 18)
+    name_len, extra_len = _u16(first, 26), _u16(first, 28)
+    if None in (flags, method, compressed, name_len, extra_len):
+        return b"", 0
+    if flags & 0b1001 or method not in (0, 8) or name_len + 1 >= ZIP_FIRST_ENTRY_BYTES:
+        return b"", 0
+    name_end = _LOCAL_HEADER_LEN + name_len
+    data_start = name_end + extra_len
+    if name_end > len(first) or data_start + compressed > len(first):
+        return b"", 0
+    head = first[_LOCAL_HEADER_LEN:name_end].translate(_SANITIZE) + b"\n"
+    data = first[data_start : data_start + compressed]
+    space = ZIP_FIRST_ENTRY_BYTES - len(head)
+    if method == 8:
+        inflater = zlib.decompressobj(-15)
+        try:
+            out = inflater.decompress(data, space)
+        except zlib.error:
+            return head, ZIP_FLAG_FIRST_ENTRY_UNDECODABLE
+        complete = inflater.eof
+    else:
+        out, complete = data[:space], True
+    if len(out) == space:
+        return head + out, ZIP_FLAG_FIRST_ENTRY_FILLED
+    if not complete:
+        return head, ZIP_FLAG_FIRST_ENTRY_UNDECODABLE
+    return head + out, 0
 
 
 def zip_analysis(first, size, tail):
@@ -424,15 +512,19 @@ def prepare(first, size, tail):
     facts = dict.fromkeys(FACT_NAMES, 0)
     facts["original_size"] = size
     facts["prefix_size"] = len(first)
-    view = b""
+    views = b""
     if wants_tail(first):
         if tail is None:
             tail = first if size == len(first) else b""
-        zip_values, view = zip_analysis(first, size, tail)
+        zip_values, names = zip_analysis(first, size, tail)
+        entry, entry_flags = first_entry(first)
+        zip_values["zip_first_entry_len"] = len(entry)
+        zip_values["zip_flags"] |= entry_flags
         facts.update(zip_values)
+        views = names.ljust(ZIP_NAMES_BYTES, b"\0") + entry
     elif first.startswith(b"MZ"):
         facts.update(pe_facts(first, size))
-    return facts, view.ljust(ZIP_NAMES_BYTES, b"\0")
+    return facts, views.ljust(VIEWS_BYTES, b"\0")
 
 
 def facts_for(data_or_path):
@@ -451,7 +543,12 @@ def facts_for(data_or_path):
     data = bytes(data_or_path)
     first = data[:PREFIX_BYTES]
     window = tail_window(len(data), first)
-    tail = data[window[0] : window[1]] if window is not None else None
+    tail = None
+    if window is not None:
+        tail = data[window[0] : window[1]]
+        extension = directory_start(tail, len(data))
+        if extension is not None:
+            tail = data[extension:]
     return prepare(first, len(data), tail)
 
 
@@ -474,9 +571,13 @@ def define_globals(compiler):
         compiler.define_global(name, b"")
 
 
-def set_globals(scanner, facts, view):
-    """Sets the globals of one input from `prepare` output on a scanner built with them."""
+def set_globals(scanner, facts, views):
+    """Sets the globals of one input from `prepare` output on a scanner built with them.
+
+    `views` is the stream B bytes after the facts header, each view at its offset.
+    """
     for name in FACT_NAMES:
         scanner.set_global(name, facts[name])
-    for name in VIEW_NAMES:
-        scanner.set_global(name, bytes(view))
+    for name, offset, size in VIEWS:
+        start = offset - FACTS_BYTES
+        scanner.set_global(name, bytes(views[start : start + size]))

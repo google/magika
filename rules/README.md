@@ -142,7 +142,8 @@ full-file scanning or runtime condition interpreter is used.
 ### Preprocessor facts and views
 
 Two bounded preprocessors derive integer facts from the first 4 KiB block, the input
-size and, for archives only, the last 16 KiB. A condition compares a fact like any
+size and, for archives only, the last 16 KiB, extended back to the start of a central
+directory of at most 256 KiB that begins before it. A condition compares a fact like any
 unsigned integer (`pe_machine == 0x8664`, `zip_flags == 0`). A facts rule never matches
 an input no preprocessor touched: the facts stream is scanned only when a preprocessor
 produced something, and the compiler rejects a rule that an all-zero header and an
@@ -154,12 +155,13 @@ facts, with the flag bits spelled out in `rust/lib/src/rules/preprocess/{zip,pe}
 |------|---------|
 | `original_size`, `prefix_size` | the input length and the scanned prefix length, as before |
 | `zip_valid` | 1 when an end-of-central-directory record was found and the directory parsed |
-| `zip_flags` | zip64 (1), multi-disk (2), directory not held (4), malformed (8), names truncated (16), prepended data (32) |
+| `zip_flags` | zip64 (1), multi-disk (2), directory not held (4), malformed (8), names truncated (16), prepended data (32), first entry filled its view (64), first entry undecodable (128) |
 | `zip_entries` | total entry count declared by the end record |
-| `zip_names_entries` | central directory names written into `zip_names` (at most 96) |
+| `zip_names_entries` | central directory names written into `zip_names` |
 | `zip_names_len` | bytes written into `zip_names` |
 | `zip_comment_len` | archive comment length |
 | `zip_cd_size` | declared central directory size |
+| `zip_first_entry_len` | bytes written into `zip_first_entry` |
 | `pe_valid` | 1 when `MZ`, `PE\0\0`, a known optional header and a held section table agree |
 | `pe_flags` | section table not held (1), certificate beyond file (2), unknown optional magic (4), section beyond file (8) |
 | `pe_machine`, `pe_characteristics` | COFF machine and characteristics |
@@ -169,15 +171,24 @@ facts, with the flag bits spelled out in `rust/lib/src/rules/preprocess/{zip,pe}
 | `pe_overlay` | bytes after the furthest section's raw data (headers are never overlay) |
 | `pe_is_dll`, `pe_is_executable_image` | characteristics bits 0x2000 and 0x0002 |
 
-`zip_names` is a view, not a fact: the central directory names of an archive, in
-order, each written as `\n` followed by the name with `\0` and `\n` bytes replaced by
-`\x01`, with one final `\n` after the last name. An archive whose first entry is a
-stored `mimetype` file of at most 128 bytes opens the view with a `\nmimetype=<data>`
-line ahead of the names. A condition tests a view with `zip_names contains "..."` or
-`zip_names startswith "..."` and a literal string only; wrapping the name in `\n`
-(`zip_names contains "\nword/document.xml\n"`) makes the test a whole-name match.
-Names are written in directory order until one would overflow the 4096-byte view;
-the rest are dropped and the names-truncated bit (16) of `zip_flags` is set.
+`zip_names` is a view, not a fact: the central directory names of an archive, each
+written as `\n` followed by the name with `\0` and `\n` bytes replaced by `\x01`, with
+one final `\n` after the last name. Top-level names (no `/`) come first, then nested
+names, each group in directory order, so a large `res/` tree cannot crowd out
+`classes.dex`. An archive whose first entry is a stored `mimetype` file of at most 128
+bytes opens the view with a `\nmimetype=<data>` line ahead of the names. A condition
+tests a view with `zip_names contains "..."` or `zip_names startswith "..."` and a
+literal string only; wrapping the name in `\n` (`zip_names contains
+"\nword/document.xml\n"`) makes the test a whole-name match. Names are written until one
+would overflow the 4096-byte view; the rest are dropped and the names-truncated bit (16)
+of `zip_flags` is set.
+
+`zip_first_entry` is a second view: when the archive's first local entry is stored or
+deflated, neither encrypted nor streamed with a data descriptor, and held whole in the
+first 4 KiB, it holds that entry's name, `\n`, then its data, inflated and truncated to
+16 KiB. Office Open XML packages usually store `[Content_Types].xml` first, so
+`zip_first_entry startswith "[Content_Types].xml\n"` plus a declared content type
+separates documents from templates and binary workbooks, which list the same parts.
 
 Facts and views are scanned on a synthetic stream separate from the prefix, so one
 rule cannot relate them to prefix bytes: a rule mixing prefix patterns, `uintN(...)`

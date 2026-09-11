@@ -10,14 +10,17 @@ against either implementation alone.
 
 `golden/preprocess.json`, when present, pins facts produced by the native engine:
 a list of `{"path": <repository-relative fixture>, "facts": {<name>: <int>}, "view_sha256":
-<hex digest of the whole 4096-byte zip_names view>}` records.
+<hex digest of the whole 4096-byte zip_names view>, "first_entry_sha256": <hex digest of
+the whole zip_first_entry view>}` records.
 """
 
 import hashlib
 import io
 import json
 import re
+import struct
 import zipfile
+import zlib
 from pathlib import Path
 
 import pytest
@@ -77,7 +80,7 @@ def analyze(first, size, tail):
     facts, view = zip_analysis(first, size, tail)
     assert set(facts) == set(preprocess.ZIP_FACT_NAMES)
     assert facts["zip_names_len"] == len(view) <= ZIP_NAMES_BYTES
-    assert facts["zip_names_entries"] <= min(facts["zip_entries"], 96)
+    assert facts["zip_names_entries"] <= facts["zip_entries"]
     if view:
         assert view[0] == view[-1] == 0x0A
     if facts["zip_valid"]:
@@ -166,13 +169,19 @@ def test_fact_table_matches_the_native_header_layout():
     table = table[: table.index("];")]
     entries = re.findall(r'fact_at\("(\w+)", (\d+), (\d+)\)', table)
     native = tuple((name, int(offset), int(width)) for name, offset, width in entries)
-    assert len(native) == 22
+    assert len(native) == 23
     assert preprocess.FACTS == native
     assert FACT_NAMES == tuple(name for name, _, _ in preprocess.FACTS)
-    assert preprocess.ZIP_FACT_NAMES == FACT_NAMES[2:9]
-    assert preprocess.PE_FACT_NAMES == FACT_NAMES[9:]
-    assert preprocess.VIEWS == (("zip_names", FACTS_BYTES, ZIP_NAMES_BYTES),)
+    assert preprocess.ZIP_FACT_NAMES == FACT_NAMES[2:9] + FACT_NAMES[22:]
+    assert preprocess.PE_FACT_NAMES == FACT_NAMES[9:22]
+    assert preprocess.VIEWS == (
+        ("zip_names", FACTS_BYTES, ZIP_NAMES_BYTES),
+        ("zip_first_entry", FACTS_BYTES + ZIP_NAMES_BYTES, preprocess.ZIP_FIRST_ENTRY_BYTES),
+    )
     assert 'View { name: "zip_names", offset: FACTS_BYTES, size: ZIP_NAMES_BYTES }' in source
+    assert 'name: "zip_first_entry",\n        offset: FACTS_BYTES + ZIP_NAMES_BYTES,' in source
+    assert preprocess.ZIP_FIRST_ENTRY_BYTES == native_constant(source, "ZIP_FIRST_ENTRY_BYTES")
+    assert preprocess.VIEWS_BYTES == ZIP_NAMES_BYTES + preprocess.ZIP_FIRST_ENTRY_BYTES
     assert FACTS_BYTES == native_constant(source, "FACTS_BYTES") == 64
     assert ZIP_NAMES_BYTES == native_constant(source, "ZIP_NAMES_BYTES") == 4096
     assert ZIP_TAIL_BYTES == native_constant(source, "ZIP_TAIL_BYTES") == 16 * 1024
@@ -264,7 +273,7 @@ def test_prepare_derives_stream_b_from_the_held_blocks():
     data = docx_like()
     facts, view = prepare(data, len(data), data)
     assert facts["zip_valid"] == 1 and facts["original_size"] == len(data)
-    assert facts["prefix_size"] == len(data) and len(view) == ZIP_NAMES_BYTES
+    assert facts["prefix_size"] == len(data) and len(view) == preprocess.VIEWS_BYTES
     assert view.startswith(b"\n[Content_Types].xml\nword/document.xml\n")
     assert (facts, view) == facts_for(data)
     # No tail read: the prefix stands in when it holds the whole input, and only the first
@@ -277,10 +286,10 @@ def test_prepare_derives_stream_b_from_the_held_blocks():
     # The other family, and the size facts alone.
     image = pe32().build()
     facts, view = prepare(image, len(image), None)
-    assert facts["pe_valid"] == 1 and view == bytes(ZIP_NAMES_BYTES)
+    assert facts["pe_valid"] == 1 and view == bytes(preprocess.VIEWS_BYTES)
     facts, view = prepare(b"plain", 5, None)
     assert facts == dict.fromkeys(FACT_NAMES, 0) | {"original_size": 5, "prefix_size": 5}
-    assert view == bytes(ZIP_NAMES_BYTES)
+    assert view == bytes(preprocess.VIEWS_BYTES)
 
 
 def test_is_active_only_when_a_preprocessor_produced_something():
@@ -470,17 +479,24 @@ def test_names_are_sanitized_of_newlines_and_nuls():
     assert view == b"\na\x01b\x01c\n\x01\n"
 
 
-def test_entries_are_capped_and_truncation_only_flags_a_full_view():
+def test_every_entry_is_walked_and_truncation_only_flags_a_full_view():
     data = bytearray(archive([stored(f"n{i}".encode(), b"") for i in range(100)]))
+    facts, view = small(data)
+    assert (facts["zip_valid"], facts["zip_flags"]) == (1, 0), facts
+    assert (facts["zip_entries"], facts["zip_names_entries"]) == (100, 100)
+    expected = b"".join(f"\nn{i}".encode() for i in range(100)) + b"\n"
+    assert facts["zip_names_len"] == len(expected)
+    assert view == expected
+    # A count beyond the headers present runs off the directory: malformed, names kept.
     eocd = eocd_at(data, 0)
     put_u16(data, eocd + 8, 0xFFFE)
     put_u16(data, eocd + 10, 0xFFFE)
     facts, view = small(data)
-    assert (facts["zip_valid"], facts["zip_flags"]) == (1, 0), facts
-    assert facts["zip_entries"] == 0xFFFE
-    assert facts["zip_names_entries"] == 96
-    expected = b"".join(f"\nn{i}".encode() for i in range(96)) + b"\n"
-    assert facts["zip_names_len"] == len(expected)
+    assert (facts["zip_valid"], facts["zip_flags"], facts["zip_names_entries"]) == (
+        0,
+        MALFORMED,
+        100,
+    )
     assert view == expected
     # Long names fill the view: whole names are dropped and the truncation flagged.
     facts, view = small(archive([stored(f"{i:0>60}".encode(), b"") for i in range(100)]))
@@ -495,6 +511,74 @@ def test_entries_are_capped_and_truncation_only_flags_a_full_view():
     assert (facts["zip_flags"], facts["zip_names_entries"]) == (NAMES_TRUNCATED, 1)
     assert facts["zip_names_len"] == ZIP_NAMES_BYTES
     assert view == b"\n" + name + b"\n"
+
+
+def test_top_level_names_are_written_before_nested_ones():
+    entries = [stored(f"res/drawable/icon_{i:0>40}.png".encode(), b"") for i in range(150)]
+    entries += [stored(b"classes.dex", b""), stored(b"AndroidManifest.xml", b"")]
+    facts, view = small(archive(entries))
+    assert (facts["zip_valid"], facts["zip_flags"]) == (1, NAMES_TRUNCATED), facts
+    assert view.startswith(b"\nclasses.dex\nAndroidManifest.xml\nres/drawable/icon_")
+
+
+def test_directory_start_reaches_a_directory_beyond_the_tail_window():
+    data = archive([stored(f"{i:0>60}".encode(), b"") for i in range(400)])
+    eocd = eocd_at(data, 0)
+    cd_size = int.from_bytes(data[eocd + 12 : eocd + 16], "little")
+    assert preprocess.directory_start(data[-ZIP_TAIL_BYTES:], len(data)) == eocd - cd_size
+    assert facts_for(data)[0]["zip_valid"] == 1
+    with io.BytesIO(data) as stream:
+        assert read_tail(stream, len(data), data[:PREFIX_BYTES]) == data[eocd - cd_size :]
+    # A held directory needs no second read, nor does one beyond the cap.
+    assert preprocess.directory_start(data, len(data)) is None
+    record, far, cap = bytearray(data[eocd:]), 1 << 30, preprocess.ZIP_DIRECTORY_MAX_BYTES
+    record[12:16] = cap.to_bytes(4, "little")
+    assert preprocess.directory_start(bytes(record), far) == far - EOCD_LEN - cap
+    record[12:16] = (cap + 1).to_bytes(4, "little")
+    assert preprocess.directory_start(bytes(record), far) is None
+
+
+def deflated_first(name, content, flags=0, method=8, compressed=None):
+    """A lone local file header and its raw-deflated data, with overridable fields."""
+    deflate = zlib.compressobj(6, zlib.DEFLATED, -15)
+    data = deflate.compress(content) + deflate.flush()
+    size = len(data) if compressed is None else compressed
+    fields = struct.pack(
+        "<HHHHHIIIHH", 20, flags, method, 0, 0, 0, size, len(content), len(name), 0
+    )
+    return b"PK\x03\x04" + fields + name + data
+
+
+def test_first_entry_view_holds_the_name_and_the_inflated_data():
+    content = b'<Types><Override ContentType="application/vnd.ms-word.template"/></Types>'
+    entry = deflated_first(b"[Content_Types].xml", content)
+    assert preprocess.first_entry(entry) == (b"[Content_Types].xml\n" + content, 0)
+    data = archive([stored(b"mimetype", b"text")])
+    assert preprocess.first_entry(data) == (b"mimetype\ntext", 0)
+    facts, views = prepare(data, len(data), None)
+    assert facts["zip_first_entry_len"] == 13
+    assert views[ZIP_NAMES_BYTES : ZIP_NAMES_BYTES + 14] == b"mimetype\ntext\0"
+
+
+def test_first_entry_view_only_holds_what_it_reads_exactly():
+    content = b"hello hello hello hello"
+    assert preprocess.first_entry(deflated_first(b"a\nb", content)) == (b"a\x01b\n" + content, 0)
+    for overrides in ({"flags": 1}, {"flags": 8}, {"method": 9}, {"compressed": 5000}):
+        assert preprocess.first_entry(deflated_first(b"a", content, **overrides)) == (b"", 0)
+    undecodable = preprocess.ZIP_FLAG_FIRST_ENTRY_UNDECODABLE
+    corrupt = bytearray(deflated_first(b"a", content))
+    corrupt[30 + 1] = 0xFF
+    assert preprocess.first_entry(corrupt) == (b"a\n", undecodable)
+    good = deflated_first(b"a", content)
+    cut = bytearray(good)
+    cut[18:22] = (int.from_bytes(good[18:22], "little") // 2).to_bytes(4, "little")
+    assert preprocess.first_entry(cut)[1] == undecodable
+    big = deflated_first(b"big", b"x" * (2 * preprocess.ZIP_FIRST_ENTRY_BYTES))
+    entry, flags = preprocess.first_entry(big)
+    assert (len(entry), flags) == (
+        preprocess.ZIP_FIRST_ENTRY_BYTES,
+        preprocess.ZIP_FLAG_FIRST_ENTRY_FILLED,
+    )
 
 
 def test_zip64_sentinels_and_locator_report_a_plain_invalid_zip():
@@ -955,7 +1039,8 @@ OFFICE_FIXTURES = {
 def test_office_fixtures_list_their_members(relative):
     path = ROOT / "tests_data" / relative
     facts, view = facts_for(path)
-    assert len(view) == ZIP_NAMES_BYTES
+    assert len(view) == preprocess.VIEWS_BYTES
+    view = view[:ZIP_NAMES_BYTES]
     assert facts["zip_valid"] == 1, facts
     assert facts["zip_flags"] == 0, facts
     assert facts["original_size"] == path.stat().st_size
@@ -963,7 +1048,9 @@ def test_office_fixtures_list_their_members(relative):
     names = zipfile_names(path)
     assert facts["zip_entries"] == len(names)
     assert facts["zip_names_entries"] == len(names)
-    expected = b"".join(b"\n" + name for name in names) + b"\n"
+    # Top-level names first, then nested ones, each group in directory order.
+    ordered = [name for name in names if b"/" not in name] + [n for n in names if b"/" in n]
+    expected = b"".join(b"\n" + name for name in ordered) + b"\n"
     mimetype = OFFICE_FIXTURES[relative]
     if mimetype is not None:
         assert names[0] == b"mimetype"
@@ -1011,7 +1098,7 @@ def test_facts_for_reads_a_pe_fixture_and_pads_nothing_into_the_view():
     assert facts["pe_valid"] == 1 and facts["pe_machine"] == 0x8664
     assert all(facts[name] == 0 for name in preprocess.ZIP_FACT_NAMES)
     assert facts["original_size"] == facts["prefix_size"] == 1024
-    assert view == bytes(ZIP_NAMES_BYTES)
+    assert view == bytes(preprocess.VIEWS_BYTES)
     assert facts_for(path.read_bytes()) == (facts, view)
 
 
@@ -1020,27 +1107,32 @@ def test_facts_for_accepts_bytes_and_mirrors_the_held_blocks():
     facts, view = facts_for(data)
     expected = zip_expected(
         valid=1, entries=2, names_entries=2, names_len=21, comment_len=2, cd_size=2 * 46 + 18
-    )
+    ) | {"zip_first_entry_len": len(b"word/document.xml\n<w/>")}
     assert {name: facts[name] for name in preprocess.ZIP_FACT_NAMES} == expected
     assert facts["original_size"] == len(data) and facts["prefix_size"] == len(data)
-    assert view == b"\nword/document.xml\nx\n".ljust(ZIP_NAMES_BYTES, b"\0")
-    # The same archive behind a stub, seen through the bounded blocks.
+    names = b"\nx\nword/document.xml\n"
+    assert view[:ZIP_NAMES_BYTES] == names.ljust(ZIP_NAMES_BYTES, b"\0")
+    assert view[ZIP_NAMES_BYTES:].rstrip(b"\0") == b"word/document.xml\n<w/>"
+    # The same archive behind a stub, seen through the bounded blocks: the stub's empty
+    # stored header is the first entry, a bare `\n`.
     big = b"PK\x03\x04" + bytes(100_000 - 4) + data
     facts, view = facts_for(big)
     assert {name: facts[name] for name in preprocess.ZIP_FACT_NAMES} == expected | {
-        "zip_flags": PREPENDED
+        "zip_flags": PREPENDED,
+        "zip_first_entry_len": 1,
     }
     assert facts["original_size"] == len(big) and facts["prefix_size"] == 4096
-    assert view[:21] == b"\nword/document.xml\nx\n"
+    assert view[:21] == names
     # A prefix without the zip signature never takes the zip path, whatever the tail holds.
     foreign = b"\x89PNG" + big[4:]
     facts, view = facts_for(foreign)
     assert all(facts[name] == 0 for name in FACT_NAMES[2:])
-    assert view == bytes(ZIP_NAMES_BYTES)
+    assert view == bytes(preprocess.VIEWS_BYTES)
     # An archive prefix takes the zip path only: a PE header behind it is not read.
     zipped = b"PK\x03\x04" + pe32().build()[4:]
     facts, _ = facts_for(zipped)
-    assert all(facts[name] == 0 for name in FACT_NAMES[2:])
+    assert all(facts[name] == 0 for name in preprocess.PE_FACT_NAMES)
+    assert facts["zip_names_len"] == 0
     assert facts_for(b"")[0] == dict.fromkeys(FACT_NAMES, 0)
 
 
@@ -1060,4 +1152,6 @@ def test_native_golden_facts_are_reproduced():
     for record in records:
         facts, view = facts_for(ROOT / record["path"])
         assert facts == record["facts"], record["path"]
-        assert hashlib.sha256(view).hexdigest() == record["view_sha256"], record["path"]
+        names, entry = view[:ZIP_NAMES_BYTES], view[ZIP_NAMES_BYTES:]
+        assert hashlib.sha256(names).hexdigest() == record["view_sha256"], record["path"]
+        assert hashlib.sha256(entry).hexdigest() == record["first_entry_sha256"], record["path"]

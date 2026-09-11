@@ -191,7 +191,8 @@ FACTS_CASES = {
         'zip_names startswith "\\nmimetype"',
         [
             archive([stored(b"mimetype", b"application/epub+zip"), stored(b"OEBPS/x", b"")]),
-            archive([stored(b"OEBPS/x", b""), stored(b"mimetype", b"application/epub+zip")]),
+            # Top-level names are written first, so the decoy must be top-level too.
+            archive([stored(b"x", b""), stored(b"mimetype", b"application/epub+zip")]),
             archive([stored(b"mimetypes", b"")]),
             archive([]),
         ],

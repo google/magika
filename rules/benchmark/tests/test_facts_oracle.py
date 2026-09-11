@@ -68,7 +68,7 @@ def test_a_name_beyond_the_truncation_boundary_is_absent():
     facts, view = facts_for(payload)
     assert facts["zip_flags"] == ZIP_FLAG_NAMES_TRUNCATED
     assert facts["zip_names_entries"] == LONG_NAMES_HELD
-    assert len(view) == ZIP_NAMES_BYTES
+    assert len(view) == ZIP_NAMES_BYTES + preprocess.ZIP_FIRST_ENTRY_BYTES
     last_held, first_dropped = LONG_NAMES[LONG_NAMES_HELD - 1], LONG_NAMES[LONG_NAMES_HELD]
     present = 'zip_names contains "\\n' + last_held.decode() + '\\n"'
     absent = 'zip_names contains "\\n' + first_dropped.decode() + '\\n"'

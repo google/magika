@@ -588,7 +588,11 @@ impl Worker {
         let active = synthetic.filter(|synthetic| synthetic.is_active());
         if let (Some(stream), Some(synthetic)) = (&self.database.streams.facts, active) {
             matches.outputs = &stream.outputs;
-            let buffers = [synthetic.facts.as_slice(), synthetic.names.as_slice()];
+            let buffers = [
+                synthetic.facts.as_slice(),
+                synthetic.names.as_slice(),
+                synthetic.first_entry.as_slice(),
+            ];
             if !self.run(stream, buffers, &mut matches) {
                 return Decision::EngineError;
             }
@@ -597,7 +601,9 @@ impl Worker {
     }
 
     /// Scans `buffers` as one logical stream; false on any engine or callback failure.
-    fn run(&self, stream: &Stream, buffers: [&[u8]; 2], matches: &mut Matches<'_>) -> bool {
+    fn run<const N: usize>(
+        &self, stream: &Stream, buffers: [&[u8]; N], matches: &mut Matches<'_>,
+    ) -> bool {
         let pointers = buffers.map(|x| x.as_ptr().cast());
         let lengths = buffers.map(|x| x.len() as u32);
         let code = unsafe {

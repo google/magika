@@ -12,6 +12,7 @@
 //! |-----------------|-------------------|-------------------------------------------|
 //! | 0               | `FACTS_BYTES`     | big-endian unsigned facts, zero = absent  |
 //! | `FACTS_BYTES`   | `ZIP_NAMES_BYTES` | `zip_names` view: central directory names |
+//! | `FACTS_BYTES + ZIP_NAMES_BYTES` | `ZIP_FIRST_ENTRY_BYTES` | `zip_first_entry` view: first entry name and data |
 //!
 //! `original_size` and `prefix_size` occupy the same offsets in both streams, so the
 //! size guards lower to identical patterns in either domain.
@@ -19,6 +20,7 @@
 mod pe;
 mod zip;
 
+use miniz_oxide::inflate::core::DecompressorOxide;
 #[cfg(test)]
 pub(crate) use zip::tests::{archive, stored};
 
@@ -26,6 +28,8 @@ pub(crate) use zip::tests::{archive, stored};
 pub(crate) const FACTS_BYTES: usize = 64;
 /// Size of the `zip_names` view following the facts header.
 pub(crate) const ZIP_NAMES_BYTES: usize = 4096;
+/// Size of the `zip_first_entry` view following the `zip_names` view.
+pub(crate) const ZIP_FIRST_ENTRY_BYTES: usize = 16 * 1024;
 
 /// A named unsigned big-endian field of the facts header, addressable from conditions.
 pub(crate) struct Fact {
@@ -70,6 +74,7 @@ pub(crate) const FACTS: &[Fact] = &[
     fact_at("pe_overlay", 48, 8),
     fact_at("pe_is_dll", 56, 1),
     fact_at("pe_is_executable_image", 57, 1),
+    fact_at("zip_first_entry_len", 30, 2),
 ];
 
 /// Looks a fact up by the identifier used in conditions; the compiler resolves names once.
@@ -84,7 +89,7 @@ const PREFIX_SIZE: &Fact = &FACTS[1];
 /// The value a zip fact takes from an analysis.
 type ZipValue = fn(&zip::ZipFacts) -> u64;
 /// The zip facts, resolved the same way, each with the value it takes from an analysis.
-const ZIP_FACTS: [(&Fact, ZipValue); 7] = [
+const ZIP_FACTS: [(&Fact, ZipValue); 8] = [
     (&FACTS[2], |zip| u64::from(zip.valid)),
     (&FACTS[3], |zip| u64::from(zip.flags)),
     (&FACTS[4], |zip| u64::from(zip.entries)),
@@ -92,6 +97,7 @@ const ZIP_FACTS: [(&Fact, ZipValue); 7] = [
     (&FACTS[6], |zip| u64::from(zip.names_len)),
     (&FACTS[7], |zip| u64::from(zip.comment_len)),
     (&FACTS[8], |zip| u64::from(zip.cd_size)),
+    (&FACTS[22], |zip| u64::from(zip.first_entry_len)),
 ];
 /// The value a PE fact takes from an analysis.
 type PeValue = fn(&pe::PeFacts) -> u64;
@@ -121,8 +127,14 @@ pub(crate) struct View {
 }
 
 /// Every view a condition may name. Offsets are stable: they are part of the cache identity.
-pub(crate) const VIEWS: &[View] =
-    &[View { name: "zip_names", offset: FACTS_BYTES, size: ZIP_NAMES_BYTES }];
+pub(crate) const VIEWS: &[View] = &[
+    View { name: "zip_names", offset: FACTS_BYTES, size: ZIP_NAMES_BYTES },
+    View {
+        name: "zip_first_entry",
+        offset: FACTS_BYTES + ZIP_NAMES_BYTES,
+        size: ZIP_FIRST_ENTRY_BYTES,
+    },
+];
 
 /// Looks a view up by the identifier used in conditions.
 pub(crate) fn view(name: &str) -> Option<&'static View> {
@@ -142,12 +154,20 @@ pub(crate) fn write_fact(facts: &mut [u8; FACTS_BYTES], fact: &Fact, value: u64)
 pub(crate) struct Synthetic {
     pub facts: [u8; FACTS_BYTES],
     pub names: Box<[u8; ZIP_NAMES_BYTES]>,
+    pub first_entry: Box<[u8; ZIP_FIRST_ENTRY_BYTES]>,
+    /// Inflate state reused for every first entry, reset before each use.
+    inflater: Box<DecompressorOxide>,
 }
 
 impl Synthetic {
     /// An empty stream B, to be filled by [`Self::prepare`] once per input.
     pub(crate) fn new() -> Self {
-        Self { facts: [0; FACTS_BYTES], names: Box::new([0; ZIP_NAMES_BYTES]) }
+        Self {
+            facts: [0; FACTS_BYTES],
+            names: Box::new([0; ZIP_NAMES_BYTES]),
+            first_entry: Box::new([0; ZIP_FIRST_ENTRY_BYTES]),
+            inflater: Box::default(),
+        }
     }
 
     /// Whether a preprocessor produced anything worth scanning: any fact beyond the size
@@ -175,11 +195,18 @@ impl Synthetic {
         if self.names[0] != 0 {
             self.names.fill(0);
         }
+        // Likewise: the first entry view opens with a sanitized name byte or `\n`.
+        if self.first_entry[0] != 0 {
+            self.first_entry.fill(0);
+        }
         write_fact(&mut self.facts, ORIGINAL_SIZE, size);
         write_fact(&mut self.facts, PREFIX_SIZE, prefix.len() as u64);
         if wants_tail(prefix) {
             let tail = tail.unwrap_or(if size == prefix.len() as u64 { prefix } else { &[] });
-            let zip = zip::analyze(prefix, size, tail, &mut self.names);
+            let mut zip = zip::analyze(prefix, size, tail, &mut self.names);
+            let (len, flags) = zip::first_entry(prefix, &mut self.first_entry, &mut self.inflater);
+            zip.first_entry_len = len;
+            zip.flags |= flags;
             for (fact, value) in ZIP_FACTS {
                 write_fact(&mut self.facts, fact, value(&zip));
             }
@@ -238,8 +265,10 @@ pub(crate) fn wants_tail(prefix: &[u8]) -> bool {
 }
 
 /// Reads the trailing window `[size - min(size, ZIP_TAIL_BYTES), size)` of an input whose
-/// prefix [`wants_tail`], unless the prefix already holds the whole input. Any other input
-/// costs no read at all.
+/// prefix [`wants_tail`], unless the prefix already holds the whole input. When that window
+/// holds the end record of an archive whose central directory starts before it and spans at
+/// most `ZIP_DIRECTORY_MAX_BYTES` ([`zip::directory_start`]), one more read extends the
+/// window back to the directory's start. Any other input costs no read at all.
 pub(crate) fn read_tail(
     input: &mut impl crate::Input, size: u64, prefix: &[u8],
 ) -> anyhow::Result<Option<Vec<u8>>> {
@@ -250,12 +279,31 @@ pub(crate) fn read_tail(
     let len = size.min(ZIP_TAIL_BYTES as u64);
     let mut tail = vec![0; len as usize];
     input.read_at(&mut tail, size - len)?;
+    if let Some(start) = zip::directory_start(&tail, size) {
+        let before = (size - len - start) as usize;
+        let mut extended = vec![0; before + tail.len()];
+        input.read_at(&mut extended[..before], start)?;
+        extended[before..].copy_from_slice(&tail);
+        tail = extended;
+    }
     Ok(Some(tail))
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    #[test]
+    fn read_tail_extends_to_a_directory_beyond_the_window() {
+        let entries: Vec<_> =
+            (0..400).map(|i| stored(format!("{i:0>60}").as_bytes(), b"")).collect();
+        let bytes = archive(&entries, b"");
+        let (size, prefix) = (bytes.len() as u64, &bytes[..4096]);
+        let tail = read_tail(&mut bytes.as_slice(), size, prefix).unwrap().unwrap();
+        assert!(tail.len() > ZIP_TAIL_BYTES && bytes.ends_with(&tail), "{}", tail.len());
+        let synthetic = prepare(&Blocks { prefix, size, tail: Some(&tail) });
+        assert_eq!(synthetic.facts[16], 1, "zip_valid");
+    }
 
     #[test]
     fn hot_path_facts_are_resolved_to_the_named_entries() {
@@ -269,6 +317,7 @@ pub(crate) mod tests {
                 "zip_names_len",
                 "zip_comment_len",
                 "zip_cd_size",
+                "zip_first_entry_len",
             ]))
             .chain(PE_FACTS.iter().map(|(fact, _)| *fact).zip([
                 "pe_valid",
@@ -458,7 +507,8 @@ pub(crate) mod tests {
         let cd_size = (2 * 46 + 17 + 1_u32).to_be_bytes();
         let expected_facts =
             [1, 0, 0, 2, 0, 2, 0, 21, 0, 2, cd_size[0], cd_size[1], cd_size[2], cd_size[3]];
-        let expected_view = b"\nword/document.xml\nx\n";
+        // Top-level names are written before nested ones.
+        let expected_view = b"\nx\nword/document.xml\n";
         // A file held entirely in the prefix needs no tail.
         let held = prepare(&Blocks { prefix: &bytes, size, tail: None });
         assert_eq!(zip_facts(&held), expected_facts);
@@ -479,7 +529,7 @@ pub(crate) mod tests {
         // Without a tail nothing beyond the first block is known: the zip facts stay zero.
         let blind = prepare(&Blocks { prefix, size: big.len() as u64, tail: None });
         assert_eq!(zip_facts(&blind), [0; 14]);
-        assert!(!blind.is_active());
+        assert!(blind.names.iter().all(|x| *x == 0));
         // The size facts are written alongside.
         assert_eq!(bounded.facts[..8], (big.len() as u64).to_be_bytes());
         assert_eq!(bounded.facts[8..16], 4096_u64.to_be_bytes());
@@ -536,7 +586,7 @@ pub(crate) mod tests {
         archive[..4].copy_from_slice(b"PK\x03\x04");
         let zipped = prepare(&Blocks { prefix: &archive[..4096], size, tail: Some(&[]) });
         assert_eq!(pe_facts(&zipped), [0; 26]);
-        assert!(!zipped.is_active());
+        assert!(zipped.names.iter().all(|x| *x == 0));
     }
 
     #[test]
@@ -618,11 +668,12 @@ pub(crate) mod tests {
                 (fact.name.to_string(), u64::from_be_bytes(value).into())
             })
             .collect();
-        let digest = sha2::Sha256::digest(synthetic.names.as_slice());
+        let digest = |view: &[u8]| data_encoding::HEXLOWER.encode(&sha2::Sha256::digest(view));
         serde_json::json!({
             "path": format!("tests_data/{relative}"),
             "facts": facts,
-            "view_sha256": data_encoding::HEXLOWER.encode(&digest),
+            "view_sha256": digest(synthetic.names.as_slice()),
+            "first_entry_sha256": digest(synthetic.first_entry.as_slice()),
         })
     }
 

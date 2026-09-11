@@ -1,14 +1,15 @@
 // Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Bounded zip analysis: the end-of-central-directory record, the central directory names
-//! and the stored `mimetype` entry, derived from the two held blocks only.
+//! Bounded zip analysis: the end-of-central-directory record, the central directory names,
+//! the stored `mimetype` entry and the first entry's contents, derived from the held blocks.
 //!
 //! Everything here is a pure function of `(first block, input size, tail block)`, so an
-//! independent implementation can reproduce the facts and the view byte for byte. Every
-//! line of the view is `\n` followed by a payload in which the bytes 0x00 and 0x0A are
-//! replaced by 0x01; the `mimetype=<data>` line is sanitized like any other. The contract,
-//! in evaluation order:
+//! independent implementation can reproduce the facts and both views byte for byte. Every
+//! line of the `zip_names` view is `\n` followed by a payload in which the bytes 0x00 and
+//! 0x0A are replaced by 0x01; the `mimetype=<data>` line is sanitized like any other. The
+//! tail block is the last 16 KiB of the input, extended backwards to the start of the
+//! central directory when [`directory_start`] says so. The contract, in evaluation order:
 //!
 //! 1. **`mimetype` line.** If `first` starts with a local file header (`PK\x03\x04`) whose
 //!    method (u16 at 8) is 0, name length (u16 at 26) is 8, name (at 30) is `mimetype`,
@@ -19,16 +20,17 @@
 //! 2. **EOCD.** The last 22-byte window of `tail` and every earlier one is tried, walking
 //!    backwards; the first `PK\x05\x06` whose comment length (u16 at 20) equals the bytes
 //!    remaining after its 22 bytes is the EOCD. `tail` must end at the input's end and be
-//!    no longer than the input, otherwise nothing is found. Without an EOCD all facts are
-//!    zero, `flags` included, and only the `mimetype` line may be in the view.
+//!    no longer than the input, otherwise nothing is found. Without an EOCD the directory
+//!    facts of steps 3 to 7 are zero and only the `mimetype` line may be in the view; the
+//!    first entry of step 8 is analyzed regardless.
 //! 3. **EOCD facts.** `entries` is the total entry count (u16 at 10), `comment_len` the
 //!    comment length. `flags` bit 0 (zip64) is set by any sentinel: 0xFFFF in the disk
 //!    (u16 at 4), directory disk (6), entries on this disk (8) or total (10) fields,
 //!    0xFFFFFFFF in the directory size (u32 at 12) or offset (16), or a zip64 locator
 //!    (`PK\x06\x07`, 20 bytes) ending exactly where the EOCD starts. Bit 1 (multi-disk)
 //!    is set when the disk or directory disk is nonzero or the per-disk count differs
-//!    from the total. Either bit ends the analysis: `cd_size` and the `names_*` facts stay
-//!    zero and no name is written.
+//!    from the total. Either bit ends the directory analysis: `cd_size` and the `names_*`
+//!    facts stay zero and no name is written.
 //! 4. **Directory placement.** `cd_size` is reported. The directory is anchored at the
 //!    EOCD, not at the declared offset: it is the `cd_size` bytes ending at the EOCD's
 //!    absolute offset `eocd_abs = size - tail.len() + position`, so it starts at
@@ -40,21 +42,42 @@
 //!    `eocd_abs`. A `cd_size` beyond `eocd_abs` sets bit 3 (malformed) and ends the
 //!    analysis. The directory must lie entirely inside `tail` or, failing that, entirely
 //!    inside `first`; otherwise bit 2 (not held) is set and the analysis ends.
-//! 5. **Walk.** Up to `min(entries, ZIP_MAX_ENTRIES)` headers are read in order. Each needs
-//!    `PK\x01\x02`, 46 bytes, and `46 + name_len (u16 at 28) + extra_len (30) +
-//!    comment_len (32)` bytes inside the directory; any shortfall sets bit 3 and ends the
-//!    walk without writing that entry. Each name is written as `\n` followed by the name
-//!    with bytes 0x00 and 0x0A replaced by 0x01. A name that would not leave room for
-//!    the final terminator (`written + 1 + name_len + 1 > 4096`) is not written; bit 4
-//!    (names truncated) is set and the walk ends. `names_entries` counts written names.
+//! 5. **Walk.** The directory is walked in two passes, each reading up to `entries` headers
+//!    in order: the first pass writes the names that contain no `/`, the second the names
+//!    that do, so top-level names such as `classes.dex` are never crowded out by nested
+//!    ones. Each header needs `PK\x01\x02`, 46 bytes, and `46 + name_len (u16 at 28) +
+//!    extra_len (30) + comment_len (32)` bytes inside the directory; any shortfall sets
+//!    bit 3 and ends the walk, both passes, without writing that entry. Each name is
+//!    written as `\n` followed by the name with bytes 0x00 and 0x0A replaced by 0x01. A
+//!    name that would not leave room for the final terminator (`written + 1 + name_len +
+//!    1 > 4096`) is not written; bit 4 (names truncated) is set and the walk ends, both
+//!    passes. `names_entries` counts written names.
 //! 6. **Terminator.** If any line was written, a final `\n` follows it. `names_len` is the
 //!    total number of bytes written; bytes beyond it are left untouched (zero).
 //! 7. `valid` is set iff an EOCD was found and bits 0 to 3 are all clear.
+//! 8. **First entry.** When `first` starts with a local file header whose flags (u16 at 6)
+//!    have neither bit 0 (encrypted) nor bit 3 (sizes in a data descriptor) set, whose
+//!    method (u16 at 8) is 0 (stored) or 8 (deflated), whose name (`name_len`, u16 at 26,
+//!    bytes at 30) lies inside `first` with `name_len + 1 < ZIP_FIRST_ENTRY_BYTES`, and
+//!    whose compressed data (u32 at 18 bytes, at `30 + name_len + extra_len` with
+//!    `extra_len` the u16 at 28) lies entirely inside `first`, the `zip_first_entry` view
+//!    receives the name (0x00 and 0x0A replaced by 0x01), `\n`, then the data: stored data
+//!    copied, deflated data inflated as raw deflate (RFC 1951, no checksum), truncated to
+//!    the space left in the view. Bit 6 (first entry filled) is set when the data reaches
+//!    the end of the view, whatever follows it. Otherwise deflated data that does not
+//!    decode to the end of its final block (an invalid stream, or compressed bytes ending
+//!    early) is discarded: only the name line remains and bit 7 (first entry undecodable)
+//!    is set. `first_entry_len` is the number of bytes written; the view is zero beyond
+//!    it. Bits 6 and 7 never affect `valid`.
 
-use super::{u16_at, u32_at, ZIP_NAMES_BYTES};
+use miniz_oxide::inflate::core::inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+use miniz_oxide::inflate::core::{decompress, DecompressorOxide};
+use miniz_oxide::inflate::TINFLStatus;
 
-/// Most central directory entries walked for one input.
-const ZIP_MAX_ENTRIES: usize = 96;
+use super::{u16_at, u32_at, ZIP_FIRST_ENTRY_BYTES, ZIP_NAMES_BYTES};
+
+/// Largest central directory read on its own when the tail window does not hold it.
+pub(super) const ZIP_DIRECTORY_MAX_BYTES: u32 = 256 * 1024;
 
 /// The archive uses zip64 sentinels or carries a zip64 locator.
 const FLAG_ZIP64: u8 = 1 << 0;
@@ -68,6 +91,10 @@ const FLAG_MALFORMED: u8 = 1 << 3;
 const FLAG_NAMES_TRUNCATED: u8 = 1 << 4;
 /// Bytes precede the archive: a self-extractor or an appended archive.
 const FLAG_PREPENDED: u8 = 1 << 5;
+/// The first entry's data reached the end of the `zip_first_entry` view.
+const FLAG_FIRST_ENTRY_FILLED: u8 = 1 << 6;
+/// The first entry is deflated but its data does not decode completely.
+const FLAG_FIRST_ENTRY_UNDECODABLE: u8 = 1 << 7;
 
 const LOCAL_SIGNATURE: &[u8] = b"PK\x03\x04";
 const CENTRAL_SIGNATURE: &[u8] = b"PK\x01\x02";
@@ -90,6 +117,7 @@ pub(super) struct ZipFacts {
     pub names_len: u16,
     pub comment_len: u16,
     pub cd_size: u32,
+    pub first_entry_len: u16,
 }
 
 /// Analyzes the archive held in `first` (the block at offset 0) and `tail` (the block ending
@@ -182,37 +210,19 @@ fn walk_directory(
     facts: &mut ZipFacts,
 ) {
     let Some(tail_start) = size.checked_sub(tail.len() as u64) else { return };
-    let record = &tail[eocd..eocd + EOCD_LEN];
-    let disk = u16_at(record, 4).unwrap_or(0);
-    let cd_disk = u16_at(record, 6).unwrap_or(0);
-    let entries_disk = u16_at(record, 8).unwrap_or(0);
-    let entries = u16_at(record, 10).unwrap_or(0);
-    let cd_size = u32_at(record, 12).unwrap_or(0);
-    let cd_offset = u32_at(record, 16).unwrap_or(0);
-    facts.entries = entries;
-    facts.comment_len = u16_at(record, 20).unwrap_or(0);
-    let locator = eocd
-        .checked_sub(ZIP64_LOCATOR_LEN)
-        .is_some_and(|at| tail[at..].starts_with(ZIP64_LOCATOR_SIGNATURE));
-    if [disk, cd_disk, entries_disk, entries].contains(&u16::MAX)
-        || cd_size == u32::MAX
-        || cd_offset == u32::MAX
-        || locator
-    {
-        facts.flags |= FLAG_ZIP64;
-    }
-    if disk != 0 || cd_disk != 0 || entries_disk != entries {
-        facts.flags |= FLAG_MULTIDISK;
-    }
-    if facts.flags != 0 {
+    let record = Eocd::decode(tail, eocd);
+    facts.entries = record.entries;
+    facts.comment_len = record.comment_len;
+    if record.flags != 0 {
+        facts.flags |= record.flags;
         return;
     }
-    facts.cd_size = cd_size;
+    facts.cd_size = record.cd_size;
     let eocd_abs = tail_start + eocd as u64;
-    if u64::from(cd_offset) + u64::from(cd_size) < eocd_abs {
+    if u64::from(record.cd_offset) + u64::from(record.cd_size) < eocd_abs {
         facts.flags |= FLAG_PREPENDED;
     }
-    let Some(cd_abs) = eocd_abs.checked_sub(u64::from(cd_size)) else {
+    let Some(cd_abs) = eocd_abs.checked_sub(u64::from(record.cd_size)) else {
         facts.flags |= FLAG_MALFORMED;
         return;
     };
@@ -228,19 +238,25 @@ fn walk_directory(
         facts.flags |= FLAG_CD_NOT_HELD;
         return;
     };
-    let mut at = 0;
-    for _ in 0..usize::from(entries).min(ZIP_MAX_ENTRIES) {
-        let Some((name, len)) = entry_name(directory, at) else {
-            facts.flags |= FLAG_MALFORMED;
-            break;
-        };
-        if !view.fits(b"", name) {
-            facts.flags |= FLAG_NAMES_TRUNCATED;
-            break;
+    // Top-level names first, then nested ones: both passes walk the same headers.
+    'passes: for nested in [false, true] {
+        let mut at = 0;
+        for _ in 0..record.entries {
+            let Some((name, len)) = entry_name(directory, at) else {
+                facts.flags |= FLAG_MALFORMED;
+                break 'passes;
+            };
+            at += len;
+            if name.contains(&b'/') != nested {
+                continue;
+            }
+            if !view.fits(b"", name) {
+                facts.flags |= FLAG_NAMES_TRUNCATED;
+                break 'passes;
+            }
+            view.line(b"", name);
+            facts.names_entries += 1;
         }
-        view.line(b"", name);
-        facts.names_entries += 1;
-        at += len;
     }
     facts.valid =
         facts.flags & (FLAG_ZIP64 | FLAG_MULTIDISK | FLAG_CD_NOT_HELD | FLAG_MALFORMED) == 0;
@@ -263,6 +279,112 @@ fn entry_name(directory: &[u8], at: usize) -> Option<(&[u8], usize)> {
         return None;
     }
     Some((directory.get(name_start..name_end)?, entry_end - at))
+}
+
+/// The fields of an end-of-central-directory record that locate and qualify its directory.
+struct Eocd {
+    entries: u16,
+    comment_len: u16,
+    cd_size: u32,
+    cd_offset: u32,
+    /// `FLAG_ZIP64` and `FLAG_MULTIDISK`, as step 3 defines them.
+    flags: u8,
+}
+
+impl Eocd {
+    /// Decodes the record at `eocd` in `tail`, a position [`find_eocd`] returned.
+    fn decode(tail: &[u8], eocd: usize) -> Self {
+        let record = &tail[eocd..eocd + EOCD_LEN];
+        let field = |at| u16_at(record, at).unwrap_or(0);
+        let (disk, cd_disk, entries_disk, entries) = (field(4), field(6), field(8), field(10));
+        let cd_size = u32_at(record, 12).unwrap_or(0);
+        let cd_offset = u32_at(record, 16).unwrap_or(0);
+        let locator = eocd
+            .checked_sub(ZIP64_LOCATOR_LEN)
+            .is_some_and(|at| tail[at..].starts_with(ZIP64_LOCATOR_SIGNATURE));
+        let mut flags = 0;
+        if [disk, cd_disk, entries_disk, entries].contains(&u16::MAX)
+            || cd_size == u32::MAX
+            || cd_offset == u32::MAX
+            || locator
+        {
+            flags |= FLAG_ZIP64;
+        }
+        if disk != 0 || cd_disk != 0 || entries_disk != entries {
+            flags |= FLAG_MULTIDISK;
+        }
+        Self { entries, comment_len: field(20), cd_size, cd_offset, flags }
+    }
+}
+
+/// The absolute offset at which to start reading so that the central directory is held,
+/// when `tail` (the block ending at `size`) holds the end record but not the directory:
+/// the archive is single-disk, not zip64, and its directory, anchored at the end record as
+/// in step 4, starts before `tail` and spans at most `ZIP_DIRECTORY_MAX_BYTES`. Reading
+/// `[start, size - tail.len())` ahead of `tail` then gives the analysis a held directory.
+pub(super) fn directory_start(tail: &[u8], size: u64) -> Option<u64> {
+    let eocd = find_eocd(tail)?;
+    let record = Eocd::decode(tail, eocd);
+    let tail_start = size.checked_sub(tail.len() as u64)?;
+    if record.flags != 0 || record.cd_size > ZIP_DIRECTORY_MAX_BYTES {
+        return None;
+    }
+    let start = (tail_start + eocd as u64).checked_sub(u64::from(record.cd_size))?;
+    (start < tail_start).then_some(start)
+}
+
+/// Writes the `zip_first_entry` view of step 8 and returns its length and flag bits.
+pub(super) fn first_entry(
+    first: &[u8], out: &mut [u8; ZIP_FIRST_ENTRY_BYTES], inflater: &mut DecompressorOxide,
+) -> (u16, u8) {
+    let Some((name, data, deflated)) = first_entry_parts(first) else { return (0, 0) };
+    for (slot, &byte) in out.iter_mut().zip(name) {
+        *slot = if byte == 0 || byte == b'\n' { 1 } else { byte };
+    }
+    out[name.len()] = b'\n';
+    let head = name.len() + 1;
+    let space = &mut out[head..];
+    let (written, complete) = if deflated {
+        inflater.init();
+        let flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+        let (status, _, written) = decompress(inflater, data, space, 0, flags);
+        (written, status == TINFLStatus::Done)
+    } else {
+        let written = data.len().min(space.len());
+        space[..written].copy_from_slice(&data[..written]);
+        (written, true)
+    };
+    if written == space.len() {
+        return (ZIP_FIRST_ENTRY_BYTES as u16, FLAG_FIRST_ENTRY_FILLED);
+    }
+    if !complete {
+        space[..written].fill(0);
+        return (head as u16, FLAG_FIRST_ENTRY_UNDECODABLE);
+    }
+    ((head + written) as u16, 0)
+}
+
+/// The name, the compressed data and whether it is deflated, for a first local entry that
+/// step 8 accepts.
+fn first_entry_parts(first: &[u8]) -> Option<(&[u8], &[u8], bool)> {
+    if !first.starts_with(LOCAL_SIGNATURE) {
+        return None;
+    }
+    let flags = u16_at(first, 6)?;
+    let method = u16_at(first, 8)?;
+    if flags & 0b1001 != 0 || !(method == 0 || method == 8) {
+        return None;
+    }
+    let compressed = usize::try_from(u32_at(first, 18)?).ok()?;
+    let name_len = usize::from(u16_at(first, 26)?);
+    let extra_len = usize::from(u16_at(first, 28)?);
+    if name_len + 1 >= ZIP_FIRST_ENTRY_BYTES {
+        return None;
+    }
+    let name = first.get(LOCAL_HEADER_LEN..LOCAL_HEADER_LEN + name_len)?;
+    let data_start = LOCAL_HEADER_LEN + name_len + extra_len;
+    let data = first.get(data_start..data_start.checked_add(compressed)?)?;
+    Some((name, data, method == 8))
 }
 
 #[cfg(test)]
@@ -373,10 +495,7 @@ pub(super) mod tests {
     fn check(facts: &ZipFacts, names: &[u8; ZIP_NAMES_BYTES]) {
         let names_len = usize::from(facts.names_len);
         assert!(names_len <= ZIP_NAMES_BYTES, "{facts:?}");
-        assert!(
-            usize::from(facts.names_entries) <= usize::from(facts.entries).min(ZIP_MAX_ENTRIES),
-            "{facts:?}"
-        );
+        assert!(facts.names_entries <= facts.entries, "{facts:?}");
         if names_len > 0 {
             assert_eq!((names[0], names[names_len - 1]), (b'\n', b'\n'), "{facts:?}");
         }
@@ -399,6 +518,7 @@ pub(super) mod tests {
                 names_len: 17,
                 comment_len: 0,
                 cd_size: 2 * 46 + 5 + 9,
+                first_entry_len: 0,
             }
         );
         assert_eq!(view(&names, 17), b"\na.txt\ndir/b.bin\n");
@@ -520,6 +640,7 @@ pub(super) mod tests {
                 names_len: 3,
                 comment_len: 0,
                 cd_size: (16 * 1024 - EOCD_LEN) as u32,
+                first_entry_len: 0,
             }
         );
         assert_eq!(view(&names, 3), b"\na\n");
@@ -559,6 +680,7 @@ pub(super) mod tests {
                 names_len: 17,
                 comment_len: 16_000,
                 cd_size: 8 * 47,
+                first_entry_len: 0,
             }
         );
         assert_eq!(view(&names, 17), b"\na\nb\nc\nd\ne\nf\ng\nh\n");
@@ -636,6 +758,7 @@ pub(super) mod tests {
                 names_len: 7,
                 comment_len: 0,
                 cd_size: 2 * 46 + 5 + 6,
+                first_entry_len: 0,
             }
         );
         assert_eq!(view(&names, 7), b"\nfirst\n");
@@ -662,20 +785,23 @@ pub(super) mod tests {
     }
 
     #[test]
-    fn entries_are_capped_and_truncation_only_flags_a_full_view() {
+    fn every_entry_is_walked_and_truncation_only_flags_a_full_view() {
         let entries: Vec<_> = (0..100).map(|i| stored(format!("n{i}").as_bytes(), b"")).collect();
         let mut bytes = archive(&entries, b"");
+        let (facts, names) = small(&bytes);
+        assert!(facts.valid, "{facts:?}");
+        assert_eq!((facts.flags, facts.entries, facts.names_entries), (0, 100, 100));
+        let expected: Vec<u8> =
+            (0..100).flat_map(|i| format!("\nn{i}").into_bytes()).chain([b'\n']).collect();
+        assert_eq!(facts.names_len as usize, expected.len());
+        assert_eq!(view(&names, expected.len()), expected);
+        // A count beyond the headers present runs off the directory: malformed, names kept.
         let eocd = eocd_at(&bytes, 0);
         put_u16(&mut bytes, eocd + 8, 0xfffe);
         put_u16(&mut bytes, eocd + 10, 0xfffe);
         let (facts, names) = small(&bytes);
-        assert!(facts.valid, "{facts:?}");
-        assert_eq!(facts.flags, 0);
-        assert_eq!(facts.entries, 0xfffe);
-        assert_eq!(facts.names_entries, 96);
-        let expected: Vec<u8> =
-            (0..96).flat_map(|i| format!("\nn{i}").into_bytes()).chain([b'\n']).collect();
-        assert_eq!(facts.names_len as usize, expected.len());
+        assert!(!facts.valid);
+        assert_eq!((facts.flags, facts.names_entries), (FLAG_MALFORMED, 100));
         assert_eq!(view(&names, expected.len()), expected);
         // Long names fill the view: whole names are dropped and the truncation flagged.
         let entries: Vec<_> =
@@ -698,6 +824,107 @@ pub(super) mod tests {
         assert_eq!(names[0], b'\n');
         assert_eq!(names[ZIP_NAMES_BYTES - 1], b'\n');
         assert!(names[1..ZIP_NAMES_BYTES - 1].iter().all(|x| *x == b'z'));
+    }
+
+    #[test]
+    fn top_level_names_are_written_before_nested_ones() {
+        let nested: Vec<_> =
+            (0..150).map(|i| format!("res/drawable/icon_{i:0>40}.png").into_bytes()).collect();
+        let mut entries: Vec<_> = nested.iter().map(|name| stored(name, b"")).collect();
+        entries.push(stored(b"classes.dex", b""));
+        entries.push(stored(b"AndroidManifest.xml", b""));
+        let (facts, names) = small(&archive(&entries, b""));
+        assert!(facts.valid, "{facts:?}");
+        assert_eq!(facts.flags, FLAG_NAMES_TRUNCATED);
+        let text = view(&names, facts.names_len as usize);
+        assert!(text.starts_with(b"\nclasses.dex\nAndroidManifest.xml\nres/drawable/icon_"));
+    }
+
+    #[test]
+    fn directory_start_reaches_a_directory_beyond_the_tail_window() {
+        let entries: Vec<_> =
+            (0..400).map(|i| stored(format!("{i:0>60}").as_bytes(), b"")).collect();
+        let bytes = archive(&entries, b"");
+        let size = bytes.len() as u64;
+        let eocd = eocd_at(&bytes, 0);
+        let cd_size = u32::from_le_bytes(bytes[eocd + 12..eocd + 16].try_into().unwrap());
+        let (facts, _) = blocks(&bytes);
+        assert_eq!(facts.flags & FLAG_CD_NOT_HELD, FLAG_CD_NOT_HELD, "{facts:?}");
+        let tail = &bytes[bytes.len() - 16 * 1024..];
+        let start = directory_start(tail, size).unwrap();
+        assert_eq!(start, eocd as u64 - u64::from(cd_size));
+        let mut names = Box::new([0; ZIP_NAMES_BYTES]);
+        let facts = analyze(&bytes[..4096], size, &bytes[start as usize..], &mut names);
+        assert!(facts.valid, "{facts:?}");
+        // A held directory needs no second read, nor does one beyond the cap.
+        assert_eq!(directory_start(&bytes, size), None);
+        let mut record = bytes[eocd..].to_vec();
+        let far = 1_u64 << 30;
+        put_u32(&mut record, 12, ZIP_DIRECTORY_MAX_BYTES);
+        let expected = far - EOCD_LEN as u64 - u64::from(ZIP_DIRECTORY_MAX_BYTES);
+        assert_eq!(directory_start(&record, far), Some(expected));
+        put_u32(&mut record, 12, ZIP_DIRECTORY_MAX_BYTES + 1);
+        assert_eq!(directory_start(&record, far), None);
+    }
+
+    fn deflated(name: &[u8], content: &[u8]) -> Entry {
+        let data = miniz_oxide::deflate::compress_to_vec(content, 6);
+        Entry { name: name.to_vec(), data, method: 8 }
+    }
+
+    /// The `zip_first_entry` view of an input, from its first 4096 bytes as the pipeline holds.
+    fn first_view(bytes: &[u8]) -> (u16, u8, Box<[u8; ZIP_FIRST_ENTRY_BYTES]>) {
+        let mut out = Box::new([0; ZIP_FIRST_ENTRY_BYTES]);
+        let mut inflater = DecompressorOxide::new();
+        let (len, flags) = first_entry(&bytes[..bytes.len().min(4096)], &mut out, &mut inflater);
+        (len, flags, out)
+    }
+
+    #[test]
+    fn first_entry_view_holds_the_name_and_the_inflated_data() {
+        let content = br#"<Types><Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml"/></Types>"#;
+        let entries =
+            [deflated(b"[Content_Types].xml", content), stored(b"word/document.xml", b"")];
+        let (len, flags, out) = first_view(&archive(&entries, b""));
+        let expected = [b"[Content_Types].xml\n".as_slice(), content].concat();
+        assert_eq!((usize::from(len), flags), (expected.len(), 0));
+        assert_eq!(&out[..expected.len()], expected);
+        assert!(out[expected.len()..].iter().all(|x| *x == 0));
+        let (len, flags, out) = first_view(&archive(&[stored(b"mimetype", b"text")], b""));
+        assert_eq!((&out[..usize::from(len)], flags), (b"mimetype\ntext".as_slice(), 0));
+    }
+
+    #[test]
+    fn first_entry_view_only_holds_what_it_reads_exactly() {
+        let content = b"hello hello hello hello";
+        let good = archive(&[deflated(b"a\nb", content)], b"");
+        let (len, flags, out) = first_view(&good);
+        let expected = [b"a\x01b\n".as_slice(), content].concat();
+        assert_eq!((&out[..usize::from(len)], flags), (expected.as_slice(), 0));
+        // Encrypted, data-descriptor and deflate64 entries, or data beyond the block: nothing.
+        for (at, value) in [(6, 1_u16), (6, 8), (8, 9)] {
+            let mut bytes = good.clone();
+            put_u16(&mut bytes, at, value);
+            assert_eq!(first_view(&bytes).0, 0, "field {at} = {value}");
+        }
+        let mut long = good.clone();
+        put_u32(&mut long, 18, 5000);
+        assert_eq!(first_view(&long).0, 0);
+        // A reserved block type keeps only the name line.
+        let mut corrupt = good.clone();
+        corrupt[30 + 3] = 0xff;
+        let (len, flags, out) = first_view(&corrupt);
+        assert_eq!((len, flags), (4, FLAG_FIRST_ENTRY_UNDECODABLE));
+        assert!(out[4..].iter().all(|x| *x == 0));
+        // Compressed bytes ending before the final block are undecodable as well.
+        let mut cut = good.clone();
+        let compressed = u32::from_le_bytes(cut[18..22].try_into().unwrap());
+        put_u32(&mut cut, 18, compressed / 2);
+        assert_eq!(first_view(&cut).1, FLAG_FIRST_ENTRY_UNDECODABLE);
+        // Data reaching the end of the view fills it.
+        let big = archive(&[deflated(b"big", &vec![b'x'; 2 * ZIP_FIRST_ENTRY_BYTES])], b"");
+        let (len, flags, _) = first_view(&big);
+        assert_eq!((usize::from(len), flags), (ZIP_FIRST_ENTRY_BYTES, FLAG_FIRST_ENTRY_FILLED));
     }
 
     #[test]
@@ -764,6 +991,7 @@ pub(super) mod tests {
                 names_len: 13,
                 comment_len: 0,
                 cd_size: 46 + 11,
+                first_entry_len: 0,
             }
         );
         assert_eq!(view(&names, 13), b"\npayload.bin\n");

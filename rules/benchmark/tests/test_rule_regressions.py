@@ -825,7 +825,7 @@ def test_names_in_the_comment_or_member_data_do_not_count(scan_rules):
 
 
 def test_names_beyond_the_view_are_not_seen(scan_rules):
-    filler = [stored(f"{i:0>60}".encode(), b"") for i in range(100)]
+    filler = [stored(f"d/{i:0>58}".encode(), b"") for i in range(100)]
     parts = [stored(b"[Content_Types].xml", b""), stored(b"xl/workbook.xml", b"")]
     assert scan_rules(archive(filler + parts)) == set()
     assert scan_rules(archive(parts + filler)) == {"xlsx"}

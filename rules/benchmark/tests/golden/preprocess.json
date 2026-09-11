@@ -19,13 +19,15 @@
       "zip_cd_size": 952,
       "zip_comment_len": 0,
       "zip_entries": 14,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 14,
       "zip_names_len": 323,
       "zip_valid": 1
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/basic/docx/doc.docx",
-    "view_sha256": "25704418534920a8c7064984e62e36c1427a76500d4564d9c475608eaa05f6cf"
+    "view_sha256": "0ab79c3905efe315ea93d144e9d13c73eb02b7e95d5cfcefe5fa11d43ce0360e"
   },
   {
     "facts": {
@@ -47,11 +49,13 @@
       "zip_cd_size": 328,
       "zip_comment_len": 0,
       "zip_entries": 5,
+      "zip_first_entry_len": 29,
       "zip_flags": 0,
       "zip_names_entries": 5,
       "zip_names_len": 134,
       "zip_valid": 1
     },
+    "first_entry_sha256": "1ef0380b70c1eea3ca4b25618035433f83563c2548c49d9e4a4c984c523fad78",
     "path": "tests_data/basic/epub/doc.epub",
     "view_sha256": "953414c4c171f61b36ac57120a188281877c19879e50ef4cbb2e3853a974caf9"
   },
@@ -75,13 +79,15 @@
       "zip_cd_size": 1067,
       "zip_comment_len": 0,
       "zip_entries": 16,
+      "zip_first_entry_len": 56,
       "zip_flags": 0,
       "zip_names_entries": 16,
       "zip_names_len": 405,
       "zip_valid": 1
     },
+    "first_entry_sha256": "84177d5a366beae3879a319fb873f162c55150488329df69417c043bd11115a2",
     "path": "tests_data/basic/odp/magika_test.odp",
-    "view_sha256": "54d180b02bd2a4e590adc12f3c60b7f9f8611a600ca7c03aa08c0be39b446cfe"
+    "view_sha256": "bb5b6261b5879fc9eda8f1fe70135d075daefd444122529363140bb8e3048881"
   },
   {
     "facts": {
@@ -103,13 +109,15 @@
       "zip_cd_size": 974,
       "zip_comment_len": 0,
       "zip_entries": 15,
+      "zip_first_entry_len": 55,
       "zip_flags": 0,
       "zip_names_entries": 15,
       "zip_names_len": 356,
       "zip_valid": 1
     },
+    "first_entry_sha256": "7831ac1e1eb19d59fa144d53a0334f48d98bbaa043d71e418a009892ecebefcf",
     "path": "tests_data/basic/ods/magika_test.ods",
-    "view_sha256": "335fb3267c6b3787c9f78406a11b9719b49781395c3a5450b2319eb6ede256b7"
+    "view_sha256": "00196b3f3af58a274f8583504621fd49923fc3a98be100ca1f82fced80600adc"
   },
   {
     "facts": {
@@ -131,13 +139,15 @@
       "zip_cd_size": 1048,
       "zip_comment_len": 0,
       "zip_entries": 16,
+      "zip_first_entry_len": 48,
       "zip_flags": 0,
       "zip_names_entries": 16,
       "zip_names_len": 378,
       "zip_valid": 1
     },
+    "first_entry_sha256": "df5da1088e18dcc480a633b675b88f5b92749c6ba8f30582f2ead5da654274f3",
     "path": "tests_data/basic/odt/doc.odt",
-    "view_sha256": "d0db858aef92d82c027e47126d7a6c60862a770f7409243b68e590dc9b0ce8af"
+    "view_sha256": "54e34ed6776058c9336aaaee21162f198a718aa9feee4d01522f83a55049843d"
   },
   {
     "facts": {
@@ -159,11 +169,13 @@
       "zip_cd_size": 0,
       "zip_comment_len": 0,
       "zip_entries": 0,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 0,
       "zip_names_len": 0,
       "zip_valid": 0
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/basic/png/magika_test.png",
     "view_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
   },
@@ -187,13 +199,15 @@
       "zip_cd_size": 3344,
       "zip_comment_len": 0,
       "zip_entries": 42,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 42,
       "zip_names_len": 1455,
       "zip_valid": 1
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/basic/pptx/magika_test.pptx",
-    "view_sha256": "d484336b5f4cdbef8304842c8e11c9215e0a9d589e5545c08da757d4aede33d8"
+    "view_sha256": "f53cfa353fbcd6779661400ea6de3315ee43adae20d9c69f9d9fdc25defef8c4"
   },
   {
     "facts": {
@@ -215,13 +229,15 @@
       "zip_cd_size": 666,
       "zip_comment_len": 0,
       "zip_entries": 10,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 10,
       "zip_names_len": 217,
       "zip_valid": 1
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/basic/xlsx/magika_test.xlsx",
-    "view_sha256": "90950f4e9737496f1f480074fe61b04a37aecb8a1392862cf9efc454af428be7"
+    "view_sha256": "d6a9984fba3b4b78ac0fa4b8d2791622cdda41004fe82b70fab78b04b975e0b5"
   },
   {
     "facts": {
@@ -243,11 +259,13 @@
       "zip_cd_size": 69,
       "zip_comment_len": 0,
       "zip_entries": 1,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 1,
       "zip_names_len": 25,
       "zip_valid": 1
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/basic/zip/magika_test.zip",
     "view_sha256": "2ab8eedc1ccd603cb7990921563928e0a7d0b3513703144c41b2b8661930edc2"
   },
@@ -271,11 +289,13 @@
       "zip_cd_size": 0,
       "zip_comment_len": 0,
       "zip_entries": 0,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 0,
       "zip_names_len": 0,
       "zip_valid": 0
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/mitra/pebin/pe32.exe",
     "view_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
   },
@@ -299,11 +319,13 @@
       "zip_cd_size": 0,
       "zip_comment_len": 0,
       "zip_entries": 0,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 0,
       "zip_names_len": 0,
       "zip_valid": 0
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/mitra/pebin/pe64.exe",
     "view_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
   },
@@ -327,11 +349,13 @@
       "zip_cd_size": 91,
       "zip_comment_len": 0,
       "zip_entries": 1,
+      "zip_first_entry_len": 148,
       "zip_flags": 0,
       "zip_names_entries": 1,
       "zip_names_len": 11,
       "zip_valid": 1
     },
+    "first_entry_sha256": "357f035e02f9a50a1ed8fd8624f40fbd34ae23e20447a2613b84bc2d78c78988",
     "path": "tests_data/mitra/zip/simple.zip",
     "view_sha256": "37ffe1b2777d3000b046acb92228117e7952f6403c27a700f2d57486cf5a0c59"
   },
@@ -355,11 +379,13 @@
       "zip_cd_size": 0,
       "zip_comment_len": 0,
       "zip_entries": 1,
+      "zip_first_entry_len": 0,
       "zip_flags": 1,
       "zip_names_entries": 0,
       "zip_names_len": 0,
       "zip_valid": 0
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/mitra/zip/zip64.zip",
     "view_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
   },
@@ -383,11 +409,13 @@
       "zip_cd_size": 173,
       "zip_comment_len": 0,
       "zip_entries": 3,
+      "zip_first_entry_len": 31,
       "zip_flags": 0,
       "zip_names_entries": 3,
       "zip_names_len": 39,
       "zip_valid": 1
     },
+    "first_entry_sha256": "2372b364696b0201aa3088d9d1944d96e596a86b796da3596ab0c6d46b1acbad",
     "path": "tests_data/rules_negative/aar_manifest_classes_jar.zip",
     "view_sha256": "e0145fd1e6a369504401ff796305d58d20d1c1e8e96f62448a00e70f456ac218"
   },
@@ -411,11 +439,13 @@
       "zip_cd_size": 56,
       "zip_comment_len": 79,
       "zip_entries": 1,
+      "zip_first_entry_len": 17,
       "zip_flags": 0,
       "zip_names_entries": 1,
       "zip_names_len": 12,
       "zip_valid": 1
     },
+    "first_entry_sha256": "97eeb28716b38ab95d82fb17465f93d4c17409e18ae427057d05e8fb49880684",
     "path": "tests_data/rules_negative/docx_names_in_comment.zip",
     "view_sha256": "e55dc70f69b47a5c46b93d2300b65ef0cdad5e9f26a920b02936ac6a12c97a56"
   },
@@ -439,11 +469,13 @@
       "zip_cd_size": 140,
       "zip_comment_len": 0,
       "zip_entries": 2,
+      "zip_first_entry_len": 43,
       "zip_flags": 0,
       "zip_names_entries": 2,
       "zip_names_len": 51,
       "zip_valid": 1
     },
+    "first_entry_sha256": "e0b15dca501bf8ba1c8d616db9a73ce025ea485ddc938b2f3d6530f7a799ab5e",
     "path": "tests_data/rules_negative/jar_manifest_only.zip",
     "view_sha256": "427758092dae1858bea9bb345048af26cfa1d01b3606b36f46d5e64335452629"
   },
@@ -467,11 +499,13 @@
       "zip_cd_size": 0,
       "zip_comment_len": 0,
       "zip_entries": 0,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 0,
       "zip_names_len": 0,
       "zip_valid": 0
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/rules_negative/mz_garbage.bin",
     "view_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
   },
@@ -495,11 +529,13 @@
       "zip_cd_size": 111,
       "zip_comment_len": 0,
       "zip_entries": 2,
+      "zip_first_entry_len": 112,
       "zip_flags": 0,
       "zip_names_entries": 2,
       "zip_names_len": 22,
       "zip_valid": 1
     },
+    "first_entry_sha256": "65b9d05509ab8e0482e4adf13890c1703d27d0263296f3a49a2a15333200d459",
     "path": "tests_data/rules_negative/odf_deflated_mimetype.zip",
     "view_sha256": "8a6d6a13649c15f4bdcb49bd81de8aaa22de1535afce8ce6e0797844ab167e35"
   },
@@ -523,11 +559,13 @@
       "zip_cd_size": 111,
       "zip_comment_len": 0,
       "zip_entries": 2,
+      "zip_first_entry_len": 57,
       "zip_flags": 0,
       "zip_names_entries": 2,
       "zip_names_len": 80,
       "zip_valid": 1
     },
+    "first_entry_sha256": "16dc4e27940f19bf2ea810f97f7e5ed23a970e1e78d554cb0d18c0c61cc4ae4e",
     "path": "tests_data/rules_negative/odf_text_template.ott",
     "view_sha256": "707616b1de498fea7dd914f612d47efdff62082008c83bfdd30df92277a3a236"
   },
@@ -551,11 +589,13 @@
       "zip_cd_size": 0,
       "zip_comment_len": 0,
       "zip_entries": 0,
+      "zip_first_entry_len": 0,
       "zip_flags": 0,
       "zip_names_entries": 0,
       "zip_names_len": 0,
       "zip_valid": 0
     },
+    "first_entry_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
     "path": "tests_data/rules_negative/pe_lfanew_out_of_range.bin",
     "view_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
   },
@@ -579,11 +619,13 @@
       "zip_cd_size": 0,
       "zip_comment_len": 0,
       "zip_entries": 65535,
+      "zip_first_entry_len": 28,
       "zip_flags": 1,
       "zip_names_entries": 0,
       "zip_names_len": 0,
       "zip_valid": 0
     },
+    "first_entry_sha256": "e47e5f97884984c24527a43190eb155e63a117f0d64ca9b9e8174a2ba73280ea",
     "path": "tests_data/rules_negative/zip64_docx_names.zip",
     "view_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
   },
@@ -607,11 +649,13 @@
       "zip_cd_size": 55,
       "zip_comment_len": 0,
       "zip_entries": 1,
+      "zip_first_entry_len": 24,
       "zip_flags": 0,
       "zip_names_entries": 1,
       "zip_names_len": 11,
       "zip_valid": 1
     },
+    "first_entry_sha256": "31e2a82c6a8bc38612d99a7085f2e1c26cfb53d27e0941aa49211077a10d7dca",
     "path": "tests_data/rules_negative/zip_plain_names.zip",
     "view_sha256": "ffd64b1d99fbb16ff55e07ac0c296a610201d41488bb2bbd59e3e78c0f7041ee"
   }

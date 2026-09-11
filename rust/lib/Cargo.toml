@@ -17,7 +17,7 @@ features = ["_doc"]
 [features]
 cuda = ["magika-tract-runtime/cuda"]
 serde = ["dep:serde"]
-yara-rules = ["dep:yara-x-parser", "dep:regex-syntax", "dep:libloading", "dep:serde", "dep:serde_json", "dep:sha2", "dep:tempfile", "dep:libc"]
+yara-rules = ["dep:yara-x-parser", "dep:regex-syntax", "dep:libloading", "dep:serde", "dep:serde_json", "dep:sha2", "dep:tempfile", "dep:libc", "dep:miniz_oxide"]
 # Internal features.
 _doc = ["serde", "yara-rules"]
 
@@ -29,6 +29,7 @@ serde_json = { version = "1.0.120", optional = true }
 sha2 = { version = "0.10.9", optional = true }
 tempfile = { version = "3.23.0", optional = true }
 libc = { version = "0.2", optional = true }
+miniz_oxide = { version = "0.8.9", optional = true }
 anyhow = "1.0.104"
 magika-tract-runtime = { package = "magika-runtime", version = "0.0.1-dev", path = "../runtime" }
 ndarray = "0.17.1"

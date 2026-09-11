@@ -284,6 +284,7 @@ dependencies = [
  "libc",
  "libloading",
  "magika-runtime",
+ "miniz_oxide",
  "ndarray",
  "regex-syntax",
  "serde",

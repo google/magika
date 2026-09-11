@@ -20,7 +20,6 @@ for the reviewed formats, source comparisons, measured coverage and limitations.
 - `rulesets/full/`: rules with zero observed false positives and false negatives.
 - `rulesets/partial/`: zero observed false positives and some false negatives.
 - `rulesets/notworking/`: disabled rules with insufficient evidence or known failures.
-- `pending/`: measured rules whose labels are not Magika content types yet; never compiled.
 - `benchmark/`: one Python tool and its own pytest suite for correctness, coverage,
   disk throughput and memory. Its `src/` contains input handling, execution and reporting.
 - `package.py`: source staging and binary distribution helper, using Python's standard library.

@@ -389,6 +389,23 @@ rule taxonomy_ico
         and uint8(9) == 0 and uint32(14) >= 8 and uint32(18) >= 22
 }
 
+rule taxonomy_intelhex
+{
+	meta:
+        source_refs = "spec:Intel HEX record format"
+		label = "intelhex"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.011363636363636364
+
+    // Two leading Intel HEX records with uppercase digits and record types 00 to 05.
+    strings:
+        $records = /:[0-9A-F]{6}0[0-5][0-9A-F]{2,512}\r?\n:[0-9A-F]{6}0[0-5]/
+    condition:
+        $records at 0
+}
+
 rule taxonomy_jar
 {
 	meta:
@@ -581,6 +598,23 @@ rule taxonomy_ogg
 
     condition:
         prefix_size >= 28 and $header at 0 and uint32(18) == 0 and uint8(26) >= 1
+}
+
+rule taxonomy_osm_pbf
+{
+	meta:
+        source_refs = "spec:OpenStreetMap PBF format (OSMHeader blob)"
+		label = "osm"
+		enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.5943775100401606
+
+    // OSM PBF: a BlobHeader whose type is OSMHeader; OSM XML is not covered here.
+    strings:
+        $header = { 00 00 ?? ?? 0A 09 4F 53 4D 48 65 61 64 65 72 }
+    condition:
+        prefix_size >= 16 and $header at 0
 }
 
 rule taxonomy_pcap

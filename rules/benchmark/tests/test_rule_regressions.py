@@ -1012,6 +1012,64 @@ PREFIX_SIGNATURES = {
         b'{"asset":{"version":"2.0"},"scene":0,"scenes":[{"nodes":[0]}],"nodes":[{"mesh":0}]}',
         b'{"asset":{"version":"1.0"},"geometricError":500,"root":{"refine":"ADD","children":[]}}',
     ),
+    "minidump": (
+        b"MDMP\x93\xa7\0\0" + _u32(3) + _u32(32) + bytes(20),
+        b"MDMP\x93\xa7\0\0" + _u32(0) + _u32(32) + bytes(20),
+    ),
+    "hve": (
+        b"regf"
+        + _u32(2)
+        + _u32(2)
+        + bytes(8)
+        + _u32(1)
+        + _u32(5)
+        + _u32(0)
+        + _u32(1)
+        + _u32(32)
+        + bytes(8),
+        b"regf"
+        + _u32(2)
+        + _u32(2)
+        + bytes(8)
+        + _u32(1)
+        + _u32(99)
+        + _u32(0)
+        + _u32(1)
+        + _u32(32)
+        + bytes(8),
+    ),
+    "intelhex": (
+        b":100000000C9444070C94CA340C949F340C947434AB\r\n:00000001FF\r\n",
+        b":hello world\r\n:00000001FF\r\n",
+    ),
+    "grib": (b"GRIB\0\0\0\x02" + bytes(8), b"GRIB\0\0\0\x03" + bytes(8)),
+    "safetensors": (
+        (40).to_bytes(8, "little") + b'{"w":{"dtype":"F32","shape":[1]}}',
+        (40).to_bytes(8, "little") + b'{"w":{"shape":[1],"offsets":[0,4]}}',
+    ),
+    "pbm": (b"P6\n# made by hand\n32 32\n255\n" + bytes(10), b"P9\n32 32\n255\n" + bytes(10)),
+    "ply": (
+        b"ply\nformat ascii 1.0\nelement vertex 0\nend_header\n",
+        b"ply\nformat ascii 2.0\nelement vertex 0\nend_header\n",
+    ),
+    "geopackage": (
+        b"SQLite format 3\0" + bytes(52) + b"GPKG" + bytes(28),
+        b"SQLite format 3\0" + bytes(84),
+    ),
+    "cubin": (
+        b"\x7fELF\x02\x01\x01A" + bytes(8) + _u16(2) + _u16(190),
+        b"\x7fELF\x02\x01\x01\0" + bytes(8) + _u16(2) + _u16(62),
+    ),
+    "jng": (
+        b"\x8bJNG\r\n\x1a\n\0\0\0\x10JHDR" + bytes(4),
+        b"\x8bJNG\r\n\x1a\n\0\0\0\x0dJHDR" + bytes(4),
+    ),
+    "palmos": (
+        b"Calc".ljust(32, b"\0") + bytes(28) + b"applCALC" + bytes(8) + b"\x00\x03",
+        b"Calc".ljust(32, b"\0") + bytes(28) + b"dataCALC" + bytes(8) + b"\x00\x03",
+    ),
+    "nrrd": (b"NRRD0004\ntype: uint8\n", b"NRRD0009\ntype: uint8\n"),
+    "osm": (b"\0\0\0\x0d\x0a\x09OSMHeader\x18\x2f", b"\0\0\0\x0d\x0a\x07OSMData\x18\x2f\0\0\0\0"),
 }
 
 

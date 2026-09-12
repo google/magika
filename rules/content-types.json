@@ -18,24 +18,6 @@
     "is_text": false,
     "mime_type": null
   },
-  "bam": {
-    "description": "BAM alignment",
-    "extensions": [
-      "bam"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "beam": {
-    "description": "Erlang BEAM",
-    "extensions": [
-      "beam"
-    ],
-    "group": "executable",
-    "is_text": false,
-    "mime_type": null
-  },
   "berkeleydb": {
     "description": "Berkeley DB",
     "extensions": [
@@ -45,87 +27,10 @@
     "is_text": false,
     "mime_type": null
   },
-  "blend": {
-    "description": "Blender scene",
-    "extensions": [
-      "blend"
-    ],
-    "group": "geometry",
-    "is_text": false,
-    "mime_type": null
-  },
   "cinema4d": {
     "description": "Cinema 4D scene",
     "extensions": [
       "c4d"
-    ],
-    "group": "geometry",
-    "is_text": false,
-    "mime_type": null
-  },
-  "collada": {
-    "description": "COLLADA digital asset",
-    "extensions": [
-      "dae"
-    ],
-    "group": "geometry",
-    "is_text": true,
-    "mime_type": "model/vnd.collada+xml"
-  },
-  "cram": {
-    "description": "CRAM alignment",
-    "extensions": [
-      "cram"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "cubin": {
-    "description": "NVIDIA CUDA binary",
-    "extensions": [
-      "cubin"
-    ],
-    "group": "executable",
-    "is_text": false,
-    "mime_type": null
-  },
-  "dbase": {
-    "description": "dBASE / FoxPro table",
-    "extensions": [
-      "dbf"
-    ],
-    "group": "database",
-    "is_text": false,
-    "mime_type": null
-  },
-  "degas": {
-    "description": "Atari ST DEGAS image",
-    "extensions": [
-      "pi1",
-      "pi2",
-      "pi3",
-      "pc1",
-      "pc2",
-      "pc3"
-    ],
-    "group": "image",
-    "is_text": false,
-    "mime_type": null
-  },
-  "duckdb": {
-    "description": "DuckDB database",
-    "extensions": [
-      "duckdb"
-    ],
-    "group": "database",
-    "is_text": false,
-    "mime_type": null
-  },
-  "fbx": {
-    "description": "Autodesk FBX",
-    "extensions": [
-      "fbx"
     ],
     "group": "geometry",
     "is_text": false,
@@ -141,155 +46,10 @@
     "is_text": false,
     "mime_type": null
   },
-  "fits": {
-    "description": "FITS astronomy data",
-    "extensions": [
-      "fit",
-      "fits",
-      "fts"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
   "flatgeobuf": {
     "description": "FlatGeobuf",
     "extensions": [
       "fgb"
-    ],
-    "group": "gis",
-    "is_text": false,
-    "mime_type": null
-  },
-  "geojson": {
-    "description": "GeoJSON",
-    "extensions": [
-      "geojson"
-    ],
-    "group": "gis",
-    "is_text": true,
-    "mime_type": "application/geo+json"
-  },
-  "geopackage": {
-    "description": "OGC GeoPackage",
-    "extensions": [
-      "gpkg"
-    ],
-    "group": "gis",
-    "is_text": false,
-    "mime_type": "application/geopackage+sqlite3"
-  },
-  "gguf": {
-    "description": "GGUF",
-    "extensions": [
-      "gguf"
-    ],
-    "group": "model",
-    "is_text": false,
-    "mime_type": null
-  },
-  "gltf": {
-    "description": "glTF",
-    "extensions": [
-      "glb",
-      "gltf"
-    ],
-    "group": "geometry",
-    "is_text": false,
-    "mime_type": null
-  },
-  "gml": {
-    "description": "Geography Markup Language",
-    "extensions": [
-      "gml"
-    ],
-    "group": "gis",
-    "is_text": true,
-    "mime_type": "application/gml+xml"
-  },
-  "grib": {
-    "description": "GRIB meteorological data",
-    "extensions": [
-      "grb",
-      "grb2",
-      "grib",
-      "grib2"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "hdf4": {
-    "description": "HDF4",
-    "extensions": [
-      "h4",
-      "hdf"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "ilbm": {
-    "description": "Amiga IFF ILBM image",
-    "extensions": [
-      "iff",
-      "ilbm",
-      "lbm"
-    ],
-    "group": "image",
-    "is_text": false,
-    "mime_type": "image/x-ilbm"
-  },
-  "intelhex": {
-    "description": "Intel HEX",
-    "extensions": [
-      "hex",
-      "ihex"
-    ],
-    "group": "executable",
-    "is_text": true,
-    "mime_type": null
-  },
-  "keras": {
-    "description": "Keras model archive",
-    "extensions": [
-      "keras"
-    ],
-    "group": "model",
-    "is_text": false,
-    "mime_type": null
-  },
-  "kml": {
-    "description": "Keyhole Markup Language",
-    "extensions": [
-      "kml"
-    ],
-    "group": "gis",
-    "is_text": true,
-    "mime_type": "application/vnd.google-earth.kml+xml"
-  },
-  "kmz": {
-    "description": "Keyhole Markup Language archive",
-    "extensions": [
-      "kmz"
-    ],
-    "group": "gis",
-    "is_text": false,
-    "mime_type": "application/vnd.google-earth.kmz"
-  },
-  "koala": {
-    "description": "Commodore 64 Koala Painter image",
-    "extensions": [
-      "koa"
-    ],
-    "group": "image",
-    "is_text": false,
-    "mime_type": null
-  },
-  "las": {
-    "description": "LAS point cloud",
-    "extensions": [
-      "las"
     ],
     "group": "gis",
     "is_text": false,
@@ -305,87 +65,12 @@
     "is_text": false,
     "mime_type": null
   },
-  "llvm_bitcode": {
-    "description": "LLVM bitcode",
-    "extensions": [
-      "bc"
-    ],
-    "group": "executable",
-    "is_text": false,
-    "mime_type": null
-  },
   "lmdb": {
     "description": "LMDB",
     "extensions": [
       "mdb"
     ],
     "group": "database",
-    "is_text": false,
-    "mime_type": null
-  },
-  "luabytecode": {
-    "description": "Lua bytecode",
-    "extensions": [
-      "luac"
-    ],
-    "group": "executable",
-    "is_text": false,
-    "mime_type": null
-  },
-  "mat": {
-    "description": "MATLAB MAT data",
-    "extensions": [
-      "mat"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "mbtiles": {
-    "description": "MBTiles tile set",
-    "extensions": [
-      "mbtiles"
-    ],
-    "group": "gis",
-    "is_text": false,
-    "mime_type": null
-  },
-  "minidump": {
-    "description": "Windows minidump",
-    "extensions": [
-      "dmp",
-      "mdmp"
-    ],
-    "group": "application",
-    "is_text": false,
-    "mime_type": null
-  },
-  "netcdf": {
-    "description": "NetCDF",
-    "extensions": [
-      "cdf",
-      "nc"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "nifti": {
-    "description": "NIfTI neuroimaging data",
-    "extensions": [
-      "nii"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "nrrd": {
-    "description": "Nearly Raw Raster Data",
-    "extensions": [
-      "nhdr",
-      "nrrd"
-    ],
-    "group": "scientific",
     "is_text": false,
     "mime_type": null
   },
@@ -398,60 +83,12 @@
     "is_text": false,
     "mime_type": null
   },
-  "osm": {
-    "description": "OpenStreetMap data",
-    "extensions": [
-      "osm",
-      "pbf"
-    ],
-    "group": "gis",
-    "is_text": false,
-    "mime_type": null
-  },
   "paradox": {
     "description": "Paradox database",
     "extensions": [
       "db"
     ],
     "group": "database",
-    "is_text": false,
-    "mime_type": null
-  },
-  "pcapng": {
-    "description": "Packet capture PCAPNG",
-    "extensions": [
-      "pcapng"
-    ],
-    "group": "binary",
-    "is_text": false,
-    "mime_type": null
-  },
-  "ply": {
-    "description": "Polygon File Format",
-    "extensions": [
-      "ply"
-    ],
-    "group": "geometry",
-    "is_text": false,
-    "mime_type": null
-  },
-  "postgres_dump": {
-    "description": "PostgreSQL dump",
-    "extensions": [
-      "backup",
-      "dump",
-      "sql"
-    ],
-    "group": "database",
-    "is_text": false,
-    "mime_type": null
-  },
-  "qgis": {
-    "description": "QGIS project archive",
-    "extensions": [
-      "qgz"
-    ],
-    "group": "gis",
     "is_text": false,
     "mime_type": null
   },
@@ -466,127 +103,12 @@
     "is_text": false,
     "mime_type": null
   },
-  "redis_rdb": {
-    "description": "Redis snapshot",
-    "extensions": [
-      "rdb"
-    ],
-    "group": "database",
-    "is_text": false,
-    "mime_type": null
-  },
   "rhinoceros": {
     "description": "Rhino 3DM",
     "extensions": [
       "3dm"
     ],
     "group": "geometry",
-    "is_text": false,
-    "mime_type": null
-  },
-  "safetensors": {
-    "description": "Safetensors",
-    "extensions": [
-      "safetensors"
-    ],
-    "group": "model",
-    "is_text": false,
-    "mime_type": null
-  },
-  "sas": {
-    "description": "SAS dataset / transport",
-    "extensions": [
-      "sas7bdat",
-      "xpt"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "shapefile": {
-    "description": "ESRI Shapefile",
-    "extensions": [
-      "dbf",
-      "prj",
-      "shp",
-      "shx"
-    ],
-    "group": "gis",
-    "is_text": false,
-    "mime_type": null
-  },
-  "sketchup": {
-    "description": "SketchUp model",
-    "extensions": [
-      "skp"
-    ],
-    "group": "geometry",
-    "is_text": false,
-    "mime_type": null
-  },
-  "spirv": {
-    "description": "SPIR-V",
-    "extensions": [
-      "spv"
-    ],
-    "group": "executable",
-    "is_text": false,
-    "mime_type": null
-  },
-  "spss": {
-    "description": "SPSS dataset",
-    "extensions": [
-      "por",
-      "sav",
-      "zsav"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "stata": {
-    "description": "Stata dataset",
-    "extensions": [
-      "dta"
-    ],
-    "group": "scientific",
-    "is_text": false,
-    "mime_type": null
-  },
-  "step": {
-    "description": "ISO 10303 STEP CAD model",
-    "extensions": [
-      "step",
-      "stp"
-    ],
-    "group": "geometry",
-    "is_text": true,
-    "mime_type": "model/step"
-  },
-  "uf2": {
-    "description": "UF2 firmware",
-    "extensions": [
-      "uf2"
-    ],
-    "group": "executable",
-    "is_text": false,
-    "mime_type": null
-  },
-  "vib": {
-    "description": "VMware Installation Bundle",
-    "extensions": [
-      "vib"
-    ],
-    "group": "archive",
-    "is_text": false,
-    "mime_type": null
-  },
-  "xcoff": {
-    "description": "XCOFF",
-    "extensions": [
-      "o"
-    ],
-    "group": "executable",
     "is_text": false,
     "mime_type": null
   }

@@ -91,17 +91,20 @@ ZIP_FLAG_NAMES_TRUNCATED = 1 << 4
 ZIP_FLAG_PREPENDED = 1 << 5
 ZIP_FLAG_FIRST_ENTRY_FILLED = 1 << 6
 ZIP_FLAG_FIRST_ENTRY_UNDECODABLE = 1 << 7
-# Any of these bits clears `zip_valid`; names truncated and prepended data do not.
-_ZIP_INVALID = ZIP_FLAG_ZIP64 | ZIP_FLAG_MULTIDISK | ZIP_FLAG_CD_NOT_HELD | ZIP_FLAG_MALFORMED
+# Any of these bits clears `zip_valid`; a walked zip64 archive, names truncated and prepended
+# data do not.
+_ZIP_INVALID = ZIP_FLAG_MULTIDISK | ZIP_FLAG_CD_NOT_HELD | ZIP_FLAG_MALFORMED
 
 _LOCAL_SIGNATURE = b"PK\x03\x04"
 _CENTRAL_SIGNATURE = b"PK\x01\x02"
 _EOCD_SIGNATURE = b"PK\x05\x06"
 _ZIP64_LOCATOR_SIGNATURE = b"PK\x06\x07"
+_ZIP64_EOCD_SIGNATURE = b"PK\x06\x06"
 _LOCAL_HEADER_LEN = 30
 _CENTRAL_HEADER_LEN = 46
 _EOCD_LEN = 22
 _ZIP64_LOCATOR_LEN = 20
+_ZIP64_EOCD_LEN = 56
 _MIMETYPE_MAX_LEN = 128
 # The view sanitizer: 0x00 and 0x0A become 0x01 inside every line's payload.
 _SANITIZE = bytes.maketrans(b"\x00\n", b"\x01\x01")
@@ -141,6 +144,13 @@ def _u32(data, at):
     if at < 0 or at + 4 > len(data):
         return None
     return int.from_bytes(data[at : at + 4], "little")
+
+
+def _u64(data, at):
+    """The little-endian u64 at `at`; see `_u16`."""
+    if at < 0 or at + 8 > len(data):
+        return None
+    return int.from_bytes(data[at : at + 8], "little")
 
 
 def wants_tail(prefix):
@@ -188,10 +198,17 @@ def directory_start(tail, size):
     tail_start = size - len(tail)
     if eocd is None or tail_start < 0:
         return None
-    _, _, cd_size, _, flags = _decode_eocd(tail, eocd)
-    if flags or cd_size > ZIP_DIRECTORY_MAX_BYTES:
+    _, _, cd_size32, _, flags = _decode_eocd(tail, eocd)
+    resolved = _zip64_directory(tail, eocd, tail_start)
+    if resolved is not None:
+        _, cd_size, _, cd_end_abs = resolved
+    elif flags:
         return None
-    start = tail_start + eocd - cd_size
+    else:
+        cd_size, cd_end_abs = cd_size32, tail_start + eocd
+    if cd_size > ZIP_DIRECTORY_MAX_BYTES:
+        return None
+    start = cd_end_abs - cd_size
     return start if 0 <= start < tail_start else None
 
 
@@ -273,36 +290,75 @@ class _ViewWriter:
         return bytes(self.out)
 
 
+def _zip64_directory(tail, eocd, tail_start):
+    """The `(entries, cd_size, cd_offset, cd_end_abs)` of a zip64 archive whose zip64 end record
+    is held in `tail`, or None when there is no locator or its record is not held. `cd_end_abs`
+    is where the directory ends, i.e. where the zip64 end record begins.
+    """
+    locator = eocd - _ZIP64_LOCATOR_LEN
+    if locator < 0 or not tail[locator:].startswith(_ZIP64_LOCATOR_SIGNATURE):
+        return None
+    record_abs = _u64(tail, locator + 8)
+    if record_abs is None:
+        return None
+    at = record_abs - tail_start
+    if at < 0 or at + _ZIP64_EOCD_LEN > len(tail):
+        return None
+    record = tail[at : at + _ZIP64_EOCD_LEN]
+    if not record.startswith(_ZIP64_EOCD_SIGNATURE):
+        return None
+    entries, cd_size, cd_offset = _u64(record, 32), _u64(record, 40), _u64(record, 48)
+    if None in (entries, cd_size, cd_offset):
+        return None
+    return entries, cd_size, cd_offset, record_abs
+
+
 def _walk_directory(first, size, tail, eocd, view, facts):
     """Decodes the EOCD at `eocd` in `tail`, places the directory and walks its names."""
     tail_start = size - len(tail)
     if tail_start < 0:
         return
-    entries, comment_len, cd_size, cd_offset, flags = _decode_eocd(tail, eocd)
-    facts["zip_entries"] = entries
+    entries32, comment_len, cd_size32, cd_offset32, flags = _decode_eocd(tail, eocd)
+    facts["zip_entries"] = entries32
     facts["zip_comment_len"] = comment_len
-    if flags:
+    if flags & ZIP_FLAG_MULTIDISK:
         facts["zip_flags"] = flags
         return
-    facts["zip_cd_size"] = cd_size
-    # The directory is anchored at the EOCD, not at the declared offset.
     eocd_abs = tail_start + eocd
-    if cd_offset + cd_size < eocd_abs:
+    # The directory ends at the EOCD, or, for a zip64 archive, at the zip64 end record its
+    # locator points to. A claimed but unresolvable zip64 archive keeps its flag and is invalid.
+    resolved = _zip64_directory(tail, eocd, tail_start)
+    if resolved is not None:
+        flags |= ZIP_FLAG_ZIP64
+        entries, cd_size, cd_offset, cd_end_abs = resolved
+    elif flags & ZIP_FLAG_ZIP64:
+        facts["zip_flags"] = flags
+        return
+    else:
+        entries, cd_size, cd_offset, cd_end_abs = entries32, cd_size32, cd_offset32, eocd_abs
+    facts["zip_cd_size"] = min(cd_size, 0xFFFF_FFFF)
+    facts["zip_entries"] = min(entries, 0xFFFF)
+    if cd_offset + cd_size < cd_end_abs:
         flags |= ZIP_FLAG_PREPENDED
-    cd_abs = eocd_abs - cd_size
+    cd_abs = cd_end_abs - cd_size
     if cd_abs < 0:
         facts["zip_flags"] = flags | ZIP_FLAG_MALFORMED
         return
-    # The directory ends at the EOCD, so it is inside `tail` iff it starts there; `first`
+    # The directory ends at `cd_end_abs`, so it is inside `tail` iff it starts there; `first`
     # starts at 0, so it is inside `first` iff it ends there.
     if cd_abs >= tail_start:
-        directory = tail[cd_abs - tail_start : eocd]
-    elif eocd_abs <= len(first):
-        directory = first[cd_abs:eocd_abs]
+        start, end = cd_abs - tail_start, cd_end_abs - tail_start
+        if end > len(tail) or start > end:
+            facts["zip_flags"] = flags | ZIP_FLAG_MALFORMED
+            return
+        directory = tail[start:end]
+    elif cd_end_abs <= len(first):
+        directory = first[cd_abs:cd_end_abs]
     else:
         facts["zip_flags"] = flags | ZIP_FLAG_CD_NOT_HELD
         return
-    # Top-level names first, then nested ones: both passes walk the same headers.
+    # Top-level names first, then nested ones: both passes walk the same headers. A hostile
+    # entry count is bounded by the held directory, which `_entry_name` refuses to leave.
     for nested in (False, True):
         at, stopped = 0, False
         for _ in range(entries):

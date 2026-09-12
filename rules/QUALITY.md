@@ -665,19 +665,24 @@ none makes a wrong decision:
 | visio | 53 | 53 | taxonomy_visio (full) | `visio/document.xml` in the directory |
 | keras | 55 | 55 | taxonomy_keras (full) | the weights and metadata parts |
 | kmz | 126 | 98 | taxonomy_kmz (partial) | `doc.kml` in the directory |
-| 3mf | 181 | 116 | taxonomy_3mf (partial) | `3D/3dmodel.model` in the directory |
+| msix | 181 | 178 | taxonomy_msix (partial) | AppxManifest.xml and AppxBlockMap.xml |
+| 3mf | 181 | 179 | taxonomy_3mf (partial) | `3D/3dmodel.model` in the directory |
 
-Together with the osm PBF rule, osm reaches 249/249. The kmz and 3mf misses are packages
-whose central directory begins beyond the 256 KiB window. The model labels every one of
-these 1,003 files wrong (xml, zip, or an Office type), so each rule is a net gain with no
-accuracy cost, lifting corpus rule decisions to 17,763 with 0 enforced false positives, 0
-conflicts and 0 engine mismatches.
+Together with the osm PBF rule, osm reaches 249/249. The remaining kmz, msix and 3mf misses
+are packages whose central directory begins beyond the 256 KiB window. The model labels
+every one of these files wrong (xml, zip, or an Office type), so each rule is a net gain
+with no accuracy cost, lifting corpus rule decisions to 18,004 with 0 enforced false
+positives, 0 conflicts and 0 engine mismatches.
 
-MSIX is not covered: every corpus MSIX package is a zip64 archive, which the zip
-preprocessor does not parse, so its names never reach the view; a zip64 directory walk is
-the missing piece. The XML-root rules match the root element by a bounded search of the
-first 256 bytes rather than a true parse, so a document embedding one of these root tokens
-in its first quarter-kilobyte could match; none does on the corpus.
+MSIX and the zip64 3MF packages are decided because the zip preprocessor now walks zip64
+archives: when the end-of-central-directory record carries a zip64 locator whose zip64 end
+record is held, its 64-bit entry count, directory size and offset are read and the central
+directory is walked exactly as a 32-bit one, so every `zip_names` rule fires on zip64
+packages too (msix 0 to 178, 3mf 116 to 179). A zip64 archive whose end record is not held,
+or a sentinel without a locator, still reports a plain invalid zip. The XML-root rules match
+the root element by a bounded search of the first 256 bytes rather than a true parse, so a
+document embedding one of these root tokens in its first quarter-kilobyte could match; none
+does on the corpus.
 
 ### Sembiance validation and its four new rules
 

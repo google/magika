@@ -589,6 +589,20 @@ rule taxonomy_mscompress
         prefix_size >= 14 and $header at 0
 }
 
+rule taxonomy_msix
+{
+	meta:
+        source_refs = "spec:MSIX/AppX package (OPC zip with AppxManifest.xml and AppxBlockMap.xml)"
+		label = "msix"
+        enforced = true
+        class = "partial"
+        fp_rate = 0
+        fn_rate = 0.016574585635359115
+    // MSIX/AppX package: a zip whose central directory names the AppX manifest and block map.
+    condition:
+        zip_valid == 1 and zip_names contains "\nAppxManifest.xml\n" and zip_names contains "\nAppxBlockMap.xml\n"
+}
+
 rule taxonomy_netcdf
 {
 	meta:

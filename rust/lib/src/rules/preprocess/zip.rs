@@ -29,17 +29,23 @@
 //!    0xFFFFFFFF in the directory size (u32 at 12) or offset (16), or a zip64 locator
 //!    (`PK\x06\x07`, 20 bytes) ending exactly where the EOCD starts. Bit 1 (multi-disk)
 //!    is set when the disk or directory disk is nonzero or the per-disk count differs
-//!    from the total. Either bit ends the directory analysis: `cd_size` and the `names_*`
-//!    facts stay zero and no name is written.
-//! 4. **Directory placement.** `cd_size` is reported. The directory is anchored at the
-//!    EOCD, not at the declared offset: it is the `cd_size` bytes ending at the EOCD's
-//!    absolute offset `eocd_abs = size - tail.len() + position`, so it starts at
-//!    `eocd_abs - cd_size`. This keeps self-extractors walkable, and it is deliberate: any
-//!    bytes between the directory's end and the EOCD (a `PK\x05\x05` digital signature
-//!    record, say) shift the anchor into the directory, so such an archive reads as
-//!    malformed and prepended. A reimplementation must mirror this. Bit 5 (prepended
-//!    data) is set when the declared offset (u32 at 16) plus `cd_size` is smaller than
-//!    `eocd_abs`. A `cd_size` beyond `eocd_abs` sets bit 3 (malformed) and ends the
+//!    from the total. Multi-disk ends the directory analysis. Zip64 does not: when the
+//!    locator's zip64 end-of-central-directory record (`PK\x06\x06`) lies inside `tail`
+//!    at the absolute offset the locator names (u64 at locator + 8), its 64-bit total
+//!    entries (offset 32), directory size (40) and directory offset (48) override the
+//!    32-bit fields, and the directory ends where that record begins. A zip64 archive
+//!    whose record is not held, or that carries a sentinel without a locator, keeps bit 0
+//!    and reports a plain invalid zip: `cd_size` and the `names_*` facts stay zero.
+//! 4. **Directory placement.** `cd_size` is reported, saturated to a u32. The directory is
+//!    anchored at its end, not at the declared offset: it is the `cd_size` bytes ending at
+//!    `cd_end_abs`, the EOCD's absolute offset `eocd_abs = size - tail.len() + position`
+//!    for a plain archive, or the zip64 end record's absolute offset for a zip64 one. So
+//!    it starts at `cd_end_abs - cd_size`. This keeps self-extractors walkable, and it is
+//!    deliberate: any bytes between the directory's end and the anchor (a `PK\x05\x05`
+//!    digital signature record, say) shift the anchor into the directory, so such an
+//!    archive reads as malformed and prepended. A reimplementation must mirror this. Bit 5
+//!    (prepended data) is set when the declared offset plus `cd_size` is smaller than
+//!    `cd_end_abs`. A `cd_size` beyond `cd_end_abs` sets bit 3 (malformed) and ends the
 //!    analysis. The directory must lie entirely inside `tail` or, failing that, entirely
 //!    inside `first`; otherwise bit 2 (not held) is set and the analysis ends.
 //! 5. **Walk.** The directory is walked in two passes, each reading up to `entries` headers
@@ -54,7 +60,8 @@
 //!    passes. `names_entries` counts written names.
 //! 6. **Terminator.** If any line was written, a final `\n` follows it. `names_len` is the
 //!    total number of bytes written; bytes beyond it are left untouched (zero).
-//! 7. `valid` is set iff an EOCD was found and bits 0 to 3 are all clear.
+//! 7. `valid` is set iff an EOCD was found and bits 1 to 3 (multi-disk, not held, malformed)
+//!    are clear; bit 0 (zip64) does not bar a walked archive.
 //! 8. **First entry.** When `first` starts with a local file header whose flags (u16 at 6)
 //!    have neither bit 0 (encrypted) nor bit 3 (sizes in a data descriptor) set, whose
 //!    method (u16 at 8) is 0 (stored) or 8 (deflated), whose name (`name_len`, u16 at 26,
@@ -74,7 +81,7 @@ use miniz_oxide::inflate::core::inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUT
 use miniz_oxide::inflate::core::{decompress, DecompressorOxide};
 use miniz_oxide::inflate::TINFLStatus;
 
-use super::{u16_at, u32_at, ZIP_FIRST_ENTRY_BYTES, ZIP_NAMES_BYTES};
+use super::{u16_at, u32_at, u64_at, ZIP_FIRST_ENTRY_BYTES, ZIP_NAMES_BYTES};
 
 /// Largest central directory read on its own when the tail window does not hold it.
 pub(super) const ZIP_DIRECTORY_MAX_BYTES: u32 = 256 * 1024;
@@ -100,10 +107,13 @@ const LOCAL_SIGNATURE: &[u8] = b"PK\x03\x04";
 const CENTRAL_SIGNATURE: &[u8] = b"PK\x01\x02";
 const EOCD_SIGNATURE: &[u8] = b"PK\x05\x06";
 const ZIP64_LOCATOR_SIGNATURE: &[u8] = b"PK\x06\x07";
+const ZIP64_EOCD_SIGNATURE: &[u8] = b"PK\x06\x06";
 const LOCAL_HEADER_LEN: usize = 30;
 const CENTRAL_HEADER_LEN: usize = 46;
 const EOCD_LEN: usize = 22;
 const ZIP64_LOCATOR_LEN: usize = 20;
+/// Bytes of a zip64 end-of-central-directory record read for its 64-bit counts and offsets.
+const ZIP64_EOCD_LEN: usize = 56;
 /// Longest stored `mimetype` payload copied into the view.
 const MIMETYPE_MAX_LEN: u32 = 128;
 
@@ -213,35 +223,65 @@ fn walk_directory(
     let record = Eocd::decode(tail, eocd);
     facts.entries = record.entries;
     facts.comment_len = record.comment_len;
-    if record.flags != 0 {
+    if record.flags & FLAG_MULTIDISK != 0 {
         facts.flags |= record.flags;
         return;
     }
-    facts.cd_size = record.cd_size;
     let eocd_abs = tail_start + eocd as u64;
-    if u64::from(record.cd_offset) + u64::from(record.cd_size) < eocd_abs {
+    // The directory ends at the EOCD, or, for a zip64 archive, at the zip64 end record its
+    // locator points to. Resolve the 64-bit entry count, size and offsets: a zip64 archive
+    // whose end record is not held (or that carries a sentinel without a locator) keeps its
+    // flag and reports a plain invalid zip, exactly as before zip64 was walked.
+    let (entries, cd_size, cd_offset, cd_end_abs) = match zip64_directory(tail, eocd, tail_start) {
+        Some(resolved) => {
+            facts.flags |= FLAG_ZIP64;
+            resolved
+        }
+        None if record.flags & FLAG_ZIP64 != 0 => {
+            facts.flags |= record.flags;
+            return;
+        }
+        None => (
+            u64::from(record.entries),
+            u64::from(record.cd_size),
+            u64::from(record.cd_offset),
+            eocd_abs,
+        ),
+    };
+    facts.cd_size = cd_size.min(u64::from(u32::MAX)) as u32;
+    facts.entries = entries.min(u64::from(u16::MAX)) as u16;
+    if cd_offset.saturating_add(cd_size) < cd_end_abs {
         facts.flags |= FLAG_PREPENDED;
     }
-    let Some(cd_abs) = eocd_abs.checked_sub(u64::from(record.cd_size)) else {
+    let Some(cd_abs) = cd_end_abs.checked_sub(cd_size) else {
         facts.flags |= FLAG_MALFORMED;
         return;
     };
-    // The directory ends at the EOCD, so it is inside `tail` iff it starts there; `first`
+    // The directory ends at `cd_end_abs`, so it is inside `tail` iff it starts there; `first`
     // starts at 0, so it is inside `first` iff it ends there.
     let directory = if cd_abs >= tail_start {
-        &tail[(cd_abs - tail_start) as usize..eocd]
-    } else if eocd_abs <= first.len() as u64 {
-        // Reached with production blocks only when a long archive comment keeps the EOCD
-        // inside `first` while the 16 KiB tail starts after the directory.
-        &first[cd_abs as usize..eocd_abs as usize]
+        let (start, end) = ((cd_abs - tail_start) as usize, (cd_end_abs - tail_start) as usize);
+        match tail.get(start..end) {
+            Some(slice) => slice,
+            None => {
+                facts.flags |= FLAG_MALFORMED;
+                return;
+            }
+        }
+    } else if cd_end_abs <= first.len() as u64 {
+        // Reached with production blocks only when a long archive comment keeps the end
+        // record inside `first` while the 16 KiB tail starts after the directory.
+        &first[cd_abs as usize..cd_end_abs as usize]
     } else {
         facts.flags |= FLAG_CD_NOT_HELD;
         return;
     };
-    // Top-level names first, then nested ones: both passes walk the same headers.
+    // Top-level names first, then nested ones: both passes walk the same headers. A hostile
+    // entry count is harmless: `entry_name` fails once `at` leaves the held directory, which
+    // bounds the walk to the directory's own length no matter how large `entries` claims to be.
     'passes: for nested in [false, true] {
         let mut at = 0;
-        for _ in 0..record.entries {
+        for _ in 0..entries {
             let Some((name, len)) = entry_name(directory, at) else {
                 facts.flags |= FLAG_MALFORMED;
                 break 'passes;
@@ -258,8 +298,26 @@ fn walk_directory(
             facts.names_entries += 1;
         }
     }
-    facts.valid =
-        facts.flags & (FLAG_ZIP64 | FLAG_MULTIDISK | FLAG_CD_NOT_HELD | FLAG_MALFORMED) == 0;
+    facts.valid = facts.flags & (FLAG_MULTIDISK | FLAG_CD_NOT_HELD | FLAG_MALFORMED) == 0;
+}
+
+/// Resolves the directory of a zip64 archive. When the EOCD at `eocd` carries a zip64 locator
+/// whose zip64 end-of-central-directory record lies inside `tail`, returns the total entry
+/// count, the directory size, the directory offset field and the absolute offset at which the
+/// directory ends (where the zip64 end record begins). `None` when there is no locator or its
+/// record is not held, in which case the caller falls back to the 32-bit fields.
+fn zip64_directory(tail: &[u8], eocd: usize, tail_start: u64) -> Option<(u64, u64, u64, u64)> {
+    let locator = eocd.checked_sub(ZIP64_LOCATOR_LEN)?;
+    if !tail[locator..].starts_with(ZIP64_LOCATOR_SIGNATURE) {
+        return None;
+    }
+    let record_abs = u64_at(tail, locator + 8)?;
+    let at = usize::try_from(record_abs.checked_sub(tail_start)?).ok()?;
+    let record = tail.get(at..at.checked_add(ZIP64_EOCD_LEN)?)?;
+    if !record.starts_with(ZIP64_EOCD_SIGNATURE) {
+        return None;
+    }
+    Some((u64_at(record, 32)?, u64_at(record, 40)?, u64_at(record, 48)?, record_abs))
 }
 
 /// The name of the central directory header at `at` and the length of the whole entry,
@@ -326,10 +384,18 @@ pub(super) fn directory_start(tail: &[u8], size: u64) -> Option<u64> {
     let eocd = find_eocd(tail)?;
     let record = Eocd::decode(tail, eocd);
     let tail_start = size.checked_sub(tail.len() as u64)?;
-    if record.flags != 0 || record.cd_size > ZIP_DIRECTORY_MAX_BYTES {
+    let eocd_abs = tail_start + eocd as u64;
+    // A zip64 archive extends from its zip64 end record when that record is held in `tail`;
+    // otherwise only a plain, single-disk archive is followed.
+    let (cd_size, cd_end_abs) = match zip64_directory(tail, eocd, tail_start) {
+        Some((_, cd_size, _, cd_end_abs)) => (cd_size, cd_end_abs),
+        None if record.flags != 0 => return None,
+        None => (u64::from(record.cd_size), eocd_abs),
+    };
+    if cd_size > u64::from(ZIP_DIRECTORY_MAX_BYTES) {
         return None;
     }
-    let start = (tail_start + eocd as u64).checked_sub(u64::from(record.cd_size))?;
+    let start = cd_end_abs.checked_sub(cd_size)?;
     (start < tail_start).then_some(start)
 }
 
@@ -500,7 +566,8 @@ pub(super) mod tests {
             assert_eq!((names[0], names[names_len - 1]), (b'\n', b'\n'), "{facts:?}");
         }
         if facts.valid {
-            assert_eq!(facts.flags & 0b1111, 0, "{facts:?}");
+            // A valid archive may be zip64 (bit 0); only multi-disk, not-held and malformed bar it.
+            assert_eq!(facts.flags & 0b1110, 0, "{facts:?}");
         }
     }
 

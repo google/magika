@@ -245,6 +245,11 @@ fn u32_at(bytes: &[u8], at: usize) -> Option<u32> {
     Some(u32::from_le_bytes(bytes.get(at..at.checked_add(4)?)?.try_into().ok()?))
 }
 
+/// The little-endian u64 at `at`; see [`u16_at`].
+fn u64_at(bytes: &[u8], at: usize) -> Option<u64> {
+    Some(u64::from_le_bytes(bytes.get(at..at.checked_add(8)?)?.try_into().ok()?))
+}
+
 /// Derives stream B for one input into a fresh allocation; see [`Synthetic::prepare`].
 /// Production scans reuse a thread-local `Synthetic` instead.
 #[cfg(test)]

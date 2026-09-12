@@ -752,6 +752,7 @@ def names_archive(*names, comment=b""):
     [
         ((b"[Content_Types].xml", b"xl/workbook.xml"), "xlsx"),
         ((b"doc.kml", b"files/overlay.png"), "kmz"),
+        ((b"AppxManifest.xml", b"AppxBlockMap.xml", b"[Content_Types].xml"), "msix"),
         ((b"3D/3dmodel.model", b"[Content_Types].xml"), "3mf"),
         ((b"project.qgs", b"project.qgd"), "qgis"),
         ((b"visio/document.xml", b"[Content_Types].xml"), "visio"),
@@ -796,6 +797,8 @@ def test_central_directory_names_decide_the_package(scan_rules, names, label):
         (b"assets/AndroidManifest.xml", b"classes.dex"),
         (b"notes.txt",),
         (b"other.kml",),
+        (b"AppxManifest.xml",),
+        (b"AppxBlockMap.xml",),
         (b"3D/other.model",),
         (b"metadata.json", b"config.json"),
         (b"visio/masters.xml",),

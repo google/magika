@@ -84,7 +84,8 @@ def analyze(first, size, tail):
     if view:
         assert view[0] == view[-1] == 0x0A
     if facts["zip_valid"]:
-        assert facts["zip_flags"] & 0b1111 == 0
+        # A valid archive may be zip64 (bit 0); only multi-disk, not-held and malformed bar it.
+        assert facts["zip_flags"] & 0b1110 == 0
     return facts, view
 
 

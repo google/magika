@@ -20,6 +20,7 @@ for the reviewed formats, source comparisons, measured coverage and limitations.
 - `rulesets/full/`: rules with zero observed false positives and false negatives.
 - `rulesets/partial/`: zero observed false positives and some false negatives.
 - `rulesets/notworking/`: disabled rules with insufficient evidence or known failures.
+- `pending/`: measured rules whose labels are not Magika content types yet; never compiled.
 - `benchmark/`: one Python tool and its own pytest suite for correctness, coverage,
   disk throughput and memory. Its `src/` contains input handling, execution and reporting.
 - `package.py`: source staging and binary distribution helper, using Python's standard library.
@@ -139,64 +140,6 @@ are never silently dropped. Use `original_size` for actual length; YARA `filesiz
 would describe only the scanned prefix and is rejected. No imports, decompression,
 full-file scanning or runtime condition interpreter is used.
 
-### Preprocessor facts and views
-
-Two bounded preprocessors derive integer facts from the first 4 KiB block, the input
-size and, for archives only, the last 16 KiB, extended back to the start of a central
-directory of at most 256 KiB that begins before it. A condition compares a fact like any
-unsigned integer (`pe_machine == 0x8664`, `zip_flags == 0`). A facts rule never matches
-an input no preprocessor touched: the facts stream is scanned only when a preprocessor
-produced something, and the compiler rejects a rule that an all-zero header and an
-empty view would satisfy (`pe_is_dll == 0` alone, say), so anchor every facts rule on a
-nonzero fact such as `zip_valid == 1` or `pe_valid == 1`, or on a view membership. The
-facts, with the flag bits spelled out in `rust/lib/src/rules/preprocess/{zip,pe}.rs`, are:
-
-| fact | meaning |
-|------|---------|
-| `original_size`, `prefix_size` | the input length and the scanned prefix length, as before |
-| `zip_valid` | 1 when an end-of-central-directory record was found and the directory parsed |
-| `zip_flags` | zip64 (1), multi-disk (2), directory not held (4), malformed (8), names truncated (16), prepended data (32), first entry filled its view (64), first entry undecodable (128) |
-| `zip_entries` | total entry count declared by the end record |
-| `zip_names_entries` | central directory names written into `zip_names` |
-| `zip_names_len` | bytes written into `zip_names` |
-| `zip_comment_len` | archive comment length |
-| `zip_cd_size` | declared central directory size |
-| `zip_first_entry_len` | bytes written into `zip_first_entry` |
-| `pe_valid` | 1 when `MZ`, `PE\0\0`, a known optional header and a held section table agree |
-| `pe_flags` | section table not held (1), certificate beyond file (2), unknown optional magic (4), section beyond file (8) |
-| `pe_machine`, `pe_characteristics` | COFF machine and characteristics |
-| `pe_subsystem`, `pe_dll_characteristics`, `pe_magic` | optional header subsystem, DLL characteristics and magic (0x10b, 0x20b) |
-| `pe_sections` | declared section count |
-| `pe_clr`, `pe_signed` | 1 when the CLR runtime header, or an in-file certificate table, is present |
-| `pe_overlay` | bytes after the furthest section's raw data (headers are never overlay) |
-| `pe_is_dll`, `pe_is_executable_image` | characteristics bits 0x2000 and 0x0002 |
-
-`zip_names` is a view, not a fact: the central directory names of an archive, each
-written as `\n` followed by the name with `\0` and `\n` bytes replaced by `\x01`, with
-one final `\n` after the last name. Top-level names (no `/`) come first, then nested
-names, each group in directory order, so a large `res/` tree cannot crowd out
-`classes.dex`. An archive whose first entry is a stored `mimetype` file of at most 128
-bytes opens the view with a `\nmimetype=<data>` line ahead of the names. A condition
-tests a view with `zip_names contains "..."` or `zip_names startswith "..."` and a
-literal string only; wrapping the name in `\n` (`zip_names contains
-"\nword/document.xml\n"`) makes the test a whole-name match. Names are written until one
-would overflow the 4096-byte view; the rest are dropped and the names-truncated bit (16)
-of `zip_flags` is set.
-
-`zip_first_entry` is a second view: when the archive's first local entry is stored or
-deflated, neither encrypted nor streamed with a data descriptor, and held whole in the
-first 4 KiB, it holds that entry's name, `\n`, then its data, inflated and truncated to
-16 KiB. Office Open XML packages usually store `[Content_Types].xml` first, so
-`zip_first_entry startswith "[Content_Types].xml\n"` plus a declared content type
-separates documents from templates and binary workbooks, which list the same parts.
-
-Facts and views are scanned on a synthetic stream separate from the prefix, so one
-rule cannot relate them to prefix bytes: a rule mixing prefix patterns, `uintN(...)`
-reads or regexes with facts or views is a compile error, and so is combining a prefix
-helper with a facts helper, since requirements follow references. A format needing
-both kinds of evidence gets two rules, one per stream. `original_size` and
-`prefix_size` are available on both sides.
-
 The Rust interfaces are `RulesMode`, `Builder::with_rules_mode`, and `RuleSet` source/file
 loading and compiled-pack export. Existing extraction entry points retain rules-off
 behavior. A ruled result's score of 1 denotes a deterministic decision, not probability.
@@ -244,23 +187,6 @@ The tool has its own generated Parquet fixtures and does not need a downloaded c
 for unit tests. Set `MAGIKA_TEST_BINARY` and `MAGIKA_VECTORSCAN_LIBRARY`, then run
 `uv run --directory rules pytest --run-native -m native` for actual-product integration.
 An explicitly requested native suite fails if its dependencies are absent.
-
-YARA-X is the reference engine for every rule decision. It scans the same 4 KiB prefix
-as the native engine, and the preprocessor facts and the `zip_names` view reach it as
-globals: `magika_rules_benchmark.preprocess` reimplements the two native preprocessors
-in Python from the same held blocks (`read_tail`, `prepare`), and the runner and test
-fixtures declare every fact as an integer global and the view as a bytes global before
-compiling (`define_globals`), then set them per input (`set_globals`). The facts of a
-family that did not fire reach YARA-X as zeros, which is why the native compiler's
-rejection of rules an all-zero header would satisfy matters: on every rule it accepts,
-the two engines agree. `benchmark/tests/
-test_preprocess.py` pins that reimplementation to the native contract with the ported
-Rust fixtures, and honours `benchmark/tests/golden/preprocess.json`, the native facts
-and view digests of the container, executable and probe fixtures under `tests_data`.
-A Rust test writes that file from the native preprocessors and its companion asserts
-they still reproduce it; regenerate it after a fixture or contract change with
-`MAGIKA_WRITE_GOLDEN=$PWD/rules/benchmark/tests/golden/preprocess.json cargo test
---manifest-path rust/lib/Cargo.toml --features yara-rules golden_facts`.
 
 ## Maintainer packaging
 

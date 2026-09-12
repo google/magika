@@ -310,3 +310,403 @@ Additional format sources: [gzip](https://www.rfc-editor.org/rfc/rfc1952),
 [GPAC's FileTypeBox reader](https://github.com/gpac/gpac/blob/master/src/isomedia/box_code_base.c),
 [LZ4 frame specification](https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md),
 [Zstandard frame specification](https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md).
+
+## Container and PE preprocessor rules
+
+The zip and PE preprocessors (`rust/lib/src/rules/preprocess/`) derive integer facts
+and two views from the first block, the input size and, for archives, the last 16 KiB,
+extended back to a central directory of at most 256 KiB that starts before it. Rules on
+that stream decide Office Open XML, OpenDocument, JAR, APK and EPUB packages from whole
+central directory names, the stored `mimetype` entry and the content type declared in
+an inflated `[Content_Types].xml` first entry, and PE images from the COFF and optional
+headers. Every prior `PK\x03\x04` candidate for these formats matched 6.5% of
+other-label files; the lifted rules match none.
+
+Evidence: the adjudicated combined corpus (`snapshot-b2f86528d705`, the
+`snapshot-1411a5c0fd4a` snapshot with the 250 byte-verified truth corrections of
+rules/pending/corpus-corrections.json applied, 25,421 whole files, hydrated at
+`tmp/comparison-mmap-spike-24b86573/files` of the code lane's worktree), scanned
+by the release CLI built from this change
+(`cargo build --release --manifest-path rust/cli/Cargo.toml --features yara-rules`,
+CPU runtime from `rust/runtime-plugin`, Vectorscan 5.4.13) through
+`magika_rules_benchmark.runner.observe`: the product in `--rules=off` and
+`--rules=enforce` per 128-file batch, and YARA-X with the Python facts oracle as the
+reference. Native and reference decisions agree on every file: 13,630 rule decisions
+(53.62% of the corpus, up from 9,624 = 37.86% before the preprocessors), 0 enforced
+false positives, 0 conflicts, 0 reference errors, 0 engine mismatches. The run script,
+summary and raw rows (`task5-parity.py`, `parity-summary.json`, `parity-rows.json.gz`)
+are recorded with the change: binary SHA-256 `66d0292e…`, pack `02b4d30c…`, raw rows
+`3d60a816…`.
+
+| Label | Files | Correct | Wrong | Precision | Recall | Rules |
+|---|---:|---:|---:|---:|---:|---|
+| docx | 522 | 498 | 0 | 1.000 | 0.954 | taxonomy_docx |
+| dotx | 184 | 177 | 0 | 1.000 | 0.962 | taxonomy_dotx |
+| xlsb | 170 | 158 | 0 | 1.000 | 0.929 | taxonomy_xlsb |
+| xlsx | 125 | 125 | 0 | 1.000 | 1.000 | taxonomy_xlsx |
+| pptx | 90 | 86 | 0 | 1.000 | 0.956 | taxonomy_pptx |
+| jar | 117 | 80 | 0 | 1.000 | 0.684 | taxonomy_jar |
+| odt | 101 | 77 | 0 | 1.000 | 0.762 | taxonomy_odt |
+| ods | 113 | 98 | 0 | 1.000 | 0.867 | taxonomy_ods |
+| odp | 101 | 98 | 0 | 1.000 | 0.970 | taxonomy_odp |
+| epub | 123 | 95 | 0 | 1.000 | 0.772 | taxonomy_epub (95), taxonomy_epub_names (88) |
+| apk | 613 | 606 | 0 | 1.000 | 0.989 | taxonomy_apk (468), taxonomy_apk_names (606) |
+| pe (`pebin`) | 2,578 | 2,574 | 0 | 1.000 | 0.998 | taxonomy_pebin |
+
+Recall is the union of the rules per label; each rule's own `fn_rate` metadata is its
+single-rule miss rate on this corpus, and xlsx, with no miss, moves to the `full`
+bucket. The names walk covers the whole directory, top-level names first, and a
+directory that starts before the tail window is read on its own up to 256 KiB (the
+largest in the corpus spans 171 KB); together they took APK names recall from 541 to
+606, pptx from 80 to 86, jar from 62 to 80 and xlsx from 117 to 125. The remaining
+misses are structural: resource-only JARs with a manifest but no `.class`, one zip64
+epub, OpenDocument or EPUB packages whose `mimetype` entry is deflated, not first or
+carries an extra field so no `mimetype=` line is written (24 odt, 15 ods, 3 odp, 35
+epub for the names rule), and four PE images, three with the undocumented machine
+0xEC20 and one with subsystem 0.
+
+Docx, dotx and xlsb are decided from the first entry. A Word document and a template
+list the same parts and differ only in the main content type declared inside
+`[Content_Types].xml`, which Office writes as the archive's first entry, deflated and
+small enough to lie whole in the first 4 KiB. The rules inflate it into
+`zip_first_entry` and test the declared type (document or macro-enabled document,
+template or macro-enabled template, binary workbook). The misses are packages whose
+first entry is not a held content types stream: 18 docx and 1 dotx streamed with a
+data descriptor, 5 docx, 6 dotx and 12 xlsb whose first entry is another part, and one
+docx whose content types stream does not fit the first block.
+
+The AAR probe in `tests_data/rules_negative` found the previous `taxonomy_apk`
+manifest-first branch accepting any archive that opens with `AndroidManifest.xml`, an
+Android library included. That branch now also needs a `classes.dex` or `resources.arsc`
+local entry within the prefix, which 467 of the 570 manifest-first corpus APKs carry,
+and `taxonomy_apk_names` decides the rest from the directory. Union recall is 606/613
+(0.989), above the 605/613 of the looser prefix rule it replaces, and an Android
+library no longer receives a deterministic wrong label.
+
+Regressions: `rules/benchmark/tests/test_rule_regressions.py` exercises each lifted
+rule with hand-built archives and PE images (positive layouts, lookalike names, names
+in comments or member data, names beyond the view, split and zip64 end records,
+OpenDocument subtypes and deflated or misplaced `mimetype` entries, PE machine,
+subsystem, characteristics and header-holding boundaries), the nine crafted probes in
+`tests_data/rules_negative` (`RESULTS.md`), and the real fixtures under `tests_data`
+through the native parity test. `rules/benchmark/tests/golden/preprocess.json` pins
+the native facts and both view digests of 22 fixtures for the Python oracle; regenerate it
+with `MAGIKA_WRITE_GOLDEN=<path> cargo test --manifest-path rust/lib/Cargo.toml
+--features yara-rules golden_facts`.
+
+### Timing
+
+Whole-process rules-only timings on the shared Apple Silicon host, warm caches,
+Hyperfine 1.20.0 with `--shell=none`. "Before" is the code lane's distributed CLI
+(`tmp/rules-pr-worktree/target/distrib/magika-cli-aarch64-apple-darwin/magika`,
+SHA-256 `3775430d…`, bundled rules without container or PE rules); "after" is the
+release CLI of this change (SHA-256 `9c7fab4a…`). The 1,000-file rows replay the
+corpus's saved workloads (`workloads.json`, hit mixes defined by the earlier rule set)
+with tool defaults, 1 warmup and 10 runs; the single-file rows use 3 warmups and 40
+runs. Speed is unchanged: the preprocessors run only for `PK`/`MZ` prefixes, the
+archive tail read costs one bounded `pread`, and the facts stream is scanned only when
+a preprocessor produced something.
+
+| Workload (`--rules=only`) | before, mean ± σ | after, mean ± σ |
+|---|---:|---:|
+| one PNG (`basic/png/magika_test.png`) | 2.8 ± 0.1 ms | 3.0 ± 0.1 ms |
+| one docx (`basic/docx/doc.docx`, 292 KB) | 2.9 ± 0.1 ms | 3.1 ± 0.1 ms |
+| one PE (`mitra/pebin/pe64.exe`) | 2.8 ± 0.0 ms | 3.0 ± 0.1 ms |
+| 1,000 files, natural mix | 60.5 ± 1.7 ms | 60.4 ± 0.4 ms |
+| 1,000 files, 0% hits | 59.1 ± 0.6 ms | 59.5 ± 0.3 ms |
+| 1,000 files, 100% hits | 57.1 ± 0.9 ms | 57.2 ± 0.4 ms |
+
+The 0.2 ms single-file difference is the binary build, not the rules: on the same
+after binary, the PNG takes 3.3 ± 0.1 ms with the before pack (`--rules-file`) and
+3.3 ± 0.0 ms with the after pack (60 runs, `isolate-png.json`), and the startup traces
+differ only in the source hashing of the larger pack (`rules_cache_identity` 0.48 ms
+against 0.60 ms; `native_scan` 51 µs against 33 µs). The distributed before binary was
+built by `rust/build-runtime.py`; the after binary by a plain release build.
+
+The directory read, the top-level-first walk and the first-entry view were re-timed
+against the same before binary with 5 warmups and 100 runs, two alternating rounds per
+binary, on the same host under load (load average 2.4 to 4.1), so these rows are noisier
+than the table above:
+
+| Input (`--rules=only`) | decision before → after | before, two rounds | after, two rounds |
+|---|---|---:|---:|
+| `basic/png/magika_test.png` | unknown → unknown | 3.6, 3.6 ms | 3.8, 3.7 ms |
+| corpus docx, `[Content_Types].xml` first (`001ea7af…`) | unknown → docx | 3.8, 3.7 ms | 3.9, 3.9 ms |
+| corpus apk, directory before the 16 KiB window (`0b725900…`) | unknown → apk | 4.3, 4.1 ms | 4.7, 3.8 ms |
+| `mitra/pebin/pe64.exe` | unknown → pebin | 4.4, 3.9 ms | 4.1, 5.5 ms |
+
+The spread between rounds of one binary (up to 1.6 ms) exceeds every before/after
+difference, so no regression is measurable at this resolution; a quiet-host rerun is
+owed before quoting sub-millisecond deltas.
+
+The same corpus run through `magika-compare` (config, results and observations under
+`tmp/task4/compare-run`, `results.json` SHA-256 `971fda7b…`, revision
+`96e16f91-dirty-task4`, 3 runs after 1 warmup, tool defaults) measures rules-only
+medians of 3.08 ms (before) and 3.40 ms (after) for one file and 60.16 ms and 59.20 ms
+for the natural 1,000-file workload, rules + ML on CPU at 3.40 ms and 141.98 ms, and
+records the quality above for every tool: before rules-only 9,624 decisions, after
+12,700, both at precision 1.0 with zero errors; rules + ML accuracy 78.95% on the
+corpus. The run is not a protocol 1.2.x catalogue entry: it measures four Magika
+configurations for this change, not the cross-tool default set.
+
+## Prefix signatures for labels the model lacks or misses
+
+Ani, arrow, pcapng and xcoff are Magika content types the model cannot output. On the
+adjudicated combined corpus it labels animated cursors mostly as ico, pcapng captures
+mostly as pcap or unknown, XCOFF objects mostly as unknown, coff or elf, and Arrow IPC
+files as unknown or txt, so every such file is wrong without a rule. Each rule reads its
+format's fixed header and decides every file of its label with no wrong decision. The
+five disabled `notworking` candidates they replace matched two to six bytes of magic.
+
+The model does output pem and postscript. Their rules decide only files the model
+already labels correctly, so they skip inference without changing accuracy. The model's
+pem errors are 57 VMware ESX VIB packages (ar archives opening with a `descriptor.xml`
+member) that carry the pem truth label, and two text files, an installer script and a
+log, that do not open with a PEM block. Its PostScript errors are files that open with
+`%!` but carry no `%!PS-Adobe` header. The PostScript rule requires that ten-byte header,
+because a bare `%!PS` opening is shorter than the eight observed bytes every active rule
+needs.
+
+Evidence: the corpus, runner and oracle of the preprocessor section above, with the
+release CLI and bundled pack of this change (binary SHA-256 `0d929936…`, pack
+`13b7408c…`, raw rows `96c3e046…`). Native and reference decisions agree on every file:
+14,128 rule decisions, up from 13,630 before these rules, with 0 enforced false
+positives, 0 conflicts, 0 reference errors and 0 engine mismatches. The per-label rows of
+the preprocessor table are unchanged.
+
+| Label | Files | Rule correct | Wrong | Model correct | Rule (bucket) | Signature |
+|---|---:|---:|---:|---:|---|---|
+| ani | 100 | 100 | 0 | 0 | taxonomy_ani (full) | `RIFF` with form type `ACON` |
+| arrow | 7 | 7 | 0 | 0 | taxonomy_arrow (full) | `ARROW1` padded to eight bytes |
+| pcapng | 117 | 117 | 0 | 0 | taxonomy_pcapng (full) | Section Header Block, byte-order magic, version 1 |
+| xcoff | 105 | 105 | 0 | 0 | taxonomy_xcoff (full) | XCOFF32 or XCOFF64 magic, auxiliary header size, 1 to 1,024 sections |
+| pem | 171 | 109 | 0 | 112 | taxonomy_pem (partial) | RFC 7468 certificate and key labels at offset 0 |
+| postscript | 161 | 60 | 0 | 79 | taxonomy_postscript (partial) | `%!PS-Adobe` at offset 0 |
+
+The pem rule misses 62 files. Fifty-nine are the files above that do not open with a PEM
+block; the other three hold a PEM block after a comment line, after blank lines, or after
+PKCS#12 bag attributes. The PostScript rule misses 101 files. Eighty-two are files the
+model also gets wrong, 80 of them with binary bytes within 64 bytes of the `%!`. The
+other 19 are labeled correctly by the model: 9 Adobe font lists (`%!Adobe-FontList`), 2
+bare `%!PS` openings, 2 binary openings and 6 bare `%!` openings followed by comments or
+code.
+
+Rule shape matters for the compiled pack more than rule count. Long hex strings with
+wildcards and multi-byte range comparisons multiply anchored automaton states: the first
+drafts of ani (`RIFF ?? ?? ?? ?? ACON`) and pcapng (with a four-byte block-length range)
+compiled to 1,804,208 bytes, and a hex alternation for the XCOFF auxiliary header size
+added 75 KB more. The kept forms read the ani form type as one exact integer and put the
+pcapng version inside its literal. Compiled with `magika --compile-rules`, two runs each:
+
+| Bundled pack | Compiled size | Compile time |
+|---|---:|---:|
+| without the six rules | 1,660,464 bytes | 9.47 s, 9.36 s |
+| first rule drafts | 1,804,208 bytes | 11.5 s, 11.5 s |
+| this change | 1,782,896 bytes | 11.17 s, 11.00 s |
+
+Whole-process rules-only timings use the release binary of this change with each pack
+through `--rules-file`, Hyperfine 1.20.0 with `--shell=none`, on the shared host under
+load (load average 6.1 to 6.5). The single-file row uses 3 warmups and 40 runs; the
+1,000-file rows replay the saved workloads above, whose hit mixes predate these rules,
+with 1 warmup and 10 runs. Every difference is inside the spread, so the six rules add no
+measurable scan time; the extra compile time is paid once per rule cache.
+
+| Workload (`--rules=only`) | without the six rules | with the six rules |
+|---|---:|---:|
+| one PNG (`basic/png/magika_test.png`) | 3.6 ± 0.2 ms | 3.4 ± 0.2 ms |
+| 1,000 files, natural mix | 66.9 ± 1.7 ms | 65.6 ± 0.6 ms |
+| 1,000 files, 0% hits | 70.4 ± 7.2 ms | 67.4 ± 4.6 ms |
+
+Thirteen more signatures measured on the same corpus decide labels that are not Magika
+content types: minidump, hve, intelhex, grib, safetensors, pbm, ply, geopackage, cubin,
+jng, palmos, nrrd and OSM PBF. The compiler refuses a rule whose label is not canonical,
+disabled rules included, so they wait in `rules/pending/taxonomy-candidates.yar` with
+their measured miss rates until the taxonomy gains those labels.
+
+Regressions: `test_prefix_signatures_for_labels_the_model_lacks_or_misses` in
+`rules/benchmark/tests/test_rule_regressions.py` checks a positive and a near miss for
+each label, including a bare `%!PS` opening, and the crafted `xcoff_2bytes.bin` probe in
+`tests_data/rules_negative` abstains.
+
+### ASF, ASCII FBX, LuaJIT and JSON glTF
+
+After the prefix signatures, a whole-corpus ranking of the files rules plus the model
+still label wrong put four canonical labels near the top that the model cannot output
+and rules only partly covered: ASF (0 of 861 decided), FBX (137 of 165), Lua bytecode
+(77 of 178) and glTF (101 of 167). Each gap had one structural cause and a header that
+separates it:
+
+- All 861 ASF files open with the header object GUID, 4 to 13 header objects and the
+  reserved bytes 1 and 2. `taxonomy_asf` moves from `notworking` to `full` with those
+  checks. It labels every ASF container asf, as the adjudicated corpus does; the
+  taxonomy's wma and wmv labels have no corpus samples, and separating them needs stream
+  properties beyond the header.
+- The 28 FBX misses are ASCII exports opening with the SDK header comment
+  `; FBX 7.3.0 project file`, which `taxonomy_fbx` now accepts beside the binary header.
+- The 101 Lua bytecode misses are LuaJIT 2 dumps. Their flags use only the strip and FR2
+  bits; 91 stripped dumps continue with the first prototype's length, flags, parameter
+  count and frame size, and 10 carry a chunk name starting with `@`. `taxonomy_luabytecode`
+  accepts both shapes and moves from `partial` to `full`.
+- The 66 JSON glTF files open with the accessor array (35) or a flat asset object (31),
+  and no other corpus file opens with a glTF top-level key. Accessor-first files name
+  `"componentType"` within 82 bytes; asset-first files follow the asset object with
+  `scene`, `scenes`, `accessors` or a `KHR_`/`EXT_` extension list. `taxonomy_gltf`
+  anchors both shapes at offset 0, so ordinary JSON fails at its first key, and a 3D
+  Tiles tileset, which also opens with an asset object, abstains at the key after it.
+
+| Label | Files | Decided before | Decided after | Wrong | Rule (bucket) |
+|---|---:|---:|---:|---:|---|
+| asf | 861 | 0 | 861 | 0 | taxonomy_asf (full, from notworking) |
+| fbx | 165 | 137 | 165 | 0 | taxonomy_fbx (full) |
+| luabytecode | 178 | 77 | 178 | 0 | taxonomy_luabytecode (full, from partial) |
+| gltf | 167 | 101 | 167 | 0 | taxonomy_gltf (full) |
+
+Evidence: the same corpus, runner and oracle, with the release CLI and bundled pack of
+this change (binary SHA-256 `fc1fc49d…`, pack `2913a6c5…`, raw rows `2d5e0591…`).
+Native and reference decisions agree on every file: 15,184 rule decisions, up from
+14,128, with 0 enforced false positives, 0 conflicts, 0 reference errors and 0 engine
+mismatches. None of the four labels is a model output, so the model decides none of
+these files correctly.
+
+The compiled pack grows from 1,782,896 to 1,900,464 bytes and compiles in 11.37 s
+and 11.88 s, against 10.67 s and 10.84 s before. The LuaJIT branches are the largest
+share (60,672 bytes when swapped in alone); one merged LuaJIT pattern was both weaker
+and larger (1,852,784 bytes). A first JSON glTF draft searched for `"version"`, `"nodes"`
+and `"accessors"` anywhere in the prefix, which ordinary JSON files match; the anchored
+form costs 6,336 more pack bytes and produces no match on them.
+
+Rules-only timings on the same release binary with each pack through `--rules-file`,
+Hyperfine 1.20.0 with `--shell=none`, 2 warmups and 15 runs per round, packs alternated
+over three rounds on the shared host under load (one-minute load average 3.2 to 3.6):
+
+| Workload (`--rules=only`) | committed pack, three rounds | this change, three rounds |
+|---|---:|---:|
+| 1,000 files, natural mix | 67.8, 67.3, 67.2 ms | 67.7, 69.8, 67.8 ms |
+| 1,000 files, 0% hits | 66.4, 66.3, 66.2 ms | 66.9, 67.0, 66.5 ms |
+
+The medians differ by 0.5 ms on the natural mix and 0.6 ms on the 0% hits mix per 1,000
+files, under 1% and at the edge of the round-to-round spread, so any scan-time cost of the
+four rules is below about 0.6 µs per file at this resolution.
+
+PDF stays without a rule. All 310 corpus PDFs open with `%PDF-` and no other label does,
+but the model labels 208 of them ai, and Illustrator files are PDF-compatible and open
+with `%PDF-` too; the model outputs both labels, so a prefix rule would override a
+distinction it cannot see.
+
+Regressions: the prefix signature table in `rules/benchmark/tests/test_rule_regressions.py`
+gains a positive and a near miss for asf (reserved bytes 1 and 1), fbx (no version),
+luabytecode (an unknown LuaJIT flag bit) and gltf (a 3D Tiles tileset).
+
+### VMware bundles, Illustrator artwork and the corpus corrections
+
+Three sets of files carried a truth label that their own bytes disprove. The corpus
+labels are auto-derived (`label_basis` "trid_and_local_file_model_gap_v1; not independent
+re-adjudication"), so byte-exact evidence overrides them, the way the model's own
+prediction did for the seven APK splits of patch 136.
+
+- 57 files labelled pem are VMware Installation Bundles: a Unix ar archive whose first
+  member is `descriptor.xml` holding a `<vib version="...">` root. The signature sits at
+  fixed offsets (ar magic at 0, `descriptor.xml` at 8, `<vib version` at 68) and appears
+  in exactly those 57 files of the 25,421. `taxonomy_vib` decides all 57; the new `vib`
+  output label carries them. The model labelled them deb, the other ar-archive package.
+- 191 files labelled pdf are Adobe Illustrator artwork: they embed Illustrator private
+  and editing data (`/PieceInfo << /Illustrator`, `AIPrivateData`) or declare
+  `illustrator:Type>Document`. That evidence sits 43 KB to 990 KB into the file, past the
+  4 KiB a rule sees, so no rule decides them, but Magika's model already predicts ai for
+  all 191. The correction credits a model that was right; it changes no code.
+- 2 files labelled pem are a PowerShell installer and a tab-separated log, each with one
+  PEM block embedded 1 to 3 KB in. Their primary content is the script and the log, which
+  the model already predicts (powershell, tsv).
+
+The corrections are an evaluation-local truth overlay in
+`identity.label_adjudication.changes`, applied to `samples[].truth` and recorded with
+per-file evidence in `rules/pending/corpus-corrections.json` (250 changes: 191 pdf to ai,
+57 pem to vib, one each pem to powershell and pem to tsv). The corrected snapshot's truth
+digest is `b2f86528…` (`accepted_sha_truth_digest`) and `27e48c7c…` (with size). Folding
+these into the published dataset digests is separate catalogue work.
+
+Evidence, against the corrected snapshot (bytes unchanged, truth from the overlay): 16,754
+rule decisions, 0 enforced false positives, 0 conflicts, 0 engine mismatches.
+
+| Label | Files | Model correct | Rule correct | Rule (bucket) |
+|---|---:|---:|---:|---|
+| vib | 57 | 0 | 57 | taxonomy_vib (full) |
+| ai | 191 | 191 | 0 | model only (evidence past 4 KiB) |
+| pdf | 119 | 102 | 0 | model only |
+| pem | 112 | 112 | 109 | taxonomy_pem (partial) |
+
+Before the correction the corpus scored the model wrong on all 191 Illustrator files and
+counted a correct pem rule against 57 bundles it never claimed. PDF keeps no rule: every
+corpus PDF opens with `%PDF-`, but so does Illustrator artwork, and the distinguishing
+bytes are too deep for the prefix; the model already separates them.
+
+Regressions: `test_prefix_signatures_for_labels_the_model_lacks_or_misses` gains a vib
+positive (ar header built to land the descriptor at byte 68) and a near miss (a Debian ar
+archive whose first member is `debian-binary`, which abstains).
+
+### XML dialects and more zip packages
+
+The 28 output labels added for the corpus formats let the rules those labels enable
+finally ship. Each targets files the model has no class for and answers with a generic
+label: XML dialects it calls xml, and zip packages it calls zip or an Office type.
+
+Four XML-root rules read the bounded prefix and match the document's root element, with a
+zip guard (`uint16(0) != 0x4B50`) so a stored copy of the format inside a zip does not
+match. Five zip rules read the `zip_names` central-directory view. On the corrected corpus
+none makes a wrong decision:
+
+| Label | Files | Decided | Rule (bucket) | Signature |
+|---|---:|---:|---|---|
+| collada | 182 | 182 | taxonomy_collada (full) | `<COLLADA` root |
+| gpx | 166 | 166 | taxonomy_gpx (full) | `<gpx` root |
+| kml | 151 | 151 | taxonomy_kml (full) | `<kml` root |
+| osm | 249 | 249 | taxonomy_osm (partial) + taxonomy_osm_pbf | `<osm` root, or the PBF blob |
+| qgis | 40 | 40 | taxonomy_qgis (full) | a `.qgs` project in the directory |
+| visio | 53 | 53 | taxonomy_visio (full) | `visio/document.xml` in the directory |
+| keras | 55 | 55 | taxonomy_keras (full) | the weights and metadata parts |
+| kmz | 126 | 98 | taxonomy_kmz (partial) | `doc.kml` in the directory |
+| 3mf | 181 | 116 | taxonomy_3mf (partial) | `3D/3dmodel.model` in the directory |
+
+Together with the osm PBF rule, osm reaches 249/249. The kmz and 3mf misses are packages
+whose central directory begins beyond the 256 KiB window. The model labels every one of
+these 1,003 files wrong (xml, zip, or an Office type), so each rule is a net gain with no
+accuracy cost, lifting corpus rule decisions to 17,763 with 0 enforced false positives, 0
+conflicts and 0 engine mismatches.
+
+MSIX is not covered: every corpus MSIX package is a zip64 archive, which the zip
+preprocessor does not parse, so its names never reach the view; a zip64 directory walk is
+the missing piece. The XML-root rules match the root element by a bounded search of the
+first 256 bytes rather than a true parse, so a document embedding one of these root tokens
+in its first quarter-kilobyte could match; none does on the corpus.
+
+### Sembiance validation and its four new rules
+
+The rules are tuned on the adjudicated combined corpus, so the test that matters is an
+independent one. Run over the Sembiance v3 corpus (2,400 files, 167 truth labels, a
+retro-computing distribution the adjudicated corpus does not overlap), the bundled rules
+make 804 decisions with 0 enforced false positives, 0 conflicts and 0 engine mismatches.
+The zero-false-positive gate holds off-distribution.
+
+Auditing Sembiance the same way as the adjudicated corpus (one-directional model
+disagreements, and a magic-vs-truth signature scan) found no byte-provable label errors:
+the gif files that fail the magic check are MacBinary-wrapped (a 128-byte header before
+the GIF payload, whose label is still gif), and the pem outliers carry a text preamble
+before the armor. It surfaced four formats the model has no class for, each with a clean
+signature that matches nothing else across both corpora (147,000+ files):
+
+| Label | Sembiance files | Decided | Rule (bucket) | Signature |
+|---|---:|---:|---|---|
+| pgp | 10 | 10 | taxonomy_pgp (full) | `-----BEGIN PGP ` armor |
+| step | 11 | 11 | taxonomy_step (full) | the `ISO-10303-21;` header |
+| ilbm | 124 | 110 | taxonomy_ilbm (partial) | a FORM whose type is ILBM, ACBM or PBM |
+| koala | 35 | 29 | taxonomy_koala (partial) | the compressed Koala header |
+| degas | 121 | 49 | taxonomy_degas (partial) | resolution word 0-2 and the 32034/32066-byte screen dump |
+
+pgp was a canonical label already; its disabled `notworking` rule (a two-byte binary
+alternative with a measured false positive) is removed in favour of the armor rule. The
+ilbm, step and koala output labels are added. The adjudicated-corpus gate is unchanged:
+none of these labels has a file there, and none of the four rules fires on one.
+
+Other Sembiance formats are left without a rule. printfox, pcpaint, acorn_sprite and iges resolve on structure a bounded prefix
+cannot fix (only uncompressed Degas, at its exact screen size, is decidable), and iso's `CD001` marker sits at offset 32769, far beyond the 4 KiB the rules
+see. Adding those would need either a real parse or a new preprocessor.

@@ -323,8 +323,8 @@ headers. Every prior `PK\x03\x04` candidate for these formats matched 6.5% of
 other-label files; the lifted rules match none.
 
 Evidence: the adjudicated combined corpus (`snapshot-b2f86528d705`, the
-`snapshot-1411a5c0fd4a` snapshot with the 250 byte-verified truth corrections of
-rules/pending/corpus-corrections.json applied, 25,421 whole files, hydrated at
+`snapshot-1411a5c0fd4a` snapshot with the 250 byte-verified truth corrections folded
+into its `identity.label_adjudication.changes`, 25,421 whole files, hydrated at
 `tmp/comparison-mmap-spike-24b86573/files` of the code lane's worktree), scanned
 by the release CLI built from this change
 (`cargo build --release --manifest-path rust/cli/Cargo.toml --features yara-rules`,
@@ -517,11 +517,11 @@ measurable scan time; the extra compile time is paid once per rule cache.
 | 1,000 files, natural mix | 66.9 ± 1.7 ms | 65.6 ± 0.6 ms |
 | 1,000 files, 0% hits | 70.4 ± 7.2 ms | 67.4 ± 4.6 ms |
 
-Thirteen more signatures measured on the same corpus decide labels that are not Magika
-content types: minidump, hve, intelhex, grib, safetensors, pbm, ply, geopackage, cubin,
-jng, palmos, nrrd and OSM PBF. The compiler refuses a rule whose label is not canonical,
-disabled rules included, so they wait in `rules/pending/taxonomy-candidates.yar` with
-their measured miss rates until the taxonomy gains those labels.
+Thirteen more signatures measured on the same corpus decide labels the model does not
+predict: minidump, hve, intelhex, grib, safetensors, pbm, ply, geopackage, cubin, jng,
+palmos, nrrd and OSM PBF. The taxonomy has since gained these labels (OSM PBF under
+`osm`), so each ships as an enforced rule in `rulesets/` with its measured miss rate,
+rather than waiting as a non-canonical candidate.
 
 Regressions: `test_prefix_signatures_for_labels_the_model_lacks_or_misses` in
 `rules/benchmark/tests/test_rule_regressions.py` checks a positive and a near miss for
@@ -618,15 +618,16 @@ prediction did for the seven APK splits of patch 136.
   PEM block embedded 1 to 3 KB in. Their primary content is the script and the log, which
   the model already predicts (powershell, tsv).
 
-The corrections are an evaluation-local truth overlay in
-`identity.label_adjudication.changes`, applied to `samples[].truth` and recorded with
-per-file evidence in `rules/pending/corpus-corrections.json` (250 changes: 191 pdf to ai,
-57 pem to vib, one each pem to powershell and pem to tsv). The corrected snapshot's truth
-digest is `b2f86528…` (`accepted_sha_truth_digest`) and `27e48c7c…` (with size). Folding
-these into the published dataset digests is separate catalogue work.
+The corrections are made in the corpus's own `identity.label_adjudication.changes` — the
+mechanism it already uses for the APK adjudications of patch 136 — and applied to
+`samples[].truth` (250 changes: 191 pdf to ai, 57 pem to vib, one each pem to powershell
+and pem to tsv), each carrying the per-file byte evidence above. The corrected corpus's
+truth digest is `b2f86528…` and `27e48c7c…` (with size); folding these into the published
+dataset digests is separate catalogue work.
 
-Evidence, against the corrected snapshot (bytes unchanged, truth from the overlay): 16,754
-rule decisions, 0 enforced false positives, 0 conflicts, 0 engine mismatches.
+Evidence, against the corrected snapshot (bytes unchanged, truth from the adjudication
+changes): 16,754 rule decisions, 0 enforced false positives, 0 conflicts, 0 engine
+mismatches.
 
 | Label | Files | Model correct | Rule correct | Rule (bucket) |
 |---|---:|---:|---:|---|

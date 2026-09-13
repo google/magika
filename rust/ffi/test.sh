@@ -20,7 +20,15 @@ x cargo check
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
 
-x cargo build --release
+# The static library leaves its dependencies' native libraries to the linker, and they depend on the
+# target: macOS needs the Metal and Objective-C runtime frameworks. rustc reports them only when it
+# compiles the crate, so rebuild it rather than hard-code a list.
+x cargo clean --release --package ffi
+build=$(cargo rustc --release --lib -- --print native-static-libs 2>&1) ||
+  { printf '%s\n' "$build"; error 'building the C library failed'; }
+native_libs=$(printf '%s\n' "$build" | sed -n 's/^note: native-static-libs: //p')
+[ -n "$native_libs" ] || error 'rustc did not report the native libraries of the static library'
+info "Native libraries of the static library: $native_libs"
 
 compile_test() {
   x $cc -fsanitize=address,undefined -fno-omit-frame-pointer "$@"
@@ -31,6 +39,7 @@ compile_test() {
 TARGET_DIR=../target/release
 for cc in gcc clang; do
   which $cc >/dev/null 2>&1 || continue
-  compile_test -Iinclude test.c $TARGET_DIR/libmagika.a -lpthread -ldl -lm -o test
+  # Word splitting is intended: the native libraries are separate linker arguments.
+  compile_test -Iinclude test.c $TARGET_DIR/libmagika.a $native_libs -o test
   compile_test -Iinclude test.c -L$TARGET_DIR -lmagika -Wl,-rpath,$TARGET_DIR -o test
 done

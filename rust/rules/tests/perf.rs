@@ -1,6 +1,7 @@
-//! Compile and scan budgets. The assertions are CI ceilings, not targets.
+//! Compile and scan budgets. The assertions are CI ceilings, not targets, and hold for
+//! optimized builds only: `test.sh` runs this test with `--release`.
 
-#![cfg(feature = "bundled")]
+#![cfg(all(feature = "bundled", not(debug_assertions)))]
 
 use std::hint::black_box;
 use std::time::Instant;

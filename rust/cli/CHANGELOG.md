@@ -8,6 +8,7 @@
 
 ### Patch
 
+- Report named pipes, sockets and devices as `unsupported_file_type` instead of blocking a reader on them
 - Bound `--batch-size` to 1 through 64 and `--threads` and `--readers` to 1 through 256 when parsing, instead of panicking on large values
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies

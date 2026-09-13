@@ -596,6 +596,14 @@ fn process_path(
     if metadata.is_symlink() {
         return Ok(ProcessPath::Ruled(FileType::Symlink));
     }
+    // A reader would block forever on a named pipe and cannot read a socket or a device.
+    if !metadata.is_file() {
+        return Err(std::io::Error::new(
+            ErrorKind::Unsupported,
+            format!("unsupported non-regular file: {}", path.display()),
+        )
+        .into());
+    }
     Ok(ProcessPath::Content)
 }
 
@@ -664,6 +672,7 @@ enum JsonError {
     Unknown,
     FileDoesNotExist,
     PermissionError,
+    UnsupportedFileType,
 }
 
 #[derive(Serialize)]
@@ -679,6 +688,7 @@ impl From<anyhow::Error> for JsonError {
             Some(x) => match x.kind() {
                 ErrorKind::NotFound => JsonError::FileDoesNotExist,
                 ErrorKind::PermissionDenied => JsonError::PermissionError,
+                ErrorKind::Unsupported => JsonError::UnsupportedFileType,
                 _ => JsonError::Unknown,
             },
             _ => JsonError::Unknown,

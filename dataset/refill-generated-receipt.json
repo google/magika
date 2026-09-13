@@ -1,0 +1,19 @@
+{
+ "added": 401,
+ "added_by_class": {
+  "empty": 1,
+  "randomascii": 100,
+  "randombytes": 100,
+  "randomtxt": 100,
+  "symlinktext": 100
+ },
+ "label_status_counts": {
+  "validated_origin": 401
+ },
+ "policy": "Generated samples are labelled by a generated: origin that regenerates to the recorded SHA-256.",
+ "runs": [
+  {"added": 400, "leads": 401, "not_added": {"unverified": 1}, "note": "randombytes index 41 was held back by an unrelated IGES refutation"},
+  {"added": 1, "leads": 1, "not_added": {}, "note": "after provenance stopped treating other formats' refutations as a veto"}
+ ],
+ "samples": 71296
+}

@@ -1,0 +1,18 @@
+{
+  "scope": "Classes added after the 473-class freeze. Appended at the next ordinal; published ordinals never move.",
+  "classes": [
+    {
+      "format_id": "vib",
+      "name": "VMware Installation Bundle",
+      "categories": ["archive"],
+      "extensions": ["vib"],
+      "metadata": {
+        "class_role": "format",
+        "aliases": [],
+        "mimes": [],
+        "reason": "The rules-engine handover adjudicates 57 samples labelled pem as vib, and a truth correction may only name a class the taxonomy defines.",
+        "source": "tmp/db-pr-handover/DB_PR_HANDOVER.md"
+      }
+    }
+  ]
+}

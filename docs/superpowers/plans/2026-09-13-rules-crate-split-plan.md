@@ -15,6 +15,8 @@ This is the single source of truth. There is no separate design document.
 5. **Gates are hard.** A failing gate stops the work; do not weaken a threshold to pass it. If a gate looks wrong, stop and report.
 6. **Report outcomes exactly.** Paste gate output, not summaries of it.
 7. **Do not touch** `rust/lib`, `rust/cli`, `python`, `js`, `.github` in Part B except the two lines Task 8 names.
+8. **The rules benchmark tool is another lane's.** Nothing under `rules/` except the rulesets and `LICENSES` is ported, moved, or planned here.
+9. **The evaluation corpus is `dataset/`** (on `worktree/dataset`): 71,296 whole files, labels in `samples.parquet` (`format_id`, `label_status`), bytes in `dataset/local/corpus/objects/<2>/<64>`. Only `validated_*` labels count as truth; detector labels are hints.
 
 ---
 
@@ -134,7 +136,7 @@ One internal module `magika::rules` holds every feature gate, the label mapping 
 
 ### 2.4 What is deleted from the PR and never ported
 
-`rust/lib/src/rules/{native,cache,mapped,engine}.rs`, `rust/lib/src/startup_trace.rs`, `rules/native/**`, `rules/package.py`, `rules/benchmarks/**` (generated reports; publish as a release asset), commit `233708ae` (Windows DLL search flags), `--compile-rules`, `.hsdb` packs, the CI Vectorscan build.
+`rust/lib/src/rules/{native,cache,mapped,engine}.rs`, `rust/lib/src/startup_trace.rs`, `rules/native/**`, `rules/package.py`, commit `233708ae` (Windows DLL search flags), `--compile-rules`, `.hsdb` packs, the CI Vectorscan build.
 
 ### 2.5 Migration map
 
@@ -162,6 +164,7 @@ Every gate is a command with an expected result. Gates G1 to G8 belong to Part B
 | **G5 matcher** | `cargo test --locked --lib matcher` | 7 new + ported hex tests pass |
 | **G6 scan** | `cargo test --locked --test scan` | all pass, including 5 ported engine tests |
 | **G6b corpus (zero FP)** | `cargo test --locked --release --test corpus -- --nocapture` | 0 false positives over `tests_data`; hit count printed and recorded |
+| **G6c dataset (zero FP)** | `MAGIKA_RULES_DATASET=<manifest> cargo test --locked --release --test dataset -- --ignored --nocapture` | 0 false positives over `validated_*` samples of `dataset/`; hits, disagreements on unverified samples, and scan throughput printed and recorded; not run in CI |
 | **G7 perf** | `cargo test --locked --release --test perf -- --nocapture` | compile < 200 ms and scan < 500 us (CI ceilings); printed line recorded in the PR; expected order: compile single-digit ms, scan < 20 us |
 | **G8 hermetic** | the five greps and `cargo tree` in Task 8 | no env reads, no `unsafe`, no `magika` coupling, no globals; direct deps exactly `memchr regex-automata regex-syntax yara-x-parser` |
 | **G-all** | `cd rust/rules && ./test.sh` | exit 0 (check, test, fmt, clippy `-D warnings`, doc) |
@@ -185,7 +188,7 @@ All branches start from `origin/main` (`e6a4c8ef` at the time of writing).
 | 2 | `split/fix-cli-limits` | `c4762f68`, `e8b99770` | cherry-pick both; keep the `rust/lib` hunk of `c4762f68` | CLI rejects unsafe limits, keeps output on pipeline errors |
 | 3 | `split/fix-prefix-double-read` | `1124388c` | cherry-pick | One read for small files |
 | 4 | `split/fix-tract-runtime` | `b20a5797`, `6630956a`, `d618d0e2`, `bc1a6426`, `26978c45`, `78e326e3`, `ba3b776b`, `dd14b1be` | cherry-pick in order; resolve `rust/lib` hunks of `bc1a6426`/`dd14b1be` by hand | GPU batch plan and conv padding correctness |
-| 5 | `split/fix-release-scripts` | `543bf0eb` (drop its `rules/benchmark` hunk), `1bba16ab`, `e49587d2` | cherry-pick, then `git checkout HEAD -- rules/` | Portable release scripts, CI credential hygiene |
+| 5 | `split/fix-release-scripts` | `543bf0eb` (drop its `rules/` hunk), `1bba16ab`, `e49587d2` | cherry-pick, then `git checkout HEAD -- rules/` | Portable release scripts, CI credential hygiene |
 | 6 | `split/test-samples` | `tests_data/**` not on main, `rust/cli/README.md` table | `git checkout $PR -- tests_data`, then `rust/sync.sh` | Test data only |
 | 7 | `split/content-types` | `rust/gen/content_types`, `rust/gen/src/main.rs`, `rust/lib/src/content.rs`, `python/src/magika/types/content_type_label.py`, `assets/content_types_kb.min.json`, `python/src/magika/config/content_types_kb.min.json`, `js/src/content-type-label.ts`, `js/src/content-types-infos.ts`, `rules/content-types.json` -> `rust/gen/rule-content-types.json` | `git checkout $PR -- <paths>`; regenerate with `cargo run` in `rust/gen` to prove generator output | 106 new labels, generated |
 | 8 | `split/rules-crate` | new `rust/rules/` | **Part B** | Self-contained pure-Rust engine |
@@ -193,8 +196,7 @@ All branches start from `origin/main` (`e6a4c8ef` at the time of writing).
 | 10 | `split/rules-facts` | `rust/rules/src/facts/**`, facts rules | **Part D** | One more input stream |
 | 11 | `split/deferred-runtimes` | `rust/runtime`, `rust/runtime-abi`, `rust/runtime-plugin`, `rust/build-runtime.py`, `rust/distribution/*`, `python/scripts/prepare_runtime_wheel.py`, workflow packaging hunks, `Dockerfile`, `dist-workspace.toml` | `git checkout $PR -- <paths>`; rebase `rust/lib/Cargo.toml` swap and `rust/ffi` link by hand; drop every Vectorscan line | Loader + ABI + plugin |
 | 12 | `split/cli-scheduling` | `rust/cli/src/main.rs` scheduling regions, `progress.rs` | manual port against main after #1461; **blocked until the #1461 freeze is understood** | Async GPU prep and handoff |
-| 13 | `split/rules-benchmark` | `rules/benchmark/**`, `rules/pyproject.toml`, `rules/uv.lock`, `rules/QUALITY.md` | `git checkout $PR -- <paths>`; not `rules/benchmarks/` or `rules/native/`; rewrite Vectorscan paragraphs of `QUALITY.md` | The measurement tool |
-| 14 | `split/version-2.0` | version bumps, changelogs | last | |
+| 13 | `split/version-2.0` | version bumps, changelogs | last | |
 
 Dependencies: 9 needs 7 and 8 merged. 10 needs 9. Everything else is independent. Start with 8; open 7 in parallel. Close #1447 with a link to the series once 8 and 9 are open.
 
@@ -1097,6 +1099,8 @@ fn bundled_rules_never_mislabel_a_sample() {
 - [ ] **Step 3: If a false positive appears**, do not edit the rule. Compare with the PR: `git show $PR:rules/QUALITY.md | grep -n <label>`. If the PR also reported that sample as a hit under that label, the sample directory is mislabeled and belongs to PR 6; note it and exclude that one path with a comment. If the PR did not, the lowering has a bug: fix `lower.rs`/`matcher.rs` and add a unit test reproducing it.
 
 - [ ] **Step 4: Commit**: `git commit -am "Gate the bundled rules on zero false positives over tests_data"`
+
+- [ ] **Step 5: Dataset gate G6c.** Create `rust/rules/tests/dataset.rs`, an `#[ignore]` test that reads a TSV manifest (`sha256<TAB>format_id<TAB>label_status<TAB>path`) named by `MAGIKA_RULES_DATASET` (tests may read the environment; `src` may not), scans each file's prefix, and fails on any `Match`/`Conflict` that disagrees with a `validated_*` label. Mismatches on unverified samples are printed as disagreements, not failures: they are hard cases to adjudicate in `dataset/`, never label fixes made here. It also prints total prefix bytes scanned and mean scan time. The manifest is exported from `dataset/samples.parquet` by a script in the test's doc comment. A false positive follows Step 3. Commit: `"Measure the bundled rules over the evaluation dataset"`.
 
 ---
 

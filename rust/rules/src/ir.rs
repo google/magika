@@ -27,18 +27,17 @@ pub(crate) enum Read {
     U32Be,
 }
 
+/// Integer operand. Values are compared as `i128`, so every size and read is exact.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Int {
     Const(i64),
+    /// The whole input's size: `filesize` or `original_size`.
     FileSize,
+    /// Bytes available in the prefix: `prefix_size`.
+    PrefixSize,
     Read(Read, Box<Int>),
-    Add(Box<Int>, Box<Int>),
-    Sub(Box<Int>, Box<Int>),
-    Mul(Box<Int>, Box<Int>),
+    /// `x % 2^k`, lowered as `x & (2^k - 1)`.
     And(Box<Int>, Box<Int>),
-    Or(Box<Int>, Box<Int>),
-    Shl(Box<Int>, Box<Int>),
-    Shr(Box<Int>, Box<Int>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -55,6 +54,7 @@ pub(crate) enum Cmp {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Cond {
     True,
+    False,
     Not(Box<Cond>),
     And(Vec<Cond>),
     Or(Vec<Cond>),

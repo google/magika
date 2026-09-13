@@ -121,25 +121,32 @@ impl Source {
     fn info(rule: &Rule<'_>, bucket: Option<Bucket>) -> Result<RuleInfo, Error> {
         let id = rule.identifier.name.to_string();
         let fail = |reason: &str| Error::Metadata { rule: id.clone(), reason: reason.into() };
-        let metadata = metadata::Metadata::read(rule).map_err(|reason| fail(reason))?;
+        let metadata = metadata::Metadata::read(rule).map_err(fail)?;
         let enforced = metadata.enforced(bucket).map_err(|reason| fail(&reason))?;
-        let mut label = None;
-        for meta in rule.meta.iter().flatten() {
-            match (meta.identifier.name, &meta.value) {
-                ("label", MetaValue::String((value, _))) => {
-                    if label.replace(value.to_string()).is_some() {
-                        return Err(fail("duplicate label"));
-                    }
-                }
-                ("label", _) => return Err(fail("label must be a string")),
-                _ => {}
-            }
+        let mut labels = Vec::new();
+        for meta in rule.meta.iter().flatten().filter(|meta| meta.identifier.name == "label") {
+            let MetaValue::String((value, _)) = &meta.value else {
+                return Err(fail("label must be a string"));
+            };
+            labels.push(value.to_string());
         }
+        if labels.len() > 1 {
+            return Err(fail("duplicate label"));
+        }
+        let label = labels.pop();
         if enforced && label.is_none() {
             return Err(fail("enforced rule needs a label"));
         }
         Ok(RuleInfo { class: metadata.class, id, label, enforced, bucket })
     }
+}
+
+/// A rule's explicit `enabled`/`enforced` value, if any. Private helpers default to active.
+pub(crate) fn explicit_enforcement(rule: &Rule<'_>) -> Option<bool> {
+    rule.meta.iter().flatten().find_map(|meta| match (meta.identifier.name, &meta.value) {
+        ("enabled" | "enforced", MetaValue::Bool((value, _))) => Some(*value),
+        _ => None,
+    })
 }
 
 mod metadata {

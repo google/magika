@@ -15,7 +15,7 @@ This is the single source of truth. There is no separate design document.
 5. **Gates are hard.** A failing gate stops the work; do not weaken a threshold to pass it. If a gate looks wrong, stop and report.
 6. **Report outcomes exactly.** Paste gate output, not summaries of it.
 7. **Do not touch** `rust/lib`, `rust/cli`, `python`, `js`, `.github` in Part B except the two lines Task 8 names.
-8. **The rules benchmark tool is another lane's.** Nothing under `rules/` except the rulesets and `LICENSES` is ported, moved, or planned here.
+8. **The rules benchmark copies are deleted, not moved.** `rules/benchmark/` and `rules/benchmarks/` are dropped from the split (the benchmark now lives in the dataset project). Only their rules-specific tests stay: `test_rule_regressions.py` is replayed by `rust/rules/tests/regressions.rs` with its fixtures in `rust/rules/tests/data`.
 9. **The evaluation corpus is `dataset/`** (on `worktree/dataset`): 71,296 whole files, labels in `samples.parquet` (`format_id`, `label_status`), bytes in `dataset/local/corpus/objects/<2>/<64>`. Only `validated_*` labels count as truth; detector labels are hints.
 
 ---
@@ -136,7 +136,7 @@ One internal module `magika::rules` holds every feature gate, the label mapping 
 
 ### 2.4 What is deleted from the PR and never ported
 
-`rust/lib/src/rules/{native,cache,mapped,engine}.rs`, `rust/lib/src/startup_trace.rs`, `rules/native/**`, `rules/package.py`, commit `233708ae` (Windows DLL search flags), `--compile-rules`, `.hsdb` packs, the CI Vectorscan build.
+`rust/lib/src/rules/{native,cache,mapped,engine}.rs`, `rust/lib/src/startup_trace.rs`, `rules/native/**`, `rules/package.py`, `rules/benchmark/**` and `rules/benchmarks/**` (except the regressions carried into `rust/rules/tests`), commit `233708ae` (Windows DLL search flags), `--compile-rules`, `.hsdb` packs, the CI Vectorscan build.
 
 ### 2.5 Migration map
 
@@ -1325,7 +1325,7 @@ Gate GC3: `enforce` mean within 5% of `off`; `only` under 25% of `off` (no model
 
 ## 7. Part D: `split/rules-facts`
 
-Branch from `main` after PR 9 merges. Scope: `rust/rules/src/facts/{mod,zip,pe}.rs` from `$PR:rust/lib/src/rules/preprocess/**` verbatim (pure functions with contract docs and tests; drop the `startup_trace` line; `read_tail` moves into `magika`'s `input.rs` because it needs the `Input` trait); `ir.rs` gains `Cond::ViewContains { view, pattern }`, `Cond::ViewStartsWith { view, pattern }`, `Int::Fact(FactId)`; `lower.rs` accepts the facts identifiers; `eval.rs` builds facts and views from `Input.tail` when the program uses facts and evaluates `contains` with `memchr::memmem`; `Cargo.toml` adds `miniz_oxide`; rulesets un-park `facts-pending.yar`; `RuleSet::needs_facts()` returns the real value; `magika::rules::needs_tail` calls `magika_rules::wants_tail`; the parked engine tests (`facts_rules_scan_only_an_active_facts_stream`, `zip_names_rules_identify_archives_end_to_end`, `pe_facts_rules_identify_executables_end_to_end`, `prefix_only_packs_skip_preprocessing`, `view_membership_respects_view_boundaries`, `streams_report_into_one_decision`) and the CLI test dropped in Task 9 come back; `tests/corpus.rs` passes `tail` (last 16 KiB) so facts rules are exercised. No public signature changes.
+Branch from `main` after PR 9 merges. Scope: `rust/rules/src/facts/{mod,zip,pe}.rs` from `$PR:rust/lib/src/rules/preprocess/**` verbatim (pure functions with contract docs and tests; drop the `startup_trace` line; `read_tail` moves into `magika`'s `input.rs` because it needs the `Input` trait); `ir.rs` gains `Cond::ViewContains { view, pattern }`, `Cond::ViewStartsWith { view, pattern }`, `Int::Fact(FactId)`; `lower.rs` accepts the facts identifiers; `eval.rs` builds facts and views from `Input.tail` when the program uses facts and evaluates `contains` with `memchr::memmem`; `Cargo.toml` adds `miniz_oxide`; rulesets un-park `facts-pending.yar`; `RuleSet::needs_facts()` returns the real value; `magika::rules::needs_tail` calls `magika_rules::wants_tail`; the parked engine tests (`facts_rules_scan_only_an_active_facts_stream`, `zip_names_rules_identify_archives_end_to_end`, `pe_facts_rules_identify_executables_end_to_end`, `prefix_only_packs_skip_preprocessing`, `view_membership_respects_view_boundaries`, `streams_report_into_one_decision`) and the CLI test dropped in Task 9 come back; the facts tests of `test_rule_regressions.py` that `rust/rules/tests/data/export_regressions.py` leaves unrecorded (`FACTS_OR_NATIVE` minus the native parity test, plus the facts positives in `FACTS_POSITIVES`) are recorded and replayed; `tests/corpus.rs` passes `tail` (last 16 KiB) so facts rules are exercised. No public signature changes.
 
 Gate GD: G3, G6, G6b, G7, GC3, GC4 re-run; corpus hit count must be at least the Part B number plus the number of un-parked labels present in `tests_data`; scan budget unchanged for non-zip inputs. Write the step list for this PR when PR 9 is open, in this format.
 

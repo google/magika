@@ -134,25 +134,31 @@ struct Experimental {
     #[arg(hide = true, long)]
     backend_info: bool,
 
-    /// Number of files to identify in a single inference.
-    #[arg(hide = true, long, default_value = "8")]
+    /// Number of files to identify in a single inference (1 through 64).
+    #[arg(hide = true, long, default_value = "8", value_parser = bounded(64))]
     batch_size: usize,
 
-    /// Number of resident inference threads.
+    /// Number of resident inference threads (1 through 256).
     ///
     /// Inference on a GPU is bound by the device rather than by the host, so a handful of threads
     /// keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every
     /// thread is one more core doing the work. This defaults accordingly: four on a GPU, all
     /// available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
-    #[arg(hide = true, long)]
+    #[arg(hide = true, long, value_parser = bounded(256))]
     threads: Option<usize>,
 
-    /// Number of resident threads reading files and extracting features.
+    /// Number of resident threads reading files and extracting features (1 through 256).
     ///
     /// Reading costs far less than inference, so this defaults to one per inference thread, which
     /// is already more than a run makes use of.
-    #[arg(hide = true, long, default_value = "1")]
+    #[arg(hide = true, long, default_value = "1", value_parser = bounded(256))]
     readers: usize,
+}
+
+/// Parses a count from 1 through `max`. Queues are sized from these counts, so they are bounded
+/// before anything is allocated or spawned.
+fn bounded(max: u64) -> clap::builder::RangedU64ValueParser<usize> {
+    clap::builder::RangedU64ValueParser::new().range(1..=max)
 }
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
@@ -244,7 +250,8 @@ const GPU_INFERENCE_THREADS: usize = 4;
 /// what this process may use rather than what the machine is built from, so a container's CPU quota
 /// and a restricted affinity mask both count.
 fn default_inference_threads(backend: Backend) -> usize {
-    let available = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    let available =
+        std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get).min(256);
     match backend {
         // The device is the limit, not the host, so never ask the host for more than it takes to
         // keep the device queued, nor for more than it has.
@@ -267,10 +274,7 @@ fn default_inference_threads(backend: Backend) -> usize {
 
 fn main() -> Result<()> {
     let flags = Flags::parse();
-    ensure!(flags.experimental.batch_size != 0, "--batch-size cannot be zero");
     let batch_size = flags.experimental.batch_size;
-    ensure!(flags.experimental.threads != Some(0), "--threads cannot be zero");
-    ensure!(flags.experimental.readers != 0, "--readers cannot be zero");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"

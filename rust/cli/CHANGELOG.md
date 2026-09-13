@@ -8,6 +8,7 @@
 
 ### Patch
 
+- Bound `--batch-size` to 1 through 64 and `--threads` and `--readers` to 1 through 256 when parsing, instead of panicking on large values
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

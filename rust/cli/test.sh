@@ -24,6 +24,7 @@ x cargo build --profile=$PROFILE
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
 x cargo clippy --features=_trace -- --deny=warnings
+x cargo test --locked
 
 PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 

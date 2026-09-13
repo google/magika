@@ -451,8 +451,10 @@ fn walk_paths(
     flags: &Flags, work_sender: &crossbeam_channel::Sender<Pending>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
-    let mut flags_paths: Vec<(PathBuf, Option<std::fs::FileType>)> =
-        flags.path.iter().rev().map(|path| (path.clone(), None)).collect();
+    let mut flags_paths = Traversal {
+        pending: flags.path.iter().rev().map(|path| WalkEntry::Path(path.clone(), None)).collect(),
+        ..Traversal::default()
+    };
     let mut order = 0;
     while let Some((path, file_type)) = flags_paths.pop() {
         let processed = process_path(flags, &mut flags_paths, &path, file_type);
@@ -553,9 +555,53 @@ struct BatchItem {
     features: Features,
 }
 
+/// A path still to process, or the point where traversal leaves a directory.
+enum WalkEntry {
+    Path(PathBuf, Option<std::fs::FileType>),
+    LeaveDirectory(PathBuf),
+}
+
+#[derive(Debug)]
+enum TraversalError {
+    DirectoryCycle,
+}
+
+impl std::fmt::Display for TraversalError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DirectoryCycle => formatter.write_str("directory cycle"),
+        }
+    }
+}
+
+impl std::error::Error for TraversalError {}
+
+/// Pending paths of a recursive walk and the canonical directories currently being walked.
+///
+/// A directory is a cycle only when it is one of its own ancestors. Another path to a directory
+/// already walked elsewhere is a legitimate alias and is walked again.
+#[derive(Default)]
+struct Traversal {
+    pending: Vec<WalkEntry>,
+    ancestors: std::collections::HashSet<PathBuf>,
+}
+
+impl Traversal {
+    fn pop(&mut self) -> Option<(PathBuf, Option<std::fs::FileType>)> {
+        while let Some(entry) = self.pending.pop() {
+            match entry {
+                WalkEntry::Path(path, kind) => return Some((path, kind)),
+                WalkEntry::LeaveDirectory(path) => {
+                    self.ancestors.remove(&path);
+                }
+            }
+        }
+        None
+    }
+}
+
 fn process_path(
-    flags: &Flags, paths: &mut Vec<(PathBuf, Option<std::fs::FileType>)>, path: &Path,
-    known: Option<std::fs::FileType>,
+    flags: &Flags, paths: &mut Traversal, path: &Path, known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if path.to_str() == Some("-") {
         return Ok(ProcessPath::Content);
@@ -575,14 +621,20 @@ fn process_path(
     };
     if metadata.is_dir() {
         return Ok(if flags.recursive {
+            let canonical = std::fs::canonicalize(path)?;
+            if paths.ancestors.contains(&canonical) {
+                return Err(TraversalError::DirectoryCycle.into());
+            }
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
                 dir_paths.push((entry.path(), entry.file_type().ok()));
             }
             dir_paths.sort_by(|a, b| a.0.cmp(&b.0));
-            while let Some(path) = dir_paths.pop() {
-                paths.push(path);
+            paths.ancestors.insert(canonical.clone());
+            paths.pending.push(WalkEntry::LeaveDirectory(canonical));
+            while let Some((path, kind)) = dir_paths.pop() {
+                paths.pending.push(WalkEntry::Path(path, kind));
             }
             ProcessPath::Recursive
         } else {
@@ -660,6 +712,7 @@ enum JsonError {
     Unknown,
     FileDoesNotExist,
     PermissionError,
+    DirectoryCycle,
 }
 
 #[derive(Serialize)]
@@ -671,6 +724,9 @@ struct JsonResult<'a> {
 
 impl From<anyhow::Error> for JsonError {
     fn from(value: anyhow::Error) -> Self {
+        if let Some(TraversalError::DirectoryCycle) = value.downcast_ref::<TraversalError>() {
+            return JsonError::DirectoryCycle;
+        }
         match value.root_cause().downcast_ref::<std::io::Error>() {
             Some(x) => match x.kind() {
                 ErrorKind::NotFound => JsonError::FileDoesNotExist,

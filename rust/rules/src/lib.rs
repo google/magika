@@ -74,7 +74,9 @@ impl RuleSet {
         false
     }
 
-    /// Scans one input. Never allocates and never panics.
+    /// Scans one input. Never panics. Masked patterns and integer reads do not allocate;
+    /// regex patterns take a search cache from `regex-automata`'s pool, which allocates one
+    /// only when none is free.
     pub fn scan(&self, input: Input<'_>) -> Outcome {
         eval::scan(&self.program, input)
     }

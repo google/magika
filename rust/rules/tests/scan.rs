@@ -101,6 +101,7 @@ fn rule(id: &str, label: &str, patterns: &str, condition: &str) -> String {
     format!("rule {id} {{ meta: label = \"{label}\" enabled = true class = \"full\" fp_rate = 0 fn_rate = 0 {patterns} condition: {condition} }}")
 }
 
+#[cfg(feature = "bundled")]
 #[test]
 fn bundled_structural_rules_preserve_identifying_fields() {
     let bundled = Source::bundled();

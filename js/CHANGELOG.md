@@ -1,4 +1,8 @@
 # CHANGELOG
+## [Unreleased]
+
+- Add 50 content types to the knowledge base and `ContentTypeLabel`, such as AVIF, QOI, GGUF and DuckDB. The model's outputs are unchanged.
+
 ## [1.1.0] - 2026-04-27
 
 - Breaking change: package now requires Node.js `>=20`, as Node 18 reached end of life.

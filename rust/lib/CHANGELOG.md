@@ -25,6 +25,7 @@
 
 ### Patch
 
+- Read a file that fits in one block once instead of twice when extracting features
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

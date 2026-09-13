@@ -31,7 +31,7 @@ fail() {
   fi
 }
 
-for dir in lib cli; do
+for dir in rules lib cli; do
   ( cd $dir
     info "Checking $dir"
     ref=$(git log -n1 --pretty=format:%H origin/main.. -- CHANGELOG.md)

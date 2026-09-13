@@ -1,11 +1,11 @@
 // Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Bounded format rules: a YARA subset evaluated in pure Rust over the first [`PREFIX_LIMIT`]
-//! bytes of an input. The crate has no native dependency, never reads environment variables,
-//! holds no global state and never names a Magika content type; callers map
-//! [`RuleSet::labels`] to their own label type.
-
+#![cfg_attr(feature = "bundled", doc = include_str!("../README.md"))]
+#![cfg_attr(
+    not(feature = "bundled"),
+    doc = "Bounded format rules: a YARA subset evaluated in pure Rust. See README.md."
+)]
 #![forbid(unsafe_code)]
 
 mod error;

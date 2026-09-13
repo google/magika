@@ -18,6 +18,9 @@ regex-automata = { version = "0.4", default-features = false, features = ["std",
 regex-syntax = "=0.8.11"
 yara-x-parser = "=1.20.0"
 
+[dev-dependencies]
+serde_json = "1"
+
 [build-dependencies]
 yara-x-parser = "=1.20.0"
 

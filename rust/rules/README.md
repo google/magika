@@ -76,6 +76,8 @@ oriented: `\xff` is one byte, never a UTF-8 sequence.
 ## Tests
 
 `./test.sh` runs the full suite, including a release-mode gate that no bundled rule
-mislabels a sample under `tests_data/basic` and a compile and scan budget. The ignored
+mislabels a sample under `tests_data/basic` and a compile and scan budget.
+`tests/regressions.rs` replays the signature regressions recorded from #1447 (reviewed
+headers, corruptions, truncations and reported false positives in `tests/data`). The ignored
 `tests/dataset.rs` measures the rules over the evaluation dataset; its documentation
 describes how to export the manifest it reads.

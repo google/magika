@@ -49,6 +49,17 @@ fn filter_content_types(
     let content_types_content = std::fs::read_to_string("content_types")?;
     let mut labels = content_types_content.lines().collect::<BTreeSet<_>>();
     labels.extend(model_config.target_labels_space.iter().map(|x| x.as_str()));
+    // Outputs that only rules name and the knowledge base does not describe.
+    let rule_only: BTreeMap<String, ContentType> =
+        serde_json::from_reader(File::open("rule-content-types.json")?)?;
+    for (label, entry) in rule_only {
+        ensure!(labels.contains(label.as_str()), "unselected rule-only output: {label}");
+        ensure!(!content_types.contains_key(&label), "rule-only output in the KB: {label}");
+        content_types.insert(label, entry);
+    }
+    for label in &labels {
+        ensure!(content_types.contains_key(*label), "unknown output label: {label}");
+    }
     let mut content_types_file = File::create("content_types")?;
     for label in &labels {
         writeln!(&mut content_types_file, "{label}")?;
@@ -100,6 +111,19 @@ fn generate_lib_content(
     writeln!(output, "}}\n")?;
     writeln!(output, "impl ContentType {{")?;
     writeln!(output, "    pub(crate) const SIZE: usize = {};\n", variants.len())?;
+    writeln!(output, "    /// Looks up an exact, canonical content label for a regular file.")?;
+    writeln!(
+        output,
+        "    /// Filesystem labels `directory` and `symlink` belong to `FileType` and return `None`."
+    )?;
+    writeln!(output, "    pub fn from_label(label: &str) -> Option<Self> {{")?;
+    writeln!(output, "        Some(match label {{")?;
+    for Variant { label, .. } in &variants {
+        writeln!(output, "            {label:?} => Self::{},", enum_name(label))?;
+    }
+    writeln!(output, "            _ => return None,")?;
+    writeln!(output, "        }})")?;
+    writeln!(output, "    }}\n")?;
     writeln!(output, "    /// Returns the content type information.")?;
     writeln!(output, "    pub fn info(self) -> &'static TypeInfo {{")?;
     writeln!(output, "        match self {{")?;
@@ -302,6 +326,9 @@ struct ModelConfig {
 
 fn enum_name(xs: &str) -> String {
     assert!(xs.is_ascii());
+    if xs.contains('_') {
+        return xs.split('_').map(enum_name).collect();
+    }
     let mut xs = xs.as_bytes().to_vec();
     match xs[0] {
         b'A'..=b'Z' => (),

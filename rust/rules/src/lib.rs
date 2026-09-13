@@ -9,6 +9,8 @@
 #![forbid(unsafe_code)]
 
 mod error;
+mod ir;
+mod matcher;
 mod source;
 
 pub use error::Error;

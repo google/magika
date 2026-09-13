@@ -1118,3 +1118,23 @@ rule taxonomy_orc
 	condition:
 		(prefix_size >= 3 and $p0_0 at 0)
 }
+
+// Parked from rulesets/full: on the evaluation dataset it matched 5 validated asf files
+// and 852 validated wma/wmv files, which Magika labels separately. ASF is split by codec.
+rule taxonomy_asf
+{
+	meta:
+        source_refs = "pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:80; spec:Microsoft Advanced Systems Format header object"
+		label = "asf"
+		enforced = false
+        class = "not-working"
+        fp_rate = 0.01779299974939437
+        fn_rate = 0
+
+    // ASF header object: its GUID, a header object count of 1 to 64 and the reserved bytes 1 and 2.
+    strings:
+        $header = { 30 26 B2 75 8E 66 CF 11 A6 D9 00 AA 00 62 CE 6C }
+    condition:
+        prefix_size >= 30 and $header at 0 and uint32(24) >= 1 and uint32(24) <= 64 and
+        uint16be(28) == 258
+}

@@ -167,24 +167,6 @@ rule taxonomy_applesingle
         prefix_size >= 26 and $header at 0
 }
 
-rule taxonomy_asf
-{
-	meta:
-        source_refs = "pronom-binary:DROID_SignatureFile_V125.xml:InternalSignature:80; spec:Microsoft Advanced Systems Format header object"
-		label = "asf"
-		enforced = true
-        class = "full"
-        fp_rate = 0
-        fn_rate = 0
-
-    // ASF header object: its GUID, a header object count of 1 to 64 and the reserved bytes 1 and 2.
-    strings:
-        $header = { 30 26 B2 75 8E 66 CF 11 A6 D9 00 AA 00 62 CE 6C }
-    condition:
-        prefix_size >= 30 and $header at 0 and uint32(24) >= 1 and uint32(24) <= 64 and
-        uint16be(28) == 258
-}
-
 rule taxonomy_au
 {
 	meta:

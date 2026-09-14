@@ -151,7 +151,10 @@ class Magika:
         self, paths: Sequence[Union[str, os.PathLike]]
     ) -> List[MagikaResult]:
         """Identify the content type of a list of files given their paths."""
-        if not isinstance(paths, Sequence):
+        # Note: `str` and `bytes` are registered as `Sequence`, but iterating
+        # them yields their elements, not paths; accepting them here would
+        # silently return one result per character instead of raising.
+        if isinstance(paths, (str, bytes)) or not isinstance(paths, Sequence):
             raise TypeError("Input paths should be of type Sequence[Path]")
 
         paths_ = []

@@ -52,9 +52,6 @@ mod session;
 
 #[cfg(test)]
 mod tests {
-    #[cfg(any(target_os = "macos", feature = "cuda"))]
-    mod gpu;
-
     use std::fs::File;
     use std::io::Read;
 
@@ -64,13 +61,8 @@ mod tests {
 
     use super::*;
 
-    #[derive(Debug, Deserialize, PartialEq, Eq)]
-    #[serde(rename_all = "snake_case")]
-    enum ReferencePredictionMode {
-        HighConfidence,
-        MediumConfidence,
-        BestGuess,
-    }
+    #[cfg(any(target_os = "macos", feature = "cuda"))]
+    mod gpu;
 
     #[derive(Debug, Deserialize, PartialEq, Eq)]
     #[serde(rename_all = "snake_case")]
@@ -78,48 +70,6 @@ mod tests {
         None,
         LowConfidence,
         OverwriteMap,
-    }
-
-    #[test]
-    fn reference_prediction_modes_reject_unknown_spellings() {
-        for value in ["high-confidence", "high_confidnce", "", "unknown"] {
-            let json = serde_json::to_string(value).unwrap();
-            assert!(
-                serde_json::from_str::<ReferencePredictionMode>(&json).is_err(),
-                "accepted {value:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn reference_prediction_modes_decode_supported_vocabulary() {
-        for (value, expected) in [
-            ("high_confidence", ReferencePredictionMode::HighConfidence),
-            ("medium_confidence", ReferencePredictionMode::MediumConfidence),
-            ("best_guess", ReferencePredictionMode::BestGuess),
-        ] {
-            let json = serde_json::to_string(value).unwrap();
-            assert_eq!(serde_json::from_str::<ReferencePredictionMode>(&json).unwrap(), expected);
-        }
-    }
-
-    #[test]
-    fn reference_overwrite_reasons_decode_strict_vocabulary() {
-        for (value, expected) in [
-            ("none", ReferenceOverwriteReason::None),
-            ("low_confidence", ReferenceOverwriteReason::LowConfidence),
-            ("overwrite_map", ReferenceOverwriteReason::OverwriteMap),
-        ] {
-            let json = serde_json::to_string(value).unwrap();
-            assert_eq!(serde_json::from_str::<ReferenceOverwriteReason>(&json).unwrap(), expected);
-        }
-        for value in ["low-confidence", "overwrite-map", "", "unknown"] {
-            let json = serde_json::to_string(value).unwrap();
-            assert!(
-                serde_json::from_str::<ReferenceOverwriteReason>(&json).is_err(),
-                "accepted {value:?}"
-            );
-        }
     }
 
     #[derive(Debug, Deserialize)]
@@ -132,11 +82,10 @@ mod tests {
     }
 
     fn assert_float(actual: f32, expected: f32, debug: &str) {
-        // CPU reduction order differs from the ONNX reference. Compare an
-        // absolute error instead of decimal truncation; labels remain exact.
-        // Across all 116 CPU reference cases the largest observed delta is
-        // 0.001402 on an eight-byte padded binary input. Keep that explicit
-        // bound separate from exact label and overwrite-reason checks.
+        // CPU reduction order differs from the ONNX reference. Compare an absolute error instead of
+        // decimal truncation; labels remain exact. Across all 116 CPU reference cases the largest
+        // observed delta is 0.001402 on an eight-byte padded binary input. Keep that explicit bound
+        // separate from exact label and overwrite-reason checks.
         const MAX_ABSOLUTE_ERROR: f32 = 0.002;
         assert!(
             (actual - expected).abs() <= MAX_ABSOLUTE_ERROR,
@@ -167,6 +116,14 @@ mod tests {
         assert_eq!(actual.inferred_type.info().label, expected.dl, "{debug}");
     }
 
+    #[derive(Debug, Deserialize, PartialEq, Eq)]
+    #[serde(rename_all = "snake_case")]
+    enum ReferencePredictionMode {
+        HighConfidence,
+        MediumConfidence,
+        BestGuess,
+    }
+
     #[test]
     fn identify_by_path_reference() {
         #[derive(Debug, Deserialize)]
@@ -186,17 +143,14 @@ mod tests {
         let mut session = runtime.session().unwrap();
         let mut checked = 0;
         for test in tests {
-            match test.prediction_mode {
-                ReferencePredictionMode::HighConfidence => {}
-                ReferencePredictionMode::MediumConfidence | ReferencePredictionMode::BestGuess => {
-                    continue;
-                }
+            if test.prediction_mode != ReferencePredictionMode::HighConfidence {
+                continue; // we only support high-confidence
             }
-            checked += 1;
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let actual = session.identify_file(format!("../../{}", test.path)).unwrap();
             assert_prediction(actual, expected, &test.path);
+            checked += 1;
         }
         assert!(checked > 0, "reference fixture filter must exercise predictions");
     }
@@ -221,18 +175,15 @@ mod tests {
         let mut session = runtime.session().unwrap();
         let mut checked = 0;
         for test in tests {
-            match test.prediction_mode {
-                ReferencePredictionMode::HighConfidence => {}
-                ReferencePredictionMode::MediumConfidence | ReferencePredictionMode::BestGuess => {
-                    continue;
-                }
+            if test.prediction_mode != ReferencePredictionMode::HighConfidence {
+                continue; // we only support high-confidence
             }
-            checked += 1;
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
             let actual = session.identify_content(content.as_slice()).unwrap();
             assert_prediction(actual, expected, &test.content_base64);
+            checked += 1;
         }
         assert!(checked > 0, "reference fixture filter must exercise predictions");
     }

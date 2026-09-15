@@ -12,3 +12,6 @@ Callers do not select Metal or CUDA directly; the resolved implementation is ava
 
 Inference is synchronous. Async file reading and batch accumulation belong above this crate, so
 CPU- or GPU-bound model execution never occupies an async executor thread.
+
+CPU and GPU confidence scores are backend dependent. GPU release qualification checks final
+classification and overwrite decisions across varied reference files and every batch class.

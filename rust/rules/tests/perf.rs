@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! Compile and scan budgets. The assertions are CI ceilings, not targets, and hold for
 //! optimized builds only: `test.sh` runs this test with `--release`.
 

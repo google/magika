@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! The bundled rulesets parse, sit in the right buckets, and enforce no facts rule yet.
 
 #![cfg(feature = "bundled")]

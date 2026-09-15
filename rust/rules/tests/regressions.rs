@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! Signature regressions carried over from #1447's `test_rule_regressions.py`: reviewed
 //! headers and their corruptions, truncations, reported false positives and adversarial
 //! lookalikes, now asserted against this engine.

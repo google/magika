@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! The bundled rules over the evaluation dataset (`dataset/` on the dataset branch): zero
 //! false positives against validated labels, plus throughput on real files. Not run in CI.
 //!

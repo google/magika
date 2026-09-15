@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! End-to-end scans over byte samples, including the engine tests ported from #1447.
 
 use magika_rules::{Input, Outcome, RuleSet, Source, PREFIX_LIMIT};

@@ -1,3 +1,6 @@
+// Copyright 2026 Google LLC
+// SPDX-License-Identifier: Apache-2.0
+
 //! Every sample under tests_data/basic/<label>/ must scan to NoMatch or to its own label.
 //! Labels in tests_data use Magika's canonical names, which are also the rule labels.
 //! A sample listed in `MISLABELED` must scan to the label its bytes prove instead.

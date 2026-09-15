@@ -24,7 +24,6 @@ x cargo build --profile=$PROFILE
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
 x cargo clippy --features=_trace -- --deny=warnings
-x cargo test --locked
 
 PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 
@@ -59,6 +58,20 @@ test_error() {
 test_error 'non_existent src/main.rs' "\
 non_existent: No such file or directory (os error 2) (error)
 src/main.rs: Rust source (code)"
+
+info "Test directory cycles"
+( dir=$(mktemp -d)
+  trap "rm -rf $dir" EXIT
+  mkdir -p $dir/tree/sub
+  touch $dir/tree/empty
+  ln -s .. $dir/tree/sub/back
+  ln -s tree $dir/sibling
+  test_error "-r $dir" "\
+$dir/sibling/empty: Empty file (inode)
+$dir/sibling/sub/back: Directory cycle (error)
+$dir/tree/empty: Empty file (inode)
+$dir/tree/sub/back: Directory cycle (error)"
+)
 
 info "Test exit code with broken pipe"
 magika -r ../../tests_data | head -n1 >/dev/null

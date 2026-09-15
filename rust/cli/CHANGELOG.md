@@ -4,11 +4,11 @@
 
 ### Minor
 
+- Detect cycles through symbolic links during recursive traversal
 - Remove the dependency on the ONNX Runtime
 
 ### Patch
 
-- Detect ancestor directory cycles during recursive traversal and report `directory_cycle` in JSON, while still walking legitimate aliases of a directory
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

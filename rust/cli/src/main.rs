@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 use std::io::{ErrorKind, Read, Write as _};
 use std::path::{Path, PathBuf};
@@ -451,13 +451,10 @@ fn walk_paths(
     flags: &Flags, work_sender: &crossbeam_channel::Sender<Pending>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
-    let mut flags_paths = Traversal {
-        pending: flags.path.iter().rev().map(|path| WalkEntry::Path(path.clone(), None)).collect(),
-        ..Traversal::default()
-    };
+    let mut traversal = Traversal::new(&flags.path);
     let mut order = 0;
-    while let Some((path, file_type)) = flags_paths.pop() {
-        let processed = process_path(flags, &mut flags_paths, &path, file_type);
+    while let Some((path, file_type)) = traversal.pop() {
+        let processed = process_path(flags, &mut traversal, &path, file_type);
         if matches!(processed, Ok(ProcessPath::Recursive)) {
             continue;
         }
@@ -561,39 +558,32 @@ enum WalkEntry {
     LeaveDirectory(PathBuf),
 }
 
-#[derive(Debug)]
-enum TraversalError {
-    DirectoryCycle,
-}
+const DIRECTORY_CYCLE: &str = "Directory cycle";
 
-impl std::fmt::Display for TraversalError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::DirectoryCycle => formatter.write_str("directory cycle"),
-        }
-    }
-}
-
-impl std::error::Error for TraversalError {}
-
-/// Pending paths of a recursive walk and the canonical directories currently being walked.
-///
-/// A directory is a cycle only when it is one of its own ancestors. Another path to a directory
-/// already walked elsewhere is a legitimate alias and is walked again.
-#[derive(Default)]
 struct Traversal {
     pending: Vec<WalkEntry>,
-    ancestors: std::collections::HashSet<PathBuf>,
+    ancestors: HashSet<PathBuf>,
 }
 
 impl Traversal {
+    fn new(paths: &[PathBuf]) -> Self {
+        let pending = paths.iter().rev().map(|path| WalkEntry::Path(path.clone(), None)).collect();
+        let ancestors = HashSet::new();
+        Traversal { pending, ancestors }
+    }
+
+    fn push(&mut self, path: &Path) -> Result<()> {
+        let canonical = std::fs::canonicalize(path)?;
+        ensure!(self.ancestors.insert(canonical.clone()), DIRECTORY_CYCLE);
+        self.pending.push(WalkEntry::LeaveDirectory(canonical));
+        Ok(())
+    }
+
     fn pop(&mut self) -> Option<(PathBuf, Option<std::fs::FileType>)> {
         while let Some(entry) = self.pending.pop() {
             match entry {
                 WalkEntry::Path(path, kind) => return Some((path, kind)),
-                WalkEntry::LeaveDirectory(path) => {
-                    self.ancestors.remove(&path);
-                }
+                WalkEntry::LeaveDirectory(path) => drop(self.ancestors.remove(&path)),
             }
         }
         None
@@ -601,7 +591,7 @@ impl Traversal {
 }
 
 fn process_path(
-    flags: &Flags, paths: &mut Traversal, path: &Path, known: Option<std::fs::FileType>,
+    flags: &Flags, traversal: &mut Traversal, path: &Path, known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if path.to_str() == Some("-") {
         return Ok(ProcessPath::Content);
@@ -621,20 +611,15 @@ fn process_path(
     };
     if metadata.is_dir() {
         return Ok(if flags.recursive {
-            let canonical = std::fs::canonicalize(path)?;
-            if paths.ancestors.contains(&canonical) {
-                return Err(TraversalError::DirectoryCycle.into());
-            }
+            traversal.push(path)?;
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
                 dir_paths.push((entry.path(), entry.file_type().ok()));
             }
             dir_paths.sort_by(|a, b| a.0.cmp(&b.0));
-            paths.ancestors.insert(canonical.clone());
-            paths.pending.push(WalkEntry::LeaveDirectory(canonical));
             while let Some((path, kind)) = dir_paths.pop() {
-                paths.pending.push(WalkEntry::Path(path, kind));
+                traversal.pending.push(WalkEntry::Path(path, kind));
             }
             ProcessPath::Recursive
         } else {
@@ -724,17 +709,17 @@ struct JsonResult<'a> {
 
 impl From<anyhow::Error> for JsonError {
     fn from(value: anyhow::Error) -> Self {
-        if let Some(TraversalError::DirectoryCycle) = value.downcast_ref::<TraversalError>() {
+        if let Some(x) = value.root_cause().downcast_ref::<std::io::Error>() {
+            match x.kind() {
+                ErrorKind::NotFound => return JsonError::FileDoesNotExist,
+                ErrorKind::PermissionDenied => return JsonError::PermissionError,
+                _ => (),
+            }
+        }
+        if value.to_string() == DIRECTORY_CYCLE {
             return JsonError::DirectoryCycle;
         }
-        match value.root_cause().downcast_ref::<std::io::Error>() {
-            Some(x) => match x.kind() {
-                ErrorKind::NotFound => JsonError::FileDoesNotExist,
-                ErrorKind::PermissionDenied => JsonError::PermissionError,
-                _ => JsonError::Unknown,
-            },
-            _ => JsonError::Unknown,
-        }
+        JsonError::Unknown
     }
 }
 

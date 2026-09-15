@@ -9,14 +9,28 @@ You can run `cargo build --release` to build the static and dynamic libraries.
 
 ## Example
 
-Using the static library:
+Using the dynamic library:
+
+```sh
+gcc -Iinclude example.c -L../target/release -lmagika -Wl,-rpath,../target/release -o example
+```
+
+Using the static library on Linux:
 
 ```sh
 gcc -Iinclude example.c ../target/release/libmagika.a -lpthread -ldl -lm -o example
 ```
 
-Using the dynamic library:
+Using the static library on macOS:
 
 ```sh
-gcc -Iinclude example.c -L../target/release -lmagika -Wl,-rpath,../target/release -o example
+clang -Iinclude example.c ../target/release/libmagika.a -framework Metal -framework CoreGraphics \
+  -framework CoreFoundation -lobjc -liconv -lm -o example
+```
+
+The native libraries a static library needs depend on the target and the Rust toolchain. You can
+list them for your build with:
+
+```sh
+cargo rustc --release --lib -- --print=native-static-libs
 ```

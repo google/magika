@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 use std::io::{ErrorKind, Read, Write as _};
 use std::path::{Path, PathBuf};
@@ -451,11 +451,10 @@ fn walk_paths(
     flags: &Flags, work_sender: &crossbeam_channel::Sender<Pending>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
-    let mut flags_paths: Vec<(PathBuf, Option<std::fs::FileType>)> =
-        flags.path.iter().rev().map(|path| (path.clone(), None)).collect();
+    let mut traversal = Traversal::new(&flags.path);
     let mut order = 0;
-    while let Some((path, file_type)) = flags_paths.pop() {
-        let processed = process_path(flags, &mut flags_paths, &path, file_type);
+    while let Some((path, file_type)) = traversal.pop() {
+        let processed = process_path(flags, &mut traversal, &path, file_type);
         if matches!(processed, Ok(ProcessPath::Recursive)) {
             continue;
         }
@@ -553,9 +552,46 @@ struct BatchItem {
     features: Features,
 }
 
+/// A path still to process, or the point where traversal leaves a directory.
+enum WalkEntry {
+    Path(PathBuf, Option<std::fs::FileType>),
+    LeaveDirectory(PathBuf),
+}
+
+const DIRECTORY_CYCLE: &str = "Directory cycle";
+
+struct Traversal {
+    pending: Vec<WalkEntry>,
+    ancestors: HashSet<PathBuf>,
+}
+
+impl Traversal {
+    fn new(paths: &[PathBuf]) -> Self {
+        let pending = paths.iter().rev().map(|path| WalkEntry::Path(path.clone(), None)).collect();
+        let ancestors = HashSet::new();
+        Traversal { pending, ancestors }
+    }
+
+    fn push(&mut self, path: &Path) -> Result<()> {
+        let canonical = std::fs::canonicalize(path)?;
+        ensure!(self.ancestors.insert(canonical.clone()), DIRECTORY_CYCLE);
+        self.pending.push(WalkEntry::LeaveDirectory(canonical));
+        Ok(())
+    }
+
+    fn pop(&mut self) -> Option<(PathBuf, Option<std::fs::FileType>)> {
+        while let Some(entry) = self.pending.pop() {
+            match entry {
+                WalkEntry::Path(path, kind) => return Some((path, kind)),
+                WalkEntry::LeaveDirectory(path) => drop(self.ancestors.remove(&path)),
+            }
+        }
+        None
+    }
+}
+
 fn process_path(
-    flags: &Flags, paths: &mut Vec<(PathBuf, Option<std::fs::FileType>)>, path: &Path,
-    known: Option<std::fs::FileType>,
+    flags: &Flags, traversal: &mut Traversal, path: &Path, known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if path.to_str() == Some("-") {
         return Ok(ProcessPath::Content);
@@ -575,14 +611,15 @@ fn process_path(
     };
     if metadata.is_dir() {
         return Ok(if flags.recursive {
+            traversal.push(path)?;
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
                 dir_paths.push((entry.path(), entry.file_type().ok()));
             }
             dir_paths.sort_by(|a, b| a.0.cmp(&b.0));
-            while let Some(path) = dir_paths.pop() {
-                paths.push(path);
+            while let Some((path, kind)) = dir_paths.pop() {
+                traversal.pending.push(WalkEntry::Path(path, kind));
             }
             ProcessPath::Recursive
         } else {
@@ -660,6 +697,7 @@ enum JsonError {
     Unknown,
     FileDoesNotExist,
     PermissionError,
+    DirectoryCycle,
 }
 
 #[derive(Serialize)]
@@ -671,14 +709,17 @@ struct JsonResult<'a> {
 
 impl From<anyhow::Error> for JsonError {
     fn from(value: anyhow::Error) -> Self {
-        match value.root_cause().downcast_ref::<std::io::Error>() {
-            Some(x) => match x.kind() {
-                ErrorKind::NotFound => JsonError::FileDoesNotExist,
-                ErrorKind::PermissionDenied => JsonError::PermissionError,
-                _ => JsonError::Unknown,
-            },
-            _ => JsonError::Unknown,
+        if let Some(x) = value.root_cause().downcast_ref::<std::io::Error>() {
+            match x.kind() {
+                ErrorKind::NotFound => return JsonError::FileDoesNotExist,
+                ErrorKind::PermissionDenied => return JsonError::PermissionError,
+                _ => (),
+            }
         }
+        if value.to_string() == DIRECTORY_CYCLE {
+            return JsonError::DirectoryCycle;
+        }
+        JsonError::Unknown
     }
 }
 

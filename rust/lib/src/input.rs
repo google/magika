@@ -110,9 +110,14 @@ fn extract_features(
     let mut content_beg = vec![0; buffer_size];
     file.read_at(&mut content_beg, 0)?;
     let beg = strip_prefix(&content_beg);
-    let mut end = vec![0; buffer_size];
-    file.read_at(&mut end, file_len - buffer_size as u64)?;
-    let end = strip_suffix(&end);
+    let mut end;
+    let end = if file_len == buffer_size as u64 {
+        strip_suffix(&content_beg)
+    } else {
+        end = vec![0; buffer_size];
+        file.read_at(&mut end, file_len - buffer_size as u64)?;
+        strip_suffix(&end)
+    };
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);

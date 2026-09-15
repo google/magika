@@ -21,6 +21,8 @@ x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
 
 x cargo build --release
+NATIVE_LIBS=$(cargo rustc --release --lib -- --print=native-static-libs 2>&1 \
+  | sed -n 's/^note: native-static-libs: //p')
 
 compile_test() {
   x $cc -fsanitize=address,undefined -fno-omit-frame-pointer "$@"
@@ -31,6 +33,6 @@ compile_test() {
 TARGET_DIR=../target/release
 for cc in gcc clang; do
   which $cc >/dev/null 2>&1 || continue
-  compile_test -Iinclude test.c $TARGET_DIR/libmagika.a -lpthread -ldl -lm -o test
+  compile_test -Iinclude test.c $TARGET_DIR/libmagika.a $NATIVE_LIBS -o test
   compile_test -Iinclude test.c -L$TARGET_DIR -lmagika -Wl,-rpath,$TARGET_DIR -o test
 done

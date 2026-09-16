@@ -24,6 +24,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import * as tf from "@tensorflow/tfjs";
 import * as fc from "fast-check";
 import * as fs from "fs";
 import { Dirent, readdirSync } from "fs";
@@ -155,6 +156,25 @@ describe("Magika class", () => {
         },
       ),
     );
+  });
+
+  it("should not leak tensors across predictions", async () => {
+    const magika = await Magika.create({
+      modelConfigPath: workdir.model_config,
+      modelPath: workdir.model,
+    });
+    const content = new TextEncoder().encode("#!/bin/sh\necho hello\n");
+
+    // The very first prediction also allocates tensors that the graph model
+    // keeps around, so the baseline is taken after it.
+    await magika.identifyBytes(content);
+    const baseline = tf.memory().numTensors;
+
+    for (let i = 0; i < 5; i++) {
+      await magika.identifyBytes(content);
+    }
+
+    expect(tf.memory().numTensors).toBe(baseline);
   });
 
   it.each(BASIC_TEST_FILES)(

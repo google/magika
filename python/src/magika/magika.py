@@ -180,7 +180,8 @@ class Magika:
         Identifies the content type from an already-open binary file-like object
         (e.g., the output of `open(file_path, 'rb')`). Note: 1) Magika will
         `seek()` around the stream; 2) the stream _is not closed_ (closing it is
-        the responsibility of the caller).
+        the responsibility of the caller). When calling Magika concurrently, use
+        a distinct stream object for each call.
         """
         # Explicitly test for the most common error so that we can return an
         # helpful error message.

@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Detect cycles through symbolic links during recursive traversal
 - Remove the dependency on the ONNX Runtime
 
 ### Patch

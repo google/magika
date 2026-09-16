@@ -63,6 +63,9 @@ jobs:
         working-directory: rust/tract-runtime
       - run: ./test.sh
         working-directory: rust/cli
+      # The C library links the Metal backend only on macOS, so only this job checks its link line.
+      - run: ./test.sh
+        working-directory: rust/ffi
   # tract picks different kernels per architecture, and the GPU path uses different kernels again,
   # so ONNX Runtime parity has to be proven on every shipped target rather than inferred from one.
   # Keep this matrix aligned with the targets in dist-workspace.toml. This is the only place the

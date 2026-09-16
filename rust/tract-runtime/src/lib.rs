@@ -177,10 +177,8 @@ impl Runtime {
             // different class. Drop its probe state before allocating the next class's state.
             let candidate =
                 run_plan(plan.runnable.spawn()?.as_mut(), &input.repeat(plan.batch), plan.batch)?;
-            if !candidate
-                .chunks_exact(NUM_LABELS)
-                .all(|row| scores_agree_with_bytes(EMBEDDED_GPU_PROBE, row))
-            {
+            let (chunks, _) = candidate.as_chunks::<NUM_LABELS>();
+            if !chunks.iter().all(|row| scores_agree_with_bytes(EMBEDDED_GPU_PROBE, row)) {
                 return Ok(false);
             }
         }

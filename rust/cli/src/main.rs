@@ -387,7 +387,8 @@ fn main() -> Result<()> {
     }
     drop(batch_receiver);
     drop(result_sender);
-    let print_result = match print(&flags, result_receiver) {
+    let mut errors = false;
+    let result = match print(&flags, &mut errors, result_receiver) {
         Err(e)
             if e.root_cause()
                 .downcast_ref::<std::io::Error>()
@@ -402,22 +403,25 @@ fn main() -> Result<()> {
     }
     #[cfg(feature = "_trace")]
     trace.report(readers, threads);
-    print_result
+    result?;
+    if errors {
+        std::process::exit(1);
+    }
+    Ok(())
 }
 
 fn print(
-    flags: &Flags, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
+    flags: &Flags, errors: &mut bool, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
 ) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     if flags.format.json {
         write!(stdout, "[")?;
     }
     let mut reorder = Reorder::default();
-    let mut errors = false;
     while let Ok(response) = result_receiver.recv() {
         reorder.push(response?);
         while let Some(response) = reorder.pop() {
-            errors |= response.result.is_err();
+            *errors |= response.result.is_err();
             if flags.format.json {
                 if reorder.next != 1 {
                     write!(stdout, ",")?;
@@ -436,9 +440,6 @@ fn print(
             writeln!(stdout)?;
         }
         writeln!(stdout, "]")?;
-    }
-    if errors {
-        std::process::exit(1);
     }
     Ok(())
 }

@@ -17,6 +17,7 @@ from __future__ import annotations
 import dataclasses
 import io
 import signal
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, List, Optional
@@ -499,6 +500,10 @@ def test_magika_module_multiple_copies_of_the_same_file() -> None:
             assert result.prediction.output.label == ContentTypeLabel.TXT
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Creating symlinks on Windows requires developer mode or elevated privileges.",
+)
 def test_magika_module_with_symlink() -> None:
     with tempfile.TemporaryDirectory() as td:
         test_path = Path(td) / "test.txt"
@@ -540,6 +545,10 @@ def test_magika_module_with_non_existing_file() -> None:
         assert res.status == Status.FILE_NOT_FOUND_ERROR
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="chmod does not reliably make files unreadable on Windows.",
+)
 def test_magika_module_with_permission_error() -> None:
     m = Magika()
 
@@ -589,10 +598,16 @@ def test_magika_module_with_really_many_files() -> None:
 
 @pytest.mark.slow
 def test_magika_module_with_big_file() -> None:
+    sigalrm: Any = getattr(signal, "SIGALRM", None)
+    alarm: Any = getattr(signal, "alarm", None)
+
+    if sigalrm is None or alarm is None:
+        pytest.skip("signal alarm timeouts are not available on this platform")
+
     def signal_handler(signum: int, frame: Any) -> None:
         raise Exception("Timeout")
 
-    signal.signal(signal.SIGALRM, signal_handler)
+    signal.signal(sigalrm, signal_handler)
 
     # It should take much less than this, but pytest weird scheduling sometimes
     # creates unexpected slow downs.
@@ -605,10 +620,10 @@ def test_magika_module_with_big_file() -> None:
             sample_path = Path(td) / "sample.dat"
             utils.write_random_file_with_size(sample_path, sample_size)
             print(f"Starting running Magika with a timeout of {timeout}")
-            signal.alarm(timeout)
+            alarm(timeout)
             res = m.identify_path(sample_path)
             assert res.ok
-            signal.alarm(0)
+            alarm(0)
             print("Done running Magika")
 
 

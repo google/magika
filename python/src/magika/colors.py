@@ -14,6 +14,8 @@
 
 # ruff: noqa: D100, D101, D102, D103, D107
 
+from typing import Optional
+
 
 # Taken from https://en.wikipedia.org/wiki/ANSI_escape_code
 
@@ -36,3 +38,24 @@ LIGHT_CYAN = "\033[1;36m"
 WHITE = "\033[1;37m"
 
 RESET = "\033[0;39m"
+
+GROUP_COLORS = {
+    "document": LIGHT_PURPLE,
+    "executable": LIGHT_GREEN,
+    "archive": LIGHT_RED,
+    "audio": YELLOW,
+    "image": YELLOW,
+    "video": YELLOW,
+    "code": LIGHT_BLUE,
+    # Generic text detections are commonly returned after low-confidence
+    # fallbacks, so keep them readable on light terminal themes.
+    "text": CYAN,
+    "application": GREEN,
+    "font": PURPLE,
+    "inode": BLUE,
+    "unknown": DARK_GRAY,
+}
+
+
+def color_for_group(group: Optional[str]) -> str:
+    return GROUP_COLORS.get(group or "", CYAN)

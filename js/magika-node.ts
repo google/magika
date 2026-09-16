@@ -79,9 +79,12 @@ export class MagikaNode extends Magika {
       );
     }
     if (options?.modelPath != null) {
-      promises.push(this.model.loadFile(options?.modelPath));
+      this.model_name = this._getModelName(options.modelPath);
+      promises.push(this.model.loadFile(options.modelPath));
     } else {
-      promises.push(this.model.loadUrl(options?.modelURL || Magika.MODEL_URL));
+      const modelURL = options?.modelURL || Magika.MODEL_URL;
+      this.model_name = this._getModelName(modelURL);
+      promises.push(this.model.loadUrl(modelURL));
     }
     await Promise.all(promises);
   }

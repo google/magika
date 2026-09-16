@@ -9,6 +9,9 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+- Add 50 content types to the knowledge base and `ContentTypeLabel`, such as AVIF, QOI, GGUF and DuckDB. The model's outputs are unchanged.
+
 ## [1.0.3] - 2026-05-04
 - Update magika CLI binary.
 

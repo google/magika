@@ -1,0 +1,115 @@
+{
+  "access": {
+    "description": "Microsoft Access database",
+    "extensions": [
+      "accdb",
+      "mdb"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "aout": {
+    "description": "a.out object / executable",
+    "extensions": [
+      "out"
+    ],
+    "group": "executable",
+    "is_text": false,
+    "mime_type": null
+  },
+  "berkeleydb": {
+    "description": "Berkeley DB",
+    "extensions": [
+      "db"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "cinema4d": {
+    "description": "Cinema 4D scene",
+    "extensions": [
+      "c4d"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "filemaker": {
+    "description": "FileMaker database",
+    "extensions": [
+      "fmp12",
+      "fp7"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "flatgeobuf": {
+    "description": "FlatGeobuf",
+    "extensions": [
+      "fgb"
+    ],
+    "group": "gis",
+    "is_text": false,
+    "mime_type": null
+  },
+  "lightwave": {
+    "description": "LightWave object / scene",
+    "extensions": [
+      "lwo",
+      "lws"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  },
+  "lmdb": {
+    "description": "LMDB",
+    "extensions": [
+      "mdb"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "orc": {
+    "description": "Apache ORC",
+    "extensions": [
+      "orc"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "paradox": {
+    "description": "Paradox database",
+    "extensions": [
+      "db"
+    ],
+    "group": "database",
+    "is_text": false,
+    "mime_type": null
+  },
+  "rdata": {
+    "description": "R serialized data",
+    "extensions": [
+      "rda",
+      "rdata",
+      "rds"
+    ],
+    "group": "scientific",
+    "is_text": false,
+    "mime_type": null
+  },
+  "rhinoceros": {
+    "description": "Rhino 3DM",
+    "extensions": [
+      "3dm"
+    ],
+    "group": "geometry",
+    "is_text": false,
+    "mime_type": null
+  }
+}

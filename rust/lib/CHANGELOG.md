@@ -22,6 +22,8 @@
 - Add `Builder::with_max_batch()` to prepare only the batch classes a caller can reach
 - Add `Backend` and `BackendInfo` for backend selection (CPU or GPU) and information
 - Add `Session::backend_info()` to get information about the backend
+- Add `ContentType::from_label()` to look up a content type by its canonical label
+- Add 109 content types that format rules can name, including AVIF, QOI, GGUF and DuckDB, without changing the model's outputs, thresholds or overwrite mappings
 
 ### Patch
 

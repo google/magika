@@ -16,3 +16,6 @@ CPU- or GPU-bound model execution never occupies an async executor thread.
 At startup on a GPU, every resident batch plan runs repeated copies of one input and every
 output row is checked against a stored CPU reference. The probe is a device health check: it
 does not establish score agreement for every file.
+
+CPU and GPU confidence scores are backend dependent. GPU release qualification checks final
+classification and overwrite decisions across varied reference files and every batch class.

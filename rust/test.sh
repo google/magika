@@ -20,7 +20,7 @@ TOOLCHAINS='stable nightly'
 [ -z "$CI" ] || TOOLCHAINS=$(rustup show active-toolchain | sed 's/-.*//')
 
 for toolchain in $TOOLCHAINS; do
-  for dir in gen tract-runtime lib ffi cli; do
+  for dir in gen tract-runtime rules lib ffi cli; do
     info "Running tests from $dir with $toolchain"
     ( cd $dir && rustup run $toolchain ./test.sh; )
   done

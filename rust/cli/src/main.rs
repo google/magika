@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 use std::io::{ErrorKind, Read, Write as _};
 use std::path::{Path, PathBuf};
@@ -244,7 +244,7 @@ const GPU_INFERENCE_THREADS: usize = 4;
 /// what this process may use rather than what the machine is built from, so a container's CPU quota
 /// and a restricted affinity mask both count.
 fn default_inference_threads(backend: Backend) -> usize {
-    let available = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+    let available = std::thread::available_parallelism().map_or(1, |x| x.get()).min(256);
     match backend {
         // The device is the limit, not the host, so never ask the host for more than it takes to
         // keep the device queued, nor for more than it has.
@@ -267,10 +267,8 @@ fn default_inference_threads(backend: Backend) -> usize {
 
 fn main() -> Result<()> {
     let flags = Flags::parse();
-    ensure!(flags.experimental.batch_size != 0, "--batch-size cannot be zero");
     let batch_size = flags.experimental.batch_size;
-    ensure!(flags.experimental.threads != Some(0), "--threads cannot be zero");
-    ensure!(flags.experimental.readers != 0, "--readers cannot be zero");
+    ensure!((1..=64).contains(&batch_size), "--batch-size must be between 1 and 64");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -303,7 +301,9 @@ fn main() -> Result<()> {
         Some(threads) => threads,
         None => default_inference_threads(runtime.backend_info().backend()),
     };
+    ensure!((1..=256).contains(&threads), "--threads must be between 1 and 256");
     let readers = flags.experimental.readers;
+    ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
     let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
     let (read_sender, read_receiver) =
         std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
@@ -387,7 +387,8 @@ fn main() -> Result<()> {
     }
     drop(batch_receiver);
     drop(result_sender);
-    let print_result = match print(&flags, result_receiver) {
+    let mut errors = false;
+    let result = match print(&flags, &mut errors, result_receiver) {
         Err(e)
             if e.root_cause()
                 .downcast_ref::<std::io::Error>()
@@ -402,22 +403,25 @@ fn main() -> Result<()> {
     }
     #[cfg(feature = "_trace")]
     trace.report(readers, threads);
-    print_result
+    result?;
+    if errors {
+        std::process::exit(1);
+    }
+    Ok(())
 }
 
 fn print(
-    flags: &Flags, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
+    flags: &Flags, errors: &mut bool, result_receiver: std::sync::mpsc::Receiver<Result<Response>>,
 ) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     if flags.format.json {
         write!(stdout, "[")?;
     }
     let mut reorder = Reorder::default();
-    let mut errors = false;
     while let Ok(response) = result_receiver.recv() {
         reorder.push(response?);
         while let Some(response) = reorder.pop() {
-            errors |= response.result.is_err();
+            *errors |= response.result.is_err();
             if flags.format.json {
                 if reorder.next != 1 {
                     write!(stdout, ",")?;
@@ -437,9 +441,6 @@ fn print(
         }
         writeln!(stdout, "]")?;
     }
-    if errors {
-        std::process::exit(1);
-    }
     Ok(())
 }
 
@@ -451,11 +452,10 @@ fn walk_paths(
     flags: &Flags, work_sender: &crossbeam_channel::Sender<Pending>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
-    let mut flags_paths: Vec<(PathBuf, Option<std::fs::FileType>)> =
-        flags.path.iter().rev().map(|path| (path.clone(), None)).collect();
+    let mut traversal = Traversal::new(&flags.path);
     let mut order = 0;
-    while let Some((path, file_type)) = flags_paths.pop() {
-        let processed = process_path(flags, &mut flags_paths, &path, file_type);
+    while let Some((path, file_type)) = traversal.pop() {
+        let processed = process_path(flags, &mut traversal, &path, file_type);
         if matches!(processed, Ok(ProcessPath::Recursive)) {
             continue;
         }
@@ -553,9 +553,47 @@ struct BatchItem {
     features: Features,
 }
 
+/// A path still to process, or the point where traversal leaves a directory.
+enum WalkEntry {
+    Path(PathBuf, Option<std::fs::FileType>),
+    LeaveDirectory(PathBuf),
+}
+
+const DIRECTORY_CYCLE: &str = "Directory cycle";
+const NOT_A_REGULAR_FILE: &str = "Not a regular file";
+
+struct Traversal {
+    pending: Vec<WalkEntry>,
+    ancestors: HashSet<PathBuf>,
+}
+
+impl Traversal {
+    fn new(paths: &[PathBuf]) -> Self {
+        let pending = paths.iter().rev().map(|path| WalkEntry::Path(path.clone(), None)).collect();
+        let ancestors = HashSet::new();
+        Traversal { pending, ancestors }
+    }
+
+    fn push(&mut self, path: &Path) -> Result<()> {
+        let canonical = std::fs::canonicalize(path)?;
+        ensure!(self.ancestors.insert(canonical.clone()), DIRECTORY_CYCLE);
+        self.pending.push(WalkEntry::LeaveDirectory(canonical));
+        Ok(())
+    }
+
+    fn pop(&mut self) -> Option<(PathBuf, Option<std::fs::FileType>)> {
+        while let Some(entry) = self.pending.pop() {
+            match entry {
+                WalkEntry::Path(path, kind) => return Some((path, kind)),
+                WalkEntry::LeaveDirectory(path) => drop(self.ancestors.remove(&path)),
+            }
+        }
+        None
+    }
+}
+
 fn process_path(
-    flags: &Flags, paths: &mut Vec<(PathBuf, Option<std::fs::FileType>)>, path: &Path,
-    known: Option<std::fs::FileType>,
+    flags: &Flags, traversal: &mut Traversal, path: &Path, known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if path.to_str() == Some("-") {
         return Ok(ProcessPath::Content);
@@ -575,14 +613,15 @@ fn process_path(
     };
     if metadata.is_dir() {
         return Ok(if flags.recursive {
+            traversal.push(path)?;
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
                 dir_paths.push((entry.path(), entry.file_type().ok()));
             }
             dir_paths.sort_by(|a, b| a.0.cmp(&b.0));
-            while let Some(path) = dir_paths.pop() {
-                paths.push(path);
+            while let Some((path, kind)) = dir_paths.pop() {
+                traversal.pending.push(WalkEntry::Path(path, kind));
             }
             ProcessPath::Recursive
         } else {
@@ -592,6 +631,7 @@ fn process_path(
     if metadata.is_symlink() {
         return Ok(ProcessPath::Ruled(FileType::Symlink));
     }
+    ensure!(metadata.is_file(), NOT_A_REGULAR_FILE);
     Ok(ProcessPath::Content)
 }
 
@@ -660,6 +700,8 @@ enum JsonError {
     Unknown,
     FileDoesNotExist,
     PermissionError,
+    DirectoryCycle,
+    NotARegularFile,
 }
 
 #[derive(Serialize)]
@@ -671,12 +713,16 @@ struct JsonResult<'a> {
 
 impl From<anyhow::Error> for JsonError {
     fn from(value: anyhow::Error) -> Self {
-        match value.root_cause().downcast_ref::<std::io::Error>() {
-            Some(x) => match x.kind() {
-                ErrorKind::NotFound => JsonError::FileDoesNotExist,
-                ErrorKind::PermissionDenied => JsonError::PermissionError,
-                _ => JsonError::Unknown,
-            },
+        if let Some(x) = value.root_cause().downcast_ref::<std::io::Error>() {
+            match x.kind() {
+                ErrorKind::NotFound => return JsonError::FileDoesNotExist,
+                ErrorKind::PermissionDenied => return JsonError::PermissionError,
+                _ => (),
+            }
+        }
+        match value.to_string().as_str() {
+            DIRECTORY_CYCLE => JsonError::DirectoryCycle,
+            NOT_A_REGULAR_FILE => JsonError::NotARegularFile,
             _ => JsonError::Unknown,
         }
     }
@@ -742,7 +788,7 @@ impl Response {
     }
 
     fn json(self) -> Result<serde_json::Value> {
-        let path = self.path.to_path_buf();
+        let path = self.path.to_string_lossy();
         let result = match self.result {
             Ok(x) => {
                 let dl = match &x {

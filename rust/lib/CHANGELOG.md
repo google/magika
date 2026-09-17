@@ -25,6 +25,7 @@
 
 ### Patch
 
+- Read small files once when extracting features
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

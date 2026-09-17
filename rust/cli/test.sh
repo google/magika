@@ -39,10 +39,6 @@ info "Test against the test suites: $TEST_SUITES"
   done
 )
 
-# We rely below on the fact that we don't have permission on /etc/shadow.
-[ $(id -u) -eq 0 ] && success "No more tests in Docker"
-
-info "Test exit code with at least one error"
 test_error() {
   files="$1"
   expected="$2"
@@ -53,11 +49,48 @@ test_error() {
     [ "$actual" = "$expected" ] || error "invalid output for magika $files"
   )
 }
-[ "$(uname -s)" = Linux ] && test_error '/etc/shadow' "\
-/etc/shadow: Permission denied (os error 13) (error)"
+
+if [ $(id -u) -ne 0 -a -e /run/systemd/inaccessible ]; then
+  info "Test permission error and non-regular files"
+  test_error '--jsonl -r /run/systemd/inaccessible' \
+'{"path":"/run/systemd/inaccessible/blk","result":{"status":"not_a_regular_file"}}
+{"path":"/run/systemd/inaccessible/chr","result":{"status":"not_a_regular_file"}}
+{"path":"/run/systemd/inaccessible/dir","result":{"status":"permission_error"}}
+{"path":"/run/systemd/inaccessible/fifo","result":{"status":"not_a_regular_file"}}
+{"path":"/run/systemd/inaccessible/reg","result":{"status":"permission_error"}}
+{"path":"/run/systemd/inaccessible/sock","result":{"status":"not_a_regular_file"}}'
+fi
+
+info "Test nonexistent files"
 test_error 'non_existent src/main.rs' "\
 non_existent: No such file or directory (os error 2) (error)
 src/main.rs: Rust source (code)"
+
+info "Test file names that are not UTF-8"
+test_error "$(printf 'f\xff')" "\
+f�: No such file or directory (os error 2) (error)"
+test_error "--json $(printf 'f\xff')" '[
+  {
+    "path": "f�",
+    "result": {
+      "status": "file_does_not_exist"
+    }
+  }
+]'
+
+info "Test directory cycles"
+( dir=$(mktemp -d)
+  trap "rm -rf $dir" EXIT
+  mkdir -p $dir/tree/sub
+  touch $dir/tree/empty
+  ln -s .. $dir/tree/sub/back
+  ln -s tree $dir/sibling
+  test_error "-r $dir" "\
+$dir/sibling/empty: Empty file (inode)
+$dir/sibling/sub/back: Directory cycle (error)
+$dir/tree/empty: Empty file (inode)
+$dir/tree/sub/back: Directory cycle (error)"
+)
 
 info "Test exit code with broken pipe"
 magika -r ../../tests_data | head -n1 >/dev/null

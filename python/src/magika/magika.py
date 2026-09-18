@@ -79,10 +79,18 @@ class Magika:
             self._log.setLevel(logging.DEBUG)
 
         if model_dir is not None:
+            if not model_dir.is_dir():
+                raise MagikaError(f"model dir not found at {str(model_dir)}")
             raise NotImplementedError(
                 f"Custom model_dir '{model_dir}' is not supported by the Rust backend."
             )
 
+        self._prediction_mode = prediction_mode
+        self._no_dereference = no_dereference
+
+        # FIXME(https://github.com/google/magika/issues/1480): Remove bundled JSON
+        # configs (model_config.min.json and content_types_kb.min.json) once magika-lib
+        # exposes static content-type metadata and model/output label spaces.
         self._model_config_path = (
             Path(__file__).parent / "config" / "model_config.min.json"
         )
@@ -95,26 +103,39 @@ class Magika:
         self._target_labels_space = [
             ContentTypeLabel(ct) for ct in model_config["target_labels_space"]
         ]
+        # FIXME(https://github.com/google/magika/issues/1479): Remove Python-side
+        # thresholds and medium_confidence_threshold once magika-lib supports
+        # PredictionMode (HighConfidence, MediumConfidence, BestGuess) natively.
+        self._thresholds: Dict[ContentTypeLabel, float] = {
+            ContentTypeLabel(k): float(v)
+            for k, v in model_config.get("thresholds", {}).items()
+        }
+        self._medium_confidence_threshold: float = float(
+            model_config["medium_confidence_threshold"]
+        )
+        self._block_size: int = int(model_config["block_size"])
         self._overwrite_map = {
             ContentTypeLabel(k): ContentTypeLabel(v)
             for k, v in model_config.get("overwrite_map", {}).items()
         }
-
-        self._prediction_mode = prediction_mode
-        self._no_dereference = no_dereference
 
         content_types_kb_path = (
             Path(__file__).parent / "config" / "content_types_kb.min.json"
         )
         self._cts_infos = Magika._load_content_types_kb(content_types_kb_path)
 
-        self._pyo3_session = _magika.Magika()
+        # FIXME(https://github.com/google/magika/issues/1481): Pass no_dereference
+        # directly to magika-lib Session once supported.
+        self._pyo3_session = _magika.Magika(no_dereference=self._no_dereference)
 
     def __repr__(self) -> str:
         return str(self)
 
     def __str__(self) -> str:
-        return f'Magika(module_version="{self.get_module_version()}", model_name="{self.get_model_name()}")'
+        return (
+            f'Magika(module_version="{self.get_module_version()}", '
+            f'model_name="{self.get_model_name()}")'
+        )
 
     def get_module_version(self) -> str:
         """Gets the version of the Magika Python module."""
@@ -126,13 +147,26 @@ class Magika:
 
     def _convert_pyo3_result(self, pyo3_res: Any, path: Path) -> MagikaResult:
         status = Status(pyo3_res.status)
+
         if not pyo3_res.ok:
             return MagikaResult(path=path, status=status, prediction=None)
 
-        output_info = self._cts_infos[ContentTypeLabel(pyo3_res.label)]
         dl_label = ContentTypeLabel(pyo3_res.dl_label)
         dl_info = self._cts_infos[dl_label]
-        overwrite_reason = OverwriteReason(pyo3_res.overwrite_reason)
+        # FIXME(https://github.com/google/magika/issues/1479): Remove Python-side
+        # PredictionMode thresholding once magika-lib supports PredictionMode natively.
+        if (
+            dl_label != ContentTypeLabel.UNDEFINED
+            and self._prediction_mode != PredictionMode.HIGH_CONFIDENCE
+        ):
+            output_label, overwrite_reason = (
+                self._get_output_label_from_dl_label_and_score(dl_label, pyo3_res.score)
+            )
+        else:
+            output_label = ContentTypeLabel(pyo3_res.label)
+            overwrite_reason = OverwriteReason(pyo3_res.overwrite_reason)
+
+        output_info = self._cts_infos[output_label]
 
         prediction = MagikaPrediction(
             dl=dl_info,
@@ -208,10 +242,20 @@ class Magika:
         ):
             raise TypeError("Input stream must have seek, read, and tell methods.")
 
+        block_size = 4096
         try:
             current_position = stream.tell()
-            stream.seek(0)
-            content = stream.read()
+            stream.seek(0, os.SEEK_END)
+            stream_size = stream.tell()
+            if stream_size <= 2 * block_size:
+                stream.seek(0)
+                content = stream.read(stream_size)
+            else:
+                stream.seek(0)
+                beg_block = stream.read(block_size)
+                stream.seek(stream_size - block_size)
+                end_block = stream.read(block_size)
+                content = beg_block + end_block
             return self.identify_bytes(content)
         finally:
             stream.seek(current_position)
@@ -239,13 +283,41 @@ class Magika:
         model_content_types.update(self._target_labels_space)
         return sorted(model_content_types)
 
+    # FIXME(https://github.com/google/magika/issues/1479): Remove this helper once
+    # magika-lib supports PredictionMode (HighConfidence, MediumConfidence, BestGuess) natively.
     def _get_output_label_from_dl_label_and_score(
         self, dl_label: ContentTypeLabel, score: float
     ) -> Tuple[ContentTypeLabel, OverwriteReason]:
-        """Internal Python thresholding helper (deprecated/removed in favor of Rust core)."""
-        raise NotImplementedError(
-            "Output label thresholding is handled internally by the Rust backend."
-        )
+        """Resolves output label and overwrite reason from raw DL label and score."""
+        overwrite_reason = OverwriteReason.NONE
+
+        output_label = self._overwrite_map.get(dl_label, dl_label)
+        if output_label != dl_label:
+            overwrite_reason = OverwriteReason.OVERWRITE_MAP
+
+        if self._prediction_mode == PredictionMode.BEST_GUESS:
+            pass
+        elif (
+            self._prediction_mode == PredictionMode.HIGH_CONFIDENCE
+            and score
+            >= self._thresholds.get(dl_label, self._medium_confidence_threshold)
+        ):
+            pass
+        elif (
+            self._prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
+            and score >= self._medium_confidence_threshold
+        ):
+            pass
+        else:
+            overwrite_reason = OverwriteReason.LOW_CONFIDENCE
+            if self._cts_infos[output_label].is_text:
+                output_label = ContentTypeLabel.TXT
+            else:
+                output_label = ContentTypeLabel.UNKNOWN
+            if dl_label == output_label:
+                overwrite_reason = OverwriteReason.NONE
+
+        return output_label, overwrite_reason
 
     @staticmethod
     def _get_default_model_name() -> str:

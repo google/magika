@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# /// script
+# dependencies = ["click"]
+# ///
 
 import re
 import subprocess
@@ -62,7 +65,7 @@ def get_relevant_files_paths() -> list[Path]:
     """
 
     repo_root_dir = Path(__file__).parent.parent.parent.resolve()
-    assert (repo_root_dir / ".git").is_dir()
+    assert (repo_root_dir / ".git").exists()
 
     paths = []
     try:

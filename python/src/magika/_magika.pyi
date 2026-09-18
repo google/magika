@@ -1,0 +1,41 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import List, Optional
+
+class MagikaResult:
+    path: Optional[str]
+    status: str
+    ok: bool
+    label: str
+    mime_type: str
+    group: str
+    description: str
+    extensions: List[str]
+    is_text: bool
+    score: float
+    dl_label: str
+    overwrite_reason: str
+
+def get_default_model_name() -> str: ...
+
+class Magika:
+    # FIXME(https://github.com/google/magika/issues/1481): Pass no_dereference to magika-lib Session once supported.
+    def __init__(self, no_dereference: bool = False) -> None: ...
+    @staticmethod
+    def get_default_model_name() -> str: ...
+    def identify_bytes(self, data: bytes) -> MagikaResult: ...
+    def identify_path(self, path: str) -> MagikaResult: ...
+    def identify_paths(self, paths: List[str]) -> List[MagikaResult]: ...
+    def get_model_name(self) -> str: ...

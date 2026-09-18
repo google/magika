@@ -20,14 +20,8 @@ from magika.types.content_type_label import ContentTypeLabel  # noqa: F401
 from magika.types.magika_error import MagikaError  # noqa: F401
 from magika.types.magika_prediction import MagikaPrediction  # noqa: F401
 from magika.types.magika_result import MagikaResult  # noqa: F401
-from magika.types.model import (  # noqa: F401
-    ModelConfig,
-    ModelFeatures,
-    ModelOutput,
-)
 from magika.types.overwrite_reason import OverwriteReason  # noqa: F401
 from magika.types.prediction_mode import PredictionMode  # noqa: F401
-from magika.types.seekable import Seekable  # noqa: F401
 from magika.types.status import Status  # noqa: F401
 
 __all__ = [
@@ -36,11 +30,7 @@ __all__ = [
     "MagikaError",
     "MagikaPrediction",
     "MagikaResult",
-    "ModelConfig",
-    "ModelFeatures",
-    "ModelOutput",
     "OverwriteReason",
     "PredictionMode",
-    "Seekable",
     "Status",
 ]

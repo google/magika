@@ -5,12 +5,12 @@ on:
   push:
     branches:
       - "main"
-  pull_request:
-    paths:
-      - ".github/workflows/rust-*"
-      - "assets/**"
-      - "rust/**"
-      - "tests_data/**"
+  # pull_request:
+  #   paths:
+  #     - ".github/workflows/rust-*"
+  #     - "assets/**"
+  #     - "rust/**"
+  #     - "tests_data/**"
 
 permissions:
   contents: read

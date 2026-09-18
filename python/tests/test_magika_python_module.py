@@ -29,6 +29,7 @@ from magika.types import (
     ContentTypeLabel,
     MagikaPrediction,
     MagikaResult,
+    OverwriteReason,
     Status,
 )
 from tests import utils
@@ -64,7 +65,7 @@ def test_magika_module_with_one_test_file() -> None:
 @pytest.mark.smoketest
 def test_magika_module_with_explicit_model_dir() -> None:
     with pytest.raises(NotImplementedError):
-        Magika(model_dir=Path("/nonexistent/model/dir"))
+        Magika(model_dir=Path(__file__).parent)
 
 
 def test_magika_module_with_basic_tests_by_paths() -> None:
@@ -285,12 +286,167 @@ def test_magika_module_with_whitespaces() -> None:
             )
 
 
-# The following tests tested internal Python-specific thresholding helpers that were
-# removed in favor of native Rust core model inference.
-# def test_magika_module_with_different_prediction_modes() -> None:
-#     ...
-# def test_magika_module_overwrite_reason() -> None:
-#     ...
+def test_magika_module_with_different_prediction_modes() -> None:
+    m = Magika(prediction_mode=PredictionMode.BEST_GUESS)
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.40
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.60
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+
+    m = Magika(prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
+        ContentTypeLabel.TXT,
+        OverwriteReason.LOW_CONFIDENCE,
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, m._medium_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.60
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+
+    m = Magika(prediction_mode=PredictionMode.HIGH_CONFIDENCE)
+    high_confidence_threshold = m._thresholds.get(
+        ContentTypeLabel.PYTHON, m._medium_confidence_threshold
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
+        ContentTypeLabel.TXT,
+        OverwriteReason.LOW_CONFIDENCE,
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, high_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, high_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+
+    # test that the default is HIGH_CONFIDENCE
+    m = Magika()
+    high_confidence_threshold = m._thresholds.get(
+        ContentTypeLabel.PYTHON, m._medium_confidence_threshold
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.01
+    ) == (
+        ContentTypeLabel.TXT,
+        OverwriteReason.LOW_CONFIDENCE,
+    )
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, high_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, high_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, 0.99
+    ) == (
+        ContentTypeLabel.PYTHON,
+        OverwriteReason.NONE,
+    )
+
+
+def test_magika_module_overwrite_reason() -> None:
+    m_high = Magika(prediction_mode=PredictionMode.HIGH_CONFIDENCE)
+    m_medium = Magika(prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
+    m_best = Magika(prediction_mode=PredictionMode.BEST_GUESS)
+
+    python_high_confidence_threshold = m_high._thresholds.get(
+        ContentTypeLabel.PYTHON, m_high._medium_confidence_threshold
+    )
+    medium_confidence_threshold = m_medium._medium_confidence_threshold
+
+    assert m_high._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, python_high_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m_high._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, python_high_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
+
+    assert m_medium._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m_medium._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
+
+    assert m_best._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold + 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+    assert m_best._get_output_label_from_dl_label_and_score(
+        ContentTypeLabel.PYTHON, medium_confidence_threshold - 0.01
+    ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
+
+    for overwrite_map_ct_key in sorted(m_high._overwrite_map.keys()):
+        overwrite_map_ct_value = m_high._overwrite_map[overwrite_map_ct_key]
+        is_overwrite_map_ct_target_text = m_high._cts_infos[
+            overwrite_map_ct_value
+        ].is_text
+        overwrite_map_ct_high_confidence_threshold = m_high._thresholds.get(
+            overwrite_map_ct_key, m_high._medium_confidence_threshold
+        )
+        assert m_high._get_output_label_from_dl_label_and_score(
+            overwrite_map_ct_key, overwrite_map_ct_high_confidence_threshold + 0.01
+        ) == (overwrite_map_ct_value, OverwriteReason.OVERWRITE_MAP)
+        assert m_high._get_output_label_from_dl_label_and_score(
+            overwrite_map_ct_key, overwrite_map_ct_high_confidence_threshold - 0.01
+        ) == (
+            ContentTypeLabel.TXT
+            if is_overwrite_map_ct_target_text
+            else ContentTypeLabel.UNKNOWN,
+            OverwriteReason.LOW_CONFIDENCE,
+        )
+
+    for generic_ct in [ContentTypeLabel.TXT, ContentTypeLabel.UNKNOWN]:
+        generic_type_high_confidence_threshold = m_high._thresholds.get(
+            generic_ct,
+            m_high._medium_confidence_threshold,
+        )
+        assert m_high._get_output_label_from_dl_label_and_score(
+            generic_ct,
+            generic_type_high_confidence_threshold - 0.01,
+        ) == (generic_ct, OverwriteReason.NONE)
+        assert m_medium._get_output_label_from_dl_label_and_score(
+            generic_ct, medium_confidence_threshold - 0.01
+        ) == (generic_ct, OverwriteReason.NONE)
 
 
 def test_magika_module_with_directory() -> None:
@@ -322,34 +478,33 @@ def test_magika_module_multiple_copies_of_the_same_file() -> None:
             assert result.prediction.output.label == ContentTypeLabel.TXT
 
 
-# Symlink dereference behavior in rust/lib Session is deferred for future alignment.
-# def test_magika_module_with_symlink() -> None:
-#     with tempfile.TemporaryDirectory() as td:
-#         test_path = Path(td) / "test.txt"
-#         test_path.write_text("test")
-#
-#         symlink_path = Path(td) / "symlink-test.txt"
-#         symlink_path.symlink_to(test_path)
-#
-#         m = Magika()
-#         res = m.identify_path(test_path)
-#         assert res.path == test_path
-#         assert res.ok
-#         assert res.prediction.output.label == ContentTypeLabel.TXT
-#         res = m.identify_path(symlink_path)
-#         assert res.path == symlink_path
-#         assert res.ok
-#         assert res.prediction.output.label == ContentTypeLabel.TXT
-#
-#         m = Magika(no_dereference=True)
-#         res = m.identify_path(test_path)
-#         assert res.path == test_path
-#         assert res.ok
-#         assert res.prediction.output.label == ContentTypeLabel.TXT
-#         res = m.identify_path(symlink_path)
-#         assert res.path == symlink_path
-#         assert res.ok
-#         assert res.prediction.output.label == ContentTypeLabel.SYMLINK
+def test_magika_module_with_symlink() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        test_path = Path(td) / "test.txt"
+        test_path.write_text("test")
+
+        symlink_path = Path(td) / "symlink-test.txt"
+        symlink_path.symlink_to(test_path)
+
+        m = Magika()
+        res = m.identify_path(test_path)
+        assert res.path == test_path
+        assert res.ok
+        assert res.prediction.output.label == ContentTypeLabel.TXT
+        res = m.identify_path(symlink_path)
+        assert res.path == symlink_path
+        assert res.ok
+        assert res.prediction.output.label == ContentTypeLabel.TXT
+
+        m = Magika(no_dereference=True)
+        res = m.identify_path(test_path)
+        assert res.path == test_path
+        assert res.ok
+        assert res.prediction.output.label == ContentTypeLabel.TXT
+        res = m.identify_path(symlink_path)
+        assert res.path == symlink_path
+        assert res.ok
+        assert res.prediction.output.label == ContentTypeLabel.SYMLINK
 
 
 def test_magika_module_with_non_existing_file() -> None:

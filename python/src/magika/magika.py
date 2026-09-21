@@ -41,6 +41,8 @@ from magika.types import (
 
 from . import _magika
 
+_DEFAULT_MODEL_NAME = "standard_v3_3"
+
 
 class Magika:
     """Main Magika class for content type identification.

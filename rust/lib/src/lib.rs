@@ -211,6 +211,26 @@ mod tests {
         }
     }
 
+    #[test]
+    fn from_label_finds_every_exposed_content_type() {
+        let labels = std::fs::read_to_string("../gen/content_types").unwrap();
+        let mut checked = 0;
+        for label in labels.lines() {
+            match label {
+                "directory" | "symlink" => assert_eq!(ContentType::from_label(label), None),
+                _ => {
+                    let content_type = ContentType::from_label(label).unwrap();
+                    assert_eq!(content_type.info().label, label);
+                    checked += 1;
+                }
+            }
+        }
+        assert_eq!(checked, ContentType::SIZE);
+        for label in ["", "PNG", "png ", "not-a-content-type"] {
+            assert_eq!(ContentType::from_label(label), None, "{label:?}");
+        }
+    }
+
     #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
     #[test]
     fn forced_gpu_fails_when_no_gpu_backend_is_compiled() {

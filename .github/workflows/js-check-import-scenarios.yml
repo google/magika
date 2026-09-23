@@ -10,6 +10,9 @@ on:
       - 'js/simple_examples/**'
       - '.github/workflows/run-js-examples.yml'
 
+permissions:
+  contents: read
+
 jobs:
   run-examples:
     runs-on: ubuntu-latest

@@ -22,6 +22,8 @@ use crate::{BackendInfo, Features, FeaturesOrRuled, FileType, Input, Runtime};
 /// A Magika session to identify files.
 pub struct Session {
     pub(crate) inner: magika_tract_runtime::Session,
+    #[cfg(feature = "rules")]
+    pub(crate) rules: Option<crate::Rules>,
 }
 
 impl std::fmt::Debug for Session {
@@ -56,7 +58,11 @@ impl Session {
 
     /// Identifies a single file from its content.
     pub fn identify_content(&mut self, file: impl Input) -> Result<FileType> {
-        match FeaturesOrRuled::extract(file)? {
+        #[cfg(feature = "rules")]
+        let extracted = FeaturesOrRuled::extract_with_rules(file, self.rules.as_ref())?;
+        #[cfg(not(feature = "rules"))]
+        let extracted = FeaturesOrRuled::extract(file)?;
+        match extracted {
             FeaturesOrRuled::Ruled(content_type) => Ok(FileType::Ruled(content_type)),
             FeaturesOrRuled::Features(features) => self.identify_features(&features),
         }

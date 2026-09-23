@@ -29,6 +29,28 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Format rules
+//!
+//! With the `rules` feature, [`Builder::with_rules`] identifies files with format rules before
+//! inference. A rule decides from the first 4 KiB and the size of a file; files that no rule
+//! decides go through inference as usual.
+//!
+//! ```rust
+//! # #[cfg(feature = "rules")]
+//! # fn main() -> anyhow::Result<()> {
+//! let rules = magika::Rules::bundled()?;
+//! let runtime = magika::Runtime::builder().with_rules(rules).build()?;
+//! let mut magika = runtime.session()?;
+//!
+//! // A gzip header decides without running the model.
+//! let result = magika.identify_content(&b"\x1f\x8b\x08\x00\0\0\0\0\0\x03hello, world"[..])?;
+//! assert!(matches!(result, magika::FileType::Ruled(magika::ContentType::Gzip)));
+//! # Ok(())
+//! # }
+//! # #[cfg(not(feature = "rules"))]
+//! # fn main() {}
+//! ```
 
 #![cfg_attr(feature = "_doc", feature(doc_cfg))]
 
@@ -37,6 +59,8 @@ pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{Features, FeaturesOrRuled, Input};
+#[cfg(feature = "rules")]
+pub use crate::rules::Rules;
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
@@ -47,6 +71,8 @@ mod content;
 mod file;
 mod input;
 mod model;
+#[cfg(feature = "rules")]
+mod rules;
 mod runtime;
 mod session;
 

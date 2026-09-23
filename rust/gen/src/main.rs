@@ -100,13 +100,7 @@ fn generate_lib_content(
     writeln!(output, "}}\n")?;
     writeln!(output, "impl ContentType {{")?;
     writeln!(output, "    pub(crate) const SIZE: usize = {};\n", variants.len())?;
-    writeln!(output, "    /// Looks up a content type by its exact label.")?;
-    writeln!(output, "    ///")?;
-    writeln!(
-        output,
-        "    /// `directory` and `symlink` describe a [`FileType`](crate::FileType), not a content type, and"
-    )?;
-    writeln!(output, "    /// return `None`, like any label that is not a content type.")?;
+    writeln!(output, "    /// Returns a content type from its label.")?;
     writeln!(output, "    pub fn from_label(label: &str) -> Option<Self> {{")?;
     writeln!(output, "        Some(match label {{")?;
     for Variant { label, .. } in &variants {

@@ -2437,10 +2437,7 @@ pub enum ContentType {
 impl ContentType {
     pub(crate) const SIZE: usize = 217;
 
-    /// Looks up a content type by its exact label.
-    ///
-    /// `directory` and `symlink` describe a [`FileType`](crate::FileType), not a content type, and
-    /// return `None`, like any label that is not a content type.
+    /// Returns a content type from its label.
     pub fn from_label(label: &str) -> Option<Self> {
         Some(match label {
             "3gp" => Self::_3gp,

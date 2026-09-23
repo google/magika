@@ -15,6 +15,7 @@
 
 ### Minor
 
+- Add `ContentType::from_label()` to get a content type from its label
 - Change `Session::identify_features_batch()` to take an iterator of features
 - Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
 - Add `Runtime` to prepare the model once and create one `Session` per inference thread
@@ -22,7 +23,6 @@
 - Add `Builder::with_max_batch()` to prepare only the batch classes a caller can reach
 - Add `Backend` and `BackendInfo` for backend selection (CPU or GPU) and information
 - Add `Session::backend_info()` to get information about the backend
-- Add `ContentType::from_label()` to look up a content type by its label
 
 ### Patch
 

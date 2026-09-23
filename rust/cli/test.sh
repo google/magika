@@ -21,6 +21,7 @@ PROFILE=release-fast
 x cargo check
 x cargo check --features=_trace
 x cargo build --profile=$PROFILE
+x cargo test --profile=$PROFILE
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
 x cargo clippy --features=_trace -- --deny=warnings

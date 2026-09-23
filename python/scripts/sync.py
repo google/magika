@@ -28,7 +28,8 @@ MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE = [
 ]
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent
-assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
+# A git worktree has a .git file rather than a directory.
+assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").exists()
 
 ASSETS_DIR = REPO_ROOT_DIR / "assets"
 assert ASSETS_DIR.is_dir()

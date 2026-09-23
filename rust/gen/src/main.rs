@@ -311,13 +311,17 @@ struct ModelConfig {
 
 fn enum_name(xs: &str) -> String {
     assert!(xs.is_ascii());
-    let mut xs = xs.as_bytes().to_vec();
-    match xs[0] {
-        b'A'..=b'Z' => (),
-        b'a'..=b'z' => xs[0] = xs[0].to_ascii_uppercase(),
-        _ => xs.insert(0, b'_'),
+    // Upper camel case: capitalize each word and drop the underscores between them.
+    let mut name = String::new();
+    for word in xs.split('_') {
+        let mut chars = word.chars();
+        name.extend(chars.next().map(|x| x.to_ascii_uppercase()));
+        name.extend(chars);
     }
-    String::from_utf8(xs).unwrap()
+    if !name.starts_with(|x: char| x.is_ascii_uppercase()) {
+        name.insert(0, '_');
+    }
+    name
 }
 
 fn const_name(xs: &str) -> String {
@@ -327,4 +331,16 @@ fn const_name(xs: &str) -> String {
         xs.insert(0, b'_');
     }
     String::from_utf8(xs).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn enum_names_are_upper_camel_case() {
+        assert_eq!(enum_name("png"), "Png");
+        assert_eq!(enum_name("3gp"), "_3gp");
+        assert_eq!(enum_name("llvm_bitcode"), "LlvmBitcode");
+    }
 }

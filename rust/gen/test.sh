@@ -17,5 +17,6 @@ set -e
 . ../color.sh
 
 x cargo check
+x cargo test
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings

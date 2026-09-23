@@ -100,6 +100,15 @@ fn generate_lib_content(
     writeln!(output, "}}\n")?;
     writeln!(output, "impl ContentType {{")?;
     writeln!(output, "    pub(crate) const SIZE: usize = {};\n", variants.len())?;
+    writeln!(output, "    /// Returns a content type from its label.")?;
+    writeln!(output, "    pub fn from_label(label: &str) -> Option<Self> {{")?;
+    writeln!(output, "        Some(match label {{")?;
+    for Variant { label, .. } in &variants {
+        writeln!(output, "            {label:?} => Self::{},", enum_name(label))?;
+    }
+    writeln!(output, "            _ => return None,")?;
+    writeln!(output, "        }})")?;
+    writeln!(output, "    }}\n")?;
     writeln!(output, "    /// Returns the content type information.")?;
     writeln!(output, "    pub fn info(self) -> &'static TypeInfo {{")?;
     writeln!(output, "        match self {{")?;

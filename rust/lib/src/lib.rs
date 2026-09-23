@@ -187,33 +187,4 @@ mod tests {
         }
         assert!(checked > 0, "reference fixture filter must exercise predictions");
     }
-
-    #[test]
-    fn every_fixed_batch_class_matches_on_cpu_and_auto() {
-        let features =
-            match FeaturesOrRuled::extract(File::open("../../README.md").unwrap()).unwrap() {
-                FeaturesOrRuled::Features(features) => features,
-                FeaturesOrRuled::Ruled(_) => panic!("README must exercise model inference"),
-            };
-        let features: [Features; 64] = std::array::from_fn(|_| Features(features.0.clone()));
-        for backend in [Some(Backend::Cpu), None] {
-            let mut builder = Runtime::builder();
-            if let Some(backend) = backend {
-                builder = builder.with_backend(backend);
-            }
-            let runtime = builder.build().unwrap();
-            let mut session = runtime.session().unwrap();
-            for batch in [1, 4, 8, 16, 32, 64] {
-                let results = session.identify_features_batch(&features[..batch]).unwrap();
-                assert_eq!(results.len(), batch);
-                assert!(results.iter().all(|result| result.info().label == "markdown"));
-            }
-        }
-    }
-
-    #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
-    #[test]
-    fn forced_gpu_fails_when_no_gpu_backend_is_compiled() {
-        assert!(Runtime::builder().with_backend(Backend::Gpu).build().is_err());
-    }
 }

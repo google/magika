@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Start identifying files on the CPU while the GPU is prepared
 - Report files that are not regular instead of trying to read them
 - Detect cycles through symbolic links during recursive traversal
 - Remove the dependency on the ONNX Runtime

@@ -21,15 +21,8 @@ set -e
 [ -z "$(git status -s)" ] || error "Repository is not clean"
 
 info "Removing all -dev suffixes (if any)"
-# The attached backup suffix is the only in-place form both GNU and BSD sed accept.
-for file in $(git ls-files '*/Cargo.*'); do
-  sed -i.bak 's/-dev"/"/' "$file"
-  rm "$file.bak"
-done
-for file in $(git ls-files '*/CHANGELOG.md'); do
-  sed -i.bak 's/-dev//' "$file"
-  rm "$file.bak"
-done
+sed -i 's/-dev"/"/' $(git ls-files '*/Cargo.*')
+sed -i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
 if [ -n "$(git status -s)" ]; then
   info "Creating a commit with those changes"
   git commit -aqm'Release Rust crates'

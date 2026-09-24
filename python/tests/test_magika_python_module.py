@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import dataclasses
+import errno
 import io
 import signal
 import tempfile
@@ -243,6 +244,38 @@ def test_magika_module_identify_stream_does_not_alter_position() -> None:
         res = m.identify_stream(stream)
         assert res.ok
         assert stream.tell() == pos
+
+
+def test_magika_module_identify_stream_with_unseekable_stream() -> None:
+    m = Magika()
+
+    class UnseekableStream(io.BufferedIOBase):
+        """A readable stream whose position cannot be queried nor restored.
+
+        This models what `sys.stdin.buffer` looks like when stdin is a pipe: it
+        passes all the type checks of `identify_stream()`, but `tell()` raises.
+        """
+
+        def readable(self) -> bool:
+            return True
+
+        def seekable(self) -> bool:
+            return False
+
+        def read(self, size: Optional[int] = -1) -> bytes:
+            return b""
+
+        def tell(self) -> int:
+            raise OSError(errno.ESPIPE, "Illegal seek")
+
+        def seek(self, offset: int, whence: int = io.SEEK_SET) -> int:
+            raise OSError(errno.ESPIPE, "Illegal seek")
+
+    # The stream's own error must reach the caller, and not be masked by an
+    # internal error raised while trying to restore an unknown position.
+    with pytest.raises(OSError) as exc_info:
+        _ = m.identify_stream(UnseekableStream())  # type: ignore[arg-type]
+    assert exc_info.value.errno == errno.ESPIPE
 
 
 def test_magika_module_with_whitespaces() -> None:

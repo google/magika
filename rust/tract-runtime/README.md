@@ -1,9 +1,10 @@
 # Magika tract runtime
 
 This crate is the inference layer shared by the Rust `magika` library, CLI, and runtime benchmark.
-It loads the release model for fixed batch classes `1, 4, 8, 16, 32, 64` and prepares their
-target-specific tract plans once. Each inference thread then spawns private mutable state from those
-shared plans.
+It holds plans for fixed batch classes `1, 4, 8, 16, 32, 64`. CPU plans are loaded and prepared the
+first time a session needs that class; each inference thread then spawns private mutable state from
+the shared plan. GPU plans are prepared before the runtime returns so they can be checked by the
+correctness probe.
 
 The model is embedded as the graph that parsing the checked NNEF archive produces
 (`models/model.graph.json` and `models/model.weights`), which loads in about 3 ms instead of the

@@ -21,7 +21,7 @@ mod gpu_conv;
 mod layer_norm;
 mod loader;
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
 use anyhow::bail;
@@ -101,28 +101,58 @@ impl BackendInfo {
     }
 }
 
-/// Shared prepared plans from which thread-private sessions are spawned.
+/// Shared plans from which thread-private sessions are spawned.
 pub struct Runtime {
     info: BackendInfo,
-    plans: Vec<PreparedPlan>,
+    plans: Vec<Arc<PreparedPlan>>,
 }
+
+type PlanFactory = Box<dyn Fn() -> Result<Arc<dyn Runnable>> + Send + Sync>;
+type PlanResult = std::result::Result<Arc<dyn Runnable>, Arc<anyhow::Error>>;
 
 struct PreparedPlan {
     batch: usize,
-    runnable: Arc<dyn Runnable>,
+    runnable: OnceLock<PlanResult>,
+    prepare: Option<PlanFactory>,
+}
+
+impl PreparedPlan {
+    fn lazy(
+        batch: usize, prepare: impl Fn() -> Result<Arc<dyn Runnable>> + Send + Sync + 'static,
+    ) -> Self {
+        Self { batch, runnable: OnceLock::new(), prepare: Some(Box::new(prepare)) }
+    }
+
+    #[cfg(any(target_os = "macos", feature = "cuda", test))]
+    fn ready(batch: usize, runnable: Arc<dyn Runnable>) -> Self {
+        let slot = OnceLock::new();
+        let _ = slot.set(Ok(runnable));
+        Self { batch, runnable: slot, prepare: None }
+    }
+
+    fn runnable(&self) -> Result<&Arc<dyn Runnable>> {
+        match self.runnable.get_or_init(|| {
+            self.prepare.as_ref().expect("an uninitialized plan must have a factory")()
+                .map_err(Arc::new)
+        }) {
+            Ok(runnable) => Ok(runnable),
+            Err(error) => Err(anyhow::anyhow!("{error:#}")),
+        }
+    }
 }
 
 impl Runtime {
-    /// Prepares every fixed batch plan for the requested device class.
+    /// Creates a runtime with every fixed batch class. CPU plans are prepared on first use.
     pub fn new(request: BackendRequest) -> Result<Self> {
         Self::with_classes(request, &BATCH_CLASSES, &BATCH_CLASSES)
     }
 
-    /// Prepares plans for requests accumulated up to `max_batch` items.
+    /// Creates a runtime for requests accumulated up to `max_batch` items.
     ///
     /// The x86_64 CPU graph keeps only the largest reachable class: smaller requests are padded
     /// into that optimized fused graph and their extra scores discarded. Other architectures keep
-    /// the original set of reachable fixed plans and routing behavior.
+    /// the original set of reachable fixed plans and routing behavior. CPU plans are prepared the
+    /// first time a session needs each class; GPU plans are prepared before this method returns.
     pub fn with_max_batch(request: BackendRequest, max_batch: usize) -> Result<Self> {
         ensure!(max_batch > 0, "the maximum batch cannot be zero");
         let classes: Vec<usize> =
@@ -177,8 +207,11 @@ impl Runtime {
         for plan in &self.plans {
             // Execute this plan directly: session routing must not accidentally validate a
             // different class. Drop its probe state before allocating the next class's state.
-            let candidate =
-                run_plan(plan.runnable.spawn()?.as_mut(), &input.repeat(plan.batch), plan.batch)?;
+            let candidate = run_plan(
+                plan.runnable()?.spawn()?.as_mut(),
+                &input.repeat(plan.batch),
+                plan.batch,
+            )?;
             let (chunks, _) = candidate.as_chunks::<NUM_LABELS>();
             if !chunks.iter().all(|row| scores_agree_with_bytes(EMBEDDED_GPU_PROBE, row)) {
                 return Ok(false);
@@ -197,40 +230,41 @@ impl Runtime {
         let plans = self
             .plans
             .iter()
-            .map(|plan| SessionPlan {
-                batch: plan.batch,
-                runnable: plan.runnable.clone(),
-                state: None,
-            })
+            .map(|plan| SessionPlan { prepared: Arc::clone(plan), state: None })
             .collect();
         Ok(Session { info: self.info, plans })
     }
 
     fn prepare_cpu(classes: &[usize]) -> Result<Self> {
+        let plans = classes
+            .iter()
+            .copied()
+            .map(|batch| Arc::new(PreparedPlan::lazy(batch, move || Self::prepare_cpu_plan(batch))))
+            .collect();
+        Ok(Self { info: BackendInfo { backend: Backend::Cpu, implementation: "tract-cpu" }, plans })
+    }
+
+    fn prepare_cpu_plan(batch: usize) -> Result<Arc<dyn Runnable>> {
         static CPU: DefaultRuntime = DefaultRuntime;
         let options =
             RunOptions { executor: Some(Executor::SingleThread), ..RunOptions::default() };
-        let mut plans = Vec::with_capacity(classes.len());
-        for &batch in classes {
-            let mut model = load_model(batch)?;
-            let fused_layer_norm = layer_norm::fuse_magika_layer_norm(&mut model)?;
+        let mut model = load_model(batch)?;
+        let fused_layer_norm = layer_norm::fuse_magika_layer_norm(&mut model)?;
+        ensure!(
+            fused_layer_norm == EXPECTED_LAYER_NORMS,
+            "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
+        );
+        if batch >= DIRECT_FUSED_MIN_BATCH {
+            let fused_conv = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
             ensure!(
-                fused_layer_norm == EXPECTED_LAYER_NORMS,
-                "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
+                fused_conv == EXPECTED_CONVOLUTIONS,
+                "required {EXPECTED_CONVOLUTIONS} CPU Conv1D fusion for batch {batch}, matched {fused_conv}"
             );
-            if batch >= DIRECT_FUSED_MIN_BATCH {
-                let fused_conv = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
-                ensure!(
-                    fused_conv == EXPECTED_CONVOLUTIONS,
-                    "required {EXPECTED_CONVOLUTIONS} CPU Conv1D fusion for batch {batch}, matched {fused_conv}"
-                );
-            }
-            let runnable = CPU
-                .prepare_with_options(model, &options)
-                .with_context(|| format!("preparing CPU batch-{batch} plan"))?;
-            plans.push(PreparedPlan { batch, runnable: Arc::from(runnable) });
         }
-        Ok(Self { info: BackendInfo { backend: Backend::Cpu, implementation: "tract-cpu" }, plans })
+        let runnable = CPU
+            .prepare_with_options(model, &options)
+            .with_context(|| format!("preparing CPU batch-{batch} plan"))?;
+        Ok(Arc::from(runnable))
     }
 
     #[cfg(target_os = "macos")]
@@ -250,7 +284,7 @@ impl Runtime {
             let runnable = with_memory_arena(runnable)
                 .with_context(|| format!("sizing the Metal batch-{batch} memory arena"))?;
             let runnable: Arc<dyn Runnable> = Arc::new(Arc::new(runnable));
-            plans.push(PreparedPlan { batch, runnable });
+            plans.push(Arc::new(PreparedPlan::ready(batch, runnable)));
         }
         Ok(Self {
             info: BackendInfo { backend: Backend::Gpu, implementation: "tract-metal" },
@@ -275,7 +309,7 @@ impl Runtime {
             let runnable = with_memory_arena(runnable)
                 .with_context(|| format!("sizing the CUDA batch-{batch} memory arena"))?;
             let runnable: Arc<dyn Runnable> = Arc::new(Arc::new(runnable));
-            plans.push(PreparedPlan { batch, runnable });
+            plans.push(Arc::new(PreparedPlan::ready(batch, runnable)));
         }
         Ok(Self {
             info: BackendInfo { backend: Backend::Gpu, implementation: "tract-cuda" },
@@ -372,8 +406,7 @@ pub struct Session {
 }
 
 struct SessionPlan {
-    batch: usize,
-    runnable: Arc<dyn Runnable>,
+    prepared: Arc<PreparedPlan>,
     state: Option<Box<dyn State>>,
 }
 
@@ -387,13 +420,12 @@ impl SessionPlan {
     /// eight are the expensive ones, because only eight and above carry the fused convolution and
     /// the rest still expand the input before multiplying.
     fn state(&mut self) -> Result<&mut dyn State> {
+        let batch = self.prepared.batch;
+        let runnable = self.prepared.runnable()?;
         let state = match &mut self.state {
             Some(state) => state,
-            slot => slot.insert(
-                self.runnable
-                    .spawn()
-                    .with_context(|| format!("spawning batch-{} state", self.batch))?,
-            ),
+            slot => slot
+                .insert(runnable.spawn().with_context(|| format!("spawning batch-{batch} state"))?),
         };
         Ok(state.as_mut())
     }
@@ -415,9 +447,10 @@ impl Session {
         while remaining > 0 {
             // Use the largest plan that fits. If none does (the x86_64 runtime deliberately keeps
             // only its largest optimized class), pad the tail through the smallest resident plan.
-            let index = self.plans.iter().rposition(|plan| plan.batch <= remaining).unwrap_or(0);
+            let index =
+                self.plans.iter().rposition(|plan| plan.prepared.batch <= remaining).unwrap_or(0);
             let plan = &mut self.plans[index];
-            let class = plan.batch;
+            let class = plan.prepared.batch;
             let served = remaining.min(class);
             let input_len = served * FEATURE_SIZE;
             let chunk = &input[input_offset..input_offset + input_len];
@@ -532,7 +565,8 @@ mod tests {
             let scores =
                 model.add_const("scores", Tensor::from_shape(&[batch, NUM_LABELS], &output)?)?;
             model.select_output_outlets(&[scores])?;
-            plans.push(PreparedPlan { batch, runnable: Arc::new(model.into_runnable()?) });
+            let runnable = Arc::new(model.into_runnable()?);
+            plans.push(Arc::new(PreparedPlan::ready(batch, runnable)));
         }
         Ok(super::Runtime {
             info: BackendInfo { backend: Backend::Gpu, implementation: "test" },
@@ -575,6 +609,53 @@ mod tests {
         assert_eq!(route_classes(resident, 20), [8, 8, 4]);
         assert_eq!(route_classes(resident, 64), [8; 8]);
         assert_eq!(route_classes(&[1], 3), [1, 1, 1]);
+    }
+
+    fn constant_runnable(batch: usize) -> Result<Arc<dyn Runnable>> {
+        use tract_core::internal::*;
+        let mut model = TypedModel::default();
+        model.add_source("input", i32::fact([batch, FEATURE_SIZE]))?;
+        let scores = model.add_const("scores", Tensor::zero::<f32>(&[batch, NUM_LABELS])?)?;
+        model.select_output_outlets(&[scores])?;
+        Ok(Arc::new(model.into_runnable()?))
+    }
+
+    #[test]
+    fn prepares_only_used_cpu_plans_once_across_sessions() -> Result<()> {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let batch_one_preparations = Arc::new(AtomicUsize::new(0));
+        let batch_four_preparations = Arc::new(AtomicUsize::new(0));
+        let batch_one_count = Arc::clone(&batch_one_preparations);
+        let batch_four_count = Arc::clone(&batch_four_preparations);
+        let runtime = Runtime {
+            info: BackendInfo { backend: Backend::Cpu, implementation: "test" },
+            plans: vec![
+                Arc::new(PreparedPlan::lazy(1, move || {
+                    batch_one_count.fetch_add(1, Ordering::Relaxed);
+                    constant_runnable(1)
+                })),
+                Arc::new(PreparedPlan::lazy(4, move || {
+                    batch_four_count.fetch_add(1, Ordering::Relaxed);
+                    constant_runnable(4)
+                })),
+            ],
+        };
+
+        let input = vec![0; 4 * FEATURE_SIZE];
+        let mut first_session = runtime.session()?;
+        assert_eq!(first_session.run(&input[..FEATURE_SIZE], 1)?.len(), NUM_LABELS);
+        assert_eq!(batch_one_preparations.load(Ordering::Relaxed), 1);
+        assert_eq!(batch_four_preparations.load(Ordering::Relaxed), 0);
+
+        assert_eq!(first_session.run(&input, 4)?.len(), 4 * NUM_LABELS);
+        assert_eq!(batch_one_preparations.load(Ordering::Relaxed), 1);
+        assert_eq!(batch_four_preparations.load(Ordering::Relaxed), 1);
+
+        let mut second_session = runtime.session()?;
+        assert_eq!(second_session.run(&input[..FEATURE_SIZE], 1)?.len(), NUM_LABELS);
+        assert_eq!(batch_one_preparations.load(Ordering::Relaxed), 1);
+        Ok(())
     }
 
     #[test]

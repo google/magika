@@ -9,7 +9,7 @@
 
 use std::path::Path;
 
-use magika_rules::{Input, Outcome, RuleSet, Source, PREFIX_LIMIT};
+use magika_rules::{Input, Outcome, RuleSet, PREFIX_LIMIT};
 
 /// Samples whose directory names the wrong label, with the label their bytes prove. Each
 /// still has to scan to that label. Relabel them in tests_data and drop the entry.
@@ -21,7 +21,7 @@ const MISLABELED: &[(&str, &str)] = &[
 
 #[test]
 fn bundled_rules_never_mislabel_a_sample() {
-    let rules = RuleSet::compile(&Source::bundled()).unwrap();
+    let rules = RuleSet::bundled();
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests_data/basic");
     let (mut files, mut hits, mut errors) = (0usize, 0usize, Vec::new());
     for dir in std::fs::read_dir(&root).unwrap() {

@@ -3,6 +3,9 @@
 
 //! One YARA string, compiled for anchored or window-bounded matching over a byte buffer.
 
+use std::borrow::Cow;
+use std::sync::OnceLock;
+
 use regex_automata::meta::Regex;
 use regex_automata::util::syntax;
 use regex_automata::{Anchored, Input as ReInput};
@@ -15,7 +18,65 @@ pub(crate) enum Pattern {
     /// Fixed width: byte `i` matches when `(input[i] & mask[i]) == bytes[i]`.
     Masked { bytes: Vec<u8>, mask: Vec<u8> },
     /// Alternation, jumps or repetition. Bytes mode, no Unicode.
-    Regex { re: Regex, max_len: usize },
+    Regex(RegexPattern),
+}
+
+/// A byte regex, built the first time a scan reaches it with a byte a match can start with.
+///
+/// Most scans never reach most regexes, since cheaper conditions of their rules fail first, and
+/// building every regex takes about 6 ms of a startup that should take none. Most regexes a scan
+/// does reach cannot start at any byte of its window, and are never built either.
+pub(crate) struct RegexPattern {
+    pub(crate) source: Cow<'static, str>,
+    pub(crate) case_insensitive: bool,
+    pub(crate) dot_matches_new_line: bool,
+    pub(crate) max_len: usize,
+    /// The bytes a match can start with.
+    pub(crate) first: ByteSet,
+    /// `None` if the regex does not build, which validating the pattern already excluded.
+    built: OnceLock<Option<Regex>>,
+}
+
+impl RegexPattern {
+    /// A pattern whose source was validated by [`Pattern::from_ast`].
+    pub(crate) fn new(
+        source: impl Into<Cow<'static, str>>, case_insensitive: bool, dot_matches_new_line: bool,
+        max_len: usize, first: ByteSet,
+    ) -> Self {
+        let source = source.into();
+        RegexPattern {
+            source,
+            case_insensitive,
+            dot_matches_new_line,
+            max_len,
+            first,
+            built: OnceLock::new(),
+        }
+    }
+
+    fn hir(&self) -> Result<Hir, String> {
+        let mut parser = regex_syntax::ParserBuilder::new();
+        parser
+            .unicode(false)
+            .utf8(false)
+            .case_insensitive(self.case_insensitive)
+            .dot_matches_new_line(self.dot_matches_new_line);
+        parser.build().parse(&self.source).map_err(|e| format!("invalid byte regex: {e}"))
+    }
+
+    fn build(&self) -> Result<Regex, String> {
+        // A scan builds most regexes it reaches on its first file, and a full DFA is most of what
+        // building one costs, while the lazy DFA searches a 4 KiB prefix about as fast.
+        Regex::builder()
+            .syntax(syntax::Config::new().unicode(false).utf8(false))
+            .configure(Regex::config().dfa(false))
+            .build_from_hir(&self.hir()?)
+            .map_err(|e| e.to_string())
+    }
+
+    fn regex(&self) -> Option<&Regex> {
+        self.built.get_or_init(|| self.build().ok()).as_ref()
+    }
 }
 
 impl Pattern {
@@ -25,22 +86,16 @@ impl Pattern {
         if !pattern.modifiers().is_empty() {
             return Err(unsupported("pattern modifiers".into()));
         }
-        let mut parser = regex_syntax::ParserBuilder::new();
-        parser.unicode(false).utf8(false);
-        let source = match pattern {
-            AstPattern::Text(p) => p.text.value.iter().map(|b| byte(*b)).collect(),
-            AstPattern::Hex(p) => hex_regex(&p.sub_patterns).map_err(unsupported)?,
+        let (source, case_insensitive, dot_matches_new_line) = match pattern {
+            AstPattern::Text(p) => (p.text.value.iter().map(|b| byte(*b)).collect(), false, false),
+            AstPattern::Hex(p) => (hex_regex(&p.sub_patterns).map_err(unsupported)?, false, false),
             AstPattern::Regexp(p) => {
-                parser
-                    .case_insensitive(p.regexp.case_insensitive)
-                    .dot_matches_new_line(p.regexp.dot_matches_new_line);
-                p.regexp.src.to_string()
+                (p.regexp.src.to_string(), p.regexp.case_insensitive, p.regexp.dot_matches_new_line)
             }
         };
-        let hir = parser
-            .build()
-            .parse(&source)
-            .map_err(|e| unsupported(format!("invalid byte regex: {e}")))?;
+        let pattern =
+            RegexPattern::new(source, case_insensitive, dot_matches_new_line, 0, ByteSet::EMPTY);
+        let hir = pattern.hir().map_err(unsupported)?;
         let properties = hir.properties();
         let Some(max_len) = properties.maximum_len() else {
             return Err(unsupported("unbounded pattern".into()));
@@ -54,18 +109,22 @@ impl Pattern {
         if let Some((bytes, mask)) = fixed_masked(&hir) {
             return Ok(Pattern::Masked { bytes, mask });
         }
-        Regex::builder()
-            .syntax(syntax::Config::new().unicode(false).utf8(false))
-            .build_from_hir(&hir)
-            .map(|re| Pattern::Regex { re, max_len })
-            .map_err(|e| unsupported(e.to_string()))
+        // Build it now, so that a pattern that cannot build is rejected with its rule.
+        let regex = pattern.build().map_err(unsupported)?;
+        let first = ByteSet::first(&hir);
+        Ok(Pattern::Regex(RegexPattern {
+            max_len,
+            first,
+            built: OnceLock::from(Some(regex)),
+            ..pattern
+        }))
     }
 
     /// The longest match, in bytes.
     pub(crate) fn max_len(&self) -> usize {
         match self {
             Pattern::Masked { bytes, .. } => bytes.len(),
-            Pattern::Regex { max_len, .. } => *max_len,
+            Pattern::Regex(pattern) => pattern.max_len,
         }
     }
 
@@ -75,9 +134,11 @@ impl Pattern {
             Pattern::Masked { bytes, mask } => buf
                 .get(at..at.saturating_add(bytes.len()))
                 .is_some_and(|w| w.iter().zip(bytes).zip(mask).all(|((b, e), m)| b & m == *e)),
-            Pattern::Regex { re, .. } => {
-                at <= buf.len()
-                    && re.is_match(ReInput::new(buf).range(at..).anchored(Anchored::Yes))
+            Pattern::Regex(pattern) => {
+                buf.get(at).is_some_and(|&b| pattern.first.contains(b))
+                    && pattern.regex().is_some_and(|re| {
+                        re.is_match(ReInput::new(buf).range(at..).anchored(Anchored::Yes))
+                    })
             }
         }
     }
@@ -93,10 +154,80 @@ impl Pattern {
                 memchr::memmem::find(&buf[lo..], bytes).is_some_and(|i| lo + i <= hi)
             }
             Pattern::Masked { .. } => (lo..=hi).any(|at| self.matches_at(buf, at)),
-            Pattern::Regex { re, .. } => {
-                re.find(ReInput::new(buf).range(lo..)).is_some_and(|m| m.start() <= hi)
+            Pattern::Regex(pattern) => {
+                buf[lo..=hi].iter().any(|&b| pattern.first.contains(b))
+                    && pattern.regex().is_some_and(|re| {
+                        re.find(ReInput::new(buf).range(lo..)).is_some_and(|m| m.start() <= hi)
+                    })
             }
         }
+    }
+}
+
+/// A set of byte values, one bit each.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ByteSet(pub(crate) [u64; 4]);
+
+impl ByteSet {
+    pub(crate) const EMPTY: ByteSet = ByteSet([0; 4]);
+
+    /// The bytes a match of `hir` can start with.
+    fn first(hir: &Hir) -> ByteSet {
+        let mut set = ByteSet::EMPTY;
+        set.add_first(hir);
+        set
+    }
+
+    /// Adds the bytes a match of `hir` can start with, and returns whether it matches empty.
+    fn add_first(&mut self, hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => true,
+            HirKind::Literal(literal) => match literal.0.first() {
+                Some(&b) => {
+                    self.insert(b);
+                    false
+                }
+                None => true,
+            },
+            HirKind::Class(Class::Bytes(class)) => {
+                class
+                    .ranges()
+                    .iter()
+                    .flat_map(|r| r.start()..=r.end())
+                    .for_each(|b| self.insert(b));
+                false
+            }
+            // Simplifying an alternation of ASCII bytes gives a Unicode class, and so does a `(?u)`
+            // flag. A character matches as its UTF-8 encoding, whose first byte grows with it.
+            HirKind::Class(Class::Unicode(class)) => {
+                let first = |c: char| c.encode_utf8(&mut [0; 4]).as_bytes()[0];
+                for range in class.ranges() {
+                    let (start, end) = (range.start(), range.end());
+                    (u32::from(start)..=u32::from(end).min(0x7f))
+                        .for_each(|c| self.insert(c as u8));
+                    if end >= '\u{80}' {
+                        (first(start.max('\u{80}'))..=first(end)).for_each(|b| self.insert(b));
+                    }
+                }
+                false
+            }
+            HirKind::Repetition(repetition) => {
+                self.add_first(&repetition.sub) || repetition.min == 0
+            }
+            HirKind::Capture(capture) => self.add_first(&capture.sub),
+            HirKind::Concat(hirs) => hirs.iter().all(|hir| self.add_first(hir)),
+            HirKind::Alternation(hirs) => {
+                hirs.iter().fold(false, |empty, hir| self.add_first(hir) | empty)
+            }
+        }
+    }
+
+    fn insert(&mut self, b: u8) {
+        self.0[usize::from(b / 64)] |= 1 << (b % 64);
+    }
+
+    fn contains(&self, b: u8) -> bool {
+        self.0[usize::from(b / 64)] & 1 << (b % 64) != 0
     }
 }
 
@@ -233,12 +364,63 @@ mod tests {
     #[test]
     fn alternation_and_jump_become_regex() {
         let p = pattern("{ 47 49 46 38 ( 37 | 39 ) 61 }");
-        assert!(matches!(p, Pattern::Regex { .. }));
+        assert!(matches!(p, Pattern::Regex(_)));
         assert!(
             p.matches_at(b"GIF87a", 0) && p.matches_at(b"GIF89a", 0) && !p.matches_at(b"GIF88a", 0)
         );
         let j = pattern("{ 41 [2] 42 }");
         assert!(j.matches_at(b"AxxB", 0) && !j.matches_at(b"AxB", 0));
+    }
+
+    /// The bytes that move the regex's own anchored DFA out of its start state to a live one.
+    fn dfa_first_bytes(pattern: &RegexPattern) -> ByteSet {
+        use regex_automata::hybrid::dfa::DFA;
+        use regex_automata::nfa::thompson;
+        let nfa = thompson::Compiler::new().build_from_hir(&pattern.hir().unwrap()).unwrap();
+        let dfa = DFA::builder().build_from_nfa(nfa).unwrap();
+        let mut cache = dfa.create_cache();
+        let start = ReInput::new(b"").anchored(Anchored::Yes);
+        let start = dfa.start_state_forward(&mut cache, &start).unwrap();
+        let mut set = ByteSet::EMPTY;
+        for b in 0..=255 {
+            if !dfa.next_state(&mut cache, start, b).unwrap().is_dead() {
+                set.insert(b);
+            }
+        }
+        set
+    }
+
+    #[test]
+    fn first_bytes_are_the_bytes_a_match_can_start_with() {
+        let patterns = [
+            "{ 47 49 46 38 ( 37 | 39 ) 61 }",
+            "{ ( 41 | 42 ?? ) 43 }",
+            "/(ab)?c/",
+            "/a{0,2}b{0,3}c/",
+            "/[^\\x00]x/",
+            "/hello/i",
+            "/(?u)é/",
+            "/(?u)[\\x{70}-\\x{3000}]/",
+        ];
+        #[cfg(feature = "bundled")]
+        let bundled = crate::RuleSet::bundled().program.patterns;
+        #[cfg(not(feature = "bundled"))]
+        let bundled = Vec::new();
+        for pattern in patterns.map(pattern).iter().chain(&bundled) {
+            let Pattern::Regex(pattern) = pattern else { continue };
+            assert_eq!(pattern.first, dfa_first_bytes(pattern), "{}", pattern.source);
+        }
+    }
+
+    #[test]
+    fn a_regex_is_not_built_where_no_match_can_start() {
+        let Pattern::Regex(built) = pattern("/[ab]{2}[0-9]{1,3}x/") else { unreachable!() };
+        let p = Pattern::Regex(RegexPattern::new(built.source, false, false, 0, built.first));
+        assert!(!p.matches_at(b"zzab1x", 0) && !p.matches_in(b"zzzz", 0, 3));
+        let Pattern::Regex(regex) = &p else { unreachable!() };
+        assert!(regex.built.get().is_none());
+        assert!(p.matches_in(b"zzab1x", 0, 3));
+        assert!(regex.built.get().is_some());
     }
 
     #[test]

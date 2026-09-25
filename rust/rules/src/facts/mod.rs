@@ -14,11 +14,11 @@ mod zip;
 
 use miniz_oxide::inflate::core::DecompressorOxide;
 
-#[cfg(test)]
-pub(crate) use pe::tests::{pe32, Image};
-#[cfg(test)]
-pub(crate) use zip::tests::{archive, stored};
-
+// Fixtures for the bundled rules tests in `lib.rs`.
+#[cfg(all(test, feature = "bundled"))]
+pub(crate) use self::pe::tests::{pe32, Image};
+#[cfg(all(test, feature = "bundled"))]
+pub(crate) use self::zip::tests::{archive, stored};
 use crate::ir::{Fact, View};
 
 /// Size of the `zip_names` view.

@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2023-2024 Google LLC
+#!/usr/bin/env python3
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# /// script
+# dependencies = ["click", "magika"]
+#
+# [tool.uv.sources]
+# magika = { path = "..", editable = true }
+# ///
 
 """
 This script assumes that the `magika` python package has been already installed,

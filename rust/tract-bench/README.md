@@ -32,7 +32,8 @@ architecture, so the gate compares the checked probe numerically with the curren
 instead. It also checks every bundled historical model against ONNX at batches 1, 8, 16, 32, and 64
 and runs the production CPU and GPU graph contracts.
 
-The runtime consumes the `.nnef.tgz` file directly. Gzip is therefore the release codec. For a
+The runtime embeds the graph exported from the `.nnef.tgz` file, which `rust/sync.sh` regenerates
+with it. For a
 codec-neutral size comparison, the size script also compresses equivalent raw ONNX and NNEF tar
 representations with zstd-19:
 

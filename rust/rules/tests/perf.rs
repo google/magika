@@ -14,8 +14,13 @@ use magika_rules::{Input, Outcome, RuleSet, Source};
 #[test]
 fn compile_and_scan_stay_within_budget() {
     let t = Instant::now();
-    let rules = RuleSet::compile(&Source::bundled()).unwrap();
+    let source = Source::bundled();
+    black_box(RuleSet::compile(&source).unwrap());
     let compile = t.elapsed();
+    // What a process pays at startup: the rules were compiled when the crate was built.
+    let t = Instant::now();
+    let rules = RuleSet::bundled();
+    let bundled = t.elapsed();
 
     // Worst case for anchored rules: a prefix that starts like nothing, so every rule is tried.
     let junk: Vec<u8> = (0..magika_rules::PREFIX_LIMIT).map(|i| (i * 7919 % 251) as u8).collect();
@@ -31,10 +36,11 @@ fn compile_and_scan_stay_within_budget() {
     let per_scan = t.elapsed() / n;
 
     eprintln!(
-        "perf: compile {compile:?}, scan {per_scan:?}, {} rules, {} labels",
+        "perf: compile {compile:?}, bundled {bundled:?}, scan {per_scan:?}, {} rules, {} labels",
         rules.rules().len(),
         rules.labels().len()
     );
     assert!(compile.as_millis() < 200, "compile {compile:?}");
+    assert!(bundled.as_millis() < 20, "bundled {bundled:?}");
     assert!(per_scan.as_micros() < 500, "scan {per_scan:?}");
 }

@@ -35,7 +35,7 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::time::{Duration, Instant};
 
-use magika_rules::{Input, Outcome, RuleSet, Source, PREFIX_LIMIT};
+use magika_rules::{Input, Outcome, RuleSet, PREFIX_LIMIT};
 
 /// Dataset classes that refine a Magika label with no label of their own.
 const REFINES: &[(&str, &str)] = &[
@@ -125,7 +125,7 @@ const REFUTED: &[(&str, &str, &str, &[&str])] = &[
 #[ignore = "needs MAGIKA_RULES_DATASET, a manifest exported from the evaluation dataset"]
 fn bundled_rules_never_contradict_a_validated_label() {
     let manifest = std::env::var("MAGIKA_RULES_DATASET").expect("MAGIKA_RULES_DATASET");
-    let rules = RuleSet::compile(&Source::bundled()).unwrap();
+    let rules = RuleSet::bundled();
     let (mut files, mut verified, mut hits, mut agreements) = (0usize, 0usize, 0usize, 0usize);
     let (mut bytes_scanned, mut elapsed) = (0usize, Duration::ZERO);
     let mut false_positives = Vec::new();

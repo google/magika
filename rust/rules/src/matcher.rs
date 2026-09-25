@@ -3,6 +3,9 @@
 
 //! One YARA string, compiled for anchored or window-bounded matching over a byte buffer.
 
+use std::borrow::Cow;
+use std::sync::OnceLock;
+
 use regex_automata::meta::Regex;
 use regex_automata::util::syntax;
 use regex_automata::{Anchored, Input as ReInput};
@@ -15,7 +18,58 @@ pub(crate) enum Pattern {
     /// Fixed width: byte `i` matches when `(input[i] & mask[i]) == bytes[i]`.
     Masked { bytes: Vec<u8>, mask: Vec<u8> },
     /// Alternation, jumps or repetition. Bytes mode, no Unicode.
-    Regex { re: Regex, max_len: usize },
+    Regex(RegexPattern),
+}
+
+/// A byte regex, built the first time a scan reaches it.
+///
+/// Most scans never reach most regexes, since cheaper conditions of their rules fail first, and
+/// building every regex takes about 6 ms of a startup that should take none.
+pub(crate) struct RegexPattern {
+    pub(crate) source: Cow<'static, str>,
+    pub(crate) case_insensitive: bool,
+    pub(crate) dot_matches_new_line: bool,
+    pub(crate) max_len: usize,
+    /// `None` if the regex does not build, which validating the pattern already excluded.
+    built: OnceLock<Option<Regex>>,
+}
+
+impl RegexPattern {
+    /// A pattern whose source was validated by [`Pattern::from_ast`].
+    pub(crate) fn new(
+        source: impl Into<Cow<'static, str>>, case_insensitive: bool, dot_matches_new_line: bool,
+        max_len: usize,
+    ) -> Self {
+        let source = source.into();
+        RegexPattern {
+            source,
+            case_insensitive,
+            dot_matches_new_line,
+            max_len,
+            built: OnceLock::new(),
+        }
+    }
+
+    fn hir(&self) -> Result<Hir, String> {
+        let mut parser = regex_syntax::ParserBuilder::new();
+        parser
+            .unicode(false)
+            .utf8(false)
+            .case_insensitive(self.case_insensitive)
+            .dot_matches_new_line(self.dot_matches_new_line);
+        parser.build().parse(&self.source).map_err(|e| format!("invalid byte regex: {e}"))
+    }
+
+    fn build(&self) -> Result<Regex, String> {
+        Regex::builder()
+            .syntax(syntax::Config::new().unicode(false).utf8(false))
+            .build_from_hir(&self.hir()?)
+            .map_err(|e| e.to_string())
+    }
+
+    fn regex(&self) -> Option<&Regex> {
+        self.built.get_or_init(|| self.build().ok()).as_ref()
+    }
 }
 
 impl Pattern {
@@ -25,22 +79,15 @@ impl Pattern {
         if !pattern.modifiers().is_empty() {
             return Err(unsupported("pattern modifiers".into()));
         }
-        let mut parser = regex_syntax::ParserBuilder::new();
-        parser.unicode(false).utf8(false);
-        let source = match pattern {
-            AstPattern::Text(p) => p.text.value.iter().map(|b| byte(*b)).collect(),
-            AstPattern::Hex(p) => hex_regex(&p.sub_patterns).map_err(unsupported)?,
+        let (source, case_insensitive, dot_matches_new_line) = match pattern {
+            AstPattern::Text(p) => (p.text.value.iter().map(|b| byte(*b)).collect(), false, false),
+            AstPattern::Hex(p) => (hex_regex(&p.sub_patterns).map_err(unsupported)?, false, false),
             AstPattern::Regexp(p) => {
-                parser
-                    .case_insensitive(p.regexp.case_insensitive)
-                    .dot_matches_new_line(p.regexp.dot_matches_new_line);
-                p.regexp.src.to_string()
+                (p.regexp.src.to_string(), p.regexp.case_insensitive, p.regexp.dot_matches_new_line)
             }
         };
-        let hir = parser
-            .build()
-            .parse(&source)
-            .map_err(|e| unsupported(format!("invalid byte regex: {e}")))?;
+        let pattern = RegexPattern::new(source, case_insensitive, dot_matches_new_line, 0);
+        let hir = pattern.hir().map_err(unsupported)?;
         let properties = hir.properties();
         let Some(max_len) = properties.maximum_len() else {
             return Err(unsupported("unbounded pattern".into()));
@@ -54,18 +101,16 @@ impl Pattern {
         if let Some((bytes, mask)) = fixed_masked(&hir) {
             return Ok(Pattern::Masked { bytes, mask });
         }
-        Regex::builder()
-            .syntax(syntax::Config::new().unicode(false).utf8(false))
-            .build_from_hir(&hir)
-            .map(|re| Pattern::Regex { re, max_len })
-            .map_err(|e| unsupported(e.to_string()))
+        // Build it now, so that a pattern that cannot build is rejected with its rule.
+        let regex = pattern.build().map_err(unsupported)?;
+        Ok(Pattern::Regex(RegexPattern { max_len, built: OnceLock::from(Some(regex)), ..pattern }))
     }
 
     /// The longest match, in bytes.
     pub(crate) fn max_len(&self) -> usize {
         match self {
             Pattern::Masked { bytes, .. } => bytes.len(),
-            Pattern::Regex { max_len, .. } => *max_len,
+            Pattern::Regex(pattern) => pattern.max_len,
         }
     }
 
@@ -75,9 +120,11 @@ impl Pattern {
             Pattern::Masked { bytes, mask } => buf
                 .get(at..at.saturating_add(bytes.len()))
                 .is_some_and(|w| w.iter().zip(bytes).zip(mask).all(|((b, e), m)| b & m == *e)),
-            Pattern::Regex { re, .. } => {
+            Pattern::Regex(pattern) => {
                 at <= buf.len()
-                    && re.is_match(ReInput::new(buf).range(at..).anchored(Anchored::Yes))
+                    && pattern.regex().is_some_and(|re| {
+                        re.is_match(ReInput::new(buf).range(at..).anchored(Anchored::Yes))
+                    })
             }
         }
     }
@@ -93,9 +140,9 @@ impl Pattern {
                 memchr::memmem::find(&buf[lo..], bytes).is_some_and(|i| lo + i <= hi)
             }
             Pattern::Masked { .. } => (lo..=hi).any(|at| self.matches_at(buf, at)),
-            Pattern::Regex { re, .. } => {
+            Pattern::Regex(pattern) => pattern.regex().is_some_and(|re| {
                 re.find(ReInput::new(buf).range(lo..)).is_some_and(|m| m.start() <= hi)
-            }
+            }),
         }
     }
 }
@@ -233,7 +280,7 @@ mod tests {
     #[test]
     fn alternation_and_jump_become_regex() {
         let p = pattern("{ 47 49 46 38 ( 37 | 39 ) 61 }");
-        assert!(matches!(p, Pattern::Regex { .. }));
+        assert!(matches!(p, Pattern::Regex(_)));
         assert!(
             p.matches_at(b"GIF87a", 0) && p.matches_at(b"GIF89a", 0) && !p.matches_at(b"GIF88a", 0)
         );

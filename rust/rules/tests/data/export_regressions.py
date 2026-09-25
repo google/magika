@@ -31,31 +31,14 @@ OUT = Path(sys.argv[2])
 PREFIX = 4096
 SOURCE = "google/magika#1447 b771621d rules/benchmark/tests/test_rule_regressions.py"
 
-# Tests that need the zip or PE facts stream, the native engine, or rule identifiers.
-FACTS_OR_NATIVE = {
+# Compares #1447's two engines, which this crate replaces, or asserts which rule matched,
+# which this crate does not report.
+NATIVE_ENGINE = {
     "test_native_engine_agrees_on_adversarial_and_positive_corpus",
     "test_epub_encrypted_mimetype_is_not_accepted_by_the_prefix_rule",
-    "test_central_directory_names_decide_the_package",
-    "test_partial_or_lookalike_names_abstain",
-    "test_manifest_first_package_needs_code_or_resources_in_the_prefix_or_the_directory",
-    "test_word_documents_and_templates_are_told_apart_by_content_type",
-    "test_names_in_the_comment_or_member_data_do_not_count",
-    "test_names_beyond_the_view_are_not_seen",
-    "test_split_and_zip64_end_records_abstain",
-    "test_opendocument_media_type_and_content_decide",
-    "test_other_opendocument_media_types_abstain",
-    "test_epub_directory_names_decide_when_the_local_header_is_not_canonical",
-    "test_windows_images_are_pebin",
-    "test_images_outside_the_pe_contract_abstain",
-    "test_pe_fixture_headers_must_be_held",
 }
 # Ported natively in Rust: it walks the repository's own tests_data.
 NATIVE_RUST = {"test_all_public_fixture_incomplete_prefixes_abstain"}
-FACTS_POSITIVES = {
-    "basic/xlsx/magika_test.xlsx", "basic/pptx/magika_test.pptx", "basic/odt/doc.odt",
-    "basic/odt/magika_test.odt", "basic/ods/magika_test.ods", "basic/odp/magika_test.odp",
-    "mitra/pebin/pe32.exe", "mitra/pebin/pe64.exe",
-}
 
 # --- a minimal pytest ------------------------------------------------------------------------
 pytest = types.ModuleType("pytest")
@@ -77,12 +60,15 @@ pytest.fixture = lambda *a, **k: (a[0] if a and callable(a[0]) else (lambda fn: 
 pytest.raises = None
 sys.modules["pytest"] = pytest
 for name in ("yara_x", "magika_rules_benchmark", "magika_rules_benchmark.preprocess",
-             "magika_rules_benchmark.corpus", "magika_rules_benchmark.runner", "preprocess_fixtures"):
+             "magika_rules_benchmark.corpus", "magika_rules_benchmark.runner"):
     module = types.ModuleType(name)
     module.preprocess = module
     module.file_hash = module.archive = module.pe32 = module.pe32plus = module.stored = None
     module.observe = None
+    module.PE32_MAGIC, module.PE32PLUS_MAGIC = 0x10B, 0x20B
     sys.modules[name] = module
+# The archive and executable builders of the facts tests are plain Python.
+sys.path.insert(0, str(ROOT / "rules/benchmark/tests"))
 
 conftest = {}
 exec(compile((ROOT / "rules/benchmark/tests/conftest.py").read_text(), "conftest.py", "exec"), conftest)
@@ -106,7 +92,7 @@ def read_bytes(self):
 
 
 Path.read_bytes = read_bytes
-blobs = []  # distinct byte prefixes, each stored once as run-length segments
+blobs = []  # distinct byte prefixes, each stored once as run-length segments; whole zip inputs
 blob_index = {}
 groups = {}  # test name -> list of cases
 current = {}
@@ -143,8 +129,13 @@ def patches(base, content):
     return runs
 
 
+def is_zip(data):
+    return data.startswith(b"PK\x03\x04") or data.startswith(b"PK\x05\x06")
+
+
 def blob(data):
-    key = data[:PREFIX]
+    # Zip facts read the tail too, so a zip input is stored whole.
+    key = bytes(data) if is_zip(data) else data[:PREFIX]
     if key not in blob_index:
         blob_index[key] = len(blobs)
         blobs.append(segments(key))
@@ -156,7 +147,7 @@ def encode(content):
     size = len(content)
     prefix = content[:PREFIX]
     candidates = [("file", path, data) for path, data in files.items()]
-    candidates += [("blob", None, base) for base in current["seen"]]
+    candidates += [("blob", None, base) for base in current["seen"] if not is_zip(base)]
     for kind, path, base in candidates:
         head = base[:PREFIX]
         origin = {"file": path} if kind == "file" else {"blob": blob(base)}
@@ -195,7 +186,7 @@ skipped = []
 for name, fn in list(tests.items()):
     if not (name.startswith("test_") and callable(fn)):
         continue
-    if name in FACTS_OR_NATIVE or name in NATIVE_RUST:
+    if name in NATIVE_ENGINE or name in NATIVE_RUST:
         skipped.append(name)
         continue
     grids = fn.__dict__.get("_params", [])
@@ -205,8 +196,6 @@ for name, fn in list(tests.items()):
         axes.append([dict(zip(keys, v if len(keys) > 1 else (v,))) for v in values])
     for combo in itertools.product(*axes) if axes else [()]:
         kwargs = {k: v for part in combo for k, v in part.items()}
-        if name == "test_real_positive_fixtures" and kwargs["relative"] in FACTS_POSITIVES:
-            continue
         if name == "test_prefix_signatures_for_labels_the_model_lacks_or_misses" and kwargs["label"] == "asf":
             continue  # taxonomy_asf is parked: the evaluation dataset refutes it
         args = fn.__code__.co_varnames[: fn.__code__.co_argcount]

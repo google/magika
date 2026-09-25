@@ -22,7 +22,7 @@ info "Sync generated files"
 info "Sync embedded model"
 ( cd tract-bench
   cargo run --no-default-features --features=convert --bin=convert-model -- \
-    ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le}
+    ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le,graph.json,weights}
 )
 
 info "Sync CLI output"

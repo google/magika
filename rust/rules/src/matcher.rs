@@ -61,8 +61,11 @@ impl RegexPattern {
     }
 
     fn build(&self) -> Result<Regex, String> {
+        // A scan builds most regexes it reaches on its first file, and a full DFA is most of what
+        // building one costs, while the lazy DFA searches a 4 KiB prefix about as fast.
         Regex::builder()
             .syntax(syntax::Config::new().unicode(false).utf8(false))
+            .configure(Regex::config().dfa(false))
             .build_from_hir(&self.hir()?)
             .map_err(|e| e.to_string())
     }

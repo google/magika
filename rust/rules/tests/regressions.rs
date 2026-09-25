@@ -15,7 +15,7 @@
 
 use std::path::PathBuf;
 
-use magika_rules::{Input, Outcome, RuleSet, Source, PREFIX_LIMIT};
+use magika_rules::{Input, Outcome, RuleSet, PREFIX_LIMIT};
 use serde_json::Value;
 
 fn data(relative: &str) -> PathBuf {
@@ -57,7 +57,7 @@ fn labels(rules: &RuleSet, prefix: &[u8], size: u64) -> Vec<String> {
 
 #[test]
 fn recorded_signature_regressions_hold() {
-    let rules = RuleSet::compile(&Source::bundled()).unwrap();
+    let rules = RuleSet::bundled();
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/data/regressions.json");
     let recorded: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     let blobs: Vec<Vec<u8>> = recorded["blobs"].as_array().unwrap().iter().map(blob).collect();
@@ -115,7 +115,7 @@ fn recorded_signature_regressions_hold() {
 /// fewer than eight bytes of any repository sample.
 #[test]
 fn no_rule_decides_from_fewer_than_eight_bytes() {
-    let rules = RuleSet::compile(&Source::bundled()).unwrap();
+    let rules = RuleSet::bundled();
     let mut pending = vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests_data")];
     let mut files = 0;
     while let Some(path) = pending.pop() {

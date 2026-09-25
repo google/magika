@@ -12,9 +12,9 @@ partial rules can decide a label: partial means some files of that format are mi
 ## Usage
 
 ```rust,no_run
-use magika_rules::{Input, Outcome, RuleSet, Source};
+use magika_rules::{Input, Outcome, RuleSet};
 
-let rules = RuleSet::compile(&Source::bundled())?;
+let rules = RuleSet::bundled();
 let bytes = std::fs::read("example.png")?;
 let prefix = &bytes[..bytes.len().min(magika_rules::PREFIX_LIMIT)];
 match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
@@ -24,8 +24,11 @@ match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`Source::parse` accepts custom rules with the same validation. A `RuleSet` is `Send + Sync`
-and scans take `&self`, so one compiled pack can be shared through an `Arc`.
+`RuleSet::bundled` loads the bundled rules as they were compiled when the crate was built, in
+well under a millisecond: it parses no YARA and builds each regex the first time a scan needs
+it. `Source::parse` and `RuleSet::compile` accept custom rules with the same validation. A
+`RuleSet` is `Send + Sync` and scans take `&self`, so one compiled pack can be shared through an
+`Arc`.
 
 `Input::prefix` must be exactly the first `min(size, PREFIX_LIMIT)` bytes; anything else is
 `Outcome::InsufficientInput`.
@@ -40,7 +43,8 @@ and scans take `&self`, so one compiled pack can be shared through an `Arc`.
 - `LICENSES`: notices for the sources rules were adapted from; exact references stay with
   each rule's `source_refs`.
 - `build.rs`: bundles the rulesets and notices into the crate with the `bundled` feature
-  (on by default).
+  (on by default), and compiles them with the crate's own `source`, `lower` and `codegen`
+  modules into the Rust code `RuleSet::bundled` runs.
 
 ## Rule metadata
 

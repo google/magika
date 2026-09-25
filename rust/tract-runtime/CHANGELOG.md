@@ -4,3 +4,5 @@
 
 This is the initial version of the tract inference runtime shared by the Magika library and CLI.
 It loads the embedded model from its parsed graph rather than from the NNEF archive.
+
+- Prepare CPU batch plans only when a session first needs that batch class.

@@ -606,6 +606,15 @@ def test_api_call_with_bad_types() -> None:
     _ = m.identify_paths(["/non_existing.txt", "/not_existing2.txt"])
     with pytest.raises(TypeError):
         _ = m.identify_paths(Path("/non_existing.txt"))  # type: ignore[arg-type]
+    # A bare `str`/`bytes` is a `Sequence`, but it is not a sequence of paths:
+    # iterating it yields its elements, so it must be rejected rather than
+    # returning one result per character. Note that a bare `str` type-checks
+    # against `Sequence[Union[str, os.PathLike]]`, so only the runtime check
+    # can catch it.
+    with pytest.raises(TypeError):
+        _ = m.identify_paths("/non_existing.txt")
+    with pytest.raises(TypeError):
+        _ = m.identify_paths(b"/non_existing.txt")  # type: ignore[arg-type]
     with pytest.raises(TypeError):
         _ = m.identify_paths([b"/non_existing.txt"])  # type: ignore[list-item]
     with pytest.raises(TypeError):

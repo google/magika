@@ -4,15 +4,18 @@
 //! Evaluates a program over one input. A read past the prefix is `None` and makes its
 //! comparison `false`, matching YARA's undefined value.
 
+use std::cell::OnceCell;
+
+use crate::facts::Facts;
 use crate::ir::{Cmp, Cond, Int, Program, Read};
 use crate::{Input, Outcome, PREFIX_LIMIT};
 
 pub(crate) fn scan(program: &Program, input: Input<'_>) -> Outcome {
-    let Input { prefix, size, .. } = input;
+    let Input { prefix, size, tail } = input;
     if prefix.is_empty() || prefix.len() as u64 != size.min(PREFIX_LIMIT as u64) {
         return Outcome::InsufficientInput;
     }
-    let ctx = Ctx { program, prefix, size };
+    let ctx = Ctx { program, prefix, size, tail, facts: OnceCell::new() };
     let mut outcome = Outcome::NoMatch;
     for rule in &program.rules {
         if ctx.cond(&rule.cond) {
@@ -30,6 +33,9 @@ struct Ctx<'a> {
     program: &'a Program,
     prefix: &'a [u8],
     size: u64,
+    tail: Option<&'a [u8]>,
+    /// Derived the first time a condition reads a fact or a view, at most once per scan.
+    facts: OnceCell<Facts>,
 }
 
 impl Ctx<'_> {
@@ -60,7 +66,18 @@ impl Ctx<'_> {
                 }
                 _ => false,
             },
+            Cond::View { view, text, start } => {
+                let view = self.facts().view(*view);
+                match start {
+                    true => view.starts_with(text),
+                    false => memchr::memmem::find(view, text).is_some(),
+                }
+            }
         }
+    }
+
+    fn facts(&self) -> &Facts {
+        self.facts.get_or_init(|| Facts::analyze(self.prefix, self.size, self.tail))
     }
 
     fn offset(&self, int: &Int) -> Option<usize> {
@@ -84,6 +101,7 @@ impl Ctx<'_> {
                 }
             }
             Int::And(a, b) => self.int(a)? & self.int(b)?,
+            Int::Fact(fact) => i128::from(self.facts().int(*fact)),
         })
     }
 }

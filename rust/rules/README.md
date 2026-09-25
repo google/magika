@@ -12,9 +12,9 @@ partial rules can decide a label: partial means some files of that format are mi
 ## Usage
 
 ```rust,no_run
-use magika_rules::{Input, Outcome, RuleSet, Source};
+use magika_rules::{Input, Outcome, RuleSet};
 
-let rules = RuleSet::compile(&Source::bundled())?;
+let rules = RuleSet::bundled();
 let bytes = std::fs::read("example.png")?;
 let prefix = &bytes[..bytes.len().min(magika_rules::PREFIX_LIMIT)];
 match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
@@ -24,8 +24,11 @@ match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`Source::parse` accepts custom rules with the same validation. A `RuleSet` is `Send + Sync`
-and scans take `&self`, so one compiled pack can be shared through an `Arc`.
+`RuleSet::bundled` loads the bundled rules as they were compiled when the crate was built, in
+well under a millisecond: it parses no YARA and builds each regex the first time a scan needs
+it. `Source::parse` and `RuleSet::compile` accept custom rules with the same validation. A
+`RuleSet` is `Send + Sync` and scans take `&self`, so one compiled pack can be shared through an
+`Arc`.
 
 `Input::prefix` must be exactly the first `min(size, PREFIX_LIMIT)` bytes; anything else is
 `Outcome::InsufficientInput`.
@@ -35,12 +38,12 @@ and scans take `&self`, so one compiled pack can be shared through an `Arc`.
 - `rulesets/full/`: rules with zero observed false positives and false negatives.
 - `rulesets/partial/`: zero observed false positives and some false negatives.
 - `rulesets/notworking/`: rules kept for reference and never enforced, including rules
-  refuted by evaluation and, in `facts-pending.yar`, rules that read archive and
-  executable facts, which this crate does not evaluate yet.
+  refuted by evaluation.
 - `LICENSES`: notices for the sources rules were adapted from; exact references stay with
   each rule's `source_refs`.
 - `build.rs`: bundles the rulesets and notices into the crate with the `bundled` feature
-  (on by default).
+  (on by default), and compiles them with the crate's own `source`, `lower` and `codegen`
+  modules into the Rust code `RuleSet::bundled` runs.
 
 ## Rule metadata
 
@@ -68,6 +71,8 @@ Anything outside this subset is rejected at compile time rather than ignored.
 | Sizes | `filesize` or `original_size` (the whole input), `prefix_size` (bytes in the prefix) |
 | Comparisons | `==`, `!=`, `<`, `<=`, `>`, `>=` between literals, sizes and reads |
 | Modulo | `x % N == M` with `N` a power of two |
+| Facts | zip (`zip_valid`, `zip_entries`, `zip_names_entries`, ...) and PE (`pe_valid`, `pe_machine`, `pe_subsystem`, ...) integers, zero for other inputs; see `src/facts` |
+| Views | `zip_names` and `zip_first_entry`, searched with `contains` or `startswith` and a literal string |
 | Logic | `and`, `or`, `not`, `true`, `false`, references to other rules (private helpers are active unless disabled) |
 
 A read past the prefix is undefined and makes its comparison false. Regexes are byte

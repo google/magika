@@ -179,6 +179,18 @@ Options:
             %b  The model output if overruled (empty otherwise)
             %%  A literal %
 
+      --rules <RULES>
+          Identifies files with format rules.
+
+          A rule decides from the first 4 KiB and the size of a file, and only when every matching rule agrees.
+
+          Possible values:
+          - off:     Identifies files with the model only
+          - enforce: Identifies files with rules first, and with the model when no rule decides
+          - only:    Identifies files with rules only, as unknown when no rule decides. The model is not loaded
+
+          [default: off]
+
   -h, --help
           Print help (see a summary with '-h')
 

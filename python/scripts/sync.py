@@ -28,7 +28,8 @@ MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE = [
 ]
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent
-assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
+# A git worktree has a .git file rather than a directory.
+assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").exists()
 
 ASSETS_DIR = REPO_ROOT_DIR / "assets"
 assert ASSETS_DIR.is_dir()
@@ -124,7 +125,7 @@ def add_model_to_python_package(model_name: str) -> None:
     shutil.copytree(assets_model_dir, python_model_dir)
 
 
-CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = """
+CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = '''
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -139,6 +140,7 @@ CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = """
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Enumeration of all known content type labels."""
 
 from magika.types.strenum import StrEnum
 
@@ -148,7 +150,13 @@ from magika.types.strenum import StrEnum
 # This is the list of all possible content types we know about; however, models
 # support a smaller subset of them. See model's README.md for details.
 class ContentTypeLabel(StrEnum):
-"""
+    """A string-based enumeration of all possible content type labels.
+
+    This enum provides a standardized set of identifiers for content types
+    recognized by Magika.
+    """
+
+'''
 
 
 def update_python_content_type_label_py() -> None:
@@ -166,7 +174,7 @@ def update_python_content_type_label_py() -> None:
 
     out = (
         CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX.strip()
-        + "\n"
+        + "\n\n"
         + "\n".join(enum_body_lines)
         + "\n"
     )
@@ -246,8 +254,8 @@ def update_js_content_type_files() -> None:
 
     content_types_info_content += (
         """
-import { ContentTypeInfo } from "./content-type-info";
-import { ContentTypeLabel } from "./content-type-label";
+import { ContentTypeInfo } from "./content-type-info.js";
+import { ContentTypeLabel } from "./content-type-label.js";
 
 export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;
 
@@ -273,7 +281,7 @@ export const ContentTypesInfos = {
             + "\n"
         )
 
-    content_types_info_content += "  })\n};\n"
+    content_types_info_content += "  }),\n};\n"
 
     content_types_infos_ts_path.write_text(content_types_info_content)
     print(f"Updated {content_types_infos_ts_path}")

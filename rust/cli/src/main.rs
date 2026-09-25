@@ -24,7 +24,7 @@ use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
     self, Backend, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason,
-    Runtime, TypeInfo,
+    Rules, Runtime, TypeInfo,
 };
 use serde::Serialize;
 
@@ -53,6 +53,13 @@ struct Flags {
 
     #[clap(flatten)]
     format: Format,
+
+    /// Identifies files with format rules.
+    ///
+    /// A rule decides from the first 4 KiB and the size of a file, and only when every matching
+    /// rule agrees.
+    #[arg(long, value_enum, default_value_t)]
+    rules: RulesMode,
 
     #[clap(flatten)]
     experimental: Experimental,
@@ -122,6 +129,17 @@ struct Format {
     ///   %%  A literal %
     #[arg(long = "format", verbatim_doc_comment)]
     custom: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum RulesMode {
+    /// Identifies files with the model only.
+    #[default]
+    Off,
+    /// Identifies files with rules first, and with the model when no rule decides.
+    Enforce,
+    /// Identifies files with rules only, as unknown when no rule decides. The model is not loaded.
+    Only,
 }
 
 #[derive(Args)]
@@ -280,6 +298,7 @@ fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
+    let rules_only = flags.rules == RulesMode::Only;
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
     builder = match flags.experimental.backend {
@@ -287,9 +306,8 @@ fn main() -> Result<()> {
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
         BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
     };
-    let runtime = Arc::new(builder.build()?);
     if flags.experimental.backend_info {
-        let info = runtime.backend_info();
+        let info = builder.build()?.backend_info();
         let backend = match info.backend() {
             Backend::Cpu => "cpu",
             Backend::Gpu => "gpu",
@@ -297,19 +315,26 @@ fn main() -> Result<()> {
         println!("{backend} ({})", info.implementation());
         return Ok(());
     }
-    let threads = match flags.experimental.threads {
-        Some(threads) => threads,
-        None => default_inference_threads(runtime.backend_info().backend()),
+    let rules = (flags.rules != RulesMode::Off).then(Rules::bundled).transpose()?;
+    // Rules alone never need the model, so skip loading it: that is most of the cost of a short run.
+    let runtime = if rules_only { None } else { Some(Arc::new(builder.build()?)) };
+    let threads = match (&runtime, flags.experimental.threads) {
+        (None, _) => 0,
+        (Some(_), Some(threads)) => threads,
+        (Some(runtime), None) => default_inference_threads(runtime.backend_info().backend()),
     };
-    ensure!((1..=256).contains(&threads), "--threads must be between 1 and 256");
+    ensure!(
+        runtime.is_none() || (1..=256).contains(&threads),
+        "--threads must be between 1 and 256"
+    );
     let readers = flags.experimental.readers;
     ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
     let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
     let (read_sender, read_receiver) =
-        std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
+        std::sync::mpsc::sync_channel::<ReadItem>(threads.max(1) * batch_size);
     let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
     let (result_sender, result_receiver) =
-        std::sync::mpsc::sync_channel::<Result<Response>>(threads * batch_size);
+        std::sync::mpsc::sync_channel::<Result<Response>>(threads.max(1) * batch_size);
     #[cfg(feature = "_trace")]
     let trace = Trace::default();
     let mut join_handles = Vec::new();
@@ -333,12 +358,13 @@ fn main() -> Result<()> {
             {
                 let work_receiver = work_receiver.clone();
                 let read_sender = read_sender.clone();
+                let rules = rules.clone();
                 #[cfg(feature = "_trace")]
                 let trace = trace.clone();
                 move || {
                     #[cfg(feature = "_trace")]
                     let start = Stage::start();
-                    read_files(&work_receiver, &read_sender);
+                    read_files(&work_receiver, &read_sender, rules.as_ref());
                     #[cfg(feature = "_trace")]
                     trace.insert(Stage::finalize(start));
                 }
@@ -356,7 +382,7 @@ fn main() -> Result<()> {
             #[cfg(feature = "_trace")]
             let start = Stage::start();
             if let Err(error) =
-                batch_files(batch_size, &read_receiver, &batch_sender, &result_sender)
+                batch_files(batch_size, rules_only, &read_receiver, &batch_sender, &result_sender)
             {
                 let _ = result_sender.send(Err(error));
             }
@@ -370,7 +396,7 @@ fn main() -> Result<()> {
             std::thread::Builder::new().name(format!("magika-infer-{index}")).spawn({
                 let batch_receiver = batch_receiver.clone();
                 let result_sender = result_sender.clone();
-                let runtime = runtime.clone();
+                let runtime = runtime.clone().unwrap();
                 #[cfg(feature = "_trace")]
                 let trace = trace.clone();
                 move || {
@@ -481,10 +507,10 @@ fn walk_paths(
 /// thread to interleave anyway.
 fn read_files(
     work_receiver: &crossbeam_channel::Receiver<Pending>,
-    sender: &std::sync::mpsc::SyncSender<ReadItem>,
+    sender: &std::sync::mpsc::SyncSender<ReadItem>, rules: Option<&Rules>,
 ) {
     while let Ok(pending) = work_receiver.recv() {
-        let extracted = extract_path(&pending.path);
+        let extracted = extract_path(&pending.path, rules);
         if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
@@ -492,14 +518,20 @@ fn read_files(
 }
 
 /// Accumulates every reader's output into one global inference batch stream.
+///
+/// With rules only, there is no inference: a file that reaches it is unknown.
 fn batch_files(
-    batch_size: usize, receiver: &std::sync::mpsc::Receiver<ReadItem>,
+    batch_size: usize, rules_only: bool, receiver: &std::sync::mpsc::Receiver<ReadItem>,
     batch_sender: &crossbeam_channel::Sender<Vec<BatchItem>>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
     let mut batch = Vec::with_capacity(batch_size);
     while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
+            Ok(FeaturesOrRuled::Features(_)) if rules_only => {
+                let result = Ok(FileType::Ruled(ContentType::Unknown));
+                result_sender.send(Ok(Response::new(pending, result)))?;
+            }
             Ok(FeaturesOrRuled::Features(features)) => {
                 batch.push(BatchItem { pending, features });
                 if batch.len() == batch_size {
@@ -522,14 +554,14 @@ fn batch_files(
     Ok(())
 }
 
-/// Reads a file and extracts its features.
-fn extract_path(path: &Path) -> Result<FeaturesOrRuled> {
+/// Reads a file and extracts its features, unless rules identify it.
+fn extract_path(path: &Path, rules: Option<&Rules>) -> Result<FeaturesOrRuled> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract(&stdin[..]);
+        return FeaturesOrRuled::extract_with_rules(&stdin[..], rules);
     }
-    FeaturesOrRuled::extract(std::fs::File::open(path)?)
+    FeaturesOrRuled::extract_with_rules(std::fs::File::open(path)?, rules)
 }
 
 enum ProcessPath {

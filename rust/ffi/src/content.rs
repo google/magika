@@ -46,6 +46,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static _3MF: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"3mf".as_ptr(),
+    mime_type: c"application/vnd.ms-package.3dmanufacturing-3dmodel+xml".as_ptr(),
+    group: c"image".as_ptr(),
+    description: c"3D Manufacturing Format".as_ptr(),
+    extensions: [c"3mf".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static ACE: MagikaTypeInfo = MagikaTypeInfo {
     label: c"ace".as_ptr(),
     mime_type: c"application/x-ace-compressed".as_ptr(),
@@ -583,6 +592,15 @@ use crate::MagikaTypeInfo;
     group: c"document".as_ptr(),
     description: c"Microsoft Word 2007+ document".as_ptr(),
     extensions: [c"docx".as_ptr(), c"docm".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static DOTX: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"dotx".as_ptr(),
+    mime_type: c"application/vnd.openxmlformats-officedocument.wordprocessingml.template".as_ptr(),
+    group: c"document".as_ptr(),
+    description: c"Office Word 2007 template".as_ptr(),
+    extensions: [c"dotx".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -1171,6 +1189,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static KERAS: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"keras".as_ptr(),
+    mime_type: c"application/octet-stream".as_ptr(),
+    group: c"model".as_ptr(),
+    description: c"Keras model archive".as_ptr(),
+    extensions: [c"keras".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static KML: MagikaTypeInfo = MagikaTypeInfo {
     label: c"kml".as_ptr(),
     mime_type: c"application/vnd.google-earth.kml+xml".as_ptr(),
@@ -1178,6 +1205,15 @@ use crate::MagikaTypeInfo;
     description: c"Keyhole Markup Language".as_ptr(),
     extensions: [c"kml".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
+};
+
+#[rustfmt::skip] pub(crate) static KMZ: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"kmz".as_ptr(),
+    mime_type: c"application/vnd.google-earth.kmz".as_ptr(),
+    group: c"gis".as_ptr(),
+    description: c"Keyhole Markup Language archive".as_ptr(),
+    extensions: [c"kmz".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
 };
 
 #[rustfmt::skip] pub(crate) static KOALA: MagikaTypeInfo = MagikaTypeInfo {
@@ -1429,6 +1465,15 @@ use crate::MagikaTypeInfo;
     group: c"archive".as_ptr(),
     description: c"Microsoft Installer file".as_ptr(),
     extensions: [c"msi".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static MSIX: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"msix".as_ptr(),
+    mime_type: c"application/msix".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Windows app package".as_ptr(),
+    extensions: [c"msix".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -1843,6 +1888,15 @@ use crate::MagikaTypeInfo;
     group: c"application".as_ptr(),
     description: c"Pytorch storage file".as_ptr(),
     extensions: [c"pt".as_ptr(), c"pth".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static QGIS: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"qgis".as_ptr(),
+    mime_type: c"application/octet-stream".as_ptr(),
+    group: c"gis".as_ptr(),
+    description: c"QGIS project archive".as_ptr(),
+    extensions: [c"qgz".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -2422,6 +2476,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static VISIO: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"visio".as_ptr(),
+    mime_type: c"application/vnd.ms-visio.drawing.main+xml".as_ptr(),
+    group: c"document".as_ptr(),
+    description: c"Microsoft Visio".as_ptr(),
+    extensions: [c"vsd".as_ptr(), c"vsdm".as_ptr(), c"vsdx".as_ptr(), c"vdw".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static VTT: MagikaTypeInfo = MagikaTypeInfo {
     label: c"vtt".as_ptr(),
     mime_type: c"text/vtt".as_ptr(),
@@ -2661,6 +2724,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::_3dsm => &_3DSM,
         magika::ContentType::_3dsx => &_3DSX,
         magika::ContentType::_3gp => &_3GP,
+        magika::ContentType::_3mf => &_3MF,
         magika::ContentType::Ace => &ACE,
         magika::ContentType::Ai => &AI,
         magika::ContentType::Aidl => &AIDL,
@@ -2720,6 +2784,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Doc => &DOC,
         magika::ContentType::Dockerfile => &DOCKERFILE,
         magika::ContentType::Docx => &DOCX,
+        magika::ContentType::Dotx => &DOTX,
         magika::ContentType::Dsstore => &DSSTORE,
         magika::ContentType::Duckdb => &DUCKDB,
         magika::ContentType::Dwg => &DWG,
@@ -2785,7 +2850,9 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Jsonl => &JSONL,
         magika::ContentType::Julia => &JULIA,
         magika::ContentType::Jxl => &JXL,
+        magika::ContentType::Keras => &KERAS,
         magika::ContentType::Kml => &KML,
+        magika::ContentType::Kmz => &KMZ,
         magika::ContentType::Koala => &KOALA,
         magika::ContentType::Kotlin => &KOTLIN,
         magika::ContentType::Latex => &LATEX,
@@ -2814,6 +2881,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Mpegts => &MPEGTS,
         magika::ContentType::Mscompress => &MSCOMPRESS,
         magika::ContentType::Msi => &MSI,
+        magika::ContentType::Msix => &MSIX,
         magika::ContentType::Mum => &MUM,
         magika::ContentType::Netcdf => &NETCDF,
         magika::ContentType::Npy => &NPY,
@@ -2860,6 +2928,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Python => &PYTHON,
         magika::ContentType::Pythonbytecode => &PYTHONBYTECODE,
         magika::ContentType::Pytorch => &PYTORCH,
+        magika::ContentType::Qgis => &QGIS,
         magika::ContentType::Qoi => &QOI,
         magika::ContentType::Qt => &QT,
         magika::ContentType::R => &R,
@@ -2923,6 +2992,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Vhd => &VHD,
         magika::ContentType::Vhdl => &VHDL,
         magika::ContentType::Vib => &VIB,
+        magika::ContentType::Visio => &VISIO,
         magika::ContentType::Vtt => &VTT,
         magika::ContentType::Vue => &VUE,
         magika::ContentType::Wad => &WAD,

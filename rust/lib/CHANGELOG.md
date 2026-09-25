@@ -17,6 +17,7 @@
 
 - Add the `rules` feature to identify files with format rules before inference
 - Add the 74 content types that the bundled format rules can identify
+- Add the 7 content types that the bundled zip and PE rules can identify
 - Add `ContentType::from_label()` to get a content type from its label
 - Change `Session::identify_features_batch()` to take an iterator of features
 - Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)

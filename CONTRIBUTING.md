@@ -32,3 +32,34 @@ Guidelines](https://opensource.google/conduct/).
 All submissions, including submissions by project members, require review. We
 use [GitHub pull requests](https://docs.github.com/articles/about-pull-requests)
 for this purpose.
+
+### Adding support for new file types
+
+Magika's file type support is model-backed. Adding a new label or improving
+detection for an unsupported format usually requires more than updating metadata
+files, because the model must learn to recognize representative samples of that
+format.
+
+If you want to add or improve support for a file type, please use this outline:
+
+1. **Open or comment on an issue first.** Describe the file type, common
+   extensions, MIME type if one exists, and the user impact. Include safe,
+   redistributable sample files or links to public sample corpora when possible.
+2. **Check whether the type is already tracked.** The content type knowledge
+   base is broader than the labels supported by any single released model. A
+   type may already exist in metadata but still not be supported by the current
+   model.
+3. **Do not rely on metadata-only changes.** Files such as content type
+   metadata, model config, and model README tables describe model behavior; they
+   do not by themselves teach an existing model to classify a new format.
+4. **Expect model work for new labels.** New support generally needs a training
+   dataset, a model update, threshold review, and evaluation against both the
+   new type and nearby/confusable types.
+5. **Include tests and docs with implementation changes.** When a change is
+   ready, include representative test samples where licensing allows, update the
+   relevant model or binding documentation, and explain any compatibility impact
+   in the PR description.
+
+For small improvements such as documentation, sample collection, or
+misdetection reports, a focused issue or PR is still very helpful even if it
+does not include a full model update.

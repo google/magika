@@ -16,6 +16,7 @@
 ### Minor
 
 - Add the `rules` feature to identify files with format rules before inference
+- Read the end of a zip archive when format rules read its entries
 - Add the 74 content types that the bundled format rules can identify
 - Add the 7 content types that the bundled zip and PE rules can identify
 - Add `ContentType::from_label()` to get a content type from its label

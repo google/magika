@@ -721,6 +721,7 @@ name = "magika-rules"
 version = "0.1.0-dev"
 dependencies = [
  "memchr",
+ "miniz_oxide",
  "regex-automata",
  "regex-syntax",
  "yara-x-parser",

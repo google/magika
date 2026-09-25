@@ -60,16 +60,32 @@ impl Rules {
         Ok(Rules(Arc::new(Inner { set, content_types })))
     }
 
-    /// Returns the content type the rules decide from the first block of a file and its size.
+    /// Returns the content type the rules decide for a file of `size` bytes.
     ///
     /// The first block holds at least the first `PREFIX_LIMIT` bytes of the file, or the whole
-    /// file if it is shorter.
-    pub(crate) fn identify(&self, first_block: &[u8], size: u64) -> Option<ContentType> {
+    /// file if it is shorter. The rest of the file is read only for a zip archive whose entries
+    /// a rule reads: its tail, as `magika-rules` asks for it.
+    pub(crate) fn identify(
+        &self, file: &mut impl crate::Input, first_block: &[u8], size: u64,
+    ) -> Result<Option<ContentType>> {
         let prefix = &first_block[..first_block.len().min(magika_rules::PREFIX_LIMIT)];
-        match self.0.set.scan(magika_rules::Input { prefix, size, tail: None }) {
+        let mut tail = vec![0; self.0.set.tail_len(prefix, size)];
+        if !tail.is_empty() {
+            let at = size - tail.len() as u64;
+            file.read_at(&mut tail, at)?;
+            // A central directory that starts before the tail: read what is missing of it.
+            if let Some(start) = self.0.set.tail_start(&tail, size) {
+                let mut extended = vec![0; (size - tail.len() as u64 - start) as usize];
+                file.read_at(&mut extended, start)?;
+                extended.extend_from_slice(&tail);
+                tail = extended;
+            }
+        }
+        let tail = (!tail.is_empty()).then_some(tail.as_slice());
+        Ok(match self.0.set.scan(magika_rules::Input { prefix, size, tail }) {
             Outcome::Match(label) => Some(self.0.content_types[label]),
             Outcome::NoMatch | Outcome::Conflict | Outcome::InsufficientInput => None,
-        }
+        })
     }
 }
 
@@ -151,5 +167,30 @@ mod tests {
             crate::FeaturesOrRuled::extract_with_rules(&mut file, Some(&rules)).unwrap();
         assert!(matches!(extracted, crate::FeaturesOrRuled::Features(_)));
         assert_eq!(file.1.len(), 2, "{:?}", file.1);
+    }
+
+    #[test]
+    fn an_archive_is_identified_from_its_directory() {
+        struct Counting(Vec<u8>, Vec<(u64, usize)>);
+        impl crate::Input for Counting {
+            fn length(&self) -> Result<u64> {
+                Ok(self.0.len() as u64)
+            }
+            fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
+                self.1.push((offset, buffer.len()));
+                buffer.copy_from_slice(&self.0[offset as usize..][..buffer.len()]);
+                Ok(())
+            }
+        }
+        // The presentation part is named in the central directory, at the end of the file.
+        let bytes = std::fs::read("../../tests_data/basic/pptx/magika_test.pptx").unwrap();
+        let size = bytes.len() as u64;
+        assert!(size > 16 * 1024);
+        let mut file = Counting(bytes, Vec::new());
+        let rules = Rules::bundled().unwrap();
+        let extracted =
+            crate::FeaturesOrRuled::extract_with_rules(&mut file, Some(&rules)).unwrap();
+        assert!(matches!(extracted, crate::FeaturesOrRuled::Ruled(ContentType::Pptx)));
+        assert_eq!(file.1, [(0, 4096), (size - 16 * 1024, 16 * 1024)]);
     }
 }

@@ -26,6 +26,7 @@
 
 ### Patch
 
+- Load the embedded model without parsing NNEF, which saves about 15 ms per plan at startup
 - Read small files once when extracting features
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies

@@ -479,6 +479,8 @@ version = "0.0.1-dev"
 dependencies = [
  "anyhow",
  "cudarc",
+ "serde",
+ "serde_json",
  "tract-core",
  "tract-cuda",
  "tract-gpu",

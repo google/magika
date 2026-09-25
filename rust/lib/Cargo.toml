@@ -15,12 +15,14 @@ features = ["_doc"]
 
 [features]
 cuda = ["magika-tract-runtime/cuda"]
+rules = ["dep:magika-rules"]
 serde = ["dep:serde"]
 # Internal features.
-_doc = ["serde"]
+_doc = ["rules", "serde"]
 
 [dependencies]
 anyhow = "1.0.104"
+magika-rules = { version = "0.1.0-dev", path = "../rules", optional = true }
 magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }

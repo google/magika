@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Add `--rules` to identify files with format rules
 - Report files that are not regular instead of trying to read them
 - Detect cycles through symbolic links during recursive traversal
 - Remove the dependency on the ONNX Runtime

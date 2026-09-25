@@ -309,22 +309,23 @@ struct ModelConfig {
     version_major: u32,
 }
 
-fn enum_name(xs: &str) -> String {
-    assert!(xs.is_ascii());
-    let mut xs = xs.as_bytes().to_vec();
-    match xs[0] {
-        b'A'..=b'Z' => (),
-        b'a'..=b'z' => xs[0] = xs[0].to_ascii_uppercase(),
-        _ => xs.insert(0, b'_'),
-    }
-    String::from_utf8(xs).unwrap()
+fn enum_name(label: &str) -> String {
+    label_name(label, false)
 }
 
-fn const_name(xs: &str) -> String {
-    assert!(xs.is_ascii());
-    let mut xs = xs.as_bytes().to_ascii_uppercase();
-    if !xs[0].is_ascii_uppercase() {
-        xs.insert(0, b'_');
+fn const_name(label: &str) -> String {
+    label_name(label, true)
+}
+
+fn label_name(label: &str, scream: bool) -> String {
+    let mut name = String::new();
+    for (i, word) in label.split('_').enumerate() {
+        if i == 0 && !word.starts_with(|x: char| x.is_alphabetic()) || i != 0 && scream {
+            name.push('_');
+        }
+        for (j, x) in word.chars().enumerate() {
+            name.push(if j == 0 || scream { x.to_ascii_uppercase() } else { x });
+        }
     }
-    String::from_utf8(xs).unwrap()
+    name
 }

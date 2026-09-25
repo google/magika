@@ -1,7 +1,7 @@
 // Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! The bundled rulesets parse, sit in the right buckets, and enforce no facts rule yet.
+//! The bundled rulesets parse and sit in the right buckets.
 
 #![cfg(feature = "bundled")]
 use magika_rules::{Bucket, Source};
@@ -25,15 +25,5 @@ fn every_ruleset_file_matches_its_bucket() {
                     .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
             }
         }
-    }
-}
-
-#[test]
-fn no_enforced_rule_uses_facts_yet() {
-    let text = Source::bundled().text().to_string();
-    for block in text.split("\nrule ").skip(1) {
-        let uses_facts = block.contains("zip_") || block.contains("pe_");
-        let enforced = block.contains("enforced = true") || block.contains("enabled = true");
-        assert!(!(uses_facts && enforced), "facts rule enforced before Part D:\nrule {block}");
     }
 }

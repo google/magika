@@ -14,6 +14,7 @@ bundled = []
 
 [dependencies]
 memchr = "2.7"
+miniz_oxide = "0.8.9"
 regex-automata = { version = "0.4", default-features = false, features = ["std", "syntax", "meta", "nfa", "dfa", "hybrid"] }
 regex-syntax = "0.8.11"
 yara-x-parser = "1.20.0"
@@ -22,6 +23,9 @@ yara-x-parser = "1.20.0"
 serde_json = "1"
 
 [build-dependencies]
+memchr = "2.7"
+regex-automata = { version = "0.4", default-features = false, features = ["std", "syntax", "meta", "nfa", "dfa", "hybrid"] }
+regex-syntax = "0.8.11"
 yara-x-parser = "1.20.0"
 
 [lints.rust]

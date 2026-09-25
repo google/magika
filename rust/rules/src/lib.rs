@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-#[cfg(test)]
+#[cfg(all(test, feature = "bundled"))]
 mod codegen;
 mod error;
 mod eval;

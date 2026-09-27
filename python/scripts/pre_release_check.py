@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# /// script
+# dependencies = ["click", "magika"]
+#
+# [tool.uv.sources]
+# magika = { path = "..", editable = true }
+# ///
 
 
 """
@@ -128,11 +135,17 @@ def main(
         click.echo(f"ERROR: {module_version=} is not a valid python version.")
         with_errors = True
 
-    if module_version.endswith("-dev") or cli_version.endswith("-dev"):
-        click.echo("ERROR: One of the versions is a -dev version.")
+    is_module_dev = (
+        re.search(r"(\.dev\d*|-dev)$", module_version, re.IGNORECASE) is not None
+    )
+    is_cli_dev = cli_version.endswith("-dev")
+    if is_module_dev or is_cli_dev:
+        click.echo("ERROR: One of the versions is a dev version.")
         with_errors = True
 
-    if cli_version.endswith("-rc") and not module_version.endswith("-rc"):
+    is_module_rc = re.search(r"(rc\d+|-rc)$", module_version, re.IGNORECASE) is not None
+    is_cli_rc = "-rc" in cli_version
+    if is_cli_rc and not is_module_rc:
         click.echo("ERROR: The CLI has an -rc version, but the python module does not.")
         with_errors = True
 
@@ -194,7 +207,9 @@ def get_rust_cli_version() -> str:
 def get_magika_package_version_via_pip_show() -> str:
     try:
         r = subprocess.run(
-            ["python3", "-m", "pip", "show", "magika"], capture_output=True, text=True
+            [sys.executable, "-m", "pip", "show", "magika"],
+            capture_output=True,
+            text=True,
         )
         lines = r.stdout.strip().split("\n")
         for line in lines:

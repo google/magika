@@ -1,9 +1,13 @@
 # Magika tract runtime
 
 This crate is the inference layer shared by the Rust `magika` library, CLI, and runtime benchmark.
-It loads the checked NNEF release artifact, binds fixed batch classes `1, 4, 8, 16, 32, 64`, and
-prepares their target-specific tract plans once. Each inference thread then spawns private mutable
-state from those shared plans.
+It loads the release model for fixed batch classes `1, 4, 8, 16, 32, 64` and prepares their
+target-specific tract plans once. Each inference thread then spawns private mutable state from those
+shared plans.
+
+The model is embedded as the graph that parsing the checked NNEF archive produces
+(`models/model.graph.json` and `models/model.weights`), which loads in about 3 ms instead of the
+14 ms parsing takes. `rust/sync.sh` writes both with `tract-bench`'s `convert-model`, and `cargo test` checks that they agree.
 
 The public device choice is intentionally generic: automatic, CPU, or GPU. On macOS the compiled
 GPU implementation is Metal. CUDA can be compiled on supported systems with the `cuda` feature.

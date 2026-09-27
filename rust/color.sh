@@ -19,3 +19,10 @@ info() { color '1;36' Info "$*"; }
 todo() { color '1;33' Todo "$*"; }
 success() { color '1;32' Done "$*"; exit 0; }
 error() { color '1;31' Error "$*"; exit 1; }
+
+# Wrapper for `sed -i` that works on both GNU and BSD.
+sed_i() {
+  local i script="$1"; shift
+  sed -i.bak "$script" "$@"
+  for i in "$@"; do rm "$i".bak; done
+}

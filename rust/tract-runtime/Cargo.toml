@@ -15,6 +15,11 @@ tract-core = "0.23.4"
 tract-cuda = { version = "0.23.4", optional = true }
 tract-gpu = { version = "0.23.4", optional = true }
 tract-linalg = { version = "0.23.4", features = ["multithread-mm"] }
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.120"
+tract-nnef = { version = "0.23.4", optional = true }
+
+[dev-dependencies]
 tract-nnef = "0.23.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -23,6 +28,8 @@ tract-metal = "0.23.4"
 
 [features]
 cuda = ["dep:cudarc", "dep:tract-cuda", "dep:tract-gpu"]
+# Internal features.
+_export = ["dep:tract-nnef"]
 
 [lints.rust]
 missing_docs = "warn"

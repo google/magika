@@ -10,6 +10,9 @@ on:
       - 'js/simple_examples/**'
       - '.github/workflows/run-js-examples.yml'
 
+permissions:
+  contents: read
+
 jobs:
   run-examples:
     runs-on: ubuntu-latest
@@ -20,6 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
         with:
+          persist-credentials: false
           ref: main
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # pin@v4

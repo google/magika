@@ -17,7 +17,7 @@ use crate::RuleInfo;
 pub(crate) fn rule_set(program: &Program, labels: &[String], rules: &[RuleInfo]) -> String {
     let mut out = String::from(
         "{\n    use crate::ir::{Cmp, Cond as C, Int as I, Read};\n    \
-         use crate::matcher::{Pattern, RegexPattern};\n    \
+         use crate::matcher::{ByteSet, Pattern, RegexPattern};\n    \
          use crate::{Class, RuleInfo};\n    \
          crate::RuleSet {\n        program: crate::ir::Program {\n            patterns: vec![\n",
     );
@@ -29,8 +29,12 @@ pub(crate) fn rule_set(program: &Program, labels: &[String], rules: &[RuleInfo])
             }
             Pattern::Regex(regex) => write!(
                 out,
-                "Pattern::Regex(RegexPattern::new({:?}, {}, {}, {}))",
-                regex.source, regex.case_insensitive, regex.dot_matches_new_line, regex.max_len
+                "Pattern::Regex(RegexPattern::new({:?}, {}, {}, {}, ByteSet({:#x?})))",
+                regex.source,
+                regex.case_insensitive,
+                regex.dot_matches_new_line,
+                regex.max_len,
+                regex.first.0,
             ),
         }
         .unwrap();

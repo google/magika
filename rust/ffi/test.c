@@ -19,15 +19,28 @@
 #include "magika.h"
 
 int main(void) {
-    // Test runtime creation with explicit options
+    // Test runtime creation with explicit options (including rules)
     MagikaRuntimeOptions options = {
         .backend = MAGIKA_BACKEND_CPU,
-        .max_batch = 0,
+        .max_batch = 1,
+        .rules = true,
     };
     MagikaRuntime* runtime_opt = NULL;
     MagikaStatus status_opt = magika_runtime_new(&options, &runtime_opt);
     assert(status_opt == MAGIKA_STATUS_OK);
     assert(runtime_opt != NULL);
+    MagikaSession* session_opt = NULL;
+    status_opt = magika_session_new(runtime_opt, &session_opt);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(session_opt != NULL);
+    const uint8_t gzip_content[] = "\x1f\x8b\x08\x00\0\0\0\0\0\x03hello, world";
+    size_t gzip_len = sizeof(gzip_content) - 1;
+    MagikaResult ruled_result;
+    status_opt = magika_identify_content(session_opt, gzip_content, gzip_len, &ruled_result);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(ruled_result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
+    assert(strcmp(ruled_result.info->label, "gzip") == 0);
+    magika_session_free(session_opt);
     magika_runtime_free(runtime_opt);
 
     // Test runtime creation with default options
@@ -103,7 +116,7 @@ int main(void) {
 
     // Test feature extraction from file
     MagikaFeatures* feat_file = NULL;
-    status = magika_features_extract_file(test_path, &feat_file, &result);
+    status = magika_features_extract_file(test_path, false, &feat_file, &result);
     assert(status == MAGIKA_STATUS_OK);
     assert(feat_file != NULL);
 
@@ -118,7 +131,7 @@ int main(void) {
 
     // Test feature extraction from memory content
     MagikaFeatures* feat_content = NULL;
-    status = magika_features_extract_content(data_ptr, data_len, &feat_content, &result);
+    status = magika_features_extract_content(data_ptr, data_len, false, &feat_content, &result);
     assert(status == MAGIKA_STATUS_OK);
     assert(feat_content != NULL);
 
@@ -138,31 +151,40 @@ int main(void) {
 
     // Test feature extraction on empty content (ruled, out_features set to NULL)
     MagikaFeatures* empty_feat = (MagikaFeatures*)0x1234;
-    status = magika_features_extract_content(NULL, 0, &empty_feat, &result);
+    status = magika_features_extract_content(NULL, 0, false, &empty_feat, &result);
     assert(status == MAGIKA_STATUS_OK);
     assert(empty_feat == NULL);
     assert(result.info != NULL);
     assert(strcmp(result.info->label, "empty") == 0);
     assert(result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
 
+    // Test feature extraction with rules enabled (ruled, out_features set to NULL)
+    MagikaFeatures* ruled_feat = (MagikaFeatures*)0x1234;
+    status = magika_features_extract_content(gzip_content, gzip_len, true, &ruled_feat, &result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(ruled_feat == NULL);
+    assert(result.info != NULL);
+    assert(strcmp(result.info->label, "gzip") == 0);
+    assert(result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
+
     // Test error on extracting features from non-existent file
     MagikaFeatures* missing_feat = NULL;
-    status = magika_features_extract_file(nonexistent_path, &missing_feat, &result);
+    status = magika_features_extract_file(nonexistent_path, false, &missing_feat, &result);
     assert(status == MAGIKA_STATUS_IO_ERROR);
     assert(missing_feat == NULL);
 
     // Test invalid argument on NULL pointers for feature extraction
     MagikaFeatures* dummy_feat = NULL;
-    status = magika_features_extract_file(NULL, &dummy_feat, &result);
+    status = magika_features_extract_file(NULL, false, &dummy_feat, &result);
     assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
 
-    status = magika_features_extract_file(test_path, NULL, &result);
+    status = magika_features_extract_file(test_path, false, NULL, &result);
     assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
 
-    status = magika_features_extract_content(NULL, 10, &dummy_feat, &result);
+    status = magika_features_extract_content(NULL, 10, false, &dummy_feat, &result);
     assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
 
-    status = magika_features_extract_content(data_ptr, data_len, NULL, &result);
+    status = magika_features_extract_content(data_ptr, data_len, false, NULL, &result);
     assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
 
     // Test invalid argument on NULL pointers for identify_features

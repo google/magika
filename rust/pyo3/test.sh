@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,8 @@
 # limitations under the License.
 
 set -e
-. ./color.sh
+. ../color.sh
 
-TOOLCHAINS='stable nightly'
-[ -z "$CI" ] || TOOLCHAINS=$(rustup show active-toolchain | sed 's/-.*//')
-
-for toolchain in $TOOLCHAINS; do
-  for dir in gen tract-runtime rules lib ffi pyo3 cli; do
-    info "Running tests from $dir with $toolchain"
-    ( cd $dir && rustup run $toolchain ./test.sh; )
-  done
-done
-
-./sync.sh --check
+x cargo check
+x cargo fmt -- --check
+x cargo clippy -- --deny=warnings

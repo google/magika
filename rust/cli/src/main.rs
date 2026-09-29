@@ -128,8 +128,26 @@ struct Format {
     custom: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum RulesMode {
+    /// Identifies files with the model only.
+    #[default]
+    Off,
+    /// Identifies files with rules first, and with the model when no rule decides.
+    Enforce,
+    /// Identifies files with rules only, as unknown when no rule decides. The model is not loaded.
+    Only,
+}
+
 #[derive(Args)]
 struct Experimental {
+    /// Identifies files with format rules.
+    ///
+    /// A rule decides from the first 4 KiB and the size of a file, and only when every matching
+    /// rule agrees.
+    #[arg(hide = true, long, value_enum, default_value_t)]
+    rules: RulesMode,
+
     /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
     backend: BackendChoice,
@@ -283,8 +301,11 @@ fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
+    let rules_only = flags.experimental.rules == RulesMode::Only;
+    let rules = flags.experimental.rules != RulesMode::Off;
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
+    builder = builder.with_rules(rules);
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
@@ -308,10 +329,10 @@ fn main() -> Result<()> {
     ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
     let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
     let (read_sender, read_receiver) =
-        std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
+        std::sync::mpsc::sync_channel::<ReadItem>(threads.max(1) * batch_size);
     let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
     let (result_sender, result_receiver) =
-        std::sync::mpsc::sync_channel::<Result<Response>>(threads * batch_size);
+        std::sync::mpsc::sync_channel::<Result<Response>>(threads.max(1) * batch_size);
     #[cfg(feature = "_trace")]
     let trace = Trace::default();
     let mut join_handles = Vec::new();
@@ -340,7 +361,7 @@ fn main() -> Result<()> {
                 move || {
                     #[cfg(feature = "_trace")]
                     let start = Stage::start();
-                    read_files(&work_receiver, &read_sender);
+                    read_files(&work_receiver, &read_sender, rules);
                     #[cfg(feature = "_trace")]
                     trace.insert(Stage::finalize(start));
                 }
@@ -358,7 +379,7 @@ fn main() -> Result<()> {
             #[cfg(feature = "_trace")]
             let start = Stage::start();
             if let Err(error) =
-                batch_files(batch_size, &read_receiver, &batch_sender, &result_sender)
+                batch_files(batch_size, rules_only, &read_receiver, &batch_sender, &result_sender)
             {
                 let _ = result_sender.send(Err(error));
             }
@@ -512,10 +533,10 @@ fn walk_paths(
 /// thread to interleave anyway.
 fn read_files(
     work_receiver: &crossbeam_channel::Receiver<Pending>,
-    sender: &std::sync::mpsc::SyncSender<ReadItem>,
+    sender: &std::sync::mpsc::SyncSender<ReadItem>, rules: bool,
 ) {
     while let Ok(pending) = work_receiver.recv() {
-        let extracted = extract_path(&pending.path);
+        let extracted = extract_path(&pending.path, rules);
         if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
@@ -523,14 +544,20 @@ fn read_files(
 }
 
 /// Accumulates every reader's output into one global inference batch stream.
+///
+/// With rules only, there is no inference: a file that reaches it is unknown.
 fn batch_files(
-    batch_size: usize, receiver: &std::sync::mpsc::Receiver<ReadItem>,
+    batch_size: usize, rules_only: bool, receiver: &std::sync::mpsc::Receiver<ReadItem>,
     batch_sender: &crossbeam_channel::Sender<Vec<BatchItem>>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
     let mut batch = Vec::with_capacity(batch_size);
     while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
+            Ok(FeaturesOrRuled::Features(_)) if rules_only => {
+                let result = Ok(FileType::Ruled(ContentType::Unknown));
+                result_sender.send(Ok(Response::new(pending, result)))?;
+            }
             Ok(FeaturesOrRuled::Features(features)) => {
                 batch.push(BatchItem { pending, features });
                 if batch.len() == batch_size {
@@ -553,14 +580,14 @@ fn batch_files(
     Ok(())
 }
 
-/// Reads a file and extracts its features.
-fn extract_path(path: &Path) -> Result<FeaturesOrRuled> {
+/// Reads a file and extracts its features, unless rules identify it.
+fn extract_path(path: &Path, rules: bool) -> Result<FeaturesOrRuled> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract(&stdin[..]);
+        return FeaturesOrRuled::extract(&stdin[..], rules);
     }
-    FeaturesOrRuled::extract(std::fs::File::open(path)?)
+    FeaturesOrRuled::extract(std::fs::File::open(path)?, rules)
 }
 
 enum ProcessPath {

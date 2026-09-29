@@ -123,6 +123,8 @@ pub struct MagikaRuntimeOptions {
     pub backend: MagikaBackend,
     /// The maximum batch size to optimize for (0 for runtime default).
     pub max_batch: usize,
+    /// Whether to identify files with format rules before inference.
+    pub rules: bool,
 }
 
 /// Shared Magika inference runtime (thread-safe).
@@ -193,6 +195,7 @@ pub unsafe extern "C" fn magika_runtime_new(
                 if opts.max_batch > 0 {
                     builder = builder.with_max_batch(opts.max_batch);
                 }
+                builder = builder.with_rules(opts.rules);
             }
             builder.build()
         },
@@ -403,7 +406,8 @@ unsafe fn extract_features(
 /// - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
 #[no_mangle]
 pub unsafe extern "C" fn magika_features_extract_file(
-    path: *const c_char, out_features: *mut *mut MagikaFeatures, out_result: *mut MagikaResult,
+    path: *const c_char, rules: bool, out_features: *mut *mut MagikaFeatures,
+    out_result: *mut MagikaResult,
 ) -> MagikaStatus {
     if out_features.is_null() {
         return MagikaStatus::InvalidArgument;
@@ -412,7 +416,7 @@ pub unsafe extern "C" fn magika_features_extract_file(
     let Some(path_ref) = parse_path(path) else { return MagikaStatus::InvalidArgument };
     extract_features(out_features, out_result, || {
         let file = std::fs::File::open(path_ref)?;
-        magika::FeaturesOrRuled::extract(file)
+        magika::FeaturesOrRuled::extract(file, rules)
     })
 }
 
@@ -435,7 +439,7 @@ pub unsafe extern "C" fn magika_features_extract_file(
 /// - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
 #[no_mangle]
 pub unsafe extern "C" fn magika_features_extract_content(
-    data: *const u8, len: usize, out_features: *mut *mut MagikaFeatures,
+    data: *const u8, len: usize, rules: bool, out_features: *mut *mut MagikaFeatures,
     out_result: *mut MagikaResult,
 ) -> MagikaStatus {
     if out_features.is_null() || (data.is_null() && len > 0) {
@@ -443,7 +447,7 @@ pub unsafe extern "C" fn magika_features_extract_content(
     }
     *out_features = std::ptr::null_mut();
     let bytes = if len == 0 { &[][..] } else { std::slice::from_raw_parts(data, len) };
-    extract_features(out_features, out_result, || magika::FeaturesOrRuled::extract(bytes))
+    extract_features(out_features, out_result, || magika::FeaturesOrRuled::extract(bytes, rules))
 }
 
 /// Identifies the content type of a file from its extracted features.

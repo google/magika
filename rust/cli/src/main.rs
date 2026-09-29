@@ -24,7 +24,7 @@ use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
     self, Backend, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason,
-    Rules, Runtime, TypeInfo,
+    Runtime, TypeInfo,
 };
 use serde::Serialize;
 
@@ -53,13 +53,6 @@ struct Flags {
 
     #[clap(flatten)]
     format: Format,
-
-    /// Identifies files with format rules.
-    ///
-    /// A rule decides from the first 4 KiB and the size of a file, and only when every matching
-    /// rule agrees.
-    #[arg(long, value_enum, default_value_t)]
-    rules: RulesMode,
 
     #[clap(flatten)]
     experimental: Experimental,
@@ -144,6 +137,13 @@ enum RulesMode {
 
 #[derive(Args)]
 struct Experimental {
+    /// Identifies files with format rules.
+    ///
+    /// A rule decides from the first 4 KiB and the size of a file, and only when every matching
+    /// rule agrees.
+    #[arg(hide = true, long, value_enum, default_value_t)]
+    rules: RulesMode,
+
     /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
     backend: BackendChoice,
@@ -298,9 +298,11 @@ fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    let rules_only = flags.rules == RulesMode::Only;
+    let rules_only = flags.experimental.rules == RulesMode::Only;
+    let rules = flags.experimental.rules != RulesMode::Off;
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
+    builder = builder.with_rules(rules);
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
@@ -315,8 +317,6 @@ fn main() -> Result<()> {
         println!("{backend} ({})", info.implementation());
         return Ok(());
     }
-    let rules = (flags.rules != RulesMode::Off).then(Rules::bundled).transpose()?;
-    // Rules alone never need the model, so skip loading it: that is most of the cost of a short run.
     let runtime = if rules_only { None } else { Some(Arc::new(builder.build()?)) };
     let threads = match (&runtime, flags.experimental.threads) {
         (None, _) => 0,
@@ -358,13 +358,12 @@ fn main() -> Result<()> {
             {
                 let work_receiver = work_receiver.clone();
                 let read_sender = read_sender.clone();
-                let rules = rules.clone();
                 #[cfg(feature = "_trace")]
                 let trace = trace.clone();
                 move || {
                     #[cfg(feature = "_trace")]
                     let start = Stage::start();
-                    read_files(&work_receiver, &read_sender, rules.as_ref());
+                    read_files(&work_receiver, &read_sender, rules);
                     #[cfg(feature = "_trace")]
                     trace.insert(Stage::finalize(start));
                 }
@@ -507,7 +506,7 @@ fn walk_paths(
 /// thread to interleave anyway.
 fn read_files(
     work_receiver: &crossbeam_channel::Receiver<Pending>,
-    sender: &std::sync::mpsc::SyncSender<ReadItem>, rules: Option<&Rules>,
+    sender: &std::sync::mpsc::SyncSender<ReadItem>, rules: bool,
 ) {
     while let Ok(pending) = work_receiver.recv() {
         let extracted = extract_path(&pending.path, rules);
@@ -555,13 +554,13 @@ fn batch_files(
 }
 
 /// Reads a file and extracts its features, unless rules identify it.
-fn extract_path(path: &Path, rules: Option<&Rules>) -> Result<FeaturesOrRuled> {
+fn extract_path(path: &Path, rules: bool) -> Result<FeaturesOrRuled> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract_with_rules(&stdin[..], rules);
+        return FeaturesOrRuled::extract(&stdin[..], rules);
     }
-    FeaturesOrRuled::extract_with_rules(std::fs::File::open(path)?, rules)
+    FeaturesOrRuled::extract(std::fs::File::open(path)?, rules)
 }
 
 enum ProcessPath {

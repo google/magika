@@ -22,8 +22,7 @@ use crate::{BackendInfo, Builder, Session};
 /// Create one runtime, share it between threads, and call [`Self::session`] inside each thread.
 pub struct Runtime {
     inner: magika_tract_runtime::Runtime,
-    #[cfg(feature = "rules")]
-    pub(crate) rules: Option<crate::Rules>,
+    pub(crate) rules: bool,
 }
 
 impl Runtime {
@@ -44,22 +43,16 @@ impl Runtime {
 
     /// Spawns private mutable inference state for the current thread.
     pub fn session(&self) -> Result<Session> {
-        Ok(Session {
-            inner: self.inner.session()?,
-            #[cfg(feature = "rules")]
-            rules: self.rules.clone(),
-        })
+        Ok(Session { inner: self.inner.session()?, rules: self.rules })
     }
 
-    pub(crate) fn new_internal(backend: BackendRequest, max_batch: Option<usize>) -> Result<Self> {
+    pub(crate) fn new_internal(
+        backend: BackendRequest, max_batch: Option<usize>, rules: bool,
+    ) -> Result<Self> {
         let inner = match max_batch {
             None => magika_tract_runtime::Runtime::new(backend)?,
             Some(max_batch) => magika_tract_runtime::Runtime::with_max_batch(backend, max_batch)?,
         };
-        Ok(Self {
-            inner,
-            #[cfg(feature = "rules")]
-            rules: None,
-        })
+        Ok(Self { inner, rules })
     }
 }

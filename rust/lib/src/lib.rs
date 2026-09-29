@@ -39,8 +39,7 @@
 //! ```rust
 //! # #[cfg(feature = "rules")]
 //! # fn main() -> anyhow::Result<()> {
-//! let rules = magika::Rules::bundled()?;
-//! let runtime = magika::Runtime::builder().with_rules(rules).build()?;
+//! let runtime = magika::Runtime::builder().with_rules(true).build()?;
 //! let mut magika = runtime.session()?;
 //!
 //! // A gzip header decides without running the model.
@@ -59,8 +58,6 @@ pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{Features, FeaturesOrRuled, Input};
-#[cfg(feature = "rules")]
-pub use crate::rules::Rules;
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 

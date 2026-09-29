@@ -82,13 +82,20 @@ impl FeaturesOrRuled {
     /// Extracts the features from a file.
     ///
     /// Returns the content type directly if the file cannot be identified using AI.
-    pub fn extract(file: impl Input) -> Result<Self> {
+    pub fn extract(mut file: impl Input, rules: bool) -> Result<Self> {
         let config = &crate::model::CONFIG;
         let file_len = file.length()?;
         if file_len == 0 {
             return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
         }
-        let (first_block, features) = extract_features(config, file, file_len)?;
+        let first_block = read_first_block(config, &mut file, file_len)?;
+        if rules {
+            #[cfg(feature = "rules")]
+            if let Some(content_type) = crate::rules::Rules::identify(&first_block, file_len) {
+                return Ok(FeaturesOrRuled::Ruled(content_type));
+            }
+        }
+        let features = extract_features(config, file, file_len, &first_block)?;
         if features[config.min_file_size_for_dl - 1] != config.padding_token {
             return Ok(FeaturesOrRuled::Features(Features(features)));
         }
@@ -101,18 +108,23 @@ impl FeaturesOrRuled {
     }
 }
 
-fn extract_features(
-    config: &ModelConfig, mut file: impl Input, file_len: u64,
-) -> Result<(Vec<u8>, Vec<i32>)> {
-    debug_assert!(config.beg_size < config.block_size);
-    debug_assert!(config.end_size < config.block_size);
+fn read_first_block(config: &ModelConfig, mut file: impl Input, file_len: u64) -> Result<Vec<u8>> {
     let buffer_size = std::cmp::min(config.block_size as u64, file_len) as usize;
     let mut content_beg = vec![0; buffer_size];
     file.read_at(&mut content_beg, 0)?;
-    let beg = strip_prefix(&content_beg);
+    Ok(content_beg)
+}
+
+fn extract_features(
+    config: &ModelConfig, mut file: impl Input, file_len: u64, content_beg: &[u8],
+) -> Result<Vec<i32>> {
+    debug_assert!(config.beg_size < config.block_size);
+    debug_assert!(config.end_size < config.block_size);
+    let buffer_size = content_beg.len();
+    let beg = strip_prefix(content_beg);
     let mut end;
     let end = if file_len == buffer_size as u64 {
-        strip_suffix(&content_beg)
+        strip_suffix(content_beg)
     } else {
         end = vec![0; buffer_size];
         file.read_at(&mut end, file_len - buffer_size as u64)?;
@@ -122,7 +134,7 @@ fn extract_features(
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
     copy_features(split_features.end, end, 1);
-    Ok((content_beg, features))
+    Ok(features)
 }
 
 fn copy_features(dst: &mut [i32], src: &[u8], align: usize) {
@@ -235,8 +247,10 @@ mod tests {
             expected.extend_from_slice(&test.features.beg);
             expected.extend_from_slice(&test.features.end);
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
-            let actual = extract_features(&config, content.as_slice(), content.len() as u64);
-            let actual: Vec<_> = actual.unwrap().1.into_iter().map(|x| x as usize).collect();
+            let len = content.len() as u64;
+            let first_block = read_first_block(&config, content.as_slice(), len).unwrap();
+            let actual = extract_features(&config, content.as_slice(), len, &first_block);
+            let actual: Vec<_> = actual.unwrap().into_iter().map(|x| x as usize).collect();
             assert_eq!(actual, expected, "{test:?}");
         }
     }

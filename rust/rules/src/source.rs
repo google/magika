@@ -69,13 +69,6 @@ impl Source {
         Self::parse_inner(text, Some(bucket))
     }
 
-    /// The rules shipped with this crate. `build.rs` validated them; a failure is a build bug.
-    #[cfg(feature = "bundled")]
-    pub fn bundled() -> Self {
-        Self::parse(include_str!(concat!(env!("OUT_DIR"), "/bundled.yar")))
-            .expect("bundled rules validated at build time")
-    }
-
     /// The validated YARA text.
     pub fn text(&self) -> &str {
         &self.text

@@ -135,16 +135,6 @@ def write_random_file_with_size(sample_path: Path, sample_size: int) -> None:
     print("Random file created")
 
 
-def get_models_dir() -> Path:
-    return Path(__file__).parent.parent / "src" / "magika" / "models"
-
-
-def get_default_model_dir() -> Path:
-    from magika.magika import Magika
-
-    return get_models_dir() / Magika._get_default_model_name()
-
-
 def generate_whitespaces(size: int) -> bytes:
     whitespaces = string.whitespace
     ws_len = len(whitespaces)

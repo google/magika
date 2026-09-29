@@ -44,14 +44,14 @@ info "Updating CLI output in README.md"
 ( cd cli
   for i in $(seq 1 $(grep '^% ' README.md | wc -l)); do
     grep -n '^% ' README.md | cut -f1 -d: | head -n$i | tail -n1 | while read line; do
-      sed_i $line',/```/{'$line'p;/```/!d}' README.md
+      sed_i $line',/```/{'$line'p;/```/!d;}' README.md
       cmd="$(head -n$line README.md | tail -n1 | sed 's/^% //')"
       ( cd ../..; eval "$cmd"; ) 2>/dev/null > tmp
       sed_i $line'r tmp' README.md
     done
   done
   rm tmp
-  sed_i 's/ \+$//' README.md
+  sed_i 's/  *$//' README.md
 )
 
 if [ "$1" = --check ]; then

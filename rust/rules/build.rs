@@ -10,16 +10,52 @@ use std::path::{Path, PathBuf};
 
 use yara_x_parser::ast::{Item, RuleFlags, AST};
 
+// The crate's own parsing, validation and lowering compile the bundled rules ahead of time.
+#[allow(dead_code, unreachable_pub)]
+#[path = "src/codegen.rs"]
+mod codegen;
+#[allow(dead_code, unreachable_pub)]
+#[path = "src/error.rs"]
+mod error;
+#[allow(dead_code, unreachable_pub)]
+#[path = "src/ir.rs"]
+mod ir;
+#[allow(dead_code, unreachable_pub)]
+#[path = "src/lower.rs"]
+mod lower;
+#[allow(dead_code, unreachable_pub)]
+#[path = "src/matcher.rs"]
+mod matcher;
+#[allow(dead_code, unreachable_pub)]
+#[path = "src/source.rs"]
+mod source;
+
+use error::Error;
+use source::{RuleInfo, Source};
+
+/// Must equal `magika_rules::PREFIX_LIMIT`; the crate's tests fail otherwise.
+const PREFIX_LIMIT: usize = 4096;
+
 fn main() {
     let manifest = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap());
-    let output = PathBuf::from(std::env::var_os("OUT_DIR").unwrap()).join("bundled.yar");
-    let source = if std::env::var_os("CARGO_FEATURE_BUNDLED").is_some() {
-        bundle(&manifest.join("rulesets"), &manifest.join("LICENSES"))
+    let out = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    let (text, compiled) = if std::env::var_os("CARGO_FEATURE_BUNDLED").is_some() {
+        let text = bundle(&manifest.join("rulesets"), &manifest.join("LICENSES"));
+        let source = Source::parse(&text).unwrap_or_else(|e| panic!("bundled rules: {e}"));
+        let (program, labels) =
+            lower::lower(&source).unwrap_or_else(|e| panic!("bundled rules: {e}"));
+        let compiled = codegen::rule_set(&program, &labels, source.rules());
+        (text, compiled)
     } else {
-        String::new()
+        (String::new(), String::new())
     };
-    if std::fs::read_to_string(&output).ok().as_deref() != Some(source.as_str()) {
-        std::fs::write(&output, source).unwrap();
+    write_if_changed(&out.join("bundled.yar"), &text);
+    write_if_changed(&out.join("bundled.rs"), &compiled);
+}
+
+fn write_if_changed(path: &Path, content: &str) {
+    if std::fs::read_to_string(path).ok().as_deref() != Some(content) {
+        std::fs::write(path, content).unwrap();
     }
 }
 

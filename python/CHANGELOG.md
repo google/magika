@@ -10,6 +10,13 @@ should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
 ## [Unreleased]
+- Replace the pure-Python ONNX Runtime implementation with native Rust bindings (`magika` crate via PyO3), removing all runtime Python dependencies (`onnxruntime`, `click`, `numpy`) while maintaining public API compatibility.
+- Bundle the updated Rust engine and CLI, which combine fast bounded format rules (`magika-rules`) with a heavily optimized pure-Rust inference runtime (`tract` with CPU SIMD and Metal/CUDA GPU support) for significantly faster startup and inference.
+- Expand pre-built `abi3-py38` binary wheel support to cover additional platforms and architectures:
+  - Linux (`glibc`): `x86_64` (`manylinux_2_28`), `aarch64` (`manylinux_2_28`), `armv7l` (`manylinux2014`), `riscv64` (`manylinux_2_31`).
+  - Linux (`musl`): `x86_64` (`musllinux_1_2`), `aarch64` (`musllinux_1_2`).
+  - macOS: `aarch64` (Apple Silicon) and `x86_64` (Intel).
+  - Windows: `x86_64`.
 - Add 62 content types to the knowledge base and `ContentTypeLabel`, such as AVIF, QOI, GGUF, DuckDB and Microsoft Access. The model's outputs are unchanged.
 
 ## [1.0.3] - 2026-05-04

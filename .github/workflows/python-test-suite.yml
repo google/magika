@@ -38,6 +38,9 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
 
+      - name: Build and stage magika CLI binary
+        run: ./python/scripts/stage_cli.sh
+
       - name: Install all projects dependencies (with the requested python version)
         working-directory: python
         run: uv sync --python ${{ matrix.python-version }} --all-extras --dev

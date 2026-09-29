@@ -21,17 +21,22 @@ repo_dir=$(CDPATH= cd -- "$bench_dir/../.." && pwd)
 source_model="$repo_dir/assets/models/standard_v3_3/model.onnx"
 checked_model="$repo_dir/rust/tract-runtime/models/model.nnef.tgz"
 checked_probe="$repo_dir/rust/tract-runtime/models/model.probe.f32le"
+checked_graph="$repo_dir/rust/tract-runtime/models/model.graph.json"
+checked_weights="$repo_dir/rust/tract-runtime/models/model.weights"
 
 convert_model() {
-  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$1"
+  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$@"
 }
 
 if [ "${1:-}" = "--check" ]; then
   candidate_dir=$(mktemp -d)
   trap 'rm -rf "$candidate_dir"' EXIT HUP INT TERM
   candidate_model="$candidate_dir/model.nnef.tgz"
-  convert_model "$candidate_model"
+  convert_model "$candidate_model" "$candidate_dir/model.probe.f32le" \
+    "$candidate_dir/model.graph.json" "$candidate_dir/model.weights"
   cmp "$checked_model" "$candidate_model"
+  cmp "$checked_graph" "$candidate_dir/model.graph.json"
+  cmp "$checked_weights" "$candidate_dir/model.weights"
   cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
   exit 0
 fi
@@ -41,4 +46,4 @@ if [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$checked_model" "$checked_probe"
+cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$checked_model" "$checked_probe" "$checked_graph" "$checked_weights"

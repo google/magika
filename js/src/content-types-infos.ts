@@ -45,6 +45,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.ABNF,
       is_text: false,
     },
+    [ContentTypeLabel.ACCESS]: {
+      label: ContentTypeLabel.ACCESS,
+      is_text: false,
+    },
     [ContentTypeLabel.ACE]: {
       label: ContentTypeLabel.ACE,
       is_text: false,
@@ -71,6 +75,10 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.ANI]: {
       label: ContentTypeLabel.ANI,
+      is_text: false,
+    },
+    [ContentTypeLabel.AOUT]: {
+      label: ContentTypeLabel.AOUT,
       is_text: false,
     },
     [ContentTypeLabel.APK]: {
@@ -161,6 +169,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.AX,
       is_text: false,
     },
+    [ContentTypeLabel.BAM]: {
+      label: ContentTypeLabel.BAM,
+      is_text: false,
+    },
     [ContentTypeLabel.BATCH]: {
       label: ContentTypeLabel.BATCH,
       is_text: true,
@@ -173,9 +185,21 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.BCAD,
       is_text: false,
     },
+    [ContentTypeLabel.BEAM]: {
+      label: ContentTypeLabel.BEAM,
+      is_text: false,
+    },
+    [ContentTypeLabel.BERKELEYDB]: {
+      label: ContentTypeLabel.BERKELEYDB,
+      is_text: false,
+    },
     [ContentTypeLabel.BIB]: {
       label: ContentTypeLabel.BIB,
       is_text: true,
+    },
+    [ContentTypeLabel.BLEND]: {
+      label: ContentTypeLabel.BLEND,
+      is_text: false,
     },
     [ContentTypeLabel.BMP]: {
       label: ContentTypeLabel.BMP,
@@ -229,6 +253,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.CHM,
       is_text: false,
     },
+    [ContentTypeLabel.CINEMA4D]: {
+      label: ContentTypeLabel.CINEMA4D,
+      is_text: false,
+    },
     [ContentTypeLabel.CLOJURE]: {
       label: ContentTypeLabel.CLOJURE,
       is_text: true,
@@ -249,6 +277,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.COFFEESCRIPT,
       is_text: true,
     },
+    [ContentTypeLabel.COLLADA]: {
+      label: ContentTypeLabel.COLLADA,
+      is_text: true,
+    },
     [ContentTypeLabel.COM]: {
       label: ContentTypeLabel.COM,
       is_text: false,
@@ -260,6 +292,10 @@ export const ContentTypesInfos = {
     [ContentTypeLabel.CPP]: {
       label: ContentTypeLabel.CPP,
       is_text: true,
+    },
+    [ContentTypeLabel.CRAM]: {
+      label: ContentTypeLabel.CRAM,
+      is_text: false,
     },
     [ContentTypeLabel.CRT]: {
       label: ContentTypeLabel.CRT,
@@ -289,12 +325,24 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.CTL,
       is_text: false,
     },
+    [ContentTypeLabel.CUBIN]: {
+      label: ContentTypeLabel.CUBIN,
+      is_text: false,
+    },
     [ContentTypeLabel.DART]: {
       label: ContentTypeLabel.DART,
       is_text: true,
     },
+    [ContentTypeLabel.DBASE]: {
+      label: ContentTypeLabel.DBASE,
+      is_text: false,
+    },
     [ContentTypeLabel.DEB]: {
       label: ContentTypeLabel.DEB,
+      is_text: false,
+    },
+    [ContentTypeLabel.DEGAS]: {
+      label: ContentTypeLabel.DEGAS,
       is_text: false,
     },
     [ContentTypeLabel.DEX]: {
@@ -365,6 +413,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.DSSTORE,
       is_text: false,
     },
+    [ContentTypeLabel.DUCKDB]: {
+      label: ContentTypeLabel.DUCKDB,
+      is_text: false,
+    },
     [ContentTypeLabel.DWG]: {
       label: ContentTypeLabel.DWG,
       is_text: false,
@@ -425,8 +477,24 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.EXP,
       is_text: false,
     },
+    [ContentTypeLabel.FBX]: {
+      label: ContentTypeLabel.FBX,
+      is_text: false,
+    },
+    [ContentTypeLabel.FILEMAKER]: {
+      label: ContentTypeLabel.FILEMAKER,
+      is_text: false,
+    },
+    [ContentTypeLabel.FITS]: {
+      label: ContentTypeLabel.FITS,
+      is_text: false,
+    },
     [ContentTypeLabel.FLAC]: {
       label: ContentTypeLabel.FLAC,
+      is_text: false,
+    },
+    [ContentTypeLabel.FLATGEOBUF]: {
+      label: ContentTypeLabel.FLATGEOBUF,
       is_text: false,
     },
     [ContentTypeLabel.FLUTTER]: {
@@ -453,6 +521,18 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.GEMSPEC,
       is_text: true,
     },
+    [ContentTypeLabel.GEOJSON]: {
+      label: ContentTypeLabel.GEOJSON,
+      is_text: true,
+    },
+    [ContentTypeLabel.GEOPACKAGE]: {
+      label: ContentTypeLabel.GEOPACKAGE,
+      is_text: false,
+    },
+    [ContentTypeLabel.GGUF]: {
+      label: ContentTypeLabel.GGUF,
+      is_text: false,
+    },
     [ContentTypeLabel.GIF]: {
       label: ContentTypeLabel.GIF,
       is_text: false,
@@ -469,6 +549,14 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.GLEAM,
       is_text: true,
     },
+    [ContentTypeLabel.GLTF]: {
+      label: ContentTypeLabel.GLTF,
+      is_text: false,
+    },
+    [ContentTypeLabel.GML]: {
+      label: ContentTypeLabel.GML,
+      is_text: true,
+    },
     [ContentTypeLabel.GO]: {
       label: ContentTypeLabel.GO,
       is_text: true,
@@ -480,6 +568,10 @@ export const ContentTypesInfos = {
     [ContentTypeLabel.GRADLE]: {
       label: ContentTypeLabel.GRADLE,
       is_text: true,
+    },
+    [ContentTypeLabel.GRIB]: {
+      label: ContentTypeLabel.GRIB,
+      is_text: false,
     },
     [ContentTypeLabel.GROOVY]: {
       label: ContentTypeLabel.GROOVY,
@@ -508,6 +600,10 @@ export const ContentTypesInfos = {
     [ContentTypeLabel.HCL]: {
       label: ContentTypeLabel.HCL,
       is_text: true,
+    },
+    [ContentTypeLabel.HDF4]: {
+      label: ContentTypeLabel.HDF4,
+      is_text: false,
     },
     [ContentTypeLabel.HEIF]: {
       label: ContentTypeLabel.HEIF,
@@ -565,12 +661,20 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.IGNOREFILE,
       is_text: true,
     },
+    [ContentTypeLabel.ILBM]: {
+      label: ContentTypeLabel.ILBM,
+      is_text: false,
+    },
     [ContentTypeLabel.IMG]: {
       label: ContentTypeLabel.IMG,
       is_text: false,
     },
     [ContentTypeLabel.INI]: {
       label: ContentTypeLabel.INI,
+      is_text: true,
+    },
+    [ContentTypeLabel.INTELHEX]: {
+      label: ContentTypeLabel.INTELHEX,
       is_text: true,
     },
     [ContentTypeLabel.INTERNETSHORTCUT]: {
@@ -649,8 +753,24 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.JXL,
       is_text: false,
     },
+    [ContentTypeLabel.KERAS]: {
+      label: ContentTypeLabel.KERAS,
+      is_text: false,
+    },
+    [ContentTypeLabel.KML]: {
+      label: ContentTypeLabel.KML,
+      is_text: true,
+    },
+    [ContentTypeLabel.KMZ]: {
+      label: ContentTypeLabel.KMZ,
+      is_text: false,
+    },
     [ContentTypeLabel.KO]: {
       label: ContentTypeLabel.KO,
+      is_text: false,
+    },
+    [ContentTypeLabel.KOALA]: {
+      label: ContentTypeLabel.KOALA,
       is_text: false,
     },
     [ContentTypeLabel.KOTLIN]: {
@@ -660,6 +780,10 @@ export const ContentTypesInfos = {
     [ContentTypeLabel.KS]: {
       label: ContentTypeLabel.KS,
       is_text: true,
+    },
+    [ContentTypeLabel.LAS]: {
+      label: ContentTypeLabel.LAS,
+      is_text: false,
     },
     [ContentTypeLabel.LATEX]: {
       label: ContentTypeLabel.LATEX,
@@ -681,12 +805,24 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.LICENSE,
       is_text: true,
     },
+    [ContentTypeLabel.LIGHTWAVE]: {
+      label: ContentTypeLabel.LIGHTWAVE,
+      is_text: false,
+    },
     [ContentTypeLabel.LISP]: {
       label: ContentTypeLabel.LISP,
       is_text: true,
     },
     [ContentTypeLabel.LITCS]: {
       label: ContentTypeLabel.LITCS,
+      is_text: false,
+    },
+    [ContentTypeLabel.LLVM_BITCODE]: {
+      label: ContentTypeLabel.LLVM_BITCODE,
+      is_text: false,
+    },
+    [ContentTypeLabel.LMDB]: {
+      label: ContentTypeLabel.LMDB,
       is_text: false,
     },
     [ContentTypeLabel.LNK]: {
@@ -704,6 +840,10 @@ export const ContentTypesInfos = {
     [ContentTypeLabel.LUA]: {
       label: ContentTypeLabel.LUA,
       is_text: true,
+    },
+    [ContentTypeLabel.LUABYTECODE]: {
+      label: ContentTypeLabel.LUABYTECODE,
+      is_text: false,
     },
     [ContentTypeLabel.LZ]: {
       label: ContentTypeLabel.LZ,
@@ -741,9 +881,17 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.MARKDOWN,
       is_text: true,
     },
+    [ContentTypeLabel.MAT]: {
+      label: ContentTypeLabel.MAT,
+      is_text: false,
+    },
     [ContentTypeLabel.MATLAB]: {
       label: ContentTypeLabel.MATLAB,
       is_text: true,
+    },
+    [ContentTypeLabel.MBTILES]: {
+      label: ContentTypeLabel.MBTILES,
+      is_text: false,
     },
     [ContentTypeLabel.MHT]: {
       label: ContentTypeLabel.MHT,
@@ -751,6 +899,10 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.MIDI]: {
       label: ContentTypeLabel.MIDI,
+      is_text: false,
+    },
+    [ContentTypeLabel.MINIDUMP]: {
+      label: ContentTypeLabel.MINIDUMP,
       is_text: false,
     },
     [ContentTypeLabel.MKV]: {
@@ -801,6 +953,14 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.MUN,
       is_text: false,
     },
+    [ContentTypeLabel.NETCDF]: {
+      label: ContentTypeLabel.NETCDF,
+      is_text: false,
+    },
+    [ContentTypeLabel.NIFTI]: {
+      label: ContentTypeLabel.NIFTI,
+      is_text: false,
+    },
     [ContentTypeLabel.NIM]: {
       label: ContentTypeLabel.NIM,
       is_text: false,
@@ -811,6 +971,10 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.NPZ]: {
       label: ContentTypeLabel.NPZ,
+      is_text: false,
+    },
+    [ContentTypeLabel.NRRD]: {
+      label: ContentTypeLabel.NRRD,
       is_text: false,
     },
     [ContentTypeLabel.NULL]: {
@@ -877,6 +1041,14 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.OOXML,
       is_text: false,
     },
+    [ContentTypeLabel.ORC]: {
+      label: ContentTypeLabel.ORC,
+      is_text: false,
+    },
+    [ContentTypeLabel.OSM]: {
+      label: ContentTypeLabel.OSM,
+      is_text: false,
+    },
     [ContentTypeLabel.OTF]: {
       label: ContentTypeLabel.OTF,
       is_text: false,
@@ -887,6 +1059,10 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.PALMOS]: {
       label: ContentTypeLabel.PALMOS,
+      is_text: false,
+    },
+    [ContentTypeLabel.PARADOX]: {
+      label: ContentTypeLabel.PARADOX,
       is_text: false,
     },
     [ContentTypeLabel.PARQUET]: {
@@ -903,6 +1079,10 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.PCAP]: {
       label: ContentTypeLabel.PCAP,
+      is_text: false,
+    },
+    [ContentTypeLabel.PCAPNG]: {
+      label: ContentTypeLabel.PCAPNG,
       is_text: false,
     },
     [ContentTypeLabel.PDB]: {
@@ -937,6 +1117,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.PICKLE,
       is_text: false,
     },
+    [ContentTypeLabel.PLY]: {
+      label: ContentTypeLabel.PLY,
+      is_text: false,
+    },
     [ContentTypeLabel.PNG]: {
       label: ContentTypeLabel.PNG,
       is_text: false,
@@ -944,6 +1128,10 @@ export const ContentTypesInfos = {
     [ContentTypeLabel.PO]: {
       label: ContentTypeLabel.PO,
       is_text: true,
+    },
+    [ContentTypeLabel.POSTGRES_DUMP]: {
+      label: ContentTypeLabel.POSTGRES_DUMP,
+      is_text: false,
     },
     [ContentTypeLabel.POSTSCRIPT]: {
       label: ContentTypeLabel.POSTSCRIPT,
@@ -1005,6 +1193,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.PYTORCH,
       is_text: false,
     },
+    [ContentTypeLabel.QGIS]: {
+      label: ContentTypeLabel.QGIS,
+      is_text: false,
+    },
     [ContentTypeLabel.QOI]: {
       label: ContentTypeLabel.QOI,
       is_text: false,
@@ -1033,12 +1225,24 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.RAR,
       is_text: false,
     },
+    [ContentTypeLabel.RDATA]: {
+      label: ContentTypeLabel.RDATA,
+      is_text: false,
+    },
     [ContentTypeLabel.RDF]: {
       label: ContentTypeLabel.RDF,
       is_text: true,
     },
     [ContentTypeLabel.RDP]: {
       label: ContentTypeLabel.RDP,
+      is_text: false,
+    },
+    [ContentTypeLabel.REDIS_RDB]: {
+      label: ContentTypeLabel.REDIS_RDB,
+      is_text: false,
+    },
+    [ContentTypeLabel.RHINOCEROS]: {
+      label: ContentTypeLabel.RHINOCEROS,
       is_text: false,
     },
     [ContentTypeLabel.RIFF]: {
@@ -1077,6 +1281,14 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.RZIP,
       is_text: false,
     },
+    [ContentTypeLabel.SAFETENSORS]: {
+      label: ContentTypeLabel.SAFETENSORS,
+      is_text: false,
+    },
+    [ContentTypeLabel.SAS]: {
+      label: ContentTypeLabel.SAS,
+      is_text: false,
+    },
     [ContentTypeLabel.SCALA]: {
       label: ContentTypeLabel.SCALA,
       is_text: true,
@@ -1109,9 +1321,17 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.SH3D,
       is_text: false,
     },
+    [ContentTypeLabel.SHAPEFILE]: {
+      label: ContentTypeLabel.SHAPEFILE,
+      is_text: false,
+    },
     [ContentTypeLabel.SHELL]: {
       label: ContentTypeLabel.SHELL,
       is_text: true,
+    },
+    [ContentTypeLabel.SKETCHUP]: {
+      label: ContentTypeLabel.SKETCHUP,
+      is_text: false,
     },
     [ContentTypeLabel.SMALI]: {
       label: ContentTypeLabel.SMALI,
@@ -1129,6 +1349,14 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.SOLIDITY,
       is_text: true,
     },
+    [ContentTypeLabel.SPIRV]: {
+      label: ContentTypeLabel.SPIRV,
+      is_text: false,
+    },
+    [ContentTypeLabel.SPSS]: {
+      label: ContentTypeLabel.SPSS,
+      is_text: false,
+    },
     [ContentTypeLabel.SQL]: {
       label: ContentTypeLabel.SQL,
       is_text: true,
@@ -1143,6 +1371,14 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.SRT]: {
       label: ContentTypeLabel.SRT,
+      is_text: true,
+    },
+    [ContentTypeLabel.STATA]: {
+      label: ContentTypeLabel.STATA,
+      is_text: false,
+    },
+    [ContentTypeLabel.STEP]: {
+      label: ContentTypeLabel.STEP,
       is_text: true,
     },
     [ContentTypeLabel.STLBINARY]: {
@@ -1265,6 +1501,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.UDF,
       is_text: false,
     },
+    [ContentTypeLabel.UF2]: {
+      label: ContentTypeLabel.UF2,
+      is_text: false,
+    },
     [ContentTypeLabel.UNDEFINED]: {
       label: ContentTypeLabel.UNDEFINED,
       is_text: false,
@@ -1308,6 +1548,10 @@ export const ContentTypesInfos = {
     [ContentTypeLabel.VHDL]: {
       label: ContentTypeLabel.VHDL,
       is_text: true,
+    },
+    [ContentTypeLabel.VIB]: {
+      label: ContentTypeLabel.VIB,
+      is_text: false,
     },
     [ContentTypeLabel.VISIO]: {
       label: ContentTypeLabel.VISIO,
@@ -1379,6 +1623,10 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.XCF]: {
       label: ContentTypeLabel.XCF,
+      is_text: false,
+    },
+    [ContentTypeLabel.XCOFF]: {
+      label: ContentTypeLabel.XCOFF,
       is_text: false,
     },
     [ContentTypeLabel.XLS]: {

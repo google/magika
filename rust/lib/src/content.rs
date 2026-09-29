@@ -50,6 +50,15 @@ pub(crate) static _3GP: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static _3MF: TypeInfo = TypeInfo {
+    label: "3mf",
+    mime_type: "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
+    group: "image",
+    description: "3D Manufacturing Format",
+    extensions: &["3mf"],
+    is_text: false,
+};
+
 pub(crate) static ACE: TypeInfo = TypeInfo {
     label: "ace",
     mime_type: "application/x-ace-compressed",
@@ -587,6 +596,15 @@ pub(crate) static DOCX: TypeInfo = TypeInfo {
     group: "document",
     description: "Microsoft Word 2007+ document",
     extensions: &["docx", "docm"],
+    is_text: false,
+};
+
+pub(crate) static DOTX: TypeInfo = TypeInfo {
+    label: "dotx",
+    mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    group: "document",
+    description: "Office Word 2007 template",
+    extensions: &["dotx"],
     is_text: false,
 };
 
@@ -1175,6 +1193,15 @@ pub(crate) static JXL: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static KERAS: TypeInfo = TypeInfo {
+    label: "keras",
+    mime_type: "application/octet-stream",
+    group: "model",
+    description: "Keras model archive",
+    extensions: &["keras"],
+    is_text: false,
+};
+
 pub(crate) static KML: TypeInfo = TypeInfo {
     label: "kml",
     mime_type: "application/vnd.google-earth.kml+xml",
@@ -1182,6 +1209,15 @@ pub(crate) static KML: TypeInfo = TypeInfo {
     description: "Keyhole Markup Language",
     extensions: &["kml"],
     is_text: true,
+};
+
+pub(crate) static KMZ: TypeInfo = TypeInfo {
+    label: "kmz",
+    mime_type: "application/vnd.google-earth.kmz",
+    group: "gis",
+    description: "Keyhole Markup Language archive",
+    extensions: &["kmz"],
+    is_text: false,
 };
 
 pub(crate) static KOALA: TypeInfo = TypeInfo {
@@ -1433,6 +1469,15 @@ pub(crate) static MSI: TypeInfo = TypeInfo {
     group: "archive",
     description: "Microsoft Installer file",
     extensions: &["msi"],
+    is_text: false,
+};
+
+pub(crate) static MSIX: TypeInfo = TypeInfo {
+    label: "msix",
+    mime_type: "application/msix",
+    group: "application",
+    description: "Windows app package",
+    extensions: &["msix"],
     is_text: false,
 };
 
@@ -1847,6 +1892,15 @@ pub(crate) static PYTORCH: TypeInfo = TypeInfo {
     group: "application",
     description: "Pytorch storage file",
     extensions: &["pt", "pth"],
+    is_text: false,
+};
+
+pub(crate) static QGIS: TypeInfo = TypeInfo {
+    label: "qgis",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "QGIS project archive",
+    extensions: &["qgz"],
     is_text: false,
 };
 
@@ -2426,6 +2480,15 @@ pub(crate) static VIB: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static VISIO: TypeInfo = TypeInfo {
+    label: "visio",
+    mime_type: "application/vnd.ms-visio.drawing.main+xml",
+    group: "document",
+    description: "Microsoft Visio",
+    extensions: &["vsd", "vsdm", "vsdx", "vdw"],
+    is_text: false,
+};
+
 pub(crate) static VTT: TypeInfo = TypeInfo {
     label: "vtt",
     mime_type: "text/vtt",
@@ -2670,6 +2733,8 @@ pub enum ContentType {
     _3dsx,
     /// 3GPP multimedia file
     _3gp,
+    /// 3D Manufacturing Format
+    _3mf,
     /// ACE archive
     Ace,
     /// Adobe Illustrator Artwork
@@ -2788,6 +2853,8 @@ pub enum ContentType {
     Dockerfile,
     /// Microsoft Word 2007+ document
     Docx,
+    /// Office Word 2007 template
+    Dotx,
     /// Application Desktop Services Store
     Dsstore,
     /// DuckDB database
@@ -2918,8 +2985,12 @@ pub enum ContentType {
     Julia,
     /// JPEG XL
     Jxl,
+    /// Keras model archive
+    Keras,
     /// Keyhole Markup Language
     Kml,
+    /// Keyhole Markup Language archive
+    Kmz,
     /// Commodore 64 Koala Painter image
     Koala,
     /// Kotlin source
@@ -2976,6 +3047,8 @@ pub enum ContentType {
     Mscompress,
     /// Microsoft Installer file
     Msi,
+    /// Windows app package
+    Msix,
     /// Windows Update Package file
     Mum,
     /// NetCDF
@@ -3068,6 +3141,8 @@ pub enum ContentType {
     Pythonbytecode,
     /// Pytorch storage file
     Pytorch,
+    /// QGIS project archive
+    Qgis,
     /// Quite Ok Image
     Qoi,
     /// QuickTime
@@ -3194,6 +3269,8 @@ pub enum ContentType {
     Vhdl,
     /// VMware Installation Bundle
     Vib,
+    /// Microsoft Visio
+    Visio,
     /// Web Video Text Tracks
     Vtt,
     /// Vue source
@@ -3249,7 +3326,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 291;
+    pub(crate) const SIZE: usize = 298;
 
     /// Returns a content type from its label.
     pub fn from_label(label: &str) -> Option<Self> {
@@ -3257,6 +3334,7 @@ impl ContentType {
             "3dsm" => Self::_3dsm,
             "3dsx" => Self::_3dsx,
             "3gp" => Self::_3gp,
+            "3mf" => Self::_3mf,
             "ace" => Self::Ace,
             "ai" => Self::Ai,
             "aidl" => Self::Aidl,
@@ -3316,6 +3394,7 @@ impl ContentType {
             "doc" => Self::Doc,
             "dockerfile" => Self::Dockerfile,
             "docx" => Self::Docx,
+            "dotx" => Self::Dotx,
             "dsstore" => Self::Dsstore,
             "duckdb" => Self::Duckdb,
             "dwg" => Self::Dwg,
@@ -3381,7 +3460,9 @@ impl ContentType {
             "jsonl" => Self::Jsonl,
             "julia" => Self::Julia,
             "jxl" => Self::Jxl,
+            "keras" => Self::Keras,
             "kml" => Self::Kml,
+            "kmz" => Self::Kmz,
             "koala" => Self::Koala,
             "kotlin" => Self::Kotlin,
             "latex" => Self::Latex,
@@ -3410,6 +3491,7 @@ impl ContentType {
             "mpegts" => Self::Mpegts,
             "mscompress" => Self::Mscompress,
             "msi" => Self::Msi,
+            "msix" => Self::Msix,
             "mum" => Self::Mum,
             "netcdf" => Self::Netcdf,
             "npy" => Self::Npy,
@@ -3456,6 +3538,7 @@ impl ContentType {
             "python" => Self::Python,
             "pythonbytecode" => Self::Pythonbytecode,
             "pytorch" => Self::Pytorch,
+            "qgis" => Self::Qgis,
             "qoi" => Self::Qoi,
             "qt" => Self::Qt,
             "r" => Self::R,
@@ -3519,6 +3602,7 @@ impl ContentType {
             "vhd" => Self::Vhd,
             "vhdl" => Self::Vhdl,
             "vib" => Self::Vib,
+            "visio" => Self::Visio,
             "vtt" => Self::Vtt,
             "vue" => Self::Vue,
             "wad" => Self::Wad,
@@ -3555,6 +3639,7 @@ impl ContentType {
             ContentType::_3dsm => &_3DSM,
             ContentType::_3dsx => &_3DSX,
             ContentType::_3gp => &_3GP,
+            ContentType::_3mf => &_3MF,
             ContentType::Ace => &ACE,
             ContentType::Ai => &AI,
             ContentType::Aidl => &AIDL,
@@ -3614,6 +3699,7 @@ impl ContentType {
             ContentType::Doc => &DOC,
             ContentType::Dockerfile => &DOCKERFILE,
             ContentType::Docx => &DOCX,
+            ContentType::Dotx => &DOTX,
             ContentType::Dsstore => &DSSTORE,
             ContentType::Duckdb => &DUCKDB,
             ContentType::Dwg => &DWG,
@@ -3679,7 +3765,9 @@ impl ContentType {
             ContentType::Jsonl => &JSONL,
             ContentType::Julia => &JULIA,
             ContentType::Jxl => &JXL,
+            ContentType::Keras => &KERAS,
             ContentType::Kml => &KML,
+            ContentType::Kmz => &KMZ,
             ContentType::Koala => &KOALA,
             ContentType::Kotlin => &KOTLIN,
             ContentType::Latex => &LATEX,
@@ -3708,6 +3796,7 @@ impl ContentType {
             ContentType::Mpegts => &MPEGTS,
             ContentType::Mscompress => &MSCOMPRESS,
             ContentType::Msi => &MSI,
+            ContentType::Msix => &MSIX,
             ContentType::Mum => &MUM,
             ContentType::Netcdf => &NETCDF,
             ContentType::Npy => &NPY,
@@ -3754,6 +3843,7 @@ impl ContentType {
             ContentType::Python => &PYTHON,
             ContentType::Pythonbytecode => &PYTHONBYTECODE,
             ContentType::Pytorch => &PYTORCH,
+            ContentType::Qgis => &QGIS,
             ContentType::Qoi => &QOI,
             ContentType::Qt => &QT,
             ContentType::R => &R,
@@ -3817,6 +3907,7 @@ impl ContentType {
             ContentType::Vhd => &VHD,
             ContentType::Vhdl => &VHDL,
             ContentType::Vib => &VIB,
+            ContentType::Visio => &VISIO,
             ContentType::Vtt => &VTT,
             ContentType::Vue => &VUE,
             ContentType::Wad => &WAD,

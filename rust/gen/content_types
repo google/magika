@@ -1,6 +1,7 @@
 3dsm
 3dsx
 3gp
+3mf
 ace
 ai
 aidl
@@ -61,6 +62,7 @@ dmg
 doc
 dockerfile
 docx
+dotx
 dsstore
 duckdb
 dwg
@@ -126,7 +128,9 @@ json
 jsonl
 julia
 jxl
+keras
 kml
+kmz
 koala
 kotlin
 latex
@@ -155,6 +159,7 @@ mp4
 mpegts
 mscompress
 msi
+msix
 mum
 netcdf
 npy
@@ -201,6 +206,7 @@ psd
 python
 pythonbytecode
 pytorch
+qgis
 qoi
 qt
 r
@@ -265,6 +271,7 @@ verilog
 vhd
 vhdl
 vib
+visio
 vtt
 vue
 wad

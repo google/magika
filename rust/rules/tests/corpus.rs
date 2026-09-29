@@ -41,9 +41,15 @@ fn bundled_rules_never_mislabel_a_sample() {
                 .find(|(sample, _)| *sample == relative)
                 .map_or(label.as_str(), |(_, proven)| proven);
             let bytes = std::fs::read(&path).unwrap();
-            let prefix = &bytes[..bytes.len().min(PREFIX_LIMIT)];
+            let (prefix, size) = (&bytes[..bytes.len().min(PREFIX_LIMIT)], bytes.len() as u64);
+            // The tail a caller reads: the last `tail_len` bytes, back to `tail_start` if needed.
+            let mut tail = &bytes[bytes.len() - rules.tail_len(prefix, size)..];
+            if let Some(start) = rules.tail_start(tail, size) {
+                tail = &bytes[start as usize..];
+            }
+            let tail = (!tail.is_empty()).then_some(tail);
             files += 1;
-            match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
+            match rules.scan(Input { prefix, size, tail }) {
                 Outcome::Match(i) if rules.labels()[i] == expected => hits += 1,
                 Outcome::Match(i) => {
                     errors.push(format!("{}: rules say {}", path.display(), rules.labels()[i]))

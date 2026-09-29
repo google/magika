@@ -1,5 +1,5 @@
-#!/bin/sh
-# Copyright 2024 Google LLC
+#!/bin/bash
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-. ./color.sh
+set -euo pipefail
 
-TOOLCHAINS='stable nightly'
-[ -z "$CI" ] || TOOLCHAINS=$(rustup show active-toolchain | sed 's/-.*//')
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &>/dev/null && pwd)
+cd "$ROOT_DIR"
 
-for toolchain in $TOOLCHAINS; do
-  for dir in gen tract-runtime rules lib ffi pyo3 cli; do
-    info "Running tests from $dir with $toolchain"
-    ( cd $dir && rustup run $toolchain ./test.sh; )
-  done
-done
+echo "Building and staging native CLI binary (magika)..."
+./python/scripts/stage_cli.sh
 
-./sync.sh --check
+
+echo "Building wheel via uv build..."
+cd python
+uv build --wheel
+echo "Wheel build complete. Output in python/dist/"

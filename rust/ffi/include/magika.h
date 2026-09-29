@@ -120,6 +120,10 @@ typedef struct MagikaRuntimeOptions {
    * The maximum batch size to optimize for (0 for runtime default).
    */
   uintptr_t max_batch;
+  /**
+   * Whether to identify files with format rules before inference.
+   */
+  bool rules;
 } MagikaRuntimeOptions;
 
 /**
@@ -282,6 +286,7 @@ enum MagikaStatus magika_identify_content(struct MagikaSession *session,
  * - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
  */
 enum MagikaStatus magika_features_extract_file(const char *path,
+                                               bool rules,
                                                struct MagikaFeatures **out_features,
                                                struct MagikaResult *out_result);
 
@@ -306,6 +311,7 @@ enum MagikaStatus magika_features_extract_file(const char *path,
  */
 enum MagikaStatus magika_features_extract_content(const uint8_t *data,
                                                   uintptr_t len,
+                                                  bool rules,
                                                   struct MagikaFeatures **out_features,
                                                   struct MagikaResult *out_result);
 

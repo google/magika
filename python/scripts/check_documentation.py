@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# /// script
+# dependencies = ["click", "requests", "packaging"]
+# ///
 
 
 """Performs a number of sanity checks on Magika's documentation."""
@@ -27,8 +30,8 @@ import click
 import requests
 from packaging.version import Version
 
-REPO_ROOT_DIR = Path(__file__).parent.parent.parent
-assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
+REPO_ROOT_DIR = Path(__file__).parent.parent.parent.resolve()
+assert (REPO_ROOT_DIR / ".git").exists()
 
 
 IGNORE_PREFIX_PATTERNS = [

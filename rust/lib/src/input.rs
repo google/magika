@@ -82,33 +82,18 @@ impl FeaturesOrRuled {
     /// Extracts the features from a file.
     ///
     /// Returns the content type directly if the file cannot be identified using AI.
-    pub fn extract(file: impl Input) -> Result<Self> {
-        Self::extract_with(file, |_, _, _| Ok(None))
-    }
-
-    /// Extracts the features from a file, unless rules identify it.
-    ///
-    /// Rules see the first block that feature extraction reads anyway. Only a zip archive, when
-    /// a rule reads its entries, costs another read: its end, which holds its directory.
-    #[cfg(feature = "rules")]
-    pub fn extract_with_rules(file: impl Input, rules: Option<&crate::Rules>) -> Result<Self> {
-        Self::extract_with(file, |file, first_block, size| match rules {
-            Some(rules) => rules.identify(file, first_block, size),
-            None => Ok(None),
-        })
-    }
-
-    fn extract_with<F: Input>(
-        mut file: F, rules: impl FnOnce(&mut F, &[u8], u64) -> Result<Option<ContentType>>,
-    ) -> Result<Self> {
+    pub fn extract(mut file: impl Input, rules: bool) -> Result<Self> {
         let config = &crate::model::CONFIG;
         let file_len = file.length()?;
         if file_len == 0 {
             return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
         }
         let first_block = read_first_block(config, &mut file, file_len)?;
-        if let Some(content_type) = rules(&mut file, &first_block, file_len)? {
-            return Ok(FeaturesOrRuled::Ruled(content_type));
+        if rules {
+            #[cfg(feature = "rules")]
+            if let Some(content_type) = crate::rules::Rules::identify(&first_block, file_len) {
+                return Ok(FeaturesOrRuled::Ruled(content_type));
+            }
         }
         let features = extract_features(config, file, file_len, &first_block)?;
         if features[config.min_file_size_for_dl - 1] != config.padding_token {

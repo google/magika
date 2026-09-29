@@ -21,8 +21,7 @@ use crate::{Backend, Runtime};
 pub struct Builder {
     backend: Option<Backend>,
     max_batch: Option<usize>,
-    #[cfg(feature = "rules")]
-    rules: Option<crate::Rules>,
+    rules: bool,
 }
 
 impl Builder {
@@ -46,19 +45,13 @@ impl Builder {
     ///
     /// Inference runs only on files that no rule identifies.
     #[cfg(feature = "rules")]
-    pub fn with_rules(mut self, rules: crate::Rules) -> Self {
-        self.rules = Some(rules);
+    pub fn with_rules(mut self, enable: bool) -> Self {
+        self.rules = enable;
         self
     }
 
     /// Consumes the builder to create a Magika runtime.
     pub fn build(self) -> Result<Runtime> {
-        #[allow(unused_mut)] // without the rules feature
-        let mut runtime = Runtime::new_internal(Backend::to_request(self.backend), self.max_batch)?;
-        #[cfg(feature = "rules")]
-        {
-            runtime.rules = self.rules;
-        }
-        Ok(runtime)
+        Runtime::new_internal(Backend::to_request(self.backend), self.max_batch, self.rules)
     }
 }

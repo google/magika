@@ -19,6 +19,7 @@ mod embedding;
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 mod gpu_conv;
 mod layer_norm;
+mod loader;
 
 use std::sync::Arc;
 
@@ -28,9 +29,10 @@ use anyhow::{Context as _, Result, ensure};
 // Only the GPU preparers build a plan by hand; the CPU one goes through the runtime.
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 use tract_core::prelude::TypedSimplePlan;
+#[cfg(any(test, feature = "_export"))]
+use tract_core::prelude::{Framework as _, ToDim as _};
 use tract_core::prelude::{
-    Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, ToDim as _, TypedModel,
-    tvec,
+    IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, TypedModel, tvec,
 };
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, Runtime as _, State};
 use tract_core::tract_linalg::multithread::Executor;
@@ -54,9 +56,9 @@ const EXPECTED_LAYER_NORMS: usize = 2;
 /// They run different kernels and do not agree to the bit: the release gate measures about 1.4e-5
 /// between them. This sits far above that and far below a different answer.
 const GPU_AGREEMENT_EPSILON: f32 = 1e-3;
-/// Embedded release model bytes used by the benchmark's parity and size gates.
-#[doc(hidden)]
-pub const EMBEDDED_NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
+/// The release model, from which the embedded graph is exported.
+#[cfg(test)]
+const EMBEDDED_NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
 const EMBEDDED_GPU_PROBE: &[u8] = include_bytes!("../models/model.probe.f32le");
 
 /// User-facing runtime preference.
@@ -320,26 +322,47 @@ fn prepare_gpu_graph(model: &mut TypedModel, batch: usize) -> Result<()> {
     Ok(())
 }
 
+/// Returns the embedded model bound to `batch`, ready for backend fusion.
 fn load_model(batch: usize) -> Result<TypedModel> {
-    let model = tract_nnef::nnef()
-        .model_for_read(&mut std::io::Cursor::new(EMBEDDED_NNEF_MODEL))
-        .context("loading the embedded NNEF model")?;
-    let mut model = if let Some(symbol) = model.symbols.get("N") {
-        let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
-        model.set_symbols(&symbols).context("binding the NNEF batch symbol")?
-    } else {
-        ensure!(model.input_fact(0)?.shape[0] == batch.to_dim(), "fixed NNEF batch mismatch");
-        model
-    };
-    model = model.into_decluttered().context("decluttering before Magika graph fusion")?;
+    let mut model = loader::load(batch)?;
     // Folded here rather than in a backend preparer: it removes work from the graph itself, so it
-    // is worth the same on a CPU, on Metal and on CUDA.
+    // is worth the same on a CPU, on Metal and on CUDA. It computes on the host, so the embedded
+    // graph stores the table before folding and stays independent of the host that exported it.
     let folded = embedding::fuse_magika_embedding(&mut model)?;
     ensure!(
         folded == EXPECTED_EMBEDDINGS,
         "required {EXPECTED_EMBEDDINGS} embedding folds for batch {batch}, matched {folded}"
     );
     Ok(model)
+}
+
+/// Returns the graph and weights embedded for an NNEF release model, for `tract-bench`.
+#[cfg(feature = "_export")]
+#[doc(hidden)]
+pub fn export_model_graph(nnef: &[u8]) -> Result<(Vec<u8>, Vec<u8>)> {
+    loader::export(nnef)
+}
+
+/// Parses the embedded release model as [`loader`] stores it.
+#[cfg(test)]
+fn load_nnef_model(batch: usize) -> Result<TypedModel> {
+    parse_nnef(EMBEDDED_NNEF_MODEL, batch)
+}
+
+/// Parses an NNEF release model as [`loader`] stores it: bound to `batch` and decluttered.
+#[cfg(any(test, feature = "_export"))]
+fn parse_nnef(nnef: &[u8], batch: usize) -> Result<TypedModel> {
+    let model = tract_nnef::nnef()
+        .model_for_read(&mut std::io::Cursor::new(nnef))
+        .context("loading the NNEF model")?;
+    let model = if let Some(symbol) = model.symbols.get("N") {
+        let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
+        model.set_symbols(&symbols).context("binding the NNEF batch symbol")?
+    } else {
+        ensure!(model.input_fact(0)?.shape[0] == batch.to_dim(), "fixed NNEF batch mismatch");
+        model
+    };
+    model.into_decluttered().context("decluttering before Magika graph fusion")
 }
 
 /// Thread-private inference state.

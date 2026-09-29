@@ -38,8 +38,7 @@ it. `Source::parse` and `RuleSet::compile` accept custom rules with the same val
 - `rulesets/full/`: rules with zero observed false positives and false negatives.
 - `rulesets/partial/`: zero observed false positives and some false negatives.
 - `rulesets/notworking/`: rules kept for reference and never enforced, including rules
-  refuted by evaluation and, in `facts-pending.yar`, rules that read archive and
-  executable facts, which this crate does not evaluate yet.
+  refuted by evaluation.
 - `LICENSES`: notices for the sources rules were adapted from; exact references stay with
   each rule's `source_refs`.
 - `build.rs`: bundles the rulesets and notices into the crate with the `bundled` feature
@@ -72,6 +71,8 @@ Anything outside this subset is rejected at compile time rather than ignored.
 | Sizes | `filesize` or `original_size` (the whole input), `prefix_size` (bytes in the prefix) |
 | Comparisons | `==`, `!=`, `<`, `<=`, `>`, `>=` between literals, sizes and reads |
 | Modulo | `x % N == M` with `N` a power of two |
+| Facts | zip (`zip_valid`, `zip_entries`, `zip_names_entries`, ...) and PE (`pe_valid`, `pe_machine`, `pe_subsystem`, ...) integers, zero for other inputs; see `src/facts` |
+| Views | `zip_names` and `zip_first_entry`, searched with `contains` or `startswith` and a literal string |
 | Logic | `and`, `or`, `not`, `true`, `false`, references to other rules (private helpers are active unless disabled) |
 
 A read past the prefix is undefined and makes its comparison false. Regexes are byte

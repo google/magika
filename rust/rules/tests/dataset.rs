@@ -32,7 +32,7 @@
 #![cfg(feature = "bundled")]
 
 use std::collections::BTreeMap;
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 use std::time::{Duration, Instant};
 
 use magika_rules::{Input, Outcome, RuleSet, PREFIX_LIMIT};
@@ -150,12 +150,22 @@ fn bundled_rules_never_contradict_a_validated_label() {
         let size = file.metadata().unwrap().len();
         let wanted = size.min(PREFIX_LIMIT as u64) as usize;
         file.read_exact(&mut prefix[..wanted]).unwrap();
+        // The tail a caller reads: the last `tail_len` bytes, back to `tail_start` if needed.
+        let mut tail = vec![0; rules.tail_len(&prefix[..wanted], size)];
+        file.seek(SeekFrom::Start(size - tail.len() as u64)).unwrap();
+        file.read_exact(&mut tail).unwrap();
+        if let Some(start) = rules.tail_start(&tail, size) {
+            tail = vec![0; (size - start) as usize];
+            file.seek(SeekFrom::Start(start)).unwrap();
+            file.read_exact(&mut tail).unwrap();
+        }
         let validated = status.starts_with("validated_");
         files += 1;
         verified += usize::from(validated);
         bytes_scanned += wanted;
         let start = Instant::now();
-        let outcome = rules.scan(Input { prefix: &prefix[..wanted], size, tail: None });
+        let tail = (!tail.is_empty()).then_some(tail.as_slice());
+        let outcome = rules.scan(Input { prefix: &prefix[..wanted], size, tail });
         elapsed += start.elapsed();
         let said = match outcome {
             Outcome::Match(i) if accepts(&rules.labels()[i]) => {

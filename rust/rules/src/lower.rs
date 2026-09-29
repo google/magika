@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 use yara_x_parser::ast::{Expr, Item, MatchAnchor, Rule as AstRule, RuleFlags, AST};
 
-use crate::ir::{self, Cmp, Cond, Int, Program, Read};
+use crate::ir::{self, Cmp, Cond, Fact, Int, Program, Read, View};
 use crate::matcher::Pattern;
 use crate::source::explicit_enforcement;
 use crate::{Error, Source, PREFIX_LIMIT};
@@ -49,7 +49,8 @@ pub(crate) fn lower(source: &Source) -> Result<(Program, Vec<String>), Error> {
         };
         program_rules.push(ir::Rule { label: index, cond });
     }
-    Ok((Program { patterns: lowering.patterns, rules: program_rules }, labels))
+    let facts = program_rules.iter().any(|rule| rule.cond.uses_facts());
+    Ok((Program { patterns: lowering.patterns, rules: program_rules, facts }, labels))
 }
 
 struct Lowering<'a, 'src> {
@@ -203,6 +204,23 @@ impl<'a, 'src> Lowering<'a, 'src> {
                 };
                 Cond::Cmp(op, lhs, operand(&node.rhs, name)?)
             }
+            Expr::Contains(node) | Expr::StartsWith(node) => {
+                let view = match &node.lhs {
+                    Expr::Ident(id) => View::from_name(id.name),
+                    _ => None,
+                };
+                let Some(view) = view else {
+                    return Err(unsupported(name, "`contains` and `startswith` take a view"));
+                };
+                let Expr::LiteralString(text) = &node.rhs else {
+                    return Err(unsupported(name, "views are searched for a literal string"));
+                };
+                if text.value.is_empty() {
+                    return Err(unsupported(name, "views are searched for a nonempty string"));
+                }
+                let start = matches!(expr, Expr::StartsWith(_));
+                Cond::View { view, text: text.value.to_vec(), start }
+            }
             _ => {
                 return Err(unsupported(
                     name,
@@ -220,6 +238,10 @@ fn operand(expr: &Expr<'_>, rule: &str) -> Result<Int, Error> {
         Expr::Filesize { .. } => Int::FileSize,
         Expr::Ident(id) if id.name == "original_size" => Int::FileSize,
         Expr::Ident(id) if id.name == "prefix_size" => Int::PrefixSize,
+        Expr::Ident(id) => match Fact::from_name(id.name) {
+            Some(fact) => Int::Fact(fact),
+            None => return Err(unsupported(rule, &format!("unknown integer `{}`", id.name))),
+        },
         Expr::FuncCall(call) if call.object.is_none() && call.args.len() == 1 => {
             let (read, width) = match call.identifier.name {
                 "uint8" => (Read::U8, 1),
@@ -238,7 +260,7 @@ fn operand(expr: &Expr<'_>, rule: &str) -> Result<Int, Error> {
         _ => {
             return Err(unsupported(
                 rule,
-                "comparisons take literals, sizes, or fixed unsigned reads",
+                "comparisons take literals, sizes, facts, or fixed unsigned reads",
             ))
         }
     })

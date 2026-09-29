@@ -28,6 +28,10 @@ use magika::{
 };
 use serde::Serialize;
 
+use crate::backends::Backends;
+
+mod backends;
+
 /// Determines file content types using AI.
 #[derive(Parser)]
 #[command(name = "magika", version = Version, arg_required_else_help = true)]
@@ -124,8 +128,26 @@ struct Format {
     custom: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum RulesMode {
+    /// Identifies files with the model only.
+    #[default]
+    Off,
+    /// Identifies files with rules first, and with the model when no rule decides.
+    Enforce,
+    /// Identifies files with rules only, as unknown when no rule decides. The model is not loaded.
+    Only,
+}
+
 #[derive(Args)]
 struct Experimental {
+    /// Identifies files with format rules.
+    ///
+    /// A rule decides from the first 4 KiB and the size of a file, and only when every matching
+    /// rule agrees.
+    #[arg(hide = true, long, value_enum, default_value_t)]
+    rules: RulesMode,
+
     /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
     backend: BackendChoice,
@@ -155,7 +177,7 @@ struct Experimental {
     readers: usize,
 }
 
-#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 enum BackendChoice {
     #[default]
     Auto,
@@ -183,7 +205,7 @@ impl Trace {
         assert!(self.stages.lock().unwrap().insert(name, stage).is_none());
     }
 
-    fn report(&self, readers: usize, threads: usize) {
+    fn report(&self, readers: usize) {
         let mut stages = self.stages.lock().unwrap();
         let mut report = Vec::new();
         report.push(("walk".to_string(), stages.remove("magika-walk").unwrap()));
@@ -192,11 +214,10 @@ impl Trace {
                 .push((format!("read[{i}]"), stages.remove(&format!("magika-read-{i}")).unwrap()));
         }
         report.push(("batch".to_string(), stages.remove("magika-batch").unwrap()));
-        for i in 0..threads {
-            report.push((
-                format!("infer[{i}]"),
-                stages.remove(&format!("magika-infer-{i}")).unwrap(),
-            ));
+        // The backend decides how many workers run once the model is loaded.
+        for i in 0.. {
+            let Some(stage) = stages.remove(&format!("magika-infer-{i}")) else { break };
+            report.push((format!("infer[{i}]"), stage));
         }
         assert!(stages.is_empty());
         eprintln!("trace  stage           busy      waiting   busy%");
@@ -280,16 +301,18 @@ fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
+    let rules_only = flags.experimental.rules == RulesMode::Only;
+    let rules = flags.experimental.rules != RulesMode::Off;
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
+    builder = builder.with_rules(rules);
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
         BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
     };
-    let runtime = Arc::new(builder.build()?);
     if flags.experimental.backend_info {
-        let info = runtime.backend_info();
+        let info = builder.build()?.backend_info();
         let backend = match info.backend() {
             Backend::Cpu => "cpu",
             Backend::Gpu => "gpu",
@@ -297,19 +320,19 @@ fn main() -> Result<()> {
         println!("{backend} ({})", info.implementation());
         return Ok(());
     }
-    let threads = match flags.experimental.threads {
-        Some(threads) => threads,
-        None => default_inference_threads(runtime.backend_info().backend()),
-    };
+    // Queues are sized before knowing which backend identifies the files, so for the busiest.
+    let threads = flags.experimental.threads.unwrap_or_else(|| {
+        default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
+    });
     ensure!((1..=256).contains(&threads), "--threads must be between 1 and 256");
     let readers = flags.experimental.readers;
     ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
     let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
     let (read_sender, read_receiver) =
-        std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
+        std::sync::mpsc::sync_channel::<ReadItem>(threads.max(1) * batch_size);
     let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
     let (result_sender, result_receiver) =
-        std::sync::mpsc::sync_channel::<Result<Response>>(threads * batch_size);
+        std::sync::mpsc::sync_channel::<Result<Response>>(threads.max(1) * batch_size);
     #[cfg(feature = "_trace")]
     let trace = Trace::default();
     let mut join_handles = Vec::new();
@@ -338,7 +361,7 @@ fn main() -> Result<()> {
                 move || {
                     #[cfg(feature = "_trace")]
                     let start = Stage::start();
-                    read_files(&work_receiver, &read_sender);
+                    read_files(&work_receiver, &read_sender, rules);
                     #[cfg(feature = "_trace")]
                     trace.insert(Stage::finalize(start));
                 }
@@ -356,7 +379,7 @@ fn main() -> Result<()> {
             #[cfg(feature = "_trace")]
             let start = Stage::start();
             if let Err(error) =
-                batch_files(batch_size, &read_receiver, &batch_sender, &result_sender)
+                batch_files(batch_size, rules_only, &read_receiver, &batch_sender, &result_sender)
             {
                 let _ = result_sender.send(Err(error));
             }
@@ -365,26 +388,55 @@ fn main() -> Result<()> {
         }
     })?);
     drop(batch_sender);
-    for index in 0..threads {
-        join_handles.push(
-            std::thread::Builder::new().name(format!("magika-infer-{index}")).spawn({
-                let batch_receiver = batch_receiver.clone();
-                let result_sender = result_sender.clone();
-                let runtime = runtime.clone();
-                #[cfg(feature = "_trace")]
-                let trace = trace.clone();
-                move || {
-                    #[cfg(feature = "_trace")]
-                    let start = Stage::start();
-                    if let Err(error) = infer_batches(&runtime, &batch_receiver, &result_sender) {
-                        let _ = result_sender.send(Err(error));
+    join_handles.push(std::thread::Builder::new().name("magika-model".to_string()).spawn({
+        let flags = flags.clone();
+        let batch_receiver = batch_receiver.clone();
+        let result_sender = result_sender.clone();
+        #[cfg(feature = "_trace")]
+        let trace = trace.clone();
+        move || {
+            let backend = flags.experimental.backend;
+            let backends = match Backends::start(builder, backend, flags.experimental.threads) {
+                Ok(backends) => backends,
+                Err(error) => return drop(result_sender.send(Err(error))),
+            };
+            let (backends, batch_receiver, result_sender) =
+                (&backends, &batch_receiver, &result_sender);
+            #[cfg(feature = "_trace")]
+            let trace = &trace;
+            std::thread::scope(|scope| {
+                // Each starting worker holds `done` until it finishes, which is when the run ends.
+                let spawn = |worker: usize, done: Option<crossbeam_channel::Sender<()>>| {
+                    let spawned = std::thread::Builder::new()
+                        .name(format!("magika-infer-{worker}"))
+                        .spawn_scoped(scope, move || {
+                            let _done = done;
+                            #[cfg(feature = "_trace")]
+                            let start = Stage::start();
+                            if let Err(error) =
+                                infer_batches(backends, batch_receiver, result_sender)
+                            {
+                                let _ = result_sender.send(Err(error));
+                            }
+                            #[cfg(feature = "_trace")]
+                            trace.insert(Stage::finalize(start));
+                        });
+                    if let Err(error) = spawned {
+                        let _ = result_sender.send(Err(error.into()));
                     }
-                    #[cfg(feature = "_trace")]
-                    trace.insert(Stage::finalize(start));
+                };
+                let (done, finished) = crossbeam_channel::bounded(0);
+                for worker in 0..backends.starting() {
+                    spawn(worker, Some(done.clone()));
                 }
-            })?,
-        );
-    }
+                drop(done);
+                let starting = backends.starting();
+                for worker in starting..starting + backends.more_workers(&finished) {
+                    spawn(worker, None);
+                }
+            });
+        }
+    })?);
     drop(batch_receiver);
     drop(result_sender);
     let mut errors = false;
@@ -402,7 +454,7 @@ fn main() -> Result<()> {
         ensure!(handle.join().is_ok());
     }
     #[cfg(feature = "_trace")]
-    trace.report(readers, threads);
+    trace.report(readers);
     result?;
     if errors {
         std::process::exit(1);
@@ -481,10 +533,10 @@ fn walk_paths(
 /// thread to interleave anyway.
 fn read_files(
     work_receiver: &crossbeam_channel::Receiver<Pending>,
-    sender: &std::sync::mpsc::SyncSender<ReadItem>,
+    sender: &std::sync::mpsc::SyncSender<ReadItem>, rules: bool,
 ) {
     while let Ok(pending) = work_receiver.recv() {
-        let extracted = extract_path(&pending.path);
+        let extracted = extract_path(&pending.path, rules);
         if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
@@ -492,14 +544,20 @@ fn read_files(
 }
 
 /// Accumulates every reader's output into one global inference batch stream.
+///
+/// With rules only, there is no inference: a file that reaches it is unknown.
 fn batch_files(
-    batch_size: usize, receiver: &std::sync::mpsc::Receiver<ReadItem>,
+    batch_size: usize, rules_only: bool, receiver: &std::sync::mpsc::Receiver<ReadItem>,
     batch_sender: &crossbeam_channel::Sender<Vec<BatchItem>>,
     result_sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
     let mut batch = Vec::with_capacity(batch_size);
     while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
+            Ok(FeaturesOrRuled::Features(_)) if rules_only => {
+                let result = Ok(FileType::Ruled(ContentType::Unknown));
+                result_sender.send(Ok(Response::new(pending, result)))?;
+            }
             Ok(FeaturesOrRuled::Features(features)) => {
                 batch.push(BatchItem { pending, features });
                 if batch.len() == batch_size {
@@ -522,14 +580,14 @@ fn batch_files(
     Ok(())
 }
 
-/// Reads a file and extracts its features.
-fn extract_path(path: &Path) -> Result<FeaturesOrRuled> {
+/// Reads a file and extracts its features, unless rules identify it.
+fn extract_path(path: &Path, rules: bool) -> Result<FeaturesOrRuled> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract(&stdin[..]);
+        return FeaturesOrRuled::extract(&stdin[..], rules);
     }
-    FeaturesOrRuled::extract(std::fs::File::open(path)?)
+    FeaturesOrRuled::extract(std::fs::File::open(path)?, rules)
 }
 
 enum ProcessPath {
@@ -636,14 +694,16 @@ fn process_path(
 }
 
 fn infer_batches(
-    runtime: &Runtime, receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>,
+    backends: &Backends, receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>,
     sender: &std::sync::mpsc::SyncSender<Result<Response>>,
 ) -> Result<()> {
-    // Create a session only when a thread receives its first batch. A short run never reaches most
-    // threads, so spawning their private execution state up front would be pure startup overhead.
-    let mut session = None;
+    // Create a session only when a thread receives its first batch on a backend. A short run never
+    // reaches most threads, so spawning their private execution state up front would be pure
+    // startup overhead.
+    let mut sessions = [None, None];
     while let Ok(batch) = receiver.recv() {
-        let magika = match &mut session {
+        let runtime = backends.runtime(batch.len())?;
+        let magika = match &mut sessions[runtime.backend_info().backend() as usize] {
             Some(session) => session,
             slot => slot.insert(runtime.session()?),
         };

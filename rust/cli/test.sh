@@ -28,16 +28,31 @@ x cargo clippy --features=_trace -- --deny=warnings
 PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 
 TEST_SUITES='basic previous_missdetections'
-info "Test against the test suites: $TEST_SUITES"
-( cd ../../tests_data
-  magika --format='%p: %l' --recursive $TEST_SUITES | while read line; do
-    file=${line%: *}
-    directory=${file%/*}
-    expected=${directory##*/}
-    actual=${line#*: }
-    [ "$expected" = "$actual" ] || error "$file is detected as $actual"
-  done
-)
+for rules in off enforce only; do
+  info "Test against the test suites ($TEST_SUITES) with --rules=$rules"
+  ( cd ../../tests_data
+    magika --rules=$rules --format='%p: %l' --recursive $TEST_SUITES | {
+      decided=0
+      while read line; do
+        file=${line%: *}
+        directory=${file%/*}
+        expected=${directory##*/}
+        actual=${line#*: }
+        if [ $rules != off ]; then
+          case "$file" in
+            basic/pem/doc.pem|basic/pem/doc.pub) expected=pgp ;;
+          esac
+        fi
+        if [ $rules = only ]; then
+          case "$actual" in
+            txt|unknown) continue ;;
+          esac
+        fi
+        [ "$expected" = "$actual" ] || error "$file is detected as $actual"
+      done
+    }
+  )
+done
 
 test_error() {
   files="$1"

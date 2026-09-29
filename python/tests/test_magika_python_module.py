@@ -29,9 +29,9 @@ from magika.types import (
     ContentTypeLabel,
     MagikaPrediction,
     MagikaResult,
+    OverwriteReason,
     Status,
 )
-from magika.types.overwrite_reason import OverwriteReason
 from tests import utils
 
 
@@ -64,16 +64,8 @@ def test_magika_module_with_one_test_file() -> None:
 
 @pytest.mark.smoketest
 def test_magika_module_with_explicit_model_dir() -> None:
-    model_dir = utils.get_default_model_dir()
-    test_path = utils.get_one_basic_test_file_path()
-
-    m = Magika(model_dir=model_dir)
-
-    _ = m.identify_path(test_path)
-    _ = m.identify_paths([test_path])
-    _ = m.identify_bytes(test_path.read_bytes())
-    with open(test_path, "rb") as f:
-        _ = m.identify_stream(f)
+    with pytest.raises(NotImplementedError):
+        Magika(model_dir=Path(__file__).parent)
 
 
 def test_magika_module_with_basic_tests_by_paths() -> None:
@@ -120,22 +112,10 @@ def test_magika_module_with_basic_tests_by_stream() -> None:
         )
 
 
-def test_magika_module_with_all_models() -> None:
-    tests_paths = utils.get_basic_test_files_paths()
-
-    models_dir = utils.get_models_dir()
-    for model_dir in models_dir.iterdir():
-        m = Magika(model_dir=model_dir)
-        for test_path in tests_paths:
-            result = m.identify_path(test_path)
-            check_result_vs_expected_result(test_path, result)
-
-
 def test_magika_module_with_previously_missdetected_samples() -> None:
-    model_dir = utils.get_default_model_dir()
     tests_paths = utils.get_previously_missdetected_files_paths()
 
-    m = Magika(model_dir=model_dir)
+    m = Magika()
     results = m.identify_paths(tests_paths)
     check_results_vs_expected_results(tests_paths, results)
 
@@ -248,31 +228,35 @@ def test_magika_module_identify_stream_does_not_alter_position() -> None:
 def test_magika_module_with_whitespaces() -> None:
     m = Magika()
 
+    min_file_size_for_dl = 16
+    beg_size = 512
+    end_size = 512
+    block_size = 4096
+
     ws_nums = sorted(
         {
             1,
-            m._model_config.min_file_size_for_dl - 1,
-            m._model_config.min_file_size_for_dl,
-            m._model_config.min_file_size_for_dl + 1,
-            m._model_config.beg_size - 1,
-            m._model_config.beg_size,
-            m._model_config.beg_size + 1,
-            m._model_config.end_size - 1,
-            m._model_config.end_size,
-            m._model_config.end_size + 1,
-            m._model_config.beg_size + m._model_config.end_size - 1,
-            m._model_config.beg_size + m._model_config.end_size,
-            m._model_config.beg_size + m._model_config.end_size + 1,
-            m._model_config.beg_size + m._model_config.end_size + 1,
-            m._model_config.block_size - 1,
-            m._model_config.block_size,
-            m._model_config.block_size + 1,
-            2 * m._model_config.block_size - 1,
-            2 * m._model_config.block_size,
-            2 * m._model_config.block_size + 1,
-            4 * m._model_config.block_size - 1,
-            4 * m._model_config.block_size,
-            4 * m._model_config.block_size + 1,
+            min_file_size_for_dl - 1,
+            min_file_size_for_dl,
+            min_file_size_for_dl + 1,
+            beg_size - 1,
+            beg_size,
+            beg_size + 1,
+            end_size - 1,
+            end_size,
+            end_size + 1,
+            beg_size + end_size - 1,
+            beg_size + end_size,
+            beg_size + end_size + 1,
+            block_size - 1,
+            block_size,
+            block_size + 1,
+            2 * block_size - 1,
+            2 * block_size,
+            2 * block_size + 1,
+            4 * block_size - 1,
+            4 * block_size,
+            4 * block_size + 1,
         }
     )
 
@@ -303,8 +287,7 @@ def test_magika_module_with_whitespaces() -> None:
 
 
 def test_magika_module_with_different_prediction_modes() -> None:
-    model_dir = utils.get_default_model_dir()
-    m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.BEST_GUESS)
+    m = Magika(prediction_mode=PredictionMode.BEST_GUESS)
     assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, 0.01
     ) == (
@@ -330,7 +313,7 @@ def test_magika_module_with_different_prediction_modes() -> None:
         OverwriteReason.NONE,
     )
 
-    m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
+    m = Magika(prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
     assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, 0.01
     ) == (
@@ -338,7 +321,7 @@ def test_magika_module_with_different_prediction_modes() -> None:
         OverwriteReason.LOW_CONFIDENCE,
     )
     assert m._get_output_label_from_dl_label_and_score(
-        ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold - 0.01
+        ContentTypeLabel.PYTHON, m._medium_confidence_threshold - 0.01
     ) == (ContentTypeLabel.TXT, OverwriteReason.LOW_CONFIDENCE)
     assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, 0.60
@@ -353,9 +336,9 @@ def test_magika_module_with_different_prediction_modes() -> None:
         OverwriteReason.NONE,
     )
 
-    m = Magika(model_dir=model_dir, prediction_mode=PredictionMode.HIGH_CONFIDENCE)
-    high_confidence_threshold = m._model_config.thresholds.get(
-        ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold
+    m = Magika(prediction_mode=PredictionMode.HIGH_CONFIDENCE)
+    high_confidence_threshold = m._thresholds.get(
+        ContentTypeLabel.PYTHON, m._medium_confidence_threshold
     )
     assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, 0.01
@@ -377,9 +360,9 @@ def test_magika_module_with_different_prediction_modes() -> None:
     )
 
     # test that the default is HIGH_CONFIDENCE
-    m = Magika(model_dir=model_dir)
-    high_confidence_threshold = m._model_config.thresholds.get(
-        ContentTypeLabel.PYTHON, m._model_config.medium_confidence_threshold
+    m = Magika()
+    high_confidence_threshold = m._thresholds.get(
+        ContentTypeLabel.PYTHON, m._medium_confidence_threshold
     )
     assert m._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, 0.01
@@ -406,10 +389,10 @@ def test_magika_module_overwrite_reason() -> None:
     m_medium = Magika(prediction_mode=PredictionMode.MEDIUM_CONFIDENCE)
     m_best = Magika(prediction_mode=PredictionMode.BEST_GUESS)
 
-    python_high_confidence_threshold = m_high._model_config.thresholds.get(
-        ContentTypeLabel.PYTHON, m_high._model_config.medium_confidence_threshold
+    python_high_confidence_threshold = m_high._thresholds.get(
+        ContentTypeLabel.PYTHON, m_high._medium_confidence_threshold
     )
-    medium_confidence_threshold = m_medium._model_config.medium_confidence_threshold
+    medium_confidence_threshold = m_medium._medium_confidence_threshold
 
     assert m_high._get_output_label_from_dl_label_and_score(
         ContentTypeLabel.PYTHON, python_high_confidence_threshold + 0.01
@@ -432,17 +415,13 @@ def test_magika_module_overwrite_reason() -> None:
         ContentTypeLabel.PYTHON, medium_confidence_threshold - 0.01
     ) == (ContentTypeLabel.PYTHON, OverwriteReason.NONE)
 
-    for overwrite_map_ct_key in sorted(m_high._model_config.overwrite_map.keys()):
-        overwrite_map_ct_value = m_high._model_config.overwrite_map[
-            overwrite_map_ct_key
-        ]
+    for overwrite_map_ct_key in sorted(m_high._overwrite_map.keys()):
+        overwrite_map_ct_value = m_high._overwrite_map[overwrite_map_ct_key]
         is_overwrite_map_ct_target_text = m_high._cts_infos[
             overwrite_map_ct_value
         ].is_text
-        overwrite_map_ct_high_confidence_threshold = (
-            m_high._model_config.thresholds.get(
-                overwrite_map_ct_key, m_high._model_config.medium_confidence_threshold
-            )
+        overwrite_map_ct_high_confidence_threshold = m_high._thresholds.get(
+            overwrite_map_ct_key, m_high._medium_confidence_threshold
         )
         assert m_high._get_output_label_from_dl_label_and_score(
             overwrite_map_ct_key, overwrite_map_ct_high_confidence_threshold + 0.01
@@ -457,9 +436,9 @@ def test_magika_module_overwrite_reason() -> None:
         )
 
     for generic_ct in [ContentTypeLabel.TXT, ContentTypeLabel.UNKNOWN]:
-        generic_type_high_confidence_threshold = m_high._model_config.thresholds.get(
+        generic_type_high_confidence_threshold = m_high._thresholds.get(
             generic_ct,
-            m_high._model_config.medium_confidence_threshold,
+            m_high._medium_confidence_threshold,
         )
         assert m_high._get_output_label_from_dl_label_and_score(
             generic_ct,

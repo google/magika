@@ -9,6 +9,10 @@ venv/
 *.egg-info
 dist/*
 *.pickle
+*.so
+*.pyd
+wheel_data/scripts/*
+!wheel_data/scripts/.gitkeep
 .s.yml
 
 # Unit test / coverage reports

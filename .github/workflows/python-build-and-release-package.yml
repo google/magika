@@ -49,6 +49,8 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+      - name: Build and stage magika CLI binary
+        run: ./python/scripts/stage_cli.sh
       - name: Check package for release
         env:
           IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
@@ -72,41 +74,138 @@ jobs:
         working-directory: python
 
   build-wheels:
+    name: Build wheel on ${{ matrix.platform.os }} (${{ matrix.platform.target }})
     needs: [pre-release-checks]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
+      fail-fast: false
       matrix:
         platform:
-          - runner: ubuntu-latest
-            target: x86_64
-          - runner: windows-latest
-            target: x64
-          - runner: macos-14
-            target: aarch64
+          - os: Linux
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            manylinux: "2_28"
+          - os: Linux
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            manylinux: "2_28"
+          - os: Linux
+            runner: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            manylinux: "2014"
+          - os: Linux
+            runner: ubuntu-latest
+            target: riscv64gc-unknown-linux-gnu
+            manylinux: "2_31"
+          - os: Linux
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            manylinux: "musllinux_1_2"
+          - os: Linux
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            manylinux: "musllinux_1_2"
+          - os: macOS
+            runner: macos-14
+            target: aarch64-apple-darwin
+          - os: macOS
+            runner: macos-14
+            target: x86_64-apple-darwin
+          - os: Windows
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          # --- Targets blocked by upstream tract-linalg 0.23.4 assembly/compiler limitations ---
+          # 1. Windows ARM64: tract-linalg 0.23.4 build.rs fails on MSVC ARM64 (lacks MASM/Clang
+          #    support for arm64simd GNU assembly kernels; causes LNK1181).
+          # - os: Windows
+          #   runner: windows-latest
+          #   target: aarch64-pc-windows-msvc
+          # 2. Linux ARMv7 (musl): tract-linalg 0.23.4 build.rs fails with conflicting FPU flags
+          #    (-mfpu=vfpv3-d16 vs -mfpu=neon) in musllinux GCC cross-compiler.
+          # - os: Linux
+          #   runner: ubuntu-latest
+          #   target: armv7-unknown-linux-musleabihf
+          #   manylinux: "musllinux_1_2"
+          # 3. Linux ARMv6: tract-linalg 0.23.4 build.rs fails looking for arm-linux-gnueabihf-gcc
+          #    which is absent from the manylinux container PATH.
+          # - os: Linux
+          #   runner: ubuntu-latest
+          #   target: arm-unknown-linux-gnueabihf
+          #   manylinux: "auto"
+
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Setup Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-      - name: Build wheels
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Setup Rust
+        if: matrix.platform.os != 'Linux'
+        shell: bash
+        run: |
+          rustup default stable
+          rustup target add ${{ matrix.platform.target }}
+
+      # On macOS and Windows (which build on the host, not inside a manylinux container),
+      # compile and stage the CLI binary into python/wheel_data/scripts/ before Maturin packages it.
+      # On Linux, this is handled inside the manylinux container by python/scripts/stage_cli.sh via before-script-linux.
+      - if: matrix.platform.os != 'Linux'
+        name: Build and stage magika CLI (macOS/Windows)
+        shell: bash
+        run: ./python/scripts/stage_cli.sh ${{ matrix.platform.target }}
+
+      # Build PyO3 wheel using maturin-action (Linux in manylinux container)
+      - if: matrix.platform.os == 'Linux'
+        name: Build wheel via Maturin (Linux)
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out=../dist
+          args: --release --out dist
+          manylinux: ${{ matrix.platform.manylinux }}
+          before-script-linux: "${{ github.workspace }}/python/scripts/stage_cli.sh ${{ matrix.platform.target }}"
           working-directory: python
-      - name: Upload wheels
+
+      # Build PyO3 wheel using maturin-action (macOS/Windows on host)
+      - if: matrix.platform.os != 'Linux'
+        name: Build wheel via Maturin (macOS/Windows)
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
+          working-directory: python
+
+      - name: Upload wheel artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: wheel-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
-          path: dist
+          name: wheel-${{ matrix.platform.target }}
+          path: python/dist/*.whl
 
-  # Download, install, and test the wheels with different versions of python
+  # Download, install, and test the built wheels across supported Python versions (3.8 through 3.14).
+  #
+  # Tested Platforms:
+  # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-latest
+  # - macOS Apple Silicon (aarch64-apple-darwin) on macos-14
+  # - Windows x64 (x86_64-pc-windows-msvc) on windows-latest
+  #
+  # Uncovered Build Targets (not tested in this matrix):
+  # - x86_64-apple-darwin: Cross-compiled on macos-14 (Apple Silicon). The runner host
+  #   interpreter is ARM64 (pip rejects x86_64 wheels). Running x64 Python via Rosetta
+  #   is blocked for Python 3.8/3.9 due to lack of setup-python x64 binaries on macOS 14.
+  # - aarch64-unknown-linux-gnu: Built via QEMU on x86_64 runner. Cannot execute natively
+  #   on host; native ubuntu-24.04-arm runners lack setup-python binaries for Python 3.8/3.9.
+  # - x86_64-unknown-linux-musl, aarch64-unknown-linux-musl, armv7-unknown-linux-musleabihf:
+  #   Built for musl (Alpine). Host runner uses glibc; pip rejects musllinux wheels on glibc.
+  #   Requires a dedicated Alpine container test job.
+  # - armv7-unknown-linux-gnueabihf, arm-unknown-linux-gnueabihf: 32-bit ARM (Raspberry Pi).
+  #   Requires 32-bit ARM QEMU container emulation.
+  # - riscv64gc-unknown-linux-gnu: 64-bit RISC-V. Requires RISC-V QEMU container emulation.
+  # - aarch64-pc-windows-msvc: Cross-compiled on Windows x86_64. Windows x86_64 cannot execute
+  #   Windows ARM64 binaries (no forward emulation).
   test-wheels:
+    name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with Python ${{ matrix.python-version }}
     needs: [build-wheels]
     runs-on: ${{ matrix.platform.runner }}
     if: github.event.schedule != '12 3 * * 1'
@@ -116,49 +215,101 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
-          - runner: ubuntu-latest
-            target: x86_64
-          - runner: windows-latest
-            target: x64
-          - runner: macos-14
-            target: aarch64
+          - os: Linux
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macOS
+            runner: macos-14
+            target: aarch64-apple-darwin
+          - os: Windows
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: wheel-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
+          name: wheel-${{ matrix.platform.target }}
           path: dist
-      - name: Setup Python
+
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
         with:
           python-version: "${{ matrix.python-version }}"
+          allow-prereleases: true
+
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-      # Attempt "uv add magika.whl", in a temporary directory
-      - name: Check that `uv add magika.whl` works
+
+      - name: Test wheel installation and execution with pip (venv)
         shell: bash
         run: |
-          mkdir /tmp/test-uv
-          cp -vR dist/*.whl /tmp/test-uv
-          cd /tmp/test-uv
-          uv init
-          uv add ./$(\ls -1 *.whl | head -n 1)
-      # From now on, magika will be available in the global environment
-      - name: Install the wheel via pip
-        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+          python -m venv test-pip-venv
+          if [[ "${{ matrix.platform.os }}" == "Windows" ]]; then
+            source test-pip-venv/Scripts/activate
+          else
+            source test-pip-venv/bin/activate
+          fi
+          WHEEL_PATH=$(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+          pip install "$WHEEL_PATH"
 
-      - run: magika --version
-      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
-      - run: magika -r tests_data/basic
-      - run: python3 ./python/scripts/run_quick_test_magika_cli.py
-      - run: python3 ./python/scripts/run_quick_test_magika_module.py
+          # Verify CLI execution
+          magika --version
+          magika tests_data/basic/python/code.py
+          magika -r tests_data/basic
+
+          # Verify Python library execution
+          python -c "import magika; m = magika.Magika(); print(m)"
+          python -c "import magika; m = magika.Magika(); res = m.identify_path('tests_data/basic/python/code.py'); assert res.ok and res.prediction.output.label == 'python', f'Unexpected: {res}'"
+
+      - name: Test wheel installation and execution with uv (venv)
+        shell: bash
+        run: |
+          uv venv test-uv-venv
+          if [[ "${{ matrix.platform.os }}" == "Windows" ]]; then
+            source test-uv-venv/Scripts/activate
+          else
+            source test-uv-venv/bin/activate
+          fi
+          WHEEL_PATH=$(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
+          uv pip install "$WHEEL_PATH"
+
+          # Verify CLI execution
+          magika --version
+          magika tests_data/basic/python/code.py
+
+          # Verify Python library execution
+          python -c "import magika; m = magika.Magika(); print(m)"
+          python -c "from pathlib import Path; import magika; m = magika.Magika(); res = m.identify_bytes(Path('tests_data/basic/python/code.py').read_bytes()); assert res.ok and res.prediction.output.label == 'python', f'Unexpected: {res}'"
+
+      - name: Run pytest smoketests and quick test scripts
+        shell: bash
+        run: |
+          if [[ "${{ matrix.platform.os }}" == "Windows" ]]; then
+            source test-pip-venv/Scripts/activate
+          else
+            source test-pip-venv/bin/activate
+          fi
+          pip install pytest click
+          python ./python/scripts/run_quick_test_magika_cli.py
+          python ./python/scripts/run_quick_test_magika_module.py
+          cd python
+          pytest tests/test_magika_python_module.py -m smoketest
+
       - name: Check package for release readiness
         env:
           IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
         shell: bash
         run: |
+          if [[ "${{ matrix.platform.os }}" == "Windows" ]]; then
+            source ../test-pip-venv/Scripts/activate
+          else
+            source ../test-pip-venv/bin/activate
+          fi
           if [[ "${IS_RELEASE_TAG}" == 'true' ]]; then
             FULL_TAG_REF="${GITHUB_REF}"
             TAG_NAME="${GITHUB_REF_NAME}"
@@ -172,183 +323,8 @@ jobs:
           else
             CHECKER_OPTIONS="--report-only"
           fi
-          # Note: this uses the magika python package that was just built.
-          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS
-        working-directory: python
-
-  build-pure-python-wheel-and-sdist:
-    needs: [pre-release-checks]
-    runs-on: ubuntu-latest
-    if: github.event.schedule != '12 3 * * 1'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-      - run: uv run ./scripts/prepare_pyproject_for_pure_python_wheel.py
-        working-directory: python
-      - name: Build pure python wheel and source distribution
-        run: uv build --out-dir ../dist
-        working-directory: python
-      - name: Upload pure python wheel
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wheel-pure-python
-          path: dist/*.whl
-      - name: Upload sdist
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: sdist
-          path: dist/*.tar.gz
-
-  # Download, install, and test the pure python wheel on multiple platforms
-  test-pure-python-wheel:
-    needs: [build-pure-python-wheel-and-sdist]
-    runs-on: ${{ matrix.platform.runner }}
-    if: github.event.schedule != '12 3 * * 1'
-    strategy:
-      # We want to know in which exact situation the tests fail
-      fail-fast: false
-      matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-        platform:
-          - runner: ubuntu-latest
-            target: x86_64
-          - runner: windows-latest
-            target: x64
-          - runner: macos-14
-            target: aarch64
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: wheel-pure-python
-          path: dist
-      - name: Setup Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
-        with:
-          python-version: "${{ matrix.python-version }}"
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-      # Attempt "uv add magika.whl", in a temporary directory
-      - name: Check that `uv add magika.whl` works
-        shell: bash
-        run: |
-          mkdir /tmp/test-uv
-          cp -vR dist/*.whl /tmp/test-uv
-          cd /tmp/test-uv
-          uv init
-          uv add ./$(\ls -1 *.whl | head -n 1)
-      # From now on, magika will be available in the global environment
-      - name: Install the wheel
-        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.whl')[0])")
-
-      # Check that the magika script points to the placeholder raising a warning
-      - run: magika --version | grep -C10 WARNING | grep -C10 magika-python-client
-      # Check that the fallback magika's python client can be run
-      - run: magika-python-client -r tests_data/basic
-      # Check that the results of the python's client are correct
-      - run: python3 ./python/scripts/run_quick_test_magika_cli.py --client-path magika-python-client
-      # Test the python module
-      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
-      - run: python3 ./python/scripts/run_quick_test_magika_module.py
-      - name: Check package for release readiness
-        env:
-          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
-        shell: bash
-        run: |
-          if [[ "${IS_RELEASE_TAG}" == 'true' ]]; then
-            FULL_TAG_REF="${GITHUB_REF}"
-            TAG_NAME="${GITHUB_REF_NAME}"
-            if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
-              PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
-            else
-              PREFIX_TO_REMOVE="refs/tags/${{ env.TEST_RELEASE_TAG_PREFIX }}"
-            fi
-            TAG_VERSION="${FULL_TAG_REF#${PREFIX_TO_REMOVE}}"
-            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
-          else
-            CHECKER_OPTIONS="--report-only"
-          fi
-          # Note: this uses the magika python package that was just built.
-          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS --use-python-client
-        working-directory: python
-
-  test-sdist:
-    needs: [build-pure-python-wheel-and-sdist]
-    runs-on: ${{ matrix.platform.runner }}
-    if: github.event.schedule != '12 3 * * 1'
-    strategy:
-      # We want to know in which exact situation the tests fail
-      fail-fast: false
-      matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-        platform:
-          - runner: ubuntu-latest
-            target: x86_64
-          - runner: windows-latest
-            target: x64
-          - runner: macos-14
-            target: aarch64
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sdist
-          path: dist
-      - name: Setup Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
-        with:
-          python-version: "${{ matrix.python-version }}"
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
-      # Attempt "uv add magika.whl", in a temporary directory
-      - name: Check that `uv add magika.tar.gz` works
-        shell: bash
-        run: |
-          mkdir /tmp/test-uv
-          cp -vR dist/*.tar.gz /tmp/test-uv
-          cd /tmp/test-uv
-          uv init
-          uv add ./$(\ls -1 *.tar.gz | head -n 1)
-      # From now on, magika will be available in the global environment
-      - name: Install the sdist
-        run: python3 -m pip install $(python -c "import glob; print(glob.glob('dist/*.tar.gz')[0])")
-
-      # Check that the magika script points to the placeholder raising a warning
-      - run: magika --version | grep -C10 WARNING | grep -C10 magika-python-client
-      # Check that the fallback magika's python client can be run
-      - run: magika-python-client -r tests_data/basic
-      # Check that the results of the python's client are correct
-      - run: python3 ./python/scripts/run_quick_test_magika_cli.py --client-path magika-python-client
-      # Test the python module
-      - run: "python3 -c 'import magika; m = magika.Magika(); print(m)'"
-      - run: python3 ./python/scripts/run_quick_test_magika_module.py
-      - name: Check package for release readiness
-        env:
-          IS_RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_type == 'tag' && (startsWith(github.ref_name, env.RELEASE_TAG_PREFIX) || startsWith(github.ref_name, env.TEST_RELEASE_TAG_PREFIX)) }}
-        shell: bash
-        run: |
-          if [[ "${IS_RELEASE_TAG}" == 'true' ]]; then
-            FULL_TAG_REF="${GITHUB_REF}"
-            TAG_NAME="${GITHUB_REF_NAME}"
-            if [[ "${TAG_NAME}" == "${{ env.RELEASE_TAG_PREFIX }}"* ]]; then
-              PREFIX_TO_REMOVE="refs/tags/${{ env.RELEASE_TAG_PREFIX }}"
-            else
-              PREFIX_TO_REMOVE="refs/tags/${{ env.TEST_RELEASE_TAG_PREFIX }}"
-            fi
-            TAG_VERSION="${FULL_TAG_REF#${PREFIX_TO_REMOVE}}"
-            CHECKER_OPTIONS="--expected-version ${TAG_VERSION}"
-          else
-            CHECKER_OPTIONS="--report-only"
-          fi
-          # Note: this uses the magika python package that was just built.
-          python3 ./scripts/pre_release_check.py $CHECKER_OPTIONS --use-python-client
+          # Note: this uses the magika python package that was just built and installed via pip.
+          python ./scripts/pre_release_check.py $CHECKER_OPTIONS
         working-directory: python
 
   # Adapted from https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
@@ -356,7 +332,7 @@ jobs:
   publish-to-pypi:
     name: Publish to PyPI
     if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
-    needs: [test-wheels, test-pure-python-wheel, test-sdist]
+    needs: [test-wheels]
     runs-on: ubuntu-latest
 
     environment:
@@ -367,7 +343,7 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
     steps:
-      - name: Download all the artifacts (binary wheels, pure python wheel, sdist)
+      - name: Download all wheel artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/
@@ -396,7 +372,7 @@ jobs:
   publish-to-testpypi:
     name: Publish to TestPyPI
     if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
-    needs: [test-wheels, test-pure-python-wheel, test-sdist]
+    needs: [test-wheels]
     runs-on: ubuntu-latest
 
     environment:
@@ -407,7 +383,7 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
     steps:
-      - name: Download all the artifacts (binary wheels, pure python wheel, sdist)
+      - name: Download all wheel artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts/

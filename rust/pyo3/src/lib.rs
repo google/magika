@@ -21,7 +21,6 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 #[pyclass(name = "MagikaResult")]
-#[derive(Clone)]
 pub struct PyMagikaResult {
     #[pyo3(get)]
     pub path: Option<String>,
@@ -243,7 +242,7 @@ impl PyMagika {
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
-        let result = py.allow_threads(|| {
+        let result = py.detach(|| {
             self.with_session(|session| session.identify_content(data))
         });
         match result {
@@ -254,7 +253,7 @@ impl PyMagika {
 
     fn identify_path(&self, py: Python<'_>, path: &str) -> PyResult<PyMagikaResult> {
         let no_dereference = self.no_dereference;
-        let result: anyhow::Result<PyMagikaResult> = py.allow_threads(|| {
+        let result: anyhow::Result<PyMagikaResult> = py.detach(|| {
             match extract_path_disposition(path, no_dereference)? {
                 PathDisposition::Immediate(res) => Ok(res),
                 PathDisposition::Features(features) => {
@@ -271,7 +270,7 @@ impl PyMagika {
 
     fn identify_paths(&self, py: Python<'_>, paths: Vec<String>) -> PyResult<Vec<PyMagikaResult>> {
         let no_dereference = self.no_dereference;
-        let results: anyhow::Result<Vec<PyMagikaResult>> = py.allow_threads(|| {
+        let results: anyhow::Result<Vec<PyMagikaResult>> = py.detach(|| {
             let mut slots: Vec<Option<PyMagikaResult>> = Vec::with_capacity(paths.len());
             let mut batch_indices: Vec<usize> = Vec::new();
             let mut batch_features: Vec<Features> = Vec::new();

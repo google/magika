@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1.0.104"
 magika = { path = "../lib" }
-pyo3 = { version = "0.23", features = ["abi3-py38", "extension-module", "generate-import-lib"] }
+pyo3 = { version = "0.29", features = ["abi3-py38", "extension-module", "generate-import-lib"] }
 
 [profile.release]
 codegen-units = 1

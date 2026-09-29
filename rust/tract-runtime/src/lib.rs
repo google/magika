@@ -27,7 +27,6 @@ use std::sync::Arc;
 use anyhow::bail;
 use anyhow::{Context as _, Result, ensure};
 // Only the GPU preparers build a plan by hand; the CPU one goes through the runtime.
-
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 use tract_core::prelude::TypedSimplePlan;
 #[cfg(any(test, feature = "_export"))]

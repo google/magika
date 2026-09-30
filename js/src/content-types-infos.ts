@@ -121,6 +121,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.ASC,
       is_text: true,
     },
+    [ContentTypeLabel.ASCIIDOC]: {
+      label: ContentTypeLabel.ASCIIDOC,
+      is_text: true,
+    },
     [ContentTypeLabel.ASD]: {
       label: ContentTypeLabel.ASD,
       is_text: false,

@@ -42,6 +42,7 @@ export enum ContentTypeLabel {
   ARJ = "arj",
   ARROW = "arrow",
   ASC = "asc",
+  ASCIIDOC = "asciidoc",
   ASD = "asd",
   ASF = "asf",
   ASM = "asm",

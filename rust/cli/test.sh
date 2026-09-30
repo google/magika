@@ -38,11 +38,6 @@ for rules in off enforce only; do
         directory=${file%/*}
         expected=${directory##*/}
         actual=${line#*: }
-        if [ $rules != off ]; then
-          case "$file" in
-            basic/pem/doc.pem|basic/pem/doc.pub) expected=pgp ;;
-          esac
-        fi
         if [ $rules = only ]; then
           case "$actual" in
             txt|unknown) continue ;;

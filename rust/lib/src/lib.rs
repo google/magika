@@ -156,8 +156,8 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let mut runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
-        runtime.options_mut().use_rules = false;
+        let runtime =
+            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
         let mut session = runtime.session().unwrap();
         let mut checked = 0;
         for test in tests {
@@ -187,8 +187,8 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let mut runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
-        runtime.options_mut().use_rules = false;
+        let runtime =
+            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
         let mut session = runtime.session().unwrap();
         let mut checked = 0;
         for test in tests {

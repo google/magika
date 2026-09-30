@@ -131,9 +131,9 @@ struct Format {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 enum RulesMode {
     /// Identifies files with the model only.
-    #[default]
     Off,
     /// Identifies files with rules first, and with the model when no rule decides.
+    #[default]
     Enforce,
     /// Identifies files with rules only, as unknown when no rule decides. The model is not loaded.
     Only,
@@ -196,16 +196,6 @@ struct Trace {
 struct Stage {
     busy_ns: u64,
     wait_ns: u64,
-}
-
-impl RulesMode {
-    fn set_options(self, options: &mut magika::Options) {
-        match self {
-            RulesMode::Off => options.use_rules = false,
-            RulesMode::Enforce => (),
-            RulesMode::Only => options.use_model = false,
-        }
-    }
 }
 
 #[cfg(feature = "_trace")]
@@ -312,10 +302,13 @@ fn main() -> Result<()> {
         colored::control::set_override(false);
     }
     let rules_only = flags.experimental.rules == RulesMode::Only;
-    let mut options = magika::Options::default();
-    flags.experimental.rules.set_options(&mut options);
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
+    builder = match flags.experimental.rules {
+        RulesMode::Off => builder.with_rules(false),
+        RulesMode::Enforce => builder,
+        RulesMode::Only => builder.with_model(false),
+    };
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
@@ -330,6 +323,7 @@ fn main() -> Result<()> {
         println!("{backend} ({})", info.implementation());
         return Ok(());
     }
+    let options = builder.options().clone();
     // Queues are sized before knowing which backend identifies the files, so for the busiest.
     let threads = flags.experimental.threads.unwrap_or_else(|| {
         default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
@@ -401,18 +395,16 @@ fn main() -> Result<()> {
     drop(batch_sender);
     join_handles.push(std::thread::Builder::new().name("magika-model".to_string()).spawn({
         let flags = flags.clone();
-        let options = options.clone();
         let batch_receiver = batch_receiver.clone();
         let result_sender = result_sender.clone();
         #[cfg(feature = "_trace")]
         let trace = trace.clone();
         move || {
             let backend = flags.experimental.backend;
-            let backends =
-                match Backends::start(builder, backend, flags.experimental.threads, &options) {
-                    Ok(backends) => backends,
-                    Err(error) => return drop(result_sender.send(Err(error))),
-                };
+            let backends = match Backends::start(builder, backend, flags.experimental.threads) {
+                Ok(backends) => backends,
+                Err(error) => return drop(result_sender.send(Err(error))),
+            };
             let (backends, batch_receiver, result_sender) =
                 (&backends, &batch_receiver, &result_sender);
             #[cfg(feature = "_trace")]
@@ -567,11 +559,8 @@ fn batch_files(
     let mut batch = Vec::with_capacity(batch_size);
     while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
-            Ok(FeaturesOrRuled::Features(_)) if rules_only => {
-                let result = Ok(FileType::Ruled(ContentType::Unknown));
-                result_sender.send(Ok(Response::new(pending, result)))?;
-            }
             Ok(FeaturesOrRuled::Features(features)) => {
+                debug_assert!(!rules_only);
                 batch.push(BatchItem { pending, features });
                 if batch.len() == batch_size {
                     let full = std::mem::replace(&mut batch, Vec::with_capacity(batch_size));

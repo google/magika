@@ -56,11 +56,13 @@ impl Runtime {
         Ok(Session { inner: self.inner.session()?, options: self.options.clone() })
     }
 
-    pub(crate) fn new_internal(backend: BackendRequest, max_batch: Option<usize>) -> Result<Self> {
+    pub(crate) fn new_internal(
+        backend: BackendRequest, max_batch: Option<usize>, options: Options,
+    ) -> Result<Self> {
         let inner = match max_batch {
             None => magika_tract_runtime::Runtime::new(backend)?,
             Some(max_batch) => magika_tract_runtime::Runtime::with_max_batch(backend, max_batch)?,
         };
-        Ok(Self { inner, options: Options::default() })
+        Ok(Self { inner, options })
     }
 }

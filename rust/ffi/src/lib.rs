@@ -250,12 +250,9 @@ pub unsafe extern "C" fn magika_runtime_new(
                 if opts.max_batch > 0 {
                     builder = builder.with_max_batch(opts.max_batch);
                 }
+                builder = builder.with_options(opts.options.into());
             }
-            let mut runtime = builder.build()?;
-            if !options.is_null() {
-                *runtime.options_mut() = (*options).options.into();
-            }
-            Ok(runtime)
+            builder.build()
         },
         |runtime| *out_runtime = Box::into_raw(Box::new(MagikaRuntime { inner: runtime })),
     )

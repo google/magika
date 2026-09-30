@@ -14,13 +14,14 @@
 
 use anyhow::Result;
 
-use crate::{Backend, Runtime};
+use crate::{Backend, Options, PredictionMode, Runtime};
 
 /// Configures and creates a Magika runtime.
 #[derive(Clone, Debug, Default)]
 pub struct Builder {
     backend: Option<Backend>,
     max_batch: Option<usize>,
+    options: Options,
 }
 
 impl Builder {
@@ -40,8 +41,40 @@ impl Builder {
         self
     }
 
+    /// Sets options to identify files.
+    ///
+    /// These options can be later modified at the runtime and session level. Sessions inherit
+    /// options from the runtime when created.
+    pub fn with_options(mut self, options: Options) -> Self {
+        self.options = options;
+        self
+    }
+
+    /// Returns the current options.
+    pub fn options(&self) -> &Options {
+        &self.options
+    }
+
+    /// Configures whether to use rules.
+    pub fn with_rules(mut self, use_rules: bool) -> Self {
+        self.options.use_rules = use_rules;
+        self
+    }
+
+    /// Configures whether to use the model.
+    pub fn with_model(mut self, use_model: bool) -> Self {
+        self.options.use_model = use_model;
+        self
+    }
+
+    /// Configures how confident the model needs to be.
+    pub fn with_prediction_mode(mut self, prediction_mode: PredictionMode) -> Self {
+        self.options.prediction_mode = prediction_mode;
+        self
+    }
+
     /// Consumes the builder to create a Magika runtime.
     pub fn build(self) -> Result<Runtime> {
-        Runtime::new_internal(Backend::to_request(self.backend), self.max_batch)
+        Runtime::new_internal(Backend::to_request(self.backend), self.max_batch, self.options)
     }
 }

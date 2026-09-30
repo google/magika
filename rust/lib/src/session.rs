@@ -55,7 +55,11 @@ impl Session {
     /// Identifies a single file.
     pub fn identify_file(&mut self, file: impl AsRef<Path>) -> Result<FileType> {
         let file = file.as_ref();
-        let metadata = std::fs::symlink_metadata(file)?;
+        let metadata = if self.options.follow_symlink {
+            std::fs::metadata(file)?
+        } else {
+            std::fs::symlink_metadata(file)?
+        };
         if metadata.is_dir() {
             Ok(FileType::Directory)
         } else if metadata.is_symlink() {

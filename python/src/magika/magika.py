@@ -115,11 +115,9 @@ class Magika:
         )
         self._cts_infos = Magika._load_content_types_kb(content_types_kb_path)
 
-        # FIXME(https://github.com/google/magika/issues/1481): Pass no_dereference
-        # directly to magika-lib Session once supported.
         self._pyo3_session = _magika.Magika(
             prediction_mode=self._prediction_mode,
-            no_dereference=self._no_dereference,
+            follow_symlink=not self._no_dereference,
         )
 
     def __repr__(self) -> str:

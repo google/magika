@@ -148,6 +148,8 @@ pub struct MagikaOptions {
     pub use_model: bool,
     /// Configures the minimum confidence level for inference.
     pub prediction_mode: MagikaPredictionMode,
+    /// Whether to follow symlinks.
+    pub follow_symlink: bool,
 }
 
 impl Default for MagikaOptions {
@@ -156,6 +158,7 @@ impl Default for MagikaOptions {
             use_rules: true,
             use_model: true,
             prediction_mode: MagikaPredictionMode::HighConfidence,
+            follow_symlink: false,
         }
     }
 }
@@ -166,6 +169,7 @@ impl From<MagikaOptions> for magika::Options {
             use_rules: options.use_rules,
             use_model: options.use_model,
             prediction_mode: options.prediction_mode.into(),
+            follow_symlink: options.follow_symlink,
         }
     }
 }

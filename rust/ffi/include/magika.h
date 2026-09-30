@@ -142,6 +142,10 @@ typedef struct MagikaOptions {
    * Configures the minimum confidence level for inference.
    */
   enum MagikaPredictionMode prediction_mode;
+  /**
+   * Whether to follow symlinks.
+   */
+  bool follow_symlink;
 } MagikaOptions;
 
 /**

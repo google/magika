@@ -43,7 +43,7 @@ impl Default for Options {
             use_rules: true,
             use_model: true,
             prediction_mode: PredictionMode::HighConfidence,
-            follow_symlink: false,
+            follow_symlink: true,
         }
     }
 }

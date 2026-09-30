@@ -229,7 +229,7 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=false))]
+    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true))]
     fn new(
         use_rules: bool, use_model: bool, prediction_mode: &str, follow_symlink: bool,
     ) -> PyResult<Self> {

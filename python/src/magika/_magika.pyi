@@ -36,7 +36,7 @@ class Magika:
         use_rules: bool = True,
         use_model: bool = True,
         prediction_mode: str = "high_confidence",
-        follow_symlink: bool = False,
+        follow_symlink: bool = True,
     ) -> None: ...
     @staticmethod
     def get_default_model_name() -> str: ...

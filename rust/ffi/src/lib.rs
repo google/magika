@@ -158,7 +158,7 @@ impl Default for MagikaOptions {
             use_rules: true,
             use_model: true,
             prediction_mode: MagikaPredictionMode::HighConfidence,
-            follow_symlink: false,
+            follow_symlink: true,
         }
     }
 }

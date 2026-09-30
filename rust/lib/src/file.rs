@@ -15,7 +15,7 @@
 use ndarray::ArrayViewD;
 
 use crate::model::Label;
-use crate::ContentType;
+use crate::{ContentType, PredictionMode};
 
 /// File types.
 ///
@@ -129,7 +129,7 @@ pub struct TypeInfo {
 }
 
 impl FileType {
-    pub(crate) fn convert(tensor: ArrayViewD<f32>) -> Vec<FileType> {
+    pub(crate) fn convert(mode: PredictionMode, tensor: ArrayViewD<f32>) -> Vec<FileType> {
         let mut results = Vec::new();
         for view in tensor.view().axis_iter(ndarray::Axis(0)) {
             let scores = view.to_slice().unwrap();
@@ -145,15 +145,15 @@ impl FileType {
             let label = unsafe { std::mem::transmute::<u32, Label>(best as u32) };
             let inferred_type = label.content_type();
             let config = &crate::model::CONFIG;
-            let mut content_type = if score < config.thresholds[inferred_type as usize] {
+            let mut content_type = if mode.is_confident(score, inferred_type as usize) {
+                let overwrite = config.overwrite_map[inferred_type as usize];
+                (overwrite != inferred_type).then_some((overwrite, OverwriteReason::OverwriteMap))
+            } else {
                 let is_text = inferred_type.info().is_text;
                 Some((
                     if is_text { ContentType::Txt } else { ContentType::Unknown },
                     OverwriteReason::LowConfidence,
                 ))
-            } else {
-                let overwrite = config.overwrite_map[inferred_type as usize];
-                (overwrite != inferred_type).then_some((overwrite, OverwriteReason::OverwriteMap))
             };
             if content_type.as_ref().is_some_and(|(x, _)| *x == inferred_type) {
                 content_type = None;

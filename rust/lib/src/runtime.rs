@@ -15,14 +15,14 @@
 use anyhow::Result;
 use magika_tract_runtime::BackendRequest;
 
-use crate::{BackendInfo, Builder, Session};
+use crate::{BackendInfo, Builder, Options, Session};
 
 /// Shared prepared inference plans.
 ///
 /// Create one runtime, share it between threads, and call [`Self::session`] inside each thread.
 pub struct Runtime {
     inner: magika_tract_runtime::Runtime,
-    pub(crate) rules: bool,
+    pub(crate) options: Options,
 }
 
 impl Runtime {
@@ -36,6 +36,16 @@ impl Runtime {
         Builder::default()
     }
 
+    /// Returns the runtime options.
+    pub fn options(&self) -> &Options {
+        &self.options
+    }
+
+    /// Returns the runtime options with mutable access.
+    pub fn options_mut(&mut self) -> &mut Options {
+        &mut self.options
+    }
+
     /// Returns the resolved CPU or GPU implementation.
     pub fn backend_info(&self) -> BackendInfo {
         self.inner.backend_info().into()
@@ -43,16 +53,16 @@ impl Runtime {
 
     /// Spawns private mutable inference state for the current thread.
     pub fn session(&self) -> Result<Session> {
-        Ok(Session { inner: self.inner.session()?, rules: self.rules })
+        Ok(Session { inner: self.inner.session()?, options: self.options.clone() })
     }
 
     pub(crate) fn new_internal(
-        backend: BackendRequest, max_batch: Option<usize>, rules: bool,
+        backend: BackendRequest, max_batch: Option<usize>, options: Options,
     ) -> Result<Self> {
         let inner = match max_batch {
             None => magika_tract_runtime::Runtime::new(backend)?,
             Some(max_batch) => magika_tract_runtime::Runtime::with_max_batch(backend, max_batch)?,
         };
-        Ok(Self { inner, rules })
+        Ok(Self { inner, options })
     }
 }

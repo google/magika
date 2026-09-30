@@ -20,6 +20,7 @@ use crate::ContentType;
 pub(crate) struct ModelConfig {
     pub(crate) beg_size: usize,
     pub(crate) end_size: usize,
+    pub(crate) medium_confidence_threshold: f32,
     pub(crate) min_file_size_for_dl: usize,
     pub(crate) padding_token: i32,
     pub(crate) block_size: usize,

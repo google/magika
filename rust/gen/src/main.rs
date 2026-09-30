@@ -153,6 +153,7 @@ fn generate_lib_model(variants: &[String], model_config: ModelConfig) -> Result<
     ensure!(mid_size == 0, "unsupported mid_size");
     writeln!(output, "    end_size: {end_size},")?;
     ensure!(!use_inputs_at_offsets, "unsupported use_inputs_at_offsets");
+    writeln!(output, "    medium_confidence_threshold: {medium_confidence_threshold},")?;
     writeln!(output, "    min_file_size_for_dl: {min_file_size_for_dl},")?;
     writeln!(output, "    padding_token: {padding_token},")?;
     writeln!(output, "    block_size: {block_size},")?;

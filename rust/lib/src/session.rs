@@ -17,12 +17,12 @@ use std::path::Path;
 use anyhow::Result;
 use ndarray::ArrayView2;
 
-use crate::{BackendInfo, Features, FeaturesOrRuled, FileType, Input, Runtime};
+use crate::{BackendInfo, Features, FeaturesOrRuled, FileType, Input, Options, Runtime};
 
 /// A Magika session to identify files.
 pub struct Session {
     pub(crate) inner: magika_tract_runtime::Session,
-    pub(crate) rules: bool,
+    pub(crate) options: Options,
 }
 
 impl std::fmt::Debug for Session {
@@ -35,6 +35,16 @@ impl Session {
     /// Creates a default session.
     pub fn new() -> Result<Self> {
         Runtime::new()?.session()
+    }
+
+    /// Returns the session options.
+    pub fn options(&self) -> &Options {
+        &self.options
+    }
+
+    /// Returns the session options with mutable access.
+    pub fn options_mut(&mut self) -> &mut Options {
+        &mut self.options
     }
 
     /// Returns the resolved CPU or GPU implementation.
@@ -57,7 +67,7 @@ impl Session {
 
     /// Identifies a single file from its content.
     pub fn identify_content(&mut self, file: impl Input) -> Result<FileType> {
-        match FeaturesOrRuled::extract(file, self.rules)? {
+        match FeaturesOrRuled::extract(file, &self.options)? {
             FeaturesOrRuled::Ruled(content_type) => Ok(FileType::Ruled(content_type)),
             FeaturesOrRuled::Features(features) => self.identify_features(&features),
         }
@@ -87,6 +97,6 @@ impl Session {
         }
         let output = self.inner.run(&input, count)?;
         let output = ArrayView2::from_shape((count, crate::model::NUM_LABELS), &output)?;
-        Ok(FileType::convert(output.into_dyn()))
+        Ok(FileType::convert(self.options.prediction_mode, output.into_dyn()))
     }
 }

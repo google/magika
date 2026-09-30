@@ -17,9 +17,10 @@ use std::path::Path;
 use std::sync::OnceLock;
 
 use magika::{
-    ContentType, Features, FeaturesOrRuled, FileType, OverwriteReason, Runtime, Session, MODEL_NAME,
+    ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
+    Runtime, Session, MODEL_NAME,
 };
-use pyo3::exceptions::PyRuntimeError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 
 #[pyclass(name = "MagikaResult")]
@@ -134,7 +135,7 @@ enum PathDisposition {
 // check once magika-lib handles non-regular / special files (e.g., /dev/null, FIFOs)
 // as FileType::Ruled(ContentType::Unknown).
 fn extract_path_disposition(
-    path_str: &str, no_dereference: bool,
+    path_str: &str, options: &Options, no_dereference: bool,
 ) -> anyhow::Result<PathDisposition> {
     let p = Path::new(path_str);
     let metadata_res =
@@ -178,7 +179,7 @@ fn extract_path_disposition(
         }
     };
 
-    match FeaturesOrRuled::extract(file, false) {
+    match FeaturesOrRuled::extract(file, options) {
         Ok(FeaturesOrRuled::Ruled(ct)) => Ok(PathDisposition::Immediate(from_file_type(
             &FileType::Ruled(ct),
             Some(path_str.to_string()),
@@ -210,6 +211,7 @@ thread_local! {
 
 #[pyclass(name = "Magika")]
 pub struct PyMagika {
+    options: Options,
     no_dereference: bool,
 }
 
@@ -220,10 +222,12 @@ impl PyMagika {
         let runtime = get_shared_runtime()?;
         SESSION.with(|cell| {
             let mut slot = cell.borrow_mut();
-            if slot.is_none() {
-                *slot = Some(runtime.session()?);
-            }
-            f(slot.as_mut().unwrap())
+            let session = match slot.as_mut() {
+                Some(s) => s,
+                None => slot.insert(runtime.session()?),
+            };
+            *session.options_mut() = self.options.clone();
+            f(session)
         })
     }
 }
@@ -231,12 +235,25 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (no_dereference=false))]
-    fn new(no_dereference: bool) -> PyResult<Self> {
+    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", no_dereference=false))]
+    fn new(
+        use_rules: bool, use_model: bool, prediction_mode: &str, no_dereference: bool,
+    ) -> PyResult<Self> {
+        let prediction_mode = match prediction_mode {
+            "high_confidence" => PredictionMode::HighConfidence,
+            "medium_confidence" => PredictionMode::MediumConfidence,
+            "best_guess" => PredictionMode::BestGuess,
+            _ => {
+                return Err(PyValueError::new_err(format!(
+                    "Invalid prediction mode: {prediction_mode:?}"
+                )));
+            }
+        };
         get_shared_runtime().map_err(|e| {
             PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e}"))
         })?;
-        Ok(Self { no_dereference })
+        let options = Options { use_rules, use_model, prediction_mode };
+        Ok(Self { options, no_dereference })
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
@@ -248,9 +265,10 @@ impl PyMagika {
     }
 
     fn identify_path(&self, py: Python<'_>, path: &str) -> PyResult<PyMagikaResult> {
+        let options = self.options.clone();
         let no_dereference = self.no_dereference;
         let result: anyhow::Result<PyMagikaResult> =
-            py.detach(|| match extract_path_disposition(path, no_dereference)? {
+            py.detach(|| match extract_path_disposition(path, &options, no_dereference)? {
                 PathDisposition::Immediate(res) => Ok(res),
                 PathDisposition::Features(features) => {
                     let file_type =
@@ -265,6 +283,7 @@ impl PyMagika {
     }
 
     fn identify_paths(&self, py: Python<'_>, paths: Vec<String>) -> PyResult<Vec<PyMagikaResult>> {
+        let options = self.options.clone();
         let no_dereference = self.no_dereference;
         let results: anyhow::Result<Vec<PyMagikaResult>> = py.detach(|| {
             let mut slots: Vec<Option<PyMagikaResult>> = Vec::with_capacity(paths.len());
@@ -272,7 +291,7 @@ impl PyMagika {
             let mut batch_features: Vec<Features> = Vec::new();
 
             for (idx, path_str) in paths.iter().enumerate() {
-                match extract_path_disposition(path_str, no_dereference) {
+                match extract_path_disposition(path_str, &options, no_dereference) {
                     Ok(PathDisposition::Immediate(res)) => {
                         slots.push(Some(res));
                     }

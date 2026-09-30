@@ -2,6 +2,9 @@ name: Python - run test suite
 
 on:
   workflow_dispatch:
+  # Also called by python-build-test-and-release-package.yml, which runs these
+  # source checks before building and testing the wheels.
+  workflow_call:
   push:
     branches:
       - "main"
@@ -16,15 +19,15 @@ permissions:
   contents: read
 
 env:
+  PYTHON_VERSION: "3.13"
   UV_VERSION: "0.12.12"
 
 jobs:
+  # Run the source checks and the full test suite on a single representative
+  # configuration. The built wheels are tested across the full OS × Python
+  # version matrix in python-build-test-and-release-package.yml.
   unit-testing:
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-        os: ["ubuntu-latest", "macos-latest"]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
@@ -33,7 +36,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
         with:
-          python-version: "${{ matrix.python-version }}"
+          python-version: "${{ env.PYTHON_VERSION }}"
 
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
@@ -43,23 +46,23 @@ jobs:
 
       - name: Install all projects dependencies (with the requested python version)
         working-directory: python
-        run: uv sync --python ${{ matrix.python-version }} --all-extras --dev
+        run: uv sync --python ${{ env.PYTHON_VERSION }} --all-extras --dev
 
       - name: Print python version
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} python --version
+        run: uv run --python ${{ env.PYTHON_VERSION }} python --version
 
       - name: Run ruff check
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} ruff check --verbose
+        run: uv run --python ${{ env.PYTHON_VERSION }} ruff check --verbose
 
       - name: Run ruff format --check
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} ruff format --check --verbose
+        run: uv run --python ${{ env.PYTHON_VERSION }} ruff format --check --verbose
 
       - name: Run mypy
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} mypy src/magika tests
+        run: uv run --python ${{ env.PYTHON_VERSION }} mypy src/magika tests
 
       - name: Run copyright checks
         working-directory: python
@@ -67,30 +70,41 @@ jobs:
 
       - name: Run the python tests suite
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} pytest tests -m "not slow"
+        run: uv run --python ${{ env.PYTHON_VERSION }} pytest tests -m "not slow"
 
       - name: Run magika --version
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} magika --version
-        shell: bash # Allows for cross-platform
+        run: uv run --python ${{ env.PYTHON_VERSION }} magika --version
 
       - name: Run magika with tests_data
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} magika -r ../tests_data/basic
+        run: uv run --python ${{ env.PYTHON_VERSION }} magika -r ../tests_data/basic
 
       - name: Run "magika cli" quick tests
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_cli.py
+        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_cli.py
 
       - name: Run "magika module" quick tests
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py
+        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py
 
       - name: Run "magika module" quick tests + perf measurement
         working-directory: python
-        run: uv run --python ${{ matrix.python-version }} scripts/run_quick_test_magika_module.py --print-inference-stats --repeat 10
+        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py --print-inference-stats --repeat 10
+
+      # Report-only: this shows which versions CI sees (module, CLI, etc.) so
+      # they can be inspected before tagging a release. The strict check against
+      # the release tag runs on the built wheels in
+      # python-build-test-and-release-package.yml.
+      - name: Run pre-release checks (report only)
+        working-directory: python
+        # Note: pip is not available in the uv environment, so we skip the pip
+        # show check.
+        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/pre_release_check.py --report-only --no-check-pip-show-package-version
 
   changelog-check:
+    # This compares against the PR's base branch, so it only makes sense on PRs.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4

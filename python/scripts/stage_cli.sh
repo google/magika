@@ -35,11 +35,11 @@
 #      `uv sync` or `uv build` so `magika` is compiled for the host target and
 #      installed into `.venv/bin/magika`.
 #
-#   2. macOS and Windows wheel builds (`python-build-and-release-package.yml`):
+#   2. macOS and Windows wheel builds (`python-build-test-and-release-package.yml`):
 #      Run `./python/scripts/stage_cli.sh <target-triple>` on the runner host
 #      immediately before `PyO3/maturin-action` packages the wheel.
 #
-#   3. Linux manylinux / musllinux wheel builds (`python-build-and-release-package.yml`):
+#   3. Linux manylinux / musllinux wheel builds (`python-build-test-and-release-package.yml`):
 #      Passed to `PyO3/maturin-action` via `before-script-linux` so the CLI is
 #      compiled *inside* the manylinux/musllinux Docker container against the
 #      exact same C library sysroot (`glibc` or `musl`) as the `_magika.abi3.so`

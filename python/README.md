@@ -7,7 +7,7 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706)
 ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)
 [![Coverage Status](https://img.shields.io/coveralls/github/google/magika/main)](https://coveralls.io/github/google/magika?branch=main)
-[![Actions status](https://github.com/google/magika/actions/workflows/python-build-and-release-package.yml/badge.svg)](https://github.com/google/magika/actions)
+[![Actions status](https://github.com/google/magika/actions/workflows/python-build-test-and-release-package.yml/badge.svg)](https://github.com/google/magika/actions)
 [![PyPI Monthly Downloads](https://static.pepy.tech/badge/magika/month)](https://pepy.tech/projects/magika)
 [![PyPI Downloads](https://static.pepy.tech/badge/magika)](https://pepy.tech/projects/magika)
 

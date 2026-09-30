@@ -165,12 +165,12 @@ impl Default for MagikaOptions {
 
 impl From<MagikaOptions> for magika::Options {
     fn from(options: MagikaOptions) -> Self {
-        Self {
-            use_rules: options.use_rules,
-            use_model: options.use_model,
-            prediction_mode: options.prediction_mode.into(),
-            follow_symlink: options.follow_symlink,
-        }
+        let mut result = Self::default();
+        result.use_rules = options.use_rules;
+        result.use_model = options.use_model;
+        result.prediction_mode = options.prediction_mode.into();
+        result.follow_symlink = options.follow_symlink;
+        result
     }
 }
 

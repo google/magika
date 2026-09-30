@@ -49,6 +49,10 @@ for rules in off enforce only; do
   )
 done
 
+info "Test symlinks"
+[ "$(magika --format=%l LICENSE)" = txt ] || error "does not follow symlinks"
+[ "$(magika --format=%l --no-dereference LICENSE)" = symlink ] || error "follows symlinks"
+
 test_error() {
   files="$1"
   expected="$2"

@@ -309,6 +309,7 @@ fn main() -> Result<()> {
         RulesMode::Enforce => builder,
         RulesMode::Only => builder.with_model(false),
     };
+    builder = builder.with_follow_symlink(!flags.no_dereference);
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),

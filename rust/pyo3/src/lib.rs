@@ -246,7 +246,11 @@ impl PyMagika {
         get_shared_runtime().map_err(|e| {
             PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e}"))
         })?;
-        let options = Options { use_rules, use_model, prediction_mode, follow_symlink };
+        let mut options = Options::default();
+        options.use_rules = use_rules;
+        options.use_model = use_model;
+        options.prediction_mode = prediction_mode;
+        options.follow_symlink = follow_symlink;
         Ok(Self { options })
     }
 

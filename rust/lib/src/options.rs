@@ -14,6 +14,7 @@
 
 /// Configuration options for identification.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Options {
     /// Identifies using rules (before inference).
     pub use_rules: bool,

@@ -198,6 +198,16 @@ struct Stage {
     wait_ns: u64,
 }
 
+impl RulesMode {
+    fn set_options(self, options: &mut magika::Options) {
+        match self {
+            RulesMode::Off => options.use_rules = false,
+            RulesMode::Enforce => (),
+            RulesMode::Only => options.use_model = false,
+        }
+    }
+}
+
 #[cfg(feature = "_trace")]
 impl Trace {
     fn insert(&self, stage: Stage) {
@@ -302,10 +312,10 @@ fn main() -> Result<()> {
         colored::control::set_override(false);
     }
     let rules_only = flags.experimental.rules == RulesMode::Only;
-    let rules = flags.experimental.rules != RulesMode::Off;
+    let mut options = magika::Options::default();
+    flags.experimental.rules.set_options(&mut options);
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
-    builder = builder.with_rules(rules);
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
@@ -354,6 +364,7 @@ fn main() -> Result<()> {
     for index in 0..readers {
         join_handles.push(std::thread::Builder::new().name(format!("magika-read-{index}")).spawn(
             {
+                let options = options.clone();
                 let work_receiver = work_receiver.clone();
                 let read_sender = read_sender.clone();
                 #[cfg(feature = "_trace")]
@@ -361,7 +372,7 @@ fn main() -> Result<()> {
                 move || {
                     #[cfg(feature = "_trace")]
                     let start = Stage::start();
-                    read_files(&work_receiver, &read_sender, rules);
+                    read_files(&work_receiver, &read_sender, &options);
                     #[cfg(feature = "_trace")]
                     trace.insert(Stage::finalize(start));
                 }
@@ -390,16 +401,18 @@ fn main() -> Result<()> {
     drop(batch_sender);
     join_handles.push(std::thread::Builder::new().name("magika-model".to_string()).spawn({
         let flags = flags.clone();
+        let options = options.clone();
         let batch_receiver = batch_receiver.clone();
         let result_sender = result_sender.clone();
         #[cfg(feature = "_trace")]
         let trace = trace.clone();
         move || {
             let backend = flags.experimental.backend;
-            let backends = match Backends::start(builder, backend, flags.experimental.threads) {
-                Ok(backends) => backends,
-                Err(error) => return drop(result_sender.send(Err(error))),
-            };
+            let backends =
+                match Backends::start(builder, backend, flags.experimental.threads, &options) {
+                    Ok(backends) => backends,
+                    Err(error) => return drop(result_sender.send(Err(error))),
+                };
             let (backends, batch_receiver, result_sender) =
                 (&backends, &batch_receiver, &result_sender);
             #[cfg(feature = "_trace")]
@@ -533,10 +546,10 @@ fn walk_paths(
 /// thread to interleave anyway.
 fn read_files(
     work_receiver: &crossbeam_channel::Receiver<Pending>,
-    sender: &std::sync::mpsc::SyncSender<ReadItem>, rules: bool,
+    sender: &std::sync::mpsc::SyncSender<ReadItem>, options: &magika::Options,
 ) {
     while let Ok(pending) = work_receiver.recv() {
-        let extracted = extract_path(&pending.path, rules);
+        let extracted = extract_path(&pending.path, options);
         if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
@@ -581,13 +594,13 @@ fn batch_files(
 }
 
 /// Reads a file and extracts its features, unless rules identify it.
-fn extract_path(path: &Path, rules: bool) -> Result<FeaturesOrRuled> {
+fn extract_path(path: &Path, options: &magika::Options) -> Result<FeaturesOrRuled> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract(&stdin[..], rules);
+        return FeaturesOrRuled::extract(&stdin[..], options);
     }
-    FeaturesOrRuled::extract(std::fs::File::open(path)?, rules)
+    FeaturesOrRuled::extract(std::fs::File::open(path)?, options)
 }
 
 enum ProcessPath {

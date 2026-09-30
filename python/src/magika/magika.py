@@ -25,7 +25,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, BinaryIO, Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Any, BinaryIO, Dict, List, Optional, Sequence, Set, Union
 
 from magika.logger import get_logger
 from magika.types import (
@@ -105,17 +105,6 @@ class Magika:
         self._target_labels_space = [
             ContentTypeLabel(ct) for ct in model_config["target_labels_space"]
         ]
-        # FIXME(https://github.com/google/magika/issues/1479): Remove Python-side
-        # thresholds and medium_confidence_threshold once magika-lib supports
-        # PredictionMode (HighConfidence, MediumConfidence, BestGuess) natively.
-        self._thresholds: Dict[ContentTypeLabel, float] = {
-            ContentTypeLabel(k): float(v)
-            for k, v in model_config.get("thresholds", {}).items()
-        }
-        self._medium_confidence_threshold: float = float(
-            model_config["medium_confidence_threshold"]
-        )
-        self._block_size: int = int(model_config["block_size"])
         self._overwrite_map = {
             ContentTypeLabel(k): ContentTypeLabel(v)
             for k, v in model_config.get("overwrite_map", {}).items()
@@ -128,7 +117,10 @@ class Magika:
 
         # FIXME(https://github.com/google/magika/issues/1481): Pass no_dereference
         # directly to magika-lib Session once supported.
-        self._pyo3_session = _magika.Magika(no_dereference=self._no_dereference)
+        self._pyo3_session = _magika.Magika(
+            prediction_mode=self._prediction_mode,
+            no_dereference=self._no_dereference,
+        )
 
     def __repr__(self) -> str:
         return str(self)
@@ -155,20 +147,9 @@ class Magika:
 
         dl_label = ContentTypeLabel(pyo3_res.dl_label)
         dl_info = self._cts_infos[dl_label]
-        # FIXME(https://github.com/google/magika/issues/1479): Remove Python-side
-        # PredictionMode thresholding once magika-lib supports PredictionMode natively.
-        if (
-            dl_label != ContentTypeLabel.UNDEFINED
-            and self._prediction_mode != PredictionMode.HIGH_CONFIDENCE
-        ):
-            output_label, overwrite_reason = (
-                self._get_output_label_from_dl_label_and_score(dl_label, pyo3_res.score)
-            )
-        else:
-            output_label = ContentTypeLabel(pyo3_res.label)
-            overwrite_reason = OverwriteReason(pyo3_res.overwrite_reason)
-
+        output_label = ContentTypeLabel(pyo3_res.label)
         output_info = self._cts_infos[output_label]
+        overwrite_reason = OverwriteReason(pyo3_res.overwrite_reason)
 
         prediction = MagikaPrediction(
             dl=dl_info,
@@ -284,42 +265,6 @@ class Magika:
         }
         model_content_types.update(self._target_labels_space)
         return sorted(model_content_types)
-
-    # FIXME(https://github.com/google/magika/issues/1479): Remove this helper once
-    # magika-lib supports PredictionMode (HighConfidence, MediumConfidence, BestGuess) natively.
-    def _get_output_label_from_dl_label_and_score(
-        self, dl_label: ContentTypeLabel, score: float
-    ) -> Tuple[ContentTypeLabel, OverwriteReason]:
-        """Resolves output label and overwrite reason from raw DL label and score."""
-        overwrite_reason = OverwriteReason.NONE
-
-        output_label = self._overwrite_map.get(dl_label, dl_label)
-        if output_label != dl_label:
-            overwrite_reason = OverwriteReason.OVERWRITE_MAP
-
-        if self._prediction_mode == PredictionMode.BEST_GUESS:
-            pass
-        elif (
-            self._prediction_mode == PredictionMode.HIGH_CONFIDENCE
-            and score
-            >= self._thresholds.get(dl_label, self._medium_confidence_threshold)
-        ):
-            pass
-        elif (
-            self._prediction_mode == PredictionMode.MEDIUM_CONFIDENCE
-            and score >= self._medium_confidence_threshold
-        ):
-            pass
-        else:
-            overwrite_reason = OverwriteReason.LOW_CONFIDENCE
-            if self._cts_infos[output_label].is_text:
-                output_label = ContentTypeLabel.TXT
-            else:
-                output_label = ContentTypeLabel.UNKNOWN
-            if dl_label == output_label:
-                overwrite_reason = OverwriteReason.NONE
-
-        return output_label, overwrite_reason
 
     @staticmethod
     def _get_default_model_name() -> str:

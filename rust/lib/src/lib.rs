@@ -26,29 +26,12 @@
 //! // Contents can also be identified directly from memory.
 //! let result = magika.identify_content(&b"#!/bin/sh\necho hello"[..])?;
 //! assert_eq!(result.info().label, "shell");
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! # Format rules
-//!
-//! With the `rules` feature, [`Builder::with_rules`] identifies files with format rules before
-//! inference. A rule decides from the first 4 KiB and the size of a file; files that no rule
-//! decides go through inference as usual.
-//!
-//! ```rust
-//! # #[cfg(feature = "rules")]
-//! # fn main() -> anyhow::Result<()> {
-//! let runtime = magika::Runtime::builder().with_rules(true).build()?;
-//! let mut magika = runtime.session()?;
 //!
 //! // A gzip header decides without running the model.
 //! let result = magika.identify_content(&b"\x1f\x8b\x08\x00\0\0\0\0\0\x03hello, world"[..])?;
 //! assert!(matches!(result, magika::FileType::Ruled(magika::ContentType::Gzip)));
 //! # Ok(())
 //! # }
-//! # #[cfg(not(feature = "rules"))]
-//! # fn main() {}
 //! ```
 
 #![cfg_attr(feature = "_doc", feature(doc_cfg))]
@@ -58,6 +41,7 @@ pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{Features, FeaturesOrRuled, Input};
+pub use crate::options::{Options, PredictionMode};
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
@@ -68,7 +52,7 @@ mod content;
 mod file;
 mod input;
 mod model;
-#[cfg(feature = "rules")]
+mod options;
 mod rules;
 mod runtime;
 mod session;
@@ -147,6 +131,16 @@ mod tests {
         BestGuess,
     }
 
+    impl From<ReferencePredictionMode> for PredictionMode {
+        fn from(value: ReferencePredictionMode) -> Self {
+            match value {
+                ReferencePredictionMode::HighConfidence => PredictionMode::HighConfidence,
+                ReferencePredictionMode::MediumConfidence => PredictionMode::MediumConfidence,
+                ReferencePredictionMode::BestGuess => PredictionMode::BestGuess,
+            }
+        }
+    }
+
     #[test]
     fn identify_by_path_reference() {
         #[derive(Debug, Deserialize)]
@@ -162,13 +156,12 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+        let mut runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+        runtime.options_mut().use_rules = false;
         let mut session = runtime.session().unwrap();
         let mut checked = 0;
         for test in tests {
-            if test.prediction_mode != ReferencePredictionMode::HighConfidence {
-                continue; // we only support high-confidence
-            }
+            session.options_mut().prediction_mode = test.prediction_mode.into();
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let actual = session.identify_file(format!("../../{}", test.path)).unwrap();
@@ -194,13 +187,12 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+        let mut runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+        runtime.options_mut().use_rules = false;
         let mut session = runtime.session().unwrap();
         let mut checked = 0;
         for test in tests {
-            if test.prediction_mode != ReferencePredictionMode::HighConfidence {
-                continue; // we only support high-confidence
-            }
+            session.options_mut().prediction_mode = test.prediction_mode.into();
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();

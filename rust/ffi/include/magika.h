@@ -54,6 +54,24 @@ typedef enum MagikaBackend {
 } MagikaBackend;
 
 /**
+ * Minimum confidence level for inference.
+ */
+typedef enum MagikaPredictionMode {
+  /**
+   * The model output is only used when highly confident.
+   */
+  MAGIKA_PREDICTION_MODE_HIGH_CONFIDENCE = 0,
+  /**
+   * The model output is used when reasonably confident.
+   */
+  MAGIKA_PREDICTION_MODE_MEDIUM_CONFIDENCE = 1,
+  /**
+   * The model output is always used.
+   */
+  MAGIKA_PREDICTION_MODE_BEST_GUESS = 2,
+} MagikaPredictionMode;
+
+/**
  * The kind of identified file type.
  */
 typedef enum MagikaFileTypeKind {
@@ -109,6 +127,24 @@ typedef struct MagikaRuntime MagikaRuntime;
 typedef struct MagikaSession MagikaSession;
 
 /**
+ * Configuration options for identification.
+ */
+typedef struct MagikaOptions {
+  /**
+   * Identifies using rules (before inference).
+   */
+  bool use_rules;
+  /**
+   * Identifies using inference (after rules).
+   */
+  bool use_model;
+  /**
+   * Configures the minimum confidence level for inference.
+   */
+  enum MagikaPredictionMode prediction_mode;
+} MagikaOptions;
+
+/**
  * Options for configuring a Magika runtime.
  */
 typedef struct MagikaRuntimeOptions {
@@ -121,9 +157,9 @@ typedef struct MagikaRuntimeOptions {
    */
   uintptr_t max_batch;
   /**
-   * Whether to identify files with format rules before inference.
+   * Configuration options for identification.
    */
-  bool rules;
+  struct MagikaOptions options;
 } MagikaRuntimeOptions;
 
 /**
@@ -269,6 +305,8 @@ enum MagikaStatus magika_identify_content(struct MagikaSession *session,
 /**
  * Extracts features from a file on disk for neural network inference.
  *
+ * If `options` is NULL, the default configuration is used.
+ *
  * If the file does not require neural network inference (for example, if it is empty
  * or identified by rules):
  * - `*out_features` is set to NULL.
@@ -282,16 +320,19 @@ enum MagikaStatus magika_identify_content(struct MagikaSession *session,
  * # Safety
  *
  * - `path` must point to a null-terminated C string.
+ * - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
  * - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
  * - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
  */
 enum MagikaStatus magika_features_extract_file(const char *path,
-                                               bool rules,
+                                               const struct MagikaOptions *options,
                                                struct MagikaFeatures **out_features,
                                                struct MagikaResult *out_result);
 
 /**
  * Extracts features from an in-memory buffer for neural network inference.
+ *
+ * If `options` is NULL, the default configuration is used.
  *
  * If the buffer does not require neural network inference (for example, if it is empty
  * or identified by rules):
@@ -306,12 +347,13 @@ enum MagikaStatus magika_features_extract_file(const char *path,
  * # Safety
  *
  * - `data` must point to at least `len` readable bytes (may be NULL only if `len == 0`).
+ * - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
  * - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
  * - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
  */
 enum MagikaStatus magika_features_extract_content(const uint8_t *data,
                                                   uintptr_t len,
-                                                  bool rules,
+                                                  const struct MagikaOptions *options,
                                                   struct MagikaFeatures **out_features,
                                                   struct MagikaResult *out_result);
 

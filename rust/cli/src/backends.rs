@@ -21,7 +21,7 @@
 use std::sync::{Arc, OnceLock};
 
 use anyhow::{Context, Result};
-use magika::{Backend, Builder, Runtime};
+use magika::{Backend, Builder, Options, Runtime};
 
 use crate::{default_inference_threads, BackendChoice};
 
@@ -50,16 +50,17 @@ impl Backends {
     ///
     /// `threads` overrides the number of workers.
     pub(crate) fn start(
-        builder: Builder, choice: BackendChoice, threads: Option<usize>,
+        builder: Builder, choice: BackendChoice, threads: Option<usize>, options: &Options,
     ) -> Result<Self> {
-        let cpu = builder.clone().with_backend(Backend::Cpu).build()?;
+        let mut cpu = builder.clone().with_backend(Backend::Cpu).build()?;
+        *cpu.options_mut() = options.clone();
         let workers = threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
         let (gpu, starting) = match choice {
             BackendChoice::Cpu => (None, workers),
             // The CPU competes with preparing the GPU, which a long run waits for, so the workers
             // leave it a third of the host until it is ready. A GPU is as fast with as many workers.
             BackendChoice::Auto | BackendChoice::Gpu => {
-                let gpu = Gpu::start(builder, choice == BackendChoice::Gpu)?;
+                let gpu = Gpu::start(builder, choice == BackendChoice::Gpu, options)?;
                 let starting = match threads {
                     Some(threads) => threads,
                     None => (workers * 2 / 3).max(default_inference_threads(Backend::Gpu)),
@@ -102,15 +103,19 @@ impl Backends {
 }
 
 impl Gpu {
-    fn start(builder: Builder, required: bool) -> Result<Self> {
+    fn start(builder: Builder, required: bool, options: &Options) -> Result<Self> {
         let prepared = Arc::new(OnceLock::new());
         let (resolve, resolved) = crossbeam_channel::bounded(0);
         std::thread::Builder::new().name("magika-gpu".to_string()).spawn({
             let prepared = prepared.clone();
+            let options = options.clone();
             move || {
                 #[cfg(feature = "_trace")]
                 let start = std::time::Instant::now();
-                let runtime = builder.with_backend(Backend::Gpu).build();
+                let mut runtime = builder.with_backend(Backend::Gpu).build();
+                if let Ok(runtime) = runtime.as_mut() {
+                    *runtime.options_mut() = options.clone();
+                }
                 #[cfg(feature = "_trace")]
                 match &runtime {
                     Ok(_) => eprintln!("trace  gpu ready after {:?}", start.elapsed()),

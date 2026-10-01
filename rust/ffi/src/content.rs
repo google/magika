@@ -138,7 +138,7 @@ use crate::MagikaTypeInfo;
 
 #[rustfmt::skip] pub(crate) static ARROW: MagikaTypeInfo = MagikaTypeInfo {
     label: c"arrow".as_ptr(),
-    mime_type: c"vnd.apache.arrow.file".as_ptr(),
+    mime_type: c"application/vnd.apache.arrow.file".as_ptr(),
     group: c"unknown".as_ptr(),
     description: c"arrow".as_ptr(),
     extensions: [ptr::null()].as_ptr(),
@@ -1542,7 +1542,7 @@ use crate::MagikaTypeInfo;
 
 #[rustfmt::skip] pub(crate) static OCAML: MagikaTypeInfo = MagikaTypeInfo {
     label: c"ocaml".as_ptr(),
-    mime_type: c"text-ocaml".as_ptr(),
+    mime_type: c"text/ocaml".as_ptr(),
     group: c"code".as_ptr(),
     description: c"OCaml".as_ptr(),
     extensions: [c"ml".as_ptr(), c"mli".as_ptr(), ptr::null()].as_ptr(),

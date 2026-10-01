@@ -142,7 +142,7 @@ pub(crate) static APPLESINGLE: TypeInfo = TypeInfo {
 
 pub(crate) static ARROW: TypeInfo = TypeInfo {
     label: "arrow",
-    mime_type: "vnd.apache.arrow.file",
+    mime_type: "application/vnd.apache.arrow.file",
     group: "unknown",
     description: "arrow",
     extensions: &[],
@@ -1546,7 +1546,7 @@ pub(crate) static OBJECTIVEC: TypeInfo = TypeInfo {
 
 pub(crate) static OCAML: TypeInfo = TypeInfo {
     label: "ocaml",
-    mime_type: "text-ocaml",
+    mime_type: "text/ocaml",
     group: "code",
     description: "OCaml",
     extensions: &["ml", "mli"],

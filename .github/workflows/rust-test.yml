@@ -7,6 +7,7 @@ on:
       - "main"
   pull_request:
     paths:
+      - ".github/actions/rust-cache/**"
       - ".github/workflows/rust-*"
       - "assets/**"
       - "rust/**"
@@ -37,6 +38,10 @@ jobs:
           persist-credentials: false
       - run: rustup default ${{ matrix.toolchain }}
       - run: rustup component add rustfmt clippy
+      # A new nightly ships every day, so its cache would rarely be hit and would
+      # only take quota away from the stable entries.
+      - if: matrix.toolchain == 'stable'
+        uses: ./.github/actions/rust-cache
       - run: ./test.sh
         working-directory: rust
   tract:
@@ -47,6 +52,7 @@ jobs:
           persist-credentials: false
       - run: rustup default stable
       - run: rustup component add rustfmt clippy
+      - uses: ./.github/actions/rust-cache
       - run: ./test.sh
         working-directory: rust/tract-runtime
       - run: cargo check --manifest-path rust/tract-runtime/Cargo.toml --features cuda
@@ -64,6 +70,7 @@ jobs:
           persist-credentials: false
       - run: rustup default stable
       - run: rustup component add rustfmt clippy
+      - uses: ./.github/actions/rust-cache
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
       - run: cargo clippy --manifest-path rust/tract-bench/Cargo.toml --all-features --all-targets -- --deny=warnings
       - run: ./test.sh
@@ -89,6 +96,7 @@ jobs:
         with:
           persist-credentials: false
       - run: rustup default stable
+      - uses: ./.github/actions/rust-cache
       - run: rust/tract-bench/scripts/verify-model-conversion.sh
         shell: bash
       # The tract job above runs the unit tests on x86_64 only, so without this the aarch64 graph
@@ -105,6 +113,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
         with:
           persist-credentials: false
+      - uses: ./.github/actions/rust-cache
       - run: cargo build --profile=release-fast
         working-directory: rust/cli
       - run: rust/target/release-fast/magika -r tests_data/basic

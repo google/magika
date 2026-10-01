@@ -1,0 +1,49 @@
+name: Rust build cache
+description: >-
+  Restores the cargo registry and the shared rust/target directory, and saves
+  them at the end of successful jobs on main. Use it after the toolchain is
+  selected, since the rustc version is part of the cache key.
+
+# Why not Swatinem/rust-cache: every crate under rust/ is its own workspace with
+# its own Cargo.lock, but they all build into the shared rust/target directory
+# (see .cargo/config.toml). rust-cache prunes the target directory once per
+# configured workspace, keeping only that workspace's dependencies, so a job
+# building several crates would only keep the dependencies they all share.
+
+runs:
+  using: composite
+  steps:
+    - id: key
+      shell: bash
+      run: |
+        # Artifacts from another compiler cannot be reused, and since a cache
+        # entry is never overwritten, a key without the rustc version would keep
+        # restoring unusable artifacts until a lockfile changed.
+        rustc=$(rustc --version)
+        echo "prefix=rust-${RUNNER_OS}-${RUNNER_ARCH}-${GITHUB_JOB}-${rustc//[^a-zA-Z0-9.]/_}-" >> "$GITHUB_OUTPUT"
+        # Incremental artifacts only exist for the local crates, which every
+        # fresh checkout invalidates anyway, so they would only bloat the cache.
+        echo "CARGO_INCREMENTAL=0" >> "$GITHUB_ENV"
+    # Only main saves. Pull request caches are scoped to their own ref, so other
+    # pull requests could not reuse them, and they would evict main's entries
+    # from the repository's 10 GB cache quota.
+    - if: github.ref == 'refs/heads/main'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          rust/target/
+        key: ${{ steps.key.outputs.prefix }}${{ hashFiles('.cargo/config.toml', 'rust/**/Cargo.toml', 'rust/**/Cargo.lock') }}
+        restore-keys: ${{ steps.key.outputs.prefix }}
+    - if: github.ref != 'refs/heads/main'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          rust/target/
+        key: ${{ steps.key.outputs.prefix }}${{ hashFiles('.cargo/config.toml', 'rust/**/Cargo.toml', 'rust/**/Cargo.lock') }}
+        restore-keys: ${{ steps.key.outputs.prefix }}

@@ -73,6 +73,12 @@ impl Builder {
         self
     }
 
+    /// Configures whether to follow symlinks.
+    pub fn with_follow_symlink(mut self, follow_symlink: bool) -> Self {
+        self.options.follow_symlink = follow_symlink;
+        self
+    }
+
     /// Consumes the builder to create a Magika runtime.
     pub fn build(self) -> Result<Runtime> {
         Runtime::new_internal(Backend::to_request(self.backend), self.max_batch, self.options)

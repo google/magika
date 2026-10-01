@@ -128,18 +128,13 @@ enum PathDisposition {
     Features(Features),
 }
 
-// FIXME(https://github.com/google/magika/issues/1481): Remove custom no_dereference
-// metadata lookup once magika-lib's Session::identify_file / FeaturesOrRuled::extract_file
-// supports `no_dereference`.
 // FIXME(https://github.com/google/magika/issues/1482): Remove custom `!metadata.is_file()`
 // check once magika-lib handles non-regular / special files (e.g., /dev/null, FIFOs)
 // as FileType::Ruled(ContentType::Unknown).
-fn extract_path_disposition(
-    path_str: &str, options: &Options, no_dereference: bool,
-) -> anyhow::Result<PathDisposition> {
+fn extract_path_disposition(path_str: &str, options: &Options) -> anyhow::Result<PathDisposition> {
     let p = Path::new(path_str);
     let metadata_res =
-        if no_dereference { std::fs::symlink_metadata(p) } else { std::fs::metadata(p) };
+        if options.follow_symlink { std::fs::metadata(p) } else { std::fs::symlink_metadata(p) };
     let metadata = match metadata_res {
         Ok(m) => m,
         Err(io_err) => {
@@ -150,7 +145,7 @@ fn extract_path_disposition(
         }
     };
 
-    if no_dereference && metadata.is_symlink() {
+    if metadata.is_symlink() {
         return Ok(PathDisposition::Immediate(from_file_type(
             &FileType::Symlink,
             Some(path_str.to_string()),
@@ -212,7 +207,6 @@ thread_local! {
 #[pyclass(name = "Magika")]
 pub struct PyMagika {
     options: Options,
-    no_dereference: bool,
 }
 
 impl PyMagika {
@@ -235,9 +229,9 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", no_dereference=false))]
+    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true))]
     fn new(
-        use_rules: bool, use_model: bool, prediction_mode: &str, no_dereference: bool,
+        use_rules: bool, use_model: bool, prediction_mode: &str, follow_symlink: bool,
     ) -> PyResult<Self> {
         let prediction_mode = match prediction_mode {
             "high_confidence" => PredictionMode::HighConfidence,
@@ -252,8 +246,12 @@ impl PyMagika {
         get_shared_runtime().map_err(|e| {
             PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e}"))
         })?;
-        let options = Options { use_rules, use_model, prediction_mode };
-        Ok(Self { options, no_dereference })
+        let mut options = Options::default();
+        options.use_rules = use_rules;
+        options.use_model = use_model;
+        options.prediction_mode = prediction_mode;
+        options.follow_symlink = follow_symlink;
+        Ok(Self { options })
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
@@ -266,9 +264,8 @@ impl PyMagika {
 
     fn identify_path(&self, py: Python<'_>, path: &str) -> PyResult<PyMagikaResult> {
         let options = self.options.clone();
-        let no_dereference = self.no_dereference;
         let result: anyhow::Result<PyMagikaResult> =
-            py.detach(|| match extract_path_disposition(path, &options, no_dereference)? {
+            py.detach(|| match extract_path_disposition(path, &options)? {
                 PathDisposition::Immediate(res) => Ok(res),
                 PathDisposition::Features(features) => {
                     let file_type =
@@ -284,14 +281,13 @@ impl PyMagika {
 
     fn identify_paths(&self, py: Python<'_>, paths: Vec<String>) -> PyResult<Vec<PyMagikaResult>> {
         let options = self.options.clone();
-        let no_dereference = self.no_dereference;
         let results: anyhow::Result<Vec<PyMagikaResult>> = py.detach(|| {
             let mut slots: Vec<Option<PyMagikaResult>> = Vec::with_capacity(paths.len());
             let mut batch_indices: Vec<usize> = Vec::new();
             let mut batch_features: Vec<Features> = Vec::new();
 
             for (idx, path_str) in paths.iter().enumerate() {
-                match extract_path_disposition(path_str, &options, no_dereference) {
+                match extract_path_disposition(path_str, &options) {
                     Ok(PathDisposition::Immediate(res)) => {
                         slots.push(Some(res));
                     }

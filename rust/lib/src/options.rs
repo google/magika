@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// Configuration options for identification.
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub struct Options {
+    /// Identifies using rules (before inference).
+    pub use_rules: bool,
+    /// Identifies using inference (after rules).
+    pub use_model: bool,
+    /// Configures the minimum confidence level for inference.
+    pub prediction_mode: PredictionMode,
+    /// Whether to follow symlinks.
+    pub follow_symlink: bool,
+}
+
 /// Minimum confidence level for inference.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PredictionMode {
@@ -23,20 +37,14 @@ pub enum PredictionMode {
     BestGuess,
 }
 
-/// Configuration options for identification.
-#[derive(Debug, Clone)]
-pub struct Options {
-    /// Identifies using rules (before inference).
-    pub use_rules: bool,
-    /// Identifies using inference (after rules).
-    pub use_model: bool,
-    /// Configures the minimum confidence level for inference.
-    pub prediction_mode: PredictionMode,
-}
-
 impl Default for Options {
     fn default() -> Self {
-        Self { use_rules: true, use_model: true, prediction_mode: PredictionMode::HighConfidence }
+        Self {
+            use_rules: true,
+            use_model: true,
+            prediction_mode: PredictionMode::HighConfidence,
+            follow_symlink: true,
+        }
     }
 }
 

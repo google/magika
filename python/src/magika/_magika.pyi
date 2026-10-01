@@ -31,13 +31,12 @@ class MagikaResult:
 def get_default_model_name() -> str: ...
 
 class Magika:
-    # FIXME(https://github.com/google/magika/issues/1481): Pass no_dereference to magika-lib Session once supported.
     def __init__(
         self,
         use_rules: bool = True,
         use_model: bool = True,
         prediction_mode: str = "high_confidence",
-        no_dereference: bool = False,
+        follow_symlink: bool = True,
     ) -> None: ...
     @staticmethod
     def get_default_model_name() -> str: ...

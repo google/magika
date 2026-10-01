@@ -3,20 +3,57 @@
 
 //! Writes a compiled rule set as the Rust expression that builds it again.
 //!
-//! `build.rs` compiles the bundled rules with this crate's own lowering and writes them with
+//! The `gen` binary compiles the bundled rules with this crate's own lowering and writes them with
 //! [`rule_set`], so that [`crate::RuleSet::bundled`] neither parses YARA nor builds a regex at
 //! startup. A test checks that the generated code is what compiling the bundled source gives.
 
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
+use std::path::Path;
 
 use crate::ir::{Cond, Int, Program};
 use crate::matcher::Pattern;
-use crate::RuleInfo;
+use crate::{lower, Bucket, RuleInfo, Source};
+
+/// Compiles `root/{full,partial,notworking}/*.yar` into `(bundled_rs, content_types)`.
+pub(crate) fn generate(root: &Path) -> (String, String) {
+    let mut text = String::new();
+    for (dir, bucket) in
+        [("full", Bucket::Full), ("partial", Bucket::Partial), ("notworking", Bucket::NotWorking)]
+    {
+        let directory = root.join(dir);
+        let mut files = std::fs::read_dir(&directory)
+            .unwrap_or_else(|e| panic!("{}: {e}", directory.display()))
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.extension().is_some_and(|ext| ext == "yar"))
+            .collect::<Vec<_>>();
+        files.sort();
+        for file in files {
+            let file_text = std::fs::read_to_string(&file).unwrap();
+            Source::parse_in_bucket(&file_text, bucket)
+                .unwrap_or_else(|e| panic!("{}: {e}", file.display()));
+            text.push_str(&file_text);
+            text.push('\n');
+        }
+    }
+    let source = Source::parse(&text).unwrap_or_else(|e| panic!("bundled rules: {e}"));
+    let (program, labels) = lower::lower(&source).unwrap_or_else(|e| panic!("bundled rules: {e}"));
+    let compiled = rule_set(&program, &labels, source.rules());
+    let mut content_types = String::new();
+    for label in labels.iter().collect::<BTreeSet<_>>() {
+        writeln!(content_types, "{label}").unwrap();
+    }
+    (compiled, content_types)
+}
 
 /// Returns a Rust block expression that evaluates to the rule set with these parts.
 pub(crate) fn rule_set(program: &Program, labels: &[String], rules: &[RuleInfo]) -> String {
     let mut out = String::from(
-        "{\n    use crate::ir::{Cmp, Cond as C, Int as I, Read};\n    \
+        "// Copyright 2026 Google LLC\n\
+         // SPDX-License-Identifier: Apache-2.0\n\n\
+         // DO NOT EDIT, see link below for more information:\n\
+         // https://github.com/google/magika/tree/main/rust/rules\n\n\
+         {\n    use crate::ir::{Cmp, Cond as C, Int as I, Read};\n    \
          use crate::matcher::{ByteSet, Pattern, RegexPattern};\n    \
          use crate::{Class, RuleInfo};\n    \
          crate::RuleSet {\n        program: crate::ir::Program {\n            patterns: vec![\n",

@@ -104,12 +104,14 @@ fn rule(id: &str, label: &str, patterns: &str, condition: &str) -> String {
     format!("rule {id} {{ meta: label = \"{label}\" enabled = true class = \"full\" fp_rate = 0 fn_rate = 0 {patterns} condition: {condition} }}")
 }
 
-#[cfg(feature = "bundled")]
 #[test]
 fn bundled_structural_rules_preserve_identifying_fields() {
-    let bundled = Source::bundled();
-    let structural: String = bundled
-        .text()
+    let text = std::fs::read_to_string(format!(
+        "{}/rulesets/notworking/formats.yar",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
+    let structural: String = text
         .split("\nrule ")
         .skip(1)
         .filter(|source| source.starts_with("xz_v1 {") || source.starts_with("sqlite_v1 {"))
@@ -315,6 +317,6 @@ fn pattern_placement_respects_at_and_in_bounds() {
 #[cfg(feature = "bundled")]
 #[test]
 fn bundled_pack_compiles() {
-    let rules = RuleSet::compile(&Source::bundled()).unwrap();
+    let rules = RuleSet::bundled();
     assert!(!rules.labels().is_empty());
 }

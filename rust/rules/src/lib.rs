@@ -8,7 +8,7 @@
 )]
 #![forbid(unsafe_code)]
 
-#[cfg(all(test, feature = "bundled"))]
+#[cfg(any(test, feature = "_gen"))]
 mod codegen;
 mod error;
 mod eval;
@@ -24,14 +24,11 @@ pub use source::{Bucket, Class, RuleInfo, Source};
 /// Bytes of input a rule may inspect.
 pub const PREFIX_LIMIT: usize = 4096;
 
-// Here rather than in `source.rs`, which `build.rs` compiles too, before `OUT_DIR` holds the rules.
-#[cfg(feature = "bundled")]
-impl Source {
-    /// The rules shipped with this crate. `build.rs` validated them; a failure is a build bug.
-    pub fn bundled() -> Self {
-        Self::parse(include_str!(concat!(env!("OUT_DIR"), "/bundled.yar")))
-            .expect("bundled rules validated at build time")
-    }
+/// Compiles `root/{full,partial,notworking}/*.yar` into `(bundled_rs, content_types)`.
+#[cfg(feature = "_gen")]
+#[doc(hidden)]
+pub fn generate(root: &std::path::Path) -> (String, String) {
+    codegen::generate(root)
 }
 
 /// What one scan looks at.
@@ -73,13 +70,13 @@ impl RuleSet {
         Ok(RuleSet { program, labels, rules: source.rules().to_vec() })
     }
 
-    /// The rules shipped with this crate, as [`RuleSet::compile`] compiles [`Source::bundled`].
+    /// The rules shipped with this crate.
     ///
-    /// They were compiled when this crate was built, so this parses no YARA and builds no regex:
-    /// each regex is built the first time a scan needs it.
+    /// They are precompiled, so this parses no YARA and builds no regex: each regex is built the
+    /// first time a scan needs it.
     #[cfg(feature = "bundled")]
     pub fn bundled() -> Self {
-        include!(concat!(env!("OUT_DIR"), "/bundled.rs"))
+        include!("bundled.rs")
     }
 
     /// Distinct labels of the enforced rules, in source order; [`Outcome::Match`] indexes it.
@@ -126,10 +123,10 @@ mod tests {
 
     #[test]
     fn bundled_rules_are_the_compiled_bundled_source() {
-        let source = Source::bundled();
-        let (program, labels) = lower::lower(&source).unwrap();
-        let expected = codegen::rule_set(&program, &labels, source.rules());
-        assert!(expected == include_str!(concat!(env!("OUT_DIR"), "/bundled.rs")));
+        let root = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/rulesets"));
+        let (expected, labels) = codegen::generate(root);
+        assert!(expected == include_str!("bundled.rs"));
+        assert!(labels == include_str!("../../gen/rules/content_types"));
         let bundled = RuleSet::bundled();
         let actual = codegen::rule_set(&bundled.program, &bundled.labels, &bundled.rules);
         assert!(actual == expected);
@@ -193,11 +190,5 @@ mod tests {
         let valid = |tail| facts::Facts::analyze(prefix, size, Some(tail)).int(ir::Fact::ZipValid);
         assert_eq!(valid(tail), 0);
         assert_eq!(valid(&bytes[start as usize..]), 1);
-    }
-
-    #[test]
-    fn build_script_uses_the_same_prefix_limit() {
-        let build = include_str!("../build.rs");
-        assert!(build.contains(&format!("const PREFIX_LIMIT: usize = {PREFIX_LIMIT};")));
     }
 }

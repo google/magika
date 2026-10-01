@@ -4,11 +4,11 @@
 //! The bundled rulesets parse and sit in the right buckets.
 
 #![cfg(feature = "bundled")]
-use magika_rules::{Bucket, Source};
+use magika_rules::{Bucket, RuleSet, Source};
 
 #[test]
-fn bundled_source_parses_and_has_enforced_rules() {
-    assert!(Source::bundled().rules().iter().any(|r| r.enforced));
+fn bundled_rules_have_enforced_rules() {
+    assert!(RuleSet::bundled().rules().iter().any(|r| r.enforced));
 }
 
 #[test]

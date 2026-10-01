@@ -24,11 +24,10 @@ match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`RuleSet::bundled` loads the bundled rules as they were compiled when the crate was built, in
-well under a millisecond: it parses no YARA and builds each regex the first time a scan needs
-it. `Source::parse` and `RuleSet::compile` accept custom rules with the same validation. A
-`RuleSet` is `Send + Sync` and scans take `&self`, so one compiled pack can be shared through an
-`Arc`.
+`RuleSet::bundled` loads the precompiled bundled rules in well under a millisecond: it parses no
+YARA and builds each regex the first time a scan needs it. `Source::parse` and `RuleSet::compile`
+accept custom rules with the same validation. A `RuleSet` is `Send + Sync` and scans take `&self`,
+so one compiled pack can be shared through an `Arc`.
 
 `Input::prefix` must be exactly the first `min(size, PREFIX_LIMIT)` bytes; anything else is
 `Outcome::InsufficientInput`.
@@ -41,9 +40,9 @@ it. `Source::parse` and `RuleSet::compile` accept custom rules with the same val
   refuted by evaluation.
 - `LICENSES`: notices for the sources rules were adapted from; exact references stay with
   each rule's `source_refs`.
-- `build.rs`: bundles the rulesets and notices into the crate with the `bundled` feature
-  (on by default), and compiles them with the crate's own `source`, `lower` and `codegen`
-  modules into the Rust code `RuleSet::bundled` runs.
+- `src/bin/gen.rs`: compiles the rulesets with the crate's own `source`, `lower` and `codegen`
+  modules into `src/bundled.rs` (loaded by `RuleSet::bundled` with the default `bundled` feature)
+  and writes the rule labels to `../gen/rules/content_types`.
 
 ## Rule metadata
 

@@ -22,8 +22,8 @@
 #   `group`, or `description` is unknown; `extensions` may be `[]`.
 # - Extensions have no leading `.` and are case-sensitive (e.g., "R").
 # - `is_text` is `true` or `false`.
-# - Do not add any other field. Derived metadata (e.g., rule and model coverage)
-#   is computed by `scripts/sync_kb.py`.
+# - Do not add any other field. `rule_coverage` and `in_ml_model` are derived
+#   automatically by `scripts/sync_kb.py` from the YARA rulesets and model config.
 
 "3ds":
   mime_type: "application/octet-stream"

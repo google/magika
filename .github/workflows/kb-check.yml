@@ -1,0 +1,48 @@
+name: KB - Check content types knowledge base
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    paths:
+      - ".github/workflows/kb-check.yml"
+      - "assets/content_types.yaml"
+      - "assets/content_types_kb.min.json"
+      - "assets/models/**"
+      - "python/src/magika/config/content_types_kb.min.json"
+      - "rust/gen/model"
+      - "rust/rules/rulesets/**"
+      - "scripts/sync_kb.py"
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.12.12"
+
+jobs:
+  check-kb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+
+      - name: Run sync_kb.py self-tests
+        run: uv run scripts/sync_kb.py --self-test
+
+      - name: Check content_types_kb.min.json is in sync
+        run: uv run scripts/sync_kb.py --check
+
+      - name: Check Python copy of content_types_kb.min.json is in sync
+        run: |
+          if ! cmp -s assets/content_types_kb.min.json python/src/magika/config/content_types_kb.min.json; then
+            echo "ERROR: python/src/magika/config/content_types_kb.min.json is not in sync with assets/content_types_kb.min.json." >&2
+            echo "Run: uv run python/scripts/sync.py python" >&2
+            exit 1
+          fi

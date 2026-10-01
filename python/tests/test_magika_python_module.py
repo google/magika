@@ -551,9 +551,12 @@ def test_get_model_and_output_content_types() -> None:
 
     for ct in output_content_types:
         assert isinstance(ct, ContentTypeLabel)
+    for ct in model_content_types:
+        assert isinstance(ct, ContentTypeLabel)
 
     # Check for no duplicates
     assert len(output_content_types) == len(output_content_types_set)
+    assert len(model_content_types) == len(model_content_types_set)
 
     # Check basic properties about special ContentTypeLabel entries
     special_output_content_types = {
@@ -564,11 +567,10 @@ def test_get_model_and_output_content_types() -> None:
         ContentTypeLabel.UNKNOWN,
         ContentTypeLabel.UNSUPPORTED,
     }
-    special_model_content_types = {ContentTypeLabel.UNDEFINED}
     assert special_output_content_types.issubset(output_content_types_set)
-    assert not special_model_content_types.issubset(output_content_types_set)
-    assert special_model_content_types.issubset(model_content_types_set)
     assert not special_output_content_types.issubset(model_content_types_set)
+    assert ContentTypeLabel.UNDEFINED not in output_content_types_set
+    assert ContentTypeLabel.UNDEFINED not in model_content_types_set
 
     # Spot check for popular content types
     assert {

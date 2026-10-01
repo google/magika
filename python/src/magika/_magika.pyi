@@ -14,6 +14,14 @@
 
 from typing import List, Optional
 
+class ContentTypeInfo:
+    label: str
+    mime_type: str
+    group: str
+    description: str
+    extensions: List[str]
+    is_text: bool
+
 class MagikaResult:
     path: Optional[str]
     status: str
@@ -29,6 +37,9 @@ class MagikaResult:
     overwrite_reason: str
 
 def get_default_model_name() -> str: ...
+def content_type_from_label(label: str) -> Optional[ContentTypeInfo]: ...
+def get_output_content_types() -> List[str]: ...
+def get_model_content_types() -> List[str]: ...
 
 class Magika:
     def __init__(
@@ -44,3 +55,5 @@ class Magika:
     def identify_path(self, path: str) -> MagikaResult: ...
     def identify_paths(self, paths: List[str]) -> List[MagikaResult]: ...
     def get_model_name(self) -> str: ...
+    def get_output_content_types(self) -> List[str]: ...
+    def get_model_content_types(self) -> List[str]: ...

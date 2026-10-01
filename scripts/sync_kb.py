@@ -55,7 +55,7 @@ CONTENT_TYPE_NAME_RE = re.compile(r"^[a-z0-9_]+$")
 
 RULE_BUCKETS = ("full", "partial")
 BUILTIN_CONTENT_TYPES = frozenset(
-    {"directory", "empty", "symlink", "txt", "undefined", "unknown"}
+    {"directory", "empty", "symlink", "txt", "unknown", "unsupported"}
 )
 
 _YARA_COMMENT_RE = re.compile(r'"(?:\\.|[^"\\\n])*"|/\*[\s\S]*?\*/|//[^\n]*')

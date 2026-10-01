@@ -16,11 +16,49 @@ use std::cell::RefCell;
 use std::sync::OnceLock;
 
 use magika::{
-    Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode, Runtime,
-    Session, MODEL_NAME,
+    ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
+    Runtime, Session, TypeInfo, MODEL_NAME,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
+
+#[pyclass(name = "ContentTypeInfo", frozen)]
+pub struct PyContentTypeInfo {
+    info: &'static TypeInfo,
+}
+
+#[pymethods]
+impl PyContentTypeInfo {
+    #[getter]
+    fn label(&self) -> &'static str {
+        self.info.label
+    }
+
+    #[getter]
+    fn mime_type(&self) -> &'static str {
+        self.info.mime_type
+    }
+
+    #[getter]
+    fn group(&self) -> &'static str {
+        self.info.group
+    }
+
+    #[getter]
+    fn description(&self) -> &'static str {
+        self.info.description
+    }
+
+    #[getter]
+    fn extensions(&self) -> Vec<&'static str> {
+        self.info.extensions.to_vec()
+    }
+
+    #[getter]
+    fn is_text(&self) -> bool {
+        self.info.is_text
+    }
+}
 
 #[pyclass(name = "MagikaResult")]
 pub struct PyMagikaResult {
@@ -78,9 +116,7 @@ fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult 
             (dl, reason.to_string())
         }
         FileType::Ruled(_) | FileType::Directory | FileType::Symlink | FileType::Unsupported => {
-            // FIXME(https://github.com/google/magika/issues/1480): Use ContentType::Undefined
-            // from magika-lib once exposed on magika::ContentType.
-            ("undefined".to_string(), "none".to_string())
+            (ContentType::Undefined.info().label.to_string(), "none".to_string())
         }
     };
 
@@ -293,6 +329,14 @@ impl PyMagika {
     fn get_model_name(&self) -> &'static str {
         MODEL_NAME
     }
+
+    fn get_output_content_types(&self) -> Vec<&'static str> {
+        TypeInfo::possible_output().into_iter().map(|x| x.label).collect()
+    }
+
+    fn get_model_content_types(&self) -> Vec<&'static str> {
+        TypeInfo::model_output().into_iter().map(|x| x.label).collect()
+    }
 }
 
 #[pyfunction]
@@ -300,10 +344,29 @@ fn get_default_model_name() -> &'static str {
     MODEL_NAME
 }
 
+#[pyfunction]
+fn content_type_from_label(label: &str) -> Option<PyContentTypeInfo> {
+    ContentType::from_label(label).map(|x| PyContentTypeInfo { info: x.info() })
+}
+
+#[pyfunction]
+fn get_output_content_types() -> Vec<&'static str> {
+    TypeInfo::possible_output().into_iter().map(|x| x.label).collect()
+}
+
+#[pyfunction]
+fn get_model_content_types() -> Vec<&'static str> {
+    TypeInfo::model_output().into_iter().map(|x| x.label).collect()
+}
+
 #[pymodule]
 fn _magika(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMagika>()?;
     m.add_class::<PyMagikaResult>()?;
+    m.add_class::<PyContentTypeInfo>()?;
     m.add_function(wrap_pyfunction!(get_default_model_name, m)?)?;
+    m.add_function(wrap_pyfunction!(content_type_from_label, m)?)?;
+    m.add_function(wrap_pyfunction!(get_output_content_types, m)?)?;
+    m.add_function(wrap_pyfunction!(get_model_content_types, m)?)?;
     Ok(())
 }

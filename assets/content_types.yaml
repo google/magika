@@ -2650,6 +2650,13 @@
   extensions: []
   is_text: false
 
+"unsupported":
+  mime_type: "inode/x-unsupported"
+  group: "inode"
+  description: "Unsupported file type"
+  extensions: []
+  is_text: false
+
 "vba":
   mime_type: "text/vbscript"
   group: "code"

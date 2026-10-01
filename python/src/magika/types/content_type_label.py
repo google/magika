@@ -403,6 +403,7 @@ class ContentTypeLabel(StrEnum):
     UNDEFINED = "undefined"
     UNIXCOMPRESS = "unixcompress"
     UNKNOWN = "unknown"
+    UNSUPPORTED = "unsupported"
     VBA = "vba"
     VBE = "vbe"
     VCARD = "vcard"

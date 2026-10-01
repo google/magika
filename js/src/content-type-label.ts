@@ -392,6 +392,7 @@ export enum ContentTypeLabel {
   UNDEFINED = "undefined",
   UNIXCOMPRESS = "unixcompress",
   UNKNOWN = "unknown",
+  UNSUPPORTED = "unsupported",
   VBA = "vba",
   VBE = "vbe",
   VCARD = "vcard",

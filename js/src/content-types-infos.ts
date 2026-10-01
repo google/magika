@@ -1521,6 +1521,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.UNKNOWN,
       is_text: false,
     },
+    [ContentTypeLabel.UNSUPPORTED]: {
+      label: ContentTypeLabel.UNSUPPORTED,
+      is_text: false,
+    },
     [ContentTypeLabel.VBA]: {
       label: ContentTypeLabel.VBA,
       is_text: true,

@@ -271,6 +271,10 @@ struct ContentType {
     description: Option<String>,
     extensions: Vec<String>,
     is_text: bool,
+    #[allow(dead_code)]
+    rule_coverage: String,
+    #[allow(dead_code)]
+    in_ml_model: bool,
 }
 
 impl ContentType {

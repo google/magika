@@ -562,6 +562,7 @@ def test_get_model_and_output_content_types() -> None:
         ContentTypeLabel.SYMLINK,
         ContentTypeLabel.TXT,
         ContentTypeLabel.UNKNOWN,
+        ContentTypeLabel.UNSUPPORTED,
     }
     special_model_content_types = {ContentTypeLabel.UNDEFINED}
     assert special_output_content_types.issubset(output_content_types_set)
@@ -786,6 +787,7 @@ def test_content_type_label_str_behavior() -> None:
     assert ContentTypeLabel.SYMLINK.value == "symlink"
     assert ContentTypeLabel.TXT.value == "txt"
     assert ContentTypeLabel.UNKNOWN.value == "unknown"
+    assert ContentTypeLabel.UNSUPPORTED.value == "unsupported"
 
 
 def test_prediction_mode_enums_and_valid_modes() -> None:
@@ -951,6 +953,6 @@ def test_special_device_file() -> None:
         m = Magika()
         res = m.identify_path(null_dev)
         assert res.ok
-        assert res.output.label == ContentTypeLabel.UNKNOWN
+        assert res.output.label == ContentTypeLabel.UNSUPPORTED
         assert res.dl.label == ContentTypeLabel.UNDEFINED
         assert res.score == 1.0

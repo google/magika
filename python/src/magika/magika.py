@@ -249,6 +249,7 @@ class Magika:
             ContentTypeLabel.SYMLINK,
             ContentTypeLabel.TXT,
             ContentTypeLabel.UNKNOWN,
+            ContentTypeLabel.UNSUPPORTED,
         }
         for ct in self._target_labels_space:
             output_ct = self._overwrite_map.get(ct, ct)

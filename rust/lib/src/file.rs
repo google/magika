@@ -34,6 +34,9 @@ pub enum FileType {
 
     /// The file is a regular file and was identified using rules.
     Ruled(ContentType),
+
+    /// The file is neither a directory, a symbolic link, nor a regular file.
+    Unsupported,
 }
 
 /// Content type identified using AI.
@@ -70,6 +73,7 @@ impl FileType {
             FileType::Symlink => None,
             FileType::Inferred(x) => Some(x.content_type()),
             FileType::Ruled(x) => Some(*x),
+            FileType::Unsupported => None,
         }
     }
 
@@ -80,6 +84,7 @@ impl FileType {
             FileType::Symlink => &crate::content::SYMLINK,
             FileType::Inferred(x) => x.content_type().info(),
             FileType::Ruled(x) => x.info(),
+            FileType::Unsupported => &crate::content::UNSUPPORTED,
         }
     }
 
@@ -92,6 +97,7 @@ impl FileType {
             FileType::Symlink => 1.0,
             FileType::Inferred(x) => x.score,
             FileType::Ruled(_) => 1.0,
+            FileType::Unsupported => 1.0,
         }
     }
 }

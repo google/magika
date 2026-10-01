@@ -2422,6 +2422,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static UNSUPPORTED: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"unsupported".as_ptr(),
+    mime_type: c"inode/x-unsupported".as_ptr(),
+    group: c"inode".as_ptr(),
+    description: c"Unsupported file type".as_ptr(),
+    extensions: [ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static VBA: MagikaTypeInfo = MagikaTypeInfo {
     label: c"vba".as_ptr(),
     mime_type: c"text/vbscript".as_ptr(),

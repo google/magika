@@ -103,7 +103,7 @@ fn generate_lib_content(
         let description = info.description(label);
         let extensions = &info.extensions;
         let is_text = info.is_text;
-        if !matches!(label.as_str(), "directory" | "symlink") {
+        if !is_special_label(label) {
             variants.push(Variant { label: label.clone(), doc: description.clone() });
         }
         writeln!(output, "pub(crate) static {}: TypeInfo = TypeInfo {{", const_name(label))?;
@@ -233,7 +233,7 @@ fn generate_ffi_content(content_types: &BTreeMap<String, ContentType>) -> Result
         let mime_type = info.mime_type();
         let group = info.group();
         let description = info.description(label);
-        if !matches!(label.as_str(), "directory" | "symlink") {
+        if !is_special_label(label) {
             variants.push(label.clone());
         }
         let mut extensions = "[".to_string();
@@ -366,4 +366,8 @@ fn label_name(label: &str, scream: bool) -> String {
         }
     }
     name
+}
+
+fn is_special_label(label: &str) -> bool {
+    matches!(label, "directory" | "symlink" | "unsupported")
 }

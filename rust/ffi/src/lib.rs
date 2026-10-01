@@ -46,6 +46,8 @@ pub enum MagikaFileTypeKind {
     Inferred = 2,
     /// The file is a regular file and was identified using rules.
     Ruled = 3,
+    /// The file is neither a directory, a symbolic link, nor a regular file.
+    Unsupported = 4,
 }
 
 /// Reason why an inferred content type was overwritten.
@@ -91,7 +93,7 @@ pub struct MagikaResult {
     pub kind: MagikaFileTypeKind,
     /// Resolved content type information (never null, points to static storage).
     pub info: *const MagikaTypeInfo,
-    /// Confidence score between 0.0 and 1.0 (1.0 for directory, symlink, or ruled).
+    /// Confidence score between 0.0 and 1.0 (1.0 for directory, symlink, ruled, or unsupported).
     pub score: f32,
     /// Raw model output before overwrite rules were applied (null if not inferred).
     pub inferred_info: *const MagikaTypeInfo,
@@ -368,6 +370,13 @@ fn file_type_to_c(file_type: &magika::FileType) -> MagikaResult {
                 overwrite_reason,
             }
         }
+        magika::FileType::Unsupported => MagikaResult {
+            kind: MagikaFileTypeKind::Unsupported,
+            info: &content::UNSUPPORTED,
+            score: 1.0,
+            inferred_info: std::ptr::null(),
+            overwrite_reason: MagikaOverwriteReason::None,
+        },
     }
 }
 
@@ -438,9 +447,9 @@ unsafe fn extract_features(
         magika::FeaturesOrRuled::Features(features) => {
             *out_features = Box::into_raw(Box::new(MagikaFeatures { inner: features }));
         }
-        magika::FeaturesOrRuled::Ruled(content_type) => {
+        magika::FeaturesOrRuled::Ruled(file_type) => {
             if !out_result.is_null() {
-                *out_result = file_type_to_c(&magika::FileType::Ruled(content_type));
+                *out_result = file_type_to_c(&file_type);
             }
         }
     })
@@ -478,8 +487,7 @@ pub unsafe extern "C" fn magika_features_extract_file(
     let Some(path_ref) = parse_path(path) else { return MagikaStatus::InvalidArgument };
     let options = if options.is_null() { magika::Options::default() } else { (*options).into() };
     extract_features(out_features, out_result, || {
-        let file = std::fs::File::open(path_ref)?;
-        magika::FeaturesOrRuled::extract(file, &options)
+        magika::FeaturesOrRuled::extract_file(path_ref, &options)
     })
 }
 
@@ -514,7 +522,9 @@ pub unsafe extern "C" fn magika_features_extract_content(
     *out_features = std::ptr::null_mut();
     let bytes = if len == 0 { &[][..] } else { std::slice::from_raw_parts(data, len) };
     let options = if options.is_null() { magika::Options::default() } else { (*options).into() };
-    extract_features(out_features, out_result, || magika::FeaturesOrRuled::extract(bytes, &options))
+    extract_features(out_features, out_result, || {
+        magika::FeaturesOrRuled::extract_content(bytes, &options)
+    })
 }
 
 /// Identifies the content type of a file from its extracted features.

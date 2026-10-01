@@ -2426,6 +2426,15 @@ pub(crate) static UNKNOWN: TypeInfo = TypeInfo {
     is_text: false,
 };
 
+pub(crate) static UNSUPPORTED: TypeInfo = TypeInfo {
+    label: "unsupported",
+    mime_type: "inode/x-unsupported",
+    group: "inode",
+    description: "Unsupported file type",
+    extensions: &[],
+    is_text: false,
+};
+
 pub(crate) static VBA: TypeInfo = TypeInfo {
     label: "vba",
     mime_type: "text/vbscript",

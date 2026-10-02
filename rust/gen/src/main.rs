@@ -43,18 +43,44 @@ fn main() -> Result<()> {
 fn filter_content_types(
     mut content_types: BTreeMap<String, ContentType>, model_config: &ModelConfig,
 ) -> Result<BTreeMap<String, ContentType>> {
-    // We only want to generate content types that are already exposed or that are model labels.
-    // This is a conservative approach to avoid exposing the whole knowledge base if it contains
-    // experimental content types that won't ever be exposed in the future.
+    // We only want to generate content types that are already exposed or that are model or rule
+    // labels. This is a conservative approach to avoid exposing the whole knowledge base if it
+    // contains experimental content types that won't ever be exposed in the future.
     let content_types_content = std::fs::read_to_string("content_types")?;
+    let rules_content_types = std::fs::read_to_string("rules/content_types")?;
+    let rules_labels = rules_content_types.lines().collect::<BTreeSet<_>>();
+    let model_labels =
+        model_config.target_labels_space.iter().map(|x| x.as_str()).collect::<BTreeSet<_>>();
     let mut labels = content_types_content.lines().collect::<BTreeSet<_>>();
-    labels.extend(model_config.target_labels_space.iter().map(|x| x.as_str()));
+    labels.extend(&model_labels);
+    labels.extend(&rules_labels);
+    check_content_types(&content_types, model_config, &rules_labels, &model_labels, &labels)?;
     let mut content_types_file = File::create("content_types")?;
     for label in &labels {
         writeln!(&mut content_types_file, "{label}")?;
     }
     content_types.retain(|x, _| labels.contains(x.as_str()));
     Ok(content_types)
+}
+
+fn check_content_types(
+    content_types: &BTreeMap<String, ContentType>, model_config: &ModelConfig,
+    rules_labels: &BTreeSet<&str>, model_labels: &BTreeSet<&str>, labels: &BTreeSet<&str>,
+) -> Result<()> {
+    for (label, info) in content_types {
+        let in_rules = matches!(info.rule_coverage, RuleCoverage::Full | RuleCoverage::Partial);
+        ensure!(
+            in_rules == rules_labels.contains(label.as_str()),
+            "inconsistent rule_coverage for {label:?}"
+        );
+        let in_model = model_labels.contains(label.as_str())
+            && !model_config.overwrite_map.contains_key(label.as_str());
+        ensure!(info.in_ml_model == in_model, "inconsistent in_ml_model for {label:?}");
+    }
+    for &label in labels {
+        ensure!(content_types.contains_key(label), "unknown content type {label:?}");
+    }
+    Ok(())
 }
 
 fn generate_lib_content(
@@ -271,10 +297,17 @@ struct ContentType {
     description: Option<String>,
     extensions: Vec<String>,
     is_text: bool,
-    #[allow(dead_code)]
-    rule_coverage: String,
-    #[allow(dead_code)]
+    rule_coverage: RuleCoverage,
     in_ml_model: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum RuleCoverage {
+    Full,
+    Partial,
+    Builtin,
+    None,
 }
 
 impl ContentType {

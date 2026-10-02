@@ -568,9 +568,8 @@ fn batch_files(
                     batch_sender.send(full)?;
                 }
             }
-            Ok(FeaturesOrRuled::Ruled(content_type)) => {
-                let result = Ok(FileType::Ruled(content_type));
-                result_sender.send(Ok(Response::new(pending, result)))?;
+            Ok(FeaturesOrRuled::Ruled(file_type)) => {
+                result_sender.send(Ok(Response::new(pending, Ok(file_type))))?;
             }
             Err(error) => {
                 result_sender.send(Ok(Response::new(pending, Err(error))))?;
@@ -588,9 +587,9 @@ fn extract_path(path: &Path, options: &magika::Options) -> Result<FeaturesOrRule
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract(&stdin[..], options);
+        return FeaturesOrRuled::extract_content(&stdin[..], options);
     }
-    FeaturesOrRuled::extract(std::fs::File::open(path)?, options)
+    FeaturesOrRuled::extract_content(std::fs::File::open(path)?, options)
 }
 
 enum ProcessPath {
@@ -621,7 +620,6 @@ enum WalkEntry {
 }
 
 const DIRECTORY_CYCLE: &str = "Directory cycle";
-const NOT_A_REGULAR_FILE: &str = "Not a regular file";
 
 struct Traversal {
     pending: Vec<WalkEntry>,
@@ -692,7 +690,9 @@ fn process_path(
     if metadata.is_symlink() {
         return Ok(ProcessPath::Ruled(FileType::Symlink));
     }
-    ensure!(metadata.is_file(), NOT_A_REGULAR_FILE);
+    if !metadata.is_file() {
+        return Ok(ProcessPath::Ruled(FileType::Unsupported));
+    }
     Ok(ProcessPath::Content)
 }
 
@@ -764,7 +764,6 @@ enum JsonError {
     FileDoesNotExist,
     PermissionError,
     DirectoryCycle,
-    NotARegularFile,
 }
 
 #[derive(Serialize)]
@@ -785,7 +784,6 @@ impl From<anyhow::Error> for JsonError {
         }
         match value.to_string().as_str() {
             DIRECTORY_CYCLE => JsonError::DirectoryCycle,
-            NOT_A_REGULAR_FILE => JsonError::NotARegularFile,
             _ => JsonError::Unknown,
         }
     }

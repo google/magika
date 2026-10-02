@@ -91,6 +91,10 @@ typedef enum MagikaFileTypeKind {
    * The file is a regular file and was identified using rules.
    */
   MAGIKA_FILE_TYPE_KIND_RULED = 3,
+  /**
+   * The file is neither a directory, a symbolic link, nor a regular file.
+   */
+  MAGIKA_FILE_TYPE_KIND_UNSUPPORTED = 4,
 } MagikaFileTypeKind;
 
 /**
@@ -211,7 +215,7 @@ typedef struct MagikaResult {
    */
   const struct MagikaTypeInfo *info;
   /**
-   * Confidence score between 0.0 and 1.0 (1.0 for directory, symlink, or ruled).
+   * Confidence score between 0.0 and 1.0 (1.0 for directory, symlink, ruled, or unsupported).
    */
   float score;
   /**

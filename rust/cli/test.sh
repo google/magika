@@ -66,13 +66,13 @@ test_error() {
 
 if [ $(id -u) -ne 0 -a -e /run/systemd/inaccessible ]; then
   info "Test permission error and non-regular files"
-  test_error '--jsonl -r /run/systemd/inaccessible' \
-'{"path":"/run/systemd/inaccessible/blk","result":{"status":"not_a_regular_file"}}
-{"path":"/run/systemd/inaccessible/chr","result":{"status":"not_a_regular_file"}}
-{"path":"/run/systemd/inaccessible/dir","result":{"status":"permission_error"}}
-{"path":"/run/systemd/inaccessible/fifo","result":{"status":"not_a_regular_file"}}
-{"path":"/run/systemd/inaccessible/reg","result":{"status":"permission_error"}}
-{"path":"/run/systemd/inaccessible/sock","result":{"status":"not_a_regular_file"}}'
+  test_error '-r /run/systemd/inaccessible' \
+'/run/systemd/inaccessible/blk: Unsupported file type (inode)
+/run/systemd/inaccessible/chr: Unsupported file type (inode)
+/run/systemd/inaccessible/dir: Permission denied (os error 13) (error)
+/run/systemd/inaccessible/fifo: Unsupported file type (inode)
+/run/systemd/inaccessible/reg: Permission denied (os error 13) (error)
+/run/systemd/inaccessible/sock: Unsupported file type (inode)'
 fi
 
 info "Test nonexistent files"

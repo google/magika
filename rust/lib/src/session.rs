@@ -54,25 +54,19 @@ impl Session {
 
     /// Identifies a single file.
     pub fn identify_file(&mut self, file: impl AsRef<Path>) -> Result<FileType> {
-        let file = file.as_ref();
-        let metadata = if self.options.follow_symlink {
-            std::fs::metadata(file)?
-        } else {
-            std::fs::symlink_metadata(file)?
-        };
-        if metadata.is_dir() {
-            Ok(FileType::Directory)
-        } else if metadata.is_symlink() {
-            Ok(FileType::Symlink)
-        } else {
-            self.identify_content(std::fs::File::open(file)?)
-        }
+        self.identify_features_or_ruled(FeaturesOrRuled::extract_file(file, &self.options)?)
     }
 
     /// Identifies a single file from its content.
     pub fn identify_content(&mut self, file: impl Input) -> Result<FileType> {
-        match FeaturesOrRuled::extract(file, &self.options)? {
-            FeaturesOrRuled::Ruled(content_type) => Ok(FileType::Ruled(content_type)),
+        self.identify_features_or_ruled(FeaturesOrRuled::extract_content(file, &self.options)?)
+    }
+
+    fn identify_features_or_ruled(
+        &mut self, features_or_ruled: FeaturesOrRuled,
+    ) -> Result<FileType> {
+        match features_or_ruled {
+            FeaturesOrRuled::Ruled(file_type) => Ok(file_type),
             FeaturesOrRuled::Features(features) => self.identify_features(&features),
         }
     }

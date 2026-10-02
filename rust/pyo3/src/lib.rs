@@ -13,12 +13,11 @@
 // limitations under the License.
 
 use std::cell::RefCell;
-use std::path::Path;
 use std::sync::OnceLock;
 
 use magika::{
-    ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
-    Runtime, Session, MODEL_NAME,
+    Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode, Runtime,
+    Session, MODEL_NAME,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -78,7 +77,7 @@ fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult 
             };
             (dl, reason.to_string())
         }
-        FileType::Ruled(_) | FileType::Directory | FileType::Symlink => {
+        FileType::Ruled(_) | FileType::Directory | FileType::Symlink | FileType::Unsupported => {
             // FIXME(https://github.com/google/magika/issues/1480): Use ContentType::Undefined
             // from magika-lib once exposed on magika::ContentType.
             ("undefined".to_string(), "none".to_string())
@@ -128,57 +127,11 @@ enum PathDisposition {
     Features(Features),
 }
 
-// FIXME(https://github.com/google/magika/issues/1482): Remove custom `!metadata.is_file()`
-// check once magika-lib handles non-regular / special files (e.g., /dev/null, FIFOs)
-// as FileType::Ruled(ContentType::Unknown).
 fn extract_path_disposition(path_str: &str, options: &Options) -> anyhow::Result<PathDisposition> {
-    let p = Path::new(path_str);
-    let metadata_res =
-        if options.follow_symlink { std::fs::metadata(p) } else { std::fs::symlink_metadata(p) };
-    let metadata = match metadata_res {
-        Ok(m) => m,
-        Err(io_err) => {
-            return Ok(PathDisposition::Immediate(from_io_error(
-                &io_err,
-                Some(path_str.to_string()),
-            )));
+    match FeaturesOrRuled::extract_file(path_str, options) {
+        Ok(FeaturesOrRuled::Ruled(file_type)) => {
+            Ok(PathDisposition::Immediate(from_file_type(&file_type, Some(path_str.to_string()))))
         }
-    };
-
-    if metadata.is_symlink() {
-        return Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Symlink,
-            Some(path_str.to_string()),
-        )));
-    }
-    if metadata.is_dir() {
-        return Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Directory,
-            Some(path_str.to_string()),
-        )));
-    }
-    if !metadata.is_file() {
-        return Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Ruled(ContentType::Unknown),
-            Some(path_str.to_string()),
-        )));
-    }
-
-    let file = match std::fs::File::open(p) {
-        Ok(f) => f,
-        Err(io_err) => {
-            return Ok(PathDisposition::Immediate(from_io_error(
-                &io_err,
-                Some(path_str.to_string()),
-            )));
-        }
-    };
-
-    match FeaturesOrRuled::extract(file, options) {
-        Ok(FeaturesOrRuled::Ruled(ct)) => Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Ruled(ct),
-            Some(path_str.to_string()),
-        ))),
         Ok(FeaturesOrRuled::Features(features)) => Ok(PathDisposition::Features(features)),
         Err(e) => {
             if let Some(io_err) = e.downcast_ref::<std::io::Error>() {

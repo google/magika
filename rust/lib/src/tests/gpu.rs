@@ -66,14 +66,17 @@ fn reference_decisions_match_on_every_gpu_batch() {
                 _ => panic!("fixture must identify exactly one input"),
             };
             let expected = fixture.prediction.unwrap();
-            match FeaturesOrRuled::extract(bytes.as_slice()).unwrap() {
+            let mut options = Options::default();
+            options.use_rules = false;
+            match FeaturesOrRuled::extract_content(bytes.as_slice(), &options).unwrap() {
                 FeaturesOrRuled::Ruled(kind) => {
-                    assert_prediction(FileType::Ruled(kind), expected, &name);
+                    assert_prediction(kind, expected, &name);
                 }
                 FeaturesOrRuled::Features(features) => {
                     let reference = cpu.run(&features.0, 1).unwrap();
                     num_labels = reference.len();
                     let reference = FileType::convert(
+                        PredictionMode::HighConfidence,
                         ArrayView2::from_shape((1, num_labels), &reference).unwrap().into_dyn(),
                     );
                     let cpu_output = reference[0].info().label;
@@ -101,6 +104,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
             let scores = gpu.run(&input, batch).unwrap();
             assert_eq!(scores.len(), batch * num_labels);
             let predictions = FileType::convert(
+                PredictionMode::HighConfidence,
                 ArrayView2::from_shape((batch, num_labels), &scores).unwrap().into_dyn(),
             );
             for ((sample, actual), row) in

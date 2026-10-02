@@ -14,7 +14,6 @@
 
 use ndarray::ArrayViewD;
 
-use crate::model::Label;
 use crate::{ContentType, PredictionMode};
 
 /// File types.
@@ -132,6 +131,26 @@ pub struct TypeInfo {
 
     /// Whether the file type is text.
     pub is_text: bool,
+
+    /// Whether this file type is supported by the model.
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
+    pub model_support: bool,
+
+    /// Whether this file type is supported by the rules.
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
+    pub rules_support: bool,
+}
+
+impl TypeInfo {
+    /// Returns the list of possible outputs ordered by label.
+    pub fn possible_output() -> Vec<&'static Self> {
+        TypeInfo::ALL.into_iter().filter(|x| x.model_support || x.rules_support).collect()
+    }
+
+    /// Returns the list of model outputs ordered by label.
+    pub fn model_output() -> Vec<&'static Self> {
+        TypeInfo::ALL.into_iter().filter(|x| x.model_support).collect()
+    }
 }
 
 impl FileType {
@@ -145,11 +164,8 @@ impl FileType {
                     best = i;
                 }
             }
-            assert!(best < crate::model::NUM_LABELS);
             let score = scores[best];
-            // SAFETY: Labels are u32 smaller than NUM_LABELS.
-            let label = unsafe { std::mem::transmute::<u32, Label>(best as u32) };
-            let inferred_type = label.content_type();
+            let inferred_type = crate::model::LABELS[best];
             let config = &crate::model::CONFIG;
             let mut content_type = if mode.is_confident(score, inferred_type as usize) {
                 let overwrite = config.overwrite_map[inferred_type as usize];

@@ -94,7 +94,7 @@ impl Session {
             return Ok(Vec::new());
         }
         let output = self.inner.run(&input, count)?;
-        let output = ArrayView2::from_shape((count, crate::model::NUM_LABELS), &output)?;
+        let output = ArrayView2::from_shape((count, crate::model::LABELS.len()), &output)?;
         Ok(FileType::convert(self.options.prediction_mode, output.into_dyn()))
     }
 }

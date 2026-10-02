@@ -133,9 +133,11 @@ pub struct TypeInfo {
     pub is_text: bool,
 
     /// Whether this file type is supported by the model.
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
     pub model_support: bool,
 
     /// Whether this file type is supported by the rules.
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
     pub rules_support: bool,
 }
 

@@ -40,15 +40,18 @@ export class Model {
       [1, features_array.length],
       "int32",
     );
-    const modelOutput = tf.squeeze(
-      (await this.model.executeAsync(modelInput)) as any,
-    );
+    const rawOutput = (await this.model.executeAsync(modelInput)) as any;
+    const modelOutput = tf.squeeze(rawOutput);
     const maxScoreIndexTensor = tf.argMax(modelOutput);
     const maxScoreIndex = maxScoreIndexTensor.dataSync()[0];
     const rawScores = modelOutput.dataSync();
     maxScoreIndexTensor.dispose();
     modelInput.dispose();
     modelOutput.dispose();
+    // `squeeze` returns a new tensor that shares the data of the model output,
+    // so the model output itself is still tracked by the engine and has to be
+    // disposed explicitly, otherwise every prediction leaks one tensor.
+    tf.dispose(rawOutput);
 
     const maxScoreLabel = this.model_config.target_labels_space[maxScoreIndex];
     const maxScore = rawScores[maxScoreIndex];

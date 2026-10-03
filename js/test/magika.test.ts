@@ -138,6 +138,17 @@ describe("Magika class", () => {
     expect(Object.values(TfnMock.accessed).reduce((a, b) => a + b, 0)).toBe(1);
   });
 
+  it("should report the name of the model it loaded", async () => {
+    const fromUrl = await Magika.create();
+    expect(fromUrl.getModelName()).toBe(Magika.MODEL_VERSION);
+
+    const fromPath = await Magika.create({
+      modelConfigPath: workdir.model_config,
+      modelPath: workdir.model,
+    });
+    expect(fromPath.getModelName()).toBe(path.basename(workdir.root));
+  });
+
   it("scores should be in the expected range", async () => {
     const magika = await Magika.create();
     fc.assert(

@@ -46,7 +46,7 @@ jobs:
         uses: ./.github/actions/rust-cache
 
       - name: Build and stage magika CLI binary
-        run: ./python/scripts/stage_cli.sh
+        run: ./python/scripts/build_and_stage_cli.sh
 
       - name: Install all projects dependencies (with the requested python version)
         working-directory: python

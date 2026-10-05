@@ -2343,7 +2343,7 @@ use crate::MagikaTypeInfo;
 
 #[rustfmt::skip] pub(crate) static TSV: MagikaTypeInfo = MagikaTypeInfo {
     label: c"tsv".as_ptr(),
-    mime_type: c"text/tsv".as_ptr(),
+    mime_type: c"text/tab-separated-values".as_ptr(),
     group: c"code".as_ptr(),
     description: c"TSV document".as_ptr(),
     extensions: [c"tsv".as_ptr(), ptr::null()].as_ptr(),

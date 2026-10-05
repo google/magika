@@ -2553,7 +2553,7 @@
   is_text: false
 
 "tsv":
-  mime_type: "text/tsv"
+  mime_type: "text/tab-separated-values"
   group: "code"
   description: "TSV document"
   extensions: ["tsv"]

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # ==============================================================================
-# Stage Native Rust `magika` CLI Binary for Maturin Wheel & Editable Builds
+# Build and Stage Native Rust `magika` CLI Binary for Maturin Builds
 # ==============================================================================
 #
 # Why this script is on the critical path:
@@ -30,14 +30,14 @@
 # building a wheel or running `uv sync` whenever the `magika` CLI binary is
 # expected to be present in the Python environment:
 #
-#   1. Local builds & CI unit test suites (`python-test-suite.yml`, `build_wheel.sh`):
-#      Run `./python/scripts/stage_cli.sh` (no arguments) on the host before
-#      `uv sync` or `uv build` so `magika` is compiled for the host target and
-#      installed into `.venv/bin/magika`.
+#   1. Local builds & CI unit test suites (`python-test-suite.yml`, `build_wheel.sh`, `sync_dev.sh`):
+#      Run `./python/scripts/build_and_stage_cli.sh` (no arguments) on the host
+#      before `uv sync` or `uv build` so `magika` is compiled for the host target
+#      and installed into `.venv/bin/magika`.
 #
 #   2. macOS and Windows wheel builds (`python-build-test-and-release-package.yml`):
-#      Run `./python/scripts/stage_cli.sh <target-triple>` on the runner host
-#      immediately before `PyO3/maturin-action` packages the wheel.
+#      Run `./python/scripts/build_and_stage_cli.sh <target-triple>` on the
+#      runner host immediately before `PyO3/maturin-action` packages the wheel.
 #
 #   3. Linux manylinux / musllinux wheel builds (`python-build-test-and-release-package.yml`):
 #      Passed to `PyO3/maturin-action` via `before-script-linux` so the CLI is
@@ -46,7 +46,7 @@
 #      PyO3 extension.
 #
 # Usage:
-#   ./python/scripts/stage_cli.sh [RUST_TARGET_TRIPLE]
+#   ./python/scripts/build_and_stage_cli.sh [RUST_TARGET_TRIPLE]
 # ==============================================================================
 
 set -euo pipefail

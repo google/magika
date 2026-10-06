@@ -162,11 +162,11 @@ jobs:
 
       # On macOS and Windows (which build on the host, not inside a manylinux container),
       # compile and stage the CLI binary into python/wheel_data/scripts/ before Maturin packages it.
-      # On Linux, this is handled inside the manylinux container by python/scripts/stage_cli.sh via before-script-linux.
+      # On Linux, this is handled inside the manylinux container by python/scripts/build_and_stage_cli.sh via before-script-linux.
       - if: matrix.platform.os != 'Linux'
         name: Build and stage magika CLI (macOS/Windows)
         shell: bash
-        run: ./python/scripts/stage_cli.sh ${{ matrix.platform.target }}
+        run: ./python/scripts/build_and_stage_cli.sh ${{ matrix.platform.target }}
 
       # Build PyO3 wheel using maturin-action (Linux in manylinux container)
       - if: matrix.platform.os == 'Linux'
@@ -176,7 +176,7 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist
           manylinux: ${{ matrix.platform.manylinux }}
-          before-script-linux: "${{ github.workspace }}/python/scripts/stage_cli.sh ${{ matrix.platform.target }}"
+          before-script-linux: "${{ github.workspace }}/python/scripts/build_and_stage_cli.sh ${{ matrix.platform.target }}"
           working-directory: python
 
       # Build PyO3 wheel using maturin-action (macOS/Windows on host)

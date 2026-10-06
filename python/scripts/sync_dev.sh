@@ -21,8 +21,7 @@ cd "$ROOT_DIR"
 echo "Building and staging native CLI binary (magika)..."
 ./python/scripts/build_and_stage_cli.sh
 
-
-echo "Building wheel via uv build..."
+echo "Syncing local Python environment and reinstalling editable magika package..."
 cd python
-uv build --wheel
-echo "Wheel build complete. Output in python/dist/"
+uv sync --all-extras --dev --reinstall-package magika
+echo "Local Python dev environment is synced (both _magika PyO3 extension and magika CLI are ready)."

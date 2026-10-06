@@ -44,7 +44,7 @@
   ></div>
   {#if showPercentage}
     <div
-      class="absolute inset-0 flex mt-0-important font-size sl-markdown-content items-center justify-center text-xs font-medium text-foreground z-10 text-2xl mix-blend-difference text-white"
+      class="absolute inset-0 flex mt-0-important font-size sl-markdown-content items-center justify-center text-xs font-medium z-10 text-2xl progress-percentage-text"
     >
       {percentage}%
     </div>
@@ -80,5 +80,15 @@
   /* Fix for Tailwind's mt-0 class being overridden by starlight */
   :global(.mt-0-important) {
     margin-top: 0 !important;
+  }
+
+  /* Ensure percentage text is readable on both the filled and unfilled
+     portions of the progress bar. A white label with a dark shadow provides
+     reliable contrast regardless of the primary color or color scheme. */
+  :global(.progress-percentage-text) {
+    color: #fff;
+    text-shadow:
+      0 0 3px rgba(0, 0, 0, 0.8),
+      0 0 6px rgba(0, 0, 0, 0.5);
   }
 </style>

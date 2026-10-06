@@ -176,6 +176,20 @@ export class Magika {
       this.model_config.block_size,
       this.model_config.use_inputs_at_offsets,
     );
+    if (
+      features.beg_ints[this.model_config.min_file_size_for_dl - 1] ===
+      this.model_config.padding_token
+    ) {
+      // After stripping the leading whitespace, there are fewer than
+      // min_file_size_for_dl meaningful bytes left, so the model input would
+      // be all padding. Fall back to the UTF-8 rule instead of running the
+      // model, like the reference implementations do.
+      const fewBytes = fileBytes.subarray(
+        0,
+        Math.min(fileBytes.length, this.model_config.block_size),
+      );
+      return this._getResultFromFewBytes(fewBytes);
+    }
     return await this._getResultFromFeatures(features);
   }
 

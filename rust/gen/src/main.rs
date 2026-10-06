@@ -103,6 +103,8 @@ fn generate_lib_content(
         let description = info.description(label);
         let extensions = &info.extensions;
         let is_text = info.is_text;
+        let model_support = info.in_ml_model;
+        let rules_support = info.rule_coverage != RuleCoverage::None;
         if !is_special_label(label) {
             variants.push(Variant { label: label.clone(), doc: description.clone() });
         }
@@ -113,8 +115,18 @@ fn generate_lib_content(
         writeln!(output, "    description: {description:?},")?;
         writeln!(output, "    extensions: &{extensions:?},")?;
         writeln!(output, "    is_text: {is_text:?},")?;
+        writeln!(output, "    model_support: {model_support:?},")?;
+        writeln!(output, "    rules_support: {rules_support:?},")?;
         writeln!(output, "}};\n")?;
     }
+    writeln!(output, "impl TypeInfo {{")?;
+    writeln!(output, "    /// All file type information ordered by label.")?;
+    writeln!(output, "    pub const ALL: [&'static Self; {}] = [", content_types.len())?;
+    for label in content_types.keys() {
+        writeln!(output, "        &{},", const_name(label))?;
+    }
+    writeln!(output, "    ];")?;
+    writeln!(output, "}}\n")?;
     writeln!(output, "/// Content types for regular files.")?;
     writeln!(output, "#[derive(Debug, Copy, Clone, PartialEq, Eq)]")?;
     writeln!(output, "#[non_exhaustive]")?;
@@ -203,24 +215,11 @@ fn generate_lib_model(variants: &[String], model_config: ModelConfig) -> Result<
         writeln!(output, "    ContentType::{},", enum_name(&label))?;
     }
     writeln!(output, "];\n")?;
-    writeln!(output, "#[derive(Debug, Copy, Clone, PartialEq, Eq)]\n#[repr(u32)]")?;
-    writeln!(output, "#[allow(dead_code)] // only constructed through transmute")?;
-    writeln!(output, "pub(crate) enum Label {{")?;
+    writeln!(output, "pub(crate) const LABELS: [ContentType; {}] = [", target_labels_space.len())?;
     for label in &target_labels_space {
-        writeln!(output, "    {},", enum_name(label))?;
+        writeln!(output, "    ContentType::{},", enum_name(label))?;
     }
-    writeln!(output, "}}\n")?;
-    writeln!(output, "pub(crate) const NUM_LABELS: usize = {};", target_labels_space.len())?;
-    writeln!(output, "impl Label {{")?;
-    writeln!(output, "    pub(crate) fn content_type(self) -> ContentType {{")?;
-    writeln!(output, "        match self {{")?;
-    for label in &target_labels_space {
-        let name = enum_name(label);
-        writeln!(output, "            Label::{name} => ContentType::{name},")?;
-    }
-    writeln!(output, "        }}")?;
-    writeln!(output, "    }}")?;
-    writeln!(output, "}}")?;
+    writeln!(output, "];")?;
     Ok(())
 }
 

@@ -21,13 +21,9 @@ from __future__ import annotations
 
 import enum
 import json
-import shutil
-import sys
 from pathlib import Path
 
 import click
-
-DEFAULT_MODEL_NAME = "standard_v3_3"
 
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent
 # A git worktree has a .git file rather than a directory.
@@ -39,17 +35,8 @@ assert ASSETS_DIR.is_dir()
 CONTENT_TYPES_KB_PATH = ASSETS_DIR / "content_types_kb.min.json"
 assert CONTENT_TYPES_KB_PATH.is_file()
 
-ASSETS_MODELS_DIR = ASSETS_DIR / "models"
-assert ASSETS_MODELS_DIR.is_dir()
-
 PYTHON_ROOT_DIR = REPO_ROOT_DIR / "python"
 assert PYTHON_ROOT_DIR.is_dir()
-
-PYTHON_CONFIG_DIR = PYTHON_ROOT_DIR / "src" / "magika" / "config"
-assert PYTHON_CONFIG_DIR.is_dir()
-
-PYTHON_CONTENT_TYPES_KB_PATH = PYTHON_CONFIG_DIR / "content_types_kb.min.json"
-PYTHON_MODEL_CONFIG_PATH = PYTHON_CONFIG_DIR / "model_config.min.json"
 
 PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
     PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
@@ -66,43 +53,15 @@ class Target(enum.StrEnum):
 
 @click.command()
 @click.argument("target", type=Target)
-@click.option(
-    "--model-name",
-    default=DEFAULT_MODEL_NAME,
-    help="Model name whose config to import in the package",
-)
-def main(target: Target, model_name: str) -> None:
+def main(target: Target) -> None:
     if target == Target.PYTHON:
-        update_python_content_type_kb()
         update_python_content_type_label_py()
-        update_python_model_config(model_name)
 
     elif target == Target.JS:
         update_js_content_type_files()
 
         # FIXME: the model is currently copied manually
         print("WARNING: copying the model is currently NOT supported by this script")
-
-
-def update_python_content_type_kb() -> None:
-    print(
-        f"Syncing python's content types KB: {CONTENT_TYPES_KB_PATH} => {PYTHON_CONTENT_TYPES_KB_PATH}"
-    )
-    PYTHON_CONTENT_TYPES_KB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(CONTENT_TYPES_KB_PATH, PYTHON_CONTENT_TYPES_KB_PATH)
-
-
-def update_python_model_config(model_name: str) -> None:
-    assets_model_config_path = ASSETS_MODELS_DIR / model_name / "config.min.json"
-    if not assets_model_config_path.is_file():
-        print(f'ERROR: model config "{assets_model_config_path}" not found')
-        sys.exit(1)
-
-    print(
-        f"Syncing python's model config: {assets_model_config_path} => {PYTHON_MODEL_CONFIG_PATH}"
-    )
-    PYTHON_MODEL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(assets_model_config_path, PYTHON_MODEL_CONFIG_PATH)
 
 
 CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = '''

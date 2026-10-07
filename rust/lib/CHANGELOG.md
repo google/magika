@@ -4,6 +4,7 @@
 
 ### Major
 
+- Add `{model,rules}_support` fields to `TypeInfo`
 - Remove the dependency on the ONNX Runtime
 - Remove async support for `Session`
 - Remove the `_async` methods of `Session`
@@ -15,6 +16,7 @@
 
 ### Minor
 
+- Add `TypeInfo::{possible,model}_output()` to list possible outputs
 - Add the `rules` feature to identify files with format rules before inference
 - Add the 74 content types that the bundled format rules can identify
 - Add `ContentType::from_label()` to get a content type from its label

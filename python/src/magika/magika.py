@@ -21,11 +21,10 @@ to identify file content types, backed by the PyO3 native Rust extension.
 from __future__ import annotations
 
 import io
-import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, BinaryIO, Dict, List, Optional, Sequence, Set, Union
+from typing import Any, BinaryIO, List, Optional, Sequence, Union
 
 from magika.logger import get_logger
 from magika.types import (
@@ -90,31 +89,6 @@ class Magika:
         self._prediction_mode = prediction_mode
         self._no_dereference = no_dereference
 
-        # FIXME(https://github.com/google/magika/issues/1480): Remove bundled JSON
-        # configs (model_config.min.json and content_types_kb.min.json) once magika-lib
-        # exposes static content-type metadata and model/output label spaces.
-        self._model_config_path = (
-            Path(__file__).parent / "config" / "model_config.min.json"
-        )
-        if not self._model_config_path.is_file():
-            raise MagikaError(
-                f"model config not found at {str(self._model_config_path)}"
-            )
-
-        model_config = json.loads(self._model_config_path.read_text())
-        self._target_labels_space = [
-            ContentTypeLabel(ct) for ct in model_config["target_labels_space"]
-        ]
-        self._overwrite_map = {
-            ContentTypeLabel(k): ContentTypeLabel(v)
-            for k, v in model_config.get("overwrite_map", {}).items()
-        }
-
-        content_types_kb_path = (
-            Path(__file__).parent / "config" / "content_types_kb.min.json"
-        )
-        self._cts_infos = Magika._load_content_types_kb(content_types_kb_path)
-
         self._pyo3_session = _magika.Magika(
             prediction_mode=self._prediction_mode,
             follow_symlink=not self._no_dereference,
@@ -143,10 +117,24 @@ class Magika:
         if not pyo3_res.ok:
             return MagikaResult(path=path, status=status, prediction=None)
 
-        dl_label = ContentTypeLabel(pyo3_res.dl_label)
-        dl_info = self._cts_infos[dl_label]
-        output_label = ContentTypeLabel(pyo3_res.label)
-        output_info = self._cts_infos[output_label]
+        dl_type_info = _magika.content_type_from_label(pyo3_res.dl_label)
+        assert dl_type_info is not None
+        dl_info = ContentTypeInfo(
+            label=ContentTypeLabel(dl_type_info.label),
+            mime_type=dl_type_info.mime_type,
+            group=dl_type_info.group,
+            description=dl_type_info.description,
+            extensions=dl_type_info.extensions,
+            is_text=dl_type_info.is_text,
+        )
+        output_info = ContentTypeInfo(
+            label=ContentTypeLabel(pyo3_res.label),
+            mime_type=pyo3_res.mime_type,
+            group=pyo3_res.group,
+            description=pyo3_res.description,
+            extensions=pyo3_res.extensions,
+            is_text=pyo3_res.is_text,
+        )
         overwrite_reason = OverwriteReason(pyo3_res.overwrite_reason)
 
         prediction = MagikaPrediction(
@@ -243,66 +231,17 @@ class Magika:
 
     def get_output_content_types(self) -> List[ContentTypeLabel]:
         """This method returns the list of all possible output content types."""
-        output_content_types: Set[ContentTypeLabel] = {
-            ContentTypeLabel.DIRECTORY,
-            ContentTypeLabel.EMPTY,
-            ContentTypeLabel.SYMLINK,
-            ContentTypeLabel.TXT,
-            ContentTypeLabel.UNKNOWN,
-            ContentTypeLabel.UNSUPPORTED,
-        }
-        for ct in self._target_labels_space:
-            output_ct = self._overwrite_map.get(ct, ct)
-            output_content_types.add(output_ct)
-
-        return sorted(output_content_types)
+        return [
+            ContentTypeLabel(ct) for ct in self._pyo3_session.get_output_content_types()
+        ]
 
     def get_model_content_types(self) -> List[ContentTypeLabel]:
         """This method returns the list of all possible output of the model."""
-        model_content_types: Set[ContentTypeLabel] = {
-            ContentTypeLabel.UNDEFINED,
-        }
-        model_content_types.update(self._target_labels_space)
-        return sorted(model_content_types)
+        return [
+            ContentTypeLabel(ct) for ct in self._pyo3_session.get_model_content_types()
+        ]
 
     @staticmethod
     def _get_default_model_name() -> str:
         """Returns the default model name."""
         return str(_magika.get_default_model_name())
-
-    @staticmethod
-    def _load_content_types_kb(
-        content_types_kb_json_path: Path,
-    ) -> Dict[ContentTypeLabel, ContentTypeInfo]:
-        TXT_MIME_TYPE = "text/plain"
-        UNKNOWN_MIME_TYPE = "application/octet-stream"
-        UNKNOWN_GROUP = "unknown"
-
-        out = {}
-        for ct_name, ct_info in json.loads(
-            content_types_kb_json_path.read_text()
-        ).items():
-            is_text = ct_info["is_text"]
-            if is_text:
-                default_mime_type = TXT_MIME_TYPE
-            else:
-                default_mime_type = UNKNOWN_MIME_TYPE
-            mime_type = (
-                default_mime_type
-                if ct_info["mime_type"] is None
-                else ct_info["mime_type"]
-            )
-            group = UNKNOWN_GROUP if ct_info["group"] is None else ct_info["group"]
-            description = (
-                ct_name if ct_info["description"] is None else ct_info["description"]
-            )
-            extensions = ct_info["extensions"]
-            out[ContentTypeLabel(ct_name)] = ContentTypeInfo(
-                label=ContentTypeLabel(ct_name),
-                mime_type=mime_type,
-                group=group,
-                description=description,
-                extensions=extensions,
-                is_text=is_text,
-            )
-        return out

@@ -11,7 +11,6 @@ on:
       - "assets/content_types.yaml"
       - "assets/content_types_kb.min.json"
       - "assets/models/**"
-      - "python/src/magika/config/content_types_kb.min.json"
       - "rust/gen/model"
       - "rust/rules/rulesets/**"
       - "scripts/sync_kb.py"
@@ -38,11 +37,3 @@ jobs:
 
       - name: Check content_types_kb.min.json is in sync
         run: uv run scripts/sync_kb.py --check
-
-      - name: Check Python copy of content_types_kb.min.json is in sync
-        run: |
-          if ! cmp -s assets/content_types_kb.min.json python/src/magika/config/content_types_kb.min.json; then
-            echo "ERROR: python/src/magika/config/content_types_kb.min.json is not in sync with assets/content_types_kb.min.json." >&2
-            echo "Run: uv run python/scripts/sync.py python" >&2
-            exit 1
-          fi

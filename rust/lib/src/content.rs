@@ -2863,7 +2863,7 @@ pub(crate) static TORRENT: TypeInfo = TypeInfo {
 
 pub(crate) static TSV: TypeInfo = TypeInfo {
     label: "tsv",
-    mime_type: "text/tsv",
+    mime_type: "text/tab-separated-values",
     group: "code",
     description: "TSV document",
     extensions: &["tsv"],

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use magika_tract_runtime::{BackendRequest, Runtime as RawRuntime, BATCH_CLASSES};
+use magika_tract_runtime::{BATCH_CLASSES, BackendRequest, Runtime as RawRuntime};
 use ndarray::ArrayView2;
 
 use super::*;

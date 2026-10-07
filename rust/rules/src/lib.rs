@@ -44,14 +44,10 @@ pub struct Input<'a> {
 }
 
 /// The pack's verdict for one input.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Outcome {
-    /// Every matching enforced rule agrees on this index into [`RuleSet::labels`].
-    Match(usize),
-    /// No enforced rule matched.
-    NoMatch,
-    /// Enforced rules with different labels matched.
-    Conflict,
+    /// Distinct indices into [`RuleSet::labels`] of the matching enforced rules, in source order.
+    Match(Vec<usize>),
     /// The prefix is empty or is not exactly `min(size, PREFIX_LIMIT)` bytes.
     InsufficientInput,
 }
@@ -138,8 +134,11 @@ mod tests {
         let tail_len = rules.tail_len(prefix, size);
         let tail = (tail && tail_len > 0).then(|| &bytes[bytes.len() - tail_len..]);
         match rules.scan(Input { prefix, size, tail }) {
-            Outcome::Match(label) => Some(&rules.labels()[label]),
-            _ => None,
+            Outcome::Match(labels) => match &labels[..] {
+                [label] => Some(&rules.labels()[*label]),
+                _ => None,
+            },
+            Outcome::InsufficientInput => None,
         }
     }
 

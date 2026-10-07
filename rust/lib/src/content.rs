@@ -3642,7 +3642,7 @@ impl TypeInfo {
 }
 
 /// Content types for regular files.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ContentType {
     /// 3D studio Max

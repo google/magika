@@ -16,17 +16,13 @@ pub(crate) fn scan(program: &Program, input: Input<'_>) -> Outcome {
         return Outcome::InsufficientInput;
     }
     let ctx = Ctx { program, prefix, size, tail, facts: OnceCell::new() };
-    let mut outcome = Outcome::NoMatch;
+    let mut matches = Vec::new();
     for rule in &program.rules {
-        if ctx.cond(&rule.cond) {
-            outcome = match outcome {
-                Outcome::NoMatch => Outcome::Match(rule.label),
-                Outcome::Match(label) if label == rule.label => outcome,
-                _ => return Outcome::Conflict,
-            };
+        if !matches.contains(&rule.label) && ctx.cond(&rule.cond) {
+            matches.push(rule.label);
         }
     }
-    outcome
+    Outcome::Match(matches)
 }
 
 struct Ctx<'a> {

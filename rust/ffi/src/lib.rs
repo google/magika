@@ -60,6 +60,8 @@ pub enum MagikaOverwriteReason {
     LowConfidence = 1,
     /// The inferred type was mapped to another canonical type.
     OverwriteMap = 2,
+    /// The inferred type was vetoed by the rules.
+    RulesVeto = 3,
 }
 
 /// Content type information.
@@ -361,6 +363,7 @@ fn file_type_to_c(file_type: &magika::FileType) -> MagikaResult {
                 Some((_, magika::OverwriteReason::OverwriteMap)) => {
                     MagikaOverwriteReason::OverwriteMap
                 }
+                Some((_, magika::OverwriteReason::RulesVeto)) => MagikaOverwriteReason::RulesVeto,
             };
             MagikaResult {
                 kind: MagikaFileTypeKind::Inferred,
@@ -571,8 +574,8 @@ pub unsafe extern "C" fn magika_identify_features_batch(
     }
     catch_unwind(
         || {
-            let feats = (0..count).map(|i| &(*(*features.add(i))).inner);
-            (*session).inner.identify_features_batch(feats)
+            let feats: Vec<_> = (0..count).map(|i| &(*(*features.add(i))).inner).collect();
+            (*session).inner.identify_features_batch(&feats)
         },
         |file_types| {
             for (i, file_type) in file_types.into_iter().enumerate() {

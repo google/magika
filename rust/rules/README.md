@@ -18,8 +18,11 @@ let rules = RuleSet::bundled();
 let bytes = std::fs::read("example.png")?;
 let prefix = &bytes[..bytes.len().min(magika_rules::PREFIX_LIMIT)];
 match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
-    Outcome::Match(i) => println!("{}", rules.labels()[i]),
-    Outcome::NoMatch | Outcome::Conflict | Outcome::InsufficientInput => {}
+    Outcome::Match(labels) => match &labels[..] {
+        [i] => println!("{}", rules.labels()[*i]),
+        _ => {}
+    },
+    Outcome::InsufficientInput => {}
 }
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```

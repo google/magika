@@ -128,7 +128,7 @@ fn generate_lib_content(
     writeln!(output, "    ];")?;
     writeln!(output, "}}\n")?;
     writeln!(output, "/// Content types for regular files.")?;
-    writeln!(output, "#[derive(Debug, Copy, Clone, PartialEq, Eq)]")?;
+    writeln!(output, "#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]")?;
     writeln!(output, "#[non_exhaustive]")?;
     writeln!(output, "pub enum ContentType {{")?;
     for Variant { label, doc } in &variants {
@@ -184,8 +184,8 @@ fn generate_lib_model(variants: &[String], model_config: ModelConfig) -> Result<
     } = model_config;
     let mut output = create_generated_file("../lib/src/model.rs")?;
     writeln!(output, "use std::borrow::Cow;\n")?;
-    writeln!(output, "use crate::config::ModelConfig;")?;
-    writeln!(output, "use crate::ContentType;\n")?;
+    writeln!(output, "use crate::ContentType;")?;
+    writeln!(output, "use crate::config::ModelConfig;\n")?;
     writeln!(output, "pub(crate) const CONFIG: ModelConfig = ModelConfig {{")?;
     writeln!(output, "    beg_size: {beg_size},")?;
     ensure!(mid_size == 0, "unsupported mid_size");

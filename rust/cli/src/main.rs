@@ -710,7 +710,8 @@ fn infer_batches(
             Some(session) => session,
             slot => slot.insert(runtime.session()?),
         };
-        let results = magika.identify_features_batch(batch.iter().map(|x| &x.features))?;
+        let features = batch.iter().map(|x| &x.features).collect::<Vec<_>>();
+        let results = magika.identify_features_batch(&features)?;
         debug_assert_eq!(results.len(), batch.len());
         for (item, output) in batch.into_iter().zip(results) {
             let result = Ok(output);

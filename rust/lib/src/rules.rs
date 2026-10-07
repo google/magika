@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-use anyhow::{anyhow, Result};
-use magika_rules::{Outcome, RuleSet};
+use anyhow::{Result, anyhow, bail, ensure};
+use magika_rules::{Class, Outcome, RuleSet};
 
 use crate::ContentType;
 
@@ -28,8 +29,10 @@ const _: () = assert!(crate::model::CONFIG.block_size >= magika_rules::PREFIX_LI
 /// matching rule agrees.
 pub(crate) struct Rules {
     set: RuleSet,
-    /// The content type of each label of `set`, by index.
+    /// The map from labels (index in `set.labels()`) to content types.
     content_types: Vec<ContentType>,
+    /// The set of content types covered by rules without false negatives.
+    vetos: HashSet<ContentType>,
 }
 
 impl Rules {
@@ -41,27 +44,63 @@ impl Rules {
 
     /// Wraps compiled rules, failing if a rule labels a content type that Magika does not know.
     fn new(set: RuleSet) -> Result<Self> {
-        let content_types = set
-            .labels()
-            .iter()
-            .map(|label| {
-                ContentType::from_label(label)
-                    .ok_or_else(|| anyhow!("rule label {label:?} is not a Magika content type"))
-            })
-            .collect::<Result<_>>()?;
-        Ok(Rules { set, content_types })
+        let mut content_types = Vec::with_capacity(set.labels().len());
+        let mut vetos = HashSet::new();
+        for label in set.labels() {
+            let content_type = ContentType::from_label(label)
+                .ok_or_else(|| anyhow!("rule label {label:?} is not a Magika content type"))?;
+            content_types.push(content_type);
+            let mut class = None;
+            for rule in set.rules() {
+                if !rule.enforced || rule.label.as_ref() != Some(label) {
+                    continue;
+                }
+                if let Some(prev) = class.replace(rule.class) {
+                    ensure!(
+                        prev == rule.class,
+                        "enforced rules for label {label:?} disagree on class: {prev:?} vs {:?}",
+                        rule.class
+                    );
+                }
+            }
+            match class {
+                Some(Class::Full) => drop(vetos.insert(content_type)),
+                Some(Class::Partial) => (),
+                _ => bail!("label {label:?} has no valid enforced rule class: {class:?}"),
+            }
+        }
+        Ok(Rules { set, content_types, vetos })
     }
 
-    /// Returns the content type the rules decide from the first block of a file and its size.
+    /// Returns the content types of the rules that match a file.
     ///
     /// The first block holds at least the first `PREFIX_LIMIT` bytes of the file, or the whole
     /// file if it is shorter.
-    pub(crate) fn identify(first_block: &[u8], size: u64) -> Option<ContentType> {
+    pub(crate) fn identify(
+        first_block: &[u8], size: u64, mut file: impl crate::Input,
+    ) -> Result<Vec<ContentType>> {
         let rules = Self::bundled();
         let prefix = &first_block[..first_block.len().min(magika_rules::PREFIX_LIMIT)];
-        match rules.set.scan(magika_rules::Input { prefix, size, tail: None }) {
-            Outcome::Match(label) => Some(rules.content_types[label]),
-            Outcome::NoMatch | Outcome::Conflict | Outcome::InsufficientInput => None,
+        let mut tail = None;
+        let tail_len = rules.set.tail_len(prefix, size);
+        if tail_len > 0 {
+            let mut buf = vec![0; tail_len];
+            file.read_at(&mut buf, size - tail_len as u64)?;
+            if let Some(start) = rules.set.tail_start(&buf, size) {
+                buf = vec![0; (size - start) as usize];
+                file.read_at(&mut buf, start)?;
+            }
+            tail = Some(buf);
         }
+        let tail = tail.as_deref();
+        Ok(match rules.set.scan(magika_rules::Input { prefix, size, tail }) {
+            Outcome::Match(labels) => labels.into_iter().map(|i| rules.content_types[i]).collect(),
+            Outcome::InsufficientInput => Vec::new(),
+        })
+    }
+
+    /// Returns whether the rules cover a content type with no false negatives.
+    pub(crate) fn veto(content_type: ContentType) -> bool {
+        Self::bundled().vetos.contains(&content_type)
     }
 }

@@ -118,6 +118,7 @@ mod tests {
             None => ReferenceOverwriteReason::None,
             Some((_, OverwriteReason::LowConfidence)) => ReferenceOverwriteReason::LowConfidence,
             Some((_, OverwriteReason::OverwriteMap)) => ReferenceOverwriteReason::OverwriteMap,
+            Some((_, OverwriteReason::RulesVeto)) => unreachable!(),
         };
         assert_eq!(overwrite_reason, expected.overwrite_reason);
         assert_eq!(actual.inferred_type.info().label, expected.dl, "{debug}");

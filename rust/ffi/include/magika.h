@@ -113,6 +113,10 @@ typedef enum MagikaOverwriteReason {
    * The inferred type was mapped to another canonical type.
    */
   MAGIKA_OVERWRITE_REASON_OVERWRITE_MAP = 2,
+  /**
+   * The inferred type was vetoed by the rules.
+   */
+  MAGIKA_OVERWRITE_REASON_RULES_VETO = 3,
 } MagikaOverwriteReason;
 
 /**

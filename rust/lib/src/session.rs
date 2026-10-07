@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::borrow::Borrow;
 use std::path::Path;
 
 use anyhow::Result;
@@ -73,28 +74,24 @@ impl Session {
 
     /// Identifies a single file from its features.
     pub fn identify_features(&mut self, features: &Features) -> Result<FileType> {
-        let results = self.identify_features_batch([features])?;
+        let results = self.identify_features_batch(&[features])?;
         let [result] = results.try_into().ok().unwrap();
         Ok(result)
     }
 
     /// Identifies multiple files in parallel from their features.
-    pub fn identify_features_batch<'a>(
-        &mut self, features: impl IntoIterator<Item = &'a Features>,
+    pub fn identify_features_batch(
+        &mut self, features: &[impl Borrow<Features>],
     ) -> Result<Vec<FileType>> {
-        let features = features.into_iter();
-        let (lower, _) = features.size_hint();
-        let mut input = Vec::with_capacity(lower * crate::model::CONFIG.features_size());
-        let mut count = 0;
-        for feature in features {
-            count += 1;
-            input.extend_from_slice(&feature.0);
-        }
-        if count == 0 {
+        if features.is_empty() {
             return Ok(Vec::new());
         }
-        let output = self.inner.run(&input, count)?;
-        let output = ArrayView2::from_shape((count, crate::model::LABELS.len()), &output)?;
-        Ok(FileType::convert(self.options.prediction_mode, output.into_dyn()))
+        let mut input = Vec::with_capacity(features.len() * crate::model::CONFIG.features_size());
+        for feature in features {
+            input.extend_from_slice(&feature.borrow().features);
+        }
+        let output = self.inner.run(&input, features.len())?;
+        let output = ArrayView2::from_shape((features.len(), crate::model::LABELS.len()), &output)?;
+        Ok(FileType::convert(&self.options, features, output.into_dyn()))
     }
 }

@@ -112,6 +112,7 @@ fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult 
                 None => "none",
                 Some((_, OverwriteReason::LowConfidence)) => "low_confidence",
                 Some((_, OverwriteReason::OverwriteMap)) => "overwrite_map",
+                Some((_, OverwriteReason::RulesVeto)) => "rules_veto",
             };
             (dl, reason.to_string())
         }

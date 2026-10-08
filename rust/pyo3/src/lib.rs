@@ -17,7 +17,7 @@ use std::sync::OnceLock;
 
 use magika::{
     ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
-    Runtime, Session, TypeInfo, MODEL_NAME,
+    Rules, Runtime, Session, TypeInfo, MODEL_NAME,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -219,10 +219,22 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true))]
+    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
     fn new(
         use_rules: bool, use_model: bool, prediction_mode: &str, follow_symlink: bool,
+        rules: Option<&str>, rules_files: Option<Vec<std::path::PathBuf>>,
     ) -> PyResult<Self> {
+        let custom_rules = match (rules, rules_files) {
+            (None, None) => None,
+            (Some(text), None) => Some(Rules::compile(text)),
+            (None, Some(paths)) => Some(Rules::from_files(paths)),
+            (Some(_), Some(_)) => {
+                return Err(PyValueError::new_err("Pass either rules or rules_files, not both"));
+            }
+        };
+        let custom_rules = custom_rules
+            .transpose()
+            .map_err(|e| PyValueError::new_err(format!("Invalid custom rules: {e:#}")))?;
         let prediction_mode = match prediction_mode {
             "high_confidence" => PredictionMode::HighConfidence,
             "medium_confidence" => PredictionMode::MediumConfidence,
@@ -241,6 +253,7 @@ impl PyMagika {
         options.use_model = use_model;
         options.prediction_mode = prediction_mode;
         options.follow_symlink = follow_symlink;
+        options.custom_rules = custom_rules;
         Ok(Self { options })
     }
 

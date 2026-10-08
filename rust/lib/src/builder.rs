@@ -31,6 +31,11 @@ impl Builder {
         self
     }
 
+    /// Returns the backend selected for inference, or `None` for automatic selection.
+    pub fn backend(&self) -> Option<Backend> {
+        self.backend
+    }
+
     /// Declares the largest batch this session will ever be asked to identify.
     ///
     /// Declaring a smaller maximum skips unreachable fixed plans and makes startup cheaper. On an

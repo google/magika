@@ -99,6 +99,28 @@ int main(void) {
     assert(status_opt == MAGIKA_STATUS_INVALID_RULES);
     magika_rules_free(NULL);
 
+    // Test identifying several paths in parallel with an engine.
+    MagikaEngine* engine = NULL;
+    status_opt = magika_engine_new(NULL, &engine);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(engine != NULL);
+    const char* engine_paths[2] = { "src/lib.rs", "this_file_does_not_exist_12345.xyz" };
+    MagikaResult engine_results[2];
+    MagikaStatus engine_statuses[2];
+    status_opt = magika_engine_identify_paths(engine, engine_paths, 2, NULL, engine_results,
+                                              engine_statuses);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(engine_statuses[0] == MAGIKA_STATUS_OK);
+    assert(strcmp(engine_results[0].info->label, "rust") == 0);
+    assert(engine_statuses[1] == MAGIKA_STATUS_IO_ERROR);
+    status_opt = magika_engine_identify_paths(engine, NULL, 0, NULL, NULL, NULL);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    status_opt = magika_engine_identify_paths(NULL, engine_paths, 2, NULL, engine_results,
+                                              engine_statuses);
+    assert(status_opt == MAGIKA_STATUS_INVALID_ARGUMENT);
+    magika_engine_free(engine);
+    magika_engine_free(NULL);
+
     // Test runtime creation with default options
     MagikaRuntime* runtime = NULL;
     MagikaStatus status = magika_runtime_new(NULL, &runtime);

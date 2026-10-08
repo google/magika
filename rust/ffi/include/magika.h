@@ -124,6 +124,11 @@ typedef enum MagikaOverwriteReason {
 } MagikaOverwriteReason;
 
 /**
+ * Shared engine identifying many files in parallel (thread-safe).
+ */
+typedef struct MagikaEngine MagikaEngine;
+
+/**
  * Features extracted from a file or buffer for neural network inference.
  */
 typedef struct MagikaFeatures MagikaFeatures;
@@ -263,6 +268,56 @@ extern "C" {
  */
 enum MagikaStatus magika_runtime_new(const struct MagikaRuntimeOptions *options,
                                      struct MagikaRuntime **out_runtime);
+
+/**
+ * Starts a shared engine to identify many files in parallel (thread-safe).
+ *
+ * The engine identifies on the CPU at once and moves full batches to the GPU once it is prepared,
+ * so this returns before the model is ready. Only `backend` and `max_batch` of `options` are
+ * used; identification options are given with each call. If `options` is NULL, the default
+ * configuration is used.
+ *
+ * # Safety
+ *
+ * - `options` may be NULL, or must point to a valid `MagikaRuntimeOptions` struct.
+ * - `out_engine` must point to a valid, writable pointer to `MagikaEngine`.
+ */
+enum MagikaStatus magika_engine_new(const struct MagikaRuntimeOptions *options,
+                                    struct MagikaEngine **out_engine);
+
+/**
+ * Frees an engine. Passing NULL is a safe no-op.
+ *
+ * A runtime still being prepared finishes on its background thread, so the library must not be
+ * unloaded right after freeing an engine.
+ *
+ * # Safety
+ *
+ * If non-null, `engine` must have been returned by `magika_engine_new` and not previously freed.
+ */
+void magika_engine_free(struct MagikaEngine *engine);
+
+/**
+ * Identifies files in parallel, reading and identifying several at once.
+ *
+ * For each path `i`, `out_statuses[i]` is `MAGIKA_STATUS_OK` and `out_results[i]` is its result,
+ * or `out_statuses[i]` is the error (such as `MAGIKA_STATUS_IO_ERROR`) and `out_results[i]` is
+ * left unchanged. The return value is an error only if the identification itself failed, in which
+ * case both arrays are unspecified. If `options` is NULL, the default configuration is used.
+ *
+ * # Safety
+ *
+ * - `engine` must point to a valid `MagikaEngine`.
+ * - `paths` must point to `count` null-terminated C strings (may be NULL only if `count == 0`).
+ * - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
+ * - `out_results` and `out_statuses` must point to `count` writable elements each.
+ */
+enum MagikaStatus magika_engine_identify_paths(const struct MagikaEngine *engine,
+                                               const char *const *paths,
+                                               uintptr_t count,
+                                               const struct MagikaOptions *options,
+                                               struct MagikaResult *out_results,
+                                               enum MagikaStatus *out_statuses);
 
 /**
  * Compiles custom rules from YARA text, checked before the built-in rules.

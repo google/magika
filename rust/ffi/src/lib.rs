@@ -15,6 +15,7 @@
 //! C API bindings for Magika.
 
 use std::ffi::c_char;
+use std::sync::Arc;
 
 mod content;
 
@@ -207,6 +208,11 @@ pub struct MagikaRules {
     inner: magika::Rules,
 }
 
+/// Shared engine identifying many files in parallel (thread-safe).
+pub struct MagikaEngine {
+    inner: Arc<magika::pipeline::Engine>,
+}
+
 /// Shared Magika inference runtime (thread-safe).
 pub struct MagikaRuntime {
     inner: magika::Runtime,
@@ -222,6 +228,14 @@ pub struct MagikaFeatures {
     inner: magika::Features,
 }
 
+fn error_status(err: &anyhow::Error) -> MagikaStatus {
+    if err.downcast_ref::<std::io::Error>().is_some() || err.root_cause().is::<std::io::Error>() {
+        MagikaStatus::IoError
+    } else {
+        MagikaStatus::InferenceError
+    }
+}
+
 unsafe fn catch_unwind<T>(
     f: impl FnOnce() -> anyhow::Result<T>, g: impl FnOnce(T),
 ) -> MagikaStatus {
@@ -230,15 +244,7 @@ unsafe fn catch_unwind<T>(
             g(x);
             MagikaStatus::Ok
         }
-        Ok(Err(err)) => {
-            if err.downcast_ref::<std::io::Error>().is_some()
-                || err.root_cause().is::<std::io::Error>()
-            {
-                MagikaStatus::IoError
-            } else {
-                MagikaStatus::InferenceError
-            }
-        }
+        Ok(Err(err)) => error_status(&err),
         Err(_) => MagikaStatus::Panic,
     }
 }
@@ -259,27 +265,128 @@ pub unsafe extern "C" fn magika_runtime_new(
     }
     *out_runtime = std::ptr::null_mut();
     catch_unwind(
-        || {
-            let mut builder = magika::Runtime::builder();
-            if !options.is_null() {
-                let opts = &*options;
-                match opts.backend {
-                    MagikaBackend::Auto => (),
-                    MagikaBackend::Cpu => {
-                        builder = builder.with_backend(magika::Backend::Cpu);
-                    }
-                    MagikaBackend::Gpu => {
-                        builder = builder.with_backend(magika::Backend::Gpu);
-                    }
-                }
-                if opts.max_batch > 0 {
-                    builder = builder.with_max_batch(opts.max_batch);
-                }
-                builder = builder.with_options(opts.options.to_options());
-            }
-            builder.build()
-        },
+        || builder(options).build(),
         |runtime| *out_runtime = Box::into_raw(Box::new(MagikaRuntime { inner: runtime })),
+    )
+}
+
+/// # Safety
+///
+/// `options` may be NULL, or must point to a valid `MagikaRuntimeOptions` struct.
+unsafe fn builder(options: *const MagikaRuntimeOptions) -> magika::Builder {
+    let mut builder = magika::Runtime::builder();
+    if let Some(opts) = options.as_ref() {
+        match opts.backend {
+            MagikaBackend::Auto => (),
+            MagikaBackend::Cpu => builder = builder.with_backend(magika::Backend::Cpu),
+            MagikaBackend::Gpu => builder = builder.with_backend(magika::Backend::Gpu),
+        }
+        if opts.max_batch > 0 {
+            builder = builder.with_max_batch(opts.max_batch);
+        }
+        builder = builder.with_options(opts.options.to_options());
+    }
+    builder
+}
+
+/// Starts a shared engine to identify many files in parallel (thread-safe).
+///
+/// The engine identifies on the CPU at once and moves full batches to the GPU once it is prepared,
+/// so this returns before the model is ready. Only `backend` and `max_batch` of `options` are
+/// used; identification options are given with each call. If `options` is NULL, the default
+/// configuration is used.
+///
+/// # Safety
+///
+/// - `options` may be NULL, or must point to a valid `MagikaRuntimeOptions` struct.
+/// - `out_engine` must point to a valid, writable pointer to `MagikaEngine`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_engine_new(
+    options: *const MagikaRuntimeOptions, out_engine: *mut *mut MagikaEngine,
+) -> MagikaStatus {
+    if out_engine.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    *out_engine = std::ptr::null_mut();
+    catch_unwind(
+        || magika::pipeline::Engine::new(builder(options)),
+        |engine| *out_engine = Box::into_raw(Box::new(MagikaEngine { inner: Arc::new(engine) })),
+    )
+}
+
+/// Frees an engine. Passing NULL is a safe no-op.
+///
+/// A runtime still being prepared finishes on its background thread, so the library must not be
+/// unloaded right after freeing an engine.
+///
+/// # Safety
+///
+/// If non-null, `engine` must have been returned by `magika_engine_new` and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn magika_engine_free(engine: *mut MagikaEngine) {
+    if !engine.is_null() {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            drop(Box::from_raw(engine));
+        }));
+    }
+}
+
+/// Identifies files in parallel, reading and identifying several at once.
+///
+/// For each path `i`, `out_statuses[i]` is `MAGIKA_STATUS_OK` and `out_results[i]` is its result,
+/// or `out_statuses[i]` is the error (such as `MAGIKA_STATUS_IO_ERROR`) and `out_results[i]` is
+/// left unchanged. The return value is an error only if the identification itself failed, in which
+/// case both arrays are unspecified. If `options` is NULL, the default configuration is used.
+///
+/// # Safety
+///
+/// - `engine` must point to a valid `MagikaEngine`.
+/// - `paths` must point to `count` null-terminated C strings (may be NULL only if `count == 0`).
+/// - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
+/// - `out_results` and `out_statuses` must point to `count` writable elements each.
+#[no_mangle]
+pub unsafe extern "C" fn magika_engine_identify_paths(
+    engine: *const MagikaEngine, paths: *const *const c_char, count: usize,
+    options: *const MagikaOptions, out_results: *mut MagikaResult, out_statuses: *mut MagikaStatus,
+) -> MagikaStatus {
+    if count == 0 {
+        return MagikaStatus::Ok;
+    }
+    if engine.is_null() || paths.is_null() || out_results.is_null() || out_statuses.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    let mut path_bufs = Vec::with_capacity(count);
+    for i in 0..count {
+        let Some(path) = parse_path(*paths.add(i)) else { return MagikaStatus::InvalidArgument };
+        path_bufs.push(path.to_path_buf());
+    }
+    let options =
+        if options.is_null() { magika::Options::default() } else { (*options).to_options() };
+    let engine = (*engine).inner.clone();
+    catch_unwind(
+        || {
+            use magika::pipeline::{Pipeline, PipelineOptions};
+            let pipeline = Pipeline::new(engine, options, PipelineOptions::default())?;
+            // Without recursion, there is one result per path, in order. Checking it guarantees
+            // that every status is written.
+            let results = pipeline
+                .identify_paths(path_bufs)?
+                .map(|item| Ok(item?.1))
+                .collect::<anyhow::Result<Vec<_>>>()?;
+            anyhow::ensure!(results.len() == count, "{} results for {count} paths", results.len());
+            Ok(results)
+        },
+        |results| {
+            for (i, result) in results.into_iter().enumerate() {
+                match result {
+                    Ok(file_type) => {
+                        *out_results.add(i) = file_type_to_c(&file_type);
+                        *out_statuses.add(i) = MagikaStatus::Ok;
+                    }
+                    Err(err) => *out_statuses.add(i) = error_status(&err),
+                }
+            }
+        },
     )
 }
 

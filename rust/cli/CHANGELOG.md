@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Identify through the library's pipeline helpers, at the same speed; with `--backend=gpu`, a short run now waits for the GPU instead of identifying on the CPU
 - Add the experimental `--rules-file` flag to identify with custom rules, and `--rules-check` to validate them
 - Start identifying files on the CPU while the GPU is prepared
 - Report files that are not regular instead of trying to read them

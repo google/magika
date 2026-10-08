@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::Rules;
+
 /// Configuration options for identification.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -24,6 +26,8 @@ pub struct Options {
     pub prediction_mode: PredictionMode,
     /// Whether to follow symlinks.
     pub follow_symlink: bool,
+    /// Rules checked before the built-in rules (whether or not those are used).
+    pub custom_rules: Option<Rules>,
 }
 
 /// Minimum confidence level for inference.
@@ -44,6 +48,7 @@ impl Default for Options {
             use_model: true,
             prediction_mode: PredictionMode::HighConfidence,
             follow_symlink: true,
+            custom_rules: None,
         }
     }
 }

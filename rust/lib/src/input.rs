@@ -23,7 +23,8 @@ use crate::{ContentType, FileType, Options};
 /// Features to identify a file using AI.
 pub struct Features {
     pub(crate) features: Vec<i32>,
-    pub(crate) rules: Vec<ContentType>,
+    /// The content types of the rules that matched, or `None` if the rules did not run.
+    pub(crate) rules: Option<Vec<ContentType>>,
 }
 
 /// Abstraction over file content.
@@ -114,12 +115,13 @@ impl FeaturesOrRuled {
             return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(ContentType::Empty)));
         }
         let first_block = read_first_block(config, &mut file, file_len)?;
-        let mut rules = Vec::new();
+        let mut rules = None;
         if options.use_rules {
-            rules = crate::rules::Rules::identify(&first_block, file_len, &mut file)?;
-            if let &[content_type] = &rules[..] {
+            let matched = crate::rules::Rules::identify(&first_block, file_len, &mut file)?;
+            if let &[content_type] = &matched[..] {
                 return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)));
             }
+            rules = Some(matched);
         }
         if options.use_model {
             let features = extract_features(config, file, file_len, &first_block)?;

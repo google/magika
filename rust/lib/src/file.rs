@@ -178,8 +178,10 @@ impl FileType {
             let ml_is_confident =
                 options.prediction_mode.is_confident(score, inferred_type as usize);
             let overwrite = config.overwrite_map[inferred_type as usize];
+            // Rules veto only what they could have matched: features extracted without rules
+            // carry no evidence against any content type.
             let rule_veto = options.use_rules
-                && !feature.borrow().rules.contains(&overwrite)
+                && feature.borrow().rules.as_ref().is_some_and(|rules| !rules.contains(&overwrite))
                 && Rules::veto(overwrite);
             let mut content_type = if ml_is_confident && !rule_veto {
                 (overwrite != inferred_type).then_some((overwrite, OverwriteReason::OverwriteMap))

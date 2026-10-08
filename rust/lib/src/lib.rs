@@ -203,4 +203,27 @@ mod tests {
         }
         assert!(checked > 0, "reference fixture filter must exercise predictions");
     }
+
+    #[test]
+    fn rules_veto_only_after_running() {
+        // WAV rules have no false negatives, so they veto a WAV prediction they did not match.
+        let path = "../../tests_data/basic/wav/test.wav";
+        let mut without_rules = Options::default();
+        without_rules.use_rules = false;
+        let FeaturesOrRuled::Features(mut features) =
+            FeaturesOrRuled::extract_file(path, &without_rules).unwrap()
+        else {
+            unreachable!()
+        };
+        let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+        let mut session = runtime.session().unwrap();
+        let label = |file_type: FileType| file_type.info().label;
+        assert_eq!(label(session.identify_features(&features).unwrap()), "wav");
+        features.rules = Some(Vec::new());
+        let vetoed = session.identify_features(&features).unwrap();
+        let FileType::Inferred(inferred) = &vetoed else { unreachable!() };
+        assert!(matches!(inferred.content_type, Some((_, OverwriteReason::RulesVeto))));
+        session.options_mut().use_rules = false;
+        assert_eq!(label(session.identify_features(&features).unwrap()), "wav");
+    }
 }

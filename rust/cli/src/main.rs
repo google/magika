@@ -24,7 +24,7 @@ use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
     self, Backend, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason,
-    Runtime, TypeInfo,
+    Rules, Runtime, TypeInfo,
 };
 use serde::Serialize;
 
@@ -130,7 +130,7 @@ struct Format {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 enum RulesMode {
-    /// Identifies files with the model only.
+    /// Identifies files with the model only, after any custom rules.
     Off,
     /// Identifies files with rules first, and with the model when no rule decides.
     #[default]
@@ -147,6 +147,16 @@ struct Experimental {
     /// rule agrees.
     #[arg(hide = true, long, value_enum, default_value_t)]
     rules: RulesMode,
+
+    /// Identifies files with the rules of this file before the built-in rules (can be repeated).
+    ///
+    /// Rules use the YARA subset and metadata of the built-in rules, and apply whatever --rules is.
+    #[arg(hide = true, long, value_name = "PATH")]
+    rules_file: Vec<PathBuf>,
+
+    /// Checks the rules of --rules-file, prints the content types they identify, and exits.
+    #[arg(hide = true, long, requires = "rules_file")]
+    rules_check: bool,
 
     /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
@@ -309,6 +319,16 @@ fn main() -> Result<()> {
         RulesMode::Enforce => builder,
         RulesMode::Only => builder.with_model(false),
     };
+    if !flags.experimental.rules_file.is_empty() {
+        let rules = Rules::from_files(&flags.experimental.rules_file)?;
+        if flags.experimental.rules_check {
+            for content_type in rules.content_types() {
+                println!("{}", content_type.info().label);
+            }
+            return Ok(());
+        }
+        builder = builder.with_custom_rules(rules);
+    }
     builder = builder.with_follow_symlink(!flags.no_dereference);
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,

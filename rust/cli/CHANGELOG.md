@@ -4,6 +4,7 @@
 
 ### Minor
 
+- Add the experimental `--rules-file` flag to identify with custom rules, and `--rules-check` to validate them
 - Start identifying files on the CPU while the GPU is prepared
 - Report files that are not regular instead of trying to read them
 - Detect cycles through symbolic links during recursive traversal

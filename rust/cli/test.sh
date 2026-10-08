@@ -49,6 +49,22 @@ for rules in off enforce only; do
   )
 done
 
+info "Test custom rules"
+( cd ../../tests_data
+  [ "$(magika --rules-file=rules/custom.yar --rules-check)" = png ] || error "custom rules check"
+  [ "$(magika --rules=only --format=%l basic/png/magika_test.png)" = unknown ] \
+    || error "built-in rules identify PNG"
+  [ "$(magika --rules=only --rules-file=rules/custom.yar --format=%l basic/png/magika_test.png)" \
+    = png ] || error "custom rules do not identify PNG"
+  [ "$(magika --rules=off --rules-file=rules/custom.yar --format=%l basic/png/magika_test.png)" \
+    = png ] || error "custom rules do not apply without built-in rules"
+  broken=$(mktemp)
+  echo 'rule broken {' > "$broken"
+  magika --rules-file="$broken" basic/png/magika_test.png 2>&1 | grep -q 'line 2, column 1' \
+    || error "invalid custom rules are not reported"
+  rm "$broken"
+)
+
 info "Test symlinks"
 [ "$(magika --format=%l LICENSE)" = txt ] || error "does not follow symlinks"
 [ "$(magika --format=%l --no-dereference LICENSE)" = symlink ] || error "follows symlinks"

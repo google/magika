@@ -24,6 +24,11 @@ fn parses_an_enforced_full_rule() {
 #[test]
 fn rejects_syntax_errors() {
     assert!(matches!(Source::parse("rule { }"), Err(Error::Parse(_))));
+    let error = Source::parse("rule a { condition: true }\nrule b {").unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "invalid YARA: line 2, column 9: expecting `condition`, found end of file"
+    );
 }
 
 #[test]

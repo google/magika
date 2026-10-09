@@ -81,9 +81,16 @@ these formatting rules (enforced by [`scripts/sync_kb.py`](scripts/sync_kb.py)):
 
 ### 2. Regenerate derived files
 
-After editing [`assets/content_types.yaml`](assets/content_types.yaml), run the
-sync scripts from the repository root and commit all resulting changes in your
-pull request:
+After editing [`assets/content_types.yaml`](assets/content_types.yaml), run
+`just sync-kb` (defined in the root [`justfile`](justfile)) from the repository
+root and commit all resulting changes in your pull request:
+
+```bash
+just sync-kb
+```
+
+If you do not have [`just`](https://github.com/casey/just) installed, you can
+run the underlying sync commands directly:
 
 ```bash
 uv run scripts/sync_kb.py

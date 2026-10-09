@@ -4,7 +4,8 @@
 # known to Magika. `assets/content_types_kb.min.json`, which all the bindings
 # consume, is generated from it: do not edit the JSON file by hand.
 #
-# After editing this file, run (from the repository root):
+# After editing this file, run `just sync-kb` (or the individual commands below)
+# from the repository root:
 #
 #   uv run scripts/sync_kb.py
 #   uv run python/scripts/sync.py python

@@ -958,3 +958,45 @@ def test_special_device_file() -> None:
         assert res.output.label == ContentTypeLabel.UNSUPPORTED
         assert res.dl.label == ContentTypeLabel.UNDEFINED
         assert res.score == 1.0
+
+
+def test_magika_module_with_custom_rules() -> None:
+    png = utils.get_tests_data_dir() / "basic" / "png" / "magika_test.png"
+    custom = utils.get_tests_data_dir() / "rules" / "custom.yar"
+
+    inferred = Magika().identify_path(png)
+    assert inferred.output.label == ContentTypeLabel.PNG
+    assert inferred.dl.label == ContentTypeLabel.PNG
+
+    for m in [Magika(rules_files=[custom]), Magika(rules=custom.read_text())]:
+        results = [
+            m.identify_path(png),
+            m.identify_paths([png])[0],
+            m.identify_bytes(png.read_bytes()),
+        ]
+        for res in results:
+            assert res.output.label == ContentTypeLabel.PNG
+            assert res.dl.label == ContentTypeLabel.UNDEFINED
+
+
+def test_magika_module_with_custom_rules_veto() -> None:
+    png = utils.get_tests_data_dir() / "basic" / "png" / "magika_test.png"
+    # The rule claims to never miss PNG files, yet does not match this one.
+    never = (utils.get_tests_data_dir() / "rules" / "custom.yar").read_text()
+    never = never.replace("$signature at 0", "$signature at 1")
+    res = Magika(rules=never).identify_path(png)
+    assert res.dl.label == ContentTypeLabel.PNG
+    assert res.output.label == ContentTypeLabel.UNKNOWN
+    assert res.prediction.overwrite_reason == OverwriteReason.RULES_VETO
+
+
+def test_magika_module_with_invalid_custom_rules() -> None:
+    with pytest.raises(ValueError, match="line 1, column 14"):
+        Magika(rules="rule broken {")
+    with pytest.raises(ValueError, match="not a Magika content type"):
+        Magika(
+            rules='rule r { meta: label = "nope" enforced = true class = "full" '
+            "fp_rate = 0 fn_rate = 0 condition: true }"
+        )
+    with pytest.raises(ValueError, match="not both"):
+        Magika(rules="", rules_files=[])

@@ -17,8 +17,8 @@
 
 use std::borrow::Cow;
 
-use crate::config::ModelConfig;
 use crate::ContentType;
+use crate::config::ModelConfig;
 
 pub(crate) const CONFIG: ModelConfig = ModelConfig {
     beg_size: 1024,

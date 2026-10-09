@@ -18,10 +18,15 @@ use std::path::Path;
 use anyhow::Result;
 
 use crate::config::ModelConfig;
+use crate::rules::Decision;
 use crate::{ContentType, FileType, Options};
 
 /// Features to identify a file using AI.
-pub struct Features(pub(crate) Vec<i32>);
+pub struct Features {
+    pub(crate) features: Vec<i32>,
+    /// What the rules matched, or `None` if no rules ran.
+    pub(crate) rules: Option<crate::rules::Matched>,
+}
 
 /// Abstraction over file content.
 pub trait Input {
@@ -111,15 +116,17 @@ impl FeaturesOrRuled {
             return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(ContentType::Empty)));
         }
         let first_block = read_first_block(config, &mut file, file_len)?;
-        if options.use_rules {
-            if let Some(content_type) = crate::rules::Rules::identify(&first_block, file_len) {
+        let rules = match crate::rules::identify(options, &first_block, file_len, &mut file)? {
+            Some(Decision::Ruled(content_type)) => {
                 return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)));
             }
-        }
+            Some(Decision::Undecided(matched)) => Some(matched),
+            None => None,
+        };
         if options.use_model {
             let features = extract_features(config, file, file_len, &first_block)?;
             if features[config.min_file_size_for_dl - 1] != config.padding_token {
-                return Ok(FeaturesOrRuled::Features(Features(features)));
+                return Ok(FeaturesOrRuled::Features(Features { features, rules }));
             }
         }
         debug_assert!(first_block.len() <= config.block_size);

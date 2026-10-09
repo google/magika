@@ -48,6 +48,8 @@ class Magika:
         use_model: bool = True,
         prediction_mode: str = "high_confidence",
         follow_symlink: bool = True,
+        rules: Optional[str] = None,
+        rules_files: Optional[List[str]] = None,
     ) -> None: ...
     @staticmethod
     def get_default_model_name() -> str: ...

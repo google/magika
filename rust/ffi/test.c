@@ -47,6 +47,80 @@ int main(void) {
     magika_session_free(session_opt);
     magika_runtime_free(runtime_opt);
 
+    // Test custom rules: the shared fixture enforces the PNG signature, which the built-in rules
+    // leave to the model, so rules alone identify a PNG only with it.
+    FILE* custom_file = fopen("../../tests_data/rules/custom.yar", "rb");
+    assert(custom_file != NULL);
+    char custom_source[4096];
+    size_t custom_len = fread(custom_source, 1, sizeof(custom_source), custom_file);
+    fclose(custom_file);
+    char rules_error[256];
+    MagikaRules* rules = NULL;
+    status_opt = magika_rules_new(custom_source, custom_len, rules_error, sizeof(rules_error),
+                                  &rules);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(rules != NULL);
+    MagikaRuntimeOptions rules_only = options;
+    rules_only.options.use_model = false;
+    MagikaRuntime* rules_runtime = NULL;
+    status_opt = magika_runtime_new(&rules_only, &rules_runtime);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    MagikaSession* rules_session = NULL;
+    status_opt = magika_session_new(rules_runtime, &rules_session);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    const char* png_path = "../../tests_data/basic/png/magika_test.png";
+    MagikaResult png_result;
+    status_opt = magika_identify_file(rules_session, png_path, &png_result);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(png_result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
+    assert(strcmp(png_result.info->label, "unknown") == 0);
+    magika_session_free(rules_session);
+    magika_runtime_free(rules_runtime);
+    rules_only.options.custom_rules = rules;
+    status_opt = magika_runtime_new(&rules_only, &rules_runtime);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    magika_rules_free(rules);  // The runtime keeps its own reference.
+    status_opt = magika_session_new(rules_runtime, &rules_session);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    status_opt = magika_identify_file(rules_session, png_path, &png_result);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(png_result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
+    assert(strcmp(png_result.info->label, "png") == 0);
+    magika_session_free(rules_session);
+    magika_runtime_free(rules_runtime);
+    const char broken[] = "rule broken {";
+    rules = (MagikaRules*)0x1234;
+    status_opt = magika_rules_new(broken, strlen(broken), rules_error, sizeof(rules_error),
+                                  &rules);
+    assert(status_opt == MAGIKA_STATUS_INVALID_RULES);
+    assert(rules == NULL);
+    assert(strstr(rules_error, "line 1, column 14") != NULL);
+    status_opt = magika_rules_new(broken, strlen(broken), NULL, 0, &rules);
+    assert(status_opt == MAGIKA_STATUS_INVALID_RULES);
+    magika_rules_free(NULL);
+
+    // Test identifying several paths in parallel with an engine.
+    MagikaEngine* engine = NULL;
+    status_opt = magika_engine_new(NULL, &engine);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(engine != NULL);
+    const char* engine_paths[2] = { "src/lib.rs", "this_file_does_not_exist_12345.xyz" };
+    MagikaResult engine_results[2];
+    MagikaStatus engine_statuses[2];
+    status_opt = magika_engine_identify_paths(engine, engine_paths, 2, NULL, engine_results,
+                                              engine_statuses);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(engine_statuses[0] == MAGIKA_STATUS_OK);
+    assert(strcmp(engine_results[0].info->label, "rust") == 0);
+    assert(engine_statuses[1] == MAGIKA_STATUS_IO_ERROR);
+    status_opt = magika_engine_identify_paths(engine, NULL, 0, NULL, NULL, NULL);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    status_opt = magika_engine_identify_paths(NULL, engine_paths, 2, NULL, engine_results,
+                                              engine_statuses);
+    assert(status_opt == MAGIKA_STATUS_INVALID_ARGUMENT);
+    magika_engine_free(engine);
+    magika_engine_free(NULL);
+
     // Test runtime creation with default options
     MagikaRuntime* runtime = NULL;
     MagikaStatus status = magika_runtime_new(NULL, &runtime);

@@ -2,7 +2,7 @@
 name = "magika"
 version = "2.0.0-dev"
 license = "Apache-2.0"
-edition = "2021"
+edition = "2024"
 description = "Determines file content types using AI"
 repository = "https://github.com/google/magika"
 homepage = "https://securityresearch.google/magika"
@@ -15,12 +15,16 @@ features = ["_doc"]
 
 [features]
 cuda = ["magika-tract-runtime/cuda"]
+pipeline = ["dep:crossbeam-channel"]
 serde = ["dep:serde"]
 # Internal features.
-_doc = ["serde"]
+_doc = ["pipeline", "serde"]
+_trace = ["pipeline", "dep:cpu-time"]
 
 [dependencies]
 anyhow = "1.0.104"
+cpu-time = { version = "1.0.0", optional = true }
+crossbeam-channel = { version = "0.5.16", optional = true }
 magika-rules = { version = "0.1.0-dev", path = "../rules" }
 magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"

@@ -13,11 +13,13 @@
 // limitations under the License.
 
 use std::cell::RefCell;
-use std::sync::OnceLock;
+use std::path::PathBuf;
+use std::sync::{Arc, OnceLock};
 
+use magika::pipeline::{Engine, EngineSession, Pipeline, PipelineOptions};
 use magika::{
-    ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
-    Runtime, Session, TypeInfo, MODEL_NAME,
+    ContentType, FileType, Options, OverwriteReason, PredictionMode, Rules, Runtime, TypeInfo,
+    MODEL_NAME,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -112,6 +114,7 @@ fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult 
                 None => "none",
                 Some((_, OverwriteReason::LowConfidence)) => "low_confidence",
                 Some((_, OverwriteReason::OverwriteMap)) => "overwrite_map",
+                Some((_, OverwriteReason::RulesVeto)) => "rules_veto",
             };
             (dl, reason.to_string())
         }
@@ -158,39 +161,43 @@ fn from_io_error(e: &std::io::Error, path: Option<String>) -> PyMagikaResult {
     }
 }
 
-enum PathDisposition {
-    Immediate(PyMagikaResult),
-    Features(Features),
-}
+/// The engine shared by every `Magika` instance: preparing the model happens once per process.
+static ENGINE: OnceLock<Result<Arc<Engine>, String>> = OnceLock::new();
 
-fn extract_path_disposition(path_str: &str, options: &Options) -> anyhow::Result<PathDisposition> {
-    match FeaturesOrRuled::extract_file(path_str, options) {
-        Ok(FeaturesOrRuled::Ruled(file_type)) => {
-            Ok(PathDisposition::Immediate(from_file_type(&file_type, Some(path_str.to_string()))))
-        }
-        Ok(FeaturesOrRuled::Features(features)) => Ok(PathDisposition::Features(features)),
-        Err(e) => {
-            if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
-                Ok(PathDisposition::Immediate(from_io_error(io_err, Some(path_str.to_string()))))
-            } else {
-                Err(e)
-            }
-        }
-    }
-}
-
-static RUNTIME: OnceLock<Result<Runtime, String>> = OnceLock::new();
-
-fn get_shared_runtime() -> anyhow::Result<&'static Runtime> {
-    let res = RUNTIME.get_or_init(|| Runtime::new().map_err(|e| e.to_string()));
-    match res {
-        Ok(rt) => Ok(rt),
+fn get_shared_engine() -> anyhow::Result<&'static Arc<Engine>> {
+    match ENGINE.get_or_init(|| {
+        Engine::new(Runtime::builder().with_max_batch(PipelineOptions::default().batch_size))
+            .map(Arc::new)
+            .map_err(|e| e.to_string())
+    }) {
+        Ok(engine) => Ok(engine),
         Err(msg) => anyhow::bail!("{msg}"),
     }
 }
 
 thread_local! {
-    static SESSION: RefCell<Option<Session>> = const { RefCell::new(None) };
+    static SESSION: RefCell<Option<EngineSession<'static>>> = const { RefCell::new(None) };
+}
+
+/// The result of an error identifying a path, as a result rather than an exception for I/O.
+fn from_error(error: anyhow::Error, path: &str) -> PyMagikaResult {
+    match error.downcast_ref::<std::io::Error>() {
+        Some(io_err) => from_io_error(io_err, Some(path.to_string())),
+        None => PyMagikaResult {
+            path: Some(path.to_string()),
+            status: "unknown".to_string(),
+            ok: false,
+            label: String::new(),
+            mime_type: String::new(),
+            group: String::new(),
+            description: error.to_string(),
+            extensions: Vec::new(),
+            is_text: false,
+            score: 0.0,
+            dl_label: String::new(),
+            overwrite_reason: "none".to_string(),
+        },
+    }
 }
 
 #[pyclass(name = "Magika")]
@@ -200,17 +207,12 @@ pub struct PyMagika {
 
 impl PyMagika {
     fn with_session<R>(
-        &self, f: impl FnOnce(&mut Session) -> anyhow::Result<R>,
+        &self, f: impl FnOnce(&mut EngineSession<'static>, &Options) -> anyhow::Result<R>,
     ) -> anyhow::Result<R> {
-        let runtime = get_shared_runtime()?;
+        let engine: &'static Engine = get_shared_engine()?;
         SESSION.with(|cell| {
             let mut slot = cell.borrow_mut();
-            let session = match slot.as_mut() {
-                Some(s) => s,
-                None => slot.insert(runtime.session()?),
-            };
-            *session.options_mut() = self.options.clone();
-            f(session)
+            f(slot.get_or_insert_with(|| engine.session()), &self.options)
         })
     }
 }
@@ -218,10 +220,22 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true))]
+    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
     fn new(
-        use_rules: bool, use_model: bool, prediction_mode: &str, follow_symlink: bool,
+        py: Python<'_>, use_rules: bool, use_model: bool, prediction_mode: &str,
+        follow_symlink: bool, rules: Option<&str>, rules_files: Option<Vec<std::path::PathBuf>>,
     ) -> PyResult<Self> {
+        let custom_rules = match (rules, rules_files) {
+            (None, None) => None,
+            (Some(text), None) => Some(Rules::compile(text)),
+            (None, Some(paths)) => Some(Rules::from_files(paths)),
+            (Some(_), Some(_)) => {
+                return Err(PyValueError::new_err("Pass either rules or rules_files, not both"));
+            }
+        };
+        let custom_rules = custom_rules
+            .transpose()
+            .map_err(|e| PyValueError::new_err(format!("Invalid custom rules: {e:#}")))?;
         let prediction_mode = match prediction_mode {
             "high_confidence" => PredictionMode::HighConfidence,
             "medium_confidence" => PredictionMode::MediumConfidence,
@@ -232,19 +246,24 @@ impl PyMagika {
                 )));
             }
         };
-        get_shared_runtime().map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e}"))
+        // Waiting for the CPU runtime here reports a failure to prepare the model at once, and
+        // lets a forked process start only once no thread is still preparing it.
+        py.detach(|| get_shared_engine()?.backend_info()).map_err(|e| {
+            PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e:#}"))
         })?;
         let mut options = Options::default();
         options.use_rules = use_rules;
         options.use_model = use_model;
         options.prediction_mode = prediction_mode;
         options.follow_symlink = follow_symlink;
+        options.custom_rules = custom_rules;
         Ok(Self { options })
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
-        let result = py.detach(|| self.with_session(|session| session.identify_content(data)));
+        let result = py.detach(|| {
+            self.with_session(|session, options| session.identify_content(data, options))
+        });
         match result {
             Ok(file_type) => Ok(from_file_type(&file_type, None)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
@@ -252,68 +271,30 @@ impl PyMagika {
     }
 
     fn identify_path(&self, py: Python<'_>, path: &str) -> PyResult<PyMagikaResult> {
-        let options = self.options.clone();
-        let result: anyhow::Result<PyMagikaResult> =
-            py.detach(|| match extract_path_disposition(path, &options)? {
-                PathDisposition::Immediate(res) => Ok(res),
-                PathDisposition::Features(features) => {
-                    let file_type =
-                        self.with_session(|session| session.identify_features(&features))?;
-                    Ok(from_file_type(&file_type, Some(path.to_string())))
-                }
-            });
+        let result = py
+            .detach(|| self.with_session(|session, options| session.identify_file(path, options)));
         match result {
-            Ok(res) => Ok(res),
+            Ok(file_type) => Ok(from_file_type(&file_type, Some(path.to_string()))),
+            Err(e) if e.downcast_ref::<std::io::Error>().is_some() => Ok(from_error(e, path)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }
 
     fn identify_paths(&self, py: Python<'_>, paths: Vec<String>) -> PyResult<Vec<PyMagikaResult>> {
-        let options = self.options.clone();
         let results: anyhow::Result<Vec<PyMagikaResult>> = py.detach(|| {
-            let mut slots: Vec<Option<PyMagikaResult>> = Vec::with_capacity(paths.len());
-            let mut batch_indices: Vec<usize> = Vec::new();
-            let mut batch_features: Vec<Features> = Vec::new();
-
-            for (idx, path_str) in paths.iter().enumerate() {
-                match extract_path_disposition(path_str, &options) {
-                    Ok(PathDisposition::Immediate(res)) => {
-                        slots.push(Some(res));
-                    }
-                    Ok(PathDisposition::Features(features)) => {
-                        slots.push(None);
-                        batch_indices.push(idx);
-                        batch_features.push(features);
-                    }
-                    Err(e) => {
-                        slots.push(Some(PyMagikaResult {
-                            path: Some(path_str.clone()),
-                            status: "unknown".to_string(),
-                            ok: false,
-                            label: String::new(),
-                            mime_type: String::new(),
-                            group: String::new(),
-                            description: e.to_string(),
-                            extensions: Vec::new(),
-                            is_text: false,
-                            score: 0.0,
-                            dl_label: String::new(),
-                            overwrite_reason: "none".to_string(),
-                        }));
-                    }
-                }
-            }
-
-            if !batch_features.is_empty() {
-                let inferred_types =
-                    self.with_session(|session| session.identify_features_batch(&batch_features))?;
-                for (slot_idx, file_type) in batch_indices.into_iter().zip(inferred_types) {
-                    slots[slot_idx] =
-                        Some(from_file_type(&file_type, Some(paths[slot_idx].clone())));
-                }
-            }
-
-            Ok(slots.into_iter().map(|s| s.unwrap()).collect())
+            let engine = get_shared_engine()?.clone();
+            let pipeline = Pipeline::new(engine, self.options.clone(), PipelineOptions::default())?;
+            let identified = pipeline.identify_paths(paths.iter().map(PathBuf::from).collect())?;
+            // Without recursion, there is one result per path, in order.
+            identified
+                .zip(&paths)
+                .map(|(item, path)| {
+                    Ok(match item?.1 {
+                        Ok(file_type) => from_file_type(&file_type, Some(path.clone())),
+                        Err(error) => from_error(error, path),
+                    })
+                })
+                .collect()
         });
         match results {
             Ok(res) => Ok(res),

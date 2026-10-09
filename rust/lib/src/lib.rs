@@ -42,6 +42,7 @@ pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{Features, FeaturesOrRuled, Input};
 pub use crate::options::{Options, PredictionMode};
+pub use crate::rules::Rules;
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
@@ -53,6 +54,9 @@ mod file;
 mod input;
 mod model;
 mod options;
+#[cfg(feature = "pipeline")]
+#[cfg_attr(feature = "_doc", doc(cfg(feature = "pipeline")))]
+pub mod pipeline;
 mod rules;
 mod runtime;
 mod session;
@@ -118,6 +122,7 @@ mod tests {
             None => ReferenceOverwriteReason::None,
             Some((_, OverwriteReason::LowConfidence)) => ReferenceOverwriteReason::LowConfidence,
             Some((_, OverwriteReason::OverwriteMap)) => ReferenceOverwriteReason::OverwriteMap,
+            Some((_, OverwriteReason::RulesVeto)) => unreachable!(),
         };
         assert_eq!(overwrite_reason, expected.overwrite_reason);
         assert_eq!(actual.inferred_type.info().label, expected.dl, "{debug}");

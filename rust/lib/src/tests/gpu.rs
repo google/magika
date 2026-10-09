@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use magika_tract_runtime::{BackendRequest, Runtime as RawRuntime, BATCH_CLASSES};
+use magika_tract_runtime::{BATCH_CLASSES, BackendRequest, Runtime as RawRuntime};
 use ndarray::ArrayView2;
 
 use super::*;
@@ -38,6 +38,8 @@ struct Sample {
 #[ignore = "requires an available GPU; run explicitly for GPU release qualification"]
 fn reference_decisions_match_on_every_gpu_batch() {
     let mut cpu = RawRuntime::with_max_batch(BackendRequest::Cpu, 1).unwrap().session().unwrap();
+    // The reference outputs are the model's alone, so the rules neither decide nor veto.
+    let options = Options { use_rules: false, ..Options::default() };
     let mut samples = Vec::new();
     // The model's label count, taken from the CPU reference's output width.
     let mut num_labels = 0;
@@ -66,17 +68,16 @@ fn reference_decisions_match_on_every_gpu_batch() {
                 _ => panic!("fixture must identify exactly one input"),
             };
             let expected = fixture.prediction.unwrap();
-            let mut options = Options::default();
-            options.use_rules = false;
             match FeaturesOrRuled::extract_content(bytes.as_slice(), &options).unwrap() {
                 FeaturesOrRuled::Ruled(kind) => {
                     assert_prediction(kind, expected, &name);
                 }
                 FeaturesOrRuled::Features(features) => {
-                    let reference = cpu.run(&features.0, 1).unwrap();
+                    let reference = cpu.run(&features.features, 1).unwrap();
                     num_labels = reference.len();
                     let reference = FileType::convert(
-                        PredictionMode::HighConfidence,
+                        &options,
+                        &[&features],
                         ArrayView2::from_shape((1, num_labels), &reference).unwrap().into_dyn(),
                     );
                     let cpu_output = reference[0].info().label;
@@ -88,7 +89,8 @@ fn reference_decisions_match_on_every_gpu_batch() {
         assert!(count >= 40, "too few {kind} reference cases: {count}");
     }
     assert!(samples.len() >= 64, "must cover many distinct real inputs");
-    let distinct: std::collections::HashSet<_> = samples.iter().map(|s| &s.features.0).collect();
+    let distinct: std::collections::HashSet<_> =
+        samples.iter().map(|s| &s.features.features).collect();
     assert!(distinct.len() >= 32, "must distinguish reordered rows");
 
     let runtime = RawRuntime::new(BackendRequest::Gpu).unwrap();
@@ -100,11 +102,14 @@ fn reference_decisions_match_on_every_gpu_batch() {
         for start in (0..samples.len()).step_by(batch) {
             // Rotate the final batch through the corpus so it also executes the full class.
             let rows: Vec<_> = (0..batch).map(|i| &samples[(start + i) % samples.len()]).collect();
-            let input: Vec<_> = rows.iter().flat_map(|s| s.features.0.iter().copied()).collect();
+            let input: Vec<_> =
+                rows.iter().flat_map(|s| s.features.features.iter().copied()).collect();
             let scores = gpu.run(&input, batch).unwrap();
             assert_eq!(scores.len(), batch * num_labels);
+            let features: Vec<_> = rows.iter().map(|s| &s.features).collect();
             let predictions = FileType::convert(
-                PredictionMode::HighConfidence,
+                &options,
+                &features,
                 ArrayView2::from_shape((batch, num_labels), &scores).unwrap().into_dyn(),
             );
             for ((sample, actual), row) in
@@ -132,6 +137,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
                     Some((_, OverwriteReason::OverwriteMap)) => {
                         ReferenceOverwriteReason::OverwriteMap
                     }
+                    Some((_, OverwriteReason::RulesVeto)) => unreachable!(),
                 };
                 assert_eq!(reason, sample.expected.overwrite_reason, "{context}");
             }

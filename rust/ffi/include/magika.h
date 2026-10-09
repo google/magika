@@ -33,6 +33,10 @@ typedef enum MagikaStatus {
    * An internal panic was caught across the FFI boundary.
    */
   MAGIKA_STATUS_PANIC = -4,
+  /**
+   * Custom rules were invalid.
+   */
+  MAGIKA_STATUS_INVALID_RULES = -5,
 } MagikaStatus;
 
 /**
@@ -113,12 +117,26 @@ typedef enum MagikaOverwriteReason {
    * The inferred type was mapped to another canonical type.
    */
   MAGIKA_OVERWRITE_REASON_OVERWRITE_MAP = 2,
+  /**
+   * The inferred type was vetoed by the rules.
+   */
+  MAGIKA_OVERWRITE_REASON_RULES_VETO = 3,
 } MagikaOverwriteReason;
+
+/**
+ * Shared engine identifying many files in parallel (thread-safe).
+ */
+typedef struct MagikaEngine MagikaEngine;
 
 /**
  * Features extracted from a file or buffer for neural network inference.
  */
 typedef struct MagikaFeatures MagikaFeatures;
+
+/**
+ * Compiled custom rules (thread-safe, shareable between runtimes and options).
+ */
+typedef struct MagikaRules MagikaRules;
 
 /**
  * Shared Magika inference runtime (thread-safe).
@@ -150,6 +168,13 @@ typedef struct MagikaOptions {
    * Whether to follow symlinks.
    */
   bool follow_symlink;
+  /**
+   * Rules checked before the built-in rules, or NULL for none.
+   *
+   * The options hold their own reference, so the rules may be freed once the call that takes
+   * these options returns.
+   */
+  const struct MagikaRules *custom_rules;
 } MagikaOptions;
 
 /**
@@ -243,6 +268,84 @@ extern "C" {
  */
 enum MagikaStatus magika_runtime_new(const struct MagikaRuntimeOptions *options,
                                      struct MagikaRuntime **out_runtime);
+
+/**
+ * Starts a shared engine to identify many files in parallel (thread-safe).
+ *
+ * The engine identifies on the CPU at once and moves full batches to the GPU once it is prepared,
+ * so this returns before the model is ready. Only `backend` and `max_batch` of `options` are
+ * used; identification options are given with each call. If `options` is NULL, the default
+ * configuration is used.
+ *
+ * # Safety
+ *
+ * - `options` may be NULL, or must point to a valid `MagikaRuntimeOptions` struct.
+ * - `out_engine` must point to a valid, writable pointer to `MagikaEngine`.
+ */
+enum MagikaStatus magika_engine_new(const struct MagikaRuntimeOptions *options,
+                                    struct MagikaEngine **out_engine);
+
+/**
+ * Frees an engine. Passing NULL is a safe no-op.
+ *
+ * A runtime still being prepared finishes on its background thread, so the library must not be
+ * unloaded right after freeing an engine.
+ *
+ * # Safety
+ *
+ * If non-null, `engine` must have been returned by `magika_engine_new` and not previously freed.
+ */
+void magika_engine_free(struct MagikaEngine *engine);
+
+/**
+ * Identifies files in parallel, reading and identifying several at once.
+ *
+ * For each path `i`, `out_statuses[i]` is `MAGIKA_STATUS_OK` and `out_results[i]` is its result,
+ * or `out_statuses[i]` is the error (such as `MAGIKA_STATUS_IO_ERROR`) and `out_results[i]` is
+ * left unchanged. The return value is an error only if the identification itself failed, in which
+ * case both arrays are unspecified. If `options` is NULL, the default configuration is used.
+ *
+ * # Safety
+ *
+ * - `engine` must point to a valid `MagikaEngine`.
+ * - `paths` must point to `count` null-terminated C strings (may be NULL only if `count == 0`).
+ * - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
+ * - `out_results` and `out_statuses` must point to `count` writable elements each.
+ */
+enum MagikaStatus magika_engine_identify_paths(const struct MagikaEngine *engine,
+                                               const char *const *paths,
+                                               uintptr_t count,
+                                               const struct MagikaOptions *options,
+                                               struct MagikaResult *out_results,
+                                               enum MagikaStatus *out_statuses);
+
+/**
+ * Compiles custom rules from YARA text, checked before the built-in rules.
+ *
+ * Rules use the YARA subset and metadata of the built-in rules. On invalid rules, returns
+ * `MAGIKA_STATUS_INVALID_RULES` and, if `error` is non-null, writes a null-terminated message
+ * truncated to `error_capacity` bytes.
+ *
+ * # Safety
+ *
+ * - `source` must point to at least `len` readable bytes of UTF-8.
+ * - `error` may be NULL, or must point to at least `error_capacity` writable bytes.
+ * - `out_rules` must point to a valid, writable pointer to `MagikaRules`.
+ */
+enum MagikaStatus magika_rules_new(const char *source,
+                                   uintptr_t len,
+                                   char *error,
+                                   uintptr_t error_capacity,
+                                   struct MagikaRules **out_rules);
+
+/**
+ * Frees custom rules. Passing NULL is a safe no-op.
+ *
+ * # Safety
+ *
+ * If non-null, `rules` must have been returned by `magika_rules_new` and not previously freed.
+ */
+void magika_rules_free(struct MagikaRules *rules);
 
 /**
  * Frees a Magika runtime. Passing NULL is a safe no-op.

@@ -695,6 +695,8 @@ name = "magika"
 version = "2.0.0-dev"
 dependencies = [
  "anyhow",
+ "cpu-time",
+ "crossbeam-channel",
  "magika-rules",
  "magika-tract-runtime",
  "ndarray",
@@ -709,8 +711,6 @@ dependencies = [
  "anyhow",
  "clap",
  "colored",
- "cpu-time",
- "crossbeam-channel",
  "magika",
  "serde",
  "serde_json",

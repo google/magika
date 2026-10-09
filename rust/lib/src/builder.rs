@@ -14,7 +14,7 @@
 
 use anyhow::Result;
 
-use crate::{Backend, Options, PredictionMode, Runtime};
+use crate::{Backend, Options, PredictionMode, Rules, Runtime};
 
 /// Configures and creates a Magika runtime.
 #[derive(Clone, Debug, Default)]
@@ -29,6 +29,11 @@ impl Builder {
     pub fn with_backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
         self
+    }
+
+    /// Returns the backend selected for inference, or `None` for automatic selection.
+    pub fn backend(&self) -> Option<Backend> {
+        self.backend
     }
 
     /// Declares the largest batch this session will ever be asked to identify.
@@ -58,6 +63,12 @@ impl Builder {
     /// Configures whether to use rules.
     pub fn with_rules(mut self, use_rules: bool) -> Self {
         self.options.use_rules = use_rules;
+        self
+    }
+
+    /// Configures rules to check before the built-in rules.
+    pub fn with_custom_rules(mut self, rules: Rules) -> Self {
+        self.options.custom_rules = Some(rules);
         self
     }
 

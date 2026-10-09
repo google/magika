@@ -167,19 +167,27 @@ fn bundled_rules_never_contradict_a_validated_label() {
         let tail = (!tail.is_empty()).then_some(tail.as_slice());
         let outcome = rules.scan(Input { prefix: &prefix[..wanted], size, tail });
         elapsed += start.elapsed();
-        let said = match outcome {
-            Outcome::Match(i) if accepts(&rules.labels()[i]) => {
-                if validated {
-                    hits += 1;
-                } else {
-                    agreements += 1;
+        let said = match &outcome {
+            Outcome::Match(labels) => match &labels[..] {
+                [i] if accepts(&rules.labels()[*i]) => {
+                    if validated {
+                        hits += 1;
+                    } else {
+                        agreements += 1;
+                    }
+                    continue;
                 }
-                continue;
-            }
-            Outcome::Match(i) => rules.labels()[i].clone(),
-            Outcome::Conflict => "<conflict>".to_string(),
-            _ if refuted.is_some() => "<no match>".to_string(),
-            Outcome::NoMatch | Outcome::InsufficientInput => continue,
+                [i] => rules.labels()[*i].clone(),
+                [] if refuted.is_some() => "<no match>".to_string(),
+                [] => continue,
+                labels => {
+                    let names: Vec<_> =
+                        labels.iter().map(|&i| rules.labels()[i].as_str()).collect();
+                    format!("<conflict: {}>", names.join(", "))
+                }
+            },
+            Outcome::InsufficientInput if refuted.is_some() => "<no match>".to_string(),
+            Outcome::InsufficientInput => continue,
         };
         if validated {
             false_positives.push(format!("{sha256} {format_id} ({status}): rules say {said}"));

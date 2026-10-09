@@ -16,11 +16,13 @@
 
 ### Minor
 
+- Add the `pipeline` feature with `pipeline::Engine`, to identify from any thread on the CPU while a GPU is prepared, and `pipeline::Pipeline`, to identify many paths in parallel and in order
+- Add `Builder::backend()` to get the selected backend
+- Add `Rules` and `Options::custom_rules` (or `Builder::with_custom_rules()`) to identify with custom format rules before the built-in ones
 - Add `TypeInfo::{possible,model}_output()` to list possible outputs
 - Add the `rules` feature to identify files with format rules before inference
 - Add the 74 content types that the bundled format rules can identify
 - Add `ContentType::from_label()` to get a content type from its label
-- Change `Session::identify_features_batch()` to take an iterator of features
 - Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
 - Add `Runtime` to prepare the model once and create one `Session` per inference thread
 - Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference

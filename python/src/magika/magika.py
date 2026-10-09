@@ -211,9 +211,13 @@ class Magika:
         ):
             raise TypeError("Input stream must have seek, read, and tell methods.")
 
+        # Note: `tell()` is deliberately called outside of the `try` block. If
+        # it fails (e.g., the stream is readable but not seekable), there is no
+        # position to restore, and the `finally` clause below would otherwise
+        # raise `UnboundLocalError` and mask the original error.
+        current_position = stream.tell()
         block_size = 4096
         try:
-            current_position = stream.tell()
             stream.seek(0, os.SEEK_END)
             stream_size = stream.tell()
             if stream_size <= 2 * block_size:

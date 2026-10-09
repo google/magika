@@ -18,6 +18,8 @@ use crate::Rules;
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Options {
+    /// Rules checked before the built-in rules (whether or not those are used).
+    pub custom_rules: Option<Rules>,
     /// Identifies using rules (before inference).
     pub use_rules: bool,
     /// Identifies using inference (after rules).
@@ -26,8 +28,6 @@ pub struct Options {
     pub prediction_mode: PredictionMode,
     /// Whether to follow symlinks.
     pub follow_symlink: bool,
-    /// Rules checked before the built-in rules (whether or not those are used).
-    pub custom_rules: Option<Rules>,
 }
 
 /// Minimum confidence level for inference.
@@ -44,11 +44,11 @@ pub enum PredictionMode {
 impl Default for Options {
     fn default() -> Self {
         Self {
+            custom_rules: None,
             use_rules: true,
             use_model: true,
             prediction_mode: PredictionMode::HighConfidence,
             follow_symlink: true,
-            custom_rules: None,
         }
     }
 }

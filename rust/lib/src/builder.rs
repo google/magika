@@ -55,15 +55,15 @@ impl Builder {
         &self.options
     }
 
-    /// Configures whether to use rules.
-    pub fn with_rules(mut self, use_rules: bool) -> Self {
-        self.options.use_rules = use_rules;
+    /// Configures custom rules (used before the builtin rules).
+    pub fn with_custom_rules(mut self, rules: Rules) -> Self {
+        self.options.custom_rules = Some(rules);
         self
     }
 
-    /// Configures rules to check before the built-in rules.
-    pub fn with_custom_rules(mut self, rules: Rules) -> Self {
-        self.options.custom_rules = Some(rules);
+    /// Configures whether to use the (builtin) rules.
+    pub fn with_rules(mut self, use_rules: bool) -> Self {
+        self.options.use_rules = use_rules;
         self
     }
 

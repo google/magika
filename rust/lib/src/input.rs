@@ -18,14 +18,13 @@ use std::path::Path;
 use anyhow::Result;
 
 use crate::config::ModelConfig;
-use crate::rules::Decision;
-use crate::{ContentType, FileType, Options};
+use crate::{ContentType, FileType, Options, Rules};
 
 /// Features to identify a file using AI.
 pub struct Features {
     pub(crate) features: Vec<i32>,
-    /// What the rules matched, or `None` if no rules ran.
-    pub(crate) rules: Option<crate::rules::Matched>,
+    pub(crate) matched_custom_rules: Option<(Rules, Vec<ContentType>)>,
+    pub(crate) matched_rules: Option<Vec<ContentType>>,
 }
 
 /// Abstraction over file content.
@@ -116,17 +115,36 @@ impl FeaturesOrRuled {
             return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(ContentType::Empty)));
         }
         let first_block = read_first_block(config, &mut file, file_len)?;
-        let rules = match crate::rules::identify(options, &first_block, file_len, &mut file)? {
-            Some(Decision::Ruled(content_type)) => {
+        let mut matched_custom_rules = None;
+        if let Some(custom_rules) = &options.custom_rules {
+            let matched = custom_rules.identify(&first_block, file_len, &mut file)?;
+            if let &[content_type] = &matched[..] {
                 return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)));
             }
-            Some(Decision::Undecided(matched)) => Some(matched),
-            None => None,
-        };
+            matched_custom_rules = Some((custom_rules.clone(), matched));
+        }
+        let mut matched_rules = None;
+        if options.use_rules {
+            let matched = Rules::builtin().identify(&first_block, file_len, &mut file)?;
+            if let &[content_type] = &matched[..] {
+                let mut custom_rules_veto = false;
+                if let Some((custom_rules, matched)) = &matched_custom_rules {
+                    custom_rules_veto = custom_rules.veto(matched, content_type);
+                }
+                if !custom_rules_veto {
+                    return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)));
+                }
+            }
+            matched_rules = Some(matched);
+        }
         if options.use_model {
             let features = extract_features(config, file, file_len, &first_block)?;
             if features[config.min_file_size_for_dl - 1] != config.padding_token {
-                return Ok(FeaturesOrRuled::Features(Features { features, rules }));
+                return Ok(FeaturesOrRuled::Features(Features {
+                    features,
+                    matched_custom_rules,
+                    matched_rules,
+                }));
             }
         }
         debug_assert!(first_block.len() <= config.block_size);

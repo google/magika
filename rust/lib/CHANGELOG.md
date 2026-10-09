@@ -16,7 +16,7 @@
 
 ### Minor
 
-- Add `Rules` and `Options::custom_rules` (or `Builder::with_custom_rules()`) to identify with custom format rules before the built-in ones
+- Add `Rules` and `Options::custom_rules` for custom rules
 - Add `TypeInfo::{possible,model}_output()` to list possible outputs
 - Add the `rules` feature to identify files with format rules before inference
 - Add the 74 content types that the bundled format rules can identify

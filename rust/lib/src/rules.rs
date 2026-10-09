@@ -19,7 +19,7 @@ use std::sync::{Arc, LazyLock};
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use magika_rules::{Class, Outcome, RuleSet, Source};
 
-use crate::{ContentType, Input, Options};
+use crate::ContentType;
 
 // Rules scan the first block that feature extraction reads anyway, so they never read more.
 const _: () = assert!(crate::model::CONFIG.block_size >= magika_rules::PREFIX_LIMIT);
@@ -35,6 +35,12 @@ const _: () = assert!(crate::model::CONFIG.block_size >= magika_rules::PREFIX_LI
 #[derive(Clone)]
 pub struct Rules(Arc<Compiled>);
 
+impl PartialEq for Rules {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
 impl std::fmt::Debug for Rules {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.debug_struct("Rules").field("content_types", &self.0.content_types).finish()
@@ -42,6 +48,13 @@ impl std::fmt::Debug for Rules {
 }
 
 impl Rules {
+    /// Returns the rules bundled with Magika, compiled when `magika-rules` was built.
+    pub(crate) fn builtin() -> &'static Self {
+        static RULES: LazyLock<Rules> =
+            LazyLock::new(|| Rules(Arc::new(Compiled::new(RuleSet::bundled()).unwrap())));
+        &RULES
+    }
+
     /// Compiles rules from YARA text.
     pub fn compile(text: &str) -> Result<Self> {
         let source = Source::parse(text)?;
@@ -68,9 +81,36 @@ impl Rules {
         Self::compile(&text)
     }
 
-    /// Returns the content types the rules can identify, in source order.
-    pub fn content_types(&self) -> &[ContentType] {
-        &self.0.content_types
+    /// Returns the content types of the rules that match a file.
+    ///
+    /// The first block holds at least the first `PREFIX_LIMIT` bytes of the file, or the whole
+    /// file if it is shorter.
+    pub(crate) fn identify(
+        &self, first_block: &[u8], size: u64, mut file: impl crate::Input,
+    ) -> Result<Vec<ContentType>> {
+        let rules = &self.0;
+        let prefix = &first_block[..first_block.len().min(magika_rules::PREFIX_LIMIT)];
+        let mut tail = None;
+        let tail_len = rules.set.tail_len(prefix, size);
+        if tail_len > 0 {
+            let mut buf = vec![0; tail_len];
+            file.read_at(&mut buf, size - tail_len as u64)?;
+            if let Some(start) = rules.set.tail_start(&buf, size) {
+                buf = vec![0; (size - start) as usize];
+                file.read_at(&mut buf, start)?;
+            }
+            tail = Some(buf);
+        }
+        let tail = tail.as_deref();
+        Ok(match rules.set.scan(magika_rules::Input { prefix, size, tail }) {
+            Outcome::Match(labels) => labels.into_iter().map(|i| rules.content_types[i]).collect(),
+            Outcome::InsufficientInput => Vec::new(),
+        })
+    }
+
+    /// Returns whether the rules cover an unmatched content type with no false negatives.
+    pub(crate) fn veto(&self, matched: &[ContentType], content_type: ContentType) -> bool {
+        !matched.contains(&content_type) && self.0.vetos.contains(&content_type)
     }
 }
 
@@ -84,13 +124,6 @@ struct Compiled {
 }
 
 impl Compiled {
-    /// Returns the rules bundled with Magika, compiled when `magika-rules` was built.
-    fn builtin() -> &'static Self {
-        static RULES: LazyLock<Compiled> =
-            LazyLock::new(|| Compiled::new(RuleSet::bundled()).unwrap());
-        &RULES
-    }
-
     /// Wraps compiled rules, failing if a rule labels a content type that Magika does not know.
     fn new(set: RuleSet) -> Result<Self> {
         let mut content_types = Vec::with_capacity(set.labels().len());
@@ -120,101 +153,12 @@ impl Compiled {
         }
         Ok(Compiled { set, content_types, vetos })
     }
-
-    /// Returns the content types of the rules that match.
-    fn scan(&self, prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Vec<ContentType> {
-        match self.set.scan(magika_rules::Input { prefix, size, tail }) {
-            Outcome::Match(labels) => labels.into_iter().map(|i| self.content_types[i]).collect(),
-            Outcome::InsufficientInput => Vec::new(),
-        }
-    }
-}
-
-/// What the rules decided about a file.
-pub(crate) enum Decision {
-    /// The rules identify the file.
-    Ruled(ContentType),
-    /// The rules leave the decision to the model.
-    Undecided(Matched),
-}
-
-/// What the rules matched in a file they did not identify, kept for the model to be vetoed.
-pub(crate) struct Matched {
-    /// The content types of the rules that matched.
-    content_types: Vec<ContentType>,
-    /// The custom rules that ran, if any.
-    custom: Option<Rules>,
-    /// Whether the built-in rules ran.
-    builtin: bool,
-}
-
-impl Matched {
-    /// Returns whether rules that ran claim to never miss `content_type`, yet none matched.
-    pub(crate) fn vetoes(&self, content_type: ContentType) -> bool {
-        !self.content_types.contains(&content_type)
-            && (self.custom.as_ref().is_some_and(|rules| rules.0.vetos.contains(&content_type))
-                || self.builtin && Compiled::builtin().vetos.contains(&content_type))
-    }
-}
-
-/// Runs the enabled rules on a file: custom rules first, then built-in rules.
-///
-/// Custom rules identify the file when the ones that match agree on one content type. Built-in
-/// rules identify it when no custom rule matched and the ones that match agree. Returns `None`
-/// when no rules are enabled.
-///
-/// The first block holds at least the first `PREFIX_LIMIT` bytes of the file, or the whole file
-/// if it is shorter.
-pub(crate) fn identify(
-    options: &Options, first_block: &[u8], size: u64, mut file: impl Input,
-) -> Result<Option<Decision>> {
-    let custom = options.custom_rules.as_ref().map(|rules| &*rules.0);
-    let builtin = options.use_rules.then(Compiled::builtin);
-    if custom.is_none() && builtin.is_none() {
-        return Ok(None);
-    }
-    let prefix = &first_block[..first_block.len().min(magika_rules::PREFIX_LIMIT)];
-    // Both sets read the same tail: the end of a zip archive, back to its central directory.
-    let mut tail = None;
-    if let Some(set) =
-        custom.into_iter().chain(builtin).map(|x| &x.set).find(|set| set.tail_len(prefix, size) > 0)
-    {
-        let tail_len = set.tail_len(prefix, size);
-        let mut buf = vec![0; tail_len];
-        file.read_at(&mut buf, size - tail_len as u64)?;
-        if let Some(start) = set.tail_start(&buf, size) {
-            buf = vec![0; (size - start) as usize];
-            file.read_at(&mut buf, start)?;
-        }
-        tail = Some(buf);
-    }
-    let tail = tail.as_deref();
-    let mut content_types = Vec::new();
-    if let Some(custom) = custom {
-        content_types = custom.scan(prefix, size, tail);
-        if let &[content_type] = &content_types[..] {
-            return Ok(Some(Decision::Ruled(content_type)));
-        }
-    }
-    if let Some(builtin) = builtin {
-        let matched = builtin.scan(prefix, size, tail);
-        if let (true, &[content_type]) = (content_types.is_empty(), &matched[..]) {
-            return Ok(Some(Decision::Ruled(content_type)));
-        }
-        for content_type in matched {
-            if !content_types.contains(&content_type) {
-                content_types.push(content_type);
-            }
-        }
-    }
-    let custom = options.custom_rules.clone();
-    Ok(Some(Decision::Undecided(Matched { content_types, custom, builtin: builtin.is_some() })))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Backend, FeaturesOrRuled, FileType, OverwriteReason, Runtime};
+    use crate::{Backend, FeaturesOrRuled, FileType, Options, OverwriteReason, Runtime};
 
     /// One enforced rule labeling `label` with `class`, matching when `condition` holds.
     fn rule(label: &str, class: &str, condition: &str) -> String {
@@ -257,13 +201,14 @@ mod tests {
     }
 
     #[test]
-    fn custom_rules_without_false_negatives_veto_the_model() {
+    fn custom_rules_mismatch_extract_identify() {
         let wav = |class| {
             let options = options(false, Some(&rule("wav", class, "$psd at 0")));
             let FeaturesOrRuled::Features(features) = extract("wav/test.wav", &options) else {
                 unreachable!()
             };
-            let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+            let mut runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+            *runtime.options_mut() = options.clone();
             runtime.session().unwrap().identify_features(&features).unwrap()
         };
         let FileType::Inferred(vetoed) = wav("full") else { unreachable!() };
@@ -273,15 +218,14 @@ mod tests {
     }
 
     #[test]
-    fn features_extracted_without_rules_are_not_vetoed() {
-        // WAV has built-in rules without false negatives, but they did not run.
+    fn rules_mismatch_extract_identify() {
         let FeaturesOrRuled::Features(features) = extract("wav/test.wav", &options(false, None))
         else {
             unreachable!()
         };
         let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
-        let file_type = runtime.session().unwrap().identify_features(&features).unwrap();
-        assert_eq!(file_type.content_type(), Some(ContentType::Wav));
+        let error = runtime.session().unwrap().identify_features(&features).unwrap_err();
+        assert_eq!(error.to_string(), "use_rules mismatch between extract and identify");
     }
 
     #[test]
@@ -309,7 +253,7 @@ mod tests {
     #[test]
     fn rules_from_files_name_the_file_in_errors() {
         let custom = "../../tests_data/rules/custom.yar";
-        assert_eq!(Rules::from_files([custom]).unwrap().content_types(), [ContentType::Png]);
+        assert_eq!(Rules::from_files([custom]).unwrap().0.content_types, [ContentType::Png]);
         let error = Rules::from_files([custom, "../../tests_data/basic/png/magika_test.png"]);
         let error = format!("{:#}", error.unwrap_err());
         assert!(error.starts_with("reading rules from ../../tests_data/basic/png"), "{error}");
@@ -319,6 +263,6 @@ mod tests {
     fn rules_are_shared_by_clones() {
         let rules = Rules::compile(&rule("txt", "full", "$psd at 0")).unwrap();
         assert!(Arc::ptr_eq(&rules.0, &rules.clone().0));
-        assert_eq!(rules.content_types(), [ContentType::Txt]);
+        assert_eq!(rules.0.content_types, [ContentType::Txt]);
     }
 }

@@ -72,6 +72,10 @@ mod tests {
     #[cfg(any(target_os = "macos", feature = "cuda"))]
     mod gpu;
 
+    fn new_session() -> Session {
+        Runtime::builder().with_backend(Backend::Cpu).build().unwrap().session().unwrap()
+    }
+
     #[derive(Debug, Deserialize, PartialEq, Eq)]
     #[serde(rename_all = "snake_case")]
     enum ReferenceOverwriteReason {
@@ -158,9 +162,8 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime =
-            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
-        let mut session = runtime.session().unwrap();
+        let mut session = new_session();
+        session.options_mut().use_rules = false;
         let mut checked = 0;
         for test in tests {
             session.options_mut().prediction_mode = test.prediction_mode.into();
@@ -189,9 +192,8 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime =
-            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
-        let mut session = runtime.session().unwrap();
+        let mut session = new_session();
+        session.options_mut().use_rules = false;
         let mut checked = 0;
         for test in tests {
             session.options_mut().prediction_mode = test.prediction_mode.into();

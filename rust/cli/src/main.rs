@@ -322,9 +322,7 @@ fn main() -> Result<()> {
     if !flags.experimental.rules_file.is_empty() {
         let rules = Rules::from_files(&flags.experimental.rules_file)?;
         if flags.experimental.rules_check {
-            for content_type in rules.content_types() {
-                println!("{}", content_type.info().label);
-            }
+            println!("{rules:?}");
             return Ok(());
         }
         builder = builder.with_custom_rules(rules);

@@ -92,6 +92,6 @@ impl Session {
         }
         let output = self.inner.run(&input, features.len())?;
         let output = ArrayView2::from_shape((features.len(), crate::model::LABELS.len()), &output)?;
-        Ok(FileType::convert(&self.options, features, output.into_dyn()))
+        FileType::convert(&self.options, features, output.into_dyn())
     }
 }

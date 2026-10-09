@@ -910,8 +910,8 @@ impl Response {
 
     fn color(&self, result: ColoredString) -> ColoredString {
         use colored::Colorize as _;
-        // We only use true colors (except for errors). If the terminal doesn't support true colors,
-        // the colored crate will automatically choose the closest one.
+        // We only use true colors for the highlighted groups (and red for errors). If the terminal
+        // doesn't support true colors, the colored crate will automatically choose the closest one.
         match &self.result {
             Err(_) => result.bold().red(),
             Ok(x) => match x.info().group {
@@ -924,7 +924,11 @@ impl Response {
                 "executable" => result.truecolor(0xec, 0x48, 0x99),  // Pink 500
                 "image" => result.truecolor(0x06, 0xb6, 0xd4),       // Cyan 500
                 "video" => result.truecolor(0x10, 0xb9, 0x81),       // Emerald 500
-                _ => result.bold().truecolor(0xcc, 0xcc, 0xcc),
+                // Use the terminal palette for the remaining groups (e.g. "text" and "unknown",
+                // used for low-confidence reports) instead of a fixed light gray. The palette
+                // adapts to the user's terminal theme: bright black renders as a dark gray on
+                // light backgrounds and as a light gray on dark backgrounds (fixes #1243).
+                _ => result.bold().bright_black(),
             },
         }
     }

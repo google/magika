@@ -11,6 +11,7 @@
 
 ### Patch
 
+- Use the terminal palette for low-confidence groups so they stay readable on light backgrounds (fixes #1243)
 - Fix panic with JSON output when a file name is not UTF-8
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies

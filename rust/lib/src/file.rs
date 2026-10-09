@@ -147,9 +147,44 @@ impl TypeInfo {
         TypeInfo::ALL.into_iter().filter(|x| x.model_support || x.rules_support).collect()
     }
 
-    /// Returns the list of model outputs ordered by label.
+    /// Returns the list of possible model outputs ordered by label.
+    ///
+    /// These are the possible values of `dl_label` reported by
+    /// [`crate::FileType::Inferred`] (the raw predicted label, before the
+    /// overwrite map is applied). This includes labels that the overwrite map
+    /// later rewrites (such as `randombytes` and `randomtxt`) as well as
+    /// `undefined`, which is reported when the model is not run (rules,
+    /// directories, symlinks).
     pub fn model_output() -> Vec<&'static Self> {
-        TypeInfo::ALL.into_iter().filter(|x| x.model_support).collect()
+        let mut outputs: Vec<&'static Self> = crate::model::LABELS
+            .into_iter()
+            .map(|x| x.info())
+            .chain(std::iter::once(crate::ContentType::Undefined.info()))
+            .collect();
+        outputs.sort_unstable_by_key(|x| x.label);
+        outputs
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn model_output_matches_possible_dl_labels() {
+        let outputs = TypeInfo::model_output();
+        // Every model label plus `undefined`.
+        assert_eq!(outputs.len(), crate::model::LABELS.len() + 1);
+        // Ordered by label with no duplicates.
+        for pair in outputs.windows(2) {
+            assert!(pair[0].label < pair[1].label);
+        }
+        let labels: Vec<&str> = outputs.iter().map(|x| x.label).collect();
+        // The overwrite map rewrites these, but the model still predicts them.
+        assert!(labels.contains(&"randombytes"));
+        assert!(labels.contains(&"randomtxt"));
+        // `undefined` is reported when the model is not run.
+        assert!(labels.contains(&"undefined"));
     }
 }
 

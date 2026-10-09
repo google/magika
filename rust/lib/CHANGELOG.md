@@ -31,6 +31,7 @@
 ### Patch
 
 - Read small files once when extracting features
+- Make `TypeInfo::model_output()` return the whole model label space, including labels rewritten by the overwrite map
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

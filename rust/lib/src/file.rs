@@ -148,8 +148,39 @@ impl TypeInfo {
     }
 
     /// Returns the list of model outputs ordered by label.
+    ///
+    /// These are the content types the model can predict, i.e. the possible
+    /// values of the raw label reported by [`crate::FileType::Inferred`] before
+    /// the overwrite map is applied. This includes labels that the overwrite
+    /// map later rewrites (such as `randombytes` and `randomtxt`) and excludes
+    /// `undefined`, which is not a model output.
     pub fn model_output() -> Vec<&'static Self> {
-        TypeInfo::ALL.into_iter().filter(|x| x.model_support).collect()
+        let mut outputs: Vec<&'static Self> =
+            crate::model::LABELS.into_iter().map(|x| x.info()).collect();
+        outputs.sort_unstable_by_key(|x| x.label);
+        outputs
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn model_output_is_the_model_label_space() {
+        let outputs = TypeInfo::model_output();
+        // One output per model label.
+        assert_eq!(outputs.len(), crate::model::LABELS.len());
+        // Ordered by label with no duplicates.
+        for pair in outputs.windows(2) {
+            assert!(pair[0].label < pair[1].label);
+        }
+        let labels: Vec<&str> = outputs.iter().map(|x| x.label).collect();
+        // The overwrite map rewrites these, but the model still predicts them.
+        assert!(labels.contains(&"randombytes"));
+        assert!(labels.contains(&"randomtxt"));
+        // `undefined` is not a model output.
+        assert!(!labels.contains(&"undefined"));
     }
 }
 

@@ -236,7 +236,15 @@ class Magika:
         ]
 
     def get_model_content_types(self) -> List[ContentTypeLabel]:
-        """This method returns the list of all possible output of the model."""
+        """This method returns the list of all possible raw model outputs.
+
+        This is the set of labels the model can predict, i.e. the possible
+        values of ``MagikaResult.prediction.dl.label`` when the model is run,
+        before the overwrite map is applied. It includes labels that are later
+        overwritten (e.g. ``randombytes`` and ``randomtxt``) and does not
+        include ``ContentTypeLabel.UNDEFINED``, which is used when the model is
+        not run.
+        """
         return [
             ContentTypeLabel(ct) for ct in self._pyo3_session.get_model_content_types()
         ]

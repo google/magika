@@ -42,6 +42,7 @@ pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
 pub use crate::input::{Features, FeaturesOrRuled, Input};
 pub use crate::options::{Options, PredictionMode};
+pub use crate::rules::Rules;
 pub use crate::runtime::Runtime;
 pub use crate::session::Session;
 
@@ -70,6 +71,10 @@ mod tests {
 
     #[cfg(any(target_os = "macos", feature = "cuda"))]
     mod gpu;
+
+    fn new_session() -> Session {
+        Runtime::builder().with_backend(Backend::Cpu).build().unwrap().session().unwrap()
+    }
 
     #[derive(Debug, Deserialize, PartialEq, Eq)]
     #[serde(rename_all = "snake_case")]
@@ -118,6 +123,7 @@ mod tests {
             None => ReferenceOverwriteReason::None,
             Some((_, OverwriteReason::LowConfidence)) => ReferenceOverwriteReason::LowConfidence,
             Some((_, OverwriteReason::OverwriteMap)) => ReferenceOverwriteReason::OverwriteMap,
+            Some((_, OverwriteReason::RulesVeto)) => unreachable!(),
         };
         assert_eq!(overwrite_reason, expected.overwrite_reason);
         assert_eq!(actual.inferred_type.info().label, expected.dl, "{debug}");
@@ -156,9 +162,8 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime =
-            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
-        let mut session = runtime.session().unwrap();
+        let mut session = new_session();
+        session.options_mut().use_rules = false;
         let mut checked = 0;
         for test in tests {
             session.options_mut().prediction_mode = test.prediction_mode.into();
@@ -187,9 +192,8 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime =
-            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
-        let mut session = runtime.session().unwrap();
+        let mut session = new_session();
+        session.options_mut().use_rules = false;
         let mut checked = 0;
         for test in tests {
             session.options_mut().prediction_mode = test.prediction_mode.into();

@@ -50,15 +50,25 @@ fn bundled_rules_never_mislabel_a_sample() {
             let tail = (!tail.is_empty()).then_some(tail);
             files += 1;
             match rules.scan(Input { prefix, size, tail }) {
-                Outcome::Match(i) if rules.labels()[i] == expected => hits += 1,
-                Outcome::Match(i) => {
-                    errors.push(format!("{}: rules say {}", path.display(), rules.labels()[i]))
-                }
-                Outcome::Conflict => errors.push(format!("{}: conflict", path.display())),
-                _ if expected != label => {
+                Outcome::Match(labels) => match &labels[..] {
+                    [i] if rules.labels()[*i] == expected => hits += 1,
+                    [i] => {
+                        errors.push(format!("{}: rules say {}", path.display(), rules.labels()[*i]))
+                    }
+                    [] if expected != label => {
+                        errors.push(format!("{}: no longer scans to {expected}", path.display()))
+                    }
+                    [] => {}
+                    labels => {
+                        let names: Vec<_> =
+                            labels.iter().map(|&i| rules.labels()[i].as_str()).collect();
+                        errors.push(format!("{}: conflict: {}", path.display(), names.join(", ")));
+                    }
+                },
+                Outcome::InsufficientInput if expected != label => {
                     errors.push(format!("{}: no longer scans to {expected}", path.display()))
                 }
-                Outcome::NoMatch | Outcome::InsufficientInput => {}
+                Outcome::InsufficientInput => {}
             }
         }
     }

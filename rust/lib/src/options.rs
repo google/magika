@@ -12,10 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::Rules;
+
 /// Configuration options for identification.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Options {
+    /// Rules checked before the built-in rules (whether or not those are used).
+    pub custom_rules: Option<Rules>,
     /// Identifies using rules (before inference).
     pub use_rules: bool,
     /// Identifies using inference (after rules).
@@ -40,6 +44,7 @@ pub enum PredictionMode {
 impl Default for Options {
     fn default() -> Self {
         Self {
+            custom_rules: None,
             use_rules: true,
             use_model: true,
             prediction_mode: PredictionMode::HighConfidence,

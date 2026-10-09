@@ -33,6 +33,10 @@ typedef enum MagikaStatus {
    * An internal panic was caught across the FFI boundary.
    */
   MAGIKA_STATUS_PANIC = -4,
+  /**
+   * Custom rules were invalid.
+   */
+  MAGIKA_STATUS_INVALID_RULES = -5,
 } MagikaStatus;
 
 /**
@@ -113,12 +117,21 @@ typedef enum MagikaOverwriteReason {
    * The inferred type was mapped to another canonical type.
    */
   MAGIKA_OVERWRITE_REASON_OVERWRITE_MAP = 2,
+  /**
+   * The inferred type was vetoed by the rules.
+   */
+  MAGIKA_OVERWRITE_REASON_RULES_VETO = 3,
 } MagikaOverwriteReason;
 
 /**
  * Features extracted from a file or buffer for neural network inference.
  */
 typedef struct MagikaFeatures MagikaFeatures;
+
+/**
+ * Compiled custom rules (thread-safe, shareable between runtimes and options).
+ */
+typedef struct MagikaRules MagikaRules;
 
 /**
  * Shared Magika inference runtime (thread-safe).
@@ -150,6 +163,13 @@ typedef struct MagikaOptions {
    * Whether to follow symlinks.
    */
   bool follow_symlink;
+  /**
+   * Rules checked before the built-in rules, or NULL for none.
+   *
+   * The options hold their own reference, so the rules may be freed once the call that takes
+   * these options returns.
+   */
+  const struct MagikaRules *custom_rules;
 } MagikaOptions;
 
 /**
@@ -243,6 +263,34 @@ extern "C" {
  */
 enum MagikaStatus magika_runtime_new(const struct MagikaRuntimeOptions *options,
                                      struct MagikaRuntime **out_runtime);
+
+/**
+ * Compiles custom rules from YARA text, checked before the built-in rules.
+ *
+ * Rules use the YARA subset and metadata of the built-in rules. On invalid rules, returns
+ * `MAGIKA_STATUS_INVALID_RULES` and, if `error` is non-null, writes a null-terminated message
+ * truncated to `error_capacity` bytes.
+ *
+ * # Safety
+ *
+ * - `source` must point to at least `len` readable bytes of UTF-8.
+ * - `error` may be NULL, or must point to at least `error_capacity` writable bytes.
+ * - `out_rules` must point to a valid, writable pointer to `MagikaRules`.
+ */
+enum MagikaStatus magika_rules_new(const char *source,
+                                   uintptr_t len,
+                                   char *error,
+                                   uintptr_t error_capacity,
+                                   struct MagikaRules **out_rules);
+
+/**
+ * Frees custom rules. Passing NULL is a safe no-op.
+ *
+ * # Safety
+ *
+ * If non-null, `rules` must have been returned by `magika_rules_new` and not previously freed.
+ */
+void magika_rules_free(struct MagikaRules *rules);
 
 /**
  * Frees a Magika runtime. Passing NULL is a safe no-op.

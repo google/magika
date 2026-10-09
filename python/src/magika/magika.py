@@ -58,6 +58,8 @@ class Magika:
         verbose: bool = False,
         debug: bool = False,
         use_colors: bool = False,
+        rules: Optional[str] = None,
+        rules_files: Optional[Sequence[Union[str, os.PathLike]]] = None,
     ) -> None:
         """Initializes the Magika instance.
 
@@ -70,6 +72,11 @@ class Magika:
             verbose: If True, enable verbose logging. Defaults to False.
             debug: If True, enable debug logging. Defaults to False.
             use_colors: If True, use colors in the logger. Defaults to False.
+            rules: Custom format rules, as YARA text, checked before the
+                built-in rules. They use the YARA subset and metadata of the
+                built-in rules. Raises ValueError if they are invalid.
+            rules_files: Paths of files holding custom rules, as an
+                alternative to `rules`.
         """
         self._log = get_logger(use_colors=use_colors)
 
@@ -92,6 +99,8 @@ class Magika:
         self._pyo3_session = _magika.Magika(
             prediction_mode=self._prediction_mode,
             follow_symlink=not self._no_dereference,
+            rules=rules,
+            rules_files=None if rules_files is None else [str(p) for p in rules_files],
         )
 
     def __repr__(self) -> str:

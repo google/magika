@@ -14,7 +14,7 @@
 
 use anyhow::Result;
 
-use crate::{Backend, Options, PredictionMode, Runtime};
+use crate::{Backend, Options, PredictionMode, Rules, Runtime};
 
 /// Configures and creates a Magika runtime.
 #[derive(Clone, Debug, Default)]
@@ -55,7 +55,13 @@ impl Builder {
         &self.options
     }
 
-    /// Configures whether to use rules.
+    /// Configures custom rules (used before the builtin rules).
+    pub fn with_custom_rules(mut self, rules: Rules) -> Self {
+        self.options.custom_rules = Some(rules);
+        self
+    }
+
+    /// Configures whether to use the (builtin) rules.
     pub fn with_rules(mut self, use_rules: bool) -> Self {
         self.options.use_rules = use_rules;
         self

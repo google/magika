@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::borrow::Borrow;
+
+use anyhow::Result;
 use ndarray::ArrayViewD;
 
-use crate::{ContentType, PredictionMode};
+use crate::{ContentType, Features, Options, Rules};
 
 /// File types.
 ///
@@ -62,6 +65,9 @@ pub enum OverwriteReason {
 
     /// The inferred content type is not canonical.
     OverwriteMap,
+
+    /// The inferred content type was vetoed by the rules.
+    RulesVeto,
 }
 
 impl FileType {
@@ -154,9 +160,11 @@ impl TypeInfo {
 }
 
 impl FileType {
-    pub(crate) fn convert(mode: PredictionMode, tensor: ArrayViewD<f32>) -> Vec<FileType> {
+    pub(crate) fn convert(
+        options: &Options, features: &[impl Borrow<Features>], tensor: ArrayViewD<f32>,
+    ) -> Result<Vec<FileType>> {
         let mut results = Vec::new();
-        for view in tensor.view().axis_iter(ndarray::Axis(0)) {
+        for (feature, view) in features.iter().zip(tensor.view().axis_iter(ndarray::Axis(0))) {
             let scores = view.to_slice().unwrap();
             let mut best = 0;
             for (i, &x) in scores.iter().enumerate() {
@@ -167,14 +175,30 @@ impl FileType {
             let score = scores[best];
             let inferred_type = crate::model::LABELS[best];
             let config = &crate::model::CONFIG;
-            let mut content_type = if mode.is_confident(score, inferred_type as usize) {
-                let overwrite = config.overwrite_map[inferred_type as usize];
+            let ml_is_confident =
+                options.prediction_mode.is_confident(score, inferred_type as usize);
+            let overwrite = config.overwrite_map[inferred_type as usize];
+            let custom_rules_veto =
+                match (&options.custom_rules, &feature.borrow().matched_custom_rules) {
+                    (Some(rules), Some((x, matched))) if rules == x => {
+                        rules.veto(matched, overwrite)
+                    }
+                    (None, None) => false,
+                    _ => anyhow::bail!("use_rules mismatch between extract and identify"),
+                };
+            let rules_veto = match (options.use_rules, &feature.borrow().matched_rules) {
+                (true, Some(matched)) => Rules::builtin().veto(matched, overwrite),
+                (false, None) => false,
+                _ => anyhow::bail!("use_rules mismatch between extract and identify"),
+            };
+            let mut content_type = if ml_is_confident && !rules_veto && !custom_rules_veto {
                 (overwrite != inferred_type).then_some((overwrite, OverwriteReason::OverwriteMap))
             } else {
+                use OverwriteReason::*;
                 let is_text = inferred_type.info().is_text;
                 Some((
                     if is_text { ContentType::Txt } else { ContentType::Unknown },
-                    OverwriteReason::LowConfidence,
+                    if ml_is_confident { RulesVeto } else { LowConfidence },
                 ))
             };
             if content_type.as_ref().is_some_and(|(x, _)| *x == inferred_type) {
@@ -182,6 +206,6 @@ impl FileType {
             }
             results.push(FileType::Inferred(InferredType { content_type, inferred_type, score }));
         }
-        results
+        Ok(results)
     }
 }

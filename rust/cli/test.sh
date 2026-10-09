@@ -53,6 +53,21 @@ info "Test symlinks"
 [ "$(magika --format=%l LICENSE)" = txt ] || error "does not follow symlinks"
 [ "$(magika --format=%l --no-dereference LICENSE)" = symlink ] || error "follows symlinks"
 
+info "Test low-confidence groups are readable on light backgrounds"
+( dir=$(mktemp -d)
+  trap "rm -rf $dir" EXIT
+  file=$dir/text.txt
+  printf 'hello, world\n' > $file
+  output=$(magika --colors $file)
+  # The "text" group falls back to the terminal palette (bright black) instead of the fixed
+  # light gray #cccccc that is invisible on light-background terminals (fixes #1243).
+  printf '%s' "$output" | grep -qF $'\033[1;90m' \
+    || error "low-confidence groups do not use the terminal palette"
+  if printf '%s' "$output" | grep -qF $'\033[1;38;2;204;204;204m'; then
+    error "low-confidence groups still use the light gray #cccccc"
+  fi
+)
+
 test_error() {
   files="$1"
   expected="$2"

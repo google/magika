@@ -570,7 +570,9 @@ def test_get_model_and_output_content_types() -> None:
     assert special_output_content_types.issubset(output_content_types_set)
     assert not special_output_content_types.issubset(model_content_types_set)
     assert ContentTypeLabel.UNDEFINED not in output_content_types_set
-    assert ContentTypeLabel.UNDEFINED not in model_content_types_set
+    # `undefined` is a possible `prediction.dl.label` (used when the model is
+    # not run), so it belongs to the model content types.
+    assert ContentTypeLabel.UNDEFINED in model_content_types_set
 
     # Spot check for popular content types
     assert {

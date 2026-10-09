@@ -147,16 +147,20 @@ impl TypeInfo {
         TypeInfo::ALL.into_iter().filter(|x| x.model_support || x.rules_support).collect()
     }
 
-    /// Returns the list of model outputs ordered by label.
+    /// Returns the list of possible model outputs ordered by label.
     ///
-    /// These are the content types the model can predict, i.e. the possible
-    /// values of the raw label reported by [`crate::FileType::Inferred`] before
-    /// the overwrite map is applied. This includes labels that the overwrite
-    /// map later rewrites (such as `randombytes` and `randomtxt`) and excludes
-    /// `undefined`, which is not a model output.
+    /// These are the possible values of `dl_label` reported by
+    /// [`crate::FileType::Inferred`] (the raw predicted label, before the
+    /// overwrite map is applied). This includes labels that the overwrite map
+    /// later rewrites (such as `randombytes` and `randomtxt`) as well as
+    /// `undefined`, which is reported when the model is not run (rules,
+    /// directories, symlinks).
     pub fn model_output() -> Vec<&'static Self> {
-        let mut outputs: Vec<&'static Self> =
-            crate::model::LABELS.into_iter().map(|x| x.info()).collect();
+        let mut outputs: Vec<&'static Self> = crate::model::LABELS
+            .into_iter()
+            .map(|x| x.info())
+            .chain(std::iter::once(crate::ContentType::Undefined.info()))
+            .collect();
         outputs.sort_unstable_by_key(|x| x.label);
         outputs
     }
@@ -167,10 +171,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn model_output_is_the_model_label_space() {
+    fn model_output_matches_possible_dl_labels() {
         let outputs = TypeInfo::model_output();
-        // One output per model label.
-        assert_eq!(outputs.len(), crate::model::LABELS.len());
+        // Every model label plus `undefined`.
+        assert_eq!(outputs.len(), crate::model::LABELS.len() + 1);
         // Ordered by label with no duplicates.
         for pair in outputs.windows(2) {
             assert!(pair[0].label < pair[1].label);
@@ -179,8 +183,8 @@ mod tests {
         // The overwrite map rewrites these, but the model still predicts them.
         assert!(labels.contains(&"randombytes"));
         assert!(labels.contains(&"randomtxt"));
-        // `undefined` is not a model output.
-        assert!(!labels.contains(&"undefined"));
+        // `undefined` is reported when the model is not run.
+        assert!(labels.contains(&"undefined"));
     }
 }
 

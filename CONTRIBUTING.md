@@ -1,8 +1,33 @@
-# How to Contribute
+# Contributing to Magika
 
-We would love to accept your patches and contributions to this project!
+## TL;DR
 
-Check [open issues labeled as "help wanted"](https://github.com/google/magika/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) as a starting point.
+- We review pull requests only for issues labeled [`help wanted`](https://github.com/google/magika/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+  and for the short always-welcome list in the contribution policy. For anything
+  else, open a concise issue first.
+- Use whatever tools you like, AI included. You own every line you submit, you
+  can explain it, and you are the one who talks to us.
+- Keep it short. One PR, one problem, a few lines of description. We read
+  everything by hand.
+- Low-effort submissions are closed without discussion. Repeat offenders are
+  blocked.
+- No claiming: the first good PR for an issue wins.
+
+## Full guidelines
+
+The complete guidelines live on the website; the Markdown sources are in this
+repository under `website-ng/src/content/docs/contributing/`.
+
+- **How to Contribute** (the policy):
+  [website](https://securityresearch.google/magika/contributing/how-to-contribute/)
+  · [source](website-ng/src/content/docs/contributing/how-to-contribute.md)
+- **Reporting Issues** (misdetections, new content types, bugs, samples):
+  [website](https://securityresearch.google/magika/contributing/reporting-issues/)
+  · [source](website-ng/src/content/docs/contributing/reporting-issues.md)
+- **Developer Guide** (tests, knowledge base updates, detection rules, bindings):
+  [website](https://securityresearch.google/magika/contributing/developer-guide/)
+  · [source](website-ng/src/content/docs/contributing/developer-guide.md)
+- **Security vulnerabilities**: see [`SECURITY.md`](SECURITY.md).
 
 ## Before you begin
 
@@ -25,100 +50,8 @@ sign a new one.
 This project follows [Google's Open Source Community
 Guidelines](https://opensource.google/conduct/).
 
-## Contribution process
-
-### Code Reviews
+### Code reviews
 
 All submissions, including submissions by project members, require review. We
 use [GitHub pull requests](https://docs.github.com/articles/about-pull-requests)
 for this purpose.
-
-## Updating the Content Types Knowledge Base
-
-Magika maintains a content types knowledge base (KB) with metadata (`mime_type`,
-`group`, `description`, `extensions`, and `is_text`) for all known content
-types. Note that the KB is a superset of the content types detected by any
-given model or ruleset; adding or editing an entry in the KB updates its
-metadata, whereas detecting a new content type requires YARA rules and/or model
-training.
-
-### 1. Edit the YAML source of truth
-
-[`assets/content_types.yaml`](assets/content_types.yaml) is the human-editable
-source of truth for the knowledge base. **Do not** edit
-[`assets/content_types_kb.min.json`](assets/content_types_kb.min.json) or any
-language-specific content type definitions by hand, as they are generated.
-
-Each entry in [`assets/content_types.yaml`](assets/content_types.yaml) looks
-like:
-
-```yaml
-"tsv":
-  mime_type: "text/tab-separated-values"
-  group: "code"
-  description: "TSV document"
-  extensions: ["tsv"]
-  is_text: true
-```
-
-When editing [`assets/content_types.yaml`](assets/content_types.yaml), follow
-these formatting rules (enforced by [`scripts/sync_kb.py`](scripts/sync_kb.py)):
-
-- **Quote all strings**: Content type names, `mime_type`, `group`,
-  `description`, and every item in `extensions` must be quoted (e.g., `"null"`,
-  `"3gp"`). Only field names and the literals `null`, `true`, and `false` are
-  unquoted. This avoids YAML implicit-typing pitfalls.
-- **Keep entries sorted**: Content types must be sorted alphabetically by name,
-  and names must match `^[a-z0-9_]+$`.
-- **Keep fields in order**: Every entry must list `mime_type`, `group`,
-  `description`, `extensions`, and `is_text` in that exact order. Use `null`
-  when `mime_type`, `group`, or `description` is unknown, and `[]` when there
-  are no known extensions.
-- **Format extensions without a leading dot**: Extensions are case-sensitive and
-  must not start with `.` (e.g., `"tsv"`, `"R"`).
-- **Do not add derived fields**: `rule_coverage` and `in_ml_model` in the JSON
-  KB are computed automatically from the YARA rulesets and model configuration.
-
-### 2. Regenerate derived files
-
-After editing [`assets/content_types.yaml`](assets/content_types.yaml), run
-`just sync-kb` (defined in the root [`justfile`](justfile)) from the repository
-root and commit all resulting changes in your pull request:
-
-```bash
-just sync-kb
-```
-
-If you do not have [`just`](https://github.com/casey/just) installed, you can
-run the underlying sync commands directly:
-
-```bash
-uv run scripts/sync_kb.py
-uv run python/scripts/sync.py python
-uv run python/scripts/sync.py js
-(cd rust && ./sync.sh)
-```
-
-What each command does:
-
-1. `uv run scripts/sync_kb.py` validates
-   [`assets/content_types.yaml`](assets/content_types.yaml), derives
-   `rule_coverage` and `in_ml_model`, and regenerates
-   [`assets/content_types_kb.min.json`](assets/content_types_kb.min.json). CI
-   verifies this with `uv run scripts/sync_kb.py --check`.
-2. `uv run python/scripts/sync.py python` regenerates the Python
-   `ContentTypeLabel` enum in
-   [`python/src/magika/types/content_type_label.py`](python/src/magika/types/content_type_label.py)
-   (only changes when content type labels are added, removed, or renamed).
-3. `uv run python/scripts/sync.py js` regenerates the TypeScript definitions in
-   [`js/src/content-type-label.ts`](js/src/content-type-label.ts) and
-   [`js/src/content-types-infos.ts`](js/src/content-types-infos.ts) (only
-   changes when content type labels or `is_text` values change).
-4. `(cd rust && ./sync.sh)` regenerates the Rust and C FFI content type
-   tables ([`rust/lib/src/content.rs`](rust/lib/src/content.rs),
-   [`rust/ffi/src/content.rs`](rust/ffi/src/content.rs), and
-   [`rust/ffi/include/magika.h`](rust/ffi/include/magika.h)) along with CLI
-   snapshot outputs for content types exposed by the Rust crate. CI verifies
-   this with `(cd rust && ./sync.sh --check)`. If you only need to regenerate
-   the Rust content type tables without running the full model/CLI sync, you can
-   run `(cd rust/gen && cargo run)`.

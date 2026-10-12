@@ -270,6 +270,14 @@ Please consult [Magika's website](https://securityresearch.google/magika) for de
 - ...
 
 
+# Contributing
+
+We review pull requests only for issues labeled `help wanted` and for a short
+list of always-welcome changes; for anything else, open a concise issue first.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
+[contribution policy](https://securityresearch.google/magika/contributing/how-to-contribute/).
+
+
 # Security Vulnerabilities
 
 Please contact us directly at magika-dev@google.com.

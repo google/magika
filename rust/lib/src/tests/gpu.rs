@@ -39,7 +39,7 @@ struct Sample {
 fn reference_decisions_match_on_every_gpu_batch() {
     let mut cpu = RawRuntime::with_max_batch(BackendRequest::Cpu, 1).unwrap().session().unwrap();
     // The reference outputs are the model's alone, so the rules neither decide nor veto.
-    let options = Options { use_rules: false, ..Options::default() };
+    let options = Options { use_builtin_rules: false, debug_mode: true, ..Options::default() };
     let mut samples = Vec::new();
     // The model's label count, taken from the CPU reference's output width.
     let mut num_labels = 0;
@@ -70,7 +70,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
             let expected = fixture.prediction.unwrap();
             match FeaturesOrRuled::extract_content(bytes.as_slice(), &options).unwrap() {
                 FeaturesOrRuled::Ruled(kind) => {
-                    assert_prediction(kind, expected, &name);
+                    assert_prediction(PredictionMode::HighConfidence, kind, expected, &name);
                 }
                 FeaturesOrRuled::Features(features) => {
                     let reference = cpu.run(&features.features, 1).unwrap();
@@ -79,7 +79,8 @@ fn reference_decisions_match_on_every_gpu_batch() {
                         &options,
                         &[&features],
                         ArrayView2::from_shape((1, num_labels), &reference).unwrap().into_dyn(),
-                    );
+                    )
+                    .unwrap();
                     let cpu_output = reference[0].info().label;
                     assert_eq!(cpu_output, expected.output, "{name}");
                     samples.push(Sample { name, features, expected, cpu_output });
@@ -111,7 +112,8 @@ fn reference_decisions_match_on_every_gpu_batch() {
                 &options,
                 &features,
                 ArrayView2::from_shape((batch, num_labels), &scores).unwrap().into_dyn(),
-            );
+            )
+            .unwrap();
             for ((sample, actual), row) in
                 rows.iter().zip(predictions).zip(scores.chunks_exact(num_labels))
             {
@@ -125,20 +127,17 @@ fn reference_decisions_match_on_every_gpu_batch() {
                     "{context}: probabilities do not sum to one"
                 );
                 assert_eq!(actual.info().label, sample.cpu_output, "{context}");
-                let FileType::Inferred(actual) = actual else {
+                let FileType::Regular { content_types, debug_info: Some(debug_info) } = actual
+                else {
+                    panic!("expected regular file with debug info: {context}")
+                };
+                let [content_type] = content_types[..] else { unreachable!() };
+                let DebugInfo::Model(model) = &*debug_info else {
                     panic!("expected inference: {context}")
                 };
-                assert_eq!(actual.content_type().info().label, sample.expected.output, "{context}");
-                let reason = match actual.content_type {
-                    None => ReferenceOverwriteReason::None,
-                    Some((_, OverwriteReason::LowConfidence)) => {
-                        ReferenceOverwriteReason::LowConfidence
-                    }
-                    Some((_, OverwriteReason::OverwriteMap)) => {
-                        ReferenceOverwriteReason::OverwriteMap
-                    }
-                    Some((_, OverwriteReason::RulesVeto)) => unreachable!(),
-                };
+                let (_, dl, reason) = model_info(PredictionMode::HighConfidence, model);
+                assert_eq!(content_type.info().label, sample.expected.output, "{context}");
+                assert_eq!(dl.info().label, sample.expected.dl, "{context}");
                 assert_eq!(reason, sample.expected.overwrite_reason, "{context}");
             }
         }

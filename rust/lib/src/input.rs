@@ -18,13 +18,13 @@ use std::path::Path;
 use anyhow::Result;
 
 use crate::config::ModelConfig;
-use crate::{ContentType, FileType, Options, Rules};
+use crate::{ContentType, DebugInfo, FileType, Options, Rules, RulesDebugInfo};
 
 /// Features to identify a file using AI.
 pub struct Features {
     pub(crate) features: Vec<i32>,
-    pub(crate) matched_custom_rules: Option<(Rules, Vec<ContentType>)>,
-    pub(crate) matched_rules: Option<Vec<ContentType>>,
+    pub(crate) use_custom_rules: Option<Rules>,
+    pub(crate) use_builtin_rules: bool,
 }
 
 /// Abstraction over file content.
@@ -112,38 +112,35 @@ impl FeaturesOrRuled {
         let config = &crate::model::CONFIG;
         let file_len = file.length()?;
         if file_len == 0 {
-            return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(ContentType::Empty)));
+            let content_types = vec![ContentType::Empty];
+            let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
+            return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
         }
         let first_block = read_first_block(config, &mut file, file_len)?;
-        let mut matched_custom_rules = None;
-        if let Some(custom_rules) = &options.custom_rules {
-            let matched = custom_rules.identify(&first_block, file_len, &mut file)?;
-            if let &[content_type] = &matched[..] {
-                return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)));
+        if let Some(custom_rules) = &options.use_custom_rules {
+            let content_types = custom_rules.identify(&first_block, file_len, &mut file)?;
+            if !content_types.is_empty() {
+                let debug_info =
+                    options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
+                return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
             }
-            matched_custom_rules = Some((custom_rules.clone(), matched));
         }
-        let mut matched_rules = None;
-        if options.use_rules {
-            let matched = Rules::builtin().identify(&first_block, file_len, &mut file)?;
-            if let &[content_type] = &matched[..] {
-                let mut custom_rules_veto = false;
-                if let Some((custom_rules, matched)) = &matched_custom_rules {
-                    custom_rules_veto = custom_rules.veto(matched, content_type);
-                }
-                if !custom_rules_veto {
-                    return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)));
-                }
+        if options.use_builtin_rules {
+            let content_types = Rules::builtin().identify(&first_block, file_len, &mut file)?;
+            if !content_types.is_empty() {
+                let debug_info = options
+                    .debug_mode
+                    .then(|| Box::new(DebugInfo::BuiltinRules(RulesDebugInfo {})));
+                return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
             }
-            matched_rules = Some(matched);
         }
         if options.use_model {
             let features = extract_features(config, file, file_len, &first_block)?;
             if features[config.min_file_size_for_dl - 1] != config.padding_token {
                 return Ok(FeaturesOrRuled::Features(Features {
                     features,
-                    matched_custom_rules,
-                    matched_rules,
+                    use_custom_rules: options.use_custom_rules.clone(),
+                    use_builtin_rules: options.use_builtin_rules,
                 }));
             }
         }
@@ -158,7 +155,9 @@ impl FeaturesOrRuled {
             // The file is UTF-8 or its first block doesn't disprove that it can't be.
             Ok(_) => ContentType::Txt,
         };
-        Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)))
+        let content_types = vec![content_type];
+        let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
+        Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }))
     }
 }
 

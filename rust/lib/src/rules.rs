@@ -48,8 +48,8 @@ impl std::fmt::Debug for Rules {
 }
 
 impl Rules {
-    /// Returns the rules bundled with Magika, compiled when `magika-rules` was built.
-    pub(crate) fn builtin() -> &'static Self {
+    /// Returns the builtin rules.
+    pub fn builtin() -> &'static Self {
         static RULES: LazyLock<Rules> =
             LazyLock::new(|| Rules(Arc::new(Compiled::new(RuleSet::bundled()).unwrap())));
         &RULES
@@ -108,9 +108,9 @@ impl Rules {
         })
     }
 
-    /// Returns whether the rules cover an unmatched content type with no false negatives.
-    pub(crate) fn veto(&self, matched: &[ContentType], content_type: ContentType) -> bool {
-        !matched.contains(&content_type) && self.0.vetos.contains(&content_type)
+    /// Returns the content types for which the rules have no false negatives.
+    pub fn vetos(&self) -> &HashSet<ContentType> {
+        &self.0.vetos
     }
 }
 
@@ -158,7 +158,7 @@ impl Compiled {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Backend, FeaturesOrRuled, FileType, Options, OverwriteReason, Runtime};
+    use crate::{Backend, FeaturesOrRuled, Options, Runtime};
 
     /// One enforced rule labeling `label` with `class`, matching when `condition` holds.
     fn rule(label: &str, class: &str, condition: &str) -> String {
@@ -174,7 +174,11 @@ mod tests {
 
     fn options(use_rules: bool, custom: Option<&str>) -> Options {
         let custom_rules = custom.map(|text| Rules::compile(text).unwrap());
-        Options { use_rules, custom_rules, ..Options::default() }
+        Options {
+            use_builtin_rules: use_rules,
+            use_custom_rules: custom_rules,
+            ..Options::default()
+        }
     }
 
     fn extract(path: &str, options: &Options) -> FeaturesOrRuled {
@@ -183,7 +187,7 @@ mod tests {
 
     fn ruled(path: &str, options: &Options) -> Option<ContentType> {
         match extract(path, options) {
-            FeaturesOrRuled::Ruled(FileType::Ruled(content_type)) => Some(content_type),
+            FeaturesOrRuled::Ruled(file_type) => file_type.content_type(),
             _ => None,
         }
     }
@@ -201,31 +205,23 @@ mod tests {
     }
 
     #[test]
-    fn custom_rules_mismatch_extract_identify() {
-        let wav = |class| {
-            let options = options(false, Some(&rule("wav", class, "$psd at 0")));
-            let FeaturesOrRuled::Features(features) = extract("wav/test.wav", &options) else {
-                unreachable!()
-            };
-            let mut runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
-            *runtime.options_mut() = options.clone();
-            runtime.session().unwrap().identify_features(&features).unwrap()
-        };
-        let FileType::Inferred(vetoed) = wav("full") else { unreachable!() };
-        assert_eq!(vetoed.inferred_type, ContentType::Wav);
-        assert!(matches!(vetoed.content_type, Some((_, OverwriteReason::RulesVeto))));
-        assert_eq!(wav("partial").content_type(), Some(ContentType::Wav));
-    }
-
-    #[test]
     fn rules_mismatch_extract_identify() {
+        let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
+        let mut session = runtime.session().unwrap();
         let FeaturesOrRuled::Features(features) = extract("wav/test.wav", &options(false, None))
         else {
             unreachable!()
         };
-        let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
-        let error = runtime.session().unwrap().identify_features(&features).unwrap_err();
-        assert_eq!(error.to_string(), "use_rules mismatch between extract and identify");
+        let error = session.identify_features(&features).unwrap_err();
+        assert_eq!(error.to_string(), "use_builtin_rules mismatch between extract and identify");
+        let custom = rule("txt", "full", "$psd at 0");
+        let FeaturesOrRuled::Features(features) =
+            extract("wav/test.wav", &options(false, Some(&custom)))
+        else {
+            unreachable!()
+        };
+        let error = session.identify_features(&features).unwrap_err();
+        assert_eq!(error.to_string(), "use_custom_rules mismatch between extract and identify");
     }
 
     #[test]

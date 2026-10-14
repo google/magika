@@ -33,8 +33,8 @@ fn main() -> Result<()> {
         .context("model name")?;
     let model_config = serde_json::from_reader(File::open("model/config.min.json")?)?;
     let content_types = filter_content_types(content_types, &model_config)?;
-    let variants = generate_lib_content(&content_types, model_name, &model_config)?;
-    generate_lib_model(&variants, model_config)?;
+    generate_lib_content(&content_types, model_name, &model_config)?;
+    generate_lib_model(model_config)?;
     generate_ffi_content(&content_types)?;
     generate_ffi_header()?;
     Ok(())
@@ -85,7 +85,7 @@ fn check_content_types(
 
 fn generate_lib_content(
     content_types: &BTreeMap<String, ContentType>, model_name: &str, model_config: &ModelConfig,
-) -> Result<Vec<String>> {
+) -> Result<()> {
     let mut output = create_generated_file("../lib/src/content.rs")?;
     writeln!(output, "use crate::file::TypeInfo;\n")?;
     writeln!(output, "/// Model name (only comparable with equality).")?;
@@ -137,7 +137,6 @@ fn generate_lib_content(
     }
     writeln!(output, "}}\n")?;
     writeln!(output, "impl ContentType {{")?;
-    writeln!(output, "    pub(crate) const SIZE: usize = {};\n", variants.len())?;
     writeln!(output, "    /// Returns a content type from its label.")?;
     writeln!(output, "    pub fn from_label(label: &str) -> Option<Self> {{")?;
     writeln!(output, "        Some(match label {{")?;
@@ -150,22 +149,21 @@ fn generate_lib_content(
     writeln!(output, "    /// Returns the content type information.")?;
     writeln!(output, "    pub fn info(self) -> &'static TypeInfo {{")?;
     writeln!(output, "        match self {{")?;
-    let variants = variants.into_iter().map(|x| x.label).collect::<Vec<_>>();
-    for label in variants.iter() {
+    for Variant { label, .. } in variants {
         writeln!(
             output,
             "            ContentType::{} => &{},",
-            enum_name(label),
-            const_name(label),
+            enum_name(&label),
+            const_name(&label),
         )?;
     }
     writeln!(output, "        }}")?;
     writeln!(output, "    }}")?;
     writeln!(output, "}}")?;
-    Ok(variants)
+    Ok(())
 }
 
-fn generate_lib_model(variants: &[String], model_config: ModelConfig) -> Result<()> {
+fn generate_lib_model(model_config: ModelConfig) -> Result<()> {
     let ModelConfig {
         beg_size,
         mid_size,
@@ -183,7 +181,6 @@ fn generate_lib_model(variants: &[String], model_config: ModelConfig) -> Result<
         version_major: _,
     } = model_config;
     let mut output = create_generated_file("../lib/src/model.rs")?;
-    writeln!(output, "use std::borrow::Cow;\n")?;
     writeln!(output, "use crate::ContentType;")?;
     writeln!(output, "use crate::config::ModelConfig;\n")?;
     writeln!(output, "pub(crate) const CONFIG: ModelConfig = ModelConfig {{")?;
@@ -195,27 +192,28 @@ fn generate_lib_model(variants: &[String], model_config: ModelConfig) -> Result<
     writeln!(output, "    min_file_size_for_dl: {min_file_size_for_dl},")?;
     writeln!(output, "    padding_token: {padding_token},")?;
     writeln!(output, "    block_size: {block_size},")?;
-    writeln!(output, "    thresholds: Cow::Borrowed(&THRESHOLDS),")?;
-    writeln!(output, "    overwrite_map: Cow::Borrowed(&OVERWRITE_MAP),")?;
     writeln!(output, "}};\n")?;
-    let mut thresholds_array = vec![medium_confidence_threshold; variants.len()];
+    let num_labels = target_labels_space.len();
+    let mut thresholds_array = vec![medium_confidence_threshold; num_labels];
     for (label, threshold) in thresholds {
-        let pos = variants.iter().position(|x| *x == label).unwrap();
+        let pos = target_labels_space.iter().position(|x| *x == label).unwrap();
         thresholds_array[pos] = threshold;
     }
     writeln!(output, "#[rustfmt::skip]")?;
-    writeln!(output, "const THRESHOLDS: [f32; ContentType::SIZE] = {thresholds_array:?};")?;
-    writeln!(output, "const OVERWRITE_MAP: [ContentType; ContentType::SIZE] = [")?;
-    let mut overwrite_array = variants.to_vec();
+    writeln!(output, "pub(crate) const THRESHOLDS: [f32; {num_labels}] = {thresholds_array:?};")?;
+    writeln!(output, "/// Content types output by the model (after overwrite).")?;
+    writeln!(output, "pub const MODEL_LABELS: [ContentType; {num_labels}] = [")?;
+    let mut overwrite_array = target_labels_space.to_vec();
     for (src, dst) in overwrite_map {
-        let pos = variants.iter().position(|x| *x == src).unwrap();
+        let pos = target_labels_space.iter().position(|x| *x == src).unwrap();
         overwrite_array[pos] = dst;
     }
     for label in overwrite_array {
         writeln!(output, "    ContentType::{},", enum_name(&label))?;
     }
     writeln!(output, "];\n")?;
-    writeln!(output, "pub(crate) const LABELS: [ContentType; {}] = [", target_labels_space.len())?;
+    writeln!(output, "/// Content types output by the model (before overwrite).")?;
+    writeln!(output, "pub const MODEL_TRAINING_LABELS: [ContentType; {num_labels}] = [")?;
     for label in &target_labels_space {
         writeln!(output, "    ContentType::{},", enum_name(label))?;
     }

@@ -32,19 +32,18 @@ int main(void) {
     }
 
     // Identify a file on disk
-    MagikaResult result;
+    const MagikaTypeInfo* result = NULL;
     if (magika_identify_file(session, "README.md", &result) == MAGIKA_STATUS_OK) {
-        printf("Label:       %s\n", result.info->label);
-        printf("MIME type:   %s\n", result.info->mime_type);
-        printf("Group:       %s\n", result.info->group);
-        printf("Description: %s\n", result.info->description);
-        printf("Score:       %.2f\n", result.score);
+        printf("Label:       %s\n", result->label);
+        printf("MIME type:   %s\n", result->mime_type);
+        printf("Group:       %s\n", result->group);
+        printf("Description: %s\n", result->description);
     }
 
     // Identify from an in-memory buffer
     const char data[] = "#!/bin/sh\necho hello\n";
     if (!magika_identify_content(session, (const uint8_t*)data, sizeof(data) - 1, &result)) {
-        printf("Buffer label: %s\n", result.info->label);
+        printf("Buffer label: %s\n", result->label);
     }
 
     // Clean up

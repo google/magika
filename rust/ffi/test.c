@@ -24,7 +24,7 @@ int main(void) {
         .backend = MAGIKA_BACKEND_CPU,
         .max_batch = 1,
         .options = {
-            .use_rules = true,
+            .use_builtin_rules = true,
             .use_model = true,
             .prediction_mode = MAGIKA_PREDICTION_MODE_HIGH_CONFIDENCE,
         },
@@ -39,11 +39,11 @@ int main(void) {
     assert(session_opt != NULL);
     const uint8_t gzip_content[] = "\x1f\x8b\x08\x00\0\0\0\0\0\x03hello, world";
     size_t gzip_len = sizeof(gzip_content) - 1;
-    MagikaResult ruled_result;
+    const MagikaTypeInfo* ruled_result = NULL;
     status_opt = magika_identify_content(session_opt, gzip_content, gzip_len, &ruled_result);
     assert(status_opt == MAGIKA_STATUS_OK);
-    assert(ruled_result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
-    assert(strcmp(ruled_result.info->label, "gzip") == 0);
+    assert(ruled_result != NULL);
+    assert(strcmp(ruled_result->label, "gzip") == 0);
     magika_session_free(session_opt);
     magika_runtime_free(runtime_opt);
 
@@ -69,14 +69,14 @@ int main(void) {
     status_opt = magika_session_new(rules_runtime, &rules_session);
     assert(status_opt == MAGIKA_STATUS_OK);
     const char* png_path = "../../tests_data/basic/png/magika_test.png";
-    MagikaResult png_result;
+    const MagikaTypeInfo* png_result = NULL;
     status_opt = magika_identify_file(rules_session, png_path, &png_result);
     assert(status_opt == MAGIKA_STATUS_OK);
-    assert(png_result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
-    assert(strcmp(png_result.info->label, "unknown") == 0);
+    assert(png_result != NULL);
+    assert(strcmp(png_result->label, "unknown") == 0);
     magika_session_free(rules_session);
     magika_runtime_free(rules_runtime);
-    rules_only.options.custom_rules = rules;
+    rules_only.options.use_custom_rules = rules;
     status_opt = magika_runtime_new(&rules_only, &rules_runtime);
     assert(status_opt == MAGIKA_STATUS_OK);
     magika_rules_free(rules);  // The runtime keeps its own reference.
@@ -84,8 +84,8 @@ int main(void) {
     assert(status_opt == MAGIKA_STATUS_OK);
     status_opt = magika_identify_file(rules_session, png_path, &png_result);
     assert(status_opt == MAGIKA_STATUS_OK);
-    assert(png_result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
-    assert(strcmp(png_result.info->label, "png") == 0);
+    assert(png_result != NULL);
+    assert(strcmp(png_result->label, "png") == 0);
     magika_session_free(rules_session);
     magika_runtime_free(rules_runtime);
     const char broken[] = "rule broken {";
@@ -112,25 +112,20 @@ int main(void) {
     assert(session != NULL);
 
     // Test identifying a known file by path
-    MagikaResult result;
+    const MagikaTypeInfo* result = NULL;
     const char* test_path = "src/lib.rs";
     status = magika_identify_file(session, test_path, &result);
     assert(status == MAGIKA_STATUS_OK);
-    assert(result.info != NULL);
-    assert(strcmp(result.info->label, "rust") == 0);
-    assert(strcmp(result.info->mime_type, "application/x-rust") == 0);
-    assert(strcmp(result.info->group, "code") == 0);
-    assert(result.info->is_text == true);
-    assert(result.score > 0.5f);
-    assert(result.kind == MAGIKA_FILE_TYPE_KIND_INFERRED);
-    assert(result.inferred_info != NULL);
-    assert(strcmp(result.inferred_info->label, "rust") == 0);
-    assert(result.overwrite_reason == MAGIKA_OVERWRITE_REASON_NONE);
+    assert(result != NULL);
+    assert(strcmp(result->label, "rust") == 0);
+    assert(strcmp(result->mime_type, "application/x-rust") == 0);
+    assert(strcmp(result->group, "code") == 0);
+    assert(result->is_text == true);
 
     // Test extensions list
-    assert(result.info->extensions != NULL);
+    assert(result->extensions != NULL);
     bool found_rs_ext = false;
-    for (const char* const* ext = result.info->extensions; *ext != NULL; ++ext) {
+    for (const char* const* ext = result->extensions; *ext != NULL; ++ext) {
         if (strcmp(*ext, "rs") == 0) {
             found_rs_ext = true;
         }
@@ -143,14 +138,14 @@ int main(void) {
     size_t data_len = strlen(shell_content);
     status = magika_identify_content(session, data_ptr, data_len, &result);
     assert(status == MAGIKA_STATUS_OK);
-    assert(result.info != NULL);
-    assert(strcmp(result.info->label, "shell") == 0);
+    assert(result != NULL);
+    assert(strcmp(result->label, "shell") == 0);
 
     // Test identifying empty content
     status = magika_identify_content(session, NULL, 0, &result);
     assert(status == MAGIKA_STATUS_OK);
-    assert(result.info != NULL);
-    assert(strcmp(result.info->label, "empty") == 0);
+    assert(result != NULL);
+    assert(strcmp(result->label, "empty") == 0);
 
     // Test error on non-existent file
     const char* nonexistent_path = "this_file_does_not_exist_12345.xyz";
@@ -177,13 +172,11 @@ int main(void) {
     assert(feat_file != NULL);
 
     // Test single feature identification
-    MagikaResult feat_result;
+    const MagikaTypeInfo* feat_result = NULL;
     status = magika_identify_features(session, feat_file, &feat_result);
     assert(status == MAGIKA_STATUS_OK);
-    assert(feat_result.info != NULL);
-    assert(strcmp(feat_result.info->label, "rust") == 0);
-    assert(feat_result.kind == MAGIKA_FILE_TYPE_KIND_INFERRED);
-    assert(feat_result.score > 0.5f);
+    assert(feat_result != NULL);
+    assert(strcmp(feat_result->label, "rust") == 0);
 
     // Test feature extraction from memory content
     MagikaFeatures* feat_content = NULL;
@@ -193,13 +186,13 @@ int main(void) {
 
     // Test batch feature identification
     const MagikaFeatures* batch[2] = { feat_file, feat_content };
-    MagikaResult batch_results[2];
+    const MagikaTypeInfo* batch_results[2] = { NULL, NULL };
     status = magika_identify_features_batch(session, batch, 2, batch_results);
     assert(status == MAGIKA_STATUS_OK);
-    assert(batch_results[0].info != NULL);
-    assert(strcmp(batch_results[0].info->label, "rust") == 0);
-    assert(batch_results[1].info != NULL);
-    assert(strcmp(batch_results[1].info->label, "shell") == 0);
+    assert(batch_results[0] != NULL);
+    assert(strcmp(batch_results[0]->label, "rust") == 0);
+    assert(batch_results[1] != NULL);
+    assert(strcmp(batch_results[1]->label, "shell") == 0);
 
     // Test batch with count == 0
     status = magika_identify_features_batch(NULL, NULL, 0, NULL);
@@ -210,9 +203,8 @@ int main(void) {
     status = magika_features_extract_content(NULL, 0, NULL, &empty_feat, &result);
     assert(status == MAGIKA_STATUS_OK);
     assert(empty_feat == NULL);
-    assert(result.info != NULL);
-    assert(strcmp(result.info->label, "empty") == 0);
-    assert(result.kind == MAGIKA_FILE_TYPE_KIND_RULED);
+    assert(result != NULL);
+    assert(strcmp(result->label, "empty") == 0);
 
     // Test error on extracting features from non-existent file
     MagikaFeatures* missing_feat = NULL;

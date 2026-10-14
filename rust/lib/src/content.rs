@@ -4244,8 +4244,6 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 298;
-
     /// Returns a content type from its label.
     pub fn from_label(label: &str) -> Option<Self> {
         Some(match label {

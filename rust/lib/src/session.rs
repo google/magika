@@ -18,7 +18,9 @@ use std::path::Path;
 use anyhow::Result;
 use ndarray::ArrayView2;
 
-use crate::{BackendInfo, Features, FeaturesOrRuled, FileType, Input, Options, Runtime};
+use crate::{
+    BackendInfo, Features, FeaturesOrRuled, FileType, Input, MODEL_LABELS, Options, Runtime,
+};
 
 /// A Magika session to identify files.
 pub struct Session {
@@ -91,7 +93,7 @@ impl Session {
             input.extend_from_slice(&feature.borrow().features);
         }
         let output = self.inner.run(&input, features.len())?;
-        let output = ArrayView2::from_shape((features.len(), crate::model::LABELS.len()), &output)?;
+        let output = ArrayView2::from_shape((features.len(), MODEL_LABELS.len()), &output)?;
         FileType::convert(&self.options, features, output.into_dyn())
     }
 }

@@ -134,7 +134,7 @@
 @layer base, starlight, theme, components, utilities;
 
 /* Show lists correctly */
-.sl-markdown-content :is(ul, ol):not(:where(.not-content *)) {
+.sl-markdown-content :is(ul, ol):not(:where(.not-content, .not-content *)) {
   list-style: revert;
   padding-inline-start: 1.25rem;
 }

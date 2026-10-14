@@ -11,6 +11,9 @@
 
 # Julien still owns the Rust docs
 /rust/**/*.md @ia0
+# Yanick owns generated Rust files from knowledge base
+/rust/lib/src/content.rs @reyammer
+/rust/ffi/src/content.rs @reyammer
 
 # Luca owns the JS code, docs, and website
 /js/ @invernizzi

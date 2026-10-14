@@ -23,7 +23,7 @@ use anyhow::{ensure, Result};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
-    self, Backend, ContentType, Features, FeaturesOrRuled, FileType, InferredType, OverwriteReason,
+    self, Backend, ContentType, Features, FeaturesOrRuled, FileType, PredictionMode, Rules,
     Runtime, TypeInfo,
 };
 use serde::Serialize;
@@ -130,7 +130,7 @@ struct Format {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 enum RulesMode {
-    /// Identifies files with the model only.
+    /// Identifies files with the model only, after any custom rules.
     Off,
     /// Identifies files with rules first, and with the model when no rule decides.
     #[default]
@@ -147,6 +147,16 @@ struct Experimental {
     /// rule agrees.
     #[arg(hide = true, long, value_enum, default_value_t)]
     rules: RulesMode,
+
+    /// Identifies files with the rules of this file before the built-in rules (can be repeated).
+    ///
+    /// Rules use the YARA subset and metadata of the built-in rules, and apply whatever --rules is.
+    #[arg(hide = true, long, value_name = "PATH")]
+    rules_file: Vec<PathBuf>,
+
+    /// Checks the rules of --rules-file, prints the content types they identify, and exits.
+    #[arg(hide = true, long, requires = "rules_file")]
+    rules_check: bool,
 
     /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
@@ -252,6 +262,17 @@ impl Stage {
     }
 }
 
+impl Flags {
+    fn debug_mode(&self) -> bool {
+        // We could try to optimize this and return false when possible.
+        true
+    }
+
+    fn prediction_mode(&self) -> PredictionMode {
+        PredictionMode::HighConfidence
+    }
+}
+
 /// Inference threads it takes to keep a GPU queued.
 ///
 /// The device is the bottleneck there, and it is already busy well before the host runs out of
@@ -304,12 +325,22 @@ fn main() -> Result<()> {
     let rules_only = flags.experimental.rules == RulesMode::Only;
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
-    builder = match flags.experimental.rules {
-        RulesMode::Off => builder.with_rules(false),
-        RulesMode::Enforce => builder,
-        RulesMode::Only => builder.with_model(false),
-    };
-    builder = builder.with_follow_symlink(!flags.no_dereference);
+    builder.options.debug_mode = flags.debug_mode();
+    builder.options.prediction_mode = flags.prediction_mode();
+    match flags.experimental.rules {
+        RulesMode::Off => builder.options.use_builtin_rules = false,
+        RulesMode::Enforce => (),
+        RulesMode::Only => builder.options.use_model = false,
+    }
+    if !flags.experimental.rules_file.is_empty() {
+        let rules = Rules::from_files(&flags.experimental.rules_file)?;
+        if flags.experimental.rules_check {
+            println!("{rules:?}");
+            return Ok(());
+        }
+        builder.options.use_custom_rules = Some(rules);
+    }
+    builder.options.follow_symlink = !flags.no_dereference;
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
@@ -324,7 +355,7 @@ fn main() -> Result<()> {
         println!("{backend} ({})", info.implementation());
         return Ok(());
     }
-    let options = builder.options().clone();
+    let options = builder.options.clone();
     // Queues are sized before knowing which backend identifies the files, so for the busiest.
     let threads = flags.experimental.threads.unwrap_or_else(|| {
         default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
@@ -710,7 +741,8 @@ fn infer_batches(
             Some(session) => session,
             slot => slot.insert(runtime.session()?),
         };
-        let results = magika.identify_features_batch(batch.iter().map(|x| &x.features))?;
+        let features = batch.iter().map(|x| &x.features).collect::<Vec<_>>();
+        let results = magika.identify_features_batch(&features)?;
         debug_assert_eq!(results.len(), batch.len());
         for (item, output) in batch.into_iter().zip(results) {
             let result = Ok(output);
@@ -823,12 +855,7 @@ impl Response {
                     Some('s') => write!(&mut result, "{:.2}", self.score())?,
                     Some('S') => write!(&mut result, "{}%", (100. * self.score()).trunc())?,
                     Some('b') => {
-                        if let Ok(FileType::Inferred(InferredType {
-                            content_type: Some((_, OverwriteReason::LowConfidence)),
-                            inferred_type,
-                            score,
-                        })) = &self.result
-                        {
+                        if let Some((inferred_type, score)) = self.best_guess(flags) {
                             write!(
                                 &mut result,
                                 " [Low-confidence model best-guess: {} ({}), score={:.3}]",
@@ -848,16 +875,26 @@ impl Response {
         Ok(self.color(result.into()))
     }
 
+    // Returns the best guess if low confidence.
+    fn best_guess(&self, flags: &Flags) -> Option<(ContentType, f32)> {
+        let result = self.result.as_ref().ok()?;
+        let (label, score) = result.best_model_guess()?;
+        if flags.prediction_mode().is_confident(score, label) {
+            return None;
+        }
+        Some((magika::MODEL_TRAINING_LABELS[label], score))
+    }
+
     fn json(self) -> Result<serde_json::Value> {
         let path = self.path.to_string_lossy();
         let result = match self.result {
             Ok(x) => {
-                let dl = match &x {
-                    FileType::Inferred(x) => x.inferred_type.info(),
-                    _ => ContentType::Undefined.info(),
+                let (score, dl) = match x.best_model_guess() {
+                    Some((label, score)) => (score, magika::MODEL_TRAINING_LABELS[label].info()),
+                    None => (1.0, ContentType::Undefined.info()),
                 };
                 let output = x.info();
-                let score = (x.score() * 1000.).trunc() / 1000.;
+                let score = (score * 1000.).trunc() / 1000.;
                 let value = serde_json::to_value(JsonResult { dl, output, score })?;
                 serde_json::json!({ "status": "ok", "value": value })
             }
@@ -904,7 +941,7 @@ impl Response {
     fn score(&self) -> f32 {
         match &self.result {
             Err(_) => 1.0,
-            Ok(x) => x.score(),
+            Ok(x) => x.best_model_guess().map_or(1.0, |x| x.1),
         }
     }
 

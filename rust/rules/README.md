@@ -18,8 +18,11 @@ let rules = RuleSet::bundled();
 let bytes = std::fs::read("example.png")?;
 let prefix = &bytes[..bytes.len().min(magika_rules::PREFIX_LIMIT)];
 match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
-    Outcome::Match(i) => println!("{}", rules.labels()[i]),
-    Outcome::NoMatch | Outcome::Conflict | Outcome::InsufficientInput => {}
+    Outcome::Match(labels) => match &labels[..] {
+        [i] => println!("{}", rules.labels()[*i]),
+        _ => {}
+    },
+    Outcome::InsufficientInput => {}
 }
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
@@ -57,6 +60,16 @@ Every non-private rule is checked when a source is parsed:
   `partial` enforced partial rules, `notworking` unenforced `class = "not-working"` rules.
 
 Metadata records the author's evidence; the crate cannot verify it.
+
+## Custom rules
+
+Magika checks custom rules before these ones: `magika::Rules::compile` in the library,
+`--rules-file` (and `--rules-check` to validate a file) in the CLI, `Magika(rules=...)` in Python,
+and `magika_rules_new` in C. They use the same YARA subset and metadata, except that their
+directory is not checked, and their labels must be Magika content types. Custom rules identify a
+file when the ones that match agree; otherwise these rules, then the model, decide as usual. When
+every enforced rule of a content type has `class = "full"`, a model prediction of it is vetoed if
+none of them matched. `tests_data/rules/custom.yar` is a small example.
 
 ## Supported YARA
 

@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::borrow::Borrow;
+
+use anyhow::{Result, ensure};
 use ndarray::ArrayViewD;
 
-use crate::{ContentType, PredictionMode};
+use crate::{ContentType, Features, MODEL_LABELS, Options, Rules};
 
 /// File types.
 ///
 /// The word file is used in the Linux sense where everything is a file. This could be equivalently
 /// understood as a path.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum FileType {
     /// The file is a directory.
     Directory,
@@ -28,86 +32,101 @@ pub enum FileType {
     /// The file is a symbolic link.
     Symlink,
 
-    /// The file is a regular file and was identified using AI.
-    Inferred(InferredType),
+    /// The file is a regular file.
+    Regular {
+        /// The content types of the file.
+        ///
+        /// This list is a non-empty set (there is at least one element and all elements are
+        /// distinct) and its first element is the main content type.
+        content_types: Vec<ContentType>,
 
-    /// The file is a regular file and was identified using rules.
-    Ruled(ContentType),
+        /// Debugging information about the identification.
+        ///
+        /// Only present when debugging is enabled. Note that debugging is not covered by SemVer.
+        debug_info: Option<Box<DebugInfo>>,
+    },
 
-    /// The file is neither a directory, a symbolic link, nor a regular file.
+    #[doc(hidden)]
     Unsupported,
 }
 
-/// Content type identified using AI.
+/// Debugging information about the identification.
+///
+/// Note that debugging is not covered by SemVer.
 #[derive(Debug, Clone)]
-pub struct InferredType {
-    /// The content type.
+pub enum DebugInfo {
+    /// The custom rules triggered.
+    CustomRules(RulesDebugInfo),
+
+    /// The builtin rules triggered.
+    BuiltinRules(RulesDebugInfo),
+
+    /// The rules did not trigger and the model was skipped.
     ///
-    /// The inferred content type may be overwritten for a variety of reasons. Use
-    /// [`Self::content_type()`] to access the final content type (after possible overwrite).
-    pub content_type: Option<(ContentType, OverwriteReason)>,
+    /// This happens when the file has little content.
+    Heuristic,
 
-    /// The inferred content type.
-    pub inferred_type: ContentType,
-
-    /// The inference score between 0 and 1.
-    pub score: f32,
+    /// The model triggered.
+    Model(ModelDebugInfo),
 }
 
-/// Reason to overwrite an inferred content type.
+/// Debugging information from the rules.
 #[derive(Debug, Clone)]
-pub enum OverwriteReason {
-    /// The inference score is too low for the inferred content type.
-    LowConfidence,
+pub struct RulesDebugInfo {
+    // TODO: Expose debugging information from magika-rules.
+}
 
-    /// The inferred content type is not canonical.
-    OverwriteMap,
+/// Debugging information from the model.
+#[derive(Debug, Clone)]
+pub struct ModelDebugInfo {
+    /// The map from content type to model confidence for that type.
+    ///
+    /// This list has the same length as [`MODEL_LABELS`] and is in one-to-one correspondance.
+    pub output: Vec<f32>,
 }
 
 impl FileType {
-    /// Returns the content type for regular files.
+    /// Returns the main content type for regular files.
     pub fn content_type(&self) -> Option<ContentType> {
         match self {
             FileType::Directory => None,
             FileType::Symlink => None,
-            FileType::Inferred(x) => Some(x.content_type()),
-            FileType::Ruled(x) => Some(*x),
+            FileType::Regular { content_types, .. } => Some(content_types[0]),
             FileType::Unsupported => None,
         }
     }
 
-    /// Returns the file type information.
+    /// Returns the content types of the file.
+    ///
+    /// This is empty for non-regular files and non-empty for regular files.
+    pub fn content_types(&self) -> &[ContentType] {
+        match self {
+            FileType::Directory => &[],
+            FileType::Symlink => &[],
+            FileType::Regular { content_types, .. } => content_types,
+            FileType::Unsupported => &[],
+        }
+    }
+
+    /// Returns the file type information of the main content type.
     pub fn info(&self) -> &'static TypeInfo {
         match self {
             FileType::Directory => &crate::content::DIRECTORY,
             FileType::Symlink => &crate::content::SYMLINK,
-            FileType::Inferred(x) => x.content_type().info(),
-            FileType::Ruled(x) => x.info(),
+            FileType::Regular { content_types, .. } => content_types[0].info(),
             FileType::Unsupported => &crate::content::UNSUPPORTED,
         }
     }
 
-    /// Returns the score of the identification, between 0 and 1.
+    /// Returns the best model guess.
     ///
-    /// If the model was run, this is the model score. Otherwise this is 1.
-    pub fn score(&self) -> f32 {
-        match self {
-            FileType::Directory => 1.0,
-            FileType::Symlink => 1.0,
-            FileType::Inferred(x) => x.score,
-            FileType::Ruled(_) => 1.0,
-            FileType::Unsupported => 1.0,
-        }
-    }
-}
-
-impl InferredType {
-    /// Returns the content type.
-    pub fn content_type(&self) -> ContentType {
-        match self.content_type {
-            Some((x, _)) => x,
-            None => self.inferred_type,
-        }
+    /// If debugging was enabled and the model triggered, returns the label index and score of the
+    /// best model guess.
+    pub fn best_model_guess(&self) -> Option<(usize, f32)> {
+        let FileType::Regular { debug_info: Some(x), .. } = self else { return None };
+        let DebugInfo::Model(x) = &**x else { return None };
+        let best = best_index(&x.output);
+        Some((best, x.output[best]))
     }
 }
 
@@ -154,34 +173,52 @@ impl TypeInfo {
 }
 
 impl FileType {
-    pub(crate) fn convert(mode: PredictionMode, tensor: ArrayViewD<f32>) -> Vec<FileType> {
+    pub(crate) fn convert(
+        options: &Options, features: &[impl Borrow<Features>], tensor: ArrayViewD<f32>,
+    ) -> Result<Vec<FileType>> {
         let mut results = Vec::new();
-        for view in tensor.view().axis_iter(ndarray::Axis(0)) {
+        for (feature, view) in features.iter().zip(tensor.view().axis_iter(ndarray::Axis(0))) {
             let scores = view.to_slice().unwrap();
-            let mut best = 0;
-            for (i, &x) in scores.iter().enumerate() {
-                if scores[best].max(x) == x {
-                    best = i;
-                }
-            }
+            let best = best_index(scores);
             let score = scores[best];
-            let inferred_type = crate::model::LABELS[best];
-            let config = &crate::model::CONFIG;
-            let mut content_type = if mode.is_confident(score, inferred_type as usize) {
-                let overwrite = config.overwrite_map[inferred_type as usize];
-                (overwrite != inferred_type).then_some((overwrite, OverwriteReason::OverwriteMap))
+            let overwrite = MODEL_LABELS[best];
+            let ml_is_confident = options.prediction_mode.is_confident(score, best);
+            ensure!(
+                options.use_custom_rules == feature.borrow().use_custom_rules,
+                "use_custom_rules mismatch between extract and identify"
+            );
+            let custom_rules_veto =
+                options.use_custom_rules.as_ref().is_some_and(|x| x.vetos().contains(&overwrite));
+            ensure!(
+                options.use_builtin_rules == feature.borrow().use_builtin_rules,
+                "use_builtin_rules mismatch between extract and identify"
+            );
+            let builtin_rules_veto =
+                options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
+            let rules_veto = custom_rules_veto || builtin_rules_veto;
+            let debug_info = options
+                .debug_mode
+                .then(|| Box::new(DebugInfo::Model(ModelDebugInfo { output: scores.to_vec() })));
+            let content_type = if ml_is_confident && !rules_veto {
+                overwrite
+            } else if overwrite.info().is_text {
+                ContentType::Txt
             } else {
-                let is_text = inferred_type.info().is_text;
-                Some((
-                    if is_text { ContentType::Txt } else { ContentType::Unknown },
-                    OverwriteReason::LowConfidence,
-                ))
+                ContentType::Unknown
             };
-            if content_type.as_ref().is_some_and(|(x, _)| *x == inferred_type) {
-                content_type = None;
-            }
-            results.push(FileType::Inferred(InferredType { content_type, inferred_type, score }));
+            let content_types = vec![content_type];
+            results.push(FileType::Regular { content_types, debug_info });
         }
-        results
+        Ok(results)
     }
+}
+
+pub(crate) fn best_index(scores: &[f32]) -> usize {
+    let mut best = 0;
+    for (i, &x) in scores.iter().enumerate() {
+        if scores[best].max(x) == x {
+            best = i;
+        }
+    }
+    best
 }

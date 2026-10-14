@@ -18,10 +18,14 @@ use std::path::Path;
 use anyhow::Result;
 
 use crate::config::ModelConfig;
-use crate::{ContentType, FileType, Options};
+use crate::{ContentType, DebugInfo, FileType, Options, Rules, RulesDebugInfo};
 
 /// Features to identify a file using AI.
-pub struct Features(pub(crate) Vec<i32>);
+pub struct Features {
+    pub(crate) features: Vec<i32>,
+    pub(crate) use_custom_rules: Option<Rules>,
+    pub(crate) use_builtin_rules: bool,
+}
 
 /// Abstraction over file content.
 pub trait Input {
@@ -108,18 +112,36 @@ impl FeaturesOrRuled {
         let config = &crate::model::CONFIG;
         let file_len = file.length()?;
         if file_len == 0 {
-            return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(ContentType::Empty)));
+            let content_types = vec![ContentType::Empty];
+            let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
+            return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
         }
         let first_block = read_first_block(config, &mut file, file_len)?;
-        if options.use_rules {
-            if let Some(content_type) = crate::rules::Rules::identify(&first_block, file_len) {
-                return Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)));
+        if let Some(custom_rules) = &options.use_custom_rules {
+            let content_types = custom_rules.identify(&first_block, file_len, &mut file)?;
+            if !content_types.is_empty() {
+                let debug_info =
+                    options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
+                return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
+            }
+        }
+        if options.use_builtin_rules {
+            let content_types = Rules::builtin().identify(&first_block, file_len, &mut file)?;
+            if !content_types.is_empty() {
+                let debug_info = options
+                    .debug_mode
+                    .then(|| Box::new(DebugInfo::BuiltinRules(RulesDebugInfo {})));
+                return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
             }
         }
         if options.use_model {
             let features = extract_features(config, file, file_len, &first_block)?;
             if features[config.min_file_size_for_dl - 1] != config.padding_token {
-                return Ok(FeaturesOrRuled::Features(Features(features)));
+                return Ok(FeaturesOrRuled::Features(Features {
+                    features,
+                    use_custom_rules: options.use_custom_rules.clone(),
+                    use_builtin_rules: options.use_builtin_rules,
+                }));
             }
         }
         debug_assert!(first_block.len() <= config.block_size);
@@ -133,7 +155,9 @@ impl FeaturesOrRuled {
             // The file is UTF-8 or its first block doesn't disprove that it can't be.
             Ok(_) => ContentType::Txt,
         };
-        Ok(FeaturesOrRuled::Ruled(FileType::Ruled(content_type)))
+        let content_types = vec![content_type];
+        let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
+        Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }))
     }
 }
 

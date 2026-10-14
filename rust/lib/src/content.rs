@@ -3642,7 +3642,7 @@ impl TypeInfo {
 }
 
 /// Content types for regular files.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ContentType {
     /// 3D studio Max
@@ -4244,8 +4244,6 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 298;
-
     /// Returns a content type from its label.
     pub fn from_label(label: &str) -> Option<Self> {
         Some(match label {

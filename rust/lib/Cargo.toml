@@ -2,7 +2,7 @@
 name = "magika"
 version = "2.0.0-dev"
 license = "Apache-2.0"
-edition = "2021"
+edition = "2024"
 description = "Determines file content types using AI"
 repository = "https://github.com/google/magika"
 homepage = "https://securityresearch.google/magika"

@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::Rules;
+
 /// Configuration options for identification.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Options {
-    /// Identifies using rules (before inference).
-    pub use_rules: bool,
+    /// Identifies using custom rules (before builtin rules).
+    pub use_custom_rules: Option<Rules>,
+    /// Identifies using builtin rules (before inference).
+    pub use_builtin_rules: bool,
     /// Identifies using inference (after rules).
     pub use_model: bool,
     /// Configures the minimum confidence level for inference.
     pub prediction_mode: PredictionMode,
     /// Whether to follow symlinks.
     pub follow_symlink: bool,
+    /// Whether to output debugging information.
+    pub debug_mode: bool,
 }
 
 /// Minimum confidence level for inference.
@@ -40,19 +46,22 @@ pub enum PredictionMode {
 impl Default for Options {
     fn default() -> Self {
         Self {
-            use_rules: true,
+            use_custom_rules: None,
+            use_builtin_rules: true,
             use_model: true,
             prediction_mode: PredictionMode::HighConfidence,
             follow_symlink: true,
+            debug_mode: false,
         }
     }
 }
 
 impl PredictionMode {
-    pub(crate) fn is_confident(self, score: f32, label: usize) -> bool {
+    /// Returns whether the model is confident.
+    pub fn is_confident(self, score: f32, label: usize) -> bool {
         let config = &crate::model::CONFIG;
         match self {
-            PredictionMode::HighConfidence => config.thresholds[label] <= score,
+            PredictionMode::HighConfidence => crate::model::THRESHOLDS[label] <= score,
             PredictionMode::MediumConfidence => config.medium_confidence_threshold <= score,
             PredictionMode::BestGuess => true,
         }

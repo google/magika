@@ -71,9 +71,8 @@ fn labels(rules: &RuleSet, held: &[u8], size: u64) -> Vec<String> {
         tail = (start < held.len()).then(|| &held[start..]);
     }
     match rules.scan(Input { prefix, size, tail }) {
-        Outcome::Match(i) => vec![rules.labels()[i].clone()],
-        Outcome::Conflict => vec!["<conflict>".to_string()],
-        Outcome::NoMatch | Outcome::InsufficientInput => Vec::new(),
+        Outcome::Match(labels) => labels.into_iter().map(|i| rules.labels()[i].clone()).collect(),
+        Outcome::InsufficientInput => Vec::new(),
     }
 }
 
@@ -120,9 +119,7 @@ fn recorded_signature_regressions_hold() {
                             .collect();
                         actual == expected
                     }
-                    (None, Some(absent)) => {
-                        !actual.iter().any(|l| l == absent.as_str().unwrap() || l == "<conflict>")
-                    }
+                    (None, Some(absent)) => !actual.iter().any(|l| l == absent.as_str().unwrap()),
                     _ => panic!("{test}[{index}]: malformed expectation"),
                 };
                 checked += 1;
@@ -155,7 +152,8 @@ fn no_rule_decides_from_fewer_than_eight_bytes() {
             let outcome =
                 rules.scan(Input { prefix: &bytes[..length], size: length as u64, tail: None });
             assert!(
-                matches!(outcome, Outcome::NoMatch | Outcome::InsufficientInput),
+                matches!(&outcome, Outcome::Match(labels) if labels.is_empty())
+                    || outcome == Outcome::InsufficientInput,
                 "{} decided from {length} bytes: {outcome:?}",
                 path.display()
             );

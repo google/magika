@@ -45,7 +45,7 @@ fn compile_and_scan_stay_within_budget() {
     let t = Instant::now();
     let n = 20_000;
     for _ in 0..n {
-        assert_eq!(black_box(rules.scan(black_box(input))), Outcome::NoMatch);
+        assert_eq!(black_box(rules.scan(black_box(input))), Outcome::Match(Vec::new()));
     }
     let per_scan = t.elapsed() / n;
 

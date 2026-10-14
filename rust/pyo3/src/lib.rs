@@ -16,8 +16,8 @@ use std::cell::RefCell;
 use std::sync::OnceLock;
 
 use magika::{
-    ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
-    Runtime, Session, TypeInfo, MODEL_NAME,
+    ContentType, Features, FeaturesOrRuled, FileType, Options, PredictionMode, Rules, Runtime,
+    Session, TypeInfo, MODEL_LABELS, MODEL_NAME, MODEL_TRAINING_LABELS,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -102,22 +102,29 @@ impl PyMagikaResult {
     }
 }
 
-fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult {
+fn from_file_type(file_type: &FileType, options: &Options, path: Option<String>) -> PyMagikaResult {
     let info = file_type.info();
-    let score = file_type.score();
-    let (dl_label, overwrite_reason) = match file_type {
-        FileType::Inferred(inferred) => {
-            let dl = inferred.inferred_type.info().label.to_string();
-            let reason = match inferred.content_type {
-                None => "none",
-                Some((_, OverwriteReason::LowConfidence)) => "low_confidence",
-                Some((_, OverwriteReason::OverwriteMap)) => "overwrite_map",
+    let (score, dl_label, overwrite_reason) = match file_type.best_model_guess() {
+        Some((best, score)) => {
+            let dl = MODEL_TRAINING_LABELS[best];
+            let overwrite = MODEL_LABELS[best];
+            let output = file_type.content_type().unwrap();
+            let custom_veto =
+                options.use_custom_rules.as_ref().is_some_and(|x| x.vetos().contains(&overwrite));
+            let builtin_veto =
+                options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
+            let reason = if output == dl {
+                "none"
+            } else if !options.prediction_mode.is_confident(score, best) {
+                "low_confidence"
+            } else if custom_veto || builtin_veto {
+                "rules_veto"
+            } else {
+                "overwrite_map"
             };
-            (dl, reason.to_string())
+            (score, dl.info().label.to_string(), reason.to_string())
         }
-        FileType::Ruled(_) | FileType::Directory | FileType::Symlink | FileType::Unsupported => {
-            (ContentType::Undefined.info().label.to_string(), "none".to_string())
-        }
+        None => (1.0, ContentType::Undefined.info().label.to_string(), "none".to_string()),
     };
 
     PyMagikaResult {
@@ -165,9 +172,11 @@ enum PathDisposition {
 
 fn extract_path_disposition(path_str: &str, options: &Options) -> anyhow::Result<PathDisposition> {
     match FeaturesOrRuled::extract_file(path_str, options) {
-        Ok(FeaturesOrRuled::Ruled(file_type)) => {
-            Ok(PathDisposition::Immediate(from_file_type(&file_type, Some(path_str.to_string()))))
-        }
+        Ok(FeaturesOrRuled::Ruled(file_type)) => Ok(PathDisposition::Immediate(from_file_type(
+            &file_type,
+            options,
+            Some(path_str.to_string()),
+        ))),
         Ok(FeaturesOrRuled::Features(features)) => Ok(PathDisposition::Features(features)),
         Err(e) => {
             if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
@@ -218,10 +227,22 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true))]
+    #[pyo3(signature = (use_builtin_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
     fn new(
-        use_rules: bool, use_model: bool, prediction_mode: &str, follow_symlink: bool,
+        use_builtin_rules: bool, use_model: bool, prediction_mode: &str, follow_symlink: bool,
+        rules: Option<&str>, rules_files: Option<Vec<std::path::PathBuf>>,
     ) -> PyResult<Self> {
+        let custom_rules = match (rules, rules_files) {
+            (None, None) => None,
+            (Some(text), None) => Some(Rules::compile(text)),
+            (None, Some(paths)) => Some(Rules::from_files(paths)),
+            (Some(_), Some(_)) => {
+                return Err(PyValueError::new_err("Pass either rules or rules_files, not both"));
+            }
+        };
+        let custom_rules = custom_rules
+            .transpose()
+            .map_err(|e| PyValueError::new_err(format!("Invalid custom rules: {e:#}")))?;
         let prediction_mode = match prediction_mode {
             "high_confidence" => PredictionMode::HighConfidence,
             "medium_confidence" => PredictionMode::MediumConfidence,
@@ -236,17 +257,19 @@ impl PyMagika {
             PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e}"))
         })?;
         let mut options = Options::default();
-        options.use_rules = use_rules;
+        options.use_custom_rules = custom_rules;
+        options.use_builtin_rules = use_builtin_rules;
         options.use_model = use_model;
         options.prediction_mode = prediction_mode;
         options.follow_symlink = follow_symlink;
+        options.debug_mode = true;
         Ok(Self { options })
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
         let result = py.detach(|| self.with_session(|session| session.identify_content(data)));
         match result {
-            Ok(file_type) => Ok(from_file_type(&file_type, None)),
+            Ok(file_type) => Ok(from_file_type(&file_type, &self.options, None)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }
@@ -259,7 +282,7 @@ impl PyMagika {
                 PathDisposition::Features(features) => {
                     let file_type =
                         self.with_session(|session| session.identify_features(&features))?;
-                    Ok(from_file_type(&file_type, Some(path.to_string())))
+                    Ok(from_file_type(&file_type, &options, Some(path.to_string())))
                 }
             });
         match result {
@@ -309,7 +332,7 @@ impl PyMagika {
                     self.with_session(|session| session.identify_features_batch(&batch_features))?;
                 for (slot_idx, file_type) in batch_indices.into_iter().zip(inferred_types) {
                     slots[slot_idx] =
-                        Some(from_file_type(&file_type, Some(paths[slot_idx].clone())));
+                        Some(from_file_type(&file_type, &options, Some(paths[slot_idx].clone())));
                 }
             }
 

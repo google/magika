@@ -10,6 +10,7 @@ should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
 ## [Unreleased]
+- Add the `rules` and `rules_files` arguments of `Magika` to identify with custom format rules before the built-in rules.
 - Replace the pure-Python ONNX Runtime implementation with native Rust bindings (`magika` crate via PyO3), removing all runtime Python dependencies (`onnxruntime`, `click`, `numpy`) while maintaining public API compatibility.
 - Bundle the updated Rust engine and CLI, which combine fast bounded format rules (`magika-rules`) with a heavily optimized pure-Rust inference runtime (`tract` with CPU SIMD and Metal/CUDA GPU support) for significantly faster startup and inference.
 - Expand pre-built `abi3-py38` binary wheel support to cover additional platforms and architectures:

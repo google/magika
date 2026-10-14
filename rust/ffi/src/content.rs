@@ -635,7 +635,7 @@ use crate::MagikaTypeInfo;
     label: c"dxf".as_ptr(),
     mime_type: c"image/vnd.dxf".as_ptr(),
     group: c"image".as_ptr(),
-    description: c"Audocad Drawing Exchange Format".as_ptr(),
+    description: c"Autocad Drawing Exchange Format".as_ptr(),
     extensions: [c"dxf".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
 };
@@ -2631,7 +2631,7 @@ use crate::MagikaTypeInfo;
 
 #[rustfmt::skip] pub(crate) static XLSB: MagikaTypeInfo = MagikaTypeInfo {
     label: c"xlsb".as_ptr(),
-    mime_type: c"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".as_ptr(),
+    mime_type: c"application/vnd.ms-excel.sheet.binary.macroEnabled.12".as_ptr(),
     group: c"document".as_ptr(),
     description: c"Microsoft Excel 2007+ document (binary format)".as_ptr(),
     extensions: [c"xlsb".as_ptr(), ptr::null()].as_ptr(),

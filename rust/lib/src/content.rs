@@ -775,7 +775,7 @@ pub(crate) static DXF: TypeInfo = TypeInfo {
     label: "dxf",
     mime_type: "image/vnd.dxf",
     group: "image",
-    description: "Audocad Drawing Exchange Format",
+    description: "Autocad Drawing Exchange Format",
     extensions: &["dxf"],
     is_text: true,
     model_support: true,
@@ -3215,7 +3215,7 @@ pub(crate) static XLS: TypeInfo = TypeInfo {
 
 pub(crate) static XLSB: TypeInfo = TypeInfo {
     label: "xlsb",
-    mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    mime_type: "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
     group: "document",
     description: "Microsoft Excel 2007+ document (binary format)",
     extensions: &["xlsb"],
@@ -3779,7 +3779,7 @@ pub enum ContentType {
     Duckdb,
     /// Autocad Drawing
     Dwg,
-    /// Audocad Drawing Exchange Format
+    /// Autocad Drawing Exchange Format
     Dxf,
     /// ELF executable
     Elf,

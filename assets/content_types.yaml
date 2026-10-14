@@ -216,7 +216,7 @@
   is_text: false
 
 "asf":
-  mime_type: "video/x-ms-wma"
+  mime_type: "video/x-ms-asf"
   group: "application"
   description: "Microsoft Advanced Systems Format"
   extensions: ["asf"]
@@ -736,7 +736,7 @@
 "dxf":
   mime_type: "image/vnd.dxf"
   group: "image"
-  description: "Audocad Drawing Exchange Format"
+  description: "Autocad Drawing Exchange Format"
   extensions: ["dxf"]
   is_text: true
 
@@ -2862,7 +2862,7 @@
   is_text: false
 
 "xlsb":
-  mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  mime_type: "application/vnd.ms-excel.sheet.binary.macroEnabled.12"
   group: "document"
   description: "Microsoft Excel 2007+ document (binary format)"
   extensions: ["xlsb"]

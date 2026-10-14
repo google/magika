@@ -134,14 +134,7 @@
 @layer base, starlight, theme, components, utilities;
 
 /* Show lists correctly */
-.sl-container ul {
-  list-style: disc;
-}
-
-.sl-container ol {
-  list-style: decimal;
-}
-
-.sl-container starlight-toc nav ul {
-  list-style: none;
+.sl-markdown-content :is(ul, ol):not(:where(.not-content *)) {
+  list-style: revert;
+  padding-inline-start: 1.25rem;
 }

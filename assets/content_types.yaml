@@ -266,7 +266,7 @@
 
 "avif":
   mime_type: "image/avif"
-  group: "video"
+  group: "image"
   description: "AV1 Image File Format"
   extensions: ["avif", "avifs"]
   is_text: false
@@ -882,7 +882,7 @@
 
 "fortran":
   mime_type: "text/x-fortran"
-  group: "document"
+  group: "code"
   description: "Fortran"
   extensions: ["f90", "f95", "f03", "F90"]
   is_text: true
@@ -1800,7 +1800,7 @@
 "one":
   mime_type: "application/msonenote"
   group: "document"
-  description: "One Note"
+  description: "OneNote"
   extensions: ["one"]
   is_text: false
 
@@ -2451,7 +2451,7 @@
 "swf":
   mime_type: "application/x-shockwave-flash"
   group: "executable"
-  description: "Small Web File"
+  description: "Small Web Format"
   extensions: ["swf"]
   is_text: false
 
@@ -2493,7 +2493,7 @@
 "tcl":
   mime_type: "application/x-tcl"
   group: "code"
-  description: "Tickle"
+  description: "Tcl"
   extensions: ["tcl"]
   is_text: true
 

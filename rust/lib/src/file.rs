@@ -17,7 +17,7 @@ use std::borrow::Borrow;
 use anyhow::{Result, ensure};
 use ndarray::ArrayViewD;
 
-use crate::{ContentType, Features, MODEL_LABELS, Options, Rules};
+use crate::{ContentType, Features, MODEL_LABELS, MODEL_TRAINING_LABELS, Options, Rules};
 
 /// File types.
 ///
@@ -83,6 +83,22 @@ pub struct ModelDebugInfo {
     ///
     /// This list has the same length as [`MODEL_LABELS`] and is in one-to-one correspondance.
     pub output: Vec<f32>,
+
+    /// Reason why the inferred content type was overwritten.
+    pub overwrite_reason: Option<OverwriteReason>,
+}
+
+/// Reason to overwrite an inferred content type.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum OverwriteReason {
+    /// The inference score is too low for the inferred content type.
+    LowConfidence,
+
+    /// The inferred content type is not canonical.
+    OverwriteMap,
+
+    /// The rules vetoed the inferred content type.
+    RulesVeto,
 }
 
 impl FileType {
@@ -118,15 +134,29 @@ impl FileType {
         }
     }
 
-    /// Returns the best model guess.
-    ///
-    /// If debugging was enabled and the model triggered, returns the label index and score of the
-    /// best model guess.
-    pub fn best_model_guess(&self) -> Option<(usize, f32)> {
-        let FileType::Regular { debug_info: Some(x), .. } = self else { return None };
-        let DebugInfo::Model(x) = &**x else { return None };
-        let best = best_index(&x.output);
-        Some((best, x.output[best]))
+    /// Returns the debug information for regular files.
+    pub fn debug_info(&self) -> Option<&DebugInfo> {
+        match self {
+            FileType::Regular { debug_info, .. } => debug_info.as_deref(),
+            _ => None,
+        }
+    }
+}
+
+impl DebugInfo {
+    /// Returns the model debug information.
+    pub fn model(&self) -> Option<&ModelDebugInfo> {
+        match self {
+            DebugInfo::Model(x) => Some(x),
+            _ => None,
+        }
+    }
+}
+
+impl ModelDebugInfo {
+    /// Returns the index of the best model guess.
+    pub fn best_guess(&self) -> usize {
+        best_index(&self.output)
     }
 }
 
@@ -196,16 +226,22 @@ impl FileType {
             let builtin_rules_veto =
                 options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
             let rules_veto = custom_rules_veto || builtin_rules_veto;
-            let debug_info = options
-                .debug_mode
-                .then(|| Box::new(DebugInfo::Model(ModelDebugInfo { output: scores.to_vec() })));
-            let content_type = if ml_is_confident && !rules_veto {
-                overwrite
-            } else if overwrite.info().is_text {
-                ContentType::Txt
+            let fallback =
+                if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
+            let (content_type, mut overwrite_reason) = if !ml_is_confident {
+                (fallback, Some(OverwriteReason::LowConfidence))
+            } else if rules_veto {
+                (fallback, Some(OverwriteReason::RulesVeto))
             } else {
-                ContentType::Unknown
+                (overwrite, Some(OverwriteReason::OverwriteMap))
             };
+            if content_type == MODEL_TRAINING_LABELS[best] {
+                overwrite_reason = None;
+            }
+            let debug_info = options.debug_mode.then(|| {
+                let output = scores.to_vec();
+                Box::new(DebugInfo::Model(ModelDebugInfo { output, overwrite_reason }))
+            });
             let content_types = vec![content_type];
             results.push(FileType::Regular { content_types, debug_info });
         }
@@ -213,7 +249,7 @@ impl FileType {
     }
 }
 
-pub(crate) fn best_index(scores: &[f32]) -> usize {
+fn best_index(scores: &[f32]) -> usize {
     let mut best = 0;
     for (i, &x) in scores.iter().enumerate() {
         if scores[best].max(x) == x {

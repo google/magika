@@ -19,12 +19,12 @@ use std::io::{ErrorKind, Read, Write as _};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
-    self, Backend, ContentType, Features, FeaturesOrRuled, FileType, PredictionMode, Rules,
-    Runtime, TypeInfo,
+    self, Backend, ContentType, Features, FeaturesOrRuled, FileType, ModelDebugInfo,
+    OverwriteReason, Rules, Runtime, TypeInfo,
 };
 use serde::Serialize;
 
@@ -262,17 +262,6 @@ impl Stage {
     }
 }
 
-impl Flags {
-    fn debug_mode(&self) -> bool {
-        // We could try to optimize this and return false when possible.
-        true
-    }
-
-    fn prediction_mode(&self) -> PredictionMode {
-        PredictionMode::HighConfidence
-    }
-}
-
 /// Inference threads it takes to keep a GPU queued.
 ///
 /// The device is the bottleneck there, and it is already busy well before the host runs out of
@@ -325,8 +314,7 @@ fn main() -> Result<()> {
     let rules_only = flags.experimental.rules == RulesMode::Only;
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
-    builder.options.debug_mode = flags.debug_mode();
-    builder.options.prediction_mode = flags.prediction_mode();
+    builder.options.debug_mode = true;
     match flags.experimental.rules {
         RulesMode::Off => builder.options.use_builtin_rules = false,
         RulesMode::Enforce => (),
@@ -855,14 +843,24 @@ impl Response {
                     Some('s') => write!(&mut result, "{:.2}", self.score())?,
                     Some('S') => write!(&mut result, "{}%", (100. * self.score()).trunc())?,
                     Some('b') => {
-                        if let Some((inferred_type, score)) = self.best_guess(flags) {
-                            write!(
-                                &mut result,
-                                " [Low-confidence model best-guess: {} ({}), score={:.3}]",
-                                inferred_type.info().description,
-                                inferred_type.info().group,
-                                score,
-                            )?;
+                        if let Some(debug) = self.model_debug_info()
+                            && let Some(reason) = debug.overwrite_reason
+                        {
+                            let reason = match reason {
+                                OverwriteReason::LowConfidence => Some("Low-confidence"),
+                                OverwriteReason::OverwriteMap => None,
+                                OverwriteReason::RulesVeto => Some("Rules-veto"),
+                            };
+                            if let Some(reason) = reason {
+                                let best = debug.best_guess();
+                                let score = debug.output[best];
+                                let info = magika::MODEL_TRAINING_LABELS[best].info();
+                                write!(
+                                    &mut result,
+                                    " [{reason} model best-guess: {} ({}), score={score:.3}]",
+                                    info.description, info.group,
+                                )?;
+                            }
                         }
                     }
                     Some(c) => result.push(c),
@@ -875,24 +873,21 @@ impl Response {
         Ok(self.color(result.into()))
     }
 
-    // Returns the best guess if low confidence.
-    fn best_guess(&self, flags: &Flags) -> Option<(ContentType, f32)> {
-        let result = self.result.as_ref().ok()?;
-        let (label, score) = result.best_model_guess()?;
-        if flags.prediction_mode().is_confident(score, label) {
-            return None;
-        }
-        Some((magika::MODEL_TRAINING_LABELS[label], score))
+    fn model_debug_info(&self) -> Option<&ModelDebugInfo> {
+        self.result.as_ref().ok()?.debug_info()?.model()
     }
 
     fn json(self) -> Result<serde_json::Value> {
         let path = self.path.to_string_lossy();
+        let (score, dl) = match self.model_debug_info() {
+            Some(debug) => {
+                let best = debug.best_guess();
+                (debug.output[best], magika::MODEL_TRAINING_LABELS[best].info())
+            }
+            None => (1.0, ContentType::Undefined.info()),
+        };
         let result = match self.result {
             Ok(x) => {
-                let (score, dl) = match x.best_model_guess() {
-                    Some((label, score)) => (score, magika::MODEL_TRAINING_LABELS[label].info()),
-                    None => (1.0, ContentType::Undefined.info()),
-                };
                 let output = x.info();
                 let score = (score * 1000.).trunc() / 1000.;
                 let value = serde_json::to_value(JsonResult { dl, output, score })?;
@@ -939,10 +934,7 @@ impl Response {
     }
 
     fn score(&self) -> f32 {
-        match &self.result {
-            Err(_) => 1.0,
-            Ok(x) => x.best_model_guess().map_or(1.0, |x| x.1),
-        }
+        self.model_debug_info().map_or(1.0, |x| x.output[x.best_guess()])
     }
 
     fn color(&self, result: ColoredString) -> ColoredString {

@@ -35,7 +35,9 @@
 pub use crate::backend::{Backend, BackendInfo};
 pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
-pub use crate::file::{DebugInfo, FileType, ModelDebugInfo, RulesDebugInfo, TypeInfo};
+pub use crate::file::{
+    DebugInfo, FileType, ModelDebugInfo, OverwriteReason, RulesDebugInfo, TypeInfo,
+};
 pub use crate::input::{Features, FeaturesOrRuled, Input};
 pub use crate::model::{MODEL_LABELS, MODEL_TRAINING_LABELS};
 pub use crate::options::{Options, PredictionMode};
@@ -109,32 +111,20 @@ mod tests {
         );
     }
 
-    fn model_info(
-        prediction_mode: PredictionMode, model: &ModelDebugInfo,
-    ) -> (f32, ContentType, ReferenceOverwriteReason) {
-        let best = crate::file::best_index(&model.output);
+    fn model_info(model: &ModelDebugInfo) -> (f32, ContentType, ReferenceOverwriteReason) {
+        let best = model.best_guess();
         let score = model.output[best];
         let dl = MODEL_TRAINING_LABELS[best];
-        let overwrite = MODEL_LABELS[best];
-        let overwrite_reason = if !prediction_mode.is_confident(score, best) {
-            let low_confidence =
-                if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
-            if low_confidence == dl {
-                ReferenceOverwriteReason::None
-            } else {
-                ReferenceOverwriteReason::LowConfidence
-            }
-        } else if overwrite != dl {
-            ReferenceOverwriteReason::OverwriteMap
-        } else {
-            ReferenceOverwriteReason::None
+        let overwrite_reason = match model.overwrite_reason {
+            None => ReferenceOverwriteReason::None,
+            Some(OverwriteReason::LowConfidence) => ReferenceOverwriteReason::LowConfidence,
+            Some(OverwriteReason::OverwriteMap) => ReferenceOverwriteReason::OverwriteMap,
+            Some(OverwriteReason::RulesVeto) => unreachable!(),
         };
         (score, dl, overwrite_reason)
     }
 
-    fn assert_prediction(
-        prediction_mode: PredictionMode, actual: FileType, expected: Prediction, debug: &str,
-    ) {
+    fn assert_prediction(actual: FileType, expected: Prediction, debug: &str) {
         let FileType::Regular { content_types, debug_info: Some(debug_info) } = actual else {
             unreachable!()
         };
@@ -150,7 +140,7 @@ mod tests {
             DebugInfo::Model(x) => x,
             _ => unreachable!(),
         };
-        let (score, dl, overwrite_reason) = model_info(prediction_mode, model);
+        let (score, dl, overwrite_reason) = model_info(model);
         assert_float(score, expected.score, debug);
         assert_eq!(overwrite_reason, expected.overwrite_reason, "{debug}");
         assert_eq!(dl.info().label, expected.dl, "{debug}");
@@ -192,12 +182,11 @@ mod tests {
         let mut session = new_session();
         let mut checked = 0;
         for test in tests {
-            let prediction_mode = test.prediction_mode.into();
-            session.options_mut().prediction_mode = prediction_mode;
+            session.options_mut().prediction_mode = test.prediction_mode.into();
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let actual = session.identify_file(format!("../../{}", test.path)).unwrap();
-            assert_prediction(prediction_mode, actual, expected, &test.path);
+            assert_prediction(actual, expected, &test.path);
             checked += 1;
         }
         assert!(checked > 0, "reference fixture filter must exercise predictions");
@@ -222,13 +211,12 @@ mod tests {
         let mut session = new_session();
         let mut checked = 0;
         for test in tests {
-            let prediction_mode = test.prediction_mode.into();
-            session.options_mut().prediction_mode = prediction_mode;
+            session.options_mut().prediction_mode = test.prediction_mode.into();
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
             let actual = session.identify_content(content.as_slice()).unwrap();
-            assert_prediction(prediction_mode, actual, expected, &test.content_base64);
+            assert_prediction(actual, expected, &test.content_base64);
             checked += 1;
         }
         assert!(checked > 0, "reference fixture filter must exercise predictions");

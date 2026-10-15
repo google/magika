@@ -16,8 +16,8 @@ use std::cell::RefCell;
 use std::sync::OnceLock;
 
 use magika::{
-    ContentType, Features, FeaturesOrRuled, FileType, Options, PredictionMode, Rules, Runtime,
-    Session, TypeInfo, MODEL_LABELS, MODEL_NAME, MODEL_TRAINING_LABELS,
+    ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
+    Rules, Runtime, Session, TypeInfo, MODEL_NAME, MODEL_TRAINING_LABELS,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -102,25 +102,18 @@ impl PyMagikaResult {
     }
 }
 
-fn from_file_type(file_type: &FileType, options: &Options, path: Option<String>) -> PyMagikaResult {
+fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult {
     let info = file_type.info();
-    let (score, dl_label, overwrite_reason) = match file_type.best_model_guess() {
-        Some((best, score)) => {
+    let (score, dl_label, overwrite_reason) = match file_type.debug_info().and_then(|x| x.model()) {
+        Some(x) => {
+            let best = x.best_guess();
+            let score = x.output[best];
             let dl = MODEL_TRAINING_LABELS[best];
-            let overwrite = MODEL_LABELS[best];
-            let output = file_type.content_type().unwrap();
-            let custom_veto =
-                options.use_custom_rules.as_ref().is_some_and(|x| x.vetos().contains(&overwrite));
-            let builtin_veto =
-                options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
-            let reason = if output == dl {
-                "none"
-            } else if !options.prediction_mode.is_confident(score, best) {
-                "low_confidence"
-            } else if custom_veto || builtin_veto {
-                "rules_veto"
-            } else {
-                "overwrite_map"
+            let reason = match x.overwrite_reason {
+                None => "none",
+                Some(OverwriteReason::LowConfidence) => "low_confidence",
+                Some(OverwriteReason::OverwriteMap) => "overwrite_map",
+                Some(OverwriteReason::RulesVeto) => "rules_veto",
             };
             (score, dl.info().label.to_string(), reason.to_string())
         }
@@ -172,11 +165,9 @@ enum PathDisposition {
 
 fn extract_path_disposition(path_str: &str, options: &Options) -> anyhow::Result<PathDisposition> {
     match FeaturesOrRuled::extract_file(path_str, options) {
-        Ok(FeaturesOrRuled::Ruled(file_type)) => Ok(PathDisposition::Immediate(from_file_type(
-            &file_type,
-            options,
-            Some(path_str.to_string()),
-        ))),
+        Ok(FeaturesOrRuled::Ruled(file_type)) => {
+            Ok(PathDisposition::Immediate(from_file_type(&file_type, Some(path_str.to_string()))))
+        }
         Ok(FeaturesOrRuled::Features(features)) => Ok(PathDisposition::Features(features)),
         Err(e) => {
             if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
@@ -269,7 +260,7 @@ impl PyMagika {
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
         let result = py.detach(|| self.with_session(|session| session.identify_content(data)));
         match result {
-            Ok(file_type) => Ok(from_file_type(&file_type, &self.options, None)),
+            Ok(file_type) => Ok(from_file_type(&file_type, None)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }
@@ -282,7 +273,7 @@ impl PyMagika {
                 PathDisposition::Features(features) => {
                     let file_type =
                         self.with_session(|session| session.identify_features(&features))?;
-                    Ok(from_file_type(&file_type, &options, Some(path.to_string())))
+                    Ok(from_file_type(&file_type, Some(path.to_string())))
                 }
             });
         match result {
@@ -332,7 +323,7 @@ impl PyMagika {
                     self.with_session(|session| session.identify_features_batch(&batch_features))?;
                 for (slot_idx, file_type) in batch_indices.into_iter().zip(inferred_types) {
                     slots[slot_idx] =
-                        Some(from_file_type(&file_type, &options, Some(paths[slot_idx].clone())));
+                        Some(from_file_type(&file_type, Some(paths[slot_idx].clone())));
                 }
             }
 

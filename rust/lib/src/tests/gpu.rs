@@ -70,7 +70,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
             let expected = fixture.prediction.unwrap();
             match FeaturesOrRuled::extract_content(bytes.as_slice(), &options).unwrap() {
                 FeaturesOrRuled::Ruled(kind) => {
-                    assert_prediction(PredictionMode::HighConfidence, kind, expected, &name);
+                    assert_prediction(kind, expected, &name);
                 }
                 FeaturesOrRuled::Features(features) => {
                     let reference = cpu.run(&features.features, 1).unwrap();
@@ -135,7 +135,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
                 let DebugInfo::Model(model) = &*debug_info else {
                     panic!("expected inference: {context}")
                 };
-                let (_, dl, reason) = model_info(PredictionMode::HighConfidence, model);
+                let (_, dl, reason) = model_info(model);
                 assert_eq!(content_type.info().label, sample.expected.output, "{context}");
                 assert_eq!(dl.info().label, sample.expected.dl, "{context}");
                 assert_eq!(reason, sample.expected.overwrite_reason, "{context}");

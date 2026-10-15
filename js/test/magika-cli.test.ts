@@ -15,6 +15,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { spawn } from "child_process";
 import path from "path";
+import { getMagikaOptionsFromFlags } from "../src/magika-cli-options.js";
 
 describe("magika-cli.ts CLI Tests", () => {
   const scriptPath = path.resolve(__dirname, "../dist/mjs/magika-cli.js");
@@ -45,6 +46,22 @@ describe("magika-cli.ts CLI Tests", () => {
       });
     });
   }
+
+  it("should map model config flags if custom config flags are provided", () => {
+    expect(
+      getMagikaOptionsFromFlags({
+        modelUrl: "https://example.invalid/model.json",
+        modelPath: "/tmp/model.json",
+        modelConfigUrl: "https://example.invalid/config.json",
+        modelConfigPath: "/tmp/config.json",
+      }),
+    ).toEqual({
+      modelURL: "https://example.invalid/model.json",
+      modelPath: "/tmp/model.json",
+      modelConfigURL: "https://example.invalid/config.json",
+      modelConfigPath: "/tmp/config.json",
+    });
+  });
 
   it("should display help information when no arguments are provided", async () => {
     const { stdout, stderr, exitCode } = await executeCli();

@@ -3,11 +3,13 @@
 package onnx
 
 // #cgo LDFLAGS: -lonnxruntime
+// #include <stdlib.h>
 // #include "onnx_runtime.h"
 import "C"
 
 import (
 	"fmt"
+	"unsafe"
 )
 
 // NewOnnx returns an onnx that can perform inferences using an ONNX Runtime
@@ -18,7 +20,9 @@ func NewOnnx(modelPath string, sizeTarget int) (Onnx, error) {
 		api:        C.GetApiBase(),
 		sizeTarget: sizeTarget,
 	}
-	if err := C.CreateSession(ort.api, C.CString(modelPath), &ort.session, &ort.memory); err != nil {
+	cModelPath := C.CString(modelPath)
+	defer C.free(unsafe.Pointer(cModelPath))
+	if err := C.CreateSession(ort.api, cModelPath, &ort.session, &ort.memory); err != nil {
 		return nil, fmt.Errorf("create session: %v", C.GoString(C.GetErrorMessage(err)))
 	}
 	return ort, nil

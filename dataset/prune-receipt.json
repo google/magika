@@ -1,0 +1,12 @@
+{
+ "allowed_repositories": 3249,
+ "by_class": {},
+ "classes_emptied": [],
+ "max_per_repository": 10,
+ "policy": "A GitHub sample keeps its repository's terms; VirusTotal origins are permitted by the corpus policy and assert no repository licence.",
+ "refused_repositories": 0,
+ "removed": {},
+ "removed_spdx": {},
+ "samples_after": 70772,
+ "samples_before": 70772
+}

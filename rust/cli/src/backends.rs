@@ -23,7 +23,7 @@ use std::sync::{Arc, OnceLock};
 use anyhow::{Context, Result};
 use magika::{Backend, Builder, Runtime};
 
-use crate::{default_inference_threads, BackendChoice};
+use crate::{BackendChoice, default_inference_threads};
 
 /// Batches smaller than this stay on the CPU in automatic mode: a GPU only pays off on full ones.
 const GPU_MIN_BATCH: usize = 8;

@@ -17,6 +17,7 @@ use std::path::Path;
 
 use anyhow::Result;
 
+use crate::cached_input::CachedInput;
 use crate::config::ModelConfig;
 use crate::{ContentType, DebugInfo, FileType, Options, Rules, RulesDebugInfo};
 
@@ -108,17 +109,16 @@ impl FeaturesOrRuled {
     /// Extracts the features from file content.
     ///
     /// Returns the file type directly if the content cannot be identified using AI.
-    pub fn extract_content(mut file: impl Input, options: &Options) -> Result<Self> {
+    pub fn extract_content(file: impl Input, options: &Options) -> Result<Self> {
         let config = &crate::model::CONFIG;
-        let file_len = file.length()?;
-        if file_len == 0 {
+        let mut file = CachedInput::new(file)?;
+        if file.length() == 0 {
             let content_types = vec![ContentType::Empty];
             let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
             return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
         }
-        let first_block = read_first_block(config, &mut file, file_len)?;
         if let Some(custom_rules) = &options.use_custom_rules {
-            let content_types = custom_rules.identify(&first_block, file_len, &mut file)?;
+            let content_types = custom_rules.identify(&mut file)?;
             if !content_types.is_empty() {
                 let debug_info =
                     options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
@@ -126,7 +126,7 @@ impl FeaturesOrRuled {
             }
         }
         if options.use_builtin_rules {
-            let content_types = Rules::builtin().identify(&first_block, file_len, &mut file)?;
+            let content_types = Rules::builtin().identify(&mut file)?;
             if !content_types.is_empty() {
                 let debug_info = options
                     .debug_mode
@@ -135,7 +135,7 @@ impl FeaturesOrRuled {
             }
         }
         if options.use_model {
-            let features = extract_features(config, file, file_len, &first_block)?;
+            let features = extract_features(config, &mut file)?;
             if features[config.min_file_size_for_dl - 1] != config.padding_token {
                 return Ok(FeaturesOrRuled::Features(Features {
                     features,
@@ -144,10 +144,11 @@ impl FeaturesOrRuled {
                 }));
             }
         }
-        debug_assert!(first_block.len() <= config.block_size);
-        let content_type = match std::str::from_utf8(&first_block) {
+        let prefix_len = file.ensure_prefix(config.block_size)?;
+        let prefix = file.prefix(prefix_len);
+        let content_type = match std::str::from_utf8(prefix) {
             // The file is not UTF-8.
-            Err(_) if file_len == first_block.len() as u64 => ContentType::Unknown,
+            Err(_) if file.length() == prefix.len() as u64 => ContentType::Unknown,
             // The first block doesn't disprove that the file may be UTF-8.
             Err(e) if e.error_len().is_none() => ContentType::Txt,
             // The first block disproves that the file is UTF-8.
@@ -161,28 +162,14 @@ impl FeaturesOrRuled {
     }
 }
 
-fn read_first_block(config: &ModelConfig, mut file: impl Input, file_len: u64) -> Result<Vec<u8>> {
-    let buffer_size = std::cmp::min(config.block_size as u64, file_len) as usize;
-    let mut content_beg = vec![0; buffer_size];
-    file.read_at(&mut content_beg, 0)?;
-    Ok(content_beg)
-}
-
-fn extract_features(
-    config: &ModelConfig, mut file: impl Input, file_len: u64, content_beg: &[u8],
-) -> Result<Vec<i32>> {
+fn extract_features(config: &ModelConfig, file: &mut CachedInput<impl Input>) -> Result<Vec<i32>> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
-    let buffer_size = content_beg.len();
-    let beg = strip_prefix(content_beg);
-    let mut end;
-    let end = if file_len == buffer_size as u64 {
-        strip_suffix(content_beg)
-    } else {
-        end = vec![0; buffer_size];
-        file.read_at(&mut end, file_len - buffer_size as u64)?;
-        strip_suffix(&end)
-    };
+    let prefix_len = file.ensure_prefix(config.block_size)?;
+    let suffix_len = file.ensure_suffix(config.block_size)?;
+    debug_assert_eq!(prefix_len, suffix_len);
+    let beg = strip_prefix(file.prefix(prefix_len));
+    let end = strip_suffix(file.suffix(suffix_len));
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
@@ -300,9 +287,8 @@ mod tests {
             expected.extend_from_slice(&test.features.beg);
             expected.extend_from_slice(&test.features.end);
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
-            let len = content.len() as u64;
-            let first_block = read_first_block(&config, content.as_slice(), len).unwrap();
-            let actual = extract_features(&config, content.as_slice(), len, &first_block);
+            let mut file = CachedInput::new(&content[..]).unwrap();
+            let actual = extract_features(&config, &mut file);
             let actual: Vec<_> = actual.unwrap().into_iter().map(|x| x as usize).collect();
             assert_eq!(actual, expected, "{test:?}");
         }

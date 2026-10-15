@@ -20,9 +20,7 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 use magika_rules::{Class, Outcome, RuleSet, Source};
 
 use crate::ContentType;
-
-// Rules scan the first block that feature extraction reads anyway, so they never read more.
-const _: () = assert!(crate::model::CONFIG.block_size >= magika_rules::PREFIX_LIMIT);
+use crate::cached_input::CachedInput;
 
 /// Format rules supplied by the caller, checked before the built-in rules.
 ///
@@ -82,26 +80,20 @@ impl Rules {
     }
 
     /// Returns the content types of the rules that match a file.
-    ///
-    /// The first block holds at least the first `PREFIX_LIMIT` bytes of the file, or the whole
-    /// file if it is shorter.
     pub(crate) fn identify(
-        &self, first_block: &[u8], size: u64, mut file: impl crate::Input,
+        &self, file: &mut CachedInput<impl crate::Input>,
     ) -> Result<Vec<ContentType>> {
         let rules = &self.0;
-        let prefix = &first_block[..first_block.len().min(magika_rules::PREFIX_LIMIT)];
-        let mut tail = None;
-        let tail_len = rules.set.tail_len(prefix, size);
-        if tail_len > 0 {
-            let mut buf = vec![0; tail_len];
-            file.read_at(&mut buf, size - tail_len as u64)?;
-            if let Some(start) = rules.set.tail_start(&buf, size) {
-                buf = vec![0; (size - start) as usize];
-                file.read_at(&mut buf, start)?;
-            }
-            tail = Some(buf);
+        let size = file.length();
+        let prefix_len = file.ensure_prefix(magika_rules::PREFIX_LIMIT)?;
+        let mut tail_len = file.ensure_suffix(rules.set.tail_len(file.prefix(prefix_len), size))?;
+        if tail_len > 0
+            && let Some(start) = rules.set.tail_start(file.suffix(tail_len), size)
+        {
+            tail_len = file.ensure_suffix((size - start) as usize)?;
         }
-        let tail = tail.as_deref();
+        let prefix = file.prefix(prefix_len);
+        let tail = (tail_len > 0).then(|| file.suffix(tail_len));
         Ok(match rules.set.scan(magika_rules::Input { prefix, size, tail }) {
             Outcome::Match(labels) => labels.into_iter().map(|i| rules.content_types[i]).collect(),
             Outcome::InsufficientInput => Vec::new(),

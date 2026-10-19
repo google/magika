@@ -1771,3 +1771,20 @@ rule taxonomy_xcoff
         ((uint16be(0) == 503 and (uint16be(16) == 120 or uint16be(16) == 0)) or
          (uint16be(0) == 479 and (uint16be(16) == 72 or uint16be(16) == 28 or uint16be(16) == 0)))
 }
+
+rule taxonomy_webp
+{
+	meta:
+        source_refs = "spec:Google WebP Container Specification (RIFF WEBP + VP8/VP8L/VP8X chunk)"
+		label = "webp"
+		enforced = true
+        class = "full"
+        fp_rate = 0
+        fn_rate = 0
+
+    // RIFF container with "WEBP" form type at offset 8 and a valid initial chunk FourCC ("VP8 ", "VP8L", or "VP8X") at offset 12.
+    strings:
+        $webp_vp8 = { 52 49 46 46 ?? ?? ?? ?? 57 45 42 50 56 50 38 ( 20 | 4C | 58 ) }
+    condition:
+        prefix_size >= 16 and $webp_vp8 at 0
+}

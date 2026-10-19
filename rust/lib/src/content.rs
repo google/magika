@@ -3122,7 +3122,7 @@ pub(crate) static WEBP: TypeInfo = TypeInfo {
     extensions: &["webp"],
     is_text: false,
     model_support: true,
-    rules_support: false,
+    rules_support: true,
 };
 
 pub(crate) static WINREGISTRY: TypeInfo = TypeInfo {

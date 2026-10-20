@@ -51,19 +51,8 @@ done
 
 info "Test custom rules"
 ( cd ../../tests_data
-  [ "$(magika --rules-file=rules/custom.yar --rules-check)" = 'Rules { content_types: [Png] }' ] \
-    || error "custom rules check"
-  [ "$(magika --rules=only --format=%l basic/png/magika_test.png)" = unknown ] \
-    || error "built-in rules identify PNG"
-  [ "$(magika --rules=only --rules-file=rules/custom.yar --format=%l basic/png/magika_test.png)" \
-    = png ] || error "custom rules do not identify PNG"
-  [ "$(magika --rules=off --rules-file=rules/custom.yar --format=%l basic/png/magika_test.png)" \
-    = png ] || error "custom rules do not apply without built-in rules"
-  broken=$(mktemp)
-  trap "rm -f $broken" EXIT
-  echo 'rule broken {' > "$broken"
-  magika --rules-file="$broken" basic/png/magika_test.png 2>&1 | grep -q 'line 2, column 1' \
-    || error "invalid custom rules are not reported"
+  magika --rules-file=rules/custom.yar --rules-check 2>&1 | grep -q 'unsupported' \
+    || error "custom rules are not rejected as unsupported"
 )
 
 info "Test symlinks"

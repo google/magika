@@ -47,55 +47,16 @@ int main(void) {
     magika_session_free(session_opt);
     magika_runtime_free(runtime_opt);
 
-    // Test custom rules: the shared fixture enforces the PNG signature, which the built-in rules
-    // leave to the model, so rules alone identify a PNG only with it.
-    FILE* custom_file = fopen("../../tests_data/rules/custom.yar", "rb");
-    assert(custom_file != NULL);
-    char custom_source[4096];
-    size_t custom_len = fread(custom_source, 1, sizeof(custom_source), custom_file);
-    fclose(custom_file);
+    // Test custom rules: the native rule engine does not compile custom rules at runtime.
     char rules_error[256];
-    MagikaRules* rules = NULL;
-    status_opt = magika_rules_new(custom_source, custom_len, rules_error, sizeof(rules_error),
-                                  &rules);
-    assert(status_opt == MAGIKA_STATUS_OK);
-    assert(rules != NULL);
-    MagikaRuntimeOptions rules_only = options;
-    rules_only.options.use_model = false;
-    MagikaRuntime* rules_runtime = NULL;
-    status_opt = magika_runtime_new(&rules_only, &rules_runtime);
-    assert(status_opt == MAGIKA_STATUS_OK);
-    MagikaSession* rules_session = NULL;
-    status_opt = magika_session_new(rules_runtime, &rules_session);
-    assert(status_opt == MAGIKA_STATUS_OK);
-    const char* png_path = "../../tests_data/basic/png/magika_test.png";
-    const MagikaTypeInfo* png_result = NULL;
-    status_opt = magika_identify_file(rules_session, png_path, &png_result);
-    assert(status_opt == MAGIKA_STATUS_OK);
-    assert(png_result != NULL);
-    assert(strcmp(png_result->label, "unknown") == 0);
-    magika_session_free(rules_session);
-    magika_runtime_free(rules_runtime);
-    rules_only.options.use_custom_rules = rules;
-    status_opt = magika_runtime_new(&rules_only, &rules_runtime);
-    assert(status_opt == MAGIKA_STATUS_OK);
-    magika_rules_free(rules);  // The runtime keeps its own reference.
-    status_opt = magika_session_new(rules_runtime, &rules_session);
-    assert(status_opt == MAGIKA_STATUS_OK);
-    status_opt = magika_identify_file(rules_session, png_path, &png_result);
-    assert(status_opt == MAGIKA_STATUS_OK);
-    assert(png_result != NULL);
-    assert(strcmp(png_result->label, "png") == 0);
-    magika_session_free(rules_session);
-    magika_runtime_free(rules_runtime);
-    const char broken[] = "rule broken {";
-    rules = (MagikaRules*)0x1234;
-    status_opt = magika_rules_new(broken, strlen(broken), rules_error, sizeof(rules_error),
+    const char custom[] = "rule custom { condition: true }";
+    MagikaRules* rules = (MagikaRules*)0x1234;
+    status_opt = magika_rules_new(custom, strlen(custom), rules_error, sizeof(rules_error),
                                   &rules);
     assert(status_opt == MAGIKA_STATUS_INVALID_RULES);
     assert(rules == NULL);
-    assert(strstr(rules_error, "line 1, column 14") != NULL);
-    status_opt = magika_rules_new(broken, strlen(broken), NULL, 0, &rules);
+    assert(strstr(rules_error, "unsupported") != NULL);
+    status_opt = magika_rules_new(custom, strlen(custom), NULL, 0, &rules);
     assert(status_opt == MAGIKA_STATUS_INVALID_RULES);
     magika_rules_free(NULL);
 

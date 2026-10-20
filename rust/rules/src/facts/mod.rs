@@ -1,13 +1,13 @@
 // Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
-//! Facts about archives and executables, which rules read by name.
+//! Facts about archives and executables, which verifiers read through [`Facts`].
 //!
 //! A zip archive is recognized by its central directory, at the end of the file, so its facts
 //! need the input's tail as well as its prefix: see [`crate::RuleSet::tail_len`]. An executable
 //! is recognized from its headers in the prefix alone. Both analyses are pure functions of the
 //! prefix, the size and the tail, specified in `zip.rs` and `pe.rs`, and run only for an input
-//! that opens like an archive or an executable, and only when a rule reads their facts.
+//! that opens like an archive or an executable, and only when a verifier reads their facts.
 
 mod pe;
 mod zip;
@@ -19,7 +19,6 @@ use miniz_oxide::inflate::core::DecompressorOxide;
 pub(crate) use self::pe::tests::{pe32, Image};
 #[cfg(all(test, feature = "bundled"))]
 pub(crate) use self::zip::tests::{archive, stored};
-use crate::ir::{Fact, View};
 
 /// Size of the `zip_names` view.
 const ZIP_NAMES_BYTES: usize = 4096;
@@ -76,39 +75,37 @@ impl Facts {
         facts
     }
 
-    pub(crate) fn int(&self, fact: Fact) -> u64 {
-        let (zip, pe) = (&self.zip, &self.pe);
-        match fact {
-            Fact::ZipValid => u64::from(zip.valid),
-            Fact::ZipFlags => u64::from(zip.flags),
-            Fact::ZipEntries => u64::from(zip.entries),
-            Fact::ZipNamesEntries => u64::from(zip.names_entries),
-            Fact::ZipNamesLen => u64::from(zip.names_len),
-            Fact::ZipCommentLen => u64::from(zip.comment_len),
-            Fact::ZipCdSize => u64::from(zip.cd_size),
-            Fact::ZipFirstEntryLen => u64::from(zip.first_entry_len),
-            Fact::PeValid => u64::from(pe.valid),
-            Fact::PeFlags => u64::from(pe.flags),
-            Fact::PeMachine => u64::from(pe.machine),
-            Fact::PeCharacteristics => u64::from(pe.characteristics),
-            Fact::PeSubsystem => u64::from(pe.subsystem),
-            Fact::PeEntryPoint => u64::from(pe.entry_point),
-            Fact::PeDllCharacteristics => u64::from(pe.dll_characteristics),
-            Fact::PeSections => u64::from(pe.sections),
-            Fact::PeMagic => u64::from(pe.magic),
-            Fact::PeClr => u64::from(pe.clr),
-            Fact::PeSigned => u64::from(pe.signed),
-            Fact::PeOverlay => pe.overlay,
-            Fact::PeIsDll => u64::from(pe.is_dll),
-            Fact::PeIsExecutableImage => u64::from(pe.is_executable_image),
-        }
+    pub(crate) fn is_zip_valid(&self) -> bool {
+        self.zip.valid
     }
 
-    pub(crate) fn view(&self, view: View) -> &[u8] {
-        match view {
-            View::ZipNames => &self.names,
-            View::ZipFirstEntry => &self.first_entry,
-        }
+    pub(crate) fn has_zip_dir_names(&self) -> bool {
+        self.zip.valid && self.zip.entries >= 1 && self.zip.names_entries >= 1
+    }
+
+    pub(crate) fn names(&self) -> &[u8] {
+        &self.names
+    }
+
+    pub(crate) fn first_entry(&self) -> &[u8] {
+        &self.first_entry
+    }
+
+    pub(crate) fn is_windows_pebin(&self) -> bool {
+        let p = &self.pe;
+        p.valid
+            && p.is_executable_image
+            && !(p.is_dll && p.entry_point == 0)
+            && (1..=16).contains(&p.subsystem)
+            && matches!(
+                p.machine,
+                0x014C | 0x01C0 | 0x01C2 | 0x01C4 | 0x0200 | 0x5032 | 0x5064 | 0x8664 | 0xAA64
+            )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn is_valid(&self) -> bool {
+        self.zip.valid || self.pe.valid
     }
 }
 

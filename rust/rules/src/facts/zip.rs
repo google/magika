@@ -77,14 +77,77 @@
 //!    is set. `first_entry_len` is the number of bytes written; the view is zero beyond
 //!    it. Bits 6 and 7 never affect `valid`.
 
+use std::cell::RefCell;
+
 use miniz_oxide::inflate::core::inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
 use miniz_oxide::inflate::core::{decompress, DecompressorOxide};
 use miniz_oxide::inflate::TINFLStatus;
 
 use super::{u16_at, u32_at, u64_at, ZIP_FIRST_ENTRY_BYTES, ZIP_NAMES_BYTES};
 
+// =============================================================================
+// ZIP record signatures, header lengths, and field offsets
+// =============================================================================
+
 /// Largest central directory read on its own when the tail window does not hold it.
 pub(super) const ZIP_DIRECTORY_MAX_BYTES: u32 = 256 * 1024;
+
+/// Longest stored `mimetype` payload copied into the view.
+const MIMETYPE_MAX_LEN: u32 = 128;
+const MIMETYPE_NAME: &[u8; 8] = b"mimetype";
+const MIMETYPE_PREFIX: &[u8; 9] = b"mimetype=";
+
+/// Name of the OOXML content-types manifest inspected by `first_entry` rules.
+const CONTENT_TYPES_NAME: &[u8; 19] = b"[Content_Types].xml";
+/// Maximum decompressed payload bytes of `[Content_Types].xml` in the 16 KiB `zip_first_entry` view
+/// (`ZIP_FIRST_ENTRY_BYTES` minus `"<19-byte name>\n"`).
+const OOXML_BODY_MAX_BYTES: usize = ZIP_FIRST_ENTRY_BYTES - (CONTENT_TYPES_NAME.len() + 1);
+
+/// 4-byte record signatures (`PK\x03\x04`, `PK\x01\x02`, `PK\x05\x06`, `PK\x06\x07`, `PK\x06\x06`).
+const LOCAL_SIGNATURE: &[u8; 4] = b"PK\x03\x04"; // Local file header signature
+const CENTRAL_SIGNATURE: &[u8; 4] = b"PK\x01\x02"; // Central directory file header signature
+const EOCD_SIGNATURE: &[u8; 4] = b"PK\x05\x06"; // End of central directory signature
+const ZIP64_LOCATOR_SIGNATURE: &[u8; 4] = b"PK\x06\x07"; // ZIP64 EOCD locator signature
+const ZIP64_EOCD_SIGNATURE: &[u8; 4] = b"PK\x06\x06"; // ZIP64 EOCD record signature
+
+/// Local File Header (`PK\x03\x04`, 30 bytes) field offsets and bitflags.
+const LOCAL_HEADER_LEN: usize = 30;
+const LFH_FLAGS: usize = 6; // @6: u16 LE — general purpose bit flag
+const LFH_METHOD: usize = 8; // @8: u16 LE — compression method
+const LFH_COMP_SIZE: usize = 18; // @18: u32 LE — compressed size
+const LFH_UNCOMP_SIZE: usize = 22; // @22: u32 LE — uncompressed size
+const LFH_NAME_LEN: usize = 26; // @26: u16 LE — file name length
+const LFH_EXTRA_LEN: usize = 28; // @28: u16 LE — extra field length
+
+/// General-purpose bit flags (`@LFH_FLAGS`) and compression methods (`@LFH_METHOD`).
+const GPBF_ENCRYPTED: u16 = 1 << 0; // bit 0: encrypted entry
+const GPBF_DATA_DESCRIPTOR: u16 = 1 << 3; // bit 3: sizes/CRC deferred to data descriptor
+const METHOD_STORED: u16 = 0; // stored (uncompressed)
+const METHOD_DEFLATED: u16 = 8; // deflated
+
+/// Central Directory File Header (`PK\x01\x02`, 46 bytes) field offsets.
+const CENTRAL_HEADER_LEN: usize = 46;
+const CDH_NAME_LEN: usize = 28; // @28: u16 LE — file name length
+const CDH_EXTRA_LEN: usize = 30; // @30: u16 LE — extra field length
+const CDH_COMMENT_LEN: usize = 32; // @32: u16 LE — file comment length
+
+/// End of Central Directory record (`PK\x05\x06`, 22 bytes) field offsets.
+const EOCD_LEN: usize = 22;
+const EOCD_DISK_NUM: usize = 4; // @4: u16 LE — number of this disk
+const EOCD_CD_DISK: usize = 6; // @6: u16 LE — disk where central directory starts
+const EOCD_DISK_ENTRIES: usize = 8; // @8: u16 LE — number of CD records on this disk
+const EOCD_TOTAL_ENTRIES: usize = 10; // @10: u16 LE — total number of CD records
+const EOCD_CD_SIZE: usize = 12; // @12: u32 LE — byte size of central directory
+const EOCD_CD_OFFSET: usize = 16; // @16: u32 LE — offset of start of central directory
+const EOCD_COMMENT_LEN: usize = 20; // @20: u16 LE — ZIP file comment length
+
+/// ZIP64 EOCD Locator (`PK\x06\x07`, 20 bytes) and ZIP64 EOCD Record (`PK\x06\x06`, 56 bytes).
+const ZIP64_LOCATOR_LEN: usize = 20;
+const ZIP64_LOC_EOCD_OFFSET: usize = 8; // @8: u64 LE — relative offset of ZIP64 EOCD record
+const ZIP64_EOCD_LEN: usize = 56;
+const ZIP64_EOCD_TOTAL_ENTRIES: usize = 32; // @32: u64 LE — total number of CD entries
+const ZIP64_EOCD_CD_SIZE: usize = 40; // @40: u64 LE — byte size of central directory
+const ZIP64_EOCD_CD_OFFSET: usize = 48; // @48: u64 LE — offset of start of central directory
 
 /// The archive uses zip64 sentinels or carries a zip64 locator.
 const FLAG_ZIP64: u8 = 1 << 0;
@@ -99,23 +162,47 @@ const FLAG_NAMES_TRUNCATED: u8 = 1 << 4;
 /// Bytes precede the archive: a self-extractor or an appended archive.
 const FLAG_PREPENDED: u8 = 1 << 5;
 /// The first entry's data reached the end of the `zip_first_entry` view.
+#[cfg(test)]
 const FLAG_FIRST_ENTRY_FILLED: u8 = 1 << 6;
 /// The first entry is deflated but its data does not decode completely.
+#[cfg(test)]
 const FLAG_FIRST_ENTRY_UNDECODABLE: u8 = 1 << 7;
 
-const LOCAL_SIGNATURE: &[u8] = b"PK\x03\x04";
-const CENTRAL_SIGNATURE: &[u8] = b"PK\x01\x02";
-const EOCD_SIGNATURE: &[u8] = b"PK\x05\x06";
-const ZIP64_LOCATOR_SIGNATURE: &[u8] = b"PK\x06\x07";
-const ZIP64_EOCD_SIGNATURE: &[u8] = b"PK\x06\x06";
-const LOCAL_HEADER_LEN: usize = 30;
-const CENTRAL_HEADER_LEN: usize = 46;
-const EOCD_LEN: usize = 22;
-const ZIP64_LOCATOR_LEN: usize = 20;
-/// Bytes of a zip64 end-of-central-directory record read for its 64-bit counts and offsets.
-const ZIP64_EOCD_LEN: usize = 56;
-/// Longest stored `mimetype` payload copied into the view.
-const MIMETYPE_MAX_LEN: u32 = 128;
+/// Bitflags for central-directory entry names and `mimetype=` lines matched by the enforced
+/// ZIP cascade rules.
+pub(crate) const SEEN_MODEL_WEIGHTS: u32 = 1 << 0;
+pub(crate) const SEEN_METADATA_JSON: u32 = 1 << 1;
+pub(crate) const SEEN_SUFFIX_QGS: u32 = 1 << 2;
+pub(crate) const SEEN_VISIO_DOC: u32 = 1 << 3;
+pub(crate) const SEEN_CONTENT_TYPES: u32 = 1 << 4;
+pub(crate) const SEEN_XL_WORKBOOK: u32 = 1 << 5;
+pub(crate) const SEEN_THREE_MF: u32 = 1 << 6;
+pub(crate) const SEEN_ANDROID_MANIFEST: u32 = 1 << 7;
+pub(crate) const SEEN_CLASSES_DEX: u32 = 1 << 8;
+pub(crate) const SEEN_RESOURCES_ARSC: u32 = 1 << 9;
+pub(crate) const SEEN_CONTAINER_XML: u32 = 1 << 10;
+pub(crate) const SEEN_CONTENT_XML: u32 = 1 << 11;
+pub(crate) const SEEN_MANIFEST_MF: u32 = 1 << 12;
+pub(crate) const SEEN_SUFFIX_CLASS: u32 = 1 << 13;
+pub(crate) const SEEN_DOC_KML: u32 = 1 << 14;
+pub(crate) const SEEN_APPX_MANIFEST: u32 = 1 << 15;
+pub(crate) const SEEN_APPX_BLOCKMAP: u32 = 1 << 16;
+pub(crate) const SEEN_PPT_PRESENTATION: u32 = 1 << 17;
+pub(crate) const MIMETYPE_EPUB: u32 = 1 << 18;
+pub(crate) const MIMETYPE_ODP: u32 = 1 << 19;
+pub(crate) const MIMETYPE_ODS: u32 = 1 << 20;
+pub(crate) const MIMETYPE_ODT: u32 = 1 << 21;
+
+/// Open Packaging Conventions (`[Content_Types].xml`) subtype classified from the first entry.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum OoxmlKind {
+    /// WordprocessingML document (`docx` / `docm`).
+    Docx,
+    /// WordprocessingML template (`dotx` / `dotm`).
+    Dotx,
+    /// SpreadsheetML binary workbook (`xlsb`).
+    Xlsb,
+}
 
 /// The zip facts of one input, all zero when the input holds no usable archive.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -130,9 +217,101 @@ pub(super) struct ZipFacts {
     pub first_entry_len: u16,
 }
 
+#[inline]
+fn classify_suffix(name: &[u8]) -> u32 {
+    if name.ends_with(b".qgs") {
+        SEEN_SUFFIX_QGS
+    } else if name.ends_with(b".class") {
+        SEEN_SUFFIX_CLASS
+    } else {
+        0
+    }
+}
+
+#[inline]
+fn classify_first_line(is_mimetype_prefix: bool, text: &[u8]) -> u32 {
+    let body = if is_mimetype_prefix {
+        text
+    } else if let Some(rest) = text.strip_prefix(MIMETYPE_PREFIX) {
+        rest
+    } else {
+        return 0;
+    };
+    let mask = match body {
+        b"application/epub+zip" => MIMETYPE_EPUB,
+        b"application/vnd.oasis.opendocument.presentation" => MIMETYPE_ODP,
+        b"application/vnd.oasis.opendocument.spreadsheet" => MIMETYPE_ODS,
+        b"application/vnd.oasis.opendocument.text" => MIMETYPE_ODT,
+        _ => 0,
+    };
+    if is_mimetype_prefix && mask == 0 {
+        return classify_suffix(body);
+    }
+    mask
+}
+
+#[inline]
+fn classify_name(name: &[u8]) -> u32 {
+    let exact = match name.len() {
+        7 if name == b"doc.kml" => SEEN_DOC_KML,
+        11 => match name {
+            b"classes.dex" => SEEN_CLASSES_DEX,
+            b"content.xml" => SEEN_CONTENT_XML,
+            _ => 0,
+        },
+        13 if name == b"metadata.json" => SEEN_METADATA_JSON,
+        14 if name == b"resources.arsc" => SEEN_RESOURCES_ARSC,
+        15 if name == b"xl/workbook.xml" => SEEN_XL_WORKBOOK,
+        16 => match name {
+            b"model.weights.h5" => SEEN_MODEL_WEIGHTS,
+            b"3D/3dmodel.model" => SEEN_THREE_MF,
+            b"AppxManifest.xml" => SEEN_APPX_MANIFEST,
+            b"AppxBlockMap.xml" => SEEN_APPX_BLOCKMAP,
+            _ => 0,
+        },
+        18 if name == b"visio/document.xml" => SEEN_VISIO_DOC,
+        19 => match name {
+            b"[Content_Types].xml" => SEEN_CONTENT_TYPES,
+            b"AndroidManifest.xml" => SEEN_ANDROID_MANIFEST,
+            _ => 0,
+        },
+        20 => match name {
+            b"META-INF/MANIFEST.MF" => SEEN_MANIFEST_MF,
+            b"ppt/presentation.xml" => SEEN_PPT_PRESENTATION,
+            _ => 0,
+        },
+        22 if name == b"META-INF/container.xml" => SEEN_CONTAINER_XML,
+        _ => 0,
+    };
+    if exact != 0 {
+        return exact;
+    }
+    classify_suffix(name)
+}
+
+/// Analyzes the archive held in `first` and `tail` without materializing the 4 KiB `zip_names`
+/// buffer, computing all [`ZipFacts`] fields and the `seen` entry bitmask in place.
+pub(super) fn analyze_facts(first: &[u8], size: u64, tail: &[u8]) -> (ZipFacts, u32) {
+    let mut facts = ZipFacts::default();
+    let mut view_len = 0usize;
+    let mut seen = 0u32;
+    if let Some(mimetype) = stored_mimetype(first) {
+        view_len = 1 + MIMETYPE_PREFIX.len() + mimetype.len();
+        seen |= classify_first_line(true, mimetype);
+    }
+    if let Some(eocd) = find_eocd(tail) {
+        walk_directory_facts(first, size, tail, eocd, &mut view_len, &mut facts, &mut seen);
+    }
+    if view_len > 0 {
+        facts.names_len = (view_len + 1) as u16;
+    }
+    (facts, seen)
+}
+
 /// Analyzes the archive held in `first` (the block at offset 0) and `tail` (the block ending
 /// at `size`, the input length), writing the `zip_names` view into `names_out`. Never panics
 /// and never reads outside the two blocks; see the module documentation for the contract.
+#[cfg(test)]
 pub(super) fn analyze(
     first: &[u8], size: u64, tail: &[u8], names_out: &mut [u8; ZIP_NAMES_BYTES],
 ) -> ZipFacts {
@@ -140,7 +319,7 @@ pub(super) fn analyze(
     let mut facts = ZipFacts::default();
     if let Some(mimetype) = stored_mimetype(first) {
         // The line always fits: it is at most 1 + 9 + 128 bytes into an empty view.
-        view.line(b"mimetype=", mimetype);
+        view.line(MIMETYPE_PREFIX, mimetype);
     }
     if let Some(eocd) = find_eocd(tail) {
         walk_directory(first, size, tail, eocd, &mut view, &mut facts);
@@ -150,11 +329,13 @@ pub(super) fn analyze(
 }
 
 /// Appends `\n`-led lines to the view and terminates the sequence once at the end.
+#[cfg(test)]
 struct ViewWriter<'a> {
     out: &'a mut [u8; ZIP_NAMES_BYTES],
     len: usize,
 }
 
+#[cfg(test)]
 impl ViewWriter<'_> {
     /// Whether a line of `prefix` and `text` fits, keeping one byte for the terminator.
     fn fits(&self, prefix: &[u8], text: &[u8]) -> bool {
@@ -187,17 +368,21 @@ impl ViewWriter<'_> {
 }
 
 /// The payload of a stored, short `mimetype` first entry, when `first` holds it entirely.
+#[inline]
 fn stored_mimetype(first: &[u8]) -> Option<&[u8]> {
-    if !first.starts_with(LOCAL_SIGNATURE) || u16_at(first, 8)? != 0 || u16_at(first, 26)? != 8 {
+    if !first.starts_with(LOCAL_SIGNATURE)
+        || u16_at(first, LFH_METHOD)? != METHOD_STORED
+        || u16_at(first, LFH_NAME_LEN)? != MIMETYPE_NAME.len() as u16
+    {
         return None;
     }
-    let length = u32_at(first, 22)?;
+    let length = u32_at(first, LFH_UNCOMP_SIZE)?;
     if !(1..=MIMETYPE_MAX_LEN).contains(&length) {
         return None;
     }
-    let extra_len = usize::from(u16_at(first, 28)?);
-    let name_end = LOCAL_HEADER_LEN + 8;
-    if first.get(LOCAL_HEADER_LEN..name_end)? != b"mimetype" {
+    let extra_len = usize::from(u16_at(first, LFH_EXTRA_LEN)?);
+    let name_end = LOCAL_HEADER_LEN + MIMETYPE_NAME.len();
+    if first.get(LOCAL_HEADER_LEN..name_end)? != MIMETYPE_NAME {
         return None;
     }
     let data_start = name_end.checked_add(extra_len)?;
@@ -205,27 +390,30 @@ fn stored_mimetype(first: &[u8]) -> Option<&[u8]> {
 }
 
 /// Position in `tail` of the end-of-central-directory record whose comment reaches the end.
+#[inline]
 fn find_eocd(tail: &[u8]) -> Option<usize> {
     let last = tail.len().checked_sub(EOCD_LEN)?;
-    (0..=last).rev().find(|&at| {
-        tail[at..].starts_with(EOCD_SIGNATURE)
-            && u16_at(tail, at + 20)
-                .is_some_and(|comment_len| usize::from(comment_len) == tail.len() - at - EOCD_LEN)
+    if tail[last..].starts_with(EOCD_SIGNATURE) && u16_at(tail, last + EOCD_COMMENT_LEN) == Some(0)
+    {
+        return Some(last);
+    }
+    memchr::memmem::rfind_iter(tail, EOCD_SIGNATURE).find(|&at| {
+        u16_at(tail, at + EOCD_COMMENT_LEN)
+            .is_some_and(|comment_len| usize::from(comment_len) == tail.len() - at - EOCD_LEN)
     })
 }
 
-/// Decodes the EOCD at `eocd` in `tail`, places the directory and walks its names.
-fn walk_directory(
-    first: &[u8], size: u64, tail: &[u8], eocd: usize, view: &mut ViewWriter<'_>,
-    facts: &mut ZipFacts,
-) {
-    let Some(tail_start) = size.checked_sub(tail.len() as u64) else { return };
+/// Decodes the EOCD at `eocd` in `tail` and returns the held central directory slice and entry count.
+fn locate_directory<'a>(
+    first: &'a [u8], size: u64, tail: &'a [u8], eocd: usize, facts: &mut ZipFacts,
+) -> Option<(&'a [u8], u64)> {
+    let tail_start = size.checked_sub(tail.len() as u64)?;
     let record = Eocd::decode(tail, eocd);
     facts.entries = record.entries;
     facts.comment_len = record.comment_len;
     if record.flags & FLAG_MULTIDISK != 0 {
         facts.flags |= record.flags;
-        return;
+        return None;
     }
     let eocd_abs = tail_start + eocd as u64;
     // The directory ends at the EOCD, or, for a zip64 archive, at the zip64 end record its
@@ -239,7 +427,7 @@ fn walk_directory(
         }
         None if record.flags & FLAG_ZIP64 != 0 => {
             facts.flags |= record.flags;
-            return;
+            return None;
         }
         None => (
             u64::from(record.entries),
@@ -255,7 +443,7 @@ fn walk_directory(
     }
     let Some(cd_abs) = cd_end_abs.checked_sub(cd_size) else {
         facts.flags |= FLAG_MALFORMED;
-        return;
+        return None;
     };
     // The directory ends at `cd_end_abs`, so it is inside `tail` iff it starts there; `first`
     // starts at 0, so it is inside `first` iff it ends there.
@@ -265,7 +453,7 @@ fn walk_directory(
             Some(slice) => slice,
             None => {
                 facts.flags |= FLAG_MALFORMED;
-                return;
+                return None;
             }
         }
     } else if cd_end_abs <= first.len() as u64 {
@@ -274,6 +462,95 @@ fn walk_directory(
         &first[cd_abs as usize..cd_end_abs as usize]
     } else {
         facts.flags |= FLAG_CD_NOT_HELD;
+        return None;
+    };
+    Some((directory, entries))
+}
+
+/// Walks the central directory to compute [`ZipFacts`] and the `seen` bitmask without copying
+/// entry names into a 4 KiB buffer.
+fn walk_directory_facts(
+    first: &[u8], size: u64, tail: &[u8], eocd: usize, view_len: &mut usize, facts: &mut ZipFacts,
+    seen: &mut u32,
+) {
+    let Some((directory, entries)) = locate_directory(first, size, tail, eocd, facts) else {
+        return;
+    };
+    // Single-pass fast path: walk `0..entries` accumulating `names_bytes` and `pass_seen`.
+    // As long as `*view_len + names_bytes < ZIP_NAMES_BYTES`, every entry (both top-level and
+    // nested) fits in the 4 KiB view without truncation, so `memchr(b'/', name)` is only needed
+    // until the first top-level entry is found (when `*view_len == 0`).
+    let mut at = 0;
+    let mut names_bytes = 0usize;
+    let mut pass_seen = 0u32;
+    let mut first_top: Option<&[u8]> = None;
+    let mut first_nested: Option<&[u8]> = None;
+    let mut fits_all = true;
+    for _ in 0..entries {
+        let Some((name, len)) = entry_name(directory, at) else {
+            fits_all = false;
+            break;
+        };
+        at += len;
+        names_bytes += 1 + name.len();
+        if *view_len + names_bytes >= ZIP_NAMES_BYTES {
+            fits_all = false;
+            break;
+        }
+        pass_seen |= classify_name(name);
+        if *view_len == 0 && first_top.is_none() {
+            if memchr::memchr(b'/', name).is_none() {
+                first_top = Some(name);
+            } else if first_nested.is_none() {
+                first_nested = Some(name);
+            }
+        }
+    }
+    if fits_all {
+        if let Some(name) = first_top.or(first_nested) {
+            *seen |= classify_first_line(false, name);
+        }
+        *view_len += names_bytes;
+        facts.names_entries = entries as u16;
+        *seen |= pass_seen;
+        facts.valid = facts.flags & (FLAG_MULTIDISK | FLAG_CD_NOT_HELD | FLAG_MALFORMED) == 0;
+        return;
+    }
+
+    // Fallback 2-pass walk when the entry names overflow the 4 KiB view (`FLAG_NAMES_TRUNCATED`).
+    'passes: for nested in [false, true] {
+        let mut at = 0;
+        for _ in 0..entries {
+            let Some((name, len)) = entry_name(directory, at) else {
+                facts.flags |= FLAG_MALFORMED;
+                break 'passes;
+            };
+            at += len;
+            if memchr::memchr(b'/', name).is_some() != nested {
+                continue;
+            }
+            if *view_len + 1 + name.len() >= ZIP_NAMES_BYTES {
+                facts.flags |= FLAG_NAMES_TRUNCATED;
+                break 'passes;
+            }
+            if *view_len == 0 {
+                *seen |= classify_first_line(false, name);
+            }
+            *view_len += 1 + name.len();
+            facts.names_entries += 1;
+            *seen |= classify_name(name);
+        }
+    }
+    facts.valid = facts.flags & (FLAG_MULTIDISK | FLAG_CD_NOT_HELD | FLAG_MALFORMED) == 0;
+}
+
+/// Decodes the EOCD at `eocd` in `tail`, places the directory and walks its names.
+#[cfg(test)]
+fn walk_directory(
+    first: &[u8], size: u64, tail: &[u8], eocd: usize, view: &mut ViewWriter<'_>,
+    facts: &mut ZipFacts,
+) {
+    let Some((directory, entries)) = locate_directory(first, size, tail, eocd, facts) else {
         return;
     };
     // Top-level names first, then nested ones: both passes walk the same headers. A hostile
@@ -311,24 +588,31 @@ fn zip64_directory(tail: &[u8], eocd: usize, tail_start: u64) -> Option<(u64, u6
     if !tail[locator..].starts_with(ZIP64_LOCATOR_SIGNATURE) {
         return None;
     }
-    let record_abs = u64_at(tail, locator + 8)?;
+    let record_abs = u64_at(tail, locator + ZIP64_LOC_EOCD_OFFSET)?;
     let at = usize::try_from(record_abs.checked_sub(tail_start)?).ok()?;
     let record = tail.get(at..at.checked_add(ZIP64_EOCD_LEN)?)?;
     if !record.starts_with(ZIP64_EOCD_SIGNATURE) {
         return None;
     }
-    Some((u64_at(record, 32)?, u64_at(record, 40)?, u64_at(record, 48)?, record_abs))
+    Some((
+        u64_at(record, ZIP64_EOCD_TOTAL_ENTRIES)?,
+        u64_at(record, ZIP64_EOCD_CD_SIZE)?,
+        u64_at(record, ZIP64_EOCD_CD_OFFSET)?,
+        record_abs,
+    ))
 }
 
 /// The name of the central directory header at `at` and the length of the whole entry,
 /// name, extra field and comment included, when all of it lies inside the directory.
+#[inline]
 fn entry_name(directory: &[u8], at: usize) -> Option<(&[u8], usize)> {
     let header = directory.get(at..at.checked_add(CENTRAL_HEADER_LEN)?)?;
     if !header.starts_with(CENTRAL_SIGNATURE) {
         return None;
     }
-    let name_len = usize::from(u16_at(header, 28)?);
-    let trailer = usize::from(u16_at(header, 30)?) + usize::from(u16_at(header, 32)?);
+    let name_len = usize::from(u16_at(header, CDH_NAME_LEN)?);
+    let trailer =
+        usize::from(u16_at(header, CDH_EXTRA_LEN)?) + usize::from(u16_at(header, CDH_COMMENT_LEN)?);
     let name_start = at + CENTRAL_HEADER_LEN;
     let name_end = name_start.checked_add(name_len)?;
     // The extra field and comment must fit as well, or the next header cannot be found.
@@ -351,12 +635,18 @@ struct Eocd {
 
 impl Eocd {
     /// Decodes the record at `eocd` in `tail`, a position [`find_eocd`] returned.
+    #[inline]
     fn decode(tail: &[u8], eocd: usize) -> Self {
         let record = &tail[eocd..eocd + EOCD_LEN];
         let field = |at| u16_at(record, at).unwrap_or(0);
-        let (disk, cd_disk, entries_disk, entries) = (field(4), field(6), field(8), field(10));
-        let cd_size = u32_at(record, 12).unwrap_or(0);
-        let cd_offset = u32_at(record, 16).unwrap_or(0);
+        let (disk, cd_disk, entries_disk, entries) = (
+            field(EOCD_DISK_NUM),
+            field(EOCD_CD_DISK),
+            field(EOCD_DISK_ENTRIES),
+            field(EOCD_TOTAL_ENTRIES),
+        );
+        let cd_size = u32_at(record, EOCD_CD_SIZE).unwrap_or(0);
+        let cd_offset = u32_at(record, EOCD_CD_OFFSET).unwrap_or(0);
         let locator = eocd
             .checked_sub(ZIP64_LOCATOR_LEN)
             .is_some_and(|at| tail[at..].starts_with(ZIP64_LOCATOR_SIGNATURE));
@@ -371,7 +661,7 @@ impl Eocd {
         if disk != 0 || cd_disk != 0 || entries_disk != entries {
             flags |= FLAG_MULTIDISK;
         }
-        Self { entries, comment_len: field(20), cd_size, cd_offset, flags }
+        Self { entries, comment_len: field(EOCD_COMMENT_LEN), cd_size, cd_offset, flags }
     }
 }
 
@@ -400,6 +690,7 @@ pub(super) fn directory_start(tail: &[u8], size: u64) -> Option<u64> {
 }
 
 /// Writes the `zip_first_entry` view of step 8 and returns its length and flag bits.
+#[cfg(test)]
 pub(super) fn first_entry(
     first: &[u8], out: &mut [u8; ZIP_FIRST_ENTRY_BYTES], inflater: &mut DecompressorOxide,
 ) -> (u16, u8) {
@@ -430,27 +721,106 @@ pub(super) fn first_entry(
     ((head + written) as u16, 0)
 }
 
+/// Scans a `[Content_Types].xml` payload in a single `memmem` pass over `".main"` to classify
+/// the OOXML package subtype (`Docx`, `Dotx`, or `Xlsb`), preserving rule priority (`Docx > Dotx > Xlsb`).
+#[inline]
+fn scan_ooxml_content_types(xml: &[u8]) -> Option<OoxmlKind> {
+    const DOCX_STD: &[u8] =
+        b"application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const DOCX_MACRO: &[u8] = b"application/vnd.ms-word.document.macroEnabled";
+    const DOTX_STD: &[u8] =
+        b"application/vnd.openxmlformats-officedocument.wordprocessingml.template";
+    const DOTX_MACRO: &[u8] = b"application/vnd.ms-word.template.macroEnabledTemplate";
+    const XLSB_MAIN: &[u8] = b"application/vnd.ms-excel.sheet.binary.macroEnabled";
+
+    let mut saw_dotx = false;
+    let mut saw_xlsb = false;
+    for pos in memchr::memmem::find_iter(xml, b".main") {
+        let before = &xml[..pos];
+        let after = &xml[pos + 5..];
+        if after.starts_with(b"+xml") {
+            if before.ends_with(DOCX_STD) || before.ends_with(DOCX_MACRO) {
+                return Some(OoxmlKind::Docx);
+            }
+            if before.ends_with(DOTX_STD) || before.ends_with(DOTX_MACRO) {
+                saw_dotx = true;
+            }
+        }
+        if before.ends_with(XLSB_MAIN) {
+            saw_xlsb = true;
+        }
+    }
+    if saw_dotx {
+        Some(OoxmlKind::Dotx)
+    } else if saw_xlsb {
+        Some(OoxmlKind::Xlsb)
+    } else {
+        None
+    }
+}
+
+/// Scratch buffer and reusable DEFLATE state per thread, avoiding `16 KiB` + `11 KiB` heap
+/// allocations and zero-fills on every OOXML archive.
+struct InflateScratch {
+    buf: [u8; OOXML_BODY_MAX_BYTES],
+    inflater: DecompressorOxide,
+}
+
+thread_local! {
+    static INFLATE_SCRATCH: RefCell<Box<InflateScratch>> = RefCell::new(Box::new(InflateScratch {
+        buf: [0u8; OOXML_BODY_MAX_BYTES],
+        inflater: DecompressorOxide::default(),
+    }));
+}
+
+/// Classifies the first local entry of `first` when it is `[Content_Types].xml`, scanning stored
+/// entries in place with zero copies and inflating deflated entries into thread-local scratch.
+pub(crate) fn classify_ooxml_first_entry(first: &[u8]) -> Option<OoxmlKind> {
+    let (name, data, deflated) = first_entry_parts(first)?;
+    if name != CONTENT_TYPES_NAME {
+        return None;
+    }
+    if !deflated {
+        let len = data.len().min(OOXML_BODY_MAX_BYTES);
+        return scan_ooxml_content_types(&data[..len]);
+    }
+    INFLATE_SCRATCH.with(|cell| {
+        let mut scratch = cell.borrow_mut();
+        let InflateScratch { buf, inflater } = &mut **scratch;
+        inflater.init();
+        let flags = TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF;
+        let (status, _, written) = decompress(inflater, data, buf, 0, flags);
+        if written < OOXML_BODY_MAX_BYTES && status != TINFLStatus::Done {
+            return None;
+        }
+        scan_ooxml_content_types(&buf[..written])
+    })
+}
+
 /// The name, the compressed data and whether it is deflated, for a first local entry that
 /// step 8 accepts.
+#[inline]
 fn first_entry_parts(first: &[u8]) -> Option<(&[u8], &[u8], bool)> {
     if !first.starts_with(LOCAL_SIGNATURE) {
         return None;
     }
-    let flags = u16_at(first, 6)?;
-    let method = u16_at(first, 8)?;
-    if flags & 0b1001 != 0 || !(method == 0 || method == 8) {
+    let flags = u16_at(first, LFH_FLAGS)?;
+    let method = u16_at(first, LFH_METHOD)?;
+    if flags & (GPBF_ENCRYPTED | GPBF_DATA_DESCRIPTOR) != 0
+        || !(method == METHOD_STORED || method == METHOD_DEFLATED)
+    {
         return None;
     }
-    let compressed = usize::try_from(u32_at(first, 18)?).ok()?;
-    let name_len = usize::from(u16_at(first, 26)?);
-    let extra_len = usize::from(u16_at(first, 28)?);
+    let compressed = usize::try_from(u32_at(first, LFH_COMP_SIZE)?).ok()?;
+    let name_len = usize::from(u16_at(first, LFH_NAME_LEN)?);
+    let extra_len = usize::from(u16_at(first, LFH_EXTRA_LEN)?);
     if name_len + 1 >= ZIP_FIRST_ENTRY_BYTES {
         return None;
     }
     let name = first.get(LOCAL_HEADER_LEN..LOCAL_HEADER_LEN + name_len)?;
     let data_start = LOCAL_HEADER_LEN + name_len + extra_len;
     let data = first.get(data_start..data_start.checked_add(compressed)?)?;
-    Some((name, data, method == 8))
+    Some((name, data, method == METHOD_DEFLATED))
 }
 
 #[cfg(test)]
@@ -527,6 +897,7 @@ pub(super) mod tests {
     fn small(bytes: &[u8]) -> (ZipFacts, Box<[u8; ZIP_NAMES_BYTES]>) {
         let mut names = Box::new([0; ZIP_NAMES_BYTES]);
         let facts = analyze(bytes, bytes.len() as u64, bytes, &mut names);
+        assert_eq!(analyze_facts(bytes, bytes.len() as u64, bytes).0, facts);
         (facts, names)
     }
 
@@ -536,6 +907,7 @@ pub(super) mod tests {
         let first = &bytes[..bytes.len().min(4096)];
         let tail = &bytes[bytes.len().saturating_sub(16 * 1024)..];
         let facts = analyze(first, bytes.len() as u64, tail, &mut names);
+        assert_eq!(analyze_facts(first, bytes.len() as u64, tail).0, facts);
         (facts, names)
     }
 
@@ -593,12 +965,34 @@ pub(super) mod tests {
 
     #[test]
     fn archive_comment_is_measured_and_eocd_found_before_it() {
-        let bytes = archive(&[stored(b"x", b"1")], b"a comment");
+        for comment in [&b""[..], b"a", b"ab", b"abc", b"abcd", b"a comment"] {
+            let bytes = archive(&[stored(b"x", b"1")], comment);
+            let (facts, names) = small(&bytes);
+            assert!(facts.valid, "comment len {}", comment.len());
+            assert_eq!(facts.comment_len as usize, comment.len());
+            assert_eq!(facts.entries, 1);
+            assert_eq!(view(&names, 3), b"\nx\n");
+        }
+    }
+
+    #[test]
+    fn nested_directory_entry_sets_first_line_when_no_top_level_entries_exist() {
+        let bytes = archive(
+            &[
+                stored(b"mimetype=application/epub+zip", b""),
+                stored(b"META-INF/container.xml", b"<container/>"),
+            ],
+            b"",
+        );
         let (facts, names) = small(&bytes);
-        assert!(facts.valid);
-        assert_eq!(facts.comment_len, 9);
-        assert_eq!(facts.entries, 1);
-        assert_eq!(view(&names, 3), b"\nx\n");
+        let (fast_facts, signals) = analyze_facts(&bytes, bytes.len() as u64, &bytes);
+        assert_eq!(fast_facts, facts);
+        assert_ne!(signals & MIMETYPE_EPUB, 0);
+        assert_ne!(signals & SEEN_CONTAINER_XML, 0);
+        assert_eq!(
+            view(&names, facts.names_len as usize),
+            b"\nmimetype=application/epub+zip\nMETA-INF/container.xml\n"
+        );
     }
 
     #[test]

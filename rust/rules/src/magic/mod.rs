@@ -3,7 +3,7 @@
 
 //! Layered, magic-keyed native dispatch cascade for Magika's pre-ML format rules.
 
-use crate::facts::{analyze_pe_header, Facts};
+use crate::facts::{analyze_pe_header, classify_ooxml_first_entry, Facts, OoxmlKind};
 use crate::label::Label;
 use crate::{Input, Outcome, PREFIX_LIMIT};
 
@@ -3099,6 +3099,15 @@ fn torrent(prefix: &[u8]) -> Option<Label> {
 // Facts-based (Deep) verifiers: ZIP and PE
 // =============================================================================
 
+/// Whether `prefix` alone decides a ZIP subtype (`apk`, `epub`, `docx`, `dotx`, or `xlsb`) from
+/// its local file headers, sparing the caller a 16 KiB tail read in [`crate::RuleSet::tail_len`].
+#[inline]
+pub(crate) fn decides_zip_from_prefix(prefix: &[u8]) -> bool {
+    apk_prefix(prefix).is_some()
+        || epub_prefix(prefix).is_some()
+        || classify_ooxml_first_entry(prefix).is_some()
+}
+
 /// Android APK local-header detection in the 4 KiB prefix (`taxonomy_apk`): unencrypted stored or
 /// deflated first entry with nonzero sizes or data-descriptor flag, opening either with
 /// `classes.dex` plus a local `AndroidManifest.xml` entry in `41..=4047` or with
@@ -3203,7 +3212,8 @@ fn epub_prefix(prefix: &[u8]) -> Option<Label> {
 
 /// ZIP container subtypes (`PK\x03\x04` or `PK\x05\x06`): checks the prefix-only APK/EPUB local
 /// headers first (so tail-less archives still resolve), then inspects the central-directory
-/// `names` and `first_entry` views from [`Facts`].
+/// `names` bitmask from [`Facts`], and finally inflates `[Content_Types].xml` only if no
+/// central-directory rule matched.
 fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     if let Some(label) = apk_prefix(prefix) {
         return Some(label);
@@ -3213,120 +3223,85 @@ fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     }
 
     let facts = Facts::analyze(prefix, ctx.size, ctx.tail);
-    let names = facts.names();
-    let first_entry = facts.first_entry();
-    let has_line = |line: &[u8]| memchr::memmem::find(names, line).is_some();
-    let valid = facts.is_zip_valid();
-    let dir_names = facts.has_zip_dir_names();
+    let seen = facts.zip_seen();
+    if seen != 0 {
+        use crate::facts::{
+            MIMETYPE_EPUB, MIMETYPE_ODP, MIMETYPE_ODS, MIMETYPE_ODT, SEEN_ANDROID_MANIFEST,
+            SEEN_APPX_BLOCKMAP, SEEN_APPX_MANIFEST, SEEN_CLASSES_DEX, SEEN_CONTAINER_XML,
+            SEEN_CONTENT_TYPES, SEEN_CONTENT_XML, SEEN_DOC_KML, SEEN_MANIFEST_MF,
+            SEEN_METADATA_JSON, SEEN_MODEL_WEIGHTS, SEEN_PPT_PRESENTATION, SEEN_RESOURCES_ARSC,
+            SEEN_SUFFIX_CLASS, SEEN_SUFFIX_QGS, SEEN_THREE_MF, SEEN_VISIO_DOC, SEEN_XL_WORKBOOK,
+        };
+        let valid = facts.is_valid();
+        let dir_names = facts.has_dir_names();
+        let has = |mask: u32| seen & mask == mask;
 
-    // Full rules (rulesets/full/facts.yar)
-    if valid {
-        if has_line(b"\nmodel.weights.h5\n") && has_line(b"\nmetadata.json\n") {
-            return Some(Label::Keras);
+        // Full rules (rulesets/full/facts.yar)
+        if valid {
+            if has(SEEN_MODEL_WEIGHTS | SEEN_METADATA_JSON) {
+                return Some(Label::Keras);
+            }
+            if has(SEEN_SUFFIX_QGS) {
+                return Some(Label::Qgis);
+            }
+            if has(SEEN_VISIO_DOC) {
+                return Some(Label::Visio);
+            }
+            if dir_names && has(SEEN_CONTENT_TYPES | SEEN_XL_WORKBOOK) {
+                return Some(Label::Xlsx);
+            }
+            if has(SEEN_THREE_MF) {
+                return Some(Label::ThreeMf);
+            }
         }
-        if memchr::memmem::find(names, b".qgs\n").is_some() {
-            return Some(Label::Qgis);
-        }
-        if has_line(b"\nvisio/document.xml\n") {
-            return Some(Label::Visio);
-        }
-        if dir_names && has_line(b"\n[Content_Types].xml\n") && has_line(b"\nxl/workbook.xml\n") {
-            return Some(Label::Xlsx);
-        }
-        if has_line(b"\n3D/3dmodel.model\n") {
-            return Some(Label::ThreeMf);
-        }
-    }
 
-    // Partial central-directory rules (rulesets/partial/facts.yar)
-    if dir_names
-        && has_line(b"\nAndroidManifest.xml\n")
-        && (has_line(b"\nclasses.dex\n") || has_line(b"\nresources.arsc\n"))
-    {
-        return Some(Label::Apk);
-    }
-    if starts(names, b"\nmimetype=application/epub+zip\n")
-        && has_line(b"\nMETA-INF/container.xml\n")
-    {
-        return Some(Label::Epub);
-    }
-    if starts(names, b"\nmimetype=application/vnd.oasis.opendocument.presentation\n")
-        && has_line(b"\ncontent.xml\n")
-    {
-        return Some(Label::Odp);
-    }
-    if starts(names, b"\nmimetype=application/vnd.oasis.opendocument.spreadsheet\n")
-        && has_line(b"\ncontent.xml\n")
-    {
-        return Some(Label::Ods);
-    }
-    if starts(names, b"\nmimetype=application/vnd.oasis.opendocument.text\n")
-        && has_line(b"\ncontent.xml\n")
-    {
-        return Some(Label::Odt);
-    }
-    if dir_names
-        && has_line(b"\nMETA-INF/MANIFEST.MF\n")
-        && memchr::memmem::find(names, b".class\n").is_some()
-    {
-        return Some(Label::Jar);
-    }
-    if valid && has_line(b"\ndoc.kml\n") {
-        return Some(Label::Kmz);
-    }
-    if valid && has_line(b"\nAppxManifest.xml\n") && has_line(b"\nAppxBlockMap.xml\n") {
-        return Some(Label::Msix);
-    }
-    if dir_names && has_line(b"\n[Content_Types].xml\n") && has_line(b"\nppt/presentation.xml\n") {
-        return Some(Label::Pptx);
+        // Partial central-directory rules (rulesets/partial/facts.yar)
+        if dir_names
+            && has(SEEN_ANDROID_MANIFEST)
+            && (has(SEEN_CLASSES_DEX) || has(SEEN_RESOURCES_ARSC))
+        {
+            return Some(Label::Apk);
+        }
+        if has(MIMETYPE_EPUB | SEEN_CONTAINER_XML) {
+            return Some(Label::Epub);
+        }
+        if has(MIMETYPE_ODP | SEEN_CONTENT_XML) {
+            return Some(Label::Odp);
+        }
+        if has(MIMETYPE_ODS | SEEN_CONTENT_XML) {
+            return Some(Label::Ods);
+        }
+        if has(MIMETYPE_ODT | SEEN_CONTENT_XML) {
+            return Some(Label::Odt);
+        }
+        if dir_names && has(SEEN_MANIFEST_MF | SEEN_SUFFIX_CLASS) {
+            return Some(Label::Jar);
+        }
+        if valid && has(SEEN_DOC_KML) {
+            return Some(Label::Kmz);
+        }
+        if valid && has(SEEN_APPX_MANIFEST | SEEN_APPX_BLOCKMAP) {
+            return Some(Label::Msix);
+        }
+        if dir_names && has(SEEN_CONTENT_TYPES | SEEN_PPT_PRESENTATION) {
+            return Some(Label::Pptx);
+        }
     }
 
-    // First-entry rules
-    if starts(first_entry, b"[Content_Types].xml\n") {
-        if memchr::memmem::find(
-            first_entry,
-            b"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
-        )
-        .is_some()
-            || memchr::memmem::find(
-                first_entry,
-                b"application/vnd.ms-word.document.macroEnabled.main+xml",
-            )
-            .is_some()
-        {
-            return Some(Label::Docx);
-        }
-        if memchr::memmem::find(
-            first_entry,
-            b"application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
-        )
-        .is_some()
-            || memchr::memmem::find(
-                first_entry,
-                b"application/vnd.ms-word.template.macroEnabledTemplate.main+xml",
-            )
-            .is_some()
-        {
-            return Some(Label::Dotx);
-        }
-        if memchr::memmem::find(
-            first_entry,
-            b"application/vnd.ms-excel.sheet.binary.macroEnabled.main",
-        )
-        .is_some()
-        {
-            return Some(Label::Xlsb);
-        }
+    // First-entry rules (inflates `[Content_Types].xml` into a thread-local buffer only when no
+    // central-directory `names` rule matched).
+    match classify_ooxml_first_entry(prefix)? {
+        OoxmlKind::Docx => Some(Label::Docx),
+        OoxmlKind::Dotx => Some(Label::Dotx),
+        OoxmlKind::Xlsb => Some(Label::Xlsb),
     }
-    None
 }
 
 /// Windows PE/COFF executable (`taxonomy_pebin`): valid PE image with `IMAGE_FILE_EXECUTABLE_IMAGE`
 /// set, not a resource-only DLL (`is_dll && entry_point == 0`), Windows subsystem in `1..=16`,
 /// and a shipping Windows `Machine` architecture.
 fn pe(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
-    require!(analyze_pe_header(prefix, ctx.size).is_windows_pebin());
-    Some(Label::Pebin)
+    analyze_pe_header(prefix, ctx.size).is_windows_pebin().then_some(Label::Pebin)
 }
 
 /// Validates `input` window invariants and runs [`identify`].

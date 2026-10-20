@@ -84,9 +84,13 @@ impl RuleSet {
     }
 
     /// How many of the last bytes of an input a scan should get as [`Input::tail`]: none unless
-    /// `prefix` opens a zip archive whose end it does not hold.
+    /// `prefix` opens a zip archive whose end it does not hold, and only when the prefix alone
+    /// does not already decide the subtype (`apk_prefix` / `epub_prefix`).
     pub fn tail_len(&self, prefix: &[u8], size: u64) -> usize {
-        if !facts::wants_tail(prefix) || size <= prefix.len() as u64 {
+        if !facts::wants_tail(prefix)
+            || size <= prefix.len() as u64
+            || magic::decides_zip_from_prefix(prefix)
+        {
             return 0;
         }
         size.min(facts::ZIP_TAIL_BYTES as u64) as usize

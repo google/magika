@@ -16,8 +16,8 @@ use std::cell::RefCell;
 use std::sync::OnceLock;
 
 use magika::{
-    ContentType, Features, FeaturesOrRuled, FileType, Options, OverwriteReason, PredictionMode,
-    Rules, Runtime, Session, TypeInfo, MODEL_NAME, MODEL_TRAINING_LABELS,
+    ContentType, Features, FeaturesOr, FileType, Options, OverwriteReason, PredictionMode, Rules,
+    Runtime, Session, TypeInfo, MODEL_NAME, MODEL_TRAINING_LABELS,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -164,11 +164,11 @@ enum PathDisposition {
 }
 
 fn extract_path_disposition(path_str: &str, options: &Options) -> anyhow::Result<PathDisposition> {
-    match FeaturesOrRuled::extract_file(path_str, options) {
-        Ok(FeaturesOrRuled::Ruled(file_type)) => {
+    match FeaturesOr::extract_file(path_str, options) {
+        Ok(FeaturesOr::Ruled(file_type)) => {
             Ok(PathDisposition::Immediate(from_file_type(&file_type, Some(path_str.to_string()))))
         }
-        Ok(FeaturesOrRuled::Features(features)) => Ok(PathDisposition::Features(features)),
+        Ok(FeaturesOr::Features(features)) => Ok(PathDisposition::Features(features)),
         Err(e) => {
             if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
                 Ok(PathDisposition::Immediate(from_io_error(io_err, Some(path_str.to_string()))))
@@ -260,7 +260,7 @@ impl PyMagika {
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
         let result = py.detach(|| self.with_session(|session| session.identify_content(data)));
         match result {
-            Ok(file_type) => Ok(from_file_type(&file_type, None)),
+            Ok(file_type) => Ok(from_file_type(&file_type.into(), None)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }
@@ -273,7 +273,7 @@ impl PyMagika {
                 PathDisposition::Features(features) => {
                     let file_type =
                         self.with_session(|session| session.identify_features(&features))?;
-                    Ok(from_file_type(&file_type, Some(path.to_string())))
+                    Ok(from_file_type(&file_type.into(), Some(path.to_string())))
                 }
             });
         match result {
@@ -323,7 +323,7 @@ impl PyMagika {
                     self.with_session(|session| session.identify_features_batch(&batch_features))?;
                 for (slot_idx, file_type) in batch_indices.into_iter().zip(inferred_types) {
                     slots[slot_idx] =
-                        Some(from_file_type(&file_type, Some(paths[slot_idx].clone())));
+                        Some(from_file_type(&file_type.into(), Some(paths[slot_idx].clone())));
                 }
             }
 

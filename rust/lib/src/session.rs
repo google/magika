@@ -19,7 +19,8 @@ use anyhow::Result;
 use ndarray::ArrayView2;
 
 use crate::{
-    BackendInfo, Features, FeaturesOrRuled, FileType, Input, MODEL_LABELS, Options, Runtime,
+    BackendInfo, Features, FeaturesOr, FileType, Input, MODEL_LABELS, Options, RegularFileType,
+    Runtime,
 };
 
 /// A Magika session to identify files.
@@ -57,25 +58,25 @@ impl Session {
 
     /// Identifies a single file.
     pub fn identify_file(&mut self, file: impl AsRef<Path>) -> Result<FileType> {
-        self.identify_features_or_ruled(FeaturesOrRuled::extract_file(file, &self.options)?)
+        self.identify_features_or(FeaturesOr::extract_file(file, &self.options)?)
     }
 
     /// Identifies a single file from its content.
-    pub fn identify_content(&mut self, file: impl Input) -> Result<FileType> {
-        self.identify_features_or_ruled(FeaturesOrRuled::extract_content(file, &self.options)?)
+    pub fn identify_content(&mut self, file: impl Input) -> Result<RegularFileType> {
+        self.identify_features_or(FeaturesOr::extract_content(file, &self.options)?)
     }
 
-    fn identify_features_or_ruled(
-        &mut self, features_or_ruled: FeaturesOrRuled,
-    ) -> Result<FileType> {
-        match features_or_ruled {
-            FeaturesOrRuled::Ruled(file_type) => Ok(file_type),
-            FeaturesOrRuled::Features(features) => self.identify_features(&features),
+    fn identify_features_or<T: From<RegularFileType>>(
+        &mut self, features_or: FeaturesOr<T>,
+    ) -> Result<T> {
+        match features_or {
+            FeaturesOr::Ruled(file_type) => Ok(file_type),
+            FeaturesOr::Features(features) => Ok(self.identify_features(&features)?.into()),
         }
     }
 
     /// Identifies a single file from its features.
-    pub fn identify_features(&mut self, features: &Features) -> Result<FileType> {
+    pub fn identify_features(&mut self, features: &Features) -> Result<RegularFileType> {
         let results = self.identify_features_batch(&[features])?;
         let [result] = results.try_into().ok().unwrap();
         Ok(result)
@@ -84,7 +85,7 @@ impl Session {
     /// Identifies multiple files in parallel from their features.
     pub fn identify_features_batch(
         &mut self, features: &[impl Borrow<Features>],
-    ) -> Result<Vec<FileType>> {
+    ) -> Result<Vec<RegularFileType>> {
         if features.is_empty() {
             return Ok(Vec::new());
         }
@@ -94,6 +95,6 @@ impl Session {
         }
         let output = self.inner.run(&input, features.len())?;
         let output = ArrayView2::from_shape((features.len(), MODEL_LABELS.len()), &output)?;
-        FileType::convert(&self.options, features, output.into_dyn())
+        RegularFileType::convert(&self.options, features, output.into_dyn())
     }
 }

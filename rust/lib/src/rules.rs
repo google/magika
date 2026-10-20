@@ -150,7 +150,7 @@ impl Compiled {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Backend, FeaturesOrRuled, Options, Runtime};
+    use crate::{Backend, FeaturesOr, FileType, Options, Runtime};
 
     /// One enforced rule labeling `label` with `class`, matching when `condition` holds.
     fn rule(label: &str, class: &str, condition: &str) -> String {
@@ -173,13 +173,13 @@ mod tests {
         }
     }
 
-    fn extract(path: &str, options: &Options) -> FeaturesOrRuled {
-        FeaturesOrRuled::extract_file(format!("../../tests_data/basic/{path}"), options).unwrap()
+    fn extract(path: &str, options: &Options) -> FeaturesOr<FileType> {
+        FeaturesOr::extract_file(format!("../../tests_data/basic/{path}"), options).unwrap()
     }
 
     fn ruled(path: &str, options: &Options) -> Option<ContentType> {
         match extract(path, options) {
-            FeaturesOrRuled::Ruled(file_type) => file_type.content_type(),
+            FeaturesOr::Ruled(file_type) => file_type.content_type(),
             _ => None,
         }
     }
@@ -200,14 +200,13 @@ mod tests {
     fn rules_mismatch_extract_identify() {
         let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
         let mut session = runtime.session().unwrap();
-        let FeaturesOrRuled::Features(features) = extract("wav/test.wav", &options(false, None))
-        else {
+        let FeaturesOr::Features(features) = extract("wav/test.wav", &options(false, None)) else {
             unreachable!()
         };
         let error = session.identify_features(&features).unwrap_err();
         assert_eq!(error.to_string(), "use_builtin_rules mismatch between extract and identify");
         let custom = rule("txt", "full", "$psd at 0");
-        let FeaturesOrRuled::Features(features) =
+        let FeaturesOr::Features(features) =
             extract("wav/test.wav", &options(false, Some(&custom)))
         else {
             unreachable!()

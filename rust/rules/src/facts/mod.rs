@@ -14,6 +14,8 @@ mod zip;
 
 use miniz_oxide::inflate::core::DecompressorOxide;
 
+pub(crate) use self::pe::analyze_header as analyze_pe_header;
+
 // Fixtures for the bundled rules tests in `lib.rs`.
 #[cfg(all(test, feature = "bundled"))]
 pub(crate) use self::pe::tests::{pe32, Image};
@@ -42,7 +44,6 @@ pub(crate) fn directory_start(tail: &[u8], size: u64) -> Option<u64> {
 /// The facts and views of one input.
 pub(crate) struct Facts {
     zip: zip::ZipFacts,
-    pe: pe::PeFacts,
     names: Vec<u8>,
     first_entry: Vec<u8>,
 }
@@ -51,12 +52,8 @@ impl Facts {
     /// Analyzes an input. `tail` holds its last bytes, and may be the prefix itself when it holds
     /// the whole input; without one, a zip archive's directory is unknown.
     pub(crate) fn analyze(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Facts {
-        let mut facts = Facts {
-            zip: zip::ZipFacts::default(),
-            pe: pe::PeFacts::default(),
-            names: Vec::new(),
-            first_entry: Vec::new(),
-        };
+        let mut facts =
+            Facts { zip: zip::ZipFacts::default(), names: Vec::new(), first_entry: Vec::new() };
         if wants_tail(prefix) {
             let whole = size == prefix.len() as u64;
             let tail = tail.unwrap_or(if whole { prefix } else { &[] });
@@ -69,8 +66,6 @@ impl Facts {
             facts.zip.flags |= flags;
             facts.names = names[..usize::from(facts.zip.names_len)].to_vec();
             facts.first_entry = first_entry[..usize::from(len)].to_vec();
-        } else if pe::wants(prefix) {
-            facts.pe = pe::analyze(prefix, size);
         }
         facts
     }
@@ -91,21 +86,9 @@ impl Facts {
         &self.first_entry
     }
 
-    pub(crate) fn is_windows_pebin(&self) -> bool {
-        let p = &self.pe;
-        p.valid
-            && p.is_executable_image
-            && !(p.is_dll && p.entry_point == 0)
-            && (1..=16).contains(&p.subsystem)
-            && matches!(
-                p.machine,
-                0x014C | 0x01C0 | 0x01C2 | 0x01C4 | 0x0200 | 0x5032 | 0x5064 | 0x8664 | 0xAA64
-            )
-    }
-
     #[cfg(test)]
     pub(crate) fn is_valid(&self) -> bool {
-        self.zip.valid || self.pe.valid
+        self.zip.valid
     }
 }
 

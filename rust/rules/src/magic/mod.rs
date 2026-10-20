@@ -3,7 +3,7 @@
 
 //! Layered, magic-keyed native dispatch cascade for Magika's pre-ML format rules.
 
-use crate::facts::Facts;
+use crate::facts::{analyze_pe_header, Facts};
 use crate::label::Label;
 use crate::{Input, Outcome, PREFIX_LIMIT};
 
@@ -3325,7 +3325,7 @@ fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 /// set, not a resource-only DLL (`is_dll && entry_point == 0`), Windows subsystem in `1..=16`,
 /// and a shipping Windows `Machine` architecture.
 fn pe(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
-    require!(Facts::analyze(prefix, ctx.size, None).is_windows_pebin());
+    require!(analyze_pe_header(prefix, ctx.size).is_windows_pebin());
     Some(Label::Pebin)
 }
 

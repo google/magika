@@ -52,39 +52,175 @@
 
 use super::{u16_at, u32_at};
 
+// =============================================================================
+// DOS, COFF, Optional Header, and Section Table layout constants
+// =============================================================================
+
+/// DOS executable magic (`"MZ"`, `IMAGE_DOS_SIGNATURE = 0x5A4D`).
+const DOS_MAGIC: &[u8; 2] = b"MZ"; // @0..2: IMAGE_DOS_HEADER.e_magic
+/// Offset of `e_lfanew` (file offset of the NT signature) in the DOS header.
+const E_LFANEW_AT: usize = 0x3C; // @0x3C: u32 LE — IMAGE_DOS_HEADER.e_lfanew
+/// Minimum `e_lfanew` accepted (`PE\0\0` may overlap the DOS header after `@0..4`).
+const MIN_E_LFANEW: u32 = 4;
+
+/// Portable Executable NT signature (`"PE\0\0"`, `IMAGE_NT_SIGNATURE = 0x00004550`).
+const PE_SIGNATURE: &[u8; 4] = b"PE\0\0"; // @e_lfanew..+4: NT header signature
+
+/// Size and field offsets of the 20-byte COFF `IMAGE_FILE_HEADER` at `coff = e_lfanew + 4`.
+const COFF_HEADER_LEN: usize = 20;
+const COFF_MACHINE: usize = 0; // @coff+0: u16 LE — Machine
+const COFF_SECTIONS: usize = 2; // @coff+2: u16 LE — NumberOfSections
+const COFF_OPT_HDR_SIZE: usize = 16; // @coff+16: u16 LE — SizeOfOptionalHeader
+const COFF_CHARACTERISTICS: usize = 18; // @coff+18: u16 LE — Characteristics
+
 /// Most sections a valid image declares; a real image has a handful.
 const PE_MAX_SECTIONS: u16 = 96;
 
-/// Position of `e_lfanew`, the offset of the PE signature, in the DOS header.
-const E_LFANEW_AT: usize = 0x3c;
-const PE_SIGNATURE: &[u8] = b"PE\0\0";
-const COFF_HEADER_LEN: usize = 20;
-const SECTION_HEADER_LEN: usize = 40;
-/// Optional header magic of a PE32 image, and the length of its fixed fields.
-const PE32_MAGIC: u16 = 0x10b;
+/// COFF `Characteristics` bitflags (`@coff+18`).
+const CHARACTERISTIC_EXECUTABLE_IMAGE: u16 = 0x0002; // IMAGE_FILE_EXECUTABLE_IMAGE
+const CHARACTERISTIC_DLL: u16 = 0x2000; // IMAGE_FILE_DLL
+
+/// Field offsets of the `IMAGE_OPTIONAL_HEADER` at `opt = coff + 20`.
+const OPT_MAGIC: usize = 0; // @opt+0: u16 LE — Magic (0x010B PE32, 0x020B PE32+)
+const OPT_ENTRY_POINT: usize = 16; // @opt+16: u32 LE — AddressOfEntryPoint
+const OPT_SUBSYSTEM: usize = 68; // @opt+68: u16 LE — Subsystem
+#[cfg(test)]
+const OPT_DLL_CHARACTERISTICS: usize = 70; // @opt+70: u16 LE — DllCharacteristics
+
+/// Optional header magic of a 32-bit PE32 image, and the byte length of its fixed fields.
+const PE32_MAGIC: u16 = 0x010B;
 const PE32_FIXED_LEN: u64 = 96;
-/// Optional header magic of a PE32+ image, and the length of its fixed fields.
-const PE32PLUS_MAGIC: u16 = 0x20b;
+/// Optional header magic of a 64-bit PE32+ image, and the byte length of its fixed fields.
+const PE32PLUS_MAGIC: u16 = 0x020B;
 const PE32PLUS_FIXED_LEN: u64 = 112;
-/// Most data directory entries an optional header declares.
-const DIRECTORY_ENTRIES: u64 = 16;
-/// The data directory entries holding the certificate table and the CLR runtime header.
-const DIRECTORY_CERTIFICATE_TABLE: u64 = 4;
-const DIRECTORY_CLR_RUNTIME_HEADER: u64 = 14;
-/// COFF characteristics: the image is a DLL, and the image is executable (fully linked).
-const CHARACTERISTIC_EXECUTABLE_IMAGE: u16 = 0x0002;
-const CHARACTERISTIC_DLL: u16 = 0x2000;
+
+/// Valid Windows `Subsystem` range (`IMAGE_SUBSYSTEM_NATIVE = 1` ..= `IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION = 16`).
+const SUBSYSTEM_NATIVE: u16 = 1;
+const SUBSYSTEM_WINDOWS_BOOT_APPLICATION: u16 = 16;
+
+/// Size and field offsets of each 40-byte `IMAGE_SECTION_HEADER` at `opt + soh + 40 * i`.
+const SECTION_HEADER_LEN: usize = 40;
+#[cfg(test)]
+const SECT_RAW_SIZE: usize = 16; // @sect+16: u32 LE — SizeOfRawData
+#[cfg(test)]
+const SECT_RAW_PTR: usize = 20; // @sect+20: u32 LE — PointerToRawData
+
+/// Data directory layout constants (`IMAGE_DATA_DIRECTORY`, 8 bytes per entry).
+#[cfg(test)]
+const DIR_COUNT_BACK_OFFSET: usize = 4; // @opt+fixed-4: u32 LE — NumberOfRvaAndSizes
+#[cfg(test)]
+const DIR_ENTRY_LEN: u64 = 8; // 4-byte RVA + 4-byte Size
+#[cfg(test)]
+const DIRECTORY_ENTRIES: u64 = 16; // IMAGE_NUMBEROF_DIRECTORY_ENTRIES
+#[cfg(test)]
+const DIRECTORY_CERTIFICATE_TABLE: u64 = 4; // IMAGE_DIRECTORY_ENTRY_SECURITY
+#[cfg(test)]
+const DIRECTORY_CLR_RUNTIME_HEADER: u64 = 14; // IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR
 
 /// The section table does not lie inside the first block.
+#[cfg(test)]
 const FLAG_SECTIONS_NOT_HELD: u8 = 1 << 0;
 /// The certificate table extends beyond the file.
+#[cfg(test)]
 const FLAG_CERTIFICATE_OUT_OF_FILE: u8 = 1 << 1;
 /// The optional header magic is neither PE32 nor PE32+.
+#[cfg(test)]
 const FLAG_UNKNOWN_MAGIC: u8 = 1 << 2;
 /// At least one section's raw data extends beyond the file.
+#[cfg(test)]
 const FLAG_SECTION_BEYOND_FILE: u8 = 1 << 3;
 
+/// Optional header format flavor (`Magic` at `@opt+0`).
+#[repr(u16)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum OptionalMagic {
+    /// 32-bit PE32 optional header (`0x010B`, 96-byte fixed header).
+    Pe32 = PE32_MAGIC,
+    /// 64-bit PE32+ optional header (`0x020B`, 112-byte fixed header).
+    Pe32Plus = PE32PLUS_MAGIC,
+}
+
+impl OptionalMagic {
+    #[inline]
+    pub(crate) const fn from_u16(raw: u16) -> Option<Self> {
+        match raw {
+            PE32_MAGIC => Some(Self::Pe32),
+            PE32PLUS_MAGIC => Some(Self::Pe32Plus),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub(crate) const fn fixed_len(self) -> u64 {
+        match self {
+            Self::Pe32 => PE32_FIXED_LEN,
+            Self::Pe32Plus => PE32PLUS_FIXED_LEN,
+        }
+    }
+}
+
+/// Shipping Windows COFF `Machine` architectures (`@coff+0`) recognized by `pebin`.
+#[repr(u16)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WindowsMachine {
+    I386 = 0x014C,    // IMAGE_FILE_MACHINE_I386 (x86)
+    Arm = 0x01C0,     // IMAGE_FILE_MACHINE_ARM (ARM little-endian)
+    Thumb = 0x01C2,   // IMAGE_FILE_MACHINE_THUMB (ARM Thumb)
+    ArmNt = 0x01C4,   // IMAGE_FILE_MACHINE_ARMNT (ARM Thumb-2 / Windows RT)
+    Ia64 = 0x0200,    // IMAGE_FILE_MACHINE_IA64 (Intel Itanium)
+    RiscV32 = 0x5032, // IMAGE_FILE_MACHINE_RISCV32 (RISC-V 32-bit)
+    RiscV64 = 0x5064, // IMAGE_FILE_MACHINE_RISCV64 (RISC-V 64-bit)
+    Amd64 = 0x8664,   // IMAGE_FILE_MACHINE_AMD64 (x86-64)
+    Arm64 = 0xAA64,   // IMAGE_FILE_MACHINE_ARM64 (ARM64 little-endian)
+}
+
+impl WindowsMachine {
+    #[inline]
+    pub(crate) const fn from_u16(raw: u16) -> Option<Self> {
+        match raw {
+            0x014C => Some(Self::I386),
+            0x01C0 => Some(Self::Arm),
+            0x01C2 => Some(Self::Thumb),
+            0x01C4 => Some(Self::ArmNt),
+            0x0200 => Some(Self::Ia64),
+            0x5032 => Some(Self::RiscV32),
+            0x5064 => Some(Self::RiscV64),
+            0x8664 => Some(Self::Amd64),
+            0xAA64 => Some(Self::Arm64),
+            _ => None,
+        }
+    }
+}
+
+/// Header-only PE facts read by the enforced `pebin` verifier, computed in $O(1)$ without
+/// walking the data directories or the section table.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct PeHeaderFacts {
+    pub valid: bool,
+    pub machine: u16,
+    pub subsystem: u16,
+    /// Zero for a resource-only image, such as a MUI file.
+    pub entry_point: u32,
+    pub is_dll: bool,
+    pub is_executable_image: bool,
+}
+
+impl PeHeaderFacts {
+    /// Whether these headers satisfy the `taxonomy_pebin` rule: a valid executable image for a
+    /// shipping Windows architecture and subsystem that is not a resource-only DLL.
+    #[inline]
+    pub(crate) const fn is_windows_pebin(&self) -> bool {
+        self.valid
+            && self.is_executable_image
+            && !(self.is_dll && self.entry_point == 0)
+            && self.subsystem >= SUBSYSTEM_NATIVE
+            && self.subsystem <= SUBSYSTEM_WINDOWS_BOOT_APPLICATION
+            && WindowsMachine::from_u16(self.machine).is_some()
+    }
+}
+
 /// The PE facts of one input, all zero when the input holds no PE headers.
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct PeFacts {
     pub valid: bool,
@@ -105,31 +241,52 @@ pub(super) struct PeFacts {
 }
 
 /// Whether the prefix opens a DOS or PE executable, the only inputs analyzed.
+#[inline]
 pub(super) fn wants(prefix: &[u8]) -> bool {
-    prefix.starts_with(b"MZ")
+    prefix.starts_with(DOS_MAGIC)
+}
+
+/// Computes the header-only PE facts read by the enforced `pebin` verifier in $O(1)$ without
+/// reading data directories or walking the section table. Never panics.
+#[inline]
+pub(crate) fn analyze_header(first: &[u8], size: u64) -> PeHeaderFacts {
+    let Some(coff) = locate(first) else { return PeHeaderFacts::default() };
+    let machine = u16_at(first, coff + COFF_MACHINE).unwrap_or(0);
+    let sections = u16_at(first, coff + COFF_SECTIONS).unwrap_or(0);
+    let soh = u64::from(u16_at(first, coff + COFF_OPT_HDR_SIZE).unwrap_or(0));
+    let characteristics = u16_at(first, coff + COFF_CHARACTERISTICS).unwrap_or(0);
+    let is_dll = characteristics & CHARACTERISTIC_DLL != 0;
+    let is_executable_image = characteristics & CHARACTERISTIC_EXECUTABLE_IMAGE != 0;
+    let opt = coff + COFF_HEADER_LEN;
+    let magic = u16_at(first, opt + OPT_MAGIC).unwrap_or(0);
+    let entry_point = u32_at(first, opt + OPT_ENTRY_POINT).unwrap_or(0);
+    let subsystem = u16_at(first, opt + OPT_SUBSYSTEM).unwrap_or(0);
+    let table_end = opt as u64 + soh + SECTION_HEADER_LEN as u64 * u64::from(sections);
+    let valid = OptionalMagic::from_u16(magic).is_some_and(|m| soh >= m.fixed_len())
+        && (1..=PE_MAX_SECTIONS).contains(&sections)
+        && table_end <= first.len() as u64
+        && table_end <= size;
+    PeHeaderFacts { valid, machine, subsystem, entry_point, is_dll, is_executable_image }
 }
 
 /// Analyzes the headers held in `first` (the block at offset 0) of an input of `size`
 /// bytes. Never panics; see the module documentation for the contract.
+#[cfg(test)]
 pub(super) fn analyze(first: &[u8], size: u64) -> PeFacts {
     let mut facts = PeFacts::default();
     let Some(coff) = locate(first) else { return facts };
-    facts.machine = u16_at(first, coff).unwrap_or(0);
-    facts.sections = u16_at(first, coff + 2).unwrap_or(0);
-    let soh = u64::from(u16_at(first, coff + 16).unwrap_or(0));
-    facts.characteristics = u16_at(first, coff + 18).unwrap_or(0);
+    facts.machine = u16_at(first, coff + COFF_MACHINE).unwrap_or(0);
+    facts.sections = u16_at(first, coff + COFF_SECTIONS).unwrap_or(0);
+    let soh = u64::from(u16_at(first, coff + COFF_OPT_HDR_SIZE).unwrap_or(0));
+    facts.characteristics = u16_at(first, coff + COFF_CHARACTERISTICS).unwrap_or(0);
     facts.is_dll = facts.characteristics & CHARACTERISTIC_DLL != 0;
     facts.is_executable_image = facts.characteristics & CHARACTERISTIC_EXECUTABLE_IMAGE != 0;
     let opt = coff + COFF_HEADER_LEN;
-    facts.magic = u16_at(first, opt).unwrap_or(0);
-    facts.entry_point = u32_at(first, opt + 16).unwrap_or(0);
-    facts.subsystem = u16_at(first, opt + 68).unwrap_or(0);
-    facts.dll_characteristics = u16_at(first, opt + 70).unwrap_or(0);
-    let fixed = match facts.magic {
-        PE32_MAGIC => Some(PE32_FIXED_LEN),
-        PE32PLUS_MAGIC => Some(PE32PLUS_FIXED_LEN),
-        _ => None,
-    };
+    facts.magic = u16_at(first, opt + OPT_MAGIC).unwrap_or(0);
+    facts.entry_point = u32_at(first, opt + OPT_ENTRY_POINT).unwrap_or(0);
+    facts.subsystem = u16_at(first, opt + OPT_SUBSYSTEM).unwrap_or(0);
+    facts.dll_characteristics = u16_at(first, opt + OPT_DLL_CHARACTERISTICS).unwrap_or(0);
+    let fixed = OptionalMagic::from_u16(facts.magic).map(OptionalMagic::fixed_len);
     match fixed {
         Some(fixed) => read_directories(first, size, opt, soh, fixed, &mut facts),
         None => facts.flags |= FLAG_UNKNOWN_MAGIC,
@@ -145,8 +302,8 @@ pub(super) fn analyze(first: &[u8], size: u64) -> PeFacts {
     } else {
         for index in 0..usize::from(facts.sections) {
             let header = table as usize + SECTION_HEADER_LEN * index;
-            let raw_size = u64::from(u32_at(first, header + 16).unwrap_or(0));
-            let raw_pointer = u64::from(u32_at(first, header + 20).unwrap_or(0));
+            let raw_size = u64::from(u32_at(first, header + SECT_RAW_SIZE).unwrap_or(0));
+            let raw_pointer = u64::from(u32_at(first, header + SECT_RAW_PTR).unwrap_or(0));
             let extent = raw_pointer + raw_size;
             if extent > size {
                 facts.flags |= FLAG_SECTION_BEYOND_FILE;
@@ -168,15 +325,16 @@ pub(super) fn analyze(first: &[u8], size: u64) -> PeFacts {
 /// Reads the certificate table and CLR runtime header entries of the data directories
 /// declared at `opt + fixed - 4`, each only when the count, the declared optional header
 /// size and `first` all reach it.
+#[cfg(test)]
 fn read_directories(
     first: &[u8], size: u64, opt: usize, soh: u64, fixed: u64, facts: &mut PeFacts,
 ) {
-    let count = u64::from(u32_at(first, opt + fixed as usize - 4).unwrap_or(0));
+    let count = u64::from(u32_at(first, opt + fixed as usize - DIR_COUNT_BACK_OFFSET).unwrap_or(0));
     let entry = |index: u64| -> Option<(u32, u32)> {
-        if index >= count.min(DIRECTORY_ENTRIES) || fixed + 8 * (index + 1) > soh {
+        if index >= count.min(DIRECTORY_ENTRIES) || fixed + DIR_ENTRY_LEN * (index + 1) > soh {
             return None;
         }
-        let at = opt + (fixed + 8 * index) as usize;
+        let at = opt + (fixed + DIR_ENTRY_LEN * index) as usize;
         Some((u32_at(first, at)?, u32_at(first, at + 4)?))
     };
     if let Some((offset, length)) = entry(DIRECTORY_CERTIFICATE_TABLE) {
@@ -196,17 +354,18 @@ fn read_directories(
 
 /// Position of the COFF header in `first`, when the block holds `MZ`, a usable `e_lfanew`,
 /// `PE\0\0` and the 20 COFF bytes after it.
+#[inline]
 fn locate(first: &[u8]) -> Option<usize> {
     if !wants(first) {
         return None;
     }
     let e_lfanew = u32_at(first, E_LFANEW_AT)?;
     let headers_end = u64::from(e_lfanew) + (PE_SIGNATURE.len() + COFF_HEADER_LEN) as u64;
-    if e_lfanew < 4 || headers_end > first.len() as u64 {
+    if e_lfanew < MIN_E_LFANEW || headers_end > first.len() as u64 {
         return None;
     }
     let signature = e_lfanew as usize;
-    if first.get(signature..signature + PE_SIGNATURE.len())? != PE_SIGNATURE {
+    if first.get(signature..signature + PE_SIGNATURE.len()) != Some(PE_SIGNATURE.as_slice()) {
         return None;
     }
     Some(signature + PE_SIGNATURE.len())
@@ -323,7 +482,22 @@ pub(super) mod tests {
     }
 
     fn facts_of(bytes: &[u8]) -> PeFacts {
-        analyze(&bytes[..bytes.len().min(4096)], bytes.len() as u64)
+        let first = &bytes[..bytes.len().min(4096)];
+        let size = bytes.len() as u64;
+        let full = analyze(first, size);
+        let hdr = analyze_header(first, size);
+        assert_eq!(
+            hdr,
+            PeHeaderFacts {
+                valid: full.valid,
+                machine: full.machine,
+                subsystem: full.subsystem,
+                entry_point: full.entry_point,
+                is_dll: full.is_dll,
+                is_executable_image: full.is_executable_image,
+            }
+        );
+        full
     }
 
     fn valid_pe32() -> PeFacts {
@@ -346,7 +520,20 @@ pub(super) mod tests {
     }
 
     /// The invariants every analysis upholds, whatever the input.
-    fn check(facts: &PeFacts, size: u64) {
+    fn check(first: &[u8], size: u64) {
+        let facts = analyze(first, size);
+        let hdr = analyze_header(first, size);
+        assert_eq!(
+            hdr,
+            PeHeaderFacts {
+                valid: facts.valid,
+                machine: facts.machine,
+                subsystem: facts.subsystem,
+                entry_point: facts.entry_point,
+                is_dll: facts.is_dll,
+                is_executable_image: facts.is_executable_image,
+            }
+        );
         if facts.valid {
             assert_eq!(facts.flags & (FLAG_SECTIONS_NOT_HELD | FLAG_UNKNOWN_MAGIC), 0, "{facts:?}");
             assert!((1..=PE_MAX_SECTIONS).contains(&facts.sections), "{facts:?}");
@@ -623,11 +810,11 @@ pub(super) mod tests {
                     let mut mutated = original.clone();
                     mutated[at] = value;
                     let size = mutated.len() as u64;
-                    check(&analyze(&mutated[..held], size), size);
+                    check(&mutated[..held], size);
                     // Truncations, and sizes disagreeing with the block, are reachable too.
-                    check(&analyze(&mutated[..at], at as u64), at as u64);
-                    check(&analyze(&mutated[..held], 1 << 40), 1 << 40);
-                    check(&analyze(&mutated[..held], 0), 0);
+                    check(&mutated[..at], at as u64);
+                    check(&mutated[..held], 1 << 40);
+                    check(&mutated[..held], 0);
                 }
             }
         }

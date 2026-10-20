@@ -36,6 +36,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::time::{Duration, Instant};
 
 use magika_rules::{Input, Outcome, RuleSet, PREFIX_LIMIT};
+use rayon::prelude::*;
 
 /// Dataset classes that refine a Magika label with no label of their own.
 const REFINES: &[(&str, &str)] = &[
@@ -124,87 +125,132 @@ const REFUTED: &[(&str, &str, &str, &[&str])] = &[
 #[test]
 #[ignore = "needs MAGIKA_RULES_DATASET, a manifest exported from the evaluation dataset"]
 fn bundled_rules_never_contradict_a_validated_label() {
-    let manifest = std::env::var("MAGIKA_RULES_DATASET").expect("MAGIKA_RULES_DATASET");
-    let rules = RuleSet::bundled();
-    let (mut files, mut verified, mut hits, mut agreements) = (0usize, 0usize, 0usize, 0usize);
-    let (mut bytes_scanned, mut elapsed) = (0usize, Duration::ZERO);
-    let mut false_positives = Vec::new();
-    let mut disagreements: BTreeMap<(String, String), usize> = BTreeMap::new();
-    let mut prefix = vec![0u8; PREFIX_LIMIT];
-    for line in std::fs::read_to_string(&manifest).unwrap().lines() {
-        let [sha256, format_id, status, magika_labels, path] =
-            line.split('\t').collect::<Vec<_>>()[..]
-        else {
-            panic!("malformed manifest line: {line}")
-        };
-        let refuted = REFUTED.iter().find(|(_, _, _, samples)| samples.contains(&sha256));
-        let accepts = |label: &str| match refuted {
-            Some((_, proven, _, _)) => label == *proven,
-            None => {
-                label == format_id
-                    || magika_labels.split(',').any(|l| l == label)
-                    || REFINES.contains(&(format_id, label))
-            }
-        };
-        let mut file = std::fs::File::open(path).unwrap();
-        let size = file.metadata().unwrap().len();
-        let wanted = size.min(PREFIX_LIMIT as u64) as usize;
-        file.read_exact(&mut prefix[..wanted]).unwrap();
-        // The tail a caller reads: the last `tail_len` bytes, back to `tail_start` if needed.
-        let mut tail = vec![0; rules.tail_len(&prefix[..wanted], size)];
-        file.seek(SeekFrom::Start(size - tail.len() as u64)).unwrap();
-        file.read_exact(&mut tail).unwrap();
-        if let Some(start) = rules.tail_start(&tail, size) {
-            tail = vec![0; (size - start) as usize];
-            file.seek(SeekFrom::Start(start)).unwrap();
-            file.read_exact(&mut tail).unwrap();
-        }
-        let validated = status.starts_with("validated_");
-        files += 1;
-        verified += usize::from(validated);
-        bytes_scanned += wanted;
-        let start = Instant::now();
-        let tail = (!tail.is_empty()).then_some(tail.as_slice());
-        let outcome = rules.scan(Input { prefix: &prefix[..wanted], size, tail });
-        elapsed += start.elapsed();
-        let said = match &outcome {
-            Outcome::Match(labels) => match &labels[..] {
-                [i] if accepts(&rules.labels()[*i]) => {
-                    if validated {
-                        hits += 1;
-                    } else {
-                        agreements += 1;
-                    }
-                    continue;
-                }
-                [i] => rules.labels()[*i].clone(),
-                [] if refuted.is_some() => "<no match>".to_string(),
-                [] => continue,
-                labels => {
-                    let names: Vec<_> =
-                        labels.iter().map(|&i| rules.labels()[i].as_str()).collect();
-                    format!("<conflict: {}>", names.join(", "))
-                }
-            },
-            Outcome::InsufficientInput if refuted.is_some() => "<no match>".to_string(),
-            Outcome::InsufficientInput => continue,
-        };
-        if validated {
-            false_positives.push(format!("{sha256} {format_id} ({status}): rules say {said}"));
-        } else {
-            *disagreements.entry((format_id.to_string(), said)).or_default() += 1;
-        }
+    #[derive(Default)]
+    struct Shard {
+        files: usize,
+        verified: usize,
+        hits: usize,
+        agreements: usize,
+        bytes_scanned: usize,
+        elapsed: Duration,
+        false_positives: Vec<String>,
+        disagreements: BTreeMap<(String, String), usize>,
     }
-    let mean = elapsed / files.max(1) as u32;
+
+    let manifest = std::env::var("MAGIKA_RULES_DATASET").expect("MAGIKA_RULES_DATASET");
+    let content = std::fs::read_to_string(&manifest).unwrap();
+    let lines: Vec<&str> = content.lines().collect();
+    let rules = RuleSet::bundled();
+    let wall_start = Instant::now();
+
+    let total = lines
+        .par_iter()
+        .fold(
+            || (Shard::default(), vec![0u8; PREFIX_LIMIT]),
+            |(mut shard, mut prefix), &line| {
+                let [sha256, format_id, status, magika_labels, path] =
+                    line.split('\t').collect::<Vec<_>>()[..]
+                else {
+                    panic!("malformed manifest line: {line}")
+                };
+                let refuted = REFUTED.iter().find(|(_, _, _, samples)| samples.contains(&sha256));
+                let accepts = |label: &str| match refuted {
+                    Some((_, proven, _, _)) => label == *proven,
+                    None => {
+                        label == format_id
+                            || magika_labels.split(',').any(|l| l == label)
+                            || REFINES.contains(&(format_id, label))
+                    }
+                };
+                let mut file = std::fs::File::open(path).unwrap();
+                let size = file.metadata().unwrap().len();
+                let wanted = size.min(PREFIX_LIMIT as u64) as usize;
+                file.read_exact(&mut prefix[..wanted]).unwrap();
+                // The tail a caller reads: the last `tail_len` bytes, back to `tail_start` if needed.
+                let mut tail = vec![0; rules.tail_len(&prefix[..wanted], size)];
+                file.seek(SeekFrom::Start(size - tail.len() as u64)).unwrap();
+                file.read_exact(&mut tail).unwrap();
+                if let Some(start) = rules.tail_start(&tail, size) {
+                    tail = vec![0; (size - start) as usize];
+                    file.seek(SeekFrom::Start(start)).unwrap();
+                    file.read_exact(&mut tail).unwrap();
+                }
+                let validated = status.starts_with("validated_");
+                shard.files += 1;
+                shard.verified += usize::from(validated);
+                shard.bytes_scanned += wanted;
+                let start = Instant::now();
+                let tail = (!tail.is_empty()).then_some(tail.as_slice());
+                let outcome = rules.scan(Input { prefix: &prefix[..wanted], size, tail });
+                shard.elapsed += start.elapsed();
+                let said = match &outcome {
+                    Outcome::Match(labels) => match &labels[..] {
+                        [i] if accepts(&rules.labels()[*i]) => {
+                            if validated {
+                                shard.hits += 1;
+                            } else {
+                                shard.agreements += 1;
+                            }
+                            return (shard, prefix);
+                        }
+                        [i] => rules.labels()[*i].clone(),
+                        [] if refuted.is_some() => "<no match>".to_string(),
+                        [] => return (shard, prefix),
+                        labels => {
+                            let names: Vec<_> =
+                                labels.iter().map(|&i| rules.labels()[i].as_str()).collect();
+                            format!("<conflict: {}>", names.join(", "))
+                        }
+                    },
+                    Outcome::InsufficientInput if refuted.is_some() => "<no match>".to_string(),
+                    Outcome::InsufficientInput => return (shard, prefix),
+                };
+                if validated {
+                    shard
+                        .false_positives
+                        .push(format!("{sha256} {format_id} ({status}): rules say {said}"));
+                } else {
+                    *shard.disagreements.entry((format_id.to_string(), said)).or_default() += 1;
+                }
+                (shard, prefix)
+            },
+        )
+        .map(|(shard, _)| shard)
+        .reduce(Shard::default, |mut a, mut b| {
+            a.files += b.files;
+            a.verified += b.verified;
+            a.hits += b.hits;
+            a.agreements += b.agreements;
+            a.bytes_scanned += b.bytes_scanned;
+            a.elapsed += b.elapsed;
+            a.false_positives.append(&mut b.false_positives);
+            for (k, v) in b.disagreements {
+                *a.disagreements.entry(k).or_default() += v;
+            }
+            a
+        });
+
+    let wall_elapsed = wall_start.elapsed();
+    let mean = total.elapsed / total.files.max(1) as u32;
+    let wall_mean = wall_elapsed / total.files.max(1) as u32;
     eprintln!(
-        "dataset: {files} files ({verified} validated), {hits} validated hits, \
-         {agreements} unverified agreements, {} false positives, {} unverified disagreements; \
-         {bytes_scanned} prefix bytes, mean scan {mean:?}",
-        false_positives.len(),
-        disagreements.values().sum::<usize>(),
+        "dataset: {} files ({} validated), {} validated hits, \
+         {} unverified agreements, {} false positives, {} unverified disagreements; \
+         {} prefix bytes, mean cpu scan {mean:?}, wall {wall_elapsed:?} ({wall_mean:?}/file)",
+        total.files,
+        total.verified,
+        total.hits,
+        total.agreements,
+        total.false_positives.len(),
+        total.disagreements.values().sum::<usize>(),
+        total.bytes_scanned,
     );
-    for ((format_id, said), count) in &disagreements {
+    for ((format_id, said), count) in &total.disagreements {
         eprintln!("  unverified {format_id} -> {said}: {count}");
     }
-    assert!(false_positives.is_empty(), "false positives:\n{}", false_positives.join("\n"));
+    assert!(
+        total.false_positives.is_empty(),
+        "false positives:\n{}",
+        total.false_positives.join("\n")
+    );
 }

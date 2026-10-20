@@ -431,6 +431,7 @@ version = "0.1.0-dev"
 dependencies = [
  "memchr",
  "miniz_oxide",
+ "rayon",
 ]
 
 [[package]]

@@ -3316,6 +3316,16 @@ pub(crate) fn scan(input: Input<'_>) -> Outcome {
     }
 }
 
+/// Validates `input` window invariants and runs [`identify`] without allocating a [`Vec`].
+#[inline]
+pub(crate) fn scan_one(input: Input<'_>) -> Option<usize> {
+    if input.prefix.is_empty() || input.prefix.len() as u64 != input.size.min(PREFIX_LIMIT as u64) {
+        return None;
+    }
+    let ctx = Ctx::new(input);
+    identify(&ctx).map(|label| label as usize)
+}
+
 /// Runs the native cascade and returns the matched label names, or `None` on `InsufficientInput`.
 pub(crate) fn scan_names(input: Input<'_>) -> Option<Vec<&'static str>> {
     if input.prefix.is_empty() || input.prefix.len() as u64 != input.size.min(PREFIX_LIMIT as u64) {

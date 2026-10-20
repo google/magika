@@ -17,7 +17,7 @@ use std::path::Path;
 use std::sync::{Arc, LazyLock};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
-use magika_rules::{Class, Outcome, RuleSet, Source};
+use magika_rules::{Class, RuleSet, Source};
 
 use crate::ContentType;
 use crate::cached_input::CachedInput;
@@ -94,9 +94,9 @@ impl Rules {
         }
         let prefix = file.prefix(prefix_len);
         let tail = (tail_len > 0).then(|| file.suffix(tail_len));
-        Ok(match rules.set.scan(magika_rules::Input { prefix, size, tail }) {
-            Outcome::Match(labels) => labels.into_iter().map(|i| rules.content_types[i]).collect(),
-            Outcome::InsufficientInput => Vec::new(),
+        Ok(match rules.set.scan_one(magika_rules::Input { prefix, size, tail }) {
+            Some(i) => vec![rules.content_types[i]],
+            None => Vec::new(),
         })
     }
 

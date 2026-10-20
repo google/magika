@@ -84,8 +84,8 @@ impl RuleSet {
     }
 
     /// How many of the last bytes of an input a scan should get as [`Input::tail`]: none unless
-    /// `prefix` opens a zip archive whose end it does not hold, and only when the prefix alone
-    /// does not already decide the subtype (`apk_prefix` / `epub_prefix`).
+    /// `prefix` opens a zip archive whose end it does not hold and whose format is not already
+    /// decided from its local file headers alone.
     pub fn tail_len(&self, prefix: &[u8], size: u64) -> usize {
         if !facts::wants_tail(prefix)
             || size <= prefix.len() as u64
@@ -105,6 +105,29 @@ impl RuleSet {
     /// Scans one input through the layered native dispatch cascade. Never panics.
     pub fn scan(&self, input: Input<'_>) -> Outcome {
         magic::scan(input)
+    }
+
+    /// Scans one input through the layered native dispatch cascade without allocating a [`Vec`],
+    /// returning the matched index into [`RuleSet::labels`] or `None` when no rule matched (or
+    /// the input failed the prefix window invariant). Never panics.
+    #[inline]
+    pub fn scan_one(&self, input: Input<'_>) -> Option<usize> {
+        magic::scan_one(input)
+    }
+
+    /// Scans a slice of inputs in parallel across the global Rayon thread pool, returning one
+    /// [`Outcome`] per input in slice order. Never panics.
+    pub fn scan_batch(&self, inputs: &[Input<'_>]) -> Vec<Outcome> {
+        use rayon::prelude::*;
+        inputs.par_iter().map(|&input| magic::scan(input)).collect()
+    }
+
+    /// Scans a slice of inputs in parallel across the global Rayon thread pool without per-item
+    /// heap allocations, returning one `Option<usize>` index into [`RuleSet::labels`] per input
+    /// in slice order. Never panics.
+    pub fn scan_batch_one(&self, inputs: &[Input<'_>]) -> Vec<Option<usize>> {
+        use rayon::prelude::*;
+        inputs.par_iter().map(|&input| magic::scan_one(input)).collect()
     }
 }
 
@@ -249,6 +272,29 @@ mod tests {
         assert_eq!(label(&rules, &resources.build(), false), None);
         // Other inputs never need a tail.
         assert_eq!(rules.tail_len(b"%PDF-1.7", 1 << 20), 0);
+
+        // `scan_batch` matches sequential `scan` element-for-element across the Rayon pool.
+        let pe = pe32().build();
+        let res_bytes = resources.build();
+        let batch = [
+            Input {
+                prefix: &docx[..docx.len().min(PREFIX_LIMIT)],
+                size: docx.len() as u64,
+                tail: Some(&docx),
+            },
+            Input { prefix: &jar[..PREFIX_LIMIT], size: jar.len() as u64, tail: Some(&jar) },
+            Input { prefix: &pe[..pe.len().min(PREFIX_LIMIT)], size: pe.len() as u64, tail: None },
+            Input {
+                prefix: &res_bytes[..res_bytes.len().min(PREFIX_LIMIT)],
+                size: res_bytes.len() as u64,
+                tail: None,
+            },
+            Input { prefix: &[], size: 0, tail: None },
+        ];
+        let expected: Vec<_> = batch.iter().map(|&inp| rules.scan(inp)).collect();
+        assert_eq!(rules.scan_batch(&batch), expected);
+        let expected_one: Vec<_> = batch.iter().map(|&inp| rules.scan_one(inp)).collect();
+        assert_eq!(rules.scan_batch_one(&batch), expected_one);
     }
 
     #[test]

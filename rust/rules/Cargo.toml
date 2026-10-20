@@ -19,6 +19,7 @@ bundled = []
 [dependencies]
 memchr = "2.7"
 miniz_oxide = "0.8.9"
+rayon = "1.10"
 
 [dev-dependencies]
 serde_json = "1"

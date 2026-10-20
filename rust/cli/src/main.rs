@@ -181,10 +181,10 @@ struct Experimental {
 
     /// Number of resident threads reading files and extracting features.
     ///
-    /// Reading costs far less than inference, so this defaults to one per inference thread, which
-    /// is already more than a run makes use of.
-    #[arg(hide = true, long, default_value = "1")]
-    readers: usize,
+    /// Reading and rule evaluation cost less per file than ONNX inference when the cascade misses,
+    /// so this defaults to `threads.min(16)` to cap reader contention on high-core-count machines.
+    #[arg(hide = true, long)]
+    readers: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
@@ -349,9 +349,9 @@ fn main() -> Result<()> {
         default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
     });
     ensure!((1..=256).contains(&threads), "--threads must be between 1 and 256");
-    let readers = flags.experimental.readers;
+    let readers = flags.experimental.readers.unwrap_or_else(|| threads.min(16));
     ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
-    let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
+    let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers * batch_size);
     let (read_sender, read_receiver) =
         std::sync::mpsc::sync_channel::<ReadItem>(threads.max(1) * batch_size);
     let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
@@ -413,55 +413,57 @@ fn main() -> Result<()> {
         }
     })?);
     drop(batch_sender);
-    join_handles.push(std::thread::Builder::new().name("magika-model".to_string()).spawn({
-        let flags = flags.clone();
-        let batch_receiver = batch_receiver.clone();
-        let result_sender = result_sender.clone();
-        #[cfg(feature = "_trace")]
-        let trace = trace.clone();
-        move || {
-            let backend = flags.experimental.backend;
-            let backends = match Backends::start(builder, backend, flags.experimental.threads) {
-                Ok(backends) => backends,
-                Err(error) => return drop(result_sender.send(Err(error))),
-            };
-            let (backends, batch_receiver, result_sender) =
-                (&backends, &batch_receiver, &result_sender);
+    if !rules_only {
+        join_handles.push(std::thread::Builder::new().name("magika-model".to_string()).spawn({
+            let flags = flags.clone();
+            let batch_receiver = batch_receiver.clone();
+            let result_sender = result_sender.clone();
             #[cfg(feature = "_trace")]
-            let trace = &trace;
-            std::thread::scope(|scope| {
-                // Each starting worker holds `done` until it finishes, which is when the run ends.
-                let spawn = |worker: usize, done: Option<crossbeam_channel::Sender<()>>| {
-                    let spawned = std::thread::Builder::new()
-                        .name(format!("magika-infer-{worker}"))
-                        .spawn_scoped(scope, move || {
-                            let _done = done;
-                            #[cfg(feature = "_trace")]
-                            let start = Stage::start();
-                            if let Err(error) =
-                                infer_batches(backends, batch_receiver, result_sender)
-                            {
-                                let _ = result_sender.send(Err(error));
-                            }
-                            #[cfg(feature = "_trace")]
-                            trace.insert(Stage::finalize(start));
-                        });
-                    if let Err(error) = spawned {
-                        let _ = result_sender.send(Err(error.into()));
-                    }
+            let trace = trace.clone();
+            move || {
+                let backend = flags.experimental.backend;
+                let backends = match Backends::start(builder, backend, flags.experimental.threads) {
+                    Ok(backends) => backends,
+                    Err(error) => return drop(result_sender.send(Err(error))),
                 };
-                let (done, finished) = crossbeam_channel::bounded(0);
-                for worker in 0..backends.starting() {
-                    spawn(worker, Some(done.clone()));
-                }
-                drop(done);
-                let starting = backends.starting();
-                for worker in starting..starting + backends.more_workers(&finished) {
-                    spawn(worker, None);
-                }
-            });
-        }
-    })?);
+                let (backends, batch_receiver, result_sender) =
+                    (&backends, &batch_receiver, &result_sender);
+                #[cfg(feature = "_trace")]
+                let trace = &trace;
+                std::thread::scope(|scope| {
+                    // Each starting worker holds `done` until it finishes, which is when the run ends.
+                    let spawn = |worker: usize, done: Option<crossbeam_channel::Sender<()>>| {
+                        let spawned = std::thread::Builder::new()
+                            .name(format!("magika-infer-{worker}"))
+                            .spawn_scoped(scope, move || {
+                                let _done = done;
+                                #[cfg(feature = "_trace")]
+                                let start = Stage::start();
+                                if let Err(error) =
+                                    infer_batches(backends, batch_receiver, result_sender)
+                                {
+                                    let _ = result_sender.send(Err(error));
+                                }
+                                #[cfg(feature = "_trace")]
+                                trace.insert(Stage::finalize(start));
+                            });
+                        if let Err(error) = spawned {
+                            let _ = result_sender.send(Err(error.into()));
+                        }
+                    };
+                    let (done, finished) = crossbeam_channel::bounded(0);
+                    for worker in 0..backends.starting() {
+                        spawn(worker, Some(done.clone()));
+                    }
+                    drop(done);
+                    let starting = backends.starting();
+                    for worker in starting..starting + backends.more_workers(&finished) {
+                        spawn(worker, None);
+                    }
+                });
+            }
+        })?);
+    }
     drop(batch_receiver);
     drop(result_sender);
     let mut errors = false;

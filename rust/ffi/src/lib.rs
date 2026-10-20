@@ -358,20 +358,21 @@ fn file_type_to_c(file_type: &magika::FileType) -> &'static MagikaTypeInfo {
     match file_type {
         magika::FileType::Directory => &content::DIRECTORY,
         magika::FileType::Symlink => &content::SYMLINK,
-        magika::FileType::Regular { content_types, .. } => {
-            content::content_type_info(content_types[0])
-        }
+        magika::FileType::Regular(x) => content::content_type_info(x.content_type()),
         magika::FileType::Unsupported => &content::UNSUPPORTED,
         _ => unreachable!(),
     }
 }
 
-unsafe fn identify(
+unsafe fn identify<T: Into<magika::FileType>>(
     session: *mut MagikaSession, out_result: *mut *const MagikaTypeInfo,
-    f: impl FnOnce(&mut magika::Session) -> anyhow::Result<magika::FileType>,
+    f: impl FnOnce(&mut magika::Session) -> anyhow::Result<T>,
 ) -> MagikaStatus {
     *out_result = std::ptr::null();
-    catch_unwind(|| f(&mut (*session).inner), |file_type| *out_result = file_type_to_c(&file_type))
+    catch_unwind(
+        || f(&mut (*session).inner),
+        |file_type| *out_result = file_type_to_c(&file_type.into()),
+    )
 }
 
 unsafe fn parse_path<'a>(path: *const c_char) -> Option<&'a std::path::Path> {
@@ -427,17 +428,17 @@ pub unsafe extern "C" fn magika_identify_content(
     identify(session, out_result, |sess| sess.identify_content(bytes))
 }
 
-unsafe fn extract_features(
+unsafe fn extract_features<T: Into<magika::FileType>>(
     out_features: *mut *mut MagikaFeatures, out_result: *mut *const MagikaTypeInfo,
-    f: impl FnOnce() -> anyhow::Result<magika::FeaturesOrRuled>,
+    f: impl FnOnce() -> anyhow::Result<magika::FeaturesOr<T>>,
 ) -> MagikaStatus {
     catch_unwind(f, |result| match result {
-        magika::FeaturesOrRuled::Features(features) => {
+        magika::FeaturesOr::Features(features) => {
             *out_features = Box::into_raw(Box::new(MagikaFeatures { inner: features }));
         }
-        magika::FeaturesOrRuled::Ruled(file_type) => {
+        magika::FeaturesOr::Ruled(file_type) => {
             if !out_result.is_null() {
-                *out_result = file_type_to_c(&file_type);
+                *out_result = file_type_to_c(&file_type.into());
             }
         }
     })
@@ -476,7 +477,7 @@ pub unsafe extern "C" fn magika_features_extract_file(
     let options =
         if options.is_null() { magika::Options::default() } else { (*options).to_options() };
     extract_features(out_features, out_result, || {
-        magika::FeaturesOrRuled::extract_file(path_ref, &options)
+        magika::FeaturesOr::extract_file(path_ref, &options)
     })
 }
 
@@ -513,7 +514,7 @@ pub unsafe extern "C" fn magika_features_extract_content(
     let options =
         if options.is_null() { magika::Options::default() } else { (*options).to_options() };
     extract_features(out_features, out_result, || {
-        magika::FeaturesOrRuled::extract_content(bytes, &options)
+        magika::FeaturesOr::extract_content(bytes, &options)
     })
 }
 
@@ -568,7 +569,7 @@ pub unsafe extern "C" fn magika_identify_features_batch(
         },
         |file_types| {
             for (i, file_type) in file_types.into_iter().enumerate() {
-                *out_results.add(i) = file_type_to_c(&file_type);
+                *out_results.add(i) = file_type_to_c(&file_type.into());
             }
         },
     )

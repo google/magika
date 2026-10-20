@@ -23,8 +23,8 @@ use anyhow::{Result, ensure};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::{
-    self, Backend, ContentType, Features, FeaturesOrRuled, FileType, ModelDebugInfo,
-    OverwriteReason, Rules, Runtime, TypeInfo,
+    self, Backend, ContentType, Features, FeaturesOr, FileType, ModelDebugInfo, OverwriteReason,
+    RegularFileType, Rules, Runtime, TypeInfo,
 };
 use serde::Serialize;
 
@@ -579,7 +579,7 @@ fn batch_files(
     let mut batch = Vec::with_capacity(batch_size);
     while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
-            Ok(FeaturesOrRuled::Features(features)) => {
+            Ok(FeaturesOr::Features(features)) => {
                 debug_assert!(!rules_only);
                 batch.push(BatchItem { pending, features });
                 if batch.len() == batch_size {
@@ -587,8 +587,8 @@ fn batch_files(
                     batch_sender.send(full)?;
                 }
             }
-            Ok(FeaturesOrRuled::Ruled(file_type)) => {
-                result_sender.send(Ok(Response::new(pending, Ok(file_type))))?;
+            Ok(FeaturesOr::Ruled(file_type)) => {
+                result_sender.send(Ok(Response::new(pending, Ok(file_type.into()))))?;
             }
             Err(error) => {
                 result_sender.send(Ok(Response::new(pending, Err(error))))?;
@@ -602,13 +602,13 @@ fn batch_files(
 }
 
 /// Reads a file and extracts its features, unless rules identify it.
-fn extract_path(path: &Path, options: &magika::Options) -> Result<FeaturesOrRuled> {
+fn extract_path(path: &Path, options: &magika::Options) -> Result<FeaturesOr<RegularFileType>> {
     if path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract_content(&stdin[..], options);
+        return FeaturesOr::extract_content(&stdin[..], options);
     }
-    FeaturesOrRuled::extract_content(std::fs::File::open(path)?, options)
+    FeaturesOr::extract_content(std::fs::File::open(path)?, options)
 }
 
 enum ProcessPath {
@@ -624,7 +624,7 @@ struct Pending {
 
 struct ReadItem {
     pending: Pending,
-    extracted: Result<FeaturesOrRuled>,
+    extracted: Result<FeaturesOr<RegularFileType>>,
 }
 
 struct BatchItem {
@@ -733,7 +733,7 @@ fn infer_batches(
         let results = magika.identify_features_batch(&features)?;
         debug_assert_eq!(results.len(), batch.len());
         for (item, output) in batch.into_iter().zip(results) {
-            let result = Ok(output);
+            let result = Ok(output.into());
             sender.send(Ok(Response::new(item.pending, result)))?;
         }
     }

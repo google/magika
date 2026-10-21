@@ -68,14 +68,14 @@ fn reference_decisions_match_on_every_gpu_batch() {
                 _ => panic!("fixture must identify exactly one input"),
             };
             let expected = fixture.prediction.unwrap();
-            match FeaturesOrRuled::extract_content(bytes.as_slice(), &options).unwrap() {
-                FeaturesOrRuled::Ruled(kind) => {
+            match FeaturesOr::extract_content(bytes.as_slice(), &options).unwrap() {
+                FeaturesOr::Ruled(kind) => {
                     assert_prediction(kind, expected, &name);
                 }
-                FeaturesOrRuled::Features(features) => {
+                FeaturesOr::Features(features) => {
                     let reference = cpu.run(&features.features, 1).unwrap();
                     num_labels = reference.len();
-                    let reference = FileType::convert(
+                    let reference = RegularFileType::convert(
                         &options,
                         &[&features],
                         ArrayView2::from_shape((1, num_labels), &reference).unwrap().into_dyn(),
@@ -108,7 +108,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
             let scores = gpu.run(&input, batch).unwrap();
             assert_eq!(scores.len(), batch * num_labels);
             let features: Vec<_> = rows.iter().map(|s| &s.features).collect();
-            let predictions = FileType::convert(
+            let predictions = RegularFileType::convert(
                 &options,
                 &features,
                 ArrayView2::from_shape((batch, num_labels), &scores).unwrap().into_dyn(),
@@ -127,8 +127,7 @@ fn reference_decisions_match_on_every_gpu_batch() {
                     "{context}: probabilities do not sum to one"
                 );
                 assert_eq!(actual.info().label, sample.cpu_output, "{context}");
-                let FileType::Regular { content_types, debug_info: Some(debug_info) } = actual
-                else {
+                let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
                     panic!("expected regular file with debug info: {context}")
                 };
                 let [content_type] = content_types[..] else { unreachable!() };

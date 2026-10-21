@@ -1,19 +1,20 @@
 #  Default owners (lowest precedence).
 * @reyammer @invernizzi
 
-# Julien owns the Rust code
-/rust/ @ia0
-
 # Yanick owns the Python code, all docs, and test data
 /python/ @reyammer
 *.md @reyammer
 /tests_data/ @reyammer
 
-# Julien still owns the Rust docs
-/rust/**/*.md @ia0
-# Yanick owns generated Rust files from knowledge base
-/rust/lib/src/content.rs @reyammer
+# Julien owns the Rust code, docs, and tests
+/rust/ @ia0
+# But Yanick owns ML, KB, and YARA related files (including generated ones)
 /rust/ffi/src/content.rs @reyammer
+/rust/lib/src/content.rs @reyammer
+/rust/lib/src/model.rs @reyammer
+/rust/rules/**/*.yar @reyammer
+/rust/rules/src/bundled.rs @reyammer
+/rust/tract-runtime/models/ @reyammer
 
 # Luca owns the JS code, docs, and website
 /js/ @invernizzi

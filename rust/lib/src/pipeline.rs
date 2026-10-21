@@ -22,7 +22,7 @@
 //! - [`Pipeline`] walks paths, reads them in parallel, and returns their results in order.
 
 pub use self::engine::{Engine, EngineSession};
-pub use self::paths::{DirectoryCycle, Identified, Pipeline, PipelineOptions};
+pub use self::paths::{DIRECTORY_CYCLE, Identified, Pipeline, PipelineOptions};
 
 mod engine;
 mod paths;

@@ -16,7 +16,7 @@
 
 ### Minor
 
-- Add the `pipeline` feature with `pipeline::Engine`, to identify from any thread on the CPU while a GPU is prepared, and `pipeline::Pipeline`, to identify many paths in parallel and in order
+- Add `pipeline` feature identify many paths in parallel
 - Add `Rules` and `Options::custom_rules` for custom rules
 - Add `TypeInfo::{possible,model}_output()` to list possible outputs
 - Add the `rules` feature to identify files with format rules before inference

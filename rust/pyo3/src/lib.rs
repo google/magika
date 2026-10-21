@@ -14,6 +14,7 @@
 
 use std::cell::RefCell;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 
 use magika::pipeline::{Engine, EngineSession, Pipeline, PipelineOptions};
@@ -175,7 +176,7 @@ fn get_shared_engine() -> anyhow::Result<&'static Arc<Engine>> {
 }
 
 thread_local! {
-    static SESSION: RefCell<Option<EngineSession<'static>>> = const { RefCell::new(None) };
+    static SESSION: RefCell<Option<(usize, EngineSession<'static>)>> = const { RefCell::new(None) };
 }
 
 /// The result of an error identifying a path, as a result rather than an exception for I/O.
@@ -201,17 +202,22 @@ fn from_error(error: anyhow::Error, path: &str) -> PyMagikaResult {
 
 #[pyclass(name = "Magika")]
 pub struct PyMagika {
+    id: usize,
     options: Options,
 }
 
 impl PyMagika {
     fn with_session<R>(
-        &self, f: impl FnOnce(&mut EngineSession<'static>, &Options) -> anyhow::Result<R>,
+        &self, f: impl FnOnce(&mut EngineSession<'static>) -> anyhow::Result<R>,
     ) -> anyhow::Result<R> {
         let engine: &'static Engine = get_shared_engine()?;
         SESSION.with(|cell| {
             let mut slot = cell.borrow_mut();
-            f(slot.get_or_insert_with(|| engine.session()), &self.options)
+            let session = match &mut *slot {
+                Some((id, session)) if *id == self.id => session,
+                slot => &mut slot.insert((self.id, engine.session(Some(self.options.clone())))).1,
+            };
+            f(session)
         })
     }
 }
@@ -257,13 +263,13 @@ impl PyMagika {
         options.prediction_mode = prediction_mode;
         options.follow_symlink = follow_symlink;
         options.debug_mode = true;
-        Ok(Self { options })
+        static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        Ok(Self { id, options })
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
-        let result = py.detach(|| {
-            self.with_session(|session, options| session.identify_content(data, options))
-        });
+        let result = py.detach(|| self.with_session(|session| session.identify_content(data)));
         match result {
             Ok(file_type) => Ok(from_file_type(&file_type.into(), None)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
@@ -271,8 +277,7 @@ impl PyMagika {
     }
 
     fn identify_path(&self, py: Python<'_>, path: &str) -> PyResult<PyMagikaResult> {
-        let result = py
-            .detach(|| self.with_session(|session, options| session.identify_file(path, options)));
+        let result = py.detach(|| self.with_session(|session| session.identify_file(path)));
         match result {
             Ok(file_type) => Ok(from_file_type(&file_type, Some(path.to_string()))),
             Err(e) if e.downcast_ref::<std::io::Error>().is_some() => Ok(from_error(e, path)),

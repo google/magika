@@ -20,8 +20,8 @@ use anyhow::{Context, Result, anyhow};
 use crossbeam_channel::Receiver;
 
 use crate::{
-    Backend, BackendInfo, Builder, Features, FeaturesOr, FileType, Input, Options, RegularFileType,
-    Runtime, Session,
+    Backend, BackendInfo, Builder, Features, FileType, Input, Options, RegularFileType, Runtime,
+    Session,
 };
 
 /// Batches smaller than this stay on the CPU in automatic mode: a GPU only pays off on full ones.
@@ -35,7 +35,7 @@ const GPU_MIN_BATCH: usize = 8;
 /// once; the first identification waits for the CPU only.
 ///
 /// The engine is shared between threads, and each thread identifies through its own
-/// [`EngineSession`]. Options are given with each call, so one engine serves any options.
+/// [`EngineSession`].
 pub struct Engine {
     cpu: Prepared,
     gpu: Option<Gpu>,
@@ -63,6 +63,7 @@ pub struct EngineSession<'a> {
     engine: &'a Engine,
     /// The session of each backend, by [`Backend`] value.
     sessions: [Option<Session>; 2],
+    options: Option<Options>,
 }
 
 impl Engine {
@@ -95,8 +96,8 @@ impl Engine {
     }
 
     /// Returns a session to identify with this engine from the current thread.
-    pub fn session(&self) -> EngineSession<'_> {
-        EngineSession { engine: self, sessions: [None, None] }
+    pub fn session(&self, options: Option<Options>) -> EngineSession<'_> {
+        EngineSession { engine: self, sessions: [None, None], options }
     }
 
     /// Returns whether the engine may still move to a GPU.
@@ -132,44 +133,38 @@ impl Engine {
 
 impl EngineSession<'_> {
     /// Identifies a file.
-    pub fn identify_file(&mut self, path: impl AsRef<Path>, options: &Options) -> Result<FileType> {
-        self.identify(FeaturesOr::extract_file(path, options)?, options)
+    pub fn identify_file(&mut self, path: impl AsRef<Path>) -> Result<FileType> {
+        self.session(1)?.identify_file(path)
     }
 
     /// Identifies content.
-    pub fn identify_content(
-        &mut self, input: impl Input, options: &Options,
-    ) -> Result<RegularFileType> {
-        self.identify(FeaturesOr::extract_content(input, options)?, options)
+    pub fn identify_content(&mut self, input: impl Input) -> Result<RegularFileType> {
+        self.session(1)?.identify_content(input)
     }
 
     /// Identifies files from their features, on the GPU if it is ready and the batch is full.
     pub fn identify_features_batch(
-        &mut self, features: &[impl Borrow<Features>], options: &Options,
+        &mut self, features: &[impl Borrow<Features>],
     ) -> Result<Vec<RegularFileType>> {
         if features.is_empty() {
             return Ok(Vec::new());
         }
-        let runtime = self.engine.runtime(features.len())?;
-        let session = match &mut self.sessions[runtime.backend_info().backend() as usize] {
-            Some(session) => session,
-            slot => slot.insert(runtime.session()?),
-        };
-        *session.options_mut() = options.clone();
-        session.identify_features_batch(features)
+        self.session(features.len())?.identify_features_batch(features)
     }
 
-    fn identify<T: From<RegularFileType>>(
-        &mut self, extracted: FeaturesOr<T>, options: &Options,
-    ) -> Result<T> {
-        match extracted {
-            FeaturesOr::Ruled(file_type) => Ok(file_type),
-            FeaturesOr::Features(features) => {
-                let [result] =
-                    self.identify_features_batch(&[features], options)?.try_into().unwrap();
-                Ok(result.into())
+    fn session(&mut self, len: usize) -> Result<&mut Session> {
+        let runtime = self.engine.runtime(len)?;
+        let session = match &mut self.sessions[runtime.backend_info().backend() as usize] {
+            Some(session) => session,
+            slot => {
+                let mut session = runtime.session()?;
+                if let Some(options) = &self.options {
+                    *session.options_mut() = options.clone();
+                }
+                slot.insert(session)
             }
-        }
+        };
+        Ok(session)
     }
 }
 
@@ -204,6 +199,7 @@ impl Prepared {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::FeaturesOr;
 
     impl Prepared {
         /// A preparation that already ended with `runtime`.
@@ -239,7 +235,7 @@ mod tests {
     fn a_gpu_still_preparing_leaves_the_cpu_identifying() {
         let (prepared, resolve) = Prepared::running();
         let engine = Engine { cpu: cpu(), gpu: Some(Gpu { prepared, required: false }) };
-        let results = engine.session().identify_features_batch(&features(8), &Options::default());
+        let results = engine.session(None).identify_features_batch(&features(8));
         assert_eq!(results.unwrap()[0].info().label, "rust");
         assert_eq!(engine.backend_info().unwrap().backend(), Backend::Cpu);
         let (done, finished) = crossbeam_channel::bounded::<()>(0);
@@ -255,11 +251,10 @@ mod tests {
         let automatic =
             Engine { cpu: cpu(), gpu: Some(Gpu { prepared: failed(), required: false }) };
         assert!(automatic.gpu_failed(&running));
-        let results =
-            automatic.session().identify_features_batch(&features(8), &Options::default());
+        let results = automatic.session(None).identify_features_batch(&features(8));
         assert_eq!(results.unwrap().len(), 8);
         let required = Engine { cpu: cpu(), gpu: Some(Gpu { prepared: failed(), required: true }) };
-        let error = required.session().identify_features_batch(&features(1), &Options::default());
+        let error = required.session(None).identify_features_batch(&features(1));
         assert_eq!(format!("{:#}", error.unwrap_err()), "preparing the GPU: no GPU here");
     }
 
@@ -270,10 +265,9 @@ mod tests {
         std::thread::scope(|scope| {
             for _ in 0..8 {
                 scope.spawn(|| {
-                    let mut session = engine.session();
-                    let options = Options::default();
+                    let mut session = engine.session(None);
                     let rust = "../../tests_data/basic/rust/code.rs";
-                    assert_eq!(session.identify_file(rust, &options).unwrap().info().label, "rust");
+                    assert_eq!(session.identify_file(rust).unwrap().info().label, "rust");
                 });
             }
         });
@@ -283,7 +277,7 @@ mod tests {
     #[test]
     fn full_batches_move_to_a_ready_gpu() {
         let engine = Engine::new(Builder::default().with_backend(Backend::Gpu)).unwrap();
-        let results = engine.session().identify_features_batch(&features(8), &Options::default());
+        let results = engine.session(None).identify_features_batch(&features(8));
         assert_eq!(results.unwrap()[7].info().label, "rust");
         assert_eq!(engine.backend_info().unwrap().backend(), Backend::Gpu);
     }

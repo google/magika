@@ -64,9 +64,7 @@ impl Default for PipelineOptions {
 }
 
 /// The error of a directory entered again during a recursive walk.
-#[derive(Debug, thiserror::Error)]
-#[error("Directory cycle")]
-pub struct DirectoryCycle;
+pub const DIRECTORY_CYCLE: &str = "Directory cycle";
 
 /// Identifies many paths in parallel, and returns their results in order.
 ///
@@ -386,10 +384,10 @@ fn infer_batches(
     sender: &SyncSender<Result<Response>>,
 ) -> Result<()> {
     // Sessions are spawned on a backend's first batch: a short run never reaches most threads.
-    let mut session = engine.session();
+    let mut session = engine.session(Some(options.clone()));
     while let Ok(batch) = receiver.recv() {
         let features = batch.iter().map(|x| &x.features).collect::<Vec<_>>();
-        let results = session.identify_features_batch(&features, options)?;
+        let results = session.identify_features_batch(&features)?;
         debug_assert_eq!(results.len(), batch.len());
         for (item, output) in batch.into_iter().zip(results) {
             sender.send(Ok(Response::new(item.pending, Ok(output.into()))))?;
@@ -438,7 +436,7 @@ impl Traversal {
 
     fn push(&mut self, path: &Path) -> Result<()> {
         let canonical = std::fs::canonicalize(path)?;
-        ensure!(self.ancestors.insert(canonical.clone()), DirectoryCycle);
+        ensure!(self.ancestors.insert(canonical.clone()), DIRECTORY_CYCLE);
         self.pending.push(WalkEntry::LeaveDirectory(canonical));
         Ok(())
     }
@@ -655,7 +653,7 @@ mod tests {
         {
             let results = identify(&pipeline(true), &[&dir]);
             let cycle = results.iter().find(|(path, _)| path.ends_with("cycle")).unwrap();
-            assert!(cycle.1.as_ref().unwrap_err().downcast_ref::<DirectoryCycle>().is_some());
+            assert_eq!(cycle.1.as_ref().unwrap_err().to_string(), DIRECTORY_CYCLE);
             let fifo = dir.join("fifo");
             assert!(std::process::Command::new("mkfifo").arg(&fifo).status().unwrap().success());
             let results = identify(&pipeline(false), &[&fifo]);

@@ -21,7 +21,7 @@ use std::sync::Arc;
 use anyhow::{Result, ensure};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
-use magika::pipeline::{DirectoryCycle, Engine, Identified, Pipeline, PipelineOptions};
+use magika::pipeline::{DIRECTORY_CYCLE, Engine, Identified, Pipeline, PipelineOptions};
 use magika::{
     self, Backend, ContentType, FileType, ModelDebugInfo, OverwriteReason, Rules, Runtime, TypeInfo,
 };
@@ -329,10 +329,10 @@ impl From<anyhow::Error> for JsonError {
                 _ => (),
             }
         }
-        match value.downcast_ref::<DirectoryCycle>() {
-            Some(DirectoryCycle) => JsonError::DirectoryCycle,
-            None => JsonError::Unknown,
+        if value.to_string() == DIRECTORY_CYCLE {
+            return JsonError::DirectoryCycle;
         }
+        JsonError::Unknown
     }
 }
 

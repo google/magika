@@ -29,7 +29,6 @@ magika-rules = { version = "0.1.0-dev", path = "../rules" }
 magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime" }
 ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }
-thiserror = "1.0.63"
 
 [dev-dependencies]
 data-encoding = "2.6.0"

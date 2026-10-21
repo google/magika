@@ -55,7 +55,6 @@ mod input;
 mod model;
 mod options;
 #[cfg(feature = "pipeline")]
-#[cfg_attr(feature = "_doc", doc(cfg(feature = "pipeline")))]
 pub mod pipeline;
 mod rules;
 mod runtime;

@@ -329,10 +329,10 @@ impl From<anyhow::Error> for JsonError {
                 _ => (),
             }
         }
-        if value.to_string() == DIRECTORY_CYCLE {
-            return JsonError::DirectoryCycle;
+        match value.to_string().as_str() {
+            DIRECTORY_CYCLE => JsonError::DirectoryCycle,
+            _ => JsonError::Unknown,
         }
-        JsonError::Unknown
     }
 }
 

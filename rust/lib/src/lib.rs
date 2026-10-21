@@ -26,10 +26,6 @@
 //! // Contents can also be identified directly from memory.
 //! let result = magika.identify_content(&b"#!/bin/sh\necho hello"[..])?;
 //! assert_eq!(result.info().label, "shell");
-//!
-//! // A gzip header decides without running the model.
-//! let result = magika.identify_content(&b"\x1f\x8b\x08\x00\0\0\0\0\0\x03hello, world"[..])?;
-//! assert!(matches!(result, magika::FileType::Ruled(magika::ContentType::Gzip)));
 //! # Ok(())
 //! # }
 //! ```
@@ -39,8 +35,11 @@
 pub use crate::backend::{Backend, BackendInfo};
 pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
-pub use crate::file::{FileType, InferredType, OverwriteReason, TypeInfo};
-pub use crate::input::{Features, FeaturesOrRuled, Input};
+pub use crate::file::{
+    DebugInfo, FileType, ModelDebugInfo, OverwriteReason, RegularFileType, RulesDebugInfo, TypeInfo,
+};
+pub use crate::input::{Features, FeaturesOr, Input};
+pub use crate::model::{MODEL_LABELS, MODEL_TRAINING_LABELS};
 pub use crate::options::{Options, PredictionMode};
 pub use crate::rules::Rules;
 pub use crate::runtime::Runtime;
@@ -48,6 +47,7 @@ pub use crate::session::Session;
 
 mod backend;
 mod builder;
+mod cached_input;
 mod config;
 mod content;
 mod file;
@@ -74,6 +74,17 @@ mod tests {
 
     #[cfg(any(target_os = "macos", feature = "cuda"))]
     mod gpu;
+
+    fn new_session() -> Session {
+        let options = Options { use_builtin_rules: false, debug_mode: true, ..Options::default() };
+        Runtime::builder()
+            .with_backend(Backend::Cpu)
+            .with_options(options)
+            .build()
+            .unwrap()
+            .session()
+            .unwrap()
+    }
 
     #[derive(Debug, Deserialize, PartialEq, Eq)]
     #[serde(rename_all = "snake_case")]
@@ -104,28 +115,39 @@ mod tests {
         );
     }
 
-    fn assert_prediction(actual: FileType, expected: Prediction, debug: &str) {
-        let actual = match actual {
-            FileType::Inferred(x) => x,
-            FileType::Ruled(content_type) => {
-                assert_eq!(content_type.info().label, expected.output, "{debug}");
+    fn model_info(model: &ModelDebugInfo) -> (f32, ContentType, ReferenceOverwriteReason) {
+        let best = model.best_guess();
+        let score = model.output[best];
+        let dl = MODEL_TRAINING_LABELS[best];
+        let overwrite_reason = match model.overwrite_reason {
+            None => ReferenceOverwriteReason::None,
+            Some(OverwriteReason::LowConfidence) => ReferenceOverwriteReason::LowConfidence,
+            Some(OverwriteReason::OverwriteMap) => ReferenceOverwriteReason::OverwriteMap,
+            Some(OverwriteReason::RulesVeto) => unreachable!(),
+        };
+        (score, dl, overwrite_reason)
+    }
+
+    fn assert_prediction(actual: RegularFileType, expected: Prediction, debug: &str) {
+        let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
+            unreachable!()
+        };
+        let [content_type] = content_types[..] else { unreachable!() };
+        assert_eq!(content_type.info().label, expected.output, "{debug}");
+        let model = match &*debug_info {
+            DebugInfo::Heuristic => {
                 assert_eq!(1.0, expected.score, "{debug}");
                 assert_eq!(ReferenceOverwriteReason::None, expected.overwrite_reason, "{debug}");
                 assert_eq!("undefined", expected.dl, "{debug}");
                 return;
             }
+            DebugInfo::Model(x) => x,
             _ => unreachable!(),
         };
-        assert_eq!(actual.content_type().info().label, expected.output, "{debug}");
-        assert_float(actual.score, expected.score, debug);
-        let overwrite_reason = match actual.content_type {
-            None => ReferenceOverwriteReason::None,
-            Some((_, OverwriteReason::LowConfidence)) => ReferenceOverwriteReason::LowConfidence,
-            Some((_, OverwriteReason::OverwriteMap)) => ReferenceOverwriteReason::OverwriteMap,
-            Some((_, OverwriteReason::RulesVeto)) => unreachable!(),
-        };
-        assert_eq!(overwrite_reason, expected.overwrite_reason);
-        assert_eq!(actual.inferred_type.info().label, expected.dl, "{debug}");
+        let (score, dl, overwrite_reason) = model_info(model);
+        assert_float(score, expected.score, debug);
+        assert_eq!(overwrite_reason, expected.overwrite_reason, "{debug}");
+        assert_eq!(dl.info().label, expected.dl, "{debug}");
     }
 
     #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -161,15 +183,14 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime =
-            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
-        let mut session = runtime.session().unwrap();
+        let mut session = new_session();
         let mut checked = 0;
         for test in tests {
             session.options_mut().prediction_mode = test.prediction_mode.into();
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let actual = session.identify_file(format!("../../{}", test.path)).unwrap();
+            let FileType::Regular(actual) = actual else { unreachable!() };
             assert_prediction(actual, expected, &test.path);
             checked += 1;
         }
@@ -192,9 +213,7 @@ mod tests {
         let mut tests = String::new();
         GzDecoder::new(File::open(path).unwrap()).read_to_string(&mut tests).unwrap();
         let tests: Vec<Test> = serde_json::from_str(&tests).unwrap();
-        let runtime =
-            Runtime::builder().with_backend(Backend::Cpu).with_rules(false).build().unwrap();
-        let mut session = runtime.session().unwrap();
+        let mut session = new_session();
         let mut checked = 0;
         for test in tests {
             session.options_mut().prediction_mode = test.prediction_mode.into();

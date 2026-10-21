@@ -37,37 +37,9 @@ pub enum MagikaStatus {
     InvalidRules = -5,
 }
 
-/// The kind of identified file type.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(C)]
-pub enum MagikaFileTypeKind {
-    /// The file is a directory.
-    Directory = 0,
-    /// The file is a symbolic link.
-    Symlink = 1,
-    /// The file is a regular file and was identified using deep learning inference.
-    Inferred = 2,
-    /// The file is a regular file and was identified using rules.
-    Ruled = 3,
-    /// The file is neither a directory, a symbolic link, nor a regular file.
-    Unsupported = 4,
-}
-
-/// Reason why an inferred content type was overwritten.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(C)]
-pub enum MagikaOverwriteReason {
-    /// The inferred content type was not overwritten.
-    None = 0,
-    /// The model score was below the confidence threshold for the inferred type.
-    LowConfidence = 1,
-    /// The inferred type was mapped to another canonical type.
-    OverwriteMap = 2,
-    /// The inferred type was vetoed by the rules.
-    RulesVeto = 3,
-}
-
 /// Content type information.
+///
+/// All instances and their fields live in static memory, so no cleanup function is needed.
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct MagikaTypeInfo {
@@ -87,27 +59,6 @@ pub struct MagikaTypeInfo {
 
 unsafe impl Sync for MagikaTypeInfo {}
 unsafe impl Send for MagikaTypeInfo {}
-
-/// Result of a file identification.
-///
-/// All pointers are to static memory, so no cleanup function is needed.
-#[derive(Debug, Copy, Clone)]
-#[repr(C)]
-pub struct MagikaResult {
-    /// The kind of identified file type.
-    pub kind: MagikaFileTypeKind,
-    /// Resolved content type information (never null, points to static storage).
-    pub info: *const MagikaTypeInfo,
-    /// Confidence score between 0.0 and 1.0 (1.0 for directory, symlink, ruled, or unsupported).
-    pub score: f32,
-    /// Raw model output before overwrite rules were applied (null if not inferred).
-    pub inferred_info: *const MagikaTypeInfo,
-    /// Reason why the inferred type was overwritten (None if not overwritten).
-    pub overwrite_reason: MagikaOverwriteReason,
-}
-
-unsafe impl Sync for MagikaResult {}
-unsafe impl Send for MagikaResult {}
 
 /// Hardware backend to use for neural network inference.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -149,29 +100,29 @@ impl From<MagikaPredictionMode> for magika::PredictionMode {
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct MagikaOptions {
-    /// Identifies using rules (before inference).
-    pub use_rules: bool,
+    /// Rules checked before the built-in rules, or NULL for none.
+    ///
+    /// The options hold their own reference, so the rules may be freed once the call that takes
+    /// these options returns.
+    pub use_custom_rules: *const MagikaRules,
+    /// Identifies using built-in rules (before inference).
+    pub use_builtin_rules: bool,
     /// Identifies using inference (after rules).
     pub use_model: bool,
     /// Configures the minimum confidence level for inference.
     pub prediction_mode: MagikaPredictionMode,
     /// Whether to follow symlinks.
     pub follow_symlink: bool,
-    /// Rules checked before the built-in rules, or NULL for none.
-    ///
-    /// The options hold their own reference, so the rules may be freed once the call that takes
-    /// these options returns.
-    pub custom_rules: *const MagikaRules,
 }
 
 impl Default for MagikaOptions {
     fn default() -> Self {
         Self {
-            use_rules: true,
+            use_custom_rules: std::ptr::null(),
+            use_builtin_rules: true,
             use_model: true,
             prediction_mode: MagikaPredictionMode::HighConfidence,
             follow_symlink: true,
-            custom_rules: std::ptr::null(),
         }
     }
 }
@@ -179,14 +130,14 @@ impl Default for MagikaOptions {
 impl MagikaOptions {
     /// # Safety
     ///
-    /// `custom_rules` must be NULL or point to a valid `MagikaRules`.
+    /// `use_custom_rules` must be NULL or point to a valid `MagikaRules`.
     unsafe fn to_options(self) -> magika::Options {
         let mut result = magika::Options::default();
-        result.use_rules = self.use_rules;
+        result.use_custom_rules = self.use_custom_rules.as_ref().map(|rules| rules.inner.clone());
+        result.use_builtin_rules = self.use_builtin_rules;
         result.use_model = self.use_model;
         result.prediction_mode = self.prediction_mode.into();
         result.follow_symlink = self.follow_symlink;
-        result.custom_rules = self.custom_rules.as_ref().map(|rules| rules.inner.clone());
         result
     }
 }
@@ -212,7 +163,6 @@ pub struct MagikaRules {
 pub struct MagikaEngine {
     inner: Arc<magika::pipeline::Engine>,
 }
-
 /// Shared Magika inference runtime (thread-safe).
 pub struct MagikaRuntime {
     inner: magika::Runtime,
@@ -347,7 +297,8 @@ pub unsafe extern "C" fn magika_engine_free(engine: *mut MagikaEngine) {
 #[no_mangle]
 pub unsafe extern "C" fn magika_engine_identify_paths(
     engine: *const MagikaEngine, paths: *const *const c_char, count: usize,
-    options: *const MagikaOptions, out_results: *mut MagikaResult, out_statuses: *mut MagikaStatus,
+    options: *const MagikaOptions, out_results: *mut *const MagikaTypeInfo,
+    out_statuses: *mut MagikaStatus,
 ) -> MagikaStatus {
     if count == 0 {
         return MagikaStatus::Ok;
@@ -446,7 +397,6 @@ pub unsafe extern "C" fn magika_rules_free(rules: *mut MagikaRules) {
         }));
     }
 }
-
 /// Frees a Magika runtime. Passing NULL is a safe no-op.
 ///
 /// # Safety
@@ -510,65 +460,25 @@ pub unsafe extern "C" fn magika_features_free(features: *mut MagikaFeatures) {
     }
 }
 
-fn file_type_to_c(file_type: &magika::FileType) -> MagikaResult {
+fn file_type_to_c(file_type: &magika::FileType) -> &'static MagikaTypeInfo {
     match file_type {
-        magika::FileType::Directory => MagikaResult {
-            kind: MagikaFileTypeKind::Directory,
-            info: &content::DIRECTORY,
-            score: 1.0,
-            inferred_info: std::ptr::null(),
-            overwrite_reason: MagikaOverwriteReason::None,
-        },
-        magika::FileType::Symlink => MagikaResult {
-            kind: MagikaFileTypeKind::Symlink,
-            info: &content::SYMLINK,
-            score: 1.0,
-            inferred_info: std::ptr::null(),
-            overwrite_reason: MagikaOverwriteReason::None,
-        },
-        magika::FileType::Ruled(ct) => MagikaResult {
-            kind: MagikaFileTypeKind::Ruled,
-            info: content::content_type_info(*ct),
-            score: 1.0,
-            inferred_info: std::ptr::null(),
-            overwrite_reason: MagikaOverwriteReason::None,
-        },
-        magika::FileType::Inferred(inferred) => {
-            let info = content::content_type_info(inferred.content_type());
-            let inferred_info = content::content_type_info(inferred.inferred_type);
-            let overwrite_reason = match inferred.content_type {
-                None => MagikaOverwriteReason::None,
-                Some((_, magika::OverwriteReason::LowConfidence)) => {
-                    MagikaOverwriteReason::LowConfidence
-                }
-                Some((_, magika::OverwriteReason::OverwriteMap)) => {
-                    MagikaOverwriteReason::OverwriteMap
-                }
-                Some((_, magika::OverwriteReason::RulesVeto)) => MagikaOverwriteReason::RulesVeto,
-            };
-            MagikaResult {
-                kind: MagikaFileTypeKind::Inferred,
-                info,
-                score: inferred.score,
-                inferred_info,
-                overwrite_reason,
-            }
-        }
-        magika::FileType::Unsupported => MagikaResult {
-            kind: MagikaFileTypeKind::Unsupported,
-            info: &content::UNSUPPORTED,
-            score: 1.0,
-            inferred_info: std::ptr::null(),
-            overwrite_reason: MagikaOverwriteReason::None,
-        },
+        magika::FileType::Directory => &content::DIRECTORY,
+        magika::FileType::Symlink => &content::SYMLINK,
+        magika::FileType::Regular(x) => content::content_type_info(x.content_type()),
+        magika::FileType::Unsupported => &content::UNSUPPORTED,
+        _ => unreachable!(),
     }
 }
 
-unsafe fn identify(
-    session: *mut MagikaSession, out_result: *mut MagikaResult,
-    f: impl FnOnce(&mut magika::Session) -> anyhow::Result<magika::FileType>,
+unsafe fn identify<T: Into<magika::FileType>>(
+    session: *mut MagikaSession, out_result: *mut *const MagikaTypeInfo,
+    f: impl FnOnce(&mut magika::Session) -> anyhow::Result<T>,
 ) -> MagikaStatus {
-    catch_unwind(|| f(&mut (*session).inner), |file_type| *out_result = file_type_to_c(&file_type))
+    *out_result = std::ptr::null();
+    catch_unwind(
+        || f(&mut (*session).inner),
+        |file_type| *out_result = file_type_to_c(&file_type.into()),
+    )
 }
 
 unsafe fn parse_path<'a>(path: *const c_char) -> Option<&'a std::path::Path> {
@@ -593,10 +503,10 @@ unsafe fn parse_path<'a>(path: *const c_char) -> Option<&'a std::path::Path> {
 ///
 /// - `session` must point to a valid `MagikaSession`.
 /// - `path` must point to a null-terminated C string.
-/// - `out_result` must point to a valid, writable `MagikaResult` struct.
+/// - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
 #[no_mangle]
 pub unsafe extern "C" fn magika_identify_file(
-    session: *mut MagikaSession, path: *const c_char, out_result: *mut MagikaResult,
+    session: *mut MagikaSession, path: *const c_char, out_result: *mut *const MagikaTypeInfo,
 ) -> MagikaStatus {
     if session.is_null() || out_result.is_null() {
         return MagikaStatus::InvalidArgument;
@@ -611,10 +521,11 @@ pub unsafe extern "C" fn magika_identify_file(
 ///
 /// - `session` must point to a valid `MagikaSession`.
 /// - `data` must point to at least `len` readable bytes (may be NULL only if `len == 0`).
-/// - `out_result` must point to a valid, writable `MagikaResult` struct.
+/// - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
 #[no_mangle]
 pub unsafe extern "C" fn magika_identify_content(
-    session: *mut MagikaSession, data: *const u8, len: usize, out_result: *mut MagikaResult,
+    session: *mut MagikaSession, data: *const u8, len: usize,
+    out_result: *mut *const MagikaTypeInfo,
 ) -> MagikaStatus {
     if session.is_null() || out_result.is_null() || (data.is_null() && len > 0) {
         return MagikaStatus::InvalidArgument;
@@ -623,17 +534,17 @@ pub unsafe extern "C" fn magika_identify_content(
     identify(session, out_result, |sess| sess.identify_content(bytes))
 }
 
-unsafe fn extract_features(
-    out_features: *mut *mut MagikaFeatures, out_result: *mut MagikaResult,
-    f: impl FnOnce() -> anyhow::Result<magika::FeaturesOrRuled>,
+unsafe fn extract_features<T: Into<magika::FileType>>(
+    out_features: *mut *mut MagikaFeatures, out_result: *mut *const MagikaTypeInfo,
+    f: impl FnOnce() -> anyhow::Result<magika::FeaturesOr<T>>,
 ) -> MagikaStatus {
     catch_unwind(f, |result| match result {
-        magika::FeaturesOrRuled::Features(features) => {
+        magika::FeaturesOr::Features(features) => {
             *out_features = Box::into_raw(Box::new(MagikaFeatures { inner: features }));
         }
-        magika::FeaturesOrRuled::Ruled(file_type) => {
+        magika::FeaturesOr::Ruled(file_type) => {
             if !out_result.is_null() {
-                *out_result = file_type_to_c(&file_type);
+                *out_result = file_type_to_c(&file_type.into());
             }
         }
     })
@@ -658,11 +569,11 @@ unsafe fn extract_features(
 /// - `path` must point to a null-terminated C string.
 /// - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
 /// - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
-/// - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
+/// - `out_result` may be NULL, or must point to a valid, writable pointer to `const MagikaTypeInfo`.
 #[no_mangle]
 pub unsafe extern "C" fn magika_features_extract_file(
     path: *const c_char, options: *const MagikaOptions, out_features: *mut *mut MagikaFeatures,
-    out_result: *mut MagikaResult,
+    out_result: *mut *const MagikaTypeInfo,
 ) -> MagikaStatus {
     if out_features.is_null() {
         return MagikaStatus::InvalidArgument;
@@ -672,7 +583,7 @@ pub unsafe extern "C" fn magika_features_extract_file(
     let options =
         if options.is_null() { magika::Options::default() } else { (*options).to_options() };
     extract_features(out_features, out_result, || {
-        magika::FeaturesOrRuled::extract_file(path_ref, &options)
+        magika::FeaturesOr::extract_file(path_ref, &options)
     })
 }
 
@@ -695,11 +606,11 @@ pub unsafe extern "C" fn magika_features_extract_file(
 /// - `data` must point to at least `len` readable bytes (may be NULL only if `len == 0`).
 /// - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
 /// - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
-/// - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
+/// - `out_result` may be NULL, or must point to a valid, writable pointer to `const MagikaTypeInfo`.
 #[no_mangle]
 pub unsafe extern "C" fn magika_features_extract_content(
     data: *const u8, len: usize, options: *const MagikaOptions,
-    out_features: *mut *mut MagikaFeatures, out_result: *mut MagikaResult,
+    out_features: *mut *mut MagikaFeatures, out_result: *mut *const MagikaTypeInfo,
 ) -> MagikaStatus {
     if out_features.is_null() || (data.is_null() && len > 0) {
         return MagikaStatus::InvalidArgument;
@@ -709,7 +620,7 @@ pub unsafe extern "C" fn magika_features_extract_content(
     let options =
         if options.is_null() { magika::Options::default() } else { (*options).to_options() };
     extract_features(out_features, out_result, || {
-        magika::FeaturesOrRuled::extract_content(bytes, &options)
+        magika::FeaturesOr::extract_content(bytes, &options)
     })
 }
 
@@ -719,10 +630,11 @@ pub unsafe extern "C" fn magika_features_extract_content(
 ///
 /// - `session` must point to a valid `MagikaSession`.
 /// - `features` must point to a valid `MagikaFeatures`.
-/// - `out_result` must point to a valid, writable `MagikaResult` struct.
+/// - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
 #[no_mangle]
 pub unsafe extern "C" fn magika_identify_features(
-    session: *mut MagikaSession, features: *const MagikaFeatures, out_result: *mut MagikaResult,
+    session: *mut MagikaSession, features: *const MagikaFeatures,
+    out_result: *mut *const MagikaTypeInfo,
 ) -> MagikaStatus {
     if session.is_null() || features.is_null() || out_result.is_null() {
         return MagikaStatus::InvalidArgument;
@@ -738,11 +650,12 @@ pub unsafe extern "C" fn magika_identify_features(
 /// - `session` must point to a valid `MagikaSession`.
 /// - `features` must point to an array of at least `count` valid, non-null `MagikaFeatures`
 ///   pointers.
-/// - `out_results` must point to an array of at least `count` writable `MagikaResult` structs.
+/// - `out_results` must point to an array of at least `count` writable `const MagikaTypeInfo*`
+///   pointers.
 #[no_mangle]
 pub unsafe extern "C" fn magika_identify_features_batch(
     session: *mut MagikaSession, features: *const *const MagikaFeatures, count: usize,
-    out_results: *mut MagikaResult,
+    out_results: *mut *const MagikaTypeInfo,
 ) -> MagikaStatus {
     if count == 0 {
         return MagikaStatus::Ok;
@@ -762,7 +675,7 @@ pub unsafe extern "C" fn magika_identify_features_batch(
         },
         |file_types| {
             for (i, file_type) in file_types.into_iter().enumerate() {
-                *out_results.add(i) = file_type_to_c(&file_type);
+                *out_results.add(i) = file_type_to_c(&file_type.into());
             }
         },
     )

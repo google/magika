@@ -76,54 +76,6 @@ typedef enum MagikaPredictionMode {
 } MagikaPredictionMode;
 
 /**
- * The kind of identified file type.
- */
-typedef enum MagikaFileTypeKind {
-  /**
-   * The file is a directory.
-   */
-  MAGIKA_FILE_TYPE_KIND_DIRECTORY = 0,
-  /**
-   * The file is a symbolic link.
-   */
-  MAGIKA_FILE_TYPE_KIND_SYMLINK = 1,
-  /**
-   * The file is a regular file and was identified using deep learning inference.
-   */
-  MAGIKA_FILE_TYPE_KIND_INFERRED = 2,
-  /**
-   * The file is a regular file and was identified using rules.
-   */
-  MAGIKA_FILE_TYPE_KIND_RULED = 3,
-  /**
-   * The file is neither a directory, a symbolic link, nor a regular file.
-   */
-  MAGIKA_FILE_TYPE_KIND_UNSUPPORTED = 4,
-} MagikaFileTypeKind;
-
-/**
- * Reason why an inferred content type was overwritten.
- */
-typedef enum MagikaOverwriteReason {
-  /**
-   * The inferred content type was not overwritten.
-   */
-  MAGIKA_OVERWRITE_REASON_NONE = 0,
-  /**
-   * The model score was below the confidence threshold for the inferred type.
-   */
-  MAGIKA_OVERWRITE_REASON_LOW_CONFIDENCE = 1,
-  /**
-   * The inferred type was mapped to another canonical type.
-   */
-  MAGIKA_OVERWRITE_REASON_OVERWRITE_MAP = 2,
-  /**
-   * The inferred type was vetoed by the rules.
-   */
-  MAGIKA_OVERWRITE_REASON_RULES_VETO = 3,
-} MagikaOverwriteReason;
-
-/**
  * Shared engine identifying many files in parallel (thread-safe).
  */
 typedef struct MagikaEngine MagikaEngine;
@@ -153,9 +105,16 @@ typedef struct MagikaSession MagikaSession;
  */
 typedef struct MagikaOptions {
   /**
-   * Identifies using rules (before inference).
+   * Rules checked before the built-in rules, or NULL for none.
+   *
+   * The options hold their own reference, so the rules may be freed once the call that takes
+   * these options returns.
    */
-  bool use_rules;
+  const struct MagikaRules *use_custom_rules;
+  /**
+   * Identifies using built-in rules (before inference).
+   */
+  bool use_builtin_rules;
   /**
    * Identifies using inference (after rules).
    */
@@ -168,13 +127,6 @@ typedef struct MagikaOptions {
    * Whether to follow symlinks.
    */
   bool follow_symlink;
-  /**
-   * Rules checked before the built-in rules, or NULL for none.
-   *
-   * The options hold their own reference, so the rules may be freed once the call that takes
-   * these options returns.
-   */
-  const struct MagikaRules *custom_rules;
 } MagikaOptions;
 
 /**
@@ -197,6 +149,8 @@ typedef struct MagikaRuntimeOptions {
 
 /**
  * Content type information.
+ *
+ * All instances and their fields live in static memory, so no cleanup function is needed.
  */
 typedef struct MagikaTypeInfo {
   /**
@@ -224,34 +178,6 @@ typedef struct MagikaTypeInfo {
    */
   bool is_text;
 } MagikaTypeInfo;
-
-/**
- * Result of a file identification.
- *
- * All pointers are to static memory, so no cleanup function is needed.
- */
-typedef struct MagikaResult {
-  /**
-   * The kind of identified file type.
-   */
-  enum MagikaFileTypeKind kind;
-  /**
-   * Resolved content type information (never null, points to static storage).
-   */
-  const struct MagikaTypeInfo *info;
-  /**
-   * Confidence score between 0.0 and 1.0 (1.0 for directory, symlink, ruled, or unsupported).
-   */
-  float score;
-  /**
-   * Raw model output before overwrite rules were applied (null if not inferred).
-   */
-  const struct MagikaTypeInfo *inferred_info;
-  /**
-   * Reason why the inferred type was overwritten (None if not overwritten).
-   */
-  enum MagikaOverwriteReason overwrite_reason;
-} MagikaResult;
 
 #ifdef __cplusplus
 extern "C" {
@@ -316,7 +242,7 @@ enum MagikaStatus magika_engine_identify_paths(const struct MagikaEngine *engine
                                                const char *const *paths,
                                                uintptr_t count,
                                                const struct MagikaOptions *options,
-                                               struct MagikaResult *out_results,
+                                               const struct MagikaTypeInfo **out_results,
                                                enum MagikaStatus *out_statuses);
 
 /**
@@ -393,11 +319,11 @@ void magika_features_free(struct MagikaFeatures *features);
  *
  * - `session` must point to a valid `MagikaSession`.
  * - `path` must point to a null-terminated C string.
- * - `out_result` must point to a valid, writable `MagikaResult` struct.
+ * - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
  */
 enum MagikaStatus magika_identify_file(struct MagikaSession *session,
                                        const char *path,
-                                       struct MagikaResult *out_result);
+                                       const struct MagikaTypeInfo **out_result);
 
 /**
  * Identifies the content type of an in-memory buffer.
@@ -406,12 +332,12 @@ enum MagikaStatus magika_identify_file(struct MagikaSession *session,
  *
  * - `session` must point to a valid `MagikaSession`.
  * - `data` must point to at least `len` readable bytes (may be NULL only if `len == 0`).
- * - `out_result` must point to a valid, writable `MagikaResult` struct.
+ * - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
  */
 enum MagikaStatus magika_identify_content(struct MagikaSession *session,
                                           const uint8_t *data,
                                           uintptr_t len,
-                                          struct MagikaResult *out_result);
+                                          const struct MagikaTypeInfo **out_result);
 
 /**
  * Extracts features from a file on disk for neural network inference.
@@ -433,12 +359,12 @@ enum MagikaStatus magika_identify_content(struct MagikaSession *session,
  * - `path` must point to a null-terminated C string.
  * - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
  * - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
- * - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
+ * - `out_result` may be NULL, or must point to a valid, writable pointer to `const MagikaTypeInfo`.
  */
 enum MagikaStatus magika_features_extract_file(const char *path,
                                                const struct MagikaOptions *options,
                                                struct MagikaFeatures **out_features,
-                                               struct MagikaResult *out_result);
+                                               const struct MagikaTypeInfo **out_result);
 
 /**
  * Extracts features from an in-memory buffer for neural network inference.
@@ -460,13 +386,13 @@ enum MagikaStatus magika_features_extract_file(const char *path,
  * - `data` must point to at least `len` readable bytes (may be NULL only if `len == 0`).
  * - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
  * - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
- * - `out_result` may be NULL, or must point to a valid, writable `MagikaResult` struct.
+ * - `out_result` may be NULL, or must point to a valid, writable pointer to `const MagikaTypeInfo`.
  */
 enum MagikaStatus magika_features_extract_content(const uint8_t *data,
                                                   uintptr_t len,
                                                   const struct MagikaOptions *options,
                                                   struct MagikaFeatures **out_features,
-                                                  struct MagikaResult *out_result);
+                                                  const struct MagikaTypeInfo **out_result);
 
 /**
  * Identifies the content type of a file from its extracted features.
@@ -475,11 +401,11 @@ enum MagikaStatus magika_features_extract_content(const uint8_t *data,
  *
  * - `session` must point to a valid `MagikaSession`.
  * - `features` must point to a valid `MagikaFeatures`.
- * - `out_result` must point to a valid, writable `MagikaResult` struct.
+ * - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
  */
 enum MagikaStatus magika_identify_features(struct MagikaSession *session,
                                            const struct MagikaFeatures *features,
-                                           struct MagikaResult *out_result);
+                                           const struct MagikaTypeInfo **out_result);
 
 /**
  * Identifies the content types of multiple files from their extracted features in a batch.
@@ -490,12 +416,13 @@ enum MagikaStatus magika_identify_features(struct MagikaSession *session,
  * - `session` must point to a valid `MagikaSession`.
  * - `features` must point to an array of at least `count` valid, non-null `MagikaFeatures`
  *   pointers.
- * - `out_results` must point to an array of at least `count` writable `MagikaResult` structs.
+ * - `out_results` must point to an array of at least `count` writable `const MagikaTypeInfo*`
+ *   pointers.
  */
 enum MagikaStatus magika_identify_features_batch(struct MagikaSession *session,
                                                  const struct MagikaFeatures *const *features,
                                                  uintptr_t count,
-                                                 struct MagikaResult *out_results);
+                                                 const struct MagikaTypeInfo **out_results);
 
 #ifdef __cplusplus
 }  // extern "C"

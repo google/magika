@@ -18,12 +18,12 @@ use std::io::{ErrorKind, Write as _};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::pipeline::{DirectoryCycle, Engine, Identified, Pipeline, PipelineOptions};
 use magika::{
-    self, Backend, ContentType, FileType, InferredType, OverwriteReason, Rules, Runtime, TypeInfo,
+    self, Backend, ContentType, FileType, ModelDebugInfo, OverwriteReason, Rules, Runtime, TypeInfo,
 };
 use serde::Serialize;
 
@@ -207,22 +207,21 @@ fn main() -> Result<()> {
     }
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
-    builder = match flags.experimental.rules {
-        RulesMode::Off => builder.with_rules(false),
-        RulesMode::Enforce => builder,
-        RulesMode::Only => builder.with_model(false),
-    };
+    builder.options.debug_mode = true;
+    match flags.experimental.rules {
+        RulesMode::Off => builder.options.use_builtin_rules = false,
+        RulesMode::Enforce => (),
+        RulesMode::Only => builder.options.use_model = false,
+    }
     if !flags.experimental.rules_file.is_empty() {
         let rules = Rules::from_files(&flags.experimental.rules_file)?;
         if flags.experimental.rules_check {
-            for content_type in rules.content_types() {
-                println!("{}", content_type.info().label);
-            }
+            println!("{rules:?}");
             return Ok(());
         }
-        builder = builder.with_custom_rules(rules);
+        builder.options.use_custom_rules = Some(rules);
     }
-    builder = builder.with_follow_symlink(!flags.no_dereference);
+    builder.options.follow_symlink = !flags.no_dereference;
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,
         BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
@@ -237,7 +236,7 @@ fn main() -> Result<()> {
         println!("{backend} ({})", info.implementation());
         return Ok(());
     }
-    let options = builder.options().clone();
+    let options = builder.options.clone();
     let threads = flags.experimental.threads;
     ensure!(threads.is_none_or(|x| (1..=256).contains(&x)), "--threads must be between 1 and 256");
     let readers = flags.experimental.readers;
@@ -371,19 +370,24 @@ impl Response {
                     Some('s') => write!(&mut result, "{:.2}", self.score())?,
                     Some('S') => write!(&mut result, "{}%", (100. * self.score()).trunc())?,
                     Some('b') => {
-                        if let Ok(FileType::Inferred(InferredType {
-                            content_type: Some((_, OverwriteReason::LowConfidence)),
-                            inferred_type,
-                            score,
-                        })) = &self.result
+                        if let Some(debug) = self.model_debug_info()
+                            && let Some(reason) = debug.overwrite_reason
                         {
-                            write!(
-                                &mut result,
-                                " [Low-confidence model best-guess: {} ({}), score={:.3}]",
-                                inferred_type.info().description,
-                                inferred_type.info().group,
-                                score,
-                            )?;
+                            let reason = match reason {
+                                OverwriteReason::LowConfidence => Some("Low-confidence"),
+                                OverwriteReason::OverwriteMap => None,
+                                OverwriteReason::RulesVeto => Some("Rules-veto"),
+                            };
+                            if let Some(reason) = reason {
+                                let best = debug.best_guess();
+                                let score = debug.output[best];
+                                let info = magika::MODEL_TRAINING_LABELS[best].info();
+                                write!(
+                                    &mut result,
+                                    " [{reason} model best-guess: {} ({}), score={score:.3}]",
+                                    info.description, info.group,
+                                )?;
+                            }
                         }
                     }
                     Some(c) => result.push(c),
@@ -396,16 +400,23 @@ impl Response {
         Ok(self.color(result.into()))
     }
 
+    fn model_debug_info(&self) -> Option<&ModelDebugInfo> {
+        self.result.as_ref().ok()?.debug_info()?.model()
+    }
+
     fn json(self) -> Result<serde_json::Value> {
         let path = self.path.to_string_lossy();
+        let (score, dl) = match self.model_debug_info() {
+            Some(debug) => {
+                let best = debug.best_guess();
+                (debug.output[best], magika::MODEL_TRAINING_LABELS[best].info())
+            }
+            None => (1.0, ContentType::Undefined.info()),
+        };
         let result = match self.result {
             Ok(x) => {
-                let dl = match &x {
-                    FileType::Inferred(x) => x.inferred_type.info(),
-                    _ => ContentType::Undefined.info(),
-                };
                 let output = x.info();
-                let score = (x.score() * 1000.).trunc() / 1000.;
+                let score = (score * 1000.).trunc() / 1000.;
                 let value = serde_json::to_value(JsonResult { dl, output, score })?;
                 serde_json::json!({ "status": "ok", "value": value })
             }
@@ -450,10 +461,7 @@ impl Response {
     }
 
     fn score(&self) -> f32 {
-        match &self.result {
-            Err(_) => 1.0,
-            Ok(x) => x.score(),
-        }
+        self.model_debug_info().map_or(1.0, |x| x.output[x.best_guess()])
     }
 
     fn color(&self, result: ColoredString) -> ColoredString {

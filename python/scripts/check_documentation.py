@@ -265,13 +265,16 @@ def extract_uris_infos_from_file(path: Path, verbose: bool) -> list[UriInfo]:
             else:
                 is_pure_anchor = False
                 if Path(uri).is_absolute():
+                    # Absolute links point to website pages; drop any section
+                    # anchor so that we can check the page file exists.
+                    uri_path = uri.split("#")[0]
                     website_files_dir = (
                         REPO_ROOT_DIR
                         / "website-ng"
                         / "src"
                         / "content"
                         / "docs"
-                        / uri.removeprefix("/magika/")
+                        / uri_path.removeprefix("/magika/")
                     )
                     md_path = website_files_dir.with_suffix(".md")
                     mdx_path = website_files_dir.with_suffix(".mdx")

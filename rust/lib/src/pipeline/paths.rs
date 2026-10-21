@@ -22,7 +22,7 @@ use std::thread::JoinHandle;
 use anyhow::{Result, ensure};
 
 use super::Engine;
-use crate::{Backend, Features, FeaturesOrRuled, FileType, Options};
+use crate::{Backend, Features, FeaturesOr, FileType, Options, RegularFileType};
 
 /// Inference threads it takes to keep a GPU queued.
 ///
@@ -348,15 +348,15 @@ fn batch_files(
     let mut batch = Vec::with_capacity(batch_size);
     while let Ok(ReadItem { pending, extracted }) = receiver.recv() {
         match extracted {
-            Ok(FeaturesOrRuled::Features(features)) => {
+            Ok(FeaturesOr::Features(features)) => {
                 batch.push(BatchItem { pending, features });
                 if batch.len() == batch_size {
                     let full = std::mem::replace(&mut batch, Vec::with_capacity(batch_size));
                     batch_sender.send(full)?;
                 }
             }
-            Ok(FeaturesOrRuled::Ruled(file_type)) => {
-                result_sender.send(Ok(Response::new(pending, Ok(file_type))))?;
+            Ok(FeaturesOr::Ruled(file_type)) => {
+                result_sender.send(Ok(Response::new(pending, Ok(file_type.into()))))?;
             }
             Err(error) => {
                 result_sender.send(Ok(Response::new(pending, Err(error))))?;
@@ -372,13 +372,13 @@ fn batch_files(
 /// Reads a file and extracts its features, unless rules identify it.
 fn extract_path(
     path: &Path, config: &PipelineOptions, options: &Options,
-) -> Result<FeaturesOrRuled> {
+) -> Result<FeaturesOr<RegularFileType>> {
     if config.stdin && path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOrRuled::extract_content(&stdin[..], options);
+        return FeaturesOr::extract_content(&stdin[..], options);
     }
-    FeaturesOrRuled::extract_content(std::fs::File::open(path)?, options)
+    FeaturesOr::extract_content(std::fs::File::open(path)?, options)
 }
 
 fn infer_batches(
@@ -392,7 +392,7 @@ fn infer_batches(
         let results = session.identify_features_batch(&features, options)?;
         debug_assert_eq!(results.len(), batch.len());
         for (item, output) in batch.into_iter().zip(results) {
-            sender.send(Ok(Response::new(item.pending, Ok(output))))?;
+            sender.send(Ok(Response::new(item.pending, Ok(output.into()))))?;
         }
     }
     Ok(())
@@ -411,7 +411,7 @@ struct Pending {
 
 struct ReadItem {
     pending: Pending,
-    extracted: Result<FeaturesOrRuled>,
+    extracted: Result<FeaturesOr<RegularFileType>>,
 }
 
 struct BatchItem {

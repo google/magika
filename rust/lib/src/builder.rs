@@ -14,14 +14,18 @@
 
 use anyhow::Result;
 
-use crate::{Backend, Options, PredictionMode, Rules, Runtime};
+use crate::{Backend, Options, Runtime};
 
 /// Configures and creates a Magika runtime.
 #[derive(Clone, Debug, Default)]
+#[non_exhaustive]
 pub struct Builder {
-    backend: Option<Backend>,
-    max_batch: Option<usize>,
-    options: Options,
+    /// Specific backend for inference.
+    pub backend: Option<Backend>,
+    /// Largest batch this session will ever be asked to identify.
+    pub max_batch: Option<usize>,
+    /// Options to identify files.
+    pub options: Options,
 }
 
 impl Builder {
@@ -29,11 +33,6 @@ impl Builder {
     pub fn with_backend(mut self, backend: Backend) -> Self {
         self.backend = Some(backend);
         self
-    }
-
-    /// Returns the backend selected for inference, or `None` for automatic selection.
-    pub fn backend(&self) -> Option<Backend> {
-        self.backend
     }
 
     /// Declares the largest batch this session will ever be asked to identify.
@@ -52,41 +51,6 @@ impl Builder {
     /// options from the runtime when created.
     pub fn with_options(mut self, options: Options) -> Self {
         self.options = options;
-        self
-    }
-
-    /// Returns the current options.
-    pub fn options(&self) -> &Options {
-        &self.options
-    }
-
-    /// Configures whether to use rules.
-    pub fn with_rules(mut self, use_rules: bool) -> Self {
-        self.options.use_rules = use_rules;
-        self
-    }
-
-    /// Configures rules to check before the built-in rules.
-    pub fn with_custom_rules(mut self, rules: Rules) -> Self {
-        self.options.custom_rules = Some(rules);
-        self
-    }
-
-    /// Configures whether to use the model.
-    pub fn with_model(mut self, use_model: bool) -> Self {
-        self.options.use_model = use_model;
-        self
-    }
-
-    /// Configures how confident the model needs to be.
-    pub fn with_prediction_mode(mut self, prediction_mode: PredictionMode) -> Self {
-        self.options.prediction_mode = prediction_mode;
-        self
-    }
-
-    /// Configures whether to follow symlinks.
-    pub fn with_follow_symlink(mut self, follow_symlink: bool) -> Self {
-        self.options.follow_symlink = follow_symlink;
         self
     }
 

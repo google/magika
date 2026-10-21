@@ -202,7 +202,7 @@ use crate::MagikaTypeInfo;
 #[rustfmt::skip] pub(crate) static AVIF: MagikaTypeInfo = MagikaTypeInfo {
     label: c"avif".as_ptr(),
     mime_type: c"image/avif".as_ptr(),
-    group: c"video".as_ptr(),
+    group: c"image".as_ptr(),
     description: c"AV1 Image File Format".as_ptr(),
     extensions: [c"avif".as_ptr(), c"avifs".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
@@ -635,7 +635,7 @@ use crate::MagikaTypeInfo;
     label: c"dxf".as_ptr(),
     mime_type: c"image/vnd.dxf".as_ptr(),
     group: c"image".as_ptr(),
-    description: c"Audocad Drawing Exchange Format".as_ptr(),
+    description: c"Autocad Drawing Exchange Format".as_ptr(),
     extensions: [c"dxf".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
 };
@@ -760,7 +760,7 @@ use crate::MagikaTypeInfo;
 #[rustfmt::skip] pub(crate) static FORTRAN: MagikaTypeInfo = MagikaTypeInfo {
     label: c"fortran".as_ptr(),
     mime_type: c"text/x-fortran".as_ptr(),
-    group: c"document".as_ptr(),
+    group: c"code".as_ptr(),
     description: c"Fortran".as_ptr(),
     extensions: [c"f90".as_ptr(), c"f95".as_ptr(), c"f03".as_ptr(), c"F90".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
@@ -1589,7 +1589,7 @@ use crate::MagikaTypeInfo;
     label: c"one".as_ptr(),
     mime_type: c"application/msonenote".as_ptr(),
     group: c"document".as_ptr(),
-    description: c"One Note".as_ptr(),
+    description: c"OneNote".as_ptr(),
     extensions: [c"one".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
@@ -2246,7 +2246,7 @@ use crate::MagikaTypeInfo;
     label: c"swf".as_ptr(),
     mime_type: c"application/x-shockwave-flash".as_ptr(),
     group: c"executable".as_ptr(),
-    description: c"Small Web File".as_ptr(),
+    description: c"Small Web Format".as_ptr(),
     extensions: [c"swf".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
@@ -2282,7 +2282,7 @@ use crate::MagikaTypeInfo;
     label: c"tcl".as_ptr(),
     mime_type: c"application/x-tcl".as_ptr(),
     group: c"code".as_ptr(),
-    description: c"Tickle".as_ptr(),
+    description: c"Tcl".as_ptr(),
     extensions: [c"tcl".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
 };
@@ -2631,7 +2631,7 @@ use crate::MagikaTypeInfo;
 
 #[rustfmt::skip] pub(crate) static XLSB: MagikaTypeInfo = MagikaTypeInfo {
     label: c"xlsb".as_ptr(),
-    mime_type: c"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".as_ptr(),
+    mime_type: c"application/vnd.ms-excel.sheet.binary.macroEnabled.12".as_ptr(),
     group: c"document".as_ptr(),
     description: c"Microsoft Excel 2007+ document (binary format)".as_ptr(),
     extensions: [c"xlsb".as_ptr(), ptr::null()].as_ptr(),

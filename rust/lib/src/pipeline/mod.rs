@@ -14,7 +14,7 @@
 
 //! Helpers to identify many files fast, shared by the Magika command line, Python and C.
 //!
-//! The rest of the crate is the API to build any pipeline: [`crate::FeaturesOrRuled`] extracts
+//! The rest of the crate is the API to build any pipeline: [`crate::FeaturesOr`] extracts
 //! features, and [`crate::Session::identify_features_batch`] runs the model. These helpers are one
 //! such pipeline, written with that API only:
 //!

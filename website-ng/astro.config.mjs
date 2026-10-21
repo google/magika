@@ -93,20 +93,24 @@ export default defineConfig({
           label: "Contributing",
           items: [
             {
-              label: "Known Limitations",
-              slug: "contributing/known-limitations",
-            },
-            {
               label: "How to Contribute",
               slug: "contributing/how-to-contribute",
             },
             {
-              label: "Reporting Security Vulnerabilities",
-              slug: "contributing/reporting-security-vulnerabilities",
+              label: "Reporting Issues",
+              slug: "contributing/reporting-issues",
             },
             {
-              label: "Creating New Bindings",
-              slug: "contributing/creating-new-bindings",
+              label: "Developer Guide",
+              slug: "contributing/developer-guide",
+            },
+            {
+              label: "Known Limitations",
+              slug: "contributing/known-limitations",
+            },
+            {
+              label: "Reporting Security Vulnerabilities",
+              slug: "contributing/reporting-security-vulnerabilities",
             },
           ],
         },

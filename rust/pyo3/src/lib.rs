@@ -19,7 +19,7 @@ use std::sync::{Arc, OnceLock};
 use magika::pipeline::{Engine, EngineSession, Pipeline, PipelineOptions};
 use magika::{
     ContentType, FileType, Options, OverwriteReason, PredictionMode, Rules, Runtime, TypeInfo,
-    MODEL_NAME,
+    MODEL_NAME, MODEL_TRAINING_LABELS,
 };
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -106,21 +106,20 @@ impl PyMagikaResult {
 
 fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult {
     let info = file_type.info();
-    let score = file_type.score();
-    let (dl_label, overwrite_reason) = match file_type {
-        FileType::Inferred(inferred) => {
-            let dl = inferred.inferred_type.info().label.to_string();
-            let reason = match inferred.content_type {
+    let (score, dl_label, overwrite_reason) = match file_type.debug_info().and_then(|x| x.model()) {
+        Some(x) => {
+            let best = x.best_guess();
+            let score = x.output[best];
+            let dl = MODEL_TRAINING_LABELS[best];
+            let reason = match x.overwrite_reason {
                 None => "none",
-                Some((_, OverwriteReason::LowConfidence)) => "low_confidence",
-                Some((_, OverwriteReason::OverwriteMap)) => "overwrite_map",
-                Some((_, OverwriteReason::RulesVeto)) => "rules_veto",
+                Some(OverwriteReason::LowConfidence) => "low_confidence",
+                Some(OverwriteReason::OverwriteMap) => "overwrite_map",
+                Some(OverwriteReason::RulesVeto) => "rules_veto",
             };
-            (dl, reason.to_string())
+            (score, dl.info().label.to_string(), reason.to_string())
         }
-        FileType::Ruled(_) | FileType::Directory | FileType::Symlink | FileType::Unsupported => {
-            (ContentType::Undefined.info().label.to_string(), "none".to_string())
-        }
+        None => (1.0, ContentType::Undefined.info().label.to_string(), "none".to_string()),
     };
 
     PyMagikaResult {
@@ -220,9 +219,9 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
+    #[pyo3(signature = (use_builtin_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
     fn new(
-        py: Python<'_>, use_rules: bool, use_model: bool, prediction_mode: &str,
+        py: Python<'_>, use_builtin_rules: bool, use_model: bool, prediction_mode: &str,
         follow_symlink: bool, rules: Option<&str>, rules_files: Option<Vec<std::path::PathBuf>>,
     ) -> PyResult<Self> {
         let custom_rules = match (rules, rules_files) {
@@ -252,11 +251,12 @@ impl PyMagika {
             PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e:#}"))
         })?;
         let mut options = Options::default();
-        options.use_rules = use_rules;
+        options.use_custom_rules = custom_rules;
+        options.use_builtin_rules = use_builtin_rules;
         options.use_model = use_model;
         options.prediction_mode = prediction_mode;
         options.follow_symlink = follow_symlink;
-        options.custom_rules = custom_rules;
+        options.debug_mode = true;
         Ok(Self { options })
     }
 
@@ -265,7 +265,7 @@ impl PyMagika {
             self.with_session(|session, options| session.identify_content(data, options))
         });
         match result {
-            Ok(file_type) => Ok(from_file_type(&file_type, None)),
+            Ok(file_type) => Ok(from_file_type(&file_type.into(), None)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }

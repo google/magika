@@ -20,8 +20,8 @@ use anyhow::{Context, Result, anyhow};
 use crossbeam_channel::Receiver;
 
 use crate::{
-    Backend, BackendInfo, Builder, Features, FeaturesOrRuled, FileType, Input, Options, Runtime,
-    Session,
+    Backend, BackendInfo, Builder, Features, FeaturesOr, FileType, Input, Options, RegularFileType,
+    Runtime, Session,
 };
 
 /// Batches smaller than this stay on the CPU in automatic mode: a GPU only pays off on full ones.
@@ -73,7 +73,7 @@ impl Engine {
     pub fn new(builder: Builder) -> Result<Self> {
         let cpu = builder.clone().with_backend(Backend::Cpu);
         let cpu = Prepared::start("magika-cpu", cpu, None)?;
-        let gpu = match builder.backend() {
+        let gpu = match builder.backend {
             Some(Backend::Cpu) => None,
             backend => {
                 // Preparing a GPU competes with preparing the CPU, which a short run waits for,
@@ -133,18 +133,20 @@ impl Engine {
 impl EngineSession<'_> {
     /// Identifies a file.
     pub fn identify_file(&mut self, path: impl AsRef<Path>, options: &Options) -> Result<FileType> {
-        self.identify(FeaturesOrRuled::extract_file(path, options)?, options)
+        self.identify(FeaturesOr::extract_file(path, options)?, options)
     }
 
     /// Identifies content.
-    pub fn identify_content(&mut self, input: impl Input, options: &Options) -> Result<FileType> {
-        self.identify(FeaturesOrRuled::extract_content(input, options)?, options)
+    pub fn identify_content(
+        &mut self, input: impl Input, options: &Options,
+    ) -> Result<RegularFileType> {
+        self.identify(FeaturesOr::extract_content(input, options)?, options)
     }
 
     /// Identifies files from their features, on the GPU if it is ready and the batch is full.
     pub fn identify_features_batch(
         &mut self, features: &[impl Borrow<Features>], options: &Options,
-    ) -> Result<Vec<FileType>> {
+    ) -> Result<Vec<RegularFileType>> {
         if features.is_empty() {
             return Ok(Vec::new());
         }
@@ -157,13 +159,15 @@ impl EngineSession<'_> {
         session.identify_features_batch(features)
     }
 
-    fn identify(&mut self, extracted: FeaturesOrRuled, options: &Options) -> Result<FileType> {
+    fn identify<T: From<RegularFileType>>(
+        &mut self, extracted: FeaturesOr<T>, options: &Options,
+    ) -> Result<T> {
         match extracted {
-            FeaturesOrRuled::Ruled(file_type) => Ok(file_type),
-            FeaturesOrRuled::Features(features) => {
+            FeaturesOr::Ruled(file_type) => Ok(file_type),
+            FeaturesOr::Features(features) => {
                 let [result] =
                     self.identify_features_batch(&[features], options)?.try_into().unwrap();
-                Ok(result)
+                Ok(result.into())
             }
         }
     }
@@ -224,9 +228,9 @@ mod tests {
         let options = Options::default();
         let content = std::fs::read("../../tests_data/basic/rust/code.rs").unwrap();
         (0..count)
-            .map(|_| match FeaturesOrRuled::extract_content(&content[..], &options).unwrap() {
-                FeaturesOrRuled::Features(features) => features,
-                FeaturesOrRuled::Ruled(_) => unreachable!(),
+            .map(|_| match FeaturesOr::extract_content(&content[..], &options).unwrap() {
+                FeaturesOr::Features(features) => features,
+                FeaturesOr::Ruled(_) => unreachable!(),
             })
             .collect()
     }

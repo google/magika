@@ -246,7 +246,7 @@ pub(crate) static AVI: TypeInfo = TypeInfo {
 pub(crate) static AVIF: TypeInfo = TypeInfo {
     label: "avif",
     mime_type: "image/avif",
-    group: "video",
+    group: "image",
     description: "AV1 Image File Format",
     extensions: &["avif", "avifs"],
     is_text: false,
@@ -775,7 +775,7 @@ pub(crate) static DXF: TypeInfo = TypeInfo {
     label: "dxf",
     mime_type: "image/vnd.dxf",
     group: "image",
-    description: "Audocad Drawing Exchange Format",
+    description: "Autocad Drawing Exchange Format",
     extensions: &["dxf"],
     is_text: true,
     model_support: true,
@@ -928,7 +928,7 @@ pub(crate) static FLV: TypeInfo = TypeInfo {
 pub(crate) static FORTRAN: TypeInfo = TypeInfo {
     label: "fortran",
     mime_type: "text/x-fortran",
-    group: "document",
+    group: "code",
     description: "Fortran",
     extensions: &["f90", "f95", "f03", "F90"],
     is_text: true,
@@ -1941,7 +1941,7 @@ pub(crate) static ONE: TypeInfo = TypeInfo {
     label: "one",
     mime_type: "application/msonenote",
     group: "document",
-    description: "One Note",
+    description: "OneNote",
     extensions: &["one"],
     is_text: false,
     model_support: true,
@@ -2744,7 +2744,7 @@ pub(crate) static SWF: TypeInfo = TypeInfo {
     label: "swf",
     mime_type: "application/x-shockwave-flash",
     group: "executable",
-    description: "Small Web File",
+    description: "Small Web Format",
     extensions: &["swf"],
     is_text: false,
     model_support: true,
@@ -2788,7 +2788,7 @@ pub(crate) static TCL: TypeInfo = TypeInfo {
     label: "tcl",
     mime_type: "application/x-tcl",
     group: "code",
-    description: "Tickle",
+    description: "Tcl",
     extensions: &["tcl"],
     is_text: true,
     model_support: true,
@@ -3215,7 +3215,7 @@ pub(crate) static XLS: TypeInfo = TypeInfo {
 
 pub(crate) static XLSB: TypeInfo = TypeInfo {
     label: "xlsb",
-    mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    mime_type: "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
     group: "document",
     description: "Microsoft Excel 2007+ document (binary format)",
     extensions: &["xlsb"],
@@ -3779,7 +3779,7 @@ pub enum ContentType {
     Duckdb,
     /// Autocad Drawing
     Dwg,
-    /// Audocad Drawing Exchange Format
+    /// Autocad Drawing Exchange Format
     Dxf,
     /// ELF executable
     Elf,
@@ -3991,7 +3991,7 @@ pub enum ContentType {
     Odt,
     /// Ogg data
     Ogg,
-    /// One Note
+    /// OneNote
     One,
     /// Open Neural Network Exchange
     Onnx,
@@ -4137,13 +4137,13 @@ pub enum ContentType {
     Sum,
     /// SVG Scalable Vector Graphics image data
     Svg,
-    /// Small Web File
+    /// Small Web Format
     Swf,
     /// Swift
     Swift,
     /// POSIX tar archive
     Tar,
-    /// Tickle
+    /// Tcl
     Tcl,
     /// Text protocol buffer
     Textproto,
@@ -4244,8 +4244,6 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 298;
-
     /// Returns a content type from its label.
     pub fn from_label(label: &str) -> Option<Self> {
         Some(match label {

@@ -60,11 +60,11 @@ pub struct RegularFileType {
 /// Note that debugging is not covered by SemVer.
 #[derive(Debug, Clone)]
 pub enum DebugInfo {
-    /// The resolvers triggered.
-    Resolvers,
-
     /// The custom rules triggered.
     CustomRules(RulesDebugInfo),
+
+    /// The resolvers triggered.
+    Resolvers,
 
     /// The builtin rules triggered.
     BuiltinRules(RulesDebugInfo),
@@ -105,11 +105,11 @@ pub enum OverwriteReason {
     /// The inferred content type is not canonical.
     OverwriteMap,
 
-    /// The resolvers vetoed the inferred content type.
-    ResolversVeto,
-
     /// The rules vetoed the inferred content type.
     RulesVeto,
+
+    /// The resolvers vetoed the inferred content type.
+    ResolversVeto,
 }
 
 impl From<RegularFileType> for FileType {
@@ -253,12 +253,6 @@ impl RegularFileType {
             let overwrite = MODEL_LABELS[best];
             let ml_is_confident = options.prediction_mode.is_confident(score, best);
             ensure!(
-                options.use_resolvers == feature.borrow().use_resolvers,
-                "use_resolvers mismatch between extract and identify"
-            );
-            let resolvers_veto =
-                options.use_resolvers && crate::resolvers::VETOS.contains(&overwrite);
-            ensure!(
                 options.use_custom_rules == feature.borrow().use_custom_rules,
                 "use_custom_rules mismatch between extract and identify"
             );
@@ -271,14 +265,20 @@ impl RegularFileType {
             let builtin_rules_veto =
                 options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
             let rules_veto = custom_rules_veto || builtin_rules_veto;
+            ensure!(
+                options.use_resolvers == feature.borrow().use_resolvers,
+                "use_resolvers mismatch between extract and identify"
+            );
+            let resolvers_veto =
+                options.use_resolvers && crate::resolvers::VETOS.contains(&overwrite);
             let fallback =
                 if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
             let (content_type, mut overwrite_reason) = if !ml_is_confident {
                 (fallback, Some(OverwriteReason::LowConfidence))
-            } else if resolvers_veto {
-                (fallback, Some(OverwriteReason::ResolversVeto))
             } else if rules_veto {
                 (fallback, Some(OverwriteReason::RulesVeto))
+            } else if resolvers_veto {
+                (fallback, Some(OverwriteReason::ResolversVeto))
             } else {
                 (overwrite, Some(OverwriteReason::OverwriteMap))
             };

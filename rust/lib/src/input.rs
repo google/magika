@@ -129,18 +129,18 @@ impl FeaturesOr<RegularFileType> {
             let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
             return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
         }
-        if options.use_resolvers {
-            let content_types = crate::resolvers::identify(&mut file)?;
-            if !content_types.is_empty() {
-                let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Resolvers));
-                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
-            }
-        }
         if let Some(custom_rules) = &options.use_custom_rules {
             let content_types = custom_rules.identify(&mut file)?;
             if !content_types.is_empty() {
                 let debug_info =
                     options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
+                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+            }
+        }
+        if options.use_resolvers {
+            let content_types = crate::resolvers::identify(&mut file)?;
+            if !content_types.is_empty() {
+                let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Resolvers));
                 return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
             }
         }

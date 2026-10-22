@@ -48,13 +48,13 @@ jobs:
       - name: Build and stage magika CLI binary
         run: ./python/scripts/build_and_stage_cli.sh
 
-      - name: Install all projects dependencies (with the requested python version)
-        working-directory: python
-        run: uv sync --python ${{ env.PYTHON_VERSION }} --all-extras --dev
-
       - name: Check that uv.lock is in sync
         working-directory: python
-        run: git --no-pager diff --exit-code uv.lock
+        run: uv lock --check
+
+      - name: Install all projects dependencies (with the requested python version)
+        working-directory: python
+        run: uv sync --locked --python ${{ env.PYTHON_VERSION }} --all-extras --dev
 
       - name: Print python version
         working-directory: python

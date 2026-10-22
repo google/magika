@@ -1,0 +1,14 @@
+user:
+  id: 123
+  name: John Doe
+  roles:
+    - admin
+    - editor
+  preferences:
+    theme: dark
+    notifications:
+      email: true
+      sms: false
+metadata:
+  createdAt: 2026-04-19T12:00:00Z
+  updatedAt: null

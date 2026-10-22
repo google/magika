@@ -887,24 +887,6 @@ rule taxonomy_webm
 		(prefix_size >= 4 and original_size >= 4 and $p0_0 at 0)
 }
 
-rule taxonomy_webp
-{
-	meta:
-        source_refs = "libmagic:magic/Magdir/riff:libmagic_b2aac9f8242bb4da4291_line_698; puremagic:puremagic/magic_data.json:headers[1191]; puremagic:puremagic/magic_data.json:multi-part[52494646][14]; puremagic:puremagic/magic_data.json:multi-part[52494646][15]; puremagic:puremagic/magic_data.json:multi-part[52494646][16]; puremagic:puremagic/magic_data.json:multi-part[52494646][17]; puremagic:puremagic/magic_data.json:multi-part[52494646][2]; tika:tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml:mime[1371]/magic[0]"
-		label = "webp"
-		enforced = false
-        class = "not-working"
-        fp_rate = 0.01019610508785644
-        fn_rate = 0.02
-
-	strings:
-		$p0_0 = { 52 49 46 46 ?? ?? ?? ?? 57 45 42 50 }
-		$p1_0 = "RIFF"
-
-	condition:
-		((prefix_size >= 12 and $p0_0 at 0) or (prefix_size >= 4 and original_size >= 4 and $p1_0 at 0))
-}
-
 rule taxonomy_wim
 {
 	meta:

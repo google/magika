@@ -42,6 +42,7 @@ jobs:
       # Upgrade pip via uv because the default pre-installed pip may be
       # vulnerable and cannot be trusted to securely upgrade itself.
       - name: Upgrade pip
+        shell: bash
         run: uv pip install --system --upgrade "pip>=26.2.2"
       - name: Install magika with pip
         run: python3 -m pip install magika

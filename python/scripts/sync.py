@@ -14,6 +14,9 @@
 # limitations under the License.
 # /// script
 # dependencies = ["click"]
+#
+# [tool.uv]
+# required-version = ">=0.13.4"
 # ///
 
 

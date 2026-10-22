@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  UV_VERSION: "0.12.12"
+  UV_VERSION: "0.13.4"
 
 jobs:
   coverage:

@@ -21,7 +21,7 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.13"
-  UV_VERSION: "0.12.12"
+  UV_VERSION: "0.13.4"
 
 jobs:
   # Run the source checks and the full test suite on a single representative
@@ -51,6 +51,10 @@ jobs:
       - name: Install all projects dependencies (with the requested python version)
         working-directory: python
         run: uv sync --python ${{ env.PYTHON_VERSION }} --all-extras --dev
+
+      - name: Check that uv.lock is in sync
+        working-directory: python
+        run: git --no-pager diff --exit-code uv.lock
 
       - name: Print python version
         working-directory: python

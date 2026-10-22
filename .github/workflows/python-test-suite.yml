@@ -21,7 +21,7 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.13"
-  UV_VERSION: "0.12.12"
+  UV_VERSION: "0.13.4"
 
 jobs:
   # Run the source checks and the full test suite on a single representative

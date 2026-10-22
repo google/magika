@@ -14,6 +14,9 @@
 # limitations under the License.
 # /// script
 # dependencies = ["pyyaml"]
+#
+# [tool.uv]
+# required-version = ">=0.13.4"
 # ///
 """Generate the content types KB from its human-editable YAML source.
 

@@ -52,6 +52,10 @@ jobs:
         working-directory: python
         run: uv sync --python ${{ env.PYTHON_VERSION }} --all-extras --dev
 
+      - name: Check that uv.lock is in sync
+        working-directory: python
+        run: git --no-pager diff --exit-code uv.lock
+
       - name: Print python version
         working-directory: python
         run: uv run --python ${{ env.PYTHON_VERSION }} python --version

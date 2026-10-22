@@ -29,4 +29,5 @@ class OverwriteReason(LowerCaseStrEnum):
     NONE = enum.auto()
     LOW_CONFIDENCE = enum.auto()
     OVERWRITE_MAP = enum.auto()
+    RESOLVERS_VETO = enum.auto()
     RULES_VETO = enum.auto()

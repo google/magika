@@ -56,6 +56,7 @@ mod model;
 mod options;
 #[cfg(feature = "pipeline")]
 pub mod pipeline;
+mod resolvers;
 mod rules;
 mod runtime;
 mod session;
@@ -122,7 +123,7 @@ mod tests {
             None => ReferenceOverwriteReason::None,
             Some(OverwriteReason::LowConfidence) => ReferenceOverwriteReason::LowConfidence,
             Some(OverwriteReason::OverwriteMap) => ReferenceOverwriteReason::OverwriteMap,
-            Some(OverwriteReason::RulesVeto) => unreachable!(),
+            Some(OverwriteReason::ResolversVeto | OverwriteReason::RulesVeto) => unreachable!(),
         };
         (score, dl, overwrite_reason)
     }

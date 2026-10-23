@@ -56,6 +56,7 @@ mod model;
 mod options;
 #[cfg(feature = "pipeline")]
 pub mod pipeline;
+mod resolvers;
 mod rules;
 mod runtime;
 mod session;
@@ -75,7 +76,12 @@ mod tests {
     mod gpu;
 
     fn new_session() -> Session {
-        let options = Options { use_builtin_rules: false, debug_mode: true, ..Options::default() };
+        let options = Options {
+            use_resolvers: false,
+            use_builtin_rules: false,
+            debug_mode: true,
+            ..Options::default()
+        };
         Runtime::builder()
             .with_backend(Backend::Cpu)
             .with_options(options)
@@ -122,7 +128,7 @@ mod tests {
             None => ReferenceOverwriteReason::None,
             Some(OverwriteReason::LowConfidence) => ReferenceOverwriteReason::LowConfidence,
             Some(OverwriteReason::OverwriteMap) => ReferenceOverwriteReason::OverwriteMap,
-            Some(OverwriteReason::RulesVeto) => unreachable!(),
+            Some(OverwriteReason::ResolversVeto | OverwriteReason::RulesVeto) => unreachable!(),
         };
         (score, dl, overwrite_reason)
     }

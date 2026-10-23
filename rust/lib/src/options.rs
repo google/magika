@@ -18,8 +18,10 @@ use crate::Rules;
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Options {
-    /// Identifies using custom rules (before builtin rules).
+    /// Identifies using custom rules (before resolvers).
     pub use_custom_rules: Option<Rules>,
+    /// Identifies using resolvers (before builtin rules).
+    pub use_resolvers: bool,
     /// Identifies using builtin rules (before inference).
     pub use_builtin_rules: bool,
     /// Identifies using inference (after rules).
@@ -47,6 +49,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             use_custom_rules: None,
+            use_resolvers: true,
             use_builtin_rules: true,
             use_model: true,
             prediction_mode: PredictionMode::HighConfidence,

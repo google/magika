@@ -8,6 +8,9 @@
 
 # Julien owns the Rust code, docs, and tests
 /rust/ @ia0
+# But Ange owns the resolvers (with Julien for Rust code)
+/rust/lib/src/resolvers.rs @corkamig @ia0
+/rust/lib/src/resolvers/ @corkamig @ia0
 # But Yanick owns ML, KB, and YARA related files (including generated ones)
 /rust/ffi/src/content.rs @reyammer
 /rust/lib/src/content.rs @reyammer

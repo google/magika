@@ -376,6 +376,7 @@ impl Response {
                             let reason = match reason {
                                 OverwriteReason::LowConfidence => Some("Low-confidence"),
                                 OverwriteReason::OverwriteMap => None,
+                                OverwriteReason::ResolversVeto => Some("Resolvers-veto"),
                                 OverwriteReason::RulesVeto => Some("Rules-veto"),
                             };
                             if let Some(reason) = reason {

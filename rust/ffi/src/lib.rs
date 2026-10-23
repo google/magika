@@ -100,6 +100,8 @@ impl From<MagikaPredictionMode> for magika::PredictionMode {
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct MagikaOptions {
+    /// Identifies using resolvers (before rules).
+    pub use_resolvers: bool,
     /// Rules checked before the built-in rules, or NULL for none.
     ///
     /// The options hold their own reference, so the rules may be freed once the call that takes
@@ -118,6 +120,7 @@ pub struct MagikaOptions {
 impl Default for MagikaOptions {
     fn default() -> Self {
         Self {
+            use_resolvers: true,
             use_custom_rules: std::ptr::null(),
             use_builtin_rules: true,
             use_model: true,
@@ -133,6 +136,7 @@ impl MagikaOptions {
     /// `use_custom_rules` must be NULL or point to a valid `MagikaRules`.
     unsafe fn to_options(self) -> magika::Options {
         let mut result = magika::Options::default();
+        result.use_resolvers = self.use_resolvers;
         result.use_custom_rules = self.use_custom_rules.as_ref().map(|rules| rules.inner.clone());
         result.use_builtin_rules = self.use_builtin_rules;
         result.use_model = self.use_model;

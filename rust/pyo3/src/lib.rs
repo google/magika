@@ -116,6 +116,7 @@ fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult 
                 None => "none",
                 Some(OverwriteReason::LowConfidence) => "low_confidence",
                 Some(OverwriteReason::OverwriteMap) => "overwrite_map",
+                Some(OverwriteReason::ResolversVeto) => "resolvers_veto",
                 Some(OverwriteReason::RulesVeto) => "rules_veto",
             };
             (score, dl.info().label.to_string(), reason.to_string())
@@ -225,10 +226,12 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_builtin_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
+    #[pyo3(signature = (use_resolvers=true, use_builtin_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
+    #[allow(clippy::too_many_arguments)]
     fn new(
-        py: Python<'_>, use_builtin_rules: bool, use_model: bool, prediction_mode: &str,
-        follow_symlink: bool, rules: Option<&str>, rules_files: Option<Vec<std::path::PathBuf>>,
+        py: Python<'_>, use_resolvers: bool, use_builtin_rules: bool, use_model: bool,
+        prediction_mode: &str, follow_symlink: bool, rules: Option<&str>,
+        rules_files: Option<Vec<std::path::PathBuf>>,
     ) -> PyResult<Self> {
         let custom_rules = match (rules, rules_files) {
             (None, None) => None,
@@ -257,6 +260,7 @@ impl PyMagika {
             PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e:#}"))
         })?;
         let mut options = Options::default();
+        options.use_resolvers = use_resolvers;
         options.use_custom_rules = custom_rules;
         options.use_builtin_rules = use_builtin_rules;
         options.use_model = use_model;

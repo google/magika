@@ -105,6 +105,10 @@ typedef struct MagikaSession MagikaSession;
  */
 typedef struct MagikaOptions {
   /**
+   * Identifies using resolvers (before rules).
+   */
+  bool use_resolvers;
+  /**
    * Rules checked before the built-in rules, or NULL for none.
    *
    * The options hold their own reference, so the rules may be freed once the call that takes

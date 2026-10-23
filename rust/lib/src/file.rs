@@ -63,6 +63,9 @@ pub enum DebugInfo {
     /// The custom rules triggered.
     CustomRules(RulesDebugInfo),
 
+    /// The resolvers triggered.
+    Resolvers,
+
     /// The builtin rules triggered.
     BuiltinRules(RulesDebugInfo),
 
@@ -104,6 +107,9 @@ pub enum OverwriteReason {
 
     /// The rules vetoed the inferred content type.
     RulesVeto,
+
+    /// The resolvers vetoed the inferred content type.
+    ResolversVeto,
 }
 
 impl From<RegularFileType> for FileType {
@@ -259,12 +265,20 @@ impl RegularFileType {
             let builtin_rules_veto =
                 options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
             let rules_veto = custom_rules_veto || builtin_rules_veto;
+            ensure!(
+                options.use_resolvers == feature.borrow().use_resolvers,
+                "use_resolvers mismatch between extract and identify"
+            );
+            let resolvers_veto =
+                options.use_resolvers && crate::resolvers::VETOS.contains(&overwrite);
             let fallback =
                 if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
             let (content_type, mut overwrite_reason) = if !ml_is_confident {
                 (fallback, Some(OverwriteReason::LowConfidence))
             } else if rules_veto {
                 (fallback, Some(OverwriteReason::RulesVeto))
+            } else if resolvers_veto {
+                (fallback, Some(OverwriteReason::ResolversVeto))
             } else {
                 (overwrite, Some(OverwriteReason::OverwriteMap))
             };

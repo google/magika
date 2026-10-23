@@ -3,7 +3,7 @@
 
 //! Reference-only verifiers for the 52 `not-working` rules in `rulesets/notworking/formats.yar`.
 //!
-//! All 52 rules carry `enforced = false` in [`crate::table`] and are **never** consulted by
+//! All 52 rules carry `enforced = false` and are **never** consulted by
 //! [`super::identify`]. They are preserved here as executable documentation of why they remain
 //! disabled:
 //!

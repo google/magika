@@ -19,11 +19,12 @@ use anyhow::Result;
 
 use crate::cached_input::CachedInput;
 use crate::config::ModelConfig;
-use crate::{ContentType, DebugInfo, FileType, Options, Rules, RulesDebugInfo};
+use crate::{ContentType, DebugInfo, FileType, Options, RegularFileType, Rules, RulesDebugInfo};
 
 /// Features to identify a file using AI.
 pub struct Features {
     pub(crate) features: Vec<i32>,
+    pub(crate) use_resolvers: bool,
     pub(crate) use_custom_rules: Option<Rules>,
     pub(crate) use_builtin_rules: bool,
 }
@@ -76,15 +77,15 @@ impl<T: Input> Input for &mut T {
 }
 
 /// Result of features extraction.
-pub enum FeaturesOrRuled {
+pub enum FeaturesOr<T> {
     /// Features extracted for identification using AI.
     Features(Features),
 
-    /// File identified without AI.
-    Ruled(FileType),
+    /// File or content identified without AI.
+    Ruled(T),
 }
 
-impl FeaturesOrRuled {
+impl FeaturesOr<FileType> {
     /// Extracts the features from a file path.
     ///
     /// Returns the file type directly if the file cannot be identified using AI.
@@ -96,16 +97,27 @@ impl FeaturesOrRuled {
             std::fs::symlink_metadata(file)?
         };
         if metadata.is_dir() {
-            Ok(FeaturesOrRuled::Ruled(FileType::Directory))
+            Ok(FeaturesOr::Ruled(FileType::Directory))
         } else if metadata.is_symlink() {
-            Ok(FeaturesOrRuled::Ruled(FileType::Symlink))
+            Ok(FeaturesOr::Ruled(FileType::Symlink))
         } else if !metadata.is_file() {
-            Ok(FeaturesOrRuled::Ruled(FileType::Unsupported))
+            Ok(FeaturesOr::Ruled(FileType::Unsupported))
         } else {
-            Self::extract_content(std::fs::File::open(file)?, options)
+            Ok(FeaturesOr::extract_content(std::fs::File::open(file)?, options)?.into())
         }
     }
+}
 
+impl From<FeaturesOr<RegularFileType>> for FeaturesOr<FileType> {
+    fn from(value: FeaturesOr<RegularFileType>) -> Self {
+        match value {
+            FeaturesOr::Features(x) => FeaturesOr::Features(x),
+            FeaturesOr::Ruled(x) => FeaturesOr::Ruled(x.into()),
+        }
+    }
+}
+
+impl FeaturesOr<RegularFileType> {
     /// Extracts the features from file content.
     ///
     /// Returns the file type directly if the content cannot be identified using AI.
@@ -115,14 +127,21 @@ impl FeaturesOrRuled {
         if file.length() == 0 {
             let content_types = vec![ContentType::Empty];
             let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
-            return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
+            return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
         }
         if let Some(custom_rules) = &options.use_custom_rules {
             let content_types = custom_rules.identify(&mut file)?;
             if !content_types.is_empty() {
                 let debug_info =
                     options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
-                return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
+                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+            }
+        }
+        if options.use_resolvers {
+            let content_types = crate::resolvers::identify(&mut file)?;
+            if !content_types.is_empty() {
+                let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Resolvers));
+                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
             }
         }
         if options.use_builtin_rules {
@@ -131,14 +150,15 @@ impl FeaturesOrRuled {
                 let debug_info = options
                     .debug_mode
                     .then(|| Box::new(DebugInfo::BuiltinRules(RulesDebugInfo {})));
-                return Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }));
+                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
             }
         }
         if options.use_model {
             let features = extract_features(config, &mut file)?;
             if features[config.min_file_size_for_dl - 1] != config.padding_token {
-                return Ok(FeaturesOrRuled::Features(Features {
+                return Ok(FeaturesOr::Features(Features {
                     features,
+                    use_resolvers: options.use_resolvers,
                     use_custom_rules: options.use_custom_rules.clone(),
                     use_builtin_rules: options.use_builtin_rules,
                 }));
@@ -158,7 +178,7 @@ impl FeaturesOrRuled {
         };
         let content_types = vec![content_type];
         let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
-        Ok(FeaturesOrRuled::Ruled(FileType::Regular { content_types, debug_info }))
+        Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }))
     }
 }
 

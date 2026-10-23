@@ -44,6 +44,7 @@ def get_model_content_types() -> List[str]: ...
 class Magika:
     def __init__(
         self,
+        use_resolvers: bool = True,
         use_builtin_rules: bool = True,
         use_model: bool = True,
         prediction_mode: str = "high_confidence",

@@ -17,7 +17,7 @@ use std::path::Path;
 use std::sync::{Arc, LazyLock};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
-use magika_rules::{Class, RuleSet, Source};
+use magika_rules::{Class, Outcome, RuleSet, Source};
 
 use crate::ContentType;
 use crate::cached_input::CachedInput;
@@ -94,9 +94,9 @@ impl Rules {
         }
         let prefix = file.prefix(prefix_len);
         let tail = (tail_len > 0).then(|| file.suffix(tail_len));
-        Ok(match rules.set.scan_one(magika_rules::Input { prefix, size, tail }) {
-            Some(i) => vec![rules.content_types[i]],
-            None => Vec::new(),
+        Ok(match rules.set.scan(magika_rules::Input { prefix, size, tail }) {
+            Outcome::Match(labels) => labels.into_iter().map(|i| rules.content_types[i]).collect(),
+            Outcome::InsufficientInput => Vec::new(),
         })
     }
 
@@ -150,61 +150,107 @@ impl Compiled {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Backend, FeaturesOrRuled, Options, Runtime};
+    use crate::{Backend, FeaturesOr, FileType, Options, Runtime};
 
-    fn options(use_rules: bool) -> Options {
-        Options { use_builtin_rules: use_rules, ..Options::default() }
+    /// One enforced rule labeling `label` with `class`, matching when `condition` holds.
+    fn rule(label: &str, class: &str, condition: &str) -> String {
+        let fn_rate = if class == "full" { "0" } else { "0.5" };
+        format!(
+            r#"rule custom_{label} {{
+                meta: label = "{label}" enforced = true class = "{class}" fp_rate = 0 fn_rate = {fn_rate}
+                strings: $psd = "8BPS"
+                condition: {condition}
+            }}"#
+        )
     }
 
-    fn extract(path: &str, options: &Options) -> FeaturesOrRuled {
-        FeaturesOrRuled::extract_file(format!("../../tests_data/basic/{path}"), options).unwrap()
+    fn options(use_rules: bool, custom: Option<&str>) -> Options {
+        let custom_rules = custom.map(|text| Rules::compile(text).unwrap());
+        Options {
+            use_resolvers: false,
+            use_builtin_rules: use_rules,
+            use_custom_rules: custom_rules,
+            ..Options::default()
+        }
+    }
+
+    fn extract(path: &str, options: &Options) -> FeaturesOr<FileType> {
+        FeaturesOr::extract_file(format!("../../tests_data/basic/{path}"), options).unwrap()
     }
 
     fn ruled(path: &str, options: &Options) -> Option<ContentType> {
         match extract(path, options) {
-            FeaturesOrRuled::Ruled(file_type) => file_type.content_type(),
+            FeaturesOr::Ruled(file_type) => file_type.content_type(),
             _ => None,
         }
     }
 
     #[test]
-    fn builtin_rules_identify_formats_and_archives() {
-        assert_eq!(ruled("psd/MagikaTest.psd", &options(true)), Some(ContentType::Psd));
-        assert_eq!(ruled("psd/MagikaTest.psd", &options(false)), None);
-        assert_eq!(ruled("pptx/magika_test.pptx", &options(true)), Some(ContentType::Pptx));
-        assert_eq!(ruled("pptx/magika_test.pptx", &options(false)), None);
+    fn custom_rules_come_before_builtin_rules() {
+        let psd = "psd/MagikaTest.psd";
+        let txt = rule("txt", "full", "$psd at 0");
+        assert_eq!(ruled(psd, &options(true, None)), Some(ContentType::Psd));
+        assert_eq!(ruled(psd, &options(true, Some(&txt))), Some(ContentType::Txt));
+        assert_eq!(ruled(psd, &options(false, Some(&txt))), Some(ContentType::Txt));
+        let unmatched = rule("txt", "full", "$psd at 1");
+        assert_eq!(ruled(psd, &options(true, Some(&unmatched))), Some(ContentType::Psd));
+        assert_eq!(ruled(psd, &options(false, Some(&unmatched))), None);
     }
 
     #[test]
     fn rules_mismatch_extract_identify() {
         let runtime = Runtime::builder().with_backend(Backend::Cpu).build().unwrap();
         let mut session = runtime.session().unwrap();
-        let FeaturesOrRuled::Features(features) = extract("wav/test.wav", &options(false)) else {
+        let FeaturesOr::Features(features) = extract("wav/test.wav", &options(false, None)) else {
             unreachable!()
         };
         let error = session.identify_features(&features).unwrap_err();
         assert_eq!(error.to_string(), "use_builtin_rules mismatch between extract and identify");
+        let custom = rule("txt", "full", "$psd at 0");
+        let FeaturesOr::Features(features) =
+            extract("wav/test.wav", &options(false, Some(&custom)))
+        else {
+            unreachable!()
+        };
+        let error = session.identify_features(&features).unwrap_err();
+        assert_eq!(error.to_string(), "use_custom_rules mismatch between extract and identify");
     }
 
     #[test]
-    fn custom_rules_are_unsupported() {
-        let error = Rules::compile("rule r { condition: true }").unwrap_err().to_string();
-        assert!(error.contains("unsupported"), "{error}");
+    fn custom_rules_read_the_end_of_a_zip_archive() {
+        // The central directory, which lists the entry names, is at the end of the 290 KB file.
+        let names = r#"zip_valid == 1 and zip_names contains "word/document.xml""#;
+        let custom = rule("odt", "partial", names);
+        assert_eq!(ruled("docx/doc.docx", &options(false, Some(&custom))), Some(ContentType::Odt));
+    }
 
+    #[test]
+    fn invalid_custom_rules_are_rejected() {
+        let error = |text: &str| Rules::compile(text).unwrap_err().to_string();
+        assert_eq!(
+            error(&rule("not_a_type", "full", "$psd at 0")),
+            r#"rule label "not_a_type" is not a Magika content type"#
+        );
+        assert!(error("rule broken {").starts_with("invalid YARA"), "{}", error("rule broken {"));
+        let no_label = r#"rule r { meta: enforced = true class = "full" fp_rate = 0 fn_rate = 0
+            condition: true }"#;
+        assert!(error(no_label).starts_with("rule r: "), "{}", error(no_label));
+        assert_eq!(error("rule r { condition: true }"), "no enforced rule labels a content type");
+    }
+
+    #[test]
+    fn rules_from_files_name_the_file_in_errors() {
         let custom = "../../tests_data/rules/custom.yar";
-        let error = format!("{:#}", Rules::from_files([custom]).unwrap_err());
-        assert!(error.starts_with("in rules from ../../tests_data/rules/custom.yar"), "{error}");
-        assert!(error.contains("unsupported"), "{error}");
-
-        let error = Rules::from_files(["../../tests_data/basic/png/magika_test.png"]);
+        assert_eq!(Rules::from_files([custom]).unwrap().0.content_types, [ContentType::Png]);
+        let error = Rules::from_files([custom, "../../tests_data/basic/png/magika_test.png"]);
         let error = format!("{:#}", error.unwrap_err());
         assert!(error.starts_with("reading rules from ../../tests_data/basic/png"), "{error}");
     }
 
     #[test]
     fn rules_are_shared_by_clones() {
-        let rules = Rules::builtin();
+        let rules = Rules::compile(&rule("txt", "full", "$psd at 0")).unwrap();
         assert!(Arc::ptr_eq(&rules.0, &rules.clone().0));
-        assert!(!rules.0.content_types.is_empty());
+        assert_eq!(rules.0.content_types, [ContentType::Txt]);
     }
 }

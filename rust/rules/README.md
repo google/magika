@@ -1,9 +1,9 @@
 # magika-rules
 
-Bounded format rules for Magika evaluated in pure Rust over the first 4 KiB of an input (plus
-an archive's trailing central directory when needed). The crate has no native dependency, no
-`unsafe`, no environment reads and no global state, and never names a Magika content type:
-callers map the rule labels to their own label type.
+Bounded format rules for Magika: a YARA subset evaluated in pure Rust over the first 4 KiB
+of an input. The crate has no native dependency, no `unsafe`, no environment reads and no
+global state, and never names a Magika content type: callers map the rule labels to their
+own label type.
 
 A scan either names one label, reports that enforced rules disagree, or abstains. Format
 identity from a bounded prefix does not certify that the whole file is valid. Both full and
@@ -27,47 +27,74 @@ match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`RuleSet::bundled` loads the bundled rule metadata table and evaluates inputs through a layered,
-magic-keyed native dispatch cascade (`src/magic/`). A `RuleSet` is `Send + Sync` and scans take
-`&self`, so one instance can be shared through an `Arc`.
+`RuleSet::bundled` loads the precompiled bundled rules in well under a millisecond: it parses no
+YARA and builds each regex the first time a scan needs it. `Source::parse` and `RuleSet::compile`
+accept custom rules with the same validation. A `RuleSet` is `Send + Sync` and scans take `&self`,
+so one compiled pack can be shared through an `Arc`.
 
 `Input::prefix` must be exactly the first `min(size, PREFIX_LIMIT)` bytes; anything else is
 `Outcome::InsufficientInput`.
 
-## Architecture
-
-Each scan passes through five dispatch tiers in order (`src/magic/mod.rs`), returning on the
-first match:
-
-1. **4-byte magic (`magic32`)**: fixed-offset dispatch on `be32(prefix, 0)`.
-2. **2-byte magic (`magic16`)**: fixed-offset dispatch on `be16(prefix, 0)` for short prefixes
-   and 2-byte signatures (`MZ` → PE, `7z`, `xz`, `bzip2`, `gzip`, `lzip`, `lz4`, `rar`, `txt*`,
-   etc.).
-3. **Non-zero-offset probes (`offset_probes`)**: formats whose magic sits at a fixed non-zero
-   offset (`dicom` at `@128`, `ustar` at `@257`, ISO-BMFF `ftyp` at `@4`, `icc` `"acsp"` at
-   `@36`, etc.).
-4. **Bounded-window heuristics (`heuristics`)**: rules that scan a bounded prefix window (`ini`,
-   `pem`, `pgp`, `gitattributes`, `vimswap`, `html`, and the floating-XML formats `gpx`, `kml`,
-   `osm` gated on an XML-compatible leading byte).
-
-The ZIP (`PK\x03\x04` / `PK\x05\x06`) and PE (`MZ`) entries run the bounded structural parsers
-in `src/facts/{zip,pe}.rs` on demand.
-
 ## Directory
 
-- `src/magic/mod.rs`: layered dispatch cascade and native verifiers for the 140 enforced rules.
-- `src/magic/notworking.rs`: reference-only verifiers for the 52 disabled rules (`#[cfg(test)]`).
-- `src/facts/`: bounded ZIP central-directory and PE header parsers.
-- `src/label.rs` & `src/table.rs`: enforced label enum (`Label`) and rule metadata table.
-- `rulesets/{full,partial,notworking}/`: original `.yar` specifications retained as reference.
+- `rulesets/full/`: rules with zero observed false positives and false negatives.
+- `rulesets/partial/`: zero observed false positives and some false negatives.
+- `rulesets/notworking/`: rules kept for reference and never enforced, including rules
+  refuted by evaluation.
 - `LICENSES`: notices for the sources rules were adapted from; exact references stay with
   each rule's `source_refs`.
+- `src/bin/gen.rs`: compiles the rulesets with the crate's own `source`, `lower` and `codegen`
+  modules into `src/bundled.rs` (loaded by `RuleSet::bundled` with the default `bundled` feature)
+  and writes the rule labels to `../gen/rules/content_types`.
+
+## Rule metadata
+
+Every non-private rule is checked when a source is parsed:
+
+- `enforced` (or its alias `enabled`) is a boolean and defaults to `false`.
+- An enforced rule needs a string `label`, `fp_rate = 0`, and either `class = "full"` with
+  `fn_rate = 0` or `class = "partial"` with `0 < fn_rate < 1`. Rates are fractions in
+  `[0, 1]`, or `"unmeasured"`.
+- Rule ids are unique; imports, includes and global rules are rejected.
+- A rule's directory must agree with its metadata: `full` holds enforced full rules,
+  `partial` enforced partial rules, `notworking` unenforced `class = "not-working"` rules.
+
+Metadata records the author's evidence; the crate cannot verify it.
+
+## Custom rules
+
+Magika checks custom rules before these ones: `magika::Rules::compile` in the library,
+`--rules-file` (and `--rules-check` to validate a file) in the CLI, `Magika(rules=...)` in Python,
+and `magika_rules_new` in C. They use the same YARA subset and metadata, except that their
+directory is not checked, and their labels must be Magika content types. Custom rules identify a
+file when the ones that match agree; otherwise these rules, then the model, decide as usual. When
+every enforced rule of a content type has `class = "full"`, a model prediction of it is vetoed if
+none of them matched. `tests_data/rules/custom.yar` is a small example.
+
+## Supported YARA
+
+Anything outside this subset is rejected at compile time rather than ignored.
+
+| Construct | Supported form |
+| --- | --- |
+| Strings | text, hex (wildcards `??` and nibbles, alternations, bounded jumps) and regex, without modifiers |
+| Placement | `$a at N`, `$a in (N..M)` with literal bounds inside the prefix |
+| Integers | `uint8`, `uint16`, `uint16be`, `uint32`, `uint32be` at a literal offset inside the prefix |
+| Sizes | `filesize` or `original_size` (the whole input), `prefix_size` (bytes in the prefix) |
+| Comparisons | `==`, `!=`, `<`, `<=`, `>`, `>=` between literals, sizes and reads |
+| Modulo | `x % N == M` with `N` a power of two |
+| Facts | zip (`zip_valid`, `zip_entries`, `zip_names_entries`, ...) and PE (`pe_valid`, `pe_machine`, `pe_subsystem`, ...) integers, zero for other inputs; see `src/facts` |
+| Views | `zip_names` and `zip_first_entry`, searched with `contains` or `startswith` and a literal string |
+| Logic | `and`, `or`, `not`, `true`, `false`, references to other rules (private helpers are active unless disabled) |
+
+A read past the prefix is undefined and makes its comparison false. Regexes are byte
+oriented: `\xff` is one byte, never a UTF-8 sequence.
 
 ## Tests
 
-`./test.sh` runs the full test, formatting, clippy, and doc suite.
-`tests/corpus.rs` verifies that no bundled rule mislabels a sample under `tests_data/basic`.
-`tests/regressions.rs` replays the 15,169 recorded signature regressions (reviewed headers,
-corruptions, truncations and reported false positives in `tests/data`). The ignored
-`tests/dataset.rs` measures the rules over the evaluation dataset; its documentation describes
-how to export the manifest it reads.
+`./test.sh` runs the full suite, including a release-mode gate that no bundled rule
+mislabels a sample under `tests_data/basic` and a compile and scan budget.
+`tests/regressions.rs` replays the signature regressions recorded from #1447 (reviewed
+headers, corruptions, truncations and reported false positives in `tests/data`). The ignored
+`tests/dataset.rs` measures the rules over the evaluation dataset; its documentation
+describes how to export the manifest it reads.

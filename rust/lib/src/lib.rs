@@ -36,9 +36,9 @@ pub use crate::backend::{Backend, BackendInfo};
 pub use crate::builder::Builder;
 pub use crate::content::{ContentType, MODEL_MAJOR_VERSION, MODEL_NAME};
 pub use crate::file::{
-    DebugInfo, FileType, ModelDebugInfo, OverwriteReason, RulesDebugInfo, TypeInfo,
+    DebugInfo, FileType, ModelDebugInfo, OverwriteReason, RegularFileType, RulesDebugInfo, TypeInfo,
 };
-pub use crate::input::{Features, FeaturesOrRuled, Input};
+pub use crate::input::{Features, FeaturesOr, Input};
 pub use crate::model::{MODEL_LABELS, MODEL_TRAINING_LABELS};
 pub use crate::options::{Options, PredictionMode};
 pub use crate::rules::Rules;
@@ -54,6 +54,9 @@ mod file;
 mod input;
 mod model;
 mod options;
+#[cfg(feature = "pipeline")]
+pub mod pipeline;
+mod resolvers;
 mod rules;
 mod runtime;
 mod session;
@@ -73,7 +76,12 @@ mod tests {
     mod gpu;
 
     fn new_session() -> Session {
-        let options = Options { use_builtin_rules: false, debug_mode: true, ..Options::default() };
+        let options = Options {
+            use_resolvers: false,
+            use_builtin_rules: false,
+            debug_mode: true,
+            ..Options::default()
+        };
         Runtime::builder()
             .with_backend(Backend::Cpu)
             .with_options(options)
@@ -120,13 +128,13 @@ mod tests {
             None => ReferenceOverwriteReason::None,
             Some(OverwriteReason::LowConfidence) => ReferenceOverwriteReason::LowConfidence,
             Some(OverwriteReason::OverwriteMap) => ReferenceOverwriteReason::OverwriteMap,
-            Some(OverwriteReason::RulesVeto) => unreachable!(),
+            Some(OverwriteReason::ResolversVeto | OverwriteReason::RulesVeto) => unreachable!(),
         };
         (score, dl, overwrite_reason)
     }
 
-    fn assert_prediction(actual: FileType, expected: Prediction, debug: &str) {
-        let FileType::Regular { content_types, debug_info: Some(debug_info) } = actual else {
+    fn assert_prediction(actual: RegularFileType, expected: Prediction, debug: &str) {
+        let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
             unreachable!()
         };
         let [content_type] = content_types[..] else { unreachable!() };
@@ -187,6 +195,7 @@ mod tests {
             assert_eq!(test.status, "ok"); // only scenario tested so far
             let expected = test.prediction.unwrap();
             let actual = session.identify_file(format!("../../{}", test.path)).unwrap();
+            let FileType::Regular(actual) = actual else { unreachable!() };
             assert_prediction(actual, expected, &test.path);
             checked += 1;
         }

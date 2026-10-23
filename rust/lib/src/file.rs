@@ -33,21 +33,26 @@ pub enum FileType {
     Symlink,
 
     /// The file is a regular file.
-    Regular {
-        /// The content types of the file.
-        ///
-        /// This list is a non-empty set (there is at least one element and all elements are
-        /// distinct) and its first element is the main content type.
-        content_types: Vec<ContentType>,
-
-        /// Debugging information about the identification.
-        ///
-        /// Only present when debugging is enabled. Note that debugging is not covered by SemVer.
-        debug_info: Option<Box<DebugInfo>>,
-    },
+    Regular(RegularFileType),
 
     #[doc(hidden)]
     Unsupported,
+}
+
+/// Content types for a regular file.
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub struct RegularFileType {
+    /// The content types of the file.
+    ///
+    /// This list is a non-empty set (there is at least one element and all elements are
+    /// distinct) and its first element is the main content type.
+    pub content_types: Vec<ContentType>,
+
+    /// Debugging information about the identification.
+    ///
+    /// Only present when debugging is enabled. Note that debugging is not covered by SemVer.
+    pub debug_info: Option<Box<DebugInfo>>,
 }
 
 /// Debugging information about the identification.
@@ -57,6 +62,9 @@ pub enum FileType {
 pub enum DebugInfo {
     /// The custom rules triggered.
     CustomRules(RulesDebugInfo),
+
+    /// The resolvers triggered.
+    Resolvers,
 
     /// The builtin rules triggered.
     BuiltinRules(RulesDebugInfo),
@@ -99,6 +107,15 @@ pub enum OverwriteReason {
 
     /// The rules vetoed the inferred content type.
     RulesVeto,
+
+    /// The resolvers vetoed the inferred content type.
+    ResolversVeto,
+}
+
+impl From<RegularFileType> for FileType {
+    fn from(value: RegularFileType) -> Self {
+        FileType::Regular(value)
+    }
 }
 
 impl FileType {
@@ -107,7 +124,7 @@ impl FileType {
         match self {
             FileType::Directory => None,
             FileType::Symlink => None,
-            FileType::Regular { content_types, .. } => Some(content_types[0]),
+            FileType::Regular(x) => Some(x.content_type()),
             FileType::Unsupported => None,
         }
     }
@@ -119,7 +136,7 @@ impl FileType {
         match self {
             FileType::Directory => &[],
             FileType::Symlink => &[],
-            FileType::Regular { content_types, .. } => content_types,
+            FileType::Regular(x) => x.content_types(),
             FileType::Unsupported => &[],
         }
     }
@@ -129,7 +146,7 @@ impl FileType {
         match self {
             FileType::Directory => &crate::content::DIRECTORY,
             FileType::Symlink => &crate::content::SYMLINK,
-            FileType::Regular { content_types, .. } => content_types[0].info(),
+            FileType::Regular(x) => x.info(),
             FileType::Unsupported => &crate::content::UNSUPPORTED,
         }
     }
@@ -137,9 +154,31 @@ impl FileType {
     /// Returns the debug information for regular files.
     pub fn debug_info(&self) -> Option<&DebugInfo> {
         match self {
-            FileType::Regular { debug_info, .. } => debug_info.as_deref(),
+            FileType::Regular(x) => x.debug_info(),
             _ => None,
         }
+    }
+}
+
+impl RegularFileType {
+    /// Returns the main content type.
+    pub fn content_type(&self) -> ContentType {
+        self.content_types[0]
+    }
+
+    /// Returns the content types of the file.
+    pub fn content_types(&self) -> &[ContentType] {
+        &self.content_types
+    }
+
+    /// Returns the file type information of the main content type.
+    pub fn info(&self) -> &'static TypeInfo {
+        self.content_type().info()
+    }
+
+    /// Returns the debug information.
+    pub fn debug_info(&self) -> Option<&DebugInfo> {
+        self.debug_info.as_deref()
     }
 }
 
@@ -202,10 +241,10 @@ impl TypeInfo {
     }
 }
 
-impl FileType {
+impl RegularFileType {
     pub(crate) fn convert(
         options: &Options, features: &[impl Borrow<Features>], tensor: ArrayViewD<f32>,
-    ) -> Result<Vec<FileType>> {
+    ) -> Result<Vec<RegularFileType>> {
         let mut results = Vec::new();
         for (feature, view) in features.iter().zip(tensor.view().axis_iter(ndarray::Axis(0))) {
             let scores = view.to_slice().unwrap();
@@ -226,12 +265,20 @@ impl FileType {
             let builtin_rules_veto =
                 options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
             let rules_veto = custom_rules_veto || builtin_rules_veto;
+            ensure!(
+                options.use_resolvers == feature.borrow().use_resolvers,
+                "use_resolvers mismatch between extract and identify"
+            );
+            let resolvers_veto =
+                options.use_resolvers && crate::resolvers::VETOS.contains(&overwrite);
             let fallback =
                 if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
             let (content_type, mut overwrite_reason) = if !ml_is_confident {
                 (fallback, Some(OverwriteReason::LowConfidence))
             } else if rules_veto {
                 (fallback, Some(OverwriteReason::RulesVeto))
+            } else if resolvers_veto {
+                (fallback, Some(OverwriteReason::ResolversVeto))
             } else {
                 (overwrite, Some(OverwriteReason::OverwriteMap))
             };
@@ -243,7 +290,7 @@ impl FileType {
                 Box::new(DebugInfo::Model(ModelDebugInfo { output, overwrite_reason }))
             });
             let content_types = vec![content_type];
-            results.push(FileType::Regular { content_types, debug_info });
+            results.push(RegularFileType { content_types, debug_info });
         }
         Ok(results)
     }

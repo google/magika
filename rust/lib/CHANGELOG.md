@@ -16,6 +16,7 @@
 
 ### Minor
 
+- Add `pipeline` feature identify many paths in parallel
 - Add `Rules` and `Options::custom_rules` for custom rules
 - Add `TypeInfo::{possible,model}_output()` to list possible outputs
 - Add the `rules` feature to identify files with format rules before inference

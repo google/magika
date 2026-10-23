@@ -22,8 +22,6 @@ pub struct Options {
     pub use_custom_rules: Option<Rules>,
     /// Identifies using resolvers (before builtin rules).
     pub use_resolvers: bool,
-    /// Identifies using builtin rules (before inference).
-    pub use_builtin_rules: bool,
     /// Identifies using inference (after rules).
     pub use_model: bool,
     /// Configures the minimum confidence level for inference.
@@ -50,7 +48,6 @@ impl Default for Options {
         Self {
             use_custom_rules: None,
             use_resolvers: true,
-            use_builtin_rules: true,
             use_model: true,
             prediction_mode: PredictionMode::HighConfidence,
             follow_symlink: true,

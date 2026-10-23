@@ -25,7 +25,6 @@ int main(void) {
         .max_batch = 1,
         .options = {
             .use_resolvers = true,
-            .use_builtin_rules = true,
             .use_model = true,
             .prediction_mode = MAGIKA_PREDICTION_MODE_HIGH_CONFIDENCE,
         },

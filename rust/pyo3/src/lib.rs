@@ -226,12 +226,11 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_resolvers=true, use_builtin_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
+    #[pyo3(signature = (use_resolvers=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
     #[allow(clippy::too_many_arguments)]
     fn new(
-        py: Python<'_>, use_resolvers: bool, use_builtin_rules: bool, use_model: bool,
-        prediction_mode: &str, follow_symlink: bool, rules: Option<&str>,
-        rules_files: Option<Vec<std::path::PathBuf>>,
+        py: Python<'_>, use_resolvers: bool, use_model: bool, prediction_mode: &str,
+        follow_symlink: bool, rules: Option<&str>, rules_files: Option<Vec<std::path::PathBuf>>,
     ) -> PyResult<Self> {
         let custom_rules = match (rules, rules_files) {
             (None, None) => None,
@@ -262,7 +261,6 @@ impl PyMagika {
         let mut options = Options::default();
         options.use_resolvers = use_resolvers;
         options.use_custom_rules = custom_rules;
-        options.use_builtin_rules = use_builtin_rules;
         options.use_model = use_model;
         options.prediction_mode = prediction_mode;
         options.follow_symlink = follow_symlink;

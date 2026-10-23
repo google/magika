@@ -49,9 +49,8 @@ test_suite() {
     }
   )
 }
-test_suite y --no-builtin-rules --no-model
-test_suite y --no-resolvers --no-model
-test_suite n --no-resolvers --no-builtin-rules
+test_suite y --no-model
+test_suite n --no-resolvers
 
 info "Test custom rules"
 ( cd ../../tests_data
@@ -61,7 +60,7 @@ info "Test custom rules"
     || error "built-in rules identify PNG"
   [ "$(magika --no-model --custom-rules-file=rules/custom.yar --format=%l \
     basic/png/magika_test.png)" = png ] || error "custom rules do not identify PNG"
-  [ "$(magika --no-builtin-rules --custom-rules-file=rules/custom.yar --format=%l \
+  [ "$(magika --no-resolvers --custom-rules-file=rules/custom.yar --format=%l \
     basic/png/magika_test.png)" = png ] || error "custom rules do not apply without built-in rules"
   broken=$(mktemp)
   trap "rm -f $broken" EXIT

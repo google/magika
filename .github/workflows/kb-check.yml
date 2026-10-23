@@ -11,6 +11,10 @@ on:
       - "assets/content_types.yaml"
       - "assets/content_types_kb.min.json"
       - "assets/models/**"
+      - "js/src/content-type-label.ts"
+      - "js/src/content-types-infos.ts"
+      - "python/scripts/sync.py"
+      - "python/src/magika/types/content_type_label.py"
       - "rust/gen/model"
       - "rust/rules/rulesets/**"
       - "scripts/sync_kb.py"
@@ -37,3 +41,16 @@ jobs:
 
       - name: Check content_types_kb.min.json is in sync
         run: uv run scripts/sync_kb.py --check
+
+      - name: Check Python and JS generated files are in sync
+        run: |
+          uv run python/scripts/sync.py python
+          uv run python/scripts/sync.py js
+          if ! git diff --exit-code -- \
+            python/src/magika/types/content_type_label.py \
+            js/src/content-type-label.ts \
+            js/src/content-types-infos.ts
+          then
+            echo "::error::Python and JS files generated from assets/content_types.yaml are out of sync. Run 'just sync-kb' locally and commit the changes."
+            exit 1
+          fi

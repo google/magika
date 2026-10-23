@@ -1,0 +1,16 @@
+{
+ "added": 77,
+ "added_by_class": {
+  "vhd": 77
+ },
+ "label_status_counts": {
+  "validated_auto": 77
+ },
+ "leads": 167,
+ "not_added": {
+  "near_duplicate": 9,
+  "unverified": 81
+ },
+ "policy": "GitHub leads come only from repositories the licence policy permits; VirusTotal origins are permitted by the corpus policy.",
+ "samples": 70895
+}

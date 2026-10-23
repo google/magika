@@ -1,0 +1,36 @@
+{
+  "compression": "zstd:3",
+  "corpus_bytes_included": 0,
+  "coverage_sha256": "dd98bbf35a4031f7f8459cb18e66d6c1e58096ab816eb446d587cb78b120b198",
+  "files_receipt_sha256": "5f45f98599fc2097c474e29d2e4ff68076bd24e9722e12b770344ec3064c0f28",
+  "implementation_sha256": "8284f418cf4605165fef2fe44cb39e439e191d8b38e0b197a8cb73767fd53aad",
+  "journal_prefix": {
+    "bytes": 11589058,
+    "lines": 12162,
+    "sha256": "e563c55398c25af882d6b3da1442033e8f144dbd54fe8860995b6a7083552ff0"
+  },
+  "limitations": [
+    "Contribution counts describe the frozen source pool, not the current corpus.",
+    "Unvisited eligibility is null; it does not mean excluded.",
+    "Repository-level licenses do not resolve file-specific overrides.",
+    "Outcome details are observations, including failed and excluded repositories."
+  ],
+  "parquet_bytes": 3004175,
+  "parquet_sha256": "dfa1c36ca11abfe5d44a84b2edbd9d359ae47232f64c1cf78fbf1c2d3fabc69b",
+  "policy_sha256": "e3041a9dbbacb4e696819efcfb2339420629b7403c54e3307ca685d92b7be2ec",
+  "pool_sha256": "d6ae22be1ea9d1fec9d5b720c202fc266353c9092ed6da72acea880dce5c470f",
+  "pyarrow_version": "25.0.1",
+  "recorded_repositories": 12162,
+  "repositories": 12162,
+  "repository_files_sha256": "fd7c3771aecb20df4bcf695e47dd6a78f386105cd5ca3ad50b7430a8c71896f1",
+  "round_trip_verified": true,
+  "schema_version": 1,
+  "status_counts": {
+    "failed": 812,
+    "ineligible_repository": 113,
+    "inventoried": 7115,
+    "license_excluded": 4122
+  },
+  "sweep_complete": true,
+  "unvisited_repositories": 0
+}

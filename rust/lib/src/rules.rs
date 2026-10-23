@@ -14,7 +14,7 @@
 
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use magika_rules::{Class, Outcome, RuleSet, Source};
@@ -46,13 +46,6 @@ impl std::fmt::Debug for Rules {
 }
 
 impl Rules {
-    /// Returns the builtin rules.
-    pub fn builtin() -> &'static Self {
-        static RULES: LazyLock<Rules> =
-            LazyLock::new(|| Rules(Arc::new(Compiled::new(RuleSet::bundled()).unwrap())));
-        &RULES
-    }
-
     /// Compiles rules from YARA text.
     pub fn compile(text: &str) -> Result<Self> {
         let source = Source::parse(text)?;
@@ -166,11 +159,7 @@ mod tests {
 
     fn options(use_rules: bool, custom: Option<&str>) -> Options {
         let custom_rules = custom.map(|text| Rules::compile(text).unwrap());
-        Options {
-            use_builtin_rules: use_rules,
-            use_custom_rules: custom_rules,
-            ..Options::default()
-        }
+        Options { use_resolvers: use_rules, use_custom_rules: custom_rules, ..Options::default() }
     }
 
     fn extract(path: &str, options: &Options) -> FeaturesOr<FileType> {
@@ -204,7 +193,7 @@ mod tests {
             unreachable!()
         };
         let error = session.identify_features(&features).unwrap_err();
-        assert_eq!(error.to_string(), "use_builtin_rules mismatch between extract and identify");
+        assert_eq!(error.to_string(), "use_resolvers mismatch between extract and identify");
         let custom = rule("txt", "full", "$psd at 0");
         let FeaturesOr::Features(features) =
             extract("wav/test.wav", &options(false, Some(&custom)))

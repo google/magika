@@ -107,8 +107,6 @@ pub struct MagikaOptions {
     /// The options hold their own reference, so the rules may be freed once the call that takes
     /// these options returns.
     pub use_custom_rules: *const MagikaRules,
-    /// Identifies using built-in rules (before inference).
-    pub use_builtin_rules: bool,
     /// Identifies using inference (after rules).
     pub use_model: bool,
     /// Configures the minimum confidence level for inference.
@@ -122,7 +120,6 @@ impl Default for MagikaOptions {
         Self {
             use_resolvers: true,
             use_custom_rules: std::ptr::null(),
-            use_builtin_rules: true,
             use_model: true,
             prediction_mode: MagikaPredictionMode::HighConfidence,
             follow_symlink: true,
@@ -138,7 +135,6 @@ impl MagikaOptions {
         let mut result = magika::Options::default();
         result.use_resolvers = self.use_resolvers;
         result.use_custom_rules = self.use_custom_rules.as_ref().map(|rules| rules.inner.clone());
-        result.use_builtin_rules = self.use_builtin_rules;
         result.use_model = self.use_model;
         result.prediction_mode = self.prediction_mode.into();
         result.follow_symlink = self.follow_symlink;

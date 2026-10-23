@@ -25,8 +25,10 @@ _trace = ["pipeline", "dep:cpu-time"]
 anyhow = "1.0.104"
 cpu-time = { version = "1.0.0", optional = true }
 crossbeam-channel = { version = "0.5.16", optional = true }
-magika-rules = { version = "0.1.0-dev", path = "../rules" }
+magika-rules = { version = "0.1.0-dev", path = "../rules", default-features = false }
 magika-tract-runtime = { version = "0.0.1-dev", path = "../tract-runtime" }
+memchr = "2.7"
+miniz_oxide = "0.8.9"
 ndarray = "0.17.1"
 serde = { version = "1.0.204", features = ["derive"], optional = true }
 

@@ -514,6 +514,8 @@ dependencies = [
  "crossbeam-channel",
  "magika-rules",
  "magika-tract-runtime",
+ "memchr",
+ "miniz_oxide",
  "ndarray",
 ]
 

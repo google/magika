@@ -123,35 +123,27 @@ struct Format {
     custom: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
-enum RulesMode {
-    /// Identifies files with the model only, after any custom rules.
-    Off,
-    /// Identifies files with rules first, and with the model when no rule decides.
-    #[default]
-    Enforce,
-    /// Identifies files with rules only, as unknown when no rule decides. The model is not loaded.
-    Only,
-}
-
 #[derive(Args)]
 struct Experimental {
-    /// Identifies files with format rules.
-    ///
-    /// A rule decides from the first 4 KiB and the size of a file, and only when every matching
-    /// rule agrees.
-    #[arg(hide = true, long, value_enum, default_value_t)]
-    rules: RulesMode,
-
-    /// Identifies files with the rules of this file before the built-in rules (can be repeated).
-    ///
-    /// Rules use the YARA subset and metadata of the built-in rules, and apply whatever --rules is.
+    /// Enables the custom rules (can be repeated).
     #[arg(hide = true, long, value_name = "PATH")]
-    rules_file: Vec<PathBuf>,
+    custom_rules_file: Vec<PathBuf>,
 
-    /// Checks the rules of --rules-file, prints the content types they identify, and exits.
+    /// Checks the rules of --custom-rules-file, prints the content types they identify, and exits.
     #[arg(hide = true, long, requires = "rules_file")]
-    rules_check: bool,
+    custom_rules_check: bool,
+
+    /// Disables the resolvers.
+    #[arg(hide = true, long)]
+    no_resolvers: bool,
+
+    /// Disables the builtin rules.
+    #[arg(hide = true, long)]
+    no_builtin_rules: bool,
+
+    /// Disables model inference.
+    #[arg(hide = true, long)]
+    no_model: bool,
 
     /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
@@ -208,19 +200,17 @@ fn main() -> Result<()> {
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
     builder.options.debug_mode = true;
-    match flags.experimental.rules {
-        RulesMode::Off => builder.options.use_builtin_rules = false,
-        RulesMode::Enforce => (),
-        RulesMode::Only => builder.options.use_model = false,
-    }
-    if !flags.experimental.rules_file.is_empty() {
-        let rules = Rules::from_files(&flags.experimental.rules_file)?;
-        if flags.experimental.rules_check {
+    if !flags.experimental.custom_rules_file.is_empty() {
+        let rules = Rules::from_files(&flags.experimental.custom_rules_file)?;
+        if flags.experimental.custom_rules_check {
             println!("{rules:?}");
             return Ok(());
         }
         builder.options.use_custom_rules = Some(rules);
     }
+    builder.options.use_resolvers = !flags.experimental.no_resolvers;
+    builder.options.use_builtin_rules = !flags.experimental.no_builtin_rules;
+    builder.options.use_model = !flags.experimental.no_model;
     builder.options.follow_symlink = !flags.no_dereference;
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,

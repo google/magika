@@ -28,17 +28,18 @@ x cargo clippy --features=_trace -- --deny=warnings
 PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 
 TEST_SUITES='basic previous_missdetections'
-for rules in off enforce only; do
-  info "Test against the test suites ($TEST_SUITES) with --rules=$rules"
+test_suite() {
+  local incomplete="$1"; shift
+  info "Test against the test suites ($TEST_SUITES) with $*"
   ( cd ../../tests_data
-    magika --rules=$rules --format='%p: %l' --recursive $TEST_SUITES | {
+    magika "$@" --format='%p: %l' --recursive $TEST_SUITES | {
       decided=0
       while read line; do
         file=${line%: *}
         directory=${file%/*}
         expected=${directory##*/}
         actual=${line#*: }
-        if [ $rules = only ]; then
+        if [ $incomplete = y ]; then
           case "$actual" in
             txt|unknown) continue ;;
           esac
@@ -47,22 +48,25 @@ for rules in off enforce only; do
       done
     }
   )
-done
+}
+test_suite y --no-builtin-rules --no-model
+test_suite y --no-resolvers --no-model
+test_suite n --no-resolvers --no-builtin-rules
 
 info "Test custom rules"
 ( cd ../../tests_data
-  [ "$(magika --rules-file=rules/custom.yar --rules-check)" = 'Rules { content_types: [Png] }' ] \
-    || error "custom rules check"
-  [ "$(magika --rules=only --format=%l basic/png/magika_test.png)" = unknown ] \
+  [ "$(magika --custom-rules-file=rules/custom.yar --custom-rules-check)" = \
+    'Rules { content_types: [Png] }' ] || error "custom rules check"
+  [ "$(magika --no-model --format=%l basic/png/magika_test.png)" = unknown ] \
     || error "built-in rules identify PNG"
-  [ "$(magika --rules=only --rules-file=rules/custom.yar --format=%l basic/png/magika_test.png)" \
-    = png ] || error "custom rules do not identify PNG"
-  [ "$(magika --rules=off --rules-file=rules/custom.yar --format=%l basic/png/magika_test.png)" \
-    = png ] || error "custom rules do not apply without built-in rules"
+  [ "$(magika --no-model --custom-rules-file=rules/custom.yar --format=%l \
+    basic/png/magika_test.png)" = png ] || error "custom rules do not identify PNG"
+  [ "$(magika --no-builtin-rules --custom-rules-file=rules/custom.yar --format=%l \
+    basic/png/magika_test.png)" = png ] || error "custom rules do not apply without built-in rules"
   broken=$(mktemp)
   trap "rm -f $broken" EXIT
   echo 'rule broken {' > "$broken"
-  magika --rules-file="$broken" basic/png/magika_test.png 2>&1 | grep -q 'line 2, column 1' \
+  magika --custom-rules-file="$broken" basic/png/magika_test.png 2>&1 | grep -q 'line 2, column 1' \
     || error "invalid custom rules are not reported"
 )
 

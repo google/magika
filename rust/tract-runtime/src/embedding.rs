@@ -127,9 +127,9 @@ fn gelu(fast_impl: bool) -> ElementWiseOp {
 
 fn fold_table(pattern: &FoldPattern) -> TractResult<Tensor> {
     let [rows, width] = *pattern.table.shape() else { bail!("embedding table is not a matrix") };
-    let bias = pattern.bias.as_ref().try_as_plain()?;
+    let bias = pattern.bias.as_ref().try_as_plain_ram()?;
     let bias = bias.as_slice::<f32>()?;
-    let table = pattern.table.as_ref().try_as_plain()?;
+    let table = pattern.table.as_ref().try_as_plain_ram()?;
     let table = table.as_slice::<f32>()?;
     let mut folded = Vec::with_capacity(rows * width);
     for row in table.chunks_exact(width) {
@@ -138,7 +138,8 @@ fn fold_table(pattern: &FoldPattern) -> TractResult<Tensor> {
     let folded = Tensor::from_shape(&[rows, width], &folded)?;
     // Evaluate the activation through the same operator the graph would have run, so the folded
     // table holds the values that operator produces rather than a second implementation of it.
-    let mut activated = gelu(pattern.fast_impl).eval(tvec!(folded.into_tvalue()))?;
+    let mut activated =
+        gelu(pattern.fast_impl).eval(&EvalContext::out_of_plan(), tvec!(folded.into_tvalue()))?;
     Ok(activated.remove(0).into_tensor())
 }
 

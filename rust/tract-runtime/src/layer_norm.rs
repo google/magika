@@ -507,11 +507,9 @@ unsafe fn normalize_values_avx2(
 }
 
 impl EvalOp for FusedLayerNorm {
-    fn is_stateless(&self) -> bool {
-        true
-    }
+    op_out_of_plan!();
 
-    fn eval(&self, inputs: TVec<TValue>) -> TractResult<TVec<TValue>> {
+    fn eval(&self, _: &EvalContext, inputs: TVec<TValue>) -> TractResult<TVec<TValue>> {
         let input = args_1!(inputs);
         ensure!(input.datum_type() == DatumType::F32);
         ensure!(input.shape() == self.input_shape.as_slice());
@@ -519,15 +517,15 @@ impl EvalOp for FusedLayerNorm {
         let outer = self.input_shape[..self.axis].iter().product::<usize>();
         let inner = self.input_shape[self.axis + 1..].iter().product::<usize>();
         let epsilon = self.epsilon.cast_to_scalar::<f32>()?;
-        let scale_plain = self.scale.as_ref().try_as_plain()?;
+        let scale_plain = self.scale.as_ref().try_as_plain_ram()?;
         let scale = scale_plain.as_slice::<f32>()?;
-        let bias_plain = self.bias.as_ref().try_as_plain()?;
+        let bias_plain = self.bias.as_ref().try_as_plain_ram()?;
         let bias = bias_plain.as_slice::<f32>()?;
         let mut output = input.into_tensor();
         let mut means = vec![0.0_f32; inner];
         let mut inverse_stddevs = vec![0.0_f32; inner];
         {
-            let mut plain = output.try_as_plain_mut()?;
+            let mut plain = output.try_as_plain_ram_mut()?;
             let values = plain.as_slice_mut::<f32>()?;
             #[cfg(target_arch = "x86_64")]
             if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
@@ -608,8 +606,12 @@ mod tests {
             &[1.0_f32, 4.0, 2.0, 5.0, 6.0, 3.0, 8.0, 2.0, 4.0, 7.0, 1.0, 9.0],
         )
         .unwrap();
-        let output = op.eval(tvec!(input.into_tvalue())).unwrap().remove(0).into_tensor();
-        let output = output.try_as_plain().unwrap();
+        let output = op
+            .eval(&EvalContext::out_of_plan(), tvec!(input.into_tvalue()))
+            .unwrap()
+            .remove(0)
+            .into_tensor();
+        let output = output.try_as_plain_ram().unwrap();
         let got = output.as_slice::<f32>().unwrap();
 
         for outer in 0..2 {

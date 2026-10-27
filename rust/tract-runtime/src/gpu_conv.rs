@@ -191,7 +191,7 @@ impl ConvPattern {
     ///
     /// The column order is position major, matching the concatenation of the shifted inputs.
     fn kernel_matrix_all(&self) -> TractResult<Tensor> {
-        let source_plain = self.kernel.as_ref().try_as_plain()?;
+        let source_plain = self.kernel.as_ref().try_as_plain_ram()?;
         let source = source_plain.as_slice::<f32>()?;
         let reduction = self.kernel_length * self.input_channels;
         let mut values = Vec::with_capacity(self.output_channels * reduction);
@@ -234,7 +234,7 @@ mod tests {
         let matrix = pattern.kernel_matrix_all()?;
         assert_eq!(matrix.shape(), &[2, 6]);
         assert_eq!(
-            matrix.try_as_plain()?.as_slice::<f32>()?,
+            matrix.try_as_plain_ram()?.as_slice::<f32>()?,
             &[0.0, 3.0, 1.0, 4.0, 2.0, 5.0, 6.0, 9.0, 7.0, 10.0, 8.0, 11.0]
         );
         Ok(())

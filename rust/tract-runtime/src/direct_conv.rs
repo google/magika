@@ -20,7 +20,9 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use tract_core::internal::*;
-use tract_linalg::mmm::{AsInputValue, FusedSpec, MMMInputFormat, MMMInputValue, MatMatMul};
+use tract_linalg::mmm::{
+    AsInputValue, FusedSpec, MMMInputFormat, MMMInputValue, MatMatMul, MmmDispatch, Query,
+};
 #[cfg(target_arch = "x86_64")]
 use tract_linalg::mmm::{EagerPackedInput, PackedExoticFact};
 use tract_linalg::pack::{PackedFormat, PackingWriter};
@@ -320,13 +322,14 @@ impl DirectFusedConvMax1D {
         // that choice good: at this size the scorer lands on the 16x12 AVX-512 kernel, whereas the
         // unbounded tile the portable path uses scores a narrower one. A whole-batch tile scores
         // the 128x1 kernel, which measured five times slower.
-        let mmm = tract_linalg::ops()
-            .mmm(
+        let mmm = MmmDispatch::native()
+            .pick(&Query::plain(
                 DatumType::F32,
                 Some(dimensions.output_channels),
                 Some(dimensions.reduction()),
                 Some(tile_columns),
-            )
+            ))
+            .map(|(mmm, _, _)| mmm)
             .context("no f32 matmul implementation for direct Magika Conv1D")?;
         let packing = mmm
             .packings()
@@ -449,11 +452,9 @@ impl Op for DirectFusedConvMax1D {
 }
 
 impl EvalOp for DirectFusedConvMax1D {
-    fn is_stateless(&self) -> bool {
-        true
-    }
+    op_out_of_plan!();
 
-    fn eval(&self, inputs: TVec<TValue>) -> TractResult<TVec<TValue>> {
+    fn eval(&self, _: &EvalContext, inputs: TVec<TValue>) -> TractResult<TVec<TValue>> {
         let input = args_1!(inputs);
         let d = self.dimensions;
         let expected = if d.channels_last {
@@ -474,7 +475,7 @@ impl EvalOp for DirectFusedConvMax1D {
             &vec![f32::NEG_INFINITY; d.batch * d.output_channels],
         )?;
         {
-            let mut maxima_plain = maxima.try_as_plain_mut()?;
+            let mut maxima_plain = maxima.try_as_plain_ram_mut()?;
             let maxima_values = maxima_plain.as_slice_mut::<f32>()?;
             #[cfg(target_arch = "x86_64")]
             let mut segment_maxima = vec![f32::NEG_INFINITY; d.output_channels];
@@ -548,7 +549,7 @@ impl EvalOp for DirectFusedConvMax1D {
                         self.mmm.run(d.output_channels, tile_columns, &specs)?;
                     }
                 }
-                let mut tile_plain = tile.try_as_plain_mut()?;
+                let mut tile_plain = tile.try_as_plain_ram_mut()?;
                 let tile_values = tile_plain.as_slice_mut::<f32>()?;
                 #[cfg(target_arch = "x86_64")]
                 reduce_x86_64_gelu_max(
@@ -564,7 +565,7 @@ impl EvalOp for DirectFusedConvMax1D {
                 )?;
                 #[cfg(not(target_arch = "x86_64"))]
                 {
-                    (tract_linalg::ops().gelu_f32)().run(tile_values)?;
+                    tract_linalg::Func::Gelu.ew_f32()?.run(tile_values)?;
                     for column in 0..tile_columns {
                         let batch = (column_start + column) / d.output_length;
                         let maxima_start = batch * d.output_channels;
@@ -630,7 +631,7 @@ fn reduce_x86_64_gelu_max(
                     negative_values.push(tile[row_start + channel]);
                 }
             }
-            (tract_linalg::ops().gelu_f32)().run(segment_maxima)?;
+            tract_linalg::Func::Gelu.ew_f32()?.run(segment_maxima)?;
             let mut next_negative = negative_channels.iter().copied().peekable();
             for channel in 0..output_channels {
                 if next_negative.peek() == Some(&channel) {
@@ -640,7 +641,7 @@ fn reduce_x86_64_gelu_max(
                 }
             }
             if !negative_channels.is_empty() {
-                (tract_linalg::ops().gelu_f32)().run(negative_values)?;
+                tract_linalg::Func::Gelu.ew_f32()?.run(negative_values)?;
                 for values in negative_values.chunks_exact(negative_channels.len()) {
                     for (&channel, &value) in negative_channels.iter().zip(values) {
                         item_maxima[channel] = item_maxima[channel].max(value);
@@ -653,7 +654,7 @@ fn reduce_x86_64_gelu_max(
             let start = column * output_channels;
             let end = (column + segment_columns) * output_channels;
             let segment = &mut tile[start..end];
-            (tract_linalg::ops().gelu_f32)().run(segment)?;
+            tract_linalg::Func::Gelu.ew_f32()?.run(segment)?;
             for row in segment.chunks_exact(output_channels) {
                 update_maxima(item_maxima, row);
             }
@@ -707,7 +708,9 @@ impl MMMInputFormat for DirectConvInputFormat {
         bail!("DirectConvInputFormat cannot eagerly prepare a tensor")
     }
 
-    fn prepare_one(&self, _: &Tensor, _: usize, _: usize) -> TractResult<Box<dyn MMMInputValue>> {
+    fn prepare_one_view(
+        &self, _: &TensorView, _: usize, _: usize,
+    ) -> TractResult<Box<dyn MMMInputValue>> {
         bail!("DirectConvInputFormat is created by DirectFusedConvMax1D")
     }
 
@@ -1218,8 +1221,10 @@ mod tests {
         } else {
             [dimensions.batch, dimensions.input_channels, dimensions.input_length]
         };
-        let mut outputs =
-            op.eval(tvec!(Tensor::from_shape(&input_shape, &input)?.into_tvalue()))?;
+        let mut outputs = op.eval(
+            &EvalContext::out_of_plan(),
+            tvec!(Tensor::from_shape(&input_shape, &input)?.into_tvalue()),
+        )?;
         let output = outputs.remove(0).into_tensor();
         let output = output.to_plain_array_view::<f32>()?;
 
@@ -1313,7 +1318,8 @@ mod tests {
                         && panel_columns == PACK_PANEL_COLUMNS),
                 "the eager path did not engage as this machine's packer and kernel imply"
             );
-            let mut outputs = op.eval(tvec!(input_tensor.clone().into_tvalue()))?;
+            let mut outputs =
+                op.eval(&EvalContext::out_of_plan(), tvec!(input_tensor.clone().into_tvalue()))?;
             Ok((outputs.remove(0).into_tensor(), eager_pack, panel_columns))
         };
         let (natural, natural_eager, natural_panel_columns) = run(false)?;
@@ -1363,7 +1369,7 @@ mod tests {
             -3.0,
         ];
         let mut reference_tile = tile.clone();
-        (tract_linalg::ops().gelu_f32)().run(&mut reference_tile)?;
+        tract_linalg::Func::Gelu.ew_f32()?.run(&mut reference_tile)?;
         let mut reference = vec![f32::NEG_INFINITY; 2 * output_channels];
         for column in 0..tile_columns {
             let batch = (column_start + column) / output_length;

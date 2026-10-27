@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
@@ -178,6 +178,8 @@ fn get_shared_engine() -> anyhow::Result<&'static Arc<Engine>> {
 
 thread_local! {
     static SESSION: RefCell<Option<(usize, EngineSession<'static>)>> = const { RefCell::new(None) };
+    /// Whether this thread ran the model before first using `SESSION`, see `with_session`.
+    static WARMED_UP: Cell<bool> = const { Cell::new(false) };
 }
 
 /// The result of an error identifying a path, as a result rather than an exception for I/O.
@@ -212,6 +214,15 @@ impl PyMagika {
         &self, f: impl FnOnce(&mut EngineSession<'static>) -> anyhow::Result<R>,
     ) -> anyhow::Result<R> {
         let engine: &'static Engine = get_shared_engine()?;
+        // Dropping a session touches tract's own thread-locals, which tract creates when it first
+        // runs the model. Thread-locals are destroyed in reverse order of creation, so running the
+        // model before `SESSION` is created keeps them alive while `SESSION` is destroyed.
+        if !WARMED_UP.replace(true) {
+            let mut options = Options::default();
+            options.use_builtin_rules = false;
+            options.use_resolvers = false;
+            engine.session(Some(options)).identify_content(&[b'a'; 64][..])?;
+        }
         SESSION.with(|cell| {
             let mut slot = cell.borrow_mut();
             let session = match &mut *slot {

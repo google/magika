@@ -329,8 +329,8 @@ fn with_memory_arena(runnable: TypedSimplePlan) -> Result<TypedSimplePlan> {
     // Every batch is bound to a concrete value before the plan is built, so the graph has no free
     // symbols left and the arena can be sized without hints.
     let hints = Default::default();
-    let handler = tract_gpu::session_handler::DeviceSessionHandler::from_plan(&runnable, &hints)?;
-    Ok(runnable.with_session_handler(handler))
+    let handler = tract_gpu::turn_handler::DeviceTurnHandler::from_plan(&runnable, &hints)?;
+    Ok(runnable.with_turn_handler(handler))
 }
 
 #[cfg(any(target_os = "macos", feature = "cuda"))]

@@ -125,19 +125,17 @@ jobs:
           - os: Windows
             runner: windows-latest
             target: x86_64-pc-windows-msvc
+          - os: Windows
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
           # --- Targets blocked by upstream tract-linalg 0.23.4 assembly/compiler limitations ---
-          # 1. Windows ARM64: tract-linalg 0.23.4 build.rs fails on MSVC ARM64 (lacks MASM/Clang
-          #    support for arm64simd GNU assembly kernels; causes LNK1181).
-          # - os: Windows
-          #   runner: windows-latest
-          #   target: aarch64-pc-windows-msvc
-          # 2. Linux ARMv7 (musl): tract-linalg 0.23.4 build.rs fails with conflicting FPU flags
+          # 1. Linux ARMv7 (musl): tract-linalg 0.23.4 build.rs fails with conflicting FPU flags
           #    (-mfpu=vfpv3-d16 vs -mfpu=neon) in musllinux GCC cross-compiler.
           # - os: Linux
           #   runner: ubuntu-latest
           #   target: armv7-unknown-linux-musleabihf
           #   manylinux: "musllinux_1_2"
-          # 3. Linux ARMv6: tract-linalg 0.23.4 build.rs fails looking for arm-linux-gnueabihf-gcc
+          # 2. Linux ARMv6: tract-linalg 0.23.4 build.rs fails looking for arm-linux-gnueabihf-gcc
           #    which is absent from the manylinux container PATH.
           # - os: Linux
           #   runner: ubuntu-latest
@@ -208,6 +206,8 @@ jobs:
   # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-latest
   # - macOS Apple Silicon (aarch64-apple-darwin) on macos-14
   # - Windows x64 (x86_64-pc-windows-msvc) on windows-latest
+  # - Windows ARM64 (aarch64-pc-windows-msvc) on windows-11-arm, Python 3.11+ only (python.org
+  #   has no Windows ARM64 builds of earlier versions)
   #
   # Uncovered Build Targets (not tested in this matrix):
   # - x86_64-apple-darwin: Cross-compiled on macos-14 (Apple Silicon). The runner host
@@ -221,8 +221,6 @@ jobs:
   # - armv7-unknown-linux-gnueabihf, arm-unknown-linux-gnueabihf: 32-bit ARM (Raspberry Pi).
   #   Requires 32-bit ARM QEMU container emulation.
   # - riscv64gc-unknown-linux-gnu: 64-bit RISC-V. Requires RISC-V QEMU container emulation.
-  # - aarch64-pc-windows-msvc: Cross-compiled on Windows x86_64. Windows x86_64 cannot execute
-  #   Windows ARM64 binaries (no forward emulation).
   test-wheels:
     name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with Python ${{ matrix.python-version }}
     needs: [build-wheels]
@@ -242,6 +240,15 @@ jobs:
           - os: Windows
             runner: windows-latest
             target: x86_64-pc-windows-msvc
+          - os: Windows
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+        exclude:
+          - python-version: "3.10"
+            platform:
+              os: Windows
+              runner: windows-11-arm
+              target: aarch64-pc-windows-msvc
 
     steps:
       # Only check out the test data and test scripts: the magika package under
@@ -389,7 +396,8 @@ jobs:
         working-directory: python
 
   # Python 3.8 and 3.9 reached EOL and are not supported by pip >= 26.2.2, so we
-  # test the built abi3 wheel on 3.8 and 3.9 using uv only.
+  # test the built abi3 wheel on 3.8 and 3.9 using uv only. Windows ARM64 is not
+  # covered: python.org has no Windows ARM64 builds of 3.8 and 3.9.
   test-wheels-legacy-python:
     name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with legacy Python ${{ matrix.python-version }}
     needs: [build-wheels]

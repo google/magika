@@ -1,0 +1,44 @@
+set positional-arguments
+
+[private]
+default:
+    @just --justfile "{{source_file()}}" --list
+
+# Build/stage the native Rust CLI and sync the local editable Python dev environment.
+sync-dev:
+    ./scripts/sync_dev.sh
+
+# Check lockfile, linting, formatting, type annotations, and copyright headers.
+check-source:
+    uv lock --check
+    uv run ruff check
+    uv run ruff format --check
+    uv run mypy src/magika tests
+    uv run ./scripts/check_copyright.py
+
+# Auto-fix lint issues and format Python code.
+fix-source:
+    uv run ruff check --fix
+    uv run ruff format
+
+# Run the Python test suite (excludes slow tests by default; forwards extra args to pytest).
+test *args:
+    uv run pytest tests -m "not slow" "$@"
+
+# Run quick smoke tests for the magika CLI and Python module.
+quick-tests:
+    uv run ./scripts/run_quick_test_magika_cli.py
+    uv run ./scripts/run_quick_test_magika_module.py
+
+# Run tests under coverage and print a terminal coverage report.
+coverage *args:
+    uv run coverage run -m pytest tests -m "not slow" "$@"
+    uv run coverage report
+
+# Validate Markdown links and version references across documentation.
+check-docs *args:
+    uv run ./scripts/check_documentation.py "$@"
+
+# Build/stage the native Rust CLI and build a Python wheel into python/dist/.
+build-wheel:
+    ./scripts/build_wheel.sh

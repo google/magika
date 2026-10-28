@@ -69,7 +69,12 @@ default = true
 
 [tool.uv]
 exclude-newer = "2 weeks"
-required-version = ">=0.9.27"
+exclude-newer-package = { certifi = false, pip = false }
+required-version = ">=0.13.4"
+constraint-dependencies = [
+    "certifi>=2026.10.19",
+    "pip>=26.2.2",
+]
 
 [tool.maturin]
 python-source = "src"

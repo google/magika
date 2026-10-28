@@ -35,18 +35,22 @@ fn scan_sized(rules: &RuleSet, prefix: &[u8], size: u64) -> Outcome {
 }
 
 fn matched(outcome: Outcome) -> bool {
-    matches!(outcome, Outcome::Match(_))
+    matches!(outcome, Outcome::Match(labels) if !labels.is_empty())
 }
 
 #[test]
 fn matches_agreeing_rules_and_reports_conflicts() {
     let rules = compile(PACK);
     assert_eq!(rules.labels(), ["png", "gif", "clash", "mp4"]);
-    assert_eq!(scan(&rules, b"\x89PNG\r\n\x1a\nrest"), Outcome::Match(0));
-    assert_eq!(scan(&rules, b"GIF87a...."), Outcome::Match(1));
-    assert_eq!(scan(&rules, b"GIF89a...."), Outcome::Conflict, "gif_any and clash disagree");
-    assert_eq!(scan(&rules, b"nothing"), Outcome::NoMatch);
-    assert_eq!(scan(&rules, b"\x7fELF...."), Outcome::NoMatch, "unenforced rules never fire");
+    assert_eq!(scan(&rules, b"\x89PNG\r\n\x1a\nrest"), Outcome::Match(vec![0]));
+    assert_eq!(scan(&rules, b"GIF87a...."), Outcome::Match(vec![1]));
+    assert_eq!(
+        scan(&rules, b"GIF89a...."),
+        Outcome::Match(vec![2, 1]),
+        "gif_any and clash disagree"
+    );
+    assert_eq!(scan(&rules, b"nothing"), Outcome::Match(vec![]));
+    assert_eq!(scan(&rules, b"\x7fELF...."), Outcome::Match(vec![]), "unenforced rules never fire");
 }
 
 #[test]
@@ -54,10 +58,14 @@ fn integer_reads_and_filesize_guards() {
     let rules = compile(PACK);
     assert_eq!(
         scan(&rules, b"\x00\x00\x00\x14ftypisom\x00\x00\x00\x00\x00\x00\x00\x00"),
-        Outcome::Match(3)
+        Outcome::Match(vec![3])
     );
-    assert_eq!(scan(&rules, b"\x00\x00\x00\x04ftyp"), Outcome::NoMatch, "box size below 8");
-    assert_eq!(scan(&rules, b"\x00\x00\xff\xffftyp"), Outcome::NoMatch, "box size above filesize");
+    assert_eq!(scan(&rules, b"\x00\x00\x00\x04ftyp"), Outcome::Match(vec![]), "box size below 8");
+    assert_eq!(
+        scan(&rules, b"\x00\x00\xff\xffftyp"),
+        Outcome::Match(vec![]),
+        "box size above filesize"
+    );
 }
 
 #[test]
@@ -66,7 +74,7 @@ fn prefix_must_be_exactly_the_bounded_head() {
     assert_eq!(scan_sized(&rules, b"", 0), Outcome::InsufficientInput);
     assert_eq!(scan_sized(&rules, b"GIF87a", 100), Outcome::InsufficientInput);
     let big = vec![0u8; PREFIX_LIMIT];
-    assert_eq!(scan_sized(&rules, &big, 1 << 40), Outcome::NoMatch);
+    assert_eq!(scan_sized(&rules, &big, 1 << 40), Outcome::Match(vec![]));
 }
 
 #[test]
@@ -75,7 +83,9 @@ fn rules_are_send_sync_and_shareable() {
     let handles: Vec<_> = (0..4)
         .map(|_| {
             let r = rules.clone();
-            std::thread::spawn(move || (0..1000).all(|_| scan(&r, b"GIF87a") == Outcome::Match(1)))
+            std::thread::spawn(move || {
+                (0..1000).all(|_| scan(&r, b"GIF87a") == Outcome::Match(vec![1]))
+            })
         })
         .collect();
     assert!(handles.into_iter().all(|h| h.join().unwrap()));
@@ -104,12 +114,14 @@ fn rule(id: &str, label: &str, patterns: &str, condition: &str) -> String {
     format!("rule {id} {{ meta: label = \"{label}\" enabled = true class = \"full\" fp_rate = 0 fn_rate = 0 {patterns} condition: {condition} }}")
 }
 
-#[cfg(feature = "bundled")]
 #[test]
 fn bundled_structural_rules_preserve_identifying_fields() {
-    let bundled = Source::bundled();
-    let structural: String = bundled
-        .text()
+    let text = std::fs::read_to_string(format!(
+        "{}/rulesets/notworking/formats.yar",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
+    let structural: String = text
         .split("\nrule ")
         .skip(1)
         .filter(|source| source.starts_with("xz_v1 {") || source.starts_with("sqlite_v1 {"))
@@ -129,15 +141,15 @@ fn bundled_structural_rules_preserve_identifying_fields() {
         let mut data = std::fs::read(format!("{}/{path}", env!("CARGO_MANIFEST_DIR"))).unwrap();
         let size = data.len() as u64;
         let prefix = data.len().min(PREFIX_LIMIT);
-        assert_eq!(scan_sized(&pack, &data[..prefix], size), Outcome::Match(label));
+        assert_eq!(scan_sized(&pack, &data[..prefix], size), Outcome::Match(vec![label]));
         let mut misaligned = data.clone();
         misaligned.push(0);
         assert_eq!(
             scan_sized(&pack, &misaligned[..misaligned.len().min(PREFIX_LIMIT)], size + 1),
-            Outcome::NoMatch
+            Outcome::Match(vec![])
         );
         data[identifying_byte] ^= 1;
-        assert_eq!(scan_sized(&pack, &data[..prefix], size), Outcome::NoMatch);
+        assert_eq!(scan_sized(&pack, &data[..prefix], size), Outcome::Match(vec![]));
     }
 }
 
@@ -264,7 +276,7 @@ fn integer_predicates_and_actual_length() {
     for size in [5000, 6000, 4096, 5000, u64::MAX, 5000] {
         assert_eq!(
             scan_sized(&pack, &bytes, size),
-            if size == 5000 { Outcome::Match(0) } else { Outcome::NoMatch }
+            if size == 5000 { Outcome::Match(vec![0]) } else { Outcome::Match(vec![]) }
         );
     }
 }
@@ -315,6 +327,6 @@ fn pattern_placement_respects_at_and_in_bounds() {
 #[cfg(feature = "bundled")]
 #[test]
 fn bundled_pack_compiles() {
-    let rules = RuleSet::compile(&Source::bundled()).unwrap();
+    let rules = RuleSet::bundled();
     assert!(!rules.labels().is_empty());
 }

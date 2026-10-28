@@ -13,11 +13,25 @@ use magika_rules::{Input, Outcome, RuleSet, Source};
 
 #[test]
 fn compile_and_scan_stay_within_budget() {
+    let mut text = String::new();
+    for dir in ["full", "partial", "notworking"] {
+        let mut files: Vec<_> =
+            std::fs::read_dir(format!("{}/rulesets/{dir}", env!("CARGO_MANIFEST_DIR")))
+                .unwrap()
+                .map(|e| e.unwrap().path())
+                .filter(|p| p.extension().is_some_and(|e| e == "yar"))
+                .collect();
+        files.sort();
+        for file in files {
+            text.push_str(&std::fs::read_to_string(file).unwrap());
+            text.push('\n');
+        }
+    }
     let t = Instant::now();
-    let source = Source::bundled();
+    let source = Source::parse(&text).unwrap();
     black_box(RuleSet::compile(&source).unwrap());
     let compile = t.elapsed();
-    // What a process pays at startup: the rules were compiled when the crate was built.
+    // What a process pays at startup: the rules are precompiled.
     let t = Instant::now();
     let rules = RuleSet::bundled();
     let bundled = t.elapsed();
@@ -31,7 +45,7 @@ fn compile_and_scan_stay_within_budget() {
     let t = Instant::now();
     let n = 20_000;
     for _ in 0..n {
-        assert_eq!(black_box(rules.scan(black_box(input))), Outcome::NoMatch);
+        assert_eq!(black_box(rules.scan(black_box(input))), Outcome::Match(Vec::new()));
     }
     let per_scan = t.elapsed() / n;
 

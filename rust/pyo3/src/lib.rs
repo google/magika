@@ -13,15 +13,57 @@
 // limitations under the License.
 
 use std::cell::RefCell;
-use std::path::Path;
-use std::sync::OnceLock;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, OnceLock};
 
-use magika::{ContentType, Features, FeaturesOrRuled, FileType, OverwriteReason, Runtime, Session, MODEL_NAME};
-use pyo3::exceptions::PyRuntimeError;
+use magika::pipeline::{Engine, EngineSession, Pipeline, PipelineOptions};
+use magika::{
+    ContentType, FileType, Options, OverwriteReason, PredictionMode, Rules, Runtime, TypeInfo,
+    MODEL_NAME, MODEL_TRAINING_LABELS,
+};
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 
+#[pyclass(name = "ContentTypeInfo", frozen)]
+pub struct PyContentTypeInfo {
+    info: &'static TypeInfo,
+}
+
+#[pymethods]
+impl PyContentTypeInfo {
+    #[getter]
+    fn label(&self) -> &'static str {
+        self.info.label
+    }
+
+    #[getter]
+    fn mime_type(&self) -> &'static str {
+        self.info.mime_type
+    }
+
+    #[getter]
+    fn group(&self) -> &'static str {
+        self.info.group
+    }
+
+    #[getter]
+    fn description(&self) -> &'static str {
+        self.info.description
+    }
+
+    #[getter]
+    fn extensions(&self) -> Vec<&'static str> {
+        self.info.extensions.to_vec()
+    }
+
+    #[getter]
+    fn is_text(&self) -> bool {
+        self.info.is_text
+    }
+}
+
 #[pyclass(name = "MagikaResult")]
-#[derive(Clone)]
 pub struct PyMagikaResult {
     #[pyo3(get)]
     pub path: Option<String>,
@@ -58,32 +100,28 @@ impl PyMagikaResult {
                 self.path, self.status, self.label, self.mime_type, self.score
             )
         } else {
-            format!(
-                "MagikaResult(path={:?}, status={:?})",
-                self.path, self.status
-            )
+            format!("MagikaResult(path={:?}, status={:?})", self.path, self.status)
         }
     }
 }
 
 fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult {
     let info = file_type.info();
-    let score = file_type.score();
-    let (dl_label, overwrite_reason) = match file_type {
-        FileType::Inferred(inferred) => {
-            let dl = inferred.inferred_type.info().label.to_string();
-            let reason = match inferred.content_type {
+    let (score, dl_label, overwrite_reason) = match file_type.debug_info().and_then(|x| x.model()) {
+        Some(x) => {
+            let best = x.best_guess();
+            let score = x.output[best];
+            let dl = MODEL_TRAINING_LABELS[best];
+            let reason = match x.overwrite_reason {
                 None => "none",
-                Some((_, OverwriteReason::LowConfidence)) => "low_confidence",
-                Some((_, OverwriteReason::OverwriteMap)) => "overwrite_map",
+                Some(OverwriteReason::LowConfidence) => "low_confidence",
+                Some(OverwriteReason::OverwriteMap) => "overwrite_map",
+                Some(OverwriteReason::ResolversVeto) => "resolvers_veto",
+                Some(OverwriteReason::RulesVeto) => "rules_veto",
             };
-            (dl, reason.to_string())
+            (score, dl.info().label.to_string(), reason.to_string())
         }
-        FileType::Ruled(_) | FileType::Directory | FileType::Symlink => {
-            // FIXME(https://github.com/google/magika/issues/1480): Use ContentType::Undefined
-            // from magika-lib once exposed on magika::ContentType.
-            ("undefined".to_string(), "none".to_string())
-        }
+        None => (1.0, ContentType::Undefined.info().label.to_string(), "none".to_string()),
     };
 
     PyMagikaResult {
@@ -124,110 +162,63 @@ fn from_io_error(e: &std::io::Error, path: Option<String>) -> PyMagikaResult {
     }
 }
 
-enum PathDisposition {
-    Immediate(PyMagikaResult),
-    Features(Features),
-}
+/// The engine shared by every `Magika` instance: preparing the model happens once per process.
+static ENGINE: OnceLock<Result<Arc<Engine>, String>> = OnceLock::new();
 
-// FIXME(https://github.com/google/magika/issues/1481): Remove custom no_dereference
-// metadata lookup once magika-lib's Session::identify_file / FeaturesOrRuled::extract_file
-// supports `no_dereference`.
-// FIXME(https://github.com/google/magika/issues/1482): Remove custom `!metadata.is_file()`
-// check once magika-lib handles non-regular / special files (e.g., /dev/null, FIFOs)
-// as FileType::Ruled(ContentType::Unknown).
-fn extract_path_disposition(path_str: &str, no_dereference: bool) -> anyhow::Result<PathDisposition> {
-    let p = Path::new(path_str);
-    let metadata_res = if no_dereference {
-        std::fs::symlink_metadata(p)
-    } else {
-        std::fs::metadata(p)
-    };
-    let metadata = match metadata_res {
-        Ok(m) => m,
-        Err(io_err) => {
-            return Ok(PathDisposition::Immediate(from_io_error(
-                &io_err,
-                Some(path_str.to_string()),
-            )));
-        }
-    };
-
-    if no_dereference && metadata.is_symlink() {
-        return Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Symlink,
-            Some(path_str.to_string()),
-        )));
-    }
-    if metadata.is_dir() {
-        return Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Directory,
-            Some(path_str.to_string()),
-        )));
-    }
-    if !metadata.is_file() {
-        return Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Ruled(ContentType::Unknown),
-            Some(path_str.to_string()),
-        )));
-    }
-
-    let file = match std::fs::File::open(p) {
-        Ok(f) => f,
-        Err(io_err) => {
-            return Ok(PathDisposition::Immediate(from_io_error(
-                &io_err,
-                Some(path_str.to_string()),
-            )));
-        }
-    };
-
-    match FeaturesOrRuled::extract(file) {
-        Ok(FeaturesOrRuled::Ruled(ct)) => Ok(PathDisposition::Immediate(from_file_type(
-            &FileType::Ruled(ct),
-            Some(path_str.to_string()),
-        ))),
-        Ok(FeaturesOrRuled::Features(features)) => Ok(PathDisposition::Features(features)),
-        Err(e) => {
-            if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
-                Ok(PathDisposition::Immediate(from_io_error(
-                    io_err,
-                    Some(path_str.to_string()),
-                )))
-            } else {
-                Err(e)
-            }
-        }
-    }
-}
-
-static RUNTIME: OnceLock<Result<Runtime, String>> = OnceLock::new();
-
-fn get_shared_runtime() -> anyhow::Result<&'static Runtime> {
-    let res = RUNTIME.get_or_init(|| Runtime::new().map_err(|e| e.to_string()));
-    match res {
-        Ok(rt) => Ok(rt),
+fn get_shared_engine() -> anyhow::Result<&'static Arc<Engine>> {
+    match ENGINE.get_or_init(|| {
+        Engine::new(Runtime::builder().with_max_batch(PipelineOptions::default().batch_size))
+            .map(Arc::new)
+            .map_err(|e| e.to_string())
+    }) {
+        Ok(engine) => Ok(engine),
         Err(msg) => anyhow::bail!("{msg}"),
     }
 }
 
 thread_local! {
-    static SESSION: RefCell<Option<Session>> = const { RefCell::new(None) };
+    static SESSION: RefCell<Option<(usize, EngineSession<'static>)>> = const { RefCell::new(None) };
+}
+
+/// The result of an error identifying a path, as a result rather than an exception for I/O.
+fn from_error(error: anyhow::Error, path: &str) -> PyMagikaResult {
+    match error.downcast_ref::<std::io::Error>() {
+        Some(io_err) => from_io_error(io_err, Some(path.to_string())),
+        None => PyMagikaResult {
+            path: Some(path.to_string()),
+            status: "unknown".to_string(),
+            ok: false,
+            label: String::new(),
+            mime_type: String::new(),
+            group: String::new(),
+            description: error.to_string(),
+            extensions: Vec::new(),
+            is_text: false,
+            score: 0.0,
+            dl_label: String::new(),
+            overwrite_reason: "none".to_string(),
+        },
+    }
 }
 
 #[pyclass(name = "Magika")]
 pub struct PyMagika {
-    no_dereference: bool,
+    id: usize,
+    options: Options,
 }
 
 impl PyMagika {
-    fn with_session<R>(&self, f: impl FnOnce(&mut Session) -> anyhow::Result<R>) -> anyhow::Result<R> {
-        let runtime = get_shared_runtime()?;
+    fn with_session<R>(
+        &self, f: impl FnOnce(&mut EngineSession<'static>) -> anyhow::Result<R>,
+    ) -> anyhow::Result<R> {
+        let engine: &'static Engine = get_shared_engine()?;
         SESSION.with(|cell| {
             let mut slot = cell.borrow_mut();
-            if slot.is_none() {
-                *slot = Some(runtime.session()?);
-            }
-            f(slot.as_mut().unwrap())
+            let session = match &mut *slot {
+                Some((id, session)) if *id == self.id => session,
+                slot => &mut slot.insert((self.id, engine.session(Some(self.options.clone())))).1,
+            };
+            f(session)
         })
     }
 }
@@ -235,89 +226,84 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (no_dereference=false))]
-    fn new(no_dereference: bool) -> PyResult<Self> {
-        get_shared_runtime()
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e}")))?;
-        Ok(Self { no_dereference })
+    #[pyo3(signature = (use_resolvers=true, use_builtin_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        py: Python<'_>, use_resolvers: bool, use_builtin_rules: bool, use_model: bool,
+        prediction_mode: &str, follow_symlink: bool, rules: Option<&str>,
+        rules_files: Option<Vec<std::path::PathBuf>>,
+    ) -> PyResult<Self> {
+        let custom_rules = match (rules, rules_files) {
+            (None, None) => None,
+            (Some(text), None) => Some(Rules::compile(text)),
+            (None, Some(paths)) => Some(Rules::from_files(paths)),
+            (Some(_), Some(_)) => {
+                return Err(PyValueError::new_err("Pass either rules or rules_files, not both"));
+            }
+        };
+        let custom_rules = custom_rules
+            .transpose()
+            .map_err(|e| PyValueError::new_err(format!("Invalid custom rules: {e:#}")))?;
+        let prediction_mode = match prediction_mode {
+            "high_confidence" => PredictionMode::HighConfidence,
+            "medium_confidence" => PredictionMode::MediumConfidence,
+            "best_guess" => PredictionMode::BestGuess,
+            _ => {
+                return Err(PyValueError::new_err(format!(
+                    "Invalid prediction mode: {prediction_mode:?}"
+                )));
+            }
+        };
+        // Waiting for the CPU runtime here reports a failure to prepare the model at once, and
+        // lets a forked process start only once no thread is still preparing it.
+        py.detach(|| get_shared_engine()?.backend_info()).map_err(|e| {
+            PyRuntimeError::new_err(format!("Failed to initialize Magika runtime: {e:#}"))
+        })?;
+        let mut options = Options::default();
+        options.use_resolvers = use_resolvers;
+        options.use_custom_rules = custom_rules;
+        options.use_builtin_rules = use_builtin_rules;
+        options.use_model = use_model;
+        options.prediction_mode = prediction_mode;
+        options.follow_symlink = follow_symlink;
+        options.debug_mode = true;
+        static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        Ok(Self { id, options })
     }
 
     fn identify_bytes(&self, py: Python<'_>, data: &[u8]) -> PyResult<PyMagikaResult> {
-        let result = py.allow_threads(|| {
-            self.with_session(|session| session.identify_content(data))
-        });
+        let result = py.detach(|| self.with_session(|session| session.identify_content(data)));
         match result {
-            Ok(file_type) => Ok(from_file_type(&file_type, None)),
+            Ok(file_type) => Ok(from_file_type(&file_type.into(), None)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }
 
     fn identify_path(&self, py: Python<'_>, path: &str) -> PyResult<PyMagikaResult> {
-        let no_dereference = self.no_dereference;
-        let result: anyhow::Result<PyMagikaResult> = py.allow_threads(|| {
-            match extract_path_disposition(path, no_dereference)? {
-                PathDisposition::Immediate(res) => Ok(res),
-                PathDisposition::Features(features) => {
-                    let file_type = self.with_session(|session| session.identify_features(&features))?;
-                    Ok(from_file_type(&file_type, Some(path.to_string())))
-                }
-            }
-        });
+        let result = py.detach(|| self.with_session(|session| session.identify_file(path)));
         match result {
-            Ok(res) => Ok(res),
+            Ok(file_type) => Ok(from_file_type(&file_type, Some(path.to_string()))),
+            Err(e) if e.downcast_ref::<std::io::Error>().is_some() => Ok(from_error(e, path)),
             Err(e) => Err(PyRuntimeError::new_err(format!("Inference error: {e}"))),
         }
     }
 
     fn identify_paths(&self, py: Python<'_>, paths: Vec<String>) -> PyResult<Vec<PyMagikaResult>> {
-        let no_dereference = self.no_dereference;
-        let results: anyhow::Result<Vec<PyMagikaResult>> = py.allow_threads(|| {
-            let mut slots: Vec<Option<PyMagikaResult>> = Vec::with_capacity(paths.len());
-            let mut batch_indices: Vec<usize> = Vec::new();
-            let mut batch_features: Vec<Features> = Vec::new();
-
-            for (idx, path_str) in paths.iter().enumerate() {
-                match extract_path_disposition(path_str, no_dereference) {
-                    Ok(PathDisposition::Immediate(res)) => {
-                        slots.push(Some(res));
-                    }
-                    Ok(PathDisposition::Features(features)) => {
-                        slots.push(None);
-                        batch_indices.push(idx);
-                        batch_features.push(features);
-                    }
-                    Err(e) => {
-                        slots.push(Some(PyMagikaResult {
-                            path: Some(path_str.clone()),
-                            status: "unknown".to_string(),
-                            ok: false,
-                            label: String::new(),
-                            mime_type: String::new(),
-                            group: String::new(),
-                            description: e.to_string(),
-                            extensions: Vec::new(),
-                            is_text: false,
-                            score: 0.0,
-                            dl_label: String::new(),
-                            overwrite_reason: "none".to_string(),
-                        }));
-                    }
-                }
-            }
-
-            if !batch_features.is_empty() {
-                let inferred_types = self.with_session(|session| {
-                    session.identify_features_batch(&batch_features)
-                })?;
-                for (slot_idx, file_type) in batch_indices.into_iter().zip(inferred_types) {
-                    slots[slot_idx] = Some(from_file_type(
-                        &file_type,
-                        Some(paths[slot_idx].clone()),
-                    ));
-                }
-            }
-
-            Ok(slots.into_iter().map(|s| s.unwrap()).collect())
+        let results: anyhow::Result<Vec<PyMagikaResult>> = py.detach(|| {
+            let engine = get_shared_engine()?.clone();
+            let pipeline = Pipeline::new(engine, self.options.clone(), PipelineOptions::default())?;
+            let identified = pipeline.identify_paths(paths.iter().map(PathBuf::from).collect())?;
+            // Without recursion, there is one result per path, in order.
+            identified
+                .zip(&paths)
+                .map(|(item, path)| {
+                    Ok(match item?.1 {
+                        Ok(file_type) => from_file_type(&file_type, Some(path.clone())),
+                        Err(error) => from_error(error, path),
+                    })
+                })
+                .collect()
         });
         match results {
             Ok(res) => Ok(res),
@@ -333,6 +319,14 @@ impl PyMagika {
     fn get_model_name(&self) -> &'static str {
         MODEL_NAME
     }
+
+    fn get_output_content_types(&self) -> Vec<&'static str> {
+        TypeInfo::possible_output().into_iter().map(|x| x.label).collect()
+    }
+
+    fn get_model_content_types(&self) -> Vec<&'static str> {
+        TypeInfo::model_output().into_iter().map(|x| x.label).collect()
+    }
 }
 
 #[pyfunction]
@@ -340,10 +334,29 @@ fn get_default_model_name() -> &'static str {
     MODEL_NAME
 }
 
+#[pyfunction]
+fn content_type_from_label(label: &str) -> Option<PyContentTypeInfo> {
+    ContentType::from_label(label).map(|x| PyContentTypeInfo { info: x.info() })
+}
+
+#[pyfunction]
+fn get_output_content_types() -> Vec<&'static str> {
+    TypeInfo::possible_output().into_iter().map(|x| x.label).collect()
+}
+
+#[pyfunction]
+fn get_model_content_types() -> Vec<&'static str> {
+    TypeInfo::model_output().into_iter().map(|x| x.label).collect()
+}
+
 #[pymodule]
 fn _magika(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMagika>()?;
     m.add_class::<PyMagikaResult>()?;
+    m.add_class::<PyContentTypeInfo>()?;
     m.add_function(wrap_pyfunction!(get_default_model_name, m)?)?;
+    m.add_function(wrap_pyfunction!(content_type_from_label, m)?)?;
+    m.add_function(wrap_pyfunction!(get_output_content_types, m)?)?;
+    m.add_function(wrap_pyfunction!(get_model_content_types, m)?)?;
     Ok(())
 }

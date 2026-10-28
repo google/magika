@@ -14,6 +14,14 @@
 
 from typing import List, Optional
 
+class ContentTypeInfo:
+    label: str
+    mime_type: str
+    group: str
+    description: str
+    extensions: List[str]
+    is_text: bool
+
 class MagikaResult:
     path: Optional[str]
     status: str
@@ -29,13 +37,26 @@ class MagikaResult:
     overwrite_reason: str
 
 def get_default_model_name() -> str: ...
+def content_type_from_label(label: str) -> Optional[ContentTypeInfo]: ...
+def get_output_content_types() -> List[str]: ...
+def get_model_content_types() -> List[str]: ...
 
 class Magika:
-    # FIXME(https://github.com/google/magika/issues/1481): Pass no_dereference to magika-lib Session once supported.
-    def __init__(self, no_dereference: bool = False) -> None: ...
+    def __init__(
+        self,
+        use_resolvers: bool = True,
+        use_builtin_rules: bool = True,
+        use_model: bool = True,
+        prediction_mode: str = "high_confidence",
+        follow_symlink: bool = True,
+        rules: Optional[str] = None,
+        rules_files: Optional[List[str]] = None,
+    ) -> None: ...
     @staticmethod
     def get_default_model_name() -> str: ...
     def identify_bytes(self, data: bytes) -> MagikaResult: ...
     def identify_path(self, path: str) -> MagikaResult: ...
     def identify_paths(self, paths: List[str]) -> List[MagikaResult]: ...
     def get_model_name(self) -> str: ...
+    def get_output_content_types(self) -> List[str]: ...
+    def get_model_content_types(self) -> List[str]: ...

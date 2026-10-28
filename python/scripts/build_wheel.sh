@@ -19,7 +19,7 @@ ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &>/dev/null && pwd)
 cd "$ROOT_DIR"
 
 echo "Building and staging native CLI binary (magika)..."
-./python/scripts/stage_cli.sh
+./python/scripts/build_and_stage_cli.sh
 
 
 echo "Building wheel via uv build..."

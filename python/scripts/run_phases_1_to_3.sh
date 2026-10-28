@@ -293,11 +293,10 @@ else
     log_success "Confirmed: 'magika/models/' and redundant 3.1MB model.onnx are absent from wheel."
 fi
 
-# 4. Verify relocated configuration file is present
-if echo "$WHEEL_CONTENTS" | grep -q "magika/config/model_config.min.json"; then
-    log_success "Found relocated config: magika/config/model_config.min.json"
+if echo "$WHEEL_CONTENTS" | grep -q "magika/config/"; then
+    log_fail "Legacy 'magika/config/' was found inside the wheel! Bundled JSON configs should be removed."
 else
-    log_fail "Missing relocated config 'magika/config/model_config.min.json' in wheel!"
+    log_success "Confirmed: 'magika/config/' and bundled JSON configs are absent from wheel."
 fi
 
 # ------------------------------------------------------------------------------

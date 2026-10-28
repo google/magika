@@ -16,12 +16,17 @@
 set -e
 . ./color.sh
 
+info "Sync bundled rules"
+( cd rules
+  cargo run --bin=gen --no-default-features --features=_gen
+)
+
 info "Sync generated files"
 ( cd gen; cargo run; )
 
 info "Sync embedded model"
 ( cd tract-bench
-  cargo run --no-default-features --features=convert --bin=convert-model -- \
+  cargo run --bin=convert-model --no-default-features --features=convert -- \
     ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le,graph.json,weights}
 )
 

@@ -7,9 +7,11 @@ set -e
 
 x cargo check
 x cargo check --no-default-features
+x cargo check --no-default-features --features=_gen
 x cargo test
 x cargo test --no-default-features
 x cargo test --release --test=perf
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
+x cargo clippy --no-default-features --features=_gen -- --deny=warnings
 x env RUSTDOCFLAGS=--deny=warnings cargo doc --no-deps

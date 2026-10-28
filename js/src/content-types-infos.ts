@@ -121,6 +121,10 @@ export const ContentTypesInfos = {
       label: ContentTypeLabel.ASC,
       is_text: true,
     },
+    [ContentTypeLabel.ASCIIDOC]: {
+      label: ContentTypeLabel.ASCIIDOC,
+      is_text: true,
+    },
     [ContentTypeLabel.ASD]: {
       label: ContentTypeLabel.ASD,
       is_text: false,
@@ -1515,6 +1519,10 @@ export const ContentTypesInfos = {
     },
     [ContentTypeLabel.UNKNOWN]: {
       label: ContentTypeLabel.UNKNOWN,
+      is_text: false,
+    },
+    [ContentTypeLabel.UNSUPPORTED]: {
+      label: ContentTypeLabel.UNSUPPORTED,
       is_text: false,
     },
     [ContentTypeLabel.VBA]: {

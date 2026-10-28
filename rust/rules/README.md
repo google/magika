@@ -18,17 +18,19 @@ let rules = RuleSet::bundled();
 let bytes = std::fs::read("example.png")?;
 let prefix = &bytes[..bytes.len().min(magika_rules::PREFIX_LIMIT)];
 match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
-    Outcome::Match(i) => println!("{}", rules.labels()[i]),
-    Outcome::NoMatch | Outcome::Conflict | Outcome::InsufficientInput => {}
+    Outcome::Match(labels) => match &labels[..] {
+        [i] => println!("{}", rules.labels()[*i]),
+        _ => {}
+    },
+    Outcome::InsufficientInput => {}
 }
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`RuleSet::bundled` loads the bundled rules as they were compiled when the crate was built, in
-well under a millisecond: it parses no YARA and builds each regex the first time a scan needs
-it. `Source::parse` and `RuleSet::compile` accept custom rules with the same validation. A
-`RuleSet` is `Send + Sync` and scans take `&self`, so one compiled pack can be shared through an
-`Arc`.
+`RuleSet::bundled` loads the precompiled bundled rules in well under a millisecond: it parses no
+YARA and builds each regex the first time a scan needs it. `Source::parse` and `RuleSet::compile`
+accept custom rules with the same validation. A `RuleSet` is `Send + Sync` and scans take `&self`,
+so one compiled pack can be shared through an `Arc`.
 
 `Input::prefix` must be exactly the first `min(size, PREFIX_LIMIT)` bytes; anything else is
 `Outcome::InsufficientInput`.
@@ -38,13 +40,12 @@ it. `Source::parse` and `RuleSet::compile` accept custom rules with the same val
 - `rulesets/full/`: rules with zero observed false positives and false negatives.
 - `rulesets/partial/`: zero observed false positives and some false negatives.
 - `rulesets/notworking/`: rules kept for reference and never enforced, including rules
-  refuted by evaluation and, in `facts-pending.yar`, rules that read archive and
-  executable facts, which this crate does not evaluate yet.
+  refuted by evaluation.
 - `LICENSES`: notices for the sources rules were adapted from; exact references stay with
   each rule's `source_refs`.
-- `build.rs`: bundles the rulesets and notices into the crate with the `bundled` feature
-  (on by default), and compiles them with the crate's own `source`, `lower` and `codegen`
-  modules into the Rust code `RuleSet::bundled` runs.
+- `src/bin/gen.rs`: compiles the rulesets with the crate's own `source`, `lower` and `codegen`
+  modules into `src/bundled.rs` (loaded by `RuleSet::bundled` with the default `bundled` feature)
+  and writes the rule labels to `../gen/rules/content_types`.
 
 ## Rule metadata
 
@@ -60,6 +61,16 @@ Every non-private rule is checked when a source is parsed:
 
 Metadata records the author's evidence; the crate cannot verify it.
 
+## Custom rules
+
+Magika checks custom rules before these ones: `magika::Rules::compile` in the library,
+`--rules-file` (and `--rules-check` to validate a file) in the CLI, `Magika(rules=...)` in Python,
+and `magika_rules_new` in C. They use the same YARA subset and metadata, except that their
+directory is not checked, and their labels must be Magika content types. Custom rules identify a
+file when the ones that match agree; otherwise these rules, then the model, decide as usual. When
+every enforced rule of a content type has `class = "full"`, a model prediction of it is vetoed if
+none of them matched. `tests_data/rules/custom.yar` is a small example.
+
 ## Supported YARA
 
 Anything outside this subset is rejected at compile time rather than ignored.
@@ -72,6 +83,8 @@ Anything outside this subset is rejected at compile time rather than ignored.
 | Sizes | `filesize` or `original_size` (the whole input), `prefix_size` (bytes in the prefix) |
 | Comparisons | `==`, `!=`, `<`, `<=`, `>`, `>=` between literals, sizes and reads |
 | Modulo | `x % N == M` with `N` a power of two |
+| Facts | zip (`zip_valid`, `zip_entries`, `zip_names_entries`, ...) and PE (`pe_valid`, `pe_machine`, `pe_subsystem`, ...) integers, zero for other inputs; see `src/facts` |
+| Views | `zip_names` and `zip_first_entry`, searched with `contains` or `startswith` and a literal string |
 | Logic | `and`, `or`, `not`, `true`, `false`, references to other rules (private helpers are active unless disabled) |
 
 A read past the prefix is undefined and makes its comparison false. Regexes are byte

@@ -69,13 +69,6 @@ impl Source {
         Self::parse_inner(text, Some(bucket))
     }
 
-    /// The rules shipped with this crate. `build.rs` validated them; a failure is a build bug.
-    #[cfg(feature = "bundled")]
-    pub fn bundled() -> Self {
-        Self::parse(include_str!(concat!(env!("OUT_DIR"), "/bundled.yar")))
-            .expect("bundled rules validated at build time")
-    }
-
     /// The validated YARA text.
     pub fn text(&self) -> &str {
         &self.text
@@ -92,7 +85,8 @@ impl Source {
         }
         let ast = AST::from(text);
         if !ast.errors().is_empty() {
-            return Err(Error::Parse(format!("{:?}", ast.errors())));
+            let errors: Vec<_> = ast.errors().iter().map(|e| syntax_error(text, e)).collect();
+            return Err(Error::Parse(errors.join("; ")));
         }
         let mut seen = HashSet::new();
         let mut rules = Vec::new();
@@ -259,6 +253,23 @@ mod metadata {
     }
 }
 
+/// One parser error, as `line L, column C: message` counting from 1, so an author finds it.
+fn syntax_error(text: &str, error: &yara_x_parser::ast::Error) -> String {
+    use yara_x_parser::ast::Error as E;
+    let (message, span) = match error {
+        E::SyntaxError { message, span }
+        | E::InvalidInteger { message, span }
+        | E::InvalidFloat { message, span }
+        | E::InvalidRegexpModifier { message, span }
+        | E::InvalidEscapeSequence { message, span } => (message.as_str(), span),
+        E::InvalidUTF8(span) => ("invalid UTF-8", span),
+        E::UnexpectedEscapeSequence(span) => ("unexpected escape sequence", span),
+    };
+    let before = &text.as_bytes()[..span.start().min(text.len())];
+    let line_start = before.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
+    let line = before.iter().filter(|&&b| b == b'\n').count() + 1;
+    format!("line {line}, column {}: {message}", before.len() - line_start + 1)
+}
 #[cfg(test)]
 mod tests {
     use super::*;

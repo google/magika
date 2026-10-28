@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use magika_tract_runtime::{BackendRequest, Runtime as RawRuntime, BATCH_CLASSES};
+use magika_tract_runtime::{BATCH_CLASSES, BackendRequest, Runtime as RawRuntime};
 use ndarray::ArrayView2;
 
 use super::*;
@@ -38,6 +38,8 @@ struct Sample {
 #[ignore = "requires an available GPU; run explicitly for GPU release qualification"]
 fn reference_decisions_match_on_every_gpu_batch() {
     let mut cpu = RawRuntime::with_max_batch(BackendRequest::Cpu, 1).unwrap().session().unwrap();
+    // The reference outputs are the model's alone, so the rules neither decide nor veto.
+    let options = Options { use_builtin_rules: false, debug_mode: true, ..Options::default() };
     let mut samples = Vec::new();
     // The model's label count, taken from the CPU reference's output width.
     let mut num_labels = 0;
@@ -66,16 +68,19 @@ fn reference_decisions_match_on_every_gpu_batch() {
                 _ => panic!("fixture must identify exactly one input"),
             };
             let expected = fixture.prediction.unwrap();
-            match FeaturesOrRuled::extract(bytes.as_slice()).unwrap() {
-                FeaturesOrRuled::Ruled(kind) => {
-                    assert_prediction(FileType::Ruled(kind), expected, &name);
+            match FeaturesOr::extract_content(bytes.as_slice(), &options).unwrap() {
+                FeaturesOr::Ruled(kind) => {
+                    assert_prediction(kind, expected, &name);
                 }
-                FeaturesOrRuled::Features(features) => {
-                    let reference = cpu.run(&features.0, 1).unwrap();
+                FeaturesOr::Features(features) => {
+                    let reference = cpu.run(&features.features, 1).unwrap();
                     num_labels = reference.len();
-                    let reference = FileType::convert(
+                    let reference = RegularFileType::convert(
+                        &options,
+                        &[&features],
                         ArrayView2::from_shape((1, num_labels), &reference).unwrap().into_dyn(),
-                    );
+                    )
+                    .unwrap();
                     let cpu_output = reference[0].info().label;
                     assert_eq!(cpu_output, expected.output, "{name}");
                     samples.push(Sample { name, features, expected, cpu_output });
@@ -85,7 +90,8 @@ fn reference_decisions_match_on_every_gpu_batch() {
         assert!(count >= 40, "too few {kind} reference cases: {count}");
     }
     assert!(samples.len() >= 64, "must cover many distinct real inputs");
-    let distinct: std::collections::HashSet<_> = samples.iter().map(|s| &s.features.0).collect();
+    let distinct: std::collections::HashSet<_> =
+        samples.iter().map(|s| &s.features.features).collect();
     assert!(distinct.len() >= 32, "must distinguish reordered rows");
 
     let runtime = RawRuntime::new(BackendRequest::Gpu).unwrap();
@@ -97,12 +103,17 @@ fn reference_decisions_match_on_every_gpu_batch() {
         for start in (0..samples.len()).step_by(batch) {
             // Rotate the final batch through the corpus so it also executes the full class.
             let rows: Vec<_> = (0..batch).map(|i| &samples[(start + i) % samples.len()]).collect();
-            let input: Vec<_> = rows.iter().flat_map(|s| s.features.0.iter().copied()).collect();
+            let input: Vec<_> =
+                rows.iter().flat_map(|s| s.features.features.iter().copied()).collect();
             let scores = gpu.run(&input, batch).unwrap();
             assert_eq!(scores.len(), batch * num_labels);
-            let predictions = FileType::convert(
+            let features: Vec<_> = rows.iter().map(|s| &s.features).collect();
+            let predictions = RegularFileType::convert(
+                &options,
+                &features,
                 ArrayView2::from_shape((batch, num_labels), &scores).unwrap().into_dyn(),
-            );
+            )
+            .unwrap();
             for ((sample, actual), row) in
                 rows.iter().zip(predictions).zip(scores.chunks_exact(num_labels))
             {
@@ -116,19 +127,16 @@ fn reference_decisions_match_on_every_gpu_batch() {
                     "{context}: probabilities do not sum to one"
                 );
                 assert_eq!(actual.info().label, sample.cpu_output, "{context}");
-                let FileType::Inferred(actual) = actual else {
+                let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
+                    panic!("expected regular file with debug info: {context}")
+                };
+                let [content_type] = content_types[..] else { unreachable!() };
+                let DebugInfo::Model(model) = &*debug_info else {
                     panic!("expected inference: {context}")
                 };
-                assert_eq!(actual.content_type().info().label, sample.expected.output, "{context}");
-                let reason = match actual.content_type {
-                    None => ReferenceOverwriteReason::None,
-                    Some((_, OverwriteReason::LowConfidence)) => {
-                        ReferenceOverwriteReason::LowConfidence
-                    }
-                    Some((_, OverwriteReason::OverwriteMap)) => {
-                        ReferenceOverwriteReason::OverwriteMap
-                    }
-                };
+                let (_, dl, reason) = model_info(model);
+                assert_eq!(content_type.info().label, sample.expected.output, "{context}");
+                assert_eq!(dl.info().label, sample.expected.dl, "{context}");
                 assert_eq!(reason, sample.expected.overwrite_reason, "{context}");
             }
         }

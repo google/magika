@@ -11,6 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# /// script
+# dependencies = ["click", "requests", "packaging"]
+#
+# [tool.uv]
+# required-version = ">=0.13.4"
+# ///
 
 
 """Performs a number of sanity checks on Magika's documentation."""
@@ -27,8 +33,8 @@ import click
 import requests
 from packaging.version import Version
 
-REPO_ROOT_DIR = Path(__file__).parent.parent.parent
-assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
+REPO_ROOT_DIR = Path(__file__).parent.parent.parent.resolve()
+assert (REPO_ROOT_DIR / ".git").exists()
 
 
 IGNORE_PREFIX_PATTERNS = [
@@ -262,13 +268,16 @@ def extract_uris_infos_from_file(path: Path, verbose: bool) -> list[UriInfo]:
             else:
                 is_pure_anchor = False
                 if Path(uri).is_absolute():
+                    # Absolute links point to website pages; drop any section
+                    # anchor so that we can check the page file exists.
+                    uri_path = uri.split("#")[0]
                     website_files_dir = (
                         REPO_ROOT_DIR
                         / "website-ng"
                         / "src"
                         / "content"
                         / "docs"
-                        / uri.removeprefix("/magika/")
+                        / uri_path.removeprefix("/magika/")
                     )
                     md_path = website_files_dir.with_suffix(".md")
                     mdx_path = website_files_dir.with_suffix(".mdx")

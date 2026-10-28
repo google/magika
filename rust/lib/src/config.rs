@@ -12,19 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::borrow::Cow;
-
-use crate::ContentType;
-
 #[derive(Debug)]
 pub(crate) struct ModelConfig {
     pub(crate) beg_size: usize,
     pub(crate) end_size: usize,
+    pub(crate) medium_confidence_threshold: f32,
     pub(crate) min_file_size_for_dl: usize,
     pub(crate) padding_token: i32,
     pub(crate) block_size: usize,
-    pub(crate) thresholds: Cow<'static, [f32; ContentType::SIZE]>,
-    pub(crate) overwrite_map: Cow<'static, [ContentType; ContentType::SIZE]>,
 }
 
 pub(crate) struct SplitFeatures<'a> {

@@ -8,6 +8,8 @@ tmp/
 *.egg-info
 dist/*
 *.pickle
+*.so
+*.pyd
 .s.yml
 
 # Unit test / coverage reports

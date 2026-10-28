@@ -21,8 +21,8 @@ set -e
 [ -z "$(git status -s)" ] || error "Repository is not clean"
 
 info "Removing all -dev suffixes (if any)"
-sed -i 's/-dev"/"/' $(git ls-files '*/Cargo.*')
-sed -i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
+sed_i 's/-dev"/"/' $(git ls-files '*/Cargo.*')
+sed_i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
 if [ -n "$(git status -s)" ]; then
   info "Creating a commit with those changes"
   git commit -aqm'Release Rust crates'

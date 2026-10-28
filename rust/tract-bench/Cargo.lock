@@ -510,6 +510,8 @@ name = "magika-tract-runtime"
 version = "0.0.1-dev"
 dependencies = [
  "anyhow",
+ "serde",
+ "serde_json",
  "tract-core",
  "tract-gpu",
  "tract-linalg",

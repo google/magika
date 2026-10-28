@@ -33,33 +33,42 @@ use tract_hir::ops::expandable::expand;
 use tract_onnx::prelude::*;
 
 fn main() -> Result<()> {
-    let mut args = std::env::args_os().skip(1).map(PathBuf::from);
-    let Some(source) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
+    const USAGE: &str =
+        "usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le [GRAPH.json WEIGHTS]]";
+    let args: Vec<PathBuf> = std::env::args_os().skip(1).map(PathBuf::from).collect();
+    let (source, destination, probe, graph) = match &args[..] {
+        [source, destination] => (source, destination, None, None),
+        [source, destination, probe] => (source, destination, Some(probe), None),
+        [source, destination, probe, graph, weights] => {
+            (source, destination, Some(probe), Some((graph, weights)))
+        }
+        _ => bail!(USAGE),
     };
-    let Some(destination) = args.next() else {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
-    };
-    let probe = args.next();
-    if args.next().is_some() {
-        bail!("usage: convert-model SOURCE.onnx DESTINATION.nnef.tgz [PROBE.f32le]");
-    }
 
     let onnx = tract_onnx::onnx();
     let proto = onnx
-        .proto_model_for_path(&source)
+        .proto_model_for_path(source)
         .with_context(|| format!("reading ONNX attributes from {}", source.display()))?;
     let batch_norm_epsilons = batch_norm_epsilons(&proto)?;
     let model = onnx
-        .model_for_path(&source)
+        .model_for_path(source)
         .with_context(|| format!("loading ONNX model {}", source.display()))?;
     let model = prepare_nnef(model, &batch_norm_epsilons)
         .with_context(|| format!("optimizing ONNX model {}", source.display()))?;
 
-    write_nnef(&model, &destination)?;
-    verify_rust_round_trip(&destination)?;
+    write_nnef(&model, destination)?;
+    verify_rust_round_trip(destination)?;
     if let Some(probe) = probe {
-        write_probe_reference(&destination, &probe)?;
+        write_probe_reference(destination, probe)?;
+    }
+    if let Some((graph, weights)) = graph {
+        // The runtime embeds the graph that parsing this archive gives, so that it never parses it.
+        let nnef = std::fs::read(destination)?;
+        let (graph_bytes, weight_bytes) = magika_tract_runtime::export_model_graph(&nnef)?;
+        std::fs::write(graph, graph_bytes)
+            .with_context(|| format!("writing {}", graph.display()))?;
+        std::fs::write(weights, weight_bytes)
+            .with_context(|| format!("writing {}", weights.display()))?;
     }
 
     Ok(())

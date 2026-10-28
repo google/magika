@@ -28,16 +28,51 @@ x cargo clippy --features=_trace -- --deny=warnings
 PATH=$(dirname $PWD)/target/$PROFILE:$PATH
 
 TEST_SUITES='basic previous_missdetections'
-info "Test against the test suites: $TEST_SUITES"
+test_suite() {
+  local incomplete="$1"; shift
+  info "Test against the test suites ($TEST_SUITES) with $*"
+  ( cd ../../tests_data
+    magika "$@" --format='%p: %l' --recursive $TEST_SUITES | {
+      decided=0
+      while read line; do
+        file=${line%: *}
+        directory=${file%/*}
+        expected=${directory##*/}
+        actual=${line#*: }
+        if [ $incomplete = y ]; then
+          case "$actual" in
+            txt|unknown) continue ;;
+          esac
+        fi
+        [ "$expected" = "$actual" ] || error "$file is detected as $actual"
+      done
+    }
+  )
+}
+test_suite y --no-builtin-rules --no-model
+test_suite y --no-resolvers --no-model
+test_suite n --no-resolvers --no-builtin-rules
+
+info "Test custom rules"
 ( cd ../../tests_data
-  magika --format='%p: %l' --recursive $TEST_SUITES | while read line; do
-    file=${line%: *}
-    directory=${file%/*}
-    expected=${directory##*/}
-    actual=${line#*: }
-    [ "$expected" = "$actual" ] || error "$file is detected as $actual"
-  done
+  [ "$(magika --custom-rules-file=rules/custom.yar --custom-rules-check)" = \
+    'Rules { content_types: [Png] }' ] || error "custom rules check"
+  [ "$(magika --no-model --format=%l basic/png/magika_test.png)" = unknown ] \
+    || error "built-in rules identify PNG"
+  [ "$(magika --no-model --custom-rules-file=rules/custom.yar --format=%l \
+    basic/png/magika_test.png)" = png ] || error "custom rules do not identify PNG"
+  [ "$(magika --no-builtin-rules --custom-rules-file=rules/custom.yar --format=%l \
+    basic/png/magika_test.png)" = png ] || error "custom rules do not apply without built-in rules"
+  broken=$(mktemp)
+  trap "rm -f $broken" EXIT
+  echo 'rule broken {' > "$broken"
+  magika --custom-rules-file="$broken" basic/png/magika_test.png 2>&1 | grep -q 'line 2, column 1' \
+    || error "invalid custom rules are not reported"
 )
+
+info "Test symlinks"
+[ "$(magika --format=%l LICENSE)" = txt ] || error "does not follow symlinks"
+[ "$(magika --format=%l --no-dereference LICENSE)" = symlink ] || error "follows symlinks"
 
 test_error() {
   files="$1"
@@ -52,13 +87,13 @@ test_error() {
 
 if [ $(id -u) -ne 0 -a -e /run/systemd/inaccessible ]; then
   info "Test permission error and non-regular files"
-  test_error '--jsonl -r /run/systemd/inaccessible' \
-'{"path":"/run/systemd/inaccessible/blk","result":{"status":"not_a_regular_file"}}
-{"path":"/run/systemd/inaccessible/chr","result":{"status":"not_a_regular_file"}}
-{"path":"/run/systemd/inaccessible/dir","result":{"status":"permission_error"}}
-{"path":"/run/systemd/inaccessible/fifo","result":{"status":"not_a_regular_file"}}
-{"path":"/run/systemd/inaccessible/reg","result":{"status":"permission_error"}}
-{"path":"/run/systemd/inaccessible/sock","result":{"status":"not_a_regular_file"}}'
+  test_error '-r /run/systemd/inaccessible' \
+'/run/systemd/inaccessible/blk: Unsupported file type (inode)
+/run/systemd/inaccessible/chr: Unsupported file type (inode)
+/run/systemd/inaccessible/dir: Permission denied (os error 13) (error)
+/run/systemd/inaccessible/fifo: Unsupported file type (inode)
+/run/systemd/inaccessible/reg: Permission denied (os error 13) (error)
+/run/systemd/inaccessible/sock: Unsupported file type (inode)'
 fi
 
 info "Test nonexistent files"

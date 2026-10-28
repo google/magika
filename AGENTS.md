@@ -28,8 +28,14 @@ and a website (`website-ng/`).
   generated Python, JavaScript, Rust, and C content type tables.
 - Detection rules live in `rust/rules/rulesets/`; run `cd rust/rules && ./test.sh`,
   then `cd rust && ./sync.sh` and `just sync-kb`, and commit the generated files.
-- Tests: `cd rust && ./test.sh`; `cd python && uv run pytest tests -m "not slow"`;
+- Python tasks (`python/justfile`, runnable via `just python <recipe>` from the
+  root or `cd python && just <recipe>`): `sync-dev`, `check-source`,
+  `fix-source`, `test`, `quick-tests`, `coverage`, `check-docs`, and
+  `build-wheel`.
+- Tests: `cd rust && ./test.sh`; `just python test` (or
+  `cd python && uv run pytest tests -m "not slow"`);
   `cd js && yarn install && yarn test`.
-- Documentation links are checked by `cd python && uv run ./scripts/check_documentation.py`.
+- Documentation links are checked by `just python check-docs` (or
+  `cd python && uv run ./scripts/check_documentation.py`).
 - Do not bump versions, edit CHANGELOGs, update models, or add sample files to
   `tests_data/` unless explicitly asked.

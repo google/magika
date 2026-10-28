@@ -1,0 +1,34 @@
+# Verifies that every external GitHub Action in `.github/` is pinned to a 40-char commit SHA
+# with a `# vX.Y.Z` tag comment, and that the tag in the upstream git repository actually
+# resolves to that exact commit SHA (protecting against impostor commits and tag/SHA mismatches).
+name: GH Actions - Check pinned actions
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    paths:
+      - ".github/**"
+      - "scripts/check_gh_actions.py"
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.13.4"
+
+jobs:
+  check-gh-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+
+      - name: Verify all GitHub Actions are pinned to valid upstream release tag commit SHAs
+        run: uv run scripts/check_gh_actions.py

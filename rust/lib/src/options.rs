@@ -20,9 +20,9 @@ use crate::Rules;
 pub struct Options {
     /// Identifies using custom rules (before resolvers).
     pub use_custom_rules: Option<Rules>,
-    /// Identifies using resolvers (before builtin rules).
+    /// Identifies using resolvers (after custom rules, before inference).
     pub use_resolvers: bool,
-    /// Identifies using inference (after rules).
+    /// Identifies using inference (after resolvers).
     pub use_model: bool,
     /// Configures the minimum confidence level for inference.
     pub prediction_mode: PredictionMode,

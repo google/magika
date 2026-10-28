@@ -105,18 +105,18 @@ typedef struct MagikaSession MagikaSession;
  */
 typedef struct MagikaOptions {
   /**
-   * Identifies using resolvers (before rules).
+   * Identifies using resolvers (after custom rules, before inference).
    */
   bool use_resolvers;
   /**
-   * Rules checked before the built-in rules, or NULL for none.
+   * Rules checked before the resolvers, or NULL for none.
    *
    * The options hold their own reference, so the rules may be freed once the call that takes
    * these options returns.
    */
   const struct MagikaRules *use_custom_rules;
   /**
-   * Identifies using inference (after rules).
+   * Identifies using inference (after resolvers).
    */
   bool use_model;
   /**
@@ -246,9 +246,9 @@ enum MagikaStatus magika_engine_identify_paths(const struct MagikaEngine *engine
                                                enum MagikaStatus *out_statuses);
 
 /**
- * Compiles custom rules from YARA text, checked before the built-in rules.
+ * Compiles custom rules from YARA text, checked before the resolvers.
  *
- * Rules use the YARA subset and metadata of the built-in rules. On invalid rules, returns
+ * Rules use the YARA subset and metadata of the `magika-rules` crate. On invalid rules, returns
  * `MAGIKA_STATUS_INVALID_RULES` and, if `error` is non-null, writes a null-terminated message
  * truncated to `error_capacity` bytes.
  *

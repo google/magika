@@ -22,7 +22,7 @@ use magika_rules::{Class, Outcome, RuleSet, Source};
 use crate::ContentType;
 use crate::cached_input::CachedInput;
 
-/// Format rules supplied by the caller, checked before the built-in rules.
+/// Format rules supplied by the caller, checked before the resolvers.
 ///
 /// Rules are written in the YARA subset of the `magika-rules` crate, with the same metadata: an
 /// enforced rule needs a `label` that is a Magika content type, `fp_rate = 0`, and a class. When
@@ -174,7 +174,7 @@ mod tests {
     }
 
     #[test]
-    fn custom_rules_come_before_builtin_rules() {
+    fn custom_rules_come_before_resolvers() {
         let psd = "psd/MagikaTest.psd";
         let txt = rule("txt", "full", "$psd at 0");
         assert_eq!(ruled(psd, &options(true, None)), Some(ContentType::Psd));

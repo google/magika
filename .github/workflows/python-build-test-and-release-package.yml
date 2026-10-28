@@ -390,6 +390,9 @@ jobs:
 
   # Python 3.8 and 3.9 reached EOL and are not supported by pip >= 26.2.2, so we
   # test the built abi3 wheel on 3.8 and 3.9 using uv only.
+  # Note: Linux is pinned to ubuntu-24.04 (and macOS to macos-14) because
+  # ubuntu-latest switched to Ubuntu 26.04, for which actions/setup-python does
+  # not provide prebuilt Python 3.8 or 3.9 binaries.
   test-wheels-legacy-python:
     name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with legacy Python ${{ matrix.python-version }}
     needs: [build-wheels]
@@ -400,7 +403,7 @@ jobs:
         python-version: ["3.8", "3.9"]
         platform:
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
           - os: macOS
             runner: macos-14

@@ -340,15 +340,15 @@ fn heuristics(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 #[inline]
 pub(crate) fn identify(ctx: &Ctx<'_>) -> Option<Label> {
     let prefix = ctx.prefix;
-    if let Some(key) = prefix.first_chunk::<4>() {
-        if let Some(label) = magic32(key, prefix, ctx) {
-            return Some(label);
-        }
+    if let Some(key) = prefix.first_chunk::<4>()
+        && let Some(label) = magic32(key, prefix, ctx)
+    {
+        return Some(label);
     }
-    if let Some(key) = prefix.first_chunk::<2>() {
-        if let Some(label) = magic16(key, prefix, ctx) {
-            return Some(label);
-        }
+    if let Some(key) = prefix.first_chunk::<2>()
+        && let Some(label) = magic16(key, prefix, ctx)
+    {
+        return Some(label);
     }
     if let Some(label) = offset_probes(prefix) {
         return Some(label);
@@ -764,10 +764,10 @@ fn fits(prefix: &[u8]) -> Option<Label> {
         }
         let after_spaces = &rest[spaces..];
         for val in [b"8".as_slice(), b"16", b"32", b"64", b"-32", b"-64"] {
-            if let Some(tail) = after_spaces.strip_prefix(val) {
-                if matches!(tail.first(), Some(b' ' | b'/')) {
-                    return true;
-                }
+            if let Some(tail) = after_spaces.strip_prefix(val)
+                && matches!(tail.first(), Some(b' ' | b'/'))
+            {
+                return true;
             }
         }
         false
@@ -1304,12 +1304,11 @@ fn pem_or_pgp(prefix: &[u8]) -> Option<Label> {
     }
     let rest = prefix.strip_prefix(BEGIN)?;
     for &label in PEM_LABELS {
-        if let Some(after_label) = rest.strip_prefix(label) {
-            if let Some(after_dashes) = after_label.strip_prefix(b"-----") {
-                if starts(after_dashes, b"\n") || starts(after_dashes, b"\r\n") {
-                    return Some(Label::Pem);
-                }
-            }
+        if let Some(after_label) = rest.strip_prefix(label)
+            && let Some(after_dashes) = after_label.strip_prefix(b"-----")
+            && (starts(after_dashes, b"\n") || starts(after_dashes, b"\r\n"))
+        {
+            return Some(Label::Pem);
         }
     }
     None
@@ -1323,10 +1322,10 @@ fn ply(prefix: &[u8]) -> Option<Label> {
     let rest =
         prefix.strip_prefix(b"ply\nformat ").or_else(|| prefix.strip_prefix(b"ply\r\nformat "))?;
     for &enc in ENCODINGS {
-        if let Some(tail) = rest.strip_prefix(enc) {
-            if matches!(tail.first(), Some(b' ' | b'\t' | b'\r' | b'\n')) {
-                return Some(Label::Ply);
-            }
+        if let Some(tail) = rest.strip_prefix(enc)
+            && matches!(tail.first(), Some(b' ' | b'\t' | b'\r' | b'\n'))
+        {
+            return Some(Label::Ply);
         }
     }
     None

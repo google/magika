@@ -18,7 +18,6 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "20.x"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Build
         working-directory: js
@@ -26,6 +25,12 @@ jobs:
           yarn install --frozen-lockfile
           yarn run build
           yarn run test
+
+      - name: Configure npm registry auth
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Publish
         working-directory: js

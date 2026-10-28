@@ -27,8 +27,8 @@ const PREFIX_LIMIT: usize = 4096;
 /// Returns the content types of a file without false positives.
 ///
 /// The returned list may have false negatives (the file should have a content type that's not
-/// returned). In particular, the list may be empty, in which case the rules and the model will also
-/// try to identify the file.
+/// returned). In particular, the list may be empty, in which case the model will also try to
+/// identify the file.
 pub(crate) fn identify(file: &mut CachedInput<impl Input>) -> Result<Vec<ContentType>> {
     let size = file.length();
     if size == 0 {

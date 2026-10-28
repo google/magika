@@ -57,11 +57,11 @@ info "Test custom rules"
   [ "$(magika --custom-rules-file=rules/custom.yar --custom-rules-check)" = \
     'Rules { content_types: [Png] }' ] || error "custom rules check"
   [ "$(magika --no-model --format=%l basic/png/magika_test.png)" = unknown ] \
-    || error "built-in rules identify PNG"
+    || error "resolvers identify PNG"
   [ "$(magika --no-model --custom-rules-file=rules/custom.yar --format=%l \
     basic/png/magika_test.png)" = png ] || error "custom rules do not identify PNG"
   [ "$(magika --no-resolvers --custom-rules-file=rules/custom.yar --format=%l \
-    basic/png/magika_test.png)" = png ] || error "custom rules do not apply without built-in rules"
+    basic/png/magika_test.png)" = png ] || error "custom rules do not apply without resolvers"
   broken=$(mktemp)
   trap "rm -f $broken" EXIT
   echo 'rule broken {' > "$broken"

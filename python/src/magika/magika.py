@@ -73,8 +73,8 @@ class Magika:
             debug: If True, enable debug logging. Defaults to False.
             use_colors: If True, use colors in the logger. Defaults to False.
             rules: Custom format rules, as YARA text, checked before the
-                built-in rules. They use the YARA subset and metadata of the
-                built-in rules. Raises ValueError if they are invalid.
+                resolvers. They use the YARA subset and metadata of the
+                `magika-rules` crate. Raises ValueError if they are invalid.
             rules_files: Paths of files holding custom rules, as an
                 alternative to `rules`.
         """

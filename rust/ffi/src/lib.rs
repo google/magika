@@ -100,14 +100,14 @@ impl From<MagikaPredictionMode> for magika::PredictionMode {
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct MagikaOptions {
-    /// Identifies using resolvers (before rules).
+    /// Identifies using resolvers (after custom rules, before inference).
     pub use_resolvers: bool,
-    /// Rules checked before the built-in rules, or NULL for none.
+    /// Rules checked before the resolvers, or NULL for none.
     ///
     /// The options hold their own reference, so the rules may be freed once the call that takes
     /// these options returns.
     pub use_custom_rules: *const MagikaRules,
-    /// Identifies using inference (after rules).
+    /// Identifies using inference (after resolvers).
     pub use_model: bool,
     /// Configures the minimum confidence level for inference.
     pub prediction_mode: MagikaPredictionMode,
@@ -341,9 +341,9 @@ pub unsafe extern "C" fn magika_engine_identify_paths(
     )
 }
 
-/// Compiles custom rules from YARA text, checked before the built-in rules.
+/// Compiles custom rules from YARA text, checked before the resolvers.
 ///
-/// Rules use the YARA subset and metadata of the built-in rules. On invalid rules, returns
+/// Rules use the YARA subset and metadata of the `magika-rules` crate. On invalid rules, returns
 /// `MAGIKA_STATUS_INVALID_RULES` and, if `error` is non-null, writes a null-terminated message
 /// truncated to `error_capacity` bytes.
 ///

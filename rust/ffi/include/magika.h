@@ -116,10 +116,6 @@ typedef struct MagikaOptions {
    */
   const struct MagikaRules *use_custom_rules;
   /**
-   * Identifies using built-in rules (before inference).
-   */
-  bool use_builtin_rules;
-  /**
    * Identifies using inference (after rules).
    */
   bool use_model;

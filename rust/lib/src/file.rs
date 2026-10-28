@@ -17,7 +17,7 @@ use std::borrow::Borrow;
 use anyhow::{Result, ensure};
 use ndarray::ArrayViewD;
 
-use crate::{ContentType, Features, MODEL_LABELS, MODEL_TRAINING_LABELS, Options, Rules};
+use crate::{ContentType, Features, MODEL_LABELS, MODEL_TRAINING_LABELS, Options};
 
 /// File types.
 ///
@@ -65,9 +65,6 @@ pub enum DebugInfo {
 
     /// The resolvers triggered.
     Resolvers,
-
-    /// The builtin rules triggered.
-    BuiltinRules(RulesDebugInfo),
 
     /// The rules did not trigger and the model was skipped.
     ///
@@ -256,15 +253,8 @@ impl RegularFileType {
                 options.use_custom_rules == feature.borrow().use_custom_rules,
                 "use_custom_rules mismatch between extract and identify"
             );
-            let custom_rules_veto =
+            let rules_veto =
                 options.use_custom_rules.as_ref().is_some_and(|x| x.vetos().contains(&overwrite));
-            ensure!(
-                options.use_builtin_rules == feature.borrow().use_builtin_rules,
-                "use_builtin_rules mismatch between extract and identify"
-            );
-            let builtin_rules_veto =
-                options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
-            let rules_veto = custom_rules_veto || builtin_rules_veto;
             ensure!(
                 options.use_resolvers == feature.borrow().use_resolvers,
                 "use_resolvers mismatch between extract and identify"

@@ -190,14 +190,14 @@ fn read_directories(
         let at = opt + (fixed + 8 * index) as usize;
         Some((u32_at(first, at)?, u32_at(first, at + 4)?))
     };
-    if let Some((offset, length)) = entry(DIRECTORY_CERTIFICATE_TABLE) {
-        if length != 0 {
-            if u64::from(offset) + u64::from(length) > size {
-                facts.flags |= FLAG_CERTIFICATE_OUT_OF_FILE;
-            } else {
-                // Offset zero is the DOS header, not a certificate: both halves count.
-                facts.signed = offset != 0;
-            }
+    if let Some((offset, length)) = entry(DIRECTORY_CERTIFICATE_TABLE)
+        && length != 0
+    {
+        if u64::from(offset) + u64::from(length) > size {
+            facts.flags |= FLAG_CERTIFICATE_OUT_OF_FILE;
+        } else {
+            // Offset zero is the DOS header, not a certificate: both halves count.
+            facts.signed = offset != 0;
         }
     }
     if let Some((rva, length)) = entry(DIRECTORY_CLR_RUNTIME_HEADER) {

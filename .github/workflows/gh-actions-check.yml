@@ -22,6 +22,7 @@ env:
 jobs:
   check-gh-actions:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -29,6 +30,9 @@ jobs:
 
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+
+      - name: Run check_gh_actions.py self-tests
+        run: uv run scripts/check_gh_actions.py --self-test
 
       - name: Verify all GitHub Actions are pinned to valid upstream release tag commit SHAs
         run: uv run scripts/check_gh_actions.py

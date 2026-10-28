@@ -16,13 +16,18 @@
 set -e
 . ./color.sh
 
+info "Sync bundled rules"
+( cd rules
+  cargo run --bin=gen --no-default-features --features=_gen
+)
+
 info "Sync generated files"
 ( cd gen; cargo run; )
 
 info "Sync embedded model"
 ( cd tract-bench
-  cargo run --no-default-features --features=convert --bin=convert-model -- \
-    ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le}
+  cargo run --bin=convert-model --no-default-features --features=convert -- \
+    ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le,graph.json,weights}
 )
 
 info "Sync CLI output"
@@ -44,14 +49,14 @@ info "Updating CLI output in README.md"
 ( cd cli
   for i in $(seq 1 $(grep '^% ' README.md | wc -l)); do
     grep -n '^% ' README.md | cut -f1 -d: | head -n$i | tail -n1 | while read line; do
-      sed -i $line',/```/{'$line'p;/```/!d}' README.md
+      sed_i $line',/```/{'$line'p;/```/!d;}' README.md
       cmd="$(head -n$line README.md | tail -n1 | sed 's/^% //')"
       ( cd ../..; eval "$cmd"; ) 2>/dev/null > tmp
-      sed -i $line'r tmp' README.md
+      sed_i $line'r tmp' README.md
     done
   done
   rm tmp
-  sed -i 's/ \+$//' README.md
+  sed_i 's/  *$//' README.md
 )
 
 if [ "$1" = --check ]; then

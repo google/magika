@@ -9,7 +9,7 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8706/badge)](https://www.bestpractices.dev/en/projects/8706)
 ![CodeQL](https://github.com/google/magika/workflows/CodeQL/badge.svg)
 [![Python Coverage](https://img.shields.io/coveralls/github/google/magika/main?label=Python%20Coverage)](https://coveralls.io/github/google/magika?branch=main)
-[![Actions status](https://github.com/google/magika/actions/workflows/python-build-and-release-package.yml/badge.svg)](https://github.com/google/magika/actions)
+[![Actions status](https://github.com/google/magika/actions/workflows/python-build-test-and-release-package.yml/badge.svg)](https://github.com/google/magika/actions)
 [![PyPI Monthly Downloads](https://static.pepy.tech/badge/magika/month)](https://pepy.tech/projects/magika)
 [![PyPI Downloads](https://static.pepy.tech/badge/magika)](https://pepy.tech/projects/magika)
 
@@ -268,6 +268,14 @@ Please consult [Magika's website](https://securityresearch.google/magika) for de
 - Contributing
 - FAQ
 - ...
+
+
+# Contributing
+
+We review pull requests only for issues labeled `help wanted` and for a short
+list of always-welcome changes; for anything else, open a concise issue first.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
+[contribution policy](https://securityresearch.google/magika/contributing/how-to-contribute/).
 
 
 # Security Vulnerabilities

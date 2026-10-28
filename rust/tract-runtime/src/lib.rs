@@ -19,8 +19,9 @@ mod embedding;
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 mod gpu_conv;
 mod layer_norm;
+mod loader;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[cfg(all(not(target_os = "macos"), not(feature = "cuda")))]
 use anyhow::bail;
@@ -28,9 +29,10 @@ use anyhow::{Context as _, Result, ensure};
 // Only the GPU preparers build a plan by hand; the CPU one goes through the runtime.
 #[cfg(any(target_os = "macos", feature = "cuda"))]
 use tract_core::prelude::TypedSimplePlan;
+#[cfg(any(test, feature = "_export"))]
+use tract_core::prelude::{Framework as _, ToDim as _};
 use tract_core::prelude::{
-    Framework as _, IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, ToDim as _, TypedModel,
-    tvec,
+    IntoTValue as _, IntoTensor as _, TValue, TVec, Tensor, TypedModel, tvec,
 };
 use tract_core::runtime::{DefaultRuntime, RunOptions, Runnable, Runtime as _, State};
 use tract_core::tract_linalg::multithread::Executor;
@@ -54,9 +56,9 @@ const EXPECTED_LAYER_NORMS: usize = 2;
 /// They run different kernels and do not agree to the bit: the release gate measures about 1.4e-5
 /// between them. This sits far above that and far below a different answer.
 const GPU_AGREEMENT_EPSILON: f32 = 1e-3;
-/// Embedded release model bytes used by the benchmark's parity and size gates.
-#[doc(hidden)]
-pub const EMBEDDED_NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
+/// The release model, from which the embedded graph is exported.
+#[cfg(test)]
+const EMBEDDED_NNEF_MODEL: &[u8] = include_bytes!("../models/model.nnef.tgz");
 const EMBEDDED_GPU_PROBE: &[u8] = include_bytes!("../models/model.probe.f32le");
 
 /// User-facing runtime preference.
@@ -105,9 +107,30 @@ pub struct Runtime {
     plans: Vec<PreparedPlan>,
 }
 
+#[derive(Clone)]
 struct PreparedPlan {
     batch: usize,
-    runnable: Arc<dyn Runnable>,
+    /// Prepared with the runtime, or by the first session that reaches it (CPU classes only).
+    runnable: Arc<Mutex<Option<Arc<dyn Runnable>>>>,
+}
+
+impl PreparedPlan {
+    fn ready(batch: usize, runnable: Arc<dyn Runnable>) -> Self {
+        PreparedPlan { batch, runnable: Arc::new(Mutex::new(Some(runnable))) }
+    }
+
+    fn deferred(batch: usize) -> Self {
+        PreparedPlan { batch, runnable: Arc::default() }
+    }
+
+    /// Returns the plan, preparing it the first time if the runtime deferred it.
+    fn runnable(&self) -> Result<Arc<dyn Runnable>> {
+        let mut runnable = self.runnable.lock().unwrap();
+        if runnable.is_none() {
+            *runnable = Some(Runtime::prepare_cpu_plan(self.batch)?);
+        }
+        Ok(runnable.clone().unwrap())
+    }
 }
 
 impl Runtime {
@@ -175,8 +198,11 @@ impl Runtime {
         for plan in &self.plans {
             // Execute this plan directly: session routing must not accidentally validate a
             // different class. Drop its probe state before allocating the next class's state.
-            let candidate =
-                run_plan(plan.runnable.spawn()?.as_mut(), &input.repeat(plan.batch), plan.batch)?;
+            let candidate = run_plan(
+                plan.runnable()?.spawn()?.as_mut(),
+                &input.repeat(plan.batch),
+                plan.batch,
+            )?;
             let (chunks, _) = candidate.as_chunks::<NUM_LABELS>();
             if !chunks.iter().all(|row| scores_agree_with_bytes(EMBEDDED_GPU_PROBE, row)) {
                 return Ok(false);
@@ -192,43 +218,45 @@ impl Runtime {
 
     /// Creates a session for one inference thread; private execution state is spawned on first use.
     pub fn session(&self) -> Result<Session> {
-        let plans = self
-            .plans
-            .iter()
-            .map(|plan| SessionPlan {
-                batch: plan.batch,
-                runnable: plan.runnable.clone(),
-                state: None,
-            })
-            .collect();
+        let plans =
+            self.plans.iter().map(|plan| SessionPlan { plan: plan.clone(), state: None }).collect();
         Ok(Session { info: self.info, plans })
     }
 
+    /// Prepares the smallest CPU class, which every short run needs, and defers the others to the
+    /// first session that reaches them: a run of a few files never pays for the larger ones.
     fn prepare_cpu(classes: &[usize]) -> Result<Self> {
+        let mut plans = Vec::with_capacity(classes.len());
+        for (index, &batch) in classes.iter().enumerate() {
+            plans.push(match index {
+                0 => PreparedPlan::ready(batch, Self::prepare_cpu_plan(batch)?),
+                _ => PreparedPlan::deferred(batch),
+            });
+        }
+        Ok(Self { info: BackendInfo { backend: Backend::Cpu, implementation: "tract-cpu" }, plans })
+    }
+
+    fn prepare_cpu_plan(batch: usize) -> Result<Arc<dyn Runnable>> {
         static CPU: DefaultRuntime = DefaultRuntime;
         let options =
             RunOptions { executor: Some(Executor::SingleThread), ..RunOptions::default() };
-        let mut plans = Vec::with_capacity(classes.len());
-        for &batch in classes {
-            let mut model = load_model(batch)?;
-            let fused_layer_norm = layer_norm::fuse_magika_layer_norm(&mut model)?;
+        let mut model = load_model(batch)?;
+        let fused_layer_norm = layer_norm::fuse_magika_layer_norm(&mut model)?;
+        ensure!(
+            fused_layer_norm == EXPECTED_LAYER_NORMS,
+            "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
+        );
+        if batch >= DIRECT_FUSED_MIN_BATCH {
+            let fused_conv = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
             ensure!(
-                fused_layer_norm == EXPECTED_LAYER_NORMS,
-                "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
+                fused_conv == EXPECTED_CONVOLUTIONS,
+                "required {EXPECTED_CONVOLUTIONS} CPU Conv1D fusion for batch {batch}, matched {fused_conv}"
             );
-            if batch >= DIRECT_FUSED_MIN_BATCH {
-                let fused_conv = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
-                ensure!(
-                    fused_conv == EXPECTED_CONVOLUTIONS,
-                    "required {EXPECTED_CONVOLUTIONS} CPU Conv1D fusion for batch {batch}, matched {fused_conv}"
-                );
-            }
-            let runnable = CPU
-                .prepare_with_options(model, &options)
-                .with_context(|| format!("preparing CPU batch-{batch} plan"))?;
-            plans.push(PreparedPlan { batch, runnable: Arc::from(runnable) });
         }
-        Ok(Self { info: BackendInfo { backend: Backend::Cpu, implementation: "tract-cpu" }, plans })
+        let runnable = CPU
+            .prepare_with_options(model, &options)
+            .with_context(|| format!("preparing CPU batch-{batch} plan"))?;
+        Ok(Arc::from(runnable))
     }
 
     #[cfg(target_os = "macos")]
@@ -248,7 +276,7 @@ impl Runtime {
             let runnable = with_memory_arena(runnable)
                 .with_context(|| format!("sizing the Metal batch-{batch} memory arena"))?;
             let runnable: Arc<dyn Runnable> = Arc::new(Arc::new(runnable));
-            plans.push(PreparedPlan { batch, runnable });
+            plans.push(PreparedPlan::ready(batch, runnable));
         }
         Ok(Self {
             info: BackendInfo { backend: Backend::Gpu, implementation: "tract-metal" },
@@ -273,7 +301,7 @@ impl Runtime {
             let runnable = with_memory_arena(runnable)
                 .with_context(|| format!("sizing the CUDA batch-{batch} memory arena"))?;
             let runnable: Arc<dyn Runnable> = Arc::new(Arc::new(runnable));
-            plans.push(PreparedPlan { batch, runnable });
+            plans.push(PreparedPlan::ready(batch, runnable));
         }
         Ok(Self {
             info: BackendInfo { backend: Backend::Gpu, implementation: "tract-cuda" },
@@ -320,26 +348,47 @@ fn prepare_gpu_graph(model: &mut TypedModel, batch: usize) -> Result<()> {
     Ok(())
 }
 
+/// Returns the embedded model bound to `batch`, ready for backend fusion.
 fn load_model(batch: usize) -> Result<TypedModel> {
-    let model = tract_nnef::nnef()
-        .model_for_read(&mut std::io::Cursor::new(EMBEDDED_NNEF_MODEL))
-        .context("loading the embedded NNEF model")?;
-    let mut model = if let Some(symbol) = model.symbols.get("N") {
-        let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
-        model.set_symbols(&symbols).context("binding the NNEF batch symbol")?
-    } else {
-        ensure!(model.input_fact(0)?.shape[0] == batch.to_dim(), "fixed NNEF batch mismatch");
-        model
-    };
-    model = model.into_decluttered().context("decluttering before Magika graph fusion")?;
+    let mut model = loader::load(batch)?;
     // Folded here rather than in a backend preparer: it removes work from the graph itself, so it
-    // is worth the same on a CPU, on Metal and on CUDA.
+    // is worth the same on a CPU, on Metal and on CUDA. It computes on the host, so the embedded
+    // graph stores the table before folding and stays independent of the host that exported it.
     let folded = embedding::fuse_magika_embedding(&mut model)?;
     ensure!(
         folded == EXPECTED_EMBEDDINGS,
         "required {EXPECTED_EMBEDDINGS} embedding folds for batch {batch}, matched {folded}"
     );
     Ok(model)
+}
+
+/// Returns the graph and weights embedded for an NNEF release model, for `tract-bench`.
+#[cfg(feature = "_export")]
+#[doc(hidden)]
+pub fn export_model_graph(nnef: &[u8]) -> Result<(Vec<u8>, Vec<u8>)> {
+    loader::export(nnef)
+}
+
+/// Parses the embedded release model as [`loader`] stores it.
+#[cfg(test)]
+fn load_nnef_model(batch: usize) -> Result<TypedModel> {
+    parse_nnef(EMBEDDED_NNEF_MODEL, batch)
+}
+
+/// Parses an NNEF release model as [`loader`] stores it: bound to `batch` and decluttered.
+#[cfg(any(test, feature = "_export"))]
+fn parse_nnef(nnef: &[u8], batch: usize) -> Result<TypedModel> {
+    let model = tract_nnef::nnef()
+        .model_for_read(&mut std::io::Cursor::new(nnef))
+        .context("loading the NNEF model")?;
+    let model = if let Some(symbol) = model.symbols.get("N") {
+        let symbols = std::collections::HashMap::from([(symbol, batch.to_dim())]);
+        model.set_symbols(&symbols).context("binding the NNEF batch symbol")?
+    } else {
+        ensure!(model.input_fact(0)?.shape[0] == batch.to_dim(), "fixed NNEF batch mismatch");
+        model
+    };
+    model.into_decluttered().context("decluttering before Magika graph fusion")
 }
 
 /// Thread-private inference state.
@@ -349,8 +398,7 @@ pub struct Session {
 }
 
 struct SessionPlan {
-    batch: usize,
-    runnable: Arc<dyn Runnable>,
+    plan: PreparedPlan,
     state: Option<Box<dyn State>>,
 }
 
@@ -367,9 +415,10 @@ impl SessionPlan {
         let state = match &mut self.state {
             Some(state) => state,
             slot => slot.insert(
-                self.runnable
+                self.plan
+                    .runnable()?
                     .spawn()
-                    .with_context(|| format!("spawning batch-{} state", self.batch))?,
+                    .with_context(|| format!("spawning batch-{} state", self.plan.batch))?,
             ),
         };
         Ok(state.as_mut())
@@ -392,9 +441,10 @@ impl Session {
         while remaining > 0 {
             // Use the largest plan that fits. If none does (the x86_64 runtime deliberately keeps
             // only its largest optimized class), pad the tail through the smallest resident plan.
-            let index = self.plans.iter().rposition(|plan| plan.batch <= remaining).unwrap_or(0);
+            let index =
+                self.plans.iter().rposition(|plan| plan.plan.batch <= remaining).unwrap_or(0);
             let plan = &mut self.plans[index];
-            let class = plan.batch;
+            let class = plan.plan.batch;
             let served = remaining.min(class);
             let input_len = served * FEATURE_SIZE;
             let chunk = &input[input_offset..input_offset + input_len];
@@ -482,6 +532,19 @@ mod tests {
     }
 
     #[test]
+    fn cpu_plans_beyond_the_smallest_are_prepared_on_first_use() -> Result<()> {
+        let runtime = Runtime::prepare_cpu(&BATCH_CLASSES)?;
+        let prepared = || -> Vec<bool> {
+            runtime.plans.iter().map(|plan| plan.runnable.lock().unwrap().is_some()).collect()
+        };
+        assert_eq!(prepared(), [true, false, false, false, false, false]);
+        let input = vec![PADDING_TOKEN; 8 * FEATURE_SIZE];
+        assert_eq!(runtime.session()?.run(&input, 8)?.len(), 8 * NUM_LABELS);
+        assert_eq!(prepared(), [true, false, true, false, false, false]);
+        Ok(())
+    }
+
+    #[test]
     fn embedded_gpu_probe_matches_the_release_cpu_model() -> Result<()> {
         let input = (0..FEATURE_SIZE)
             .map(|index| (index % (PADDING_TOKEN as usize + 1)) as i32)
@@ -509,7 +572,7 @@ mod tests {
             let scores =
                 model.add_const("scores", Tensor::from_shape(&[batch, NUM_LABELS], &output)?)?;
             model.select_output_outlets(&[scores])?;
-            plans.push(PreparedPlan { batch, runnable: Arc::new(model.into_runnable()?) });
+            plans.push(PreparedPlan::ready(batch, Arc::new(model.into_runnable()?)));
         }
         Ok(super::Runtime {
             info: BackendInfo { backend: Backend::Gpu, implementation: "test" },

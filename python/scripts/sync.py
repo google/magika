@@ -12,23 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# /// script
+# dependencies = ["click"]
+#
+# [tool.uv]
+# required-version = ">=0.13.4"
+# ///
 
+
+from __future__ import annotations
 
 import enum
 import json
-import shutil
-import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 
-MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE = [
-    "standard_v3_3",
-]
-
 REPO_ROOT_DIR = Path(__file__).parent.parent.parent
-assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").is_dir()
+# A git worktree has a .git file rather than a directory.
+assert REPO_ROOT_DIR.is_dir() and (REPO_ROOT_DIR / ".git").exists()
 
 ASSETS_DIR = REPO_ROOT_DIR / "assets"
 assert ASSETS_DIR.is_dir()
@@ -36,36 +38,15 @@ assert ASSETS_DIR.is_dir()
 CONTENT_TYPES_KB_PATH = ASSETS_DIR / "content_types_kb.min.json"
 assert CONTENT_TYPES_KB_PATH.is_file()
 
-ASSETS_MODELS_DIR = ASSETS_DIR / "models"
-assert ASSETS_MODELS_DIR.is_dir()
-
 PYTHON_ROOT_DIR = REPO_ROOT_DIR / "python"
 assert PYTHON_ROOT_DIR.is_dir()
-
-PYTHON_CONTENT_TYPES_KB_PATH = (
-    PYTHON_ROOT_DIR / "src" / "magika" / "config" / "content_types_kb.min.json"
-)
-
-PYTHON_MODELS_DIR = PYTHON_ROOT_DIR / "src" / "magika" / "models"
-assert PYTHON_MODELS_DIR.is_dir()
 
 PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
     PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
 )
 
 JS_ROOT_DIR = REPO_ROOT_DIR / "js"
-assert PYTHON_ROOT_DIR.is_dir()
-
-PYTHON_CONTENT_TYPES_KB_PATH = (
-    PYTHON_ROOT_DIR / "src" / "magika" / "config" / "content_types_kb.min.json"
-)
-
-PYTHON_MODELS_DIR = PYTHON_ROOT_DIR / "src" / "magika" / "models"
-assert PYTHON_MODELS_DIR.is_dir()
-
-PYTHON_CONTENT_TYPES_LABELS_PY_PATH = (
-    PYTHON_ROOT_DIR / "src" / "magika" / "types" / "content_type_label.py"
-)
+assert JS_ROOT_DIR.is_dir()
 
 
 class Target(enum.StrEnum):
@@ -75,27 +56,9 @@ class Target(enum.StrEnum):
 
 @click.command()
 @click.argument("target", type=Target)
-@click.option(
-    "--models-names",
-    "models_names_str",
-    help="Comma-separated list of models names to import in the package",
-)
-def main(target: Target, models_names_str: Optional[str]) -> None:
+def main(target: Target) -> None:
     if target == Target.PYTHON:
-        if models_names_str is None:
-            models_names = MODELS_NAMES_TO_INCLUDE_IN_PYTHON_PACKAGE
-        else:
-            models_names = list(map(lambda s: s.strip(), models_names_str.split(",")))
-
-        print(f"Including these models in the python package: {models_names}")
-
-        update_python_content_type_kb()
         update_python_content_type_label_py()
-
-        print(f"Deleting {PYTHON_MODELS_DIR}")
-        shutil.rmtree(PYTHON_MODELS_DIR)
-        for model_name in models_names:
-            add_model_to_python_package(model_name)
 
     elif target == Target.JS:
         update_js_content_type_files()
@@ -104,27 +67,7 @@ def main(target: Target, models_names_str: Optional[str]) -> None:
         print("WARNING: copying the model is currently NOT supported by this script")
 
 
-def update_python_content_type_kb() -> None:
-    print(
-        f"Syncing python's content types KB: {CONTENT_TYPES_KB_PATH} => {PYTHON_CONTENT_TYPES_KB_PATH}"
-    )
-    PYTHON_CONTENT_TYPES_KB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(CONTENT_TYPES_KB_PATH, PYTHON_CONTENT_TYPES_KB_PATH)
-
-
-def add_model_to_python_package(model_name: str) -> None:
-    assets_model_dir = ASSETS_MODELS_DIR / model_name
-    if not assets_model_dir.is_dir():
-        print(f'ERROR: model "{model_name} not found')
-        sys.exit(1)
-
-    python_model_dir = PYTHON_MODELS_DIR / model_name
-
-    print(f"Adding model {assets_model_dir} => {python_model_dir}")
-    shutil.copytree(assets_model_dir, python_model_dir)
-
-
-CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = """
+CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = '''
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -139,6 +82,7 @@ CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX = """
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Enumeration of all known content type labels."""
 
 from magika.types.strenum import StrEnum
 
@@ -148,7 +92,13 @@ from magika.types.strenum import StrEnum
 # This is the list of all possible content types we know about; however, models
 # support a smaller subset of them. See model's README.md for details.
 class ContentTypeLabel(StrEnum):
-"""
+    """A string-based enumeration of all possible content type labels.
+
+    This enum provides a standardized set of identifiers for content types
+    recognized by Magika.
+    """
+
+'''
 
 
 def update_python_content_type_label_py() -> None:
@@ -166,7 +116,7 @@ def update_python_content_type_label_py() -> None:
 
     out = (
         CONTENT_TYPE_LABEL_PY_SOURCE_PREFIX.strip()
-        + "\n"
+        + "\n\n"
         + "\n".join(enum_body_lines)
         + "\n"
     )
@@ -246,8 +196,8 @@ def update_js_content_type_files() -> None:
 
     content_types_info_content += (
         """
-import { ContentTypeInfo } from "./content-type-info";
-import { ContentTypeLabel } from "./content-type-label";
+import { ContentTypeInfo } from "./content-type-info.js";
+import { ContentTypeLabel } from "./content-type-label.js";
 
 export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;
 
@@ -273,7 +223,7 @@ export const ContentTypesInfos = {
             + "\n"
         )
 
-    content_types_info_content += "  })\n};\n"
+    content_types_info_content += "  }),\n};\n"
 
     content_types_infos_ts_path.write_text(content_types_info_content)
     print(f"Updated {content_types_infos_ts_path}")

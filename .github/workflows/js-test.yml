@@ -16,7 +16,8 @@ jobs:
   unit-testing:
     strategy:
       matrix:
-        node-version: ["20"]
+        # Node 24+ is currently blocked by @tensorflow/tfjs-node (#1577).
+        node-version: ["22"]
         os: ["ubuntu-26.04", "macos-26"]
     runs-on: ${{ matrix.os }}
     steps:

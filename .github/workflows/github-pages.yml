@@ -39,7 +39,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 18.x
+          node-version: "22.x"
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - name: Build

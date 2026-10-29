@@ -17,7 +17,7 @@ jobs:
   build-and-test:
     strategy:
       matrix:
-        node-version: ["20"]
+        node-version: ["22"]
         os: ["ubuntu-26.04"]
     runs-on: ${{ matrix.os }}
     steps:

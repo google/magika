@@ -10,6 +10,8 @@ Use Magika in the browser or in Node!
 npm install magika
 ```
 
+> **Node.js compatibility:** `magika/node` targets **Node.js 22 LTS** (`>=22`); Node.js 24+ is not yet supported due to an upstream `@tensorflow/tfjs-node` incompatibility ([google/magika#1577](https://github.com/google/magika/issues/1577)).
+
 ## Using Magika in JavaScript
 
 Simple usage in Node:

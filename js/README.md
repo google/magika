@@ -14,6 +14,8 @@ Magika on GitHub: [https://github.com/google/magika](https://github.com/google/m
 npm install magika
 ```
 
+> **Node.js compatibility:** `magika/node` targets **Node.js 22 LTS** (`>=22`); Node.js 24+ is not yet supported due to an upstream `@tensorflow/tfjs-node` incompatibility ([google/magika#1577](https://github.com/google/magika/issues/1577)).
+
 # Using MagikaJS
 
 Simple usage in Node:

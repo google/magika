@@ -22,7 +22,7 @@
     "author": "Luca Invernizzi <invernizzi@google.com>, Yanick Fratantonio <yanickf@google.com>",
     "license": "Apache-2.0",
     "engines": {
-        "node": ">=20"
+        "node": ">=22"
     },
     "keywords": [
         "content type",

@@ -31,8 +31,7 @@ fn a_declared_maximum_serves_larger_requests_with_the_same_scores() {
     let mut every_class = Runtime::new(BackendRequest::Cpu).unwrap().session().unwrap();
     let reference = every_class.run(&input, batch).unwrap();
 
-    // Twenty items cannot reach a class above eight. Depending on architecture, the tail is
-    // either routed to a smaller resident plan or padded through the optimized batch-eight plan.
+    // Twenty items decompose into [8, 8, 4], whereas `Runtime::new` routes them through 16 and 4.
     let mut up_to_eight =
         Runtime::with_max_batch(BackendRequest::Cpu, 8).unwrap().session().unwrap();
     let routed = up_to_eight.run(&input, batch).unwrap();
@@ -42,6 +41,25 @@ fn a_declared_maximum_serves_larger_requests_with_the_same_scores() {
         assert!(
             (routed - reference).abs() < 1e-5,
             "score {index} differs: {routed} against {reference}"
+        );
+    }
+}
+
+#[test]
+fn single_file_scores_agree_with_batched_inference() {
+    let batch = 8;
+    let input = features(batch);
+    let runtime = Runtime::with_max_batch(BackendRequest::Cpu, batch).unwrap();
+    let mut session = runtime.session().unwrap();
+
+    let batched = session.run(&input, batch).unwrap();
+    let num_labels = batched.len() / batch;
+    let single = session.run(&input[..FEATURE_SIZE], 1).unwrap();
+    assert_eq!(single.len(), num_labels);
+    for (index, (single, batched)) in single.iter().zip(&batched[..num_labels]).enumerate() {
+        assert!(
+            (single - batched).abs() < 1e-5,
+            "score {index} differs: {single} against {batched}"
         );
     }
 }

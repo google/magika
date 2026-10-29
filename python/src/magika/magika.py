@@ -155,7 +155,12 @@ class Magika:
         return MagikaResult(path=path, status=status, prediction=prediction)
 
     def identify_path(self, path: Union[str, os.PathLike[str]]) -> MagikaResult:
-        """Identify the content type of a file given its path."""
+        """Identify the content type of a file given its path.
+
+        When classifying multiple files, prefer `identify_paths()` so feature
+        extraction and model inference run in parallel batches inside the
+        native Rust pipeline.
+        """
         if not isinstance(path, (str, os.PathLike)):
             raise TypeError(
                 f"Path '{path}' is invalid: input path should be of type `Union[str, os.PathLike]`"
@@ -167,7 +172,12 @@ class Magika:
     def identify_paths(
         self, paths: Sequence[Union[str, os.PathLike[str]]]
     ) -> List[MagikaResult]:
-        """Identify the content type of a list of files given their paths."""
+        """Identify the content type of a list of files given their paths.
+
+        Feature extraction and model inference are batched and parallelized
+        across worker threads in the native Rust pipeline, making this the
+        high-throughput entry point when classifying multiple files.
+        """
         if not isinstance(paths, Sequence):
             raise TypeError("Input paths should be of type Sequence[Path]")
 

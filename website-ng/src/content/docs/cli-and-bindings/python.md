@@ -30,6 +30,18 @@ javascript
 ini
 ```
 
+**From multiple file paths:**
+```python
+>>> from magika import Magika
+>>> m = Magika()
+>>> results = m.identify_paths([
+...     './tests_data/basic/ini/doc.ini',
+...     './tests_data/basic/python/code.py',
+... ])
+>>> print([r.output.label for r in results])
+['ini', 'python']
+```
+
 **From an open file stream:**
 ```python
 >>> from magika import Magika
@@ -70,13 +82,12 @@ magika_custom = Magika(
 Once instantiated, the `Magika` object provides several methods for identifying content from different sources.
 - `magika.identify_bytes(bytes)`: Identifies the content type of an in-memory bytes object.
 - `magika.identify_path(path)`: Identifies the content type of a single file from its path (`str | os.PathLike`).
-- `magika.identify_paths(paths)`: Identifies the content type for a list of file paths.
+- `magika.identify_paths(paths)`: Identifies the content types for a sequence of file paths in parallel batches.
 - `magika.identify_stream(stream)`: Identifies the content type from an already-open binary file-like object (e.g., the output of `open(file_path, 'rb')`). Note: 1) Magika will `seek()` around the stream; 2) the stream _is not closed_ (closing is the responsibility of the caller).
 
-If you are dealing with large files, the `identify_path`, `identify_paths`, and `identify_stream` variants are generally better: their implementation `seek()`s around the file/stream to extract the needed features, without loading the entire content in memory.
-
-:::tip[Performance with Large Files]
-For large files, the `identify_path`, `identify_paths`, and `identify_stream` methods are highly recommended. They are optimized to read only the necessary portions of the file by seeking within the file/stream, which avoids loading the entire content into memory. If your content is already loaded into a bytes object, `identify_bytes` is the most direct and efficient option.
+:::tip[Performance]
+- **Multiple files:** Pass all paths to `identify_paths(paths)` in a single call rather than calling `identify_path(path)` in a loop. `identify_paths` batches and parallelizes feature extraction and model inference across worker threads in the native Rust pipeline (and uses GPU acceleration when available).
+- **Large files:** Prefer `identify_path`, `identify_paths`, or `identify_stream`. They `seek()` to read only the slices Magika needs, avoiding loading the entire file into memory. If your content is already loaded in memory, `identify_bytes` is the most direct option.
 :::
 
 **Understanding the Result**

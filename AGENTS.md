@@ -26,8 +26,10 @@ and a website (`website-ng/`).
   editing it, run `just sync-kb` from the repository root and commit the
   generated files. Never hand-edit `assets/content_types_kb.min.json` or the
   generated Python, JavaScript, Rust, and C content type tables.
-- Detection rules live in `rust/rules/rulesets/`; run `cd rust/rules && ./test.sh`,
-  then `cd rust && ./sync.sh` and `just sync-kb`, and commit the generated files.
+- Format resolvers live in `rust/lib/src/resolvers/` (and `rust/lib/src/resolvers.rs`);
+  run `cd rust/lib && ./test.sh` and `just sync-kb`, and commit the generated files.
+  Custom YARA rules support (`--custom-rules-file` / `use_custom_rules`) lives in
+  `rust/rules/` (`cd rust/rules && ./test.sh`).
 - Python tasks (`python/justfile`, runnable via `just python <recipe>` from the
   root or `cd python && just <recipe>`): `sync-dev`, `check-source`,
   `fix-source`, `test`, `quick-tests`, `coverage`, and `build-wheel` (across

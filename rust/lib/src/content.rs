@@ -23,6 +23,32 @@ pub const MODEL_NAME: &str = "standard_v3_3";
 /// Model major version.
 pub const MODEL_MAJOR_VERSION: u32 = 3;
 
+pub(crate) static _3DSM: TypeInfo = TypeInfo {
+    label: "3dsm",
+    mime_type: "application/x-3ds",
+    group: "image",
+    description: "3D studio Max",
+    extensions: &["3ds"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static _3DSX: TypeInfo = TypeInfo {
+    label: "3dsx",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "Nintendo 3DS homebrew",
+    extensions: &["3dsx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
 pub(crate) static _3GP: TypeInfo = TypeInfo {
     label: "3gp",
     mime_type: "video/3gpp",
@@ -30,6 +56,23 @@ pub(crate) static _3GP: TypeInfo = TypeInfo {
     description: "3GPP multimedia file",
     extensions: &["3gp"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static _3MF: TypeInfo = TypeInfo {
+    label: "3mf",
+    mime_type: "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
+    group: "image",
+    description: "3D Manufacturing Format",
+    extensions: &["3mf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ACE: TypeInfo = TypeInfo {
@@ -39,6 +82,10 @@ pub(crate) static ACE: TypeInfo = TypeInfo {
     description: "ACE archive",
     extensions: &["ace"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static AI: TypeInfo = TypeInfo {
@@ -48,6 +95,10 @@ pub(crate) static AI: TypeInfo = TypeInfo {
     description: "Adobe Illustrator Artwork",
     extensions: &["ai"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static AIDL: TypeInfo = TypeInfo {
@@ -57,6 +108,23 @@ pub(crate) static AIDL: TypeInfo = TypeInfo {
     description: "Android Interface Definition Language",
     extensions: &["aidl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static ANI: TypeInfo = TypeInfo {
+    label: "ani",
+    mime_type: "application/x-navi-animation",
+    group: "unknown",
+    description: "Animated cursor",
+    extensions: &["ani"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static APK: TypeInfo = TypeInfo {
@@ -66,6 +134,10 @@ pub(crate) static APK: TypeInfo = TypeInfo {
     description: "Android package",
     extensions: &["apk"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static APPLEBPLIST: TypeInfo = TypeInfo {
@@ -75,6 +147,23 @@ pub(crate) static APPLEBPLIST: TypeInfo = TypeInfo {
     description: "Apple binary property list",
     extensions: &["bplist", "plist"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static APPLEDOUBLE: TypeInfo = TypeInfo {
+    label: "appledouble",
+    mime_type: "multipart/appledouble",
+    group: "unknown",
+    description: "AppleDouble",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static APPLEPLIST: TypeInfo = TypeInfo {
@@ -84,6 +173,36 @@ pub(crate) static APPLEPLIST: TypeInfo = TypeInfo {
     description: "Apple property list",
     extensions: &["plist"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static APPLESINGLE: TypeInfo = TypeInfo {
+    label: "applesingle",
+    mime_type: "application/applefile",
+    group: "unknown",
+    description: "AppleSingle",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static ARROW: TypeInfo = TypeInfo {
+    label: "arrow",
+    mime_type: "application/vnd.apache.arrow.file",
+    group: "unknown",
+    description: "arrow",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static ASM: TypeInfo = TypeInfo {
@@ -93,6 +212,10 @@ pub(crate) static ASM: TypeInfo = TypeInfo {
     description: "Assembly",
     extensions: &["s", "S", "asm"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ASP: TypeInfo = TypeInfo {
@@ -102,6 +225,23 @@ pub(crate) static ASP: TypeInfo = TypeInfo {
     description: "ASP source",
     extensions: &["aspx", "asp"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static AU: TypeInfo = TypeInfo {
+    label: "au",
+    mime_type: "audio/basic",
+    group: "audio",
+    description: "NeXT/Sun AU",
+    extensions: &["au"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static AUTOHOTKEY: TypeInfo = TypeInfo {
@@ -111,6 +251,10 @@ pub(crate) static AUTOHOTKEY: TypeInfo = TypeInfo {
     description: "AutoHotKey script",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static AUTOIT: TypeInfo = TypeInfo {
@@ -120,6 +264,49 @@ pub(crate) static AUTOIT: TypeInfo = TypeInfo {
     description: "AutoIt script",
     extensions: &["au3"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static AVI: TypeInfo = TypeInfo {
+    label: "avi",
+    mime_type: "video/x-msvideo",
+    group: "video",
+    description: "Audio Video Interleave",
+    extensions: &["avi"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static AVIF: TypeInfo = TypeInfo {
+    label: "avif",
+    mime_type: "image/avif",
+    group: "image",
+    description: "AV1 Image File Format",
+    extensions: &["avif", "avifs"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static AVRO: TypeInfo = TypeInfo {
+    label: "avro",
+    mime_type: "application/x-avro-binary",
+    group: "unknown",
+    description: "Apache Avro binary",
+    extensions: &["avro"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static AWK: TypeInfo = TypeInfo {
@@ -129,6 +316,23 @@ pub(crate) static AWK: TypeInfo = TypeInfo {
     description: "Awk",
     extensions: &["awk"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static BAM: TypeInfo = TypeInfo {
+    label: "bam",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "BAM alignment",
+    extensions: &["bam"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static BATCH: TypeInfo = TypeInfo {
@@ -138,6 +342,10 @@ pub(crate) static BATCH: TypeInfo = TypeInfo {
     description: "DOS batch file",
     extensions: &["bat"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static BAZEL: TypeInfo = TypeInfo {
@@ -147,6 +355,23 @@ pub(crate) static BAZEL: TypeInfo = TypeInfo {
     description: "Bazel build file",
     extensions: &["bzl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static BEAM: TypeInfo = TypeInfo {
+    label: "beam",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "Erlang BEAM",
+    extensions: &["beam"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static BIB: TypeInfo = TypeInfo {
@@ -156,6 +381,23 @@ pub(crate) static BIB: TypeInfo = TypeInfo {
     description: "BibTeX",
     extensions: &["bib"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static BLEND: TypeInfo = TypeInfo {
+    label: "blend",
+    mime_type: "application/octet-stream",
+    group: "geometry",
+    description: "Blender scene",
+    extensions: &["blend"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static BMP: TypeInfo = TypeInfo {
@@ -165,6 +407,23 @@ pub(crate) static BMP: TypeInfo = TypeInfo {
     description: "BMP image data",
     extensions: &["bmp"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static BPG: TypeInfo = TypeInfo {
+    label: "bpg",
+    mime_type: "image/bpg",
+    group: "image",
+    description: "BPG",
+    extensions: &["bpg"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static BZIP: TypeInfo = TypeInfo {
@@ -174,6 +433,10 @@ pub(crate) static BZIP: TypeInfo = TypeInfo {
     description: "bzip2 compressed data",
     extensions: &["bz2", "tbz2", "tar.bz2"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static C: TypeInfo = TypeInfo {
@@ -183,6 +446,10 @@ pub(crate) static C: TypeInfo = TypeInfo {
     description: "C source",
     extensions: &["c"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CAB: TypeInfo = TypeInfo {
@@ -192,6 +459,10 @@ pub(crate) static CAB: TypeInfo = TypeInfo {
     description: "Microsoft Cabinet archive data",
     extensions: &["cab"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CAT: TypeInfo = TypeInfo {
@@ -201,6 +472,10 @@ pub(crate) static CAT: TypeInfo = TypeInfo {
     description: "Windows Catalog file",
     extensions: &["cat"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CHM: TypeInfo = TypeInfo {
@@ -210,6 +485,10 @@ pub(crate) static CHM: TypeInfo = TypeInfo {
     description: "MS Windows HtmlHelp Data",
     extensions: &["chm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CLOJURE: TypeInfo = TypeInfo {
@@ -219,6 +498,10 @@ pub(crate) static CLOJURE: TypeInfo = TypeInfo {
     description: "Clojure",
     extensions: &["clj", "cljs", "cljc", "cljr"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CMAKE: TypeInfo = TypeInfo {
@@ -228,6 +511,10 @@ pub(crate) static CMAKE: TypeInfo = TypeInfo {
     description: "CMake build file",
     extensions: &["cmake"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static COBOL: TypeInfo = TypeInfo {
@@ -237,6 +524,10 @@ pub(crate) static COBOL: TypeInfo = TypeInfo {
     description: "Cobol",
     extensions: &["cbl", "cob", "cpy", "CBL", "COB", "CPY"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static COFF: TypeInfo = TypeInfo {
@@ -246,6 +537,10 @@ pub(crate) static COFF: TypeInfo = TypeInfo {
     description: "Intel 80386 COFF",
     extensions: &["obj", "o"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static COFFEESCRIPT: TypeInfo = TypeInfo {
@@ -255,6 +550,23 @@ pub(crate) static COFFEESCRIPT: TypeInfo = TypeInfo {
     description: "CoffeeScript",
     extensions: &["coffee"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static COLLADA: TypeInfo = TypeInfo {
+    label: "collada",
+    mime_type: "model/vnd.collada+xml",
+    group: "geometry",
+    description: "COLLADA digital asset",
+    extensions: &["dae"],
+    is_text: true,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static CPP: TypeInfo = TypeInfo {
@@ -264,6 +576,23 @@ pub(crate) static CPP: TypeInfo = TypeInfo {
     description: "C++ source",
     extensions: &["cc", "cpp", "cxx", "c++", "cppm", "ixx"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static CRAM: TypeInfo = TypeInfo {
+    label: "cram",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "CRAM alignment",
+    extensions: &["cram"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static CRT: TypeInfo = TypeInfo {
@@ -273,6 +602,10 @@ pub(crate) static CRT: TypeInfo = TypeInfo {
     description: "Certificates (binary format)",
     extensions: &["der", "cer", "crt"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CRX: TypeInfo = TypeInfo {
@@ -282,6 +615,10 @@ pub(crate) static CRX: TypeInfo = TypeInfo {
     description: "Google Chrome extension",
     extensions: &["crx"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CS: TypeInfo = TypeInfo {
@@ -291,6 +628,10 @@ pub(crate) static CS: TypeInfo = TypeInfo {
     description: "C# source",
     extensions: &["cs", "csx"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CSPROJ: TypeInfo = TypeInfo {
@@ -300,6 +641,10 @@ pub(crate) static CSPROJ: TypeInfo = TypeInfo {
     description: ".NET project config",
     extensions: &["csproj"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CSS: TypeInfo = TypeInfo {
@@ -309,6 +654,10 @@ pub(crate) static CSS: TypeInfo = TypeInfo {
     description: "CSS source",
     extensions: &["css"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static CSV: TypeInfo = TypeInfo {
@@ -318,6 +667,23 @@ pub(crate) static CSV: TypeInfo = TypeInfo {
     description: "CSV document",
     extensions: &["csv"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static CUBIN: TypeInfo = TypeInfo {
+    label: "cubin",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "NVIDIA CUDA binary",
+    extensions: &["cubin"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static DART: TypeInfo = TypeInfo {
@@ -327,6 +693,23 @@ pub(crate) static DART: TypeInfo = TypeInfo {
     description: "Dart source",
     extensions: &["dart"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static DBASE: TypeInfo = TypeInfo {
+    label: "dbase",
+    mime_type: "application/octet-stream",
+    group: "database",
+    description: "dBASE / FoxPro table",
+    extensions: &["dbf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DEB: TypeInfo = TypeInfo {
@@ -336,6 +719,23 @@ pub(crate) static DEB: TypeInfo = TypeInfo {
     description: "Debian binary package",
     extensions: &["deb"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static DEGAS: TypeInfo = TypeInfo {
+    label: "degas",
+    mime_type: "application/octet-stream",
+    group: "image",
+    description: "Atari ST DEGAS image",
+    extensions: &["pi1", "pi2", "pi3", "pc1", "pc2", "pc3"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DEX: TypeInfo = TypeInfo {
@@ -345,6 +745,10 @@ pub(crate) static DEX: TypeInfo = TypeInfo {
     description: "Dalvik dex file",
     extensions: &["dex"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static DICOM: TypeInfo = TypeInfo {
@@ -354,6 +758,10 @@ pub(crate) static DICOM: TypeInfo = TypeInfo {
     description: "DICOM",
     extensions: &["dcm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static DIFF: TypeInfo = TypeInfo {
@@ -363,6 +771,10 @@ pub(crate) static DIFF: TypeInfo = TypeInfo {
     description: "Diff file",
     extensions: &["diff", "patch"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DIRECTORY: TypeInfo = TypeInfo {
@@ -372,6 +784,10 @@ pub(crate) static DIRECTORY: TypeInfo = TypeInfo {
     description: "A directory",
     extensions: &[],
     is_text: false,
+    in_heuristics: true,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DM: TypeInfo = TypeInfo {
@@ -381,6 +797,10 @@ pub(crate) static DM: TypeInfo = TypeInfo {
     description: "Dream Maker",
     extensions: &["dm"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DMG: TypeInfo = TypeInfo {
@@ -390,6 +810,10 @@ pub(crate) static DMG: TypeInfo = TypeInfo {
     description: "Apple disk image",
     extensions: &["dmg"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DOC: TypeInfo = TypeInfo {
@@ -399,6 +823,10 @@ pub(crate) static DOC: TypeInfo = TypeInfo {
     description: "Microsoft Word CDF document",
     extensions: &["doc"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DOCKERFILE: TypeInfo = TypeInfo {
@@ -408,6 +836,10 @@ pub(crate) static DOCKERFILE: TypeInfo = TypeInfo {
     description: "Dockerfile",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DOCX: TypeInfo = TypeInfo {
@@ -417,6 +849,23 @@ pub(crate) static DOCX: TypeInfo = TypeInfo {
     description: "Microsoft Word 2007+ document",
     extensions: &["docx", "docm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static DOTX: TypeInfo = TypeInfo {
+    label: "dotx",
+    mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    group: "document",
+    description: "Office Word 2007 template",
+    extensions: &["dotx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DSSTORE: TypeInfo = TypeInfo {
@@ -426,6 +875,23 @@ pub(crate) static DSSTORE: TypeInfo = TypeInfo {
     description: "Application Desktop Services Store",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static DUCKDB: TypeInfo = TypeInfo {
+    label: "duckdb",
+    mime_type: "application/octet-stream",
+    group: "database",
+    description: "DuckDB database",
+    extensions: &["duckdb"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static DWG: TypeInfo = TypeInfo {
@@ -435,15 +901,23 @@ pub(crate) static DWG: TypeInfo = TypeInfo {
     description: "Autocad Drawing",
     extensions: &["dwg"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static DXF: TypeInfo = TypeInfo {
     label: "dxf",
     mime_type: "image/vnd.dxf",
     group: "image",
-    description: "Audocad Drawing Exchange Format",
+    description: "Autocad Drawing Exchange Format",
     extensions: &["dxf"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ELF: TypeInfo = TypeInfo {
@@ -453,6 +927,10 @@ pub(crate) static ELF: TypeInfo = TypeInfo {
     description: "ELF executable",
     extensions: &["elf"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ELIXIR: TypeInfo = TypeInfo {
@@ -462,6 +940,10 @@ pub(crate) static ELIXIR: TypeInfo = TypeInfo {
     description: "Elixir script",
     extensions: &["exs"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static EMF: TypeInfo = TypeInfo {
@@ -471,6 +953,10 @@ pub(crate) static EMF: TypeInfo = TypeInfo {
     description: "Windows Enhanced Metafile image data",
     extensions: &["emf"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static EML: TypeInfo = TypeInfo {
@@ -480,6 +966,10 @@ pub(crate) static EML: TypeInfo = TypeInfo {
     description: "RFC 822 mail",
     extensions: &["eml"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static EMPTY: TypeInfo = TypeInfo {
@@ -489,6 +979,10 @@ pub(crate) static EMPTY: TypeInfo = TypeInfo {
     description: "Empty file",
     extensions: &[],
     is_text: false,
+    in_heuristics: true,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static EPUB: TypeInfo = TypeInfo {
@@ -498,6 +992,10 @@ pub(crate) static EPUB: TypeInfo = TypeInfo {
     description: "EPUB document",
     extensions: &["epub"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ERB: TypeInfo = TypeInfo {
@@ -507,6 +1005,10 @@ pub(crate) static ERB: TypeInfo = TypeInfo {
     description: "Embedded Ruby source",
     extensions: &["erb"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ERLANG: TypeInfo = TypeInfo {
@@ -516,6 +1018,49 @@ pub(crate) static ERLANG: TypeInfo = TypeInfo {
     description: "Erlang source",
     extensions: &["erl", "hrl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static ESE: TypeInfo = TypeInfo {
+    label: "ese",
+    mime_type: "application/x-ms-ese",
+    group: "unknown",
+    description: "ESE Db",
+    extensions: &["dat"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static FBX: TypeInfo = TypeInfo {
+    label: "fbx",
+    mime_type: "application/octet-stream",
+    group: "geometry",
+    description: "Autodesk FBX",
+    extensions: &["fbx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static FITS: TypeInfo = TypeInfo {
+    label: "fits",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "FITS astronomy data",
+    extensions: &["fit", "fits", "fts"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static FLAC: TypeInfo = TypeInfo {
@@ -525,6 +1070,10 @@ pub(crate) static FLAC: TypeInfo = TypeInfo {
     description: "FLAC audio bitstream data",
     extensions: &["flac"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static FLV: TypeInfo = TypeInfo {
@@ -534,15 +1083,23 @@ pub(crate) static FLV: TypeInfo = TypeInfo {
     description: "Flash Video",
     extensions: &["flv"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static FORTRAN: TypeInfo = TypeInfo {
     label: "fortran",
     mime_type: "text/x-fortran",
-    group: "document",
+    group: "code",
     description: "Fortran",
     extensions: &["f90", "f95", "f03", "F90"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static GEMFILE: TypeInfo = TypeInfo {
@@ -552,6 +1109,10 @@ pub(crate) static GEMFILE: TypeInfo = TypeInfo {
     description: "Gemfile file",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static GEMSPEC: TypeInfo = TypeInfo {
@@ -561,6 +1122,36 @@ pub(crate) static GEMSPEC: TypeInfo = TypeInfo {
     description: "Gemspec file",
     extensions: &["gemspec"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static GEOPACKAGE: TypeInfo = TypeInfo {
+    label: "geopackage",
+    mime_type: "application/geopackage+sqlite3",
+    group: "gis",
+    description: "OGC GeoPackage",
+    extensions: &["gpkg"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static GGUF: TypeInfo = TypeInfo {
+    label: "gguf",
+    mime_type: "application/octet-stream",
+    group: "model",
+    description: "GGUF",
+    extensions: &["gguf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static GIF: TypeInfo = TypeInfo {
@@ -570,6 +1161,10 @@ pub(crate) static GIF: TypeInfo = TypeInfo {
     description: "GIF image data",
     extensions: &["gif"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static GITATTRIBUTES: TypeInfo = TypeInfo {
@@ -579,6 +1174,10 @@ pub(crate) static GITATTRIBUTES: TypeInfo = TypeInfo {
     description: "Gitattributes file",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static GITMODULES: TypeInfo = TypeInfo {
@@ -588,6 +1187,23 @@ pub(crate) static GITMODULES: TypeInfo = TypeInfo {
     description: "Gitmodules file",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static GLTF: TypeInfo = TypeInfo {
+    label: "gltf",
+    mime_type: "application/octet-stream",
+    group: "geometry",
+    description: "glTF",
+    extensions: &["glb", "gltf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static GO: TypeInfo = TypeInfo {
@@ -597,6 +1213,23 @@ pub(crate) static GO: TypeInfo = TypeInfo {
     description: "Golang source",
     extensions: &["go"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static GPX: TypeInfo = TypeInfo {
+    label: "gpx",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "XML document",
+    extensions: &["gpx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static GRADLE: TypeInfo = TypeInfo {
@@ -606,6 +1239,23 @@ pub(crate) static GRADLE: TypeInfo = TypeInfo {
     description: "Gradle source",
     extensions: &["gradle"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static GRIB: TypeInfo = TypeInfo {
+    label: "grib",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "GRIB meteorological data",
+    extensions: &["grb", "grb2", "grib", "grib2"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static GROOVY: TypeInfo = TypeInfo {
@@ -615,6 +1265,10 @@ pub(crate) static GROOVY: TypeInfo = TypeInfo {
     description: "Groovy source",
     extensions: &["groovy"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static GZIP: TypeInfo = TypeInfo {
@@ -624,6 +1278,10 @@ pub(crate) static GZIP: TypeInfo = TypeInfo {
     description: "gzip compressed data",
     extensions: &["gz", "gzip", "tgz", "tar.gz"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static H5: TypeInfo = TypeInfo {
@@ -633,6 +1291,10 @@ pub(crate) static H5: TypeInfo = TypeInfo {
     description: "Hierarchical Data Format v5",
     extensions: &["h5", "hdf5"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static HANDLEBARS: TypeInfo = TypeInfo {
@@ -642,6 +1304,10 @@ pub(crate) static HANDLEBARS: TypeInfo = TypeInfo {
     description: "Handlebars source",
     extensions: &["hbs", "handlebars"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static HASKELL: TypeInfo = TypeInfo {
@@ -651,6 +1317,10 @@ pub(crate) static HASKELL: TypeInfo = TypeInfo {
     description: "Haskell source",
     extensions: &["hs", "lhs"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static HCL: TypeInfo = TypeInfo {
@@ -660,6 +1330,36 @@ pub(crate) static HCL: TypeInfo = TypeInfo {
     description: "HashiCorp configuration language",
     extensions: &["hcl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static HDF4: TypeInfo = TypeInfo {
+    label: "hdf4",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "HDF4",
+    extensions: &["h4", "hdf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static HEIF: TypeInfo = TypeInfo {
+    label: "heif",
+    mime_type: "image/heic",
+    group: "image",
+    description: "High Efficiency Image File",
+    extensions: &["heif", "heifs", "heic", "heics"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static HLP: TypeInfo = TypeInfo {
@@ -669,6 +1369,10 @@ pub(crate) static HLP: TypeInfo = TypeInfo {
     description: "MS Windows help",
     extensions: &["hlp"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static HTACCESS: TypeInfo = TypeInfo {
@@ -678,6 +1382,10 @@ pub(crate) static HTACCESS: TypeInfo = TypeInfo {
     description: "Apache access configuration",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static HTML: TypeInfo = TypeInfo {
@@ -687,6 +1395,36 @@ pub(crate) static HTML: TypeInfo = TypeInfo {
     description: "HTML document",
     extensions: &["html", "htm", "xhtml", "xht"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static HVE: TypeInfo = TypeInfo {
+    label: "hve",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "hve",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static ICC: TypeInfo = TypeInfo {
+    label: "icc",
+    mime_type: "application/vnd.iccprofile",
+    group: "unknown",
+    description: "ICC profile",
+    extensions: &["icc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static ICNS: TypeInfo = TypeInfo {
@@ -696,6 +1434,10 @@ pub(crate) static ICNS: TypeInfo = TypeInfo {
     description: "Mac OS X icon",
     extensions: &["icns"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static ICO: TypeInfo = TypeInfo {
@@ -705,6 +1447,10 @@ pub(crate) static ICO: TypeInfo = TypeInfo {
     description: "MS Windows icon resource",
     extensions: &["ico"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ICS: TypeInfo = TypeInfo {
@@ -714,6 +1460,10 @@ pub(crate) static ICS: TypeInfo = TypeInfo {
     description: "Internet Calendaring and Scheduling",
     extensions: &["ics"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static IGNOREFILE: TypeInfo = TypeInfo {
@@ -723,6 +1473,23 @@ pub(crate) static IGNOREFILE: TypeInfo = TypeInfo {
     description: "Ignorefile",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static ILBM: TypeInfo = TypeInfo {
+    label: "ilbm",
+    mime_type: "image/x-ilbm",
+    group: "image",
+    description: "Amiga IFF ILBM image",
+    extensions: &["iff", "ilbm", "lbm"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static INI: TypeInfo = TypeInfo {
@@ -732,6 +1499,23 @@ pub(crate) static INI: TypeInfo = TypeInfo {
     description: "INI configuration file",
     extensions: &["ini"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static INTELHEX: TypeInfo = TypeInfo {
+    label: "intelhex",
+    mime_type: "text/plain",
+    group: "executable",
+    description: "Intel HEX",
+    extensions: &["hex", "ihex"],
+    is_text: true,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static INTERNETSHORTCUT: TypeInfo = TypeInfo {
@@ -741,6 +1525,10 @@ pub(crate) static INTERNETSHORTCUT: TypeInfo = TypeInfo {
     description: "MS Windows Internet shortcut",
     extensions: &["url"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static IPYNB: TypeInfo = TypeInfo {
@@ -750,6 +1538,10 @@ pub(crate) static IPYNB: TypeInfo = TypeInfo {
     description: "Jupyter notebook",
     extensions: &["ipynb"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ISO: TypeInfo = TypeInfo {
@@ -759,6 +1551,10 @@ pub(crate) static ISO: TypeInfo = TypeInfo {
     description: "ISO 9660 CD-ROM filesystem data",
     extensions: &["iso"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JAR: TypeInfo = TypeInfo {
@@ -768,6 +1564,10 @@ pub(crate) static JAR: TypeInfo = TypeInfo {
     description: "Java archive data (JAR)",
     extensions: &["jar", "klib"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JAVA: TypeInfo = TypeInfo {
@@ -777,6 +1577,10 @@ pub(crate) static JAVA: TypeInfo = TypeInfo {
     description: "Java source",
     extensions: &["java"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JAVABYTECODE: TypeInfo = TypeInfo {
@@ -786,6 +1590,10 @@ pub(crate) static JAVABYTECODE: TypeInfo = TypeInfo {
     description: "Java compiled bytecode",
     extensions: &["class"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JAVASCRIPT: TypeInfo = TypeInfo {
@@ -795,6 +1603,10 @@ pub(crate) static JAVASCRIPT: TypeInfo = TypeInfo {
     description: "JavaScript source",
     extensions: &["js", "mjs", "cjs"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JINJA: TypeInfo = TypeInfo {
@@ -804,6 +1616,23 @@ pub(crate) static JINJA: TypeInfo = TypeInfo {
     description: "Jinja template",
     extensions: &["jinja", "jinja2", "j2"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static JNG: TypeInfo = TypeInfo {
+    label: "jng",
+    mime_type: "image/jng",
+    group: "image",
+    description: "JPEG network graphics",
+    extensions: &["jng"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static JP2: TypeInfo = TypeInfo {
@@ -813,6 +1642,10 @@ pub(crate) static JP2: TypeInfo = TypeInfo {
     description: "jpeg2000",
     extensions: &["jp2"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JPEG: TypeInfo = TypeInfo {
@@ -822,6 +1655,10 @@ pub(crate) static JPEG: TypeInfo = TypeInfo {
     description: "JPEG image data",
     extensions: &["jpg", "jpeg"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JSON: TypeInfo = TypeInfo {
@@ -831,6 +1668,10 @@ pub(crate) static JSON: TypeInfo = TypeInfo {
     description: "JSON document",
     extensions: &["json"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JSONL: TypeInfo = TypeInfo {
@@ -840,6 +1681,10 @@ pub(crate) static JSONL: TypeInfo = TypeInfo {
     description: "JSONL document",
     extensions: &["jsonl", "jsonld"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static JULIA: TypeInfo = TypeInfo {
@@ -849,6 +1694,75 @@ pub(crate) static JULIA: TypeInfo = TypeInfo {
     description: "Julia source",
     extensions: &["jl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static JXL: TypeInfo = TypeInfo {
+    label: "jxl",
+    mime_type: "image/jxl",
+    group: "image",
+    description: "JPEG XL",
+    extensions: &["jxl"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static KERAS: TypeInfo = TypeInfo {
+    label: "keras",
+    mime_type: "application/octet-stream",
+    group: "model",
+    description: "Keras model archive",
+    extensions: &["keras"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static KML: TypeInfo = TypeInfo {
+    label: "kml",
+    mime_type: "application/vnd.google-earth.kml+xml",
+    group: "gis",
+    description: "Keyhole Markup Language",
+    extensions: &["kml"],
+    is_text: true,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static KMZ: TypeInfo = TypeInfo {
+    label: "kmz",
+    mime_type: "application/vnd.google-earth.kmz",
+    group: "gis",
+    description: "Keyhole Markup Language archive",
+    extensions: &["kmz"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static KOALA: TypeInfo = TypeInfo {
+    label: "koala",
+    mime_type: "application/octet-stream",
+    group: "image",
+    description: "Commodore 64 Koala Painter image",
+    extensions: &["koa"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static KOTLIN: TypeInfo = TypeInfo {
@@ -858,6 +1772,10 @@ pub(crate) static KOTLIN: TypeInfo = TypeInfo {
     description: "Kotlin source",
     extensions: &["kt", "kts"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static LATEX: TypeInfo = TypeInfo {
@@ -867,6 +1785,10 @@ pub(crate) static LATEX: TypeInfo = TypeInfo {
     description: "LaTeX document",
     extensions: &["tex", "sty"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static LHA: TypeInfo = TypeInfo {
@@ -876,6 +1798,10 @@ pub(crate) static LHA: TypeInfo = TypeInfo {
     description: "LHarc archive",
     extensions: &["lha", "lzh"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static LISP: TypeInfo = TypeInfo {
@@ -885,6 +1811,23 @@ pub(crate) static LISP: TypeInfo = TypeInfo {
     description: "Lisp source",
     extensions: &["lisp", "lsp", "l", "cl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static LLVM_BITCODE: TypeInfo = TypeInfo {
+    label: "llvm_bitcode",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "LLVM bitcode",
+    extensions: &["bc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static LNK: TypeInfo = TypeInfo {
@@ -894,6 +1837,23 @@ pub(crate) static LNK: TypeInfo = TypeInfo {
     description: "MS Windows shortcut",
     extensions: &["lnk"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static LRZ: TypeInfo = TypeInfo {
+    label: "lrz",
+    mime_type: "application/x-lrzip",
+    group: "unknown",
+    description: "LRZip",
+    extensions: &["lrz"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static LUA: TypeInfo = TypeInfo {
@@ -903,6 +1863,49 @@ pub(crate) static LUA: TypeInfo = TypeInfo {
     description: "Lua",
     extensions: &["lua"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static LUABYTECODE: TypeInfo = TypeInfo {
+    label: "luabytecode",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "Lua bytecode",
+    extensions: &["luac"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static LZ: TypeInfo = TypeInfo {
+    label: "lz",
+    mime_type: "application/x-lzip",
+    group: "archive",
+    description: "LZip",
+    extensions: &["lz"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static LZ4: TypeInfo = TypeInfo {
+    label: "lz4",
+    mime_type: "application/x-lz4",
+    group: "archive",
+    description: "LZ4",
+    extensions: &["lz4"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static M3U: TypeInfo = TypeInfo {
@@ -912,6 +1915,10 @@ pub(crate) static M3U: TypeInfo = TypeInfo {
     description: "M3U playlist",
     extensions: &["m3u8", "m3u"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static M4: TypeInfo = TypeInfo {
@@ -921,6 +1928,10 @@ pub(crate) static M4: TypeInfo = TypeInfo {
     description: "GNU Macro",
     extensions: &["m4"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MACHO: TypeInfo = TypeInfo {
@@ -930,6 +1941,10 @@ pub(crate) static MACHO: TypeInfo = TypeInfo {
     description: "Mach-O executable",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MAKEFILE: TypeInfo = TypeInfo {
@@ -939,6 +1954,10 @@ pub(crate) static MAKEFILE: TypeInfo = TypeInfo {
     description: "Makefile source",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MARKDOWN: TypeInfo = TypeInfo {
@@ -948,6 +1967,23 @@ pub(crate) static MARKDOWN: TypeInfo = TypeInfo {
     description: "Markdown document",
     extensions: &["md", "markdown"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static MAT: TypeInfo = TypeInfo {
+    label: "mat",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "MATLAB MAT data",
+    extensions: &["mat"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static MATLAB: TypeInfo = TypeInfo {
@@ -957,6 +1993,10 @@ pub(crate) static MATLAB: TypeInfo = TypeInfo {
     description: "Matlab Source",
     extensions: &["m", "matlab"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MHT: TypeInfo = TypeInfo {
@@ -966,6 +2006,10 @@ pub(crate) static MHT: TypeInfo = TypeInfo {
     description: "MHTML document",
     extensions: &["mht"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MIDI: TypeInfo = TypeInfo {
@@ -975,6 +2019,23 @@ pub(crate) static MIDI: TypeInfo = TypeInfo {
     description: "Midi",
     extensions: &["mid"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static MINIDUMP: TypeInfo = TypeInfo {
+    label: "minidump",
+    mime_type: "application/octet-stream",
+    group: "application",
+    description: "Windows minidump",
+    extensions: &["dmp", "mdmp"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static MKV: TypeInfo = TypeInfo {
@@ -984,6 +2045,10 @@ pub(crate) static MKV: TypeInfo = TypeInfo {
     description: "Matroska",
     extensions: &["mkv"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MP3: TypeInfo = TypeInfo {
@@ -993,6 +2058,10 @@ pub(crate) static MP3: TypeInfo = TypeInfo {
     description: "MP3 media file",
     extensions: &["mp3"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MP4: TypeInfo = TypeInfo {
@@ -1002,6 +2071,23 @@ pub(crate) static MP4: TypeInfo = TypeInfo {
     description: "MP4 media file",
     extensions: &["mp4"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static MPEGTS: TypeInfo = TypeInfo {
+    label: "mpegts",
+    mime_type: "video/MP2T",
+    group: "video",
+    description: "MPEG Transport stream",
+    extensions: &["ts", "tsv", "tsa", "m2t"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static MSCOMPRESS: TypeInfo = TypeInfo {
@@ -1011,6 +2097,10 @@ pub(crate) static MSCOMPRESS: TypeInfo = TypeInfo {
     description: "MS Compress archive data",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MSI: TypeInfo = TypeInfo {
@@ -1020,6 +2110,23 @@ pub(crate) static MSI: TypeInfo = TypeInfo {
     description: "Microsoft Installer file",
     extensions: &["msi"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static MSIX: TypeInfo = TypeInfo {
+    label: "msix",
+    mime_type: "application/msix",
+    group: "application",
+    description: "Windows app package",
+    extensions: &["msix"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static MUM: TypeInfo = TypeInfo {
@@ -1029,6 +2136,23 @@ pub(crate) static MUM: TypeInfo = TypeInfo {
     description: "Windows Update Package file",
     extensions: &["mum"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static NETCDF: TypeInfo = TypeInfo {
+    label: "netcdf",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "NetCDF",
+    extensions: &["cdf", "nc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static NPY: TypeInfo = TypeInfo {
@@ -1038,6 +2162,10 @@ pub(crate) static NPY: TypeInfo = TypeInfo {
     description: "Numpy Array",
     extensions: &["npy"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static NPZ: TypeInfo = TypeInfo {
@@ -1047,6 +2175,23 @@ pub(crate) static NPZ: TypeInfo = TypeInfo {
     description: "Numpy Arrays Archive",
     extensions: &["npz"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static NRRD: TypeInfo = TypeInfo {
+    label: "nrrd",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "Nearly Raw Raster Data",
+    extensions: &["nhdr", "nrrd"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static NUPKG: TypeInfo = TypeInfo {
@@ -1056,6 +2201,10 @@ pub(crate) static NUPKG: TypeInfo = TypeInfo {
     description: "NuGet Package",
     extensions: &["nupkg"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static OBJECTIVEC: TypeInfo = TypeInfo {
@@ -1065,15 +2214,23 @@ pub(crate) static OBJECTIVEC: TypeInfo = TypeInfo {
     description: "ObjectiveC source",
     extensions: &["m", "mm"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static OCAML: TypeInfo = TypeInfo {
     label: "ocaml",
-    mime_type: "text-ocaml",
+    mime_type: "text/ocaml",
     group: "code",
     description: "OCaml",
     extensions: &["ml", "mli"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ODP: TypeInfo = TypeInfo {
@@ -1083,6 +2240,10 @@ pub(crate) static ODP: TypeInfo = TypeInfo {
     description: "OpenDocument Presentation",
     extensions: &["odp"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ODS: TypeInfo = TypeInfo {
@@ -1092,6 +2253,10 @@ pub(crate) static ODS: TypeInfo = TypeInfo {
     description: "OpenDocument Spreadsheet",
     extensions: &["ods"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ODT: TypeInfo = TypeInfo {
@@ -1101,6 +2266,10 @@ pub(crate) static ODT: TypeInfo = TypeInfo {
     description: "OpenDocument Text",
     extensions: &["odt"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static OGG: TypeInfo = TypeInfo {
@@ -1110,15 +2279,23 @@ pub(crate) static OGG: TypeInfo = TypeInfo {
     description: "Ogg data",
     extensions: &["ogg"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ONE: TypeInfo = TypeInfo {
     label: "one",
     mime_type: "application/msonenote",
     group: "document",
-    description: "One Note",
+    description: "OneNote",
     extensions: &["one"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static ONNX: TypeInfo = TypeInfo {
@@ -1128,6 +2305,23 @@ pub(crate) static ONNX: TypeInfo = TypeInfo {
     description: "Open Neural Network Exchange",
     extensions: &["onnx"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static OSM: TypeInfo = TypeInfo {
+    label: "osm",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "OpenStreetMap data",
+    extensions: &["osm", "pbf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static OTF: TypeInfo = TypeInfo {
@@ -1137,6 +2331,10 @@ pub(crate) static OTF: TypeInfo = TypeInfo {
     description: "OpenType font",
     extensions: &["otf"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static OUTLOOK: TypeInfo = TypeInfo {
@@ -1146,6 +2344,23 @@ pub(crate) static OUTLOOK: TypeInfo = TypeInfo {
     description: "MS Outlook Message",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static PALMOS: TypeInfo = TypeInfo {
+    label: "palmos",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "palmos",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PARQUET: TypeInfo = TypeInfo {
@@ -1155,6 +2370,10 @@ pub(crate) static PARQUET: TypeInfo = TypeInfo {
     description: "Apache Parquet",
     extensions: &["pqt", "parquet"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PASCAL: TypeInfo = TypeInfo {
@@ -1164,6 +2383,23 @@ pub(crate) static PASCAL: TypeInfo = TypeInfo {
     description: "Pascal source",
     extensions: &["pas", "pp"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static PBM: TypeInfo = TypeInfo {
+    label: "pbm",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "pbm",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PCAP: TypeInfo = TypeInfo {
@@ -1173,6 +2409,23 @@ pub(crate) static PCAP: TypeInfo = TypeInfo {
     description: "pcap capture file",
     extensions: &["pcap", "pcapng"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static PCAPNG: TypeInfo = TypeInfo {
+    label: "pcapng",
+    mime_type: "application/octet-stream",
+    group: "binary",
+    description: "Packet capture PCAPNG",
+    extensions: &["pcapng"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PDB: TypeInfo = TypeInfo {
@@ -1182,6 +2435,10 @@ pub(crate) static PDB: TypeInfo = TypeInfo {
     description: "Windows Program Database",
     extensions: &["pdb"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PDF: TypeInfo = TypeInfo {
@@ -1191,6 +2448,10 @@ pub(crate) static PDF: TypeInfo = TypeInfo {
     description: "PDF document",
     extensions: &["pdf"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PEBIN: TypeInfo = TypeInfo {
@@ -1200,6 +2461,10 @@ pub(crate) static PEBIN: TypeInfo = TypeInfo {
     description: "PE Windows executable",
     extensions: &["exe", "dll"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PEM: TypeInfo = TypeInfo {
@@ -1209,6 +2474,10 @@ pub(crate) static PEM: TypeInfo = TypeInfo {
     description: "PEM certificate",
     extensions: &["pem", "pub", "gpg"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PERL: TypeInfo = TypeInfo {
@@ -1218,6 +2487,23 @@ pub(crate) static PERL: TypeInfo = TypeInfo {
     description: "Perl source",
     extensions: &["pl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static PGP: TypeInfo = TypeInfo {
+    label: "pgp",
+    mime_type: "application/pgp-keys",
+    group: "unknown",
+    description: "PGP",
+    extensions: &["gpg", "pgp"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PHP: TypeInfo = TypeInfo {
@@ -1227,6 +2513,10 @@ pub(crate) static PHP: TypeInfo = TypeInfo {
     description: "PHP source",
     extensions: &["php"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PICKLE: TypeInfo = TypeInfo {
@@ -1236,6 +2526,23 @@ pub(crate) static PICKLE: TypeInfo = TypeInfo {
     description: "Python pickle",
     extensions: &["pickle", "pkl"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static PLY: TypeInfo = TypeInfo {
+    label: "ply",
+    mime_type: "application/octet-stream",
+    group: "geometry",
+    description: "Polygon File Format",
+    extensions: &["ply"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PNG: TypeInfo = TypeInfo {
@@ -1245,6 +2552,10 @@ pub(crate) static PNG: TypeInfo = TypeInfo {
     description: "PNG image",
     extensions: &["png"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PO: TypeInfo = TypeInfo {
@@ -1254,6 +2565,23 @@ pub(crate) static PO: TypeInfo = TypeInfo {
     description: "Portable Object (PO) for i18n",
     extensions: &["po"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static POSTGRES_DUMP: TypeInfo = TypeInfo {
+    label: "postgres_dump",
+    mime_type: "application/octet-stream",
+    group: "database",
+    description: "PostgreSQL dump",
+    extensions: &["backup", "dump", "sql"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static POSTSCRIPT: TypeInfo = TypeInfo {
@@ -1263,6 +2591,10 @@ pub(crate) static POSTSCRIPT: TypeInfo = TypeInfo {
     description: "PostScript document",
     extensions: &["ps"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static POWERSHELL: TypeInfo = TypeInfo {
@@ -1272,6 +2604,10 @@ pub(crate) static POWERSHELL: TypeInfo = TypeInfo {
     description: "Powershell source",
     extensions: &["ps1"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PPT: TypeInfo = TypeInfo {
@@ -1281,6 +2617,10 @@ pub(crate) static PPT: TypeInfo = TypeInfo {
     description: "Microsoft PowerPoint CDF document",
     extensions: &["ppt"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PPTX: TypeInfo = TypeInfo {
@@ -1290,6 +2630,10 @@ pub(crate) static PPTX: TypeInfo = TypeInfo {
     description: "Microsoft PowerPoint 2007+ document",
     extensions: &["pptx", "pptm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PROLOG: TypeInfo = TypeInfo {
@@ -1299,6 +2643,10 @@ pub(crate) static PROLOG: TypeInfo = TypeInfo {
     description: "Prolog source",
     extensions: &["pl", "pro", "P"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PROTEINDB: TypeInfo = TypeInfo {
@@ -1308,6 +2656,10 @@ pub(crate) static PROTEINDB: TypeInfo = TypeInfo {
     description: "Protein DB",
     extensions: &["pdb"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PROTO: TypeInfo = TypeInfo {
@@ -1317,6 +2669,10 @@ pub(crate) static PROTO: TypeInfo = TypeInfo {
     description: "Protocol buffer definition",
     extensions: &["proto"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PSD: TypeInfo = TypeInfo {
@@ -1326,6 +2682,10 @@ pub(crate) static PSD: TypeInfo = TypeInfo {
     description: "Adobe Photoshop",
     extensions: &["psd"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PYTHON: TypeInfo = TypeInfo {
@@ -1335,6 +2695,10 @@ pub(crate) static PYTHON: TypeInfo = TypeInfo {
     description: "Python source",
     extensions: &["py", "pyi"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PYTHONBYTECODE: TypeInfo = TypeInfo {
@@ -1344,6 +2708,10 @@ pub(crate) static PYTHONBYTECODE: TypeInfo = TypeInfo {
     description: "Python compiled bytecode",
     extensions: &["pyc", "pyo"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static PYTORCH: TypeInfo = TypeInfo {
@@ -1353,6 +2721,36 @@ pub(crate) static PYTORCH: TypeInfo = TypeInfo {
     description: "Pytorch storage file",
     extensions: &["pt", "pth"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static QGIS: TypeInfo = TypeInfo {
+    label: "qgis",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "QGIS project archive",
+    extensions: &["qgz"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static QOI: TypeInfo = TypeInfo {
+    label: "qoi",
+    mime_type: "image/x-qoi",
+    group: "image",
+    description: "Quite Ok Image",
+    extensions: &["qoi"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static QT: TypeInfo = TypeInfo {
@@ -1362,6 +2760,10 @@ pub(crate) static QT: TypeInfo = TypeInfo {
     description: "QuickTime",
     extensions: &["mov"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static R: TypeInfo = TypeInfo {
@@ -1371,6 +2773,10 @@ pub(crate) static R: TypeInfo = TypeInfo {
     description: "R (language)",
     extensions: &["R"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static RANDOMBYTES: TypeInfo = TypeInfo {
@@ -1380,6 +2786,10 @@ pub(crate) static RANDOMBYTES: TypeInfo = TypeInfo {
     description: "Random bytes",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static RANDOMTXT: TypeInfo = TypeInfo {
@@ -1389,15 +2799,23 @@ pub(crate) static RANDOMTXT: TypeInfo = TypeInfo {
     description: "Random text",
     extensions: &[],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static RAR: TypeInfo = TypeInfo {
     label: "rar",
-    mime_type: "application/x-rar",
+    mime_type: "application/vnd.rar",
     group: "archive",
     description: "RAR archive data",
     extensions: &["rar"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static RDF: TypeInfo = TypeInfo {
@@ -1407,6 +2825,23 @@ pub(crate) static RDF: TypeInfo = TypeInfo {
     description: "Resource Description Framework document (RDF)",
     extensions: &["rdf"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static REDIS_RDB: TypeInfo = TypeInfo {
+    label: "redis_rdb",
+    mime_type: "application/octet-stream",
+    group: "database",
+    description: "Redis snapshot",
+    extensions: &["rdb"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static RPM: TypeInfo = TypeInfo {
@@ -1416,6 +2851,10 @@ pub(crate) static RPM: TypeInfo = TypeInfo {
     description: "RedHat Package Manager archive (RPM)",
     extensions: &["rpm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static RST: TypeInfo = TypeInfo {
@@ -1425,6 +2864,10 @@ pub(crate) static RST: TypeInfo = TypeInfo {
     description: "ReStructuredText document",
     extensions: &["rst"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static RTF: TypeInfo = TypeInfo {
@@ -1434,6 +2877,10 @@ pub(crate) static RTF: TypeInfo = TypeInfo {
     description: "Rich Text Format document",
     extensions: &["rtf"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static RUBY: TypeInfo = TypeInfo {
@@ -1443,6 +2890,10 @@ pub(crate) static RUBY: TypeInfo = TypeInfo {
     description: "Ruby source",
     extensions: &["rb"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static RUST: TypeInfo = TypeInfo {
@@ -1452,6 +2903,49 @@ pub(crate) static RUST: TypeInfo = TypeInfo {
     description: "Rust source",
     extensions: &["rs"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static RZIP: TypeInfo = TypeInfo {
+    label: "rzip",
+    mime_type: "application/octet-stream",
+    group: "unknown",
+    description: "Rzip",
+    extensions: &["rz"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static SAFETENSORS: TypeInfo = TypeInfo {
+    label: "safetensors",
+    mime_type: "application/octet-stream",
+    group: "model",
+    description: "Safetensors",
+    extensions: &["safetensors"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static SAS: TypeInfo = TypeInfo {
+    label: "sas",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "SAS dataset / transport",
+    extensions: &["sas7bdat", "xpt"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static SCALA: TypeInfo = TypeInfo {
@@ -1461,6 +2955,10 @@ pub(crate) static SCALA: TypeInfo = TypeInfo {
     description: "Scala source",
     extensions: &["scala"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SCSS: TypeInfo = TypeInfo {
@@ -1470,6 +2968,10 @@ pub(crate) static SCSS: TypeInfo = TypeInfo {
     description: "SCSS source",
     extensions: &["scss"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SEVENZIP: TypeInfo = TypeInfo {
@@ -1479,6 +2981,10 @@ pub(crate) static SEVENZIP: TypeInfo = TypeInfo {
     description: "7-zip archive data",
     extensions: &["7z"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static SGML: TypeInfo = TypeInfo {
@@ -1488,6 +2994,23 @@ pub(crate) static SGML: TypeInfo = TypeInfo {
     description: "sgml",
     extensions: &["sgml"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static SHAPEFILE: TypeInfo = TypeInfo {
+    label: "shapefile",
+    mime_type: "application/octet-stream",
+    group: "gis",
+    description: "ESRI Shapefile",
+    extensions: &["dbf", "prj", "shp", "shx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static SHELL: TypeInfo = TypeInfo {
@@ -1497,6 +3020,23 @@ pub(crate) static SHELL: TypeInfo = TypeInfo {
     description: "Shell script",
     extensions: &["sh"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static SKETCHUP: TypeInfo = TypeInfo {
+    label: "sketchup",
+    mime_type: "application/octet-stream",
+    group: "geometry",
+    description: "SketchUp model",
+    extensions: &["skp"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static SMALI: TypeInfo = TypeInfo {
@@ -1506,6 +3046,10 @@ pub(crate) static SMALI: TypeInfo = TypeInfo {
     description: "Smali source",
     extensions: &["smali"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SNAP: TypeInfo = TypeInfo {
@@ -1515,6 +3059,10 @@ pub(crate) static SNAP: TypeInfo = TypeInfo {
     description: "Snap archive",
     extensions: &["snap"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SOLIDITY: TypeInfo = TypeInfo {
@@ -1524,6 +3072,36 @@ pub(crate) static SOLIDITY: TypeInfo = TypeInfo {
     description: "Solidity source",
     extensions: &["sol"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static SPIRV: TypeInfo = TypeInfo {
+    label: "spirv",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "SPIR-V",
+    extensions: &["spv"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static SPSS: TypeInfo = TypeInfo {
+    label: "spss",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "SPSS dataset",
+    extensions: &["por", "sav", "zsav"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static SQL: TypeInfo = TypeInfo {
@@ -1533,6 +3111,10 @@ pub(crate) static SQL: TypeInfo = TypeInfo {
     description: "SQL source",
     extensions: &["sql"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SQLITE: TypeInfo = TypeInfo {
@@ -1542,6 +3124,10 @@ pub(crate) static SQLITE: TypeInfo = TypeInfo {
     description: "SQLITE database",
     extensions: &["sqlite", "sqlite3"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SQUASHFS: TypeInfo = TypeInfo {
@@ -1551,6 +3137,10 @@ pub(crate) static SQUASHFS: TypeInfo = TypeInfo {
     description: "Squash filesystem",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SRT: TypeInfo = TypeInfo {
@@ -1560,6 +3150,36 @@ pub(crate) static SRT: TypeInfo = TypeInfo {
     description: "SubRip Text Format",
     extensions: &["srt"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static STATA: TypeInfo = TypeInfo {
+    label: "stata",
+    mime_type: "application/octet-stream",
+    group: "scientific",
+    description: "Stata dataset",
+    extensions: &["dta"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static STEP: TypeInfo = TypeInfo {
+    label: "step",
+    mime_type: "model/step",
+    group: "geometry",
+    description: "ISO 10303 STEP CAD model",
+    extensions: &["step", "stp"],
+    is_text: true,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static STLBINARY: TypeInfo = TypeInfo {
@@ -1569,6 +3189,10 @@ pub(crate) static STLBINARY: TypeInfo = TypeInfo {
     description: "Stereolithography CAD (binary)",
     extensions: &["stl"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static STLTEXT: TypeInfo = TypeInfo {
@@ -1578,6 +3202,10 @@ pub(crate) static STLTEXT: TypeInfo = TypeInfo {
     description: "Stereolithography CAD (text)",
     extensions: &["stl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SUM: TypeInfo = TypeInfo {
@@ -1587,6 +3215,10 @@ pub(crate) static SUM: TypeInfo = TypeInfo {
     description: "Checksum file",
     extensions: &["sum"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SVG: TypeInfo = TypeInfo {
@@ -1596,15 +3228,23 @@ pub(crate) static SVG: TypeInfo = TypeInfo {
     description: "SVG Scalable Vector Graphics image data",
     extensions: &["svg"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SWF: TypeInfo = TypeInfo {
     label: "swf",
     mime_type: "application/x-shockwave-flash",
     group: "executable",
-    description: "Small Web File",
+    description: "Small Web Format",
     extensions: &["swf"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static SWIFT: TypeInfo = TypeInfo {
@@ -1614,6 +3254,10 @@ pub(crate) static SWIFT: TypeInfo = TypeInfo {
     description: "Swift",
     extensions: &["swift"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static SYMLINK: TypeInfo = TypeInfo {
@@ -1623,6 +3267,10 @@ pub(crate) static SYMLINK: TypeInfo = TypeInfo {
     description: "Symbolic link",
     extensions: &[],
     is_text: false,
+    in_heuristics: true,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TAR: TypeInfo = TypeInfo {
@@ -1632,15 +3280,23 @@ pub(crate) static TAR: TypeInfo = TypeInfo {
     description: "POSIX tar archive",
     extensions: &["tar"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TCL: TypeInfo = TypeInfo {
     label: "tcl",
     mime_type: "application/x-tcl",
     group: "code",
-    description: "Tickle",
+    description: "Tcl",
     extensions: &["tcl"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TEXTPROTO: TypeInfo = TypeInfo {
@@ -1650,6 +3306,10 @@ pub(crate) static TEXTPROTO: TypeInfo = TypeInfo {
     description: "Text protocol buffer",
     extensions: &["textproto", "textpb", "pbtxt"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TGA: TypeInfo = TypeInfo {
@@ -1659,6 +3319,10 @@ pub(crate) static TGA: TypeInfo = TypeInfo {
     description: "Targa image data",
     extensions: &["tga"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static THUMBSDB: TypeInfo = TypeInfo {
@@ -1668,6 +3332,10 @@ pub(crate) static THUMBSDB: TypeInfo = TypeInfo {
     description: "Windows thumbnail cache",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TIFF: TypeInfo = TypeInfo {
@@ -1677,6 +3345,10 @@ pub(crate) static TIFF: TypeInfo = TypeInfo {
     description: "TIFF image data",
     extensions: &["tiff", "tif"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TOML: TypeInfo = TypeInfo {
@@ -1686,6 +3358,10 @@ pub(crate) static TOML: TypeInfo = TypeInfo {
     description: "Tom's obvious, minimal language",
     extensions: &["toml"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TORRENT: TypeInfo = TypeInfo {
@@ -1695,15 +3371,23 @@ pub(crate) static TORRENT: TypeInfo = TypeInfo {
     description: "BitTorrent file",
     extensions: &["torrent"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TSV: TypeInfo = TypeInfo {
     label: "tsv",
-    mime_type: "text/tsv",
+    mime_type: "text/tab-separated-values",
     group: "code",
     description: "TSV document",
     extensions: &["tsv"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TTF: TypeInfo = TypeInfo {
@@ -1713,6 +3397,10 @@ pub(crate) static TTF: TypeInfo = TypeInfo {
     description: "TrueType Font data",
     extensions: &["ttf", "ttc"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TWIG: TypeInfo = TypeInfo {
@@ -1722,6 +3410,10 @@ pub(crate) static TWIG: TypeInfo = TypeInfo {
     description: "Twig template",
     extensions: &["twig"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TXT: TypeInfo = TypeInfo {
@@ -1731,6 +3423,10 @@ pub(crate) static TXT: TypeInfo = TypeInfo {
     description: "Generic text document",
     extensions: &["txt"],
     is_text: true,
+    in_heuristics: true,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static TYPESCRIPT: TypeInfo = TypeInfo {
@@ -1740,6 +3436,23 @@ pub(crate) static TYPESCRIPT: TypeInfo = TypeInfo {
     description: "TypeScript source",
     extensions: &["ts", "mts", "cts"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static UF2: TypeInfo = TypeInfo {
+    label: "uf2",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "UF2 firmware",
+    extensions: &["uf2"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static UNDEFINED: TypeInfo = TypeInfo {
@@ -1749,6 +3462,23 @@ pub(crate) static UNDEFINED: TypeInfo = TypeInfo {
     description: "Undefined",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static UNIXCOMPRESS: TypeInfo = TypeInfo {
+    label: "unixcompress",
+    mime_type: "application/x-compress",
+    group: "unknown",
+    description: "unixcompress",
+    extensions: &["z"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static UNKNOWN: TypeInfo = TypeInfo {
@@ -1758,6 +3488,23 @@ pub(crate) static UNKNOWN: TypeInfo = TypeInfo {
     description: "Unknown binary data",
     extensions: &[],
     is_text: false,
+    in_heuristics: true,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static UNSUPPORTED: TypeInfo = TypeInfo {
+    label: "unsupported",
+    mime_type: "inode/x-unsupported",
+    group: "inode",
+    description: "Unsupported file type",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: true,
+    in_resolvers: false,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static VBA: TypeInfo = TypeInfo {
@@ -1767,6 +3514,10 @@ pub(crate) static VBA: TypeInfo = TypeInfo {
     description: "MS Visual Basic source (VBA)",
     extensions: &["vbs", "vba", "vb"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static VCXPROJ: TypeInfo = TypeInfo {
@@ -1776,6 +3527,10 @@ pub(crate) static VCXPROJ: TypeInfo = TypeInfo {
     description: "Visual Studio MSBuild project",
     extensions: &["vcxproj"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static VERILOG: TypeInfo = TypeInfo {
@@ -1785,6 +3540,23 @@ pub(crate) static VERILOG: TypeInfo = TypeInfo {
     description: "Verilog source",
     extensions: &["v", "verilog", "vlg", "vh"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static VHD: TypeInfo = TypeInfo {
+    label: "vhd",
+    mime_type: "application/x-vhd",
+    group: "unknown",
+    description: "Virtual Hard Disk",
+    extensions: &[],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static VHDL: TypeInfo = TypeInfo {
@@ -1794,6 +3566,36 @@ pub(crate) static VHDL: TypeInfo = TypeInfo {
     description: "VHDL source",
     extensions: &["vhd"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static VIB: TypeInfo = TypeInfo {
+    label: "vib",
+    mime_type: "application/octet-stream",
+    group: "archive",
+    description: "VMware Installation Bundle",
+    extensions: &["vib"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static VISIO: TypeInfo = TypeInfo {
+    label: "visio",
+    mime_type: "application/vnd.ms-visio.drawing.main+xml",
+    group: "document",
+    description: "Microsoft Visio",
+    extensions: &["vsd", "vsdm", "vsdx", "vdw"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static VTT: TypeInfo = TypeInfo {
@@ -1803,6 +3605,10 @@ pub(crate) static VTT: TypeInfo = TypeInfo {
     description: "Web Video Text Tracks",
     extensions: &["vtt", "webvtt"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static VUE: TypeInfo = TypeInfo {
@@ -1812,6 +3618,23 @@ pub(crate) static VUE: TypeInfo = TypeInfo {
     description: "Vue source",
     extensions: &["vue"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static WAD: TypeInfo = TypeInfo {
+    label: "wad",
+    mime_type: "application/wad",
+    group: "archive",
+    description: "WAD",
+    extensions: &["wad"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static WASM: TypeInfo = TypeInfo {
@@ -1821,6 +3644,10 @@ pub(crate) static WASM: TypeInfo = TypeInfo {
     description: "Web Assembly",
     extensions: &["wasm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static WAV: TypeInfo = TypeInfo {
@@ -1830,6 +3657,10 @@ pub(crate) static WAV: TypeInfo = TypeInfo {
     description: "Waveform Audio file (WAV)",
     extensions: &["wav"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static WEBM: TypeInfo = TypeInfo {
@@ -1839,6 +3670,10 @@ pub(crate) static WEBM: TypeInfo = TypeInfo {
     description: "WebM media file",
     extensions: &["webm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static WEBP: TypeInfo = TypeInfo {
@@ -1848,6 +3683,10 @@ pub(crate) static WEBP: TypeInfo = TypeInfo {
     description: "WebP media file",
     extensions: &["webp"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static WINREGISTRY: TypeInfo = TypeInfo {
@@ -1857,6 +3696,10 @@ pub(crate) static WINREGISTRY: TypeInfo = TypeInfo {
     description: "Windows Registry text",
     extensions: &["reg"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static WMF: TypeInfo = TypeInfo {
@@ -1866,6 +3709,10 @@ pub(crate) static WMF: TypeInfo = TypeInfo {
     description: "Windows metafile",
     extensions: &["wmf"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static WOFF: TypeInfo = TypeInfo {
@@ -1875,6 +3722,10 @@ pub(crate) static WOFF: TypeInfo = TypeInfo {
     description: "Web Open Font Format",
     extensions: &["woff"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static WOFF2: TypeInfo = TypeInfo {
@@ -1884,6 +3735,10 @@ pub(crate) static WOFF2: TypeInfo = TypeInfo {
     description: "Web Open Font Format v2",
     extensions: &["woff2"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static XAR: TypeInfo = TypeInfo {
@@ -1893,6 +3748,36 @@ pub(crate) static XAR: TypeInfo = TypeInfo {
     description: "XAR archive compressed data",
     extensions: &["pkg", "xar"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static XCF: TypeInfo = TypeInfo {
+    label: "xcf",
+    mime_type: "image/x-xcf",
+    group: "image",
+    description: "Gimp image",
+    extensions: &["xcf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+pub(crate) static XCOFF: TypeInfo = TypeInfo {
+    label: "xcoff",
+    mime_type: "application/octet-stream",
+    group: "executable",
+    description: "XCOFF",
+    extensions: &["o"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static XLS: TypeInfo = TypeInfo {
@@ -1902,15 +3787,23 @@ pub(crate) static XLS: TypeInfo = TypeInfo {
     description: "Microsoft Excel CDF document",
     extensions: &["xls"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static XLSB: TypeInfo = TypeInfo {
     label: "xlsb",
-    mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    mime_type: "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
     group: "document",
     description: "Microsoft Excel 2007+ document (binary format)",
     extensions: &["xlsb"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static XLSX: TypeInfo = TypeInfo {
@@ -1920,6 +3813,10 @@ pub(crate) static XLSX: TypeInfo = TypeInfo {
     description: "Microsoft Excel 2007+ document",
     extensions: &["xlsx", "xlsm"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: true,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static XML: TypeInfo = TypeInfo {
@@ -1929,6 +3826,10 @@ pub(crate) static XML: TypeInfo = TypeInfo {
     description: "XML document",
     extensions: &["xml"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static XPI: TypeInfo = TypeInfo {
@@ -1938,6 +3839,10 @@ pub(crate) static XPI: TypeInfo = TypeInfo {
     description: "Compressed installation archive (XPI)",
     extensions: &["xpi"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static XZ: TypeInfo = TypeInfo {
@@ -1947,6 +3852,10 @@ pub(crate) static XZ: TypeInfo = TypeInfo {
     description: "XZ compressed data",
     extensions: &["xz"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static YAML: TypeInfo = TypeInfo {
@@ -1956,6 +3865,10 @@ pub(crate) static YAML: TypeInfo = TypeInfo {
     description: "YAML source",
     extensions: &["yml", "yaml"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static YARA: TypeInfo = TypeInfo {
@@ -1965,6 +3878,10 @@ pub(crate) static YARA: TypeInfo = TypeInfo {
     description: "YARA rule",
     extensions: &["yar", "yara"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ZIG: TypeInfo = TypeInfo {
@@ -1974,6 +3891,10 @@ pub(crate) static ZIG: TypeInfo = TypeInfo {
     description: "Zig source",
     extensions: &["zig"],
     is_text: true,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ZIP: TypeInfo = TypeInfo {
@@ -1983,6 +3904,10 @@ pub(crate) static ZIP: TypeInfo = TypeInfo {
     description: "Zip archive data",
     extensions: &["zip"],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static ZLIBSTREAM: TypeInfo = TypeInfo {
@@ -1992,44 +3917,398 @@ pub(crate) static ZLIBSTREAM: TypeInfo = TypeInfo {
     description: "zlib compressed data",
     extensions: &[],
     is_text: false,
+    in_heuristics: false,
+    in_resolvers: false,
+    in_ml_model: true,
+    vetoed_by_resolvers: false,
 };
 
+pub(crate) static ZST: TypeInfo = TypeInfo {
+    label: "zst",
+    mime_type: "application/zstd",
+    group: "archive",
+    description: "Zstandard",
+    extensions: &["zst"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: true,
+};
+
+impl TypeInfo {
+    /// All file type information ordered by label.
+    pub const ALL: [&'static Self; 301] = [
+        &_3DSM,
+        &_3DSX,
+        &_3GP,
+        &_3MF,
+        &ACE,
+        &AI,
+        &AIDL,
+        &ANI,
+        &APK,
+        &APPLEBPLIST,
+        &APPLEDOUBLE,
+        &APPLEPLIST,
+        &APPLESINGLE,
+        &ARROW,
+        &ASM,
+        &ASP,
+        &AU,
+        &AUTOHOTKEY,
+        &AUTOIT,
+        &AVI,
+        &AVIF,
+        &AVRO,
+        &AWK,
+        &BAM,
+        &BATCH,
+        &BAZEL,
+        &BEAM,
+        &BIB,
+        &BLEND,
+        &BMP,
+        &BPG,
+        &BZIP,
+        &C,
+        &CAB,
+        &CAT,
+        &CHM,
+        &CLOJURE,
+        &CMAKE,
+        &COBOL,
+        &COFF,
+        &COFFEESCRIPT,
+        &COLLADA,
+        &CPP,
+        &CRAM,
+        &CRT,
+        &CRX,
+        &CS,
+        &CSPROJ,
+        &CSS,
+        &CSV,
+        &CUBIN,
+        &DART,
+        &DBASE,
+        &DEB,
+        &DEGAS,
+        &DEX,
+        &DICOM,
+        &DIFF,
+        &DIRECTORY,
+        &DM,
+        &DMG,
+        &DOC,
+        &DOCKERFILE,
+        &DOCX,
+        &DOTX,
+        &DSSTORE,
+        &DUCKDB,
+        &DWG,
+        &DXF,
+        &ELF,
+        &ELIXIR,
+        &EMF,
+        &EML,
+        &EMPTY,
+        &EPUB,
+        &ERB,
+        &ERLANG,
+        &ESE,
+        &FBX,
+        &FITS,
+        &FLAC,
+        &FLV,
+        &FORTRAN,
+        &GEMFILE,
+        &GEMSPEC,
+        &GEOPACKAGE,
+        &GGUF,
+        &GIF,
+        &GITATTRIBUTES,
+        &GITMODULES,
+        &GLTF,
+        &GO,
+        &GPX,
+        &GRADLE,
+        &GRIB,
+        &GROOVY,
+        &GZIP,
+        &H5,
+        &HANDLEBARS,
+        &HASKELL,
+        &HCL,
+        &HDF4,
+        &HEIF,
+        &HLP,
+        &HTACCESS,
+        &HTML,
+        &HVE,
+        &ICC,
+        &ICNS,
+        &ICO,
+        &ICS,
+        &IGNOREFILE,
+        &ILBM,
+        &INI,
+        &INTELHEX,
+        &INTERNETSHORTCUT,
+        &IPYNB,
+        &ISO,
+        &JAR,
+        &JAVA,
+        &JAVABYTECODE,
+        &JAVASCRIPT,
+        &JINJA,
+        &JNG,
+        &JP2,
+        &JPEG,
+        &JSON,
+        &JSONL,
+        &JULIA,
+        &JXL,
+        &KERAS,
+        &KML,
+        &KMZ,
+        &KOALA,
+        &KOTLIN,
+        &LATEX,
+        &LHA,
+        &LISP,
+        &LLVM_BITCODE,
+        &LNK,
+        &LRZ,
+        &LUA,
+        &LUABYTECODE,
+        &LZ,
+        &LZ4,
+        &M3U,
+        &M4,
+        &MACHO,
+        &MAKEFILE,
+        &MARKDOWN,
+        &MAT,
+        &MATLAB,
+        &MHT,
+        &MIDI,
+        &MINIDUMP,
+        &MKV,
+        &MP3,
+        &MP4,
+        &MPEGTS,
+        &MSCOMPRESS,
+        &MSI,
+        &MSIX,
+        &MUM,
+        &NETCDF,
+        &NPY,
+        &NPZ,
+        &NRRD,
+        &NUPKG,
+        &OBJECTIVEC,
+        &OCAML,
+        &ODP,
+        &ODS,
+        &ODT,
+        &OGG,
+        &ONE,
+        &ONNX,
+        &OSM,
+        &OTF,
+        &OUTLOOK,
+        &PALMOS,
+        &PARQUET,
+        &PASCAL,
+        &PBM,
+        &PCAP,
+        &PCAPNG,
+        &PDB,
+        &PDF,
+        &PEBIN,
+        &PEM,
+        &PERL,
+        &PGP,
+        &PHP,
+        &PICKLE,
+        &PLY,
+        &PNG,
+        &PO,
+        &POSTGRES_DUMP,
+        &POSTSCRIPT,
+        &POWERSHELL,
+        &PPT,
+        &PPTX,
+        &PROLOG,
+        &PROTEINDB,
+        &PROTO,
+        &PSD,
+        &PYTHON,
+        &PYTHONBYTECODE,
+        &PYTORCH,
+        &QGIS,
+        &QOI,
+        &QT,
+        &R,
+        &RANDOMBYTES,
+        &RANDOMTXT,
+        &RAR,
+        &RDF,
+        &REDIS_RDB,
+        &RPM,
+        &RST,
+        &RTF,
+        &RUBY,
+        &RUST,
+        &RZIP,
+        &SAFETENSORS,
+        &SAS,
+        &SCALA,
+        &SCSS,
+        &SEVENZIP,
+        &SGML,
+        &SHAPEFILE,
+        &SHELL,
+        &SKETCHUP,
+        &SMALI,
+        &SNAP,
+        &SOLIDITY,
+        &SPIRV,
+        &SPSS,
+        &SQL,
+        &SQLITE,
+        &SQUASHFS,
+        &SRT,
+        &STATA,
+        &STEP,
+        &STLBINARY,
+        &STLTEXT,
+        &SUM,
+        &SVG,
+        &SWF,
+        &SWIFT,
+        &SYMLINK,
+        &TAR,
+        &TCL,
+        &TEXTPROTO,
+        &TGA,
+        &THUMBSDB,
+        &TIFF,
+        &TOML,
+        &TORRENT,
+        &TSV,
+        &TTF,
+        &TWIG,
+        &TXT,
+        &TYPESCRIPT,
+        &UF2,
+        &UNDEFINED,
+        &UNIXCOMPRESS,
+        &UNKNOWN,
+        &UNSUPPORTED,
+        &VBA,
+        &VCXPROJ,
+        &VERILOG,
+        &VHD,
+        &VHDL,
+        &VIB,
+        &VISIO,
+        &VTT,
+        &VUE,
+        &WAD,
+        &WASM,
+        &WAV,
+        &WEBM,
+        &WEBP,
+        &WINREGISTRY,
+        &WMF,
+        &WOFF,
+        &WOFF2,
+        &XAR,
+        &XCF,
+        &XCOFF,
+        &XLS,
+        &XLSB,
+        &XLSX,
+        &XML,
+        &XPI,
+        &XZ,
+        &YAML,
+        &YARA,
+        &ZIG,
+        &ZIP,
+        &ZLIBSTREAM,
+        &ZST,
+    ];
+}
+
 /// Content types for regular files.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ContentType {
+    /// 3D studio Max
+    _3dsm,
+    /// Nintendo 3DS homebrew
+    _3dsx,
     /// 3GPP multimedia file
     _3gp,
+    /// 3D Manufacturing Format
+    _3mf,
     /// ACE archive
     Ace,
     /// Adobe Illustrator Artwork
     Ai,
     /// Android Interface Definition Language
     Aidl,
+    /// Animated cursor
+    Ani,
     /// Android package
     Apk,
     /// Apple binary property list
     Applebplist,
+    /// AppleDouble
+    Appledouble,
     /// Apple property list
     Appleplist,
+    /// AppleSingle
+    Applesingle,
+    /// arrow
+    Arrow,
     /// Assembly
     Asm,
     /// ASP source
     Asp,
+    /// NeXT/Sun AU
+    Au,
     /// AutoHotKey script
     Autohotkey,
     /// AutoIt script
     Autoit,
+    /// Audio Video Interleave
+    Avi,
+    /// AV1 Image File Format
+    Avif,
+    /// Apache Avro binary
+    Avro,
     /// Awk
     Awk,
+    /// BAM alignment
+    Bam,
     /// DOS batch file
     Batch,
     /// Bazel build file
     Bazel,
+    /// Erlang BEAM
+    Beam,
     /// BibTeX
     Bib,
+    /// Blender scene
+    Blend,
     /// BMP image data
     Bmp,
+    /// BPG
+    Bpg,
     /// bzip2 compressed data
     Bzip,
     /// C source
@@ -2050,8 +4329,12 @@ pub enum ContentType {
     Coff,
     /// CoffeeScript
     Coffeescript,
+    /// COLLADA digital asset
+    Collada,
     /// C++ source
     Cpp,
+    /// CRAM alignment
+    Cram,
     /// Certificates (binary format)
     Crt,
     /// Google Chrome extension
@@ -2064,10 +4347,16 @@ pub enum ContentType {
     Css,
     /// CSV document
     Csv,
+    /// NVIDIA CUDA binary
+    Cubin,
     /// Dart source
     Dart,
+    /// dBASE / FoxPro table
+    Dbase,
     /// Debian binary package
     Deb,
+    /// Atari ST DEGAS image
+    Degas,
     /// Dalvik dex file
     Dex,
     /// DICOM
@@ -2084,11 +4373,15 @@ pub enum ContentType {
     Dockerfile,
     /// Microsoft Word 2007+ document
     Docx,
+    /// Office Word 2007 template
+    Dotx,
     /// Application Desktop Services Store
     Dsstore,
+    /// DuckDB database
+    Duckdb,
     /// Autocad Drawing
     Dwg,
-    /// Audocad Drawing Exchange Format
+    /// Autocad Drawing Exchange Format
     Dxf,
     /// ELF executable
     Elf,
@@ -2106,6 +4399,12 @@ pub enum ContentType {
     Erb,
     /// Erlang source
     Erlang,
+    /// ESE Db
+    Ese,
+    /// Autodesk FBX
+    Fbx,
+    /// FITS astronomy data
+    Fits,
     /// FLAC audio bitstream data
     Flac,
     /// Flash Video
@@ -2116,16 +4415,26 @@ pub enum ContentType {
     Gemfile,
     /// Gemspec file
     Gemspec,
+    /// OGC GeoPackage
+    Geopackage,
+    /// GGUF
+    Gguf,
     /// GIF image data
     Gif,
     /// Gitattributes file
     Gitattributes,
     /// Gitmodules file
     Gitmodules,
+    /// glTF
+    Gltf,
     /// Golang source
     Go,
+    /// XML document
+    Gpx,
     /// Gradle source
     Gradle,
+    /// GRIB meteorological data
+    Grib,
     /// Groovy source
     Groovy,
     /// gzip compressed data
@@ -2138,12 +4447,20 @@ pub enum ContentType {
     Haskell,
     /// HashiCorp configuration language
     Hcl,
+    /// HDF4
+    Hdf4,
+    /// High Efficiency Image File
+    Heif,
     /// MS Windows help
     Hlp,
     /// Apache access configuration
     Htaccess,
     /// HTML document
     Html,
+    /// hve
+    Hve,
+    /// ICC profile
+    Icc,
     /// Mac OS X icon
     Icns,
     /// MS Windows icon resource
@@ -2152,8 +4469,12 @@ pub enum ContentType {
     Ics,
     /// Ignorefile
     Ignorefile,
+    /// Amiga IFF ILBM image
+    Ilbm,
     /// INI configuration file
     Ini,
+    /// Intel HEX
+    Intelhex,
     /// MS Windows Internet shortcut
     Internetshortcut,
     /// Jupyter notebook
@@ -2170,6 +4491,8 @@ pub enum ContentType {
     Javascript,
     /// Jinja template
     Jinja,
+    /// JPEG network graphics
+    Jng,
     /// jpeg2000
     Jp2,
     /// JPEG image data
@@ -2180,6 +4503,16 @@ pub enum ContentType {
     Jsonl,
     /// Julia source
     Julia,
+    /// JPEG XL
+    Jxl,
+    /// Keras model archive
+    Keras,
+    /// Keyhole Markup Language
+    Kml,
+    /// Keyhole Markup Language archive
+    Kmz,
+    /// Commodore 64 Koala Painter image
+    Koala,
     /// Kotlin source
     Kotlin,
     /// LaTeX document
@@ -2188,10 +4521,20 @@ pub enum ContentType {
     Lha,
     /// Lisp source
     Lisp,
+    /// LLVM bitcode
+    LlvmBitcode,
     /// MS Windows shortcut
     Lnk,
+    /// LRZip
+    Lrz,
     /// Lua
     Lua,
+    /// Lua bytecode
+    Luabytecode,
+    /// LZip
+    Lz,
+    /// LZ4
+    Lz4,
     /// M3U playlist
     M3u,
     /// GNU Macro
@@ -2202,28 +4545,40 @@ pub enum ContentType {
     Makefile,
     /// Markdown document
     Markdown,
+    /// MATLAB MAT data
+    Mat,
     /// Matlab Source
     Matlab,
     /// MHTML document
     Mht,
     /// Midi
     Midi,
+    /// Windows minidump
+    Minidump,
     /// Matroska
     Mkv,
     /// MP3 media file
     Mp3,
     /// MP4 media file
     Mp4,
+    /// MPEG Transport stream
+    Mpegts,
     /// MS Compress archive data
     Mscompress,
     /// Microsoft Installer file
     Msi,
+    /// Windows app package
+    Msix,
     /// Windows Update Package file
     Mum,
+    /// NetCDF
+    Netcdf,
     /// Numpy Array
     Npy,
     /// Numpy Arrays Archive
     Npz,
+    /// Nearly Raw Raster Data
+    Nrrd,
     /// NuGet Package
     Nupkg,
     /// ObjectiveC source
@@ -2238,20 +4593,28 @@ pub enum ContentType {
     Odt,
     /// Ogg data
     Ogg,
-    /// One Note
+    /// OneNote
     One,
     /// Open Neural Network Exchange
     Onnx,
+    /// OpenStreetMap data
+    Osm,
     /// OpenType font
     Otf,
     /// MS Outlook Message
     Outlook,
+    /// palmos
+    Palmos,
     /// Apache Parquet
     Parquet,
     /// Pascal source
     Pascal,
+    /// pbm
+    Pbm,
     /// pcap capture file
     Pcap,
+    /// Packet capture PCAPNG
+    Pcapng,
     /// Windows Program Database
     Pdb,
     /// PDF document
@@ -2262,14 +4625,20 @@ pub enum ContentType {
     Pem,
     /// Perl source
     Perl,
+    /// PGP
+    Pgp,
     /// PHP source
     Php,
     /// Python pickle
     Pickle,
+    /// Polygon File Format
+    Ply,
     /// PNG image
     Png,
     /// Portable Object (PO) for i18n
     Po,
+    /// PostgreSQL dump
+    PostgresDump,
     /// PostScript document
     Postscript,
     /// Powershell source
@@ -2292,6 +4661,10 @@ pub enum ContentType {
     Pythonbytecode,
     /// Pytorch storage file
     Pytorch,
+    /// QGIS project archive
+    Qgis,
+    /// Quite Ok Image
+    Qoi,
     /// QuickTime
     Qt,
     /// R (language)
@@ -2304,6 +4677,8 @@ pub enum ContentType {
     Rar,
     /// Resource Description Framework document (RDF)
     Rdf,
+    /// Redis snapshot
+    RedisRdb,
     /// RedHat Package Manager archive (RPM)
     Rpm,
     /// ReStructuredText document
@@ -2314,6 +4689,12 @@ pub enum ContentType {
     Ruby,
     /// Rust source
     Rust,
+    /// Rzip
+    Rzip,
+    /// Safetensors
+    Safetensors,
+    /// SAS dataset / transport
+    Sas,
     /// Scala source
     Scala,
     /// SCSS source
@@ -2322,14 +4703,22 @@ pub enum ContentType {
     Sevenzip,
     /// sgml
     Sgml,
+    /// ESRI Shapefile
+    Shapefile,
     /// Shell script
     Shell,
+    /// SketchUp model
+    Sketchup,
     /// Smali source
     Smali,
     /// Snap archive
     Snap,
     /// Solidity source
     Solidity,
+    /// SPIR-V
+    Spirv,
+    /// SPSS dataset
+    Spss,
     /// SQL source
     Sql,
     /// SQLITE database
@@ -2338,6 +4727,10 @@ pub enum ContentType {
     Squashfs,
     /// SubRip Text Format
     Srt,
+    /// Stata dataset
+    Stata,
+    /// ISO 10303 STEP CAD model
+    Step,
     /// Stereolithography CAD (binary)
     Stlbinary,
     /// Stereolithography CAD (text)
@@ -2346,13 +4739,13 @@ pub enum ContentType {
     Sum,
     /// SVG Scalable Vector Graphics image data
     Svg,
-    /// Small Web File
+    /// Small Web Format
     Swf,
     /// Swift
     Swift,
     /// POSIX tar archive
     Tar,
-    /// Tickle
+    /// Tcl
     Tcl,
     /// Text protocol buffer
     Textproto,
@@ -2376,8 +4769,12 @@ pub enum ContentType {
     Txt,
     /// TypeScript source
     Typescript,
+    /// UF2 firmware
+    Uf2,
     /// Undefined
     Undefined,
+    /// unixcompress
+    Unixcompress,
     /// Unknown binary data
     Unknown,
     /// MS Visual Basic source (VBA)
@@ -2386,12 +4783,20 @@ pub enum ContentType {
     Vcxproj,
     /// Verilog source
     Verilog,
+    /// Virtual Hard Disk
+    Vhd,
     /// VHDL source
     Vhdl,
+    /// VMware Installation Bundle
+    Vib,
+    /// Microsoft Visio
+    Visio,
     /// Web Video Text Tracks
     Vtt,
     /// Vue source
     Vue,
+    /// WAD
+    Wad,
     /// Web Assembly
     Wasm,
     /// Waveform Audio file (WAV)
@@ -2410,6 +4815,10 @@ pub enum ContentType {
     Woff2,
     /// XAR archive compressed data
     Xar,
+    /// Gimp image
+    Xcf,
+    /// XCOFF
+    Xcoff,
     /// Microsoft Excel CDF document
     Xls,
     /// Microsoft Excel 2007+ document (binary format)
@@ -2432,30 +4841,350 @@ pub enum ContentType {
     Zip,
     /// zlib compressed data
     Zlibstream,
+    /// Zstandard
+    Zst,
 }
 
 impl ContentType {
-    pub(crate) const SIZE: usize = 217;
+    /// Returns a content type from its label.
+    pub fn from_label(label: &str) -> Option<Self> {
+        Some(match label {
+            "3dsm" => Self::_3dsm,
+            "3dsx" => Self::_3dsx,
+            "3gp" => Self::_3gp,
+            "3mf" => Self::_3mf,
+            "ace" => Self::Ace,
+            "ai" => Self::Ai,
+            "aidl" => Self::Aidl,
+            "ani" => Self::Ani,
+            "apk" => Self::Apk,
+            "applebplist" => Self::Applebplist,
+            "appledouble" => Self::Appledouble,
+            "appleplist" => Self::Appleplist,
+            "applesingle" => Self::Applesingle,
+            "arrow" => Self::Arrow,
+            "asm" => Self::Asm,
+            "asp" => Self::Asp,
+            "au" => Self::Au,
+            "autohotkey" => Self::Autohotkey,
+            "autoit" => Self::Autoit,
+            "avi" => Self::Avi,
+            "avif" => Self::Avif,
+            "avro" => Self::Avro,
+            "awk" => Self::Awk,
+            "bam" => Self::Bam,
+            "batch" => Self::Batch,
+            "bazel" => Self::Bazel,
+            "beam" => Self::Beam,
+            "bib" => Self::Bib,
+            "blend" => Self::Blend,
+            "bmp" => Self::Bmp,
+            "bpg" => Self::Bpg,
+            "bzip" => Self::Bzip,
+            "c" => Self::C,
+            "cab" => Self::Cab,
+            "cat" => Self::Cat,
+            "chm" => Self::Chm,
+            "clojure" => Self::Clojure,
+            "cmake" => Self::Cmake,
+            "cobol" => Self::Cobol,
+            "coff" => Self::Coff,
+            "coffeescript" => Self::Coffeescript,
+            "collada" => Self::Collada,
+            "cpp" => Self::Cpp,
+            "cram" => Self::Cram,
+            "crt" => Self::Crt,
+            "crx" => Self::Crx,
+            "cs" => Self::Cs,
+            "csproj" => Self::Csproj,
+            "css" => Self::Css,
+            "csv" => Self::Csv,
+            "cubin" => Self::Cubin,
+            "dart" => Self::Dart,
+            "dbase" => Self::Dbase,
+            "deb" => Self::Deb,
+            "degas" => Self::Degas,
+            "dex" => Self::Dex,
+            "dicom" => Self::Dicom,
+            "diff" => Self::Diff,
+            "dm" => Self::Dm,
+            "dmg" => Self::Dmg,
+            "doc" => Self::Doc,
+            "dockerfile" => Self::Dockerfile,
+            "docx" => Self::Docx,
+            "dotx" => Self::Dotx,
+            "dsstore" => Self::Dsstore,
+            "duckdb" => Self::Duckdb,
+            "dwg" => Self::Dwg,
+            "dxf" => Self::Dxf,
+            "elf" => Self::Elf,
+            "elixir" => Self::Elixir,
+            "emf" => Self::Emf,
+            "eml" => Self::Eml,
+            "empty" => Self::Empty,
+            "epub" => Self::Epub,
+            "erb" => Self::Erb,
+            "erlang" => Self::Erlang,
+            "ese" => Self::Ese,
+            "fbx" => Self::Fbx,
+            "fits" => Self::Fits,
+            "flac" => Self::Flac,
+            "flv" => Self::Flv,
+            "fortran" => Self::Fortran,
+            "gemfile" => Self::Gemfile,
+            "gemspec" => Self::Gemspec,
+            "geopackage" => Self::Geopackage,
+            "gguf" => Self::Gguf,
+            "gif" => Self::Gif,
+            "gitattributes" => Self::Gitattributes,
+            "gitmodules" => Self::Gitmodules,
+            "gltf" => Self::Gltf,
+            "go" => Self::Go,
+            "gpx" => Self::Gpx,
+            "gradle" => Self::Gradle,
+            "grib" => Self::Grib,
+            "groovy" => Self::Groovy,
+            "gzip" => Self::Gzip,
+            "h5" => Self::H5,
+            "handlebars" => Self::Handlebars,
+            "haskell" => Self::Haskell,
+            "hcl" => Self::Hcl,
+            "hdf4" => Self::Hdf4,
+            "heif" => Self::Heif,
+            "hlp" => Self::Hlp,
+            "htaccess" => Self::Htaccess,
+            "html" => Self::Html,
+            "hve" => Self::Hve,
+            "icc" => Self::Icc,
+            "icns" => Self::Icns,
+            "ico" => Self::Ico,
+            "ics" => Self::Ics,
+            "ignorefile" => Self::Ignorefile,
+            "ilbm" => Self::Ilbm,
+            "ini" => Self::Ini,
+            "intelhex" => Self::Intelhex,
+            "internetshortcut" => Self::Internetshortcut,
+            "ipynb" => Self::Ipynb,
+            "iso" => Self::Iso,
+            "jar" => Self::Jar,
+            "java" => Self::Java,
+            "javabytecode" => Self::Javabytecode,
+            "javascript" => Self::Javascript,
+            "jinja" => Self::Jinja,
+            "jng" => Self::Jng,
+            "jp2" => Self::Jp2,
+            "jpeg" => Self::Jpeg,
+            "json" => Self::Json,
+            "jsonl" => Self::Jsonl,
+            "julia" => Self::Julia,
+            "jxl" => Self::Jxl,
+            "keras" => Self::Keras,
+            "kml" => Self::Kml,
+            "kmz" => Self::Kmz,
+            "koala" => Self::Koala,
+            "kotlin" => Self::Kotlin,
+            "latex" => Self::Latex,
+            "lha" => Self::Lha,
+            "lisp" => Self::Lisp,
+            "llvm_bitcode" => Self::LlvmBitcode,
+            "lnk" => Self::Lnk,
+            "lrz" => Self::Lrz,
+            "lua" => Self::Lua,
+            "luabytecode" => Self::Luabytecode,
+            "lz" => Self::Lz,
+            "lz4" => Self::Lz4,
+            "m3u" => Self::M3u,
+            "m4" => Self::M4,
+            "macho" => Self::Macho,
+            "makefile" => Self::Makefile,
+            "markdown" => Self::Markdown,
+            "mat" => Self::Mat,
+            "matlab" => Self::Matlab,
+            "mht" => Self::Mht,
+            "midi" => Self::Midi,
+            "minidump" => Self::Minidump,
+            "mkv" => Self::Mkv,
+            "mp3" => Self::Mp3,
+            "mp4" => Self::Mp4,
+            "mpegts" => Self::Mpegts,
+            "mscompress" => Self::Mscompress,
+            "msi" => Self::Msi,
+            "msix" => Self::Msix,
+            "mum" => Self::Mum,
+            "netcdf" => Self::Netcdf,
+            "npy" => Self::Npy,
+            "npz" => Self::Npz,
+            "nrrd" => Self::Nrrd,
+            "nupkg" => Self::Nupkg,
+            "objectivec" => Self::Objectivec,
+            "ocaml" => Self::Ocaml,
+            "odp" => Self::Odp,
+            "ods" => Self::Ods,
+            "odt" => Self::Odt,
+            "ogg" => Self::Ogg,
+            "one" => Self::One,
+            "onnx" => Self::Onnx,
+            "osm" => Self::Osm,
+            "otf" => Self::Otf,
+            "outlook" => Self::Outlook,
+            "palmos" => Self::Palmos,
+            "parquet" => Self::Parquet,
+            "pascal" => Self::Pascal,
+            "pbm" => Self::Pbm,
+            "pcap" => Self::Pcap,
+            "pcapng" => Self::Pcapng,
+            "pdb" => Self::Pdb,
+            "pdf" => Self::Pdf,
+            "pebin" => Self::Pebin,
+            "pem" => Self::Pem,
+            "perl" => Self::Perl,
+            "pgp" => Self::Pgp,
+            "php" => Self::Php,
+            "pickle" => Self::Pickle,
+            "ply" => Self::Ply,
+            "png" => Self::Png,
+            "po" => Self::Po,
+            "postgres_dump" => Self::PostgresDump,
+            "postscript" => Self::Postscript,
+            "powershell" => Self::Powershell,
+            "ppt" => Self::Ppt,
+            "pptx" => Self::Pptx,
+            "prolog" => Self::Prolog,
+            "proteindb" => Self::Proteindb,
+            "proto" => Self::Proto,
+            "psd" => Self::Psd,
+            "python" => Self::Python,
+            "pythonbytecode" => Self::Pythonbytecode,
+            "pytorch" => Self::Pytorch,
+            "qgis" => Self::Qgis,
+            "qoi" => Self::Qoi,
+            "qt" => Self::Qt,
+            "r" => Self::R,
+            "randombytes" => Self::Randombytes,
+            "randomtxt" => Self::Randomtxt,
+            "rar" => Self::Rar,
+            "rdf" => Self::Rdf,
+            "redis_rdb" => Self::RedisRdb,
+            "rpm" => Self::Rpm,
+            "rst" => Self::Rst,
+            "rtf" => Self::Rtf,
+            "ruby" => Self::Ruby,
+            "rust" => Self::Rust,
+            "rzip" => Self::Rzip,
+            "safetensors" => Self::Safetensors,
+            "sas" => Self::Sas,
+            "scala" => Self::Scala,
+            "scss" => Self::Scss,
+            "sevenzip" => Self::Sevenzip,
+            "sgml" => Self::Sgml,
+            "shapefile" => Self::Shapefile,
+            "shell" => Self::Shell,
+            "sketchup" => Self::Sketchup,
+            "smali" => Self::Smali,
+            "snap" => Self::Snap,
+            "solidity" => Self::Solidity,
+            "spirv" => Self::Spirv,
+            "spss" => Self::Spss,
+            "sql" => Self::Sql,
+            "sqlite" => Self::Sqlite,
+            "squashfs" => Self::Squashfs,
+            "srt" => Self::Srt,
+            "stata" => Self::Stata,
+            "step" => Self::Step,
+            "stlbinary" => Self::Stlbinary,
+            "stltext" => Self::Stltext,
+            "sum" => Self::Sum,
+            "svg" => Self::Svg,
+            "swf" => Self::Swf,
+            "swift" => Self::Swift,
+            "tar" => Self::Tar,
+            "tcl" => Self::Tcl,
+            "textproto" => Self::Textproto,
+            "tga" => Self::Tga,
+            "thumbsdb" => Self::Thumbsdb,
+            "tiff" => Self::Tiff,
+            "toml" => Self::Toml,
+            "torrent" => Self::Torrent,
+            "tsv" => Self::Tsv,
+            "ttf" => Self::Ttf,
+            "twig" => Self::Twig,
+            "txt" => Self::Txt,
+            "typescript" => Self::Typescript,
+            "uf2" => Self::Uf2,
+            "undefined" => Self::Undefined,
+            "unixcompress" => Self::Unixcompress,
+            "unknown" => Self::Unknown,
+            "vba" => Self::Vba,
+            "vcxproj" => Self::Vcxproj,
+            "verilog" => Self::Verilog,
+            "vhd" => Self::Vhd,
+            "vhdl" => Self::Vhdl,
+            "vib" => Self::Vib,
+            "visio" => Self::Visio,
+            "vtt" => Self::Vtt,
+            "vue" => Self::Vue,
+            "wad" => Self::Wad,
+            "wasm" => Self::Wasm,
+            "wav" => Self::Wav,
+            "webm" => Self::Webm,
+            "webp" => Self::Webp,
+            "winregistry" => Self::Winregistry,
+            "wmf" => Self::Wmf,
+            "woff" => Self::Woff,
+            "woff2" => Self::Woff2,
+            "xar" => Self::Xar,
+            "xcf" => Self::Xcf,
+            "xcoff" => Self::Xcoff,
+            "xls" => Self::Xls,
+            "xlsb" => Self::Xlsb,
+            "xlsx" => Self::Xlsx,
+            "xml" => Self::Xml,
+            "xpi" => Self::Xpi,
+            "xz" => Self::Xz,
+            "yaml" => Self::Yaml,
+            "yara" => Self::Yara,
+            "zig" => Self::Zig,
+            "zip" => Self::Zip,
+            "zlibstream" => Self::Zlibstream,
+            "zst" => Self::Zst,
+            _ => return None,
+        })
+    }
 
     /// Returns the content type information.
     pub fn info(self) -> &'static TypeInfo {
         match self {
+            ContentType::_3dsm => &_3DSM,
+            ContentType::_3dsx => &_3DSX,
             ContentType::_3gp => &_3GP,
+            ContentType::_3mf => &_3MF,
             ContentType::Ace => &ACE,
             ContentType::Ai => &AI,
             ContentType::Aidl => &AIDL,
+            ContentType::Ani => &ANI,
             ContentType::Apk => &APK,
             ContentType::Applebplist => &APPLEBPLIST,
+            ContentType::Appledouble => &APPLEDOUBLE,
             ContentType::Appleplist => &APPLEPLIST,
+            ContentType::Applesingle => &APPLESINGLE,
+            ContentType::Arrow => &ARROW,
             ContentType::Asm => &ASM,
             ContentType::Asp => &ASP,
+            ContentType::Au => &AU,
             ContentType::Autohotkey => &AUTOHOTKEY,
             ContentType::Autoit => &AUTOIT,
+            ContentType::Avi => &AVI,
+            ContentType::Avif => &AVIF,
+            ContentType::Avro => &AVRO,
             ContentType::Awk => &AWK,
+            ContentType::Bam => &BAM,
             ContentType::Batch => &BATCH,
             ContentType::Bazel => &BAZEL,
+            ContentType::Beam => &BEAM,
             ContentType::Bib => &BIB,
+            ContentType::Blend => &BLEND,
             ContentType::Bmp => &BMP,
+            ContentType::Bpg => &BPG,
             ContentType::Bzip => &BZIP,
             ContentType::C => &C,
             ContentType::Cab => &CAB,
@@ -2466,15 +5195,20 @@ impl ContentType {
             ContentType::Cobol => &COBOL,
             ContentType::Coff => &COFF,
             ContentType::Coffeescript => &COFFEESCRIPT,
+            ContentType::Collada => &COLLADA,
             ContentType::Cpp => &CPP,
+            ContentType::Cram => &CRAM,
             ContentType::Crt => &CRT,
             ContentType::Crx => &CRX,
             ContentType::Cs => &CS,
             ContentType::Csproj => &CSPROJ,
             ContentType::Css => &CSS,
             ContentType::Csv => &CSV,
+            ContentType::Cubin => &CUBIN,
             ContentType::Dart => &DART,
+            ContentType::Dbase => &DBASE,
             ContentType::Deb => &DEB,
+            ContentType::Degas => &DEGAS,
             ContentType::Dex => &DEX,
             ContentType::Dicom => &DICOM,
             ContentType::Diff => &DIFF,
@@ -2483,7 +5217,9 @@ impl ContentType {
             ContentType::Doc => &DOC,
             ContentType::Dockerfile => &DOCKERFILE,
             ContentType::Docx => &DOCX,
+            ContentType::Dotx => &DOTX,
             ContentType::Dsstore => &DSSTORE,
+            ContentType::Duckdb => &DUCKDB,
             ContentType::Dwg => &DWG,
             ContentType::Dxf => &DXF,
             ContentType::Elf => &ELF,
@@ -2494,30 +5230,44 @@ impl ContentType {
             ContentType::Epub => &EPUB,
             ContentType::Erb => &ERB,
             ContentType::Erlang => &ERLANG,
+            ContentType::Ese => &ESE,
+            ContentType::Fbx => &FBX,
+            ContentType::Fits => &FITS,
             ContentType::Flac => &FLAC,
             ContentType::Flv => &FLV,
             ContentType::Fortran => &FORTRAN,
             ContentType::Gemfile => &GEMFILE,
             ContentType::Gemspec => &GEMSPEC,
+            ContentType::Geopackage => &GEOPACKAGE,
+            ContentType::Gguf => &GGUF,
             ContentType::Gif => &GIF,
             ContentType::Gitattributes => &GITATTRIBUTES,
             ContentType::Gitmodules => &GITMODULES,
+            ContentType::Gltf => &GLTF,
             ContentType::Go => &GO,
+            ContentType::Gpx => &GPX,
             ContentType::Gradle => &GRADLE,
+            ContentType::Grib => &GRIB,
             ContentType::Groovy => &GROOVY,
             ContentType::Gzip => &GZIP,
             ContentType::H5 => &H5,
             ContentType::Handlebars => &HANDLEBARS,
             ContentType::Haskell => &HASKELL,
             ContentType::Hcl => &HCL,
+            ContentType::Hdf4 => &HDF4,
+            ContentType::Heif => &HEIF,
             ContentType::Hlp => &HLP,
             ContentType::Htaccess => &HTACCESS,
             ContentType::Html => &HTML,
+            ContentType::Hve => &HVE,
+            ContentType::Icc => &ICC,
             ContentType::Icns => &ICNS,
             ContentType::Ico => &ICO,
             ContentType::Ics => &ICS,
             ContentType::Ignorefile => &IGNOREFILE,
+            ContentType::Ilbm => &ILBM,
             ContentType::Ini => &INI,
+            ContentType::Intelhex => &INTELHEX,
             ContentType::Internetshortcut => &INTERNETSHORTCUT,
             ContentType::Ipynb => &IPYNB,
             ContentType::Iso => &ISO,
@@ -2526,33 +5276,50 @@ impl ContentType {
             ContentType::Javabytecode => &JAVABYTECODE,
             ContentType::Javascript => &JAVASCRIPT,
             ContentType::Jinja => &JINJA,
+            ContentType::Jng => &JNG,
             ContentType::Jp2 => &JP2,
             ContentType::Jpeg => &JPEG,
             ContentType::Json => &JSON,
             ContentType::Jsonl => &JSONL,
             ContentType::Julia => &JULIA,
+            ContentType::Jxl => &JXL,
+            ContentType::Keras => &KERAS,
+            ContentType::Kml => &KML,
+            ContentType::Kmz => &KMZ,
+            ContentType::Koala => &KOALA,
             ContentType::Kotlin => &KOTLIN,
             ContentType::Latex => &LATEX,
             ContentType::Lha => &LHA,
             ContentType::Lisp => &LISP,
+            ContentType::LlvmBitcode => &LLVM_BITCODE,
             ContentType::Lnk => &LNK,
+            ContentType::Lrz => &LRZ,
             ContentType::Lua => &LUA,
+            ContentType::Luabytecode => &LUABYTECODE,
+            ContentType::Lz => &LZ,
+            ContentType::Lz4 => &LZ4,
             ContentType::M3u => &M3U,
             ContentType::M4 => &M4,
             ContentType::Macho => &MACHO,
             ContentType::Makefile => &MAKEFILE,
             ContentType::Markdown => &MARKDOWN,
+            ContentType::Mat => &MAT,
             ContentType::Matlab => &MATLAB,
             ContentType::Mht => &MHT,
             ContentType::Midi => &MIDI,
+            ContentType::Minidump => &MINIDUMP,
             ContentType::Mkv => &MKV,
             ContentType::Mp3 => &MP3,
             ContentType::Mp4 => &MP4,
+            ContentType::Mpegts => &MPEGTS,
             ContentType::Mscompress => &MSCOMPRESS,
             ContentType::Msi => &MSI,
+            ContentType::Msix => &MSIX,
             ContentType::Mum => &MUM,
+            ContentType::Netcdf => &NETCDF,
             ContentType::Npy => &NPY,
             ContentType::Npz => &NPZ,
+            ContentType::Nrrd => &NRRD,
             ContentType::Nupkg => &NUPKG,
             ContentType::Objectivec => &OBJECTIVEC,
             ContentType::Ocaml => &OCAML,
@@ -2562,20 +5329,27 @@ impl ContentType {
             ContentType::Ogg => &OGG,
             ContentType::One => &ONE,
             ContentType::Onnx => &ONNX,
+            ContentType::Osm => &OSM,
             ContentType::Otf => &OTF,
             ContentType::Outlook => &OUTLOOK,
+            ContentType::Palmos => &PALMOS,
             ContentType::Parquet => &PARQUET,
             ContentType::Pascal => &PASCAL,
+            ContentType::Pbm => &PBM,
             ContentType::Pcap => &PCAP,
+            ContentType::Pcapng => &PCAPNG,
             ContentType::Pdb => &PDB,
             ContentType::Pdf => &PDF,
             ContentType::Pebin => &PEBIN,
             ContentType::Pem => &PEM,
             ContentType::Perl => &PERL,
+            ContentType::Pgp => &PGP,
             ContentType::Php => &PHP,
             ContentType::Pickle => &PICKLE,
+            ContentType::Ply => &PLY,
             ContentType::Png => &PNG,
             ContentType::Po => &PO,
+            ContentType::PostgresDump => &POSTGRES_DUMP,
             ContentType::Postscript => &POSTSCRIPT,
             ContentType::Powershell => &POWERSHELL,
             ContentType::Ppt => &PPT,
@@ -2587,29 +5361,41 @@ impl ContentType {
             ContentType::Python => &PYTHON,
             ContentType::Pythonbytecode => &PYTHONBYTECODE,
             ContentType::Pytorch => &PYTORCH,
+            ContentType::Qgis => &QGIS,
+            ContentType::Qoi => &QOI,
             ContentType::Qt => &QT,
             ContentType::R => &R,
             ContentType::Randombytes => &RANDOMBYTES,
             ContentType::Randomtxt => &RANDOMTXT,
             ContentType::Rar => &RAR,
             ContentType::Rdf => &RDF,
+            ContentType::RedisRdb => &REDIS_RDB,
             ContentType::Rpm => &RPM,
             ContentType::Rst => &RST,
             ContentType::Rtf => &RTF,
             ContentType::Ruby => &RUBY,
             ContentType::Rust => &RUST,
+            ContentType::Rzip => &RZIP,
+            ContentType::Safetensors => &SAFETENSORS,
+            ContentType::Sas => &SAS,
             ContentType::Scala => &SCALA,
             ContentType::Scss => &SCSS,
             ContentType::Sevenzip => &SEVENZIP,
             ContentType::Sgml => &SGML,
+            ContentType::Shapefile => &SHAPEFILE,
             ContentType::Shell => &SHELL,
+            ContentType::Sketchup => &SKETCHUP,
             ContentType::Smali => &SMALI,
             ContentType::Snap => &SNAP,
             ContentType::Solidity => &SOLIDITY,
+            ContentType::Spirv => &SPIRV,
+            ContentType::Spss => &SPSS,
             ContentType::Sql => &SQL,
             ContentType::Sqlite => &SQLITE,
             ContentType::Squashfs => &SQUASHFS,
             ContentType::Srt => &SRT,
+            ContentType::Stata => &STATA,
+            ContentType::Step => &STEP,
             ContentType::Stlbinary => &STLBINARY,
             ContentType::Stltext => &STLTEXT,
             ContentType::Sum => &SUM,
@@ -2629,14 +5415,20 @@ impl ContentType {
             ContentType::Twig => &TWIG,
             ContentType::Txt => &TXT,
             ContentType::Typescript => &TYPESCRIPT,
+            ContentType::Uf2 => &UF2,
             ContentType::Undefined => &UNDEFINED,
+            ContentType::Unixcompress => &UNIXCOMPRESS,
             ContentType::Unknown => &UNKNOWN,
             ContentType::Vba => &VBA,
             ContentType::Vcxproj => &VCXPROJ,
             ContentType::Verilog => &VERILOG,
+            ContentType::Vhd => &VHD,
             ContentType::Vhdl => &VHDL,
+            ContentType::Vib => &VIB,
+            ContentType::Visio => &VISIO,
             ContentType::Vtt => &VTT,
             ContentType::Vue => &VUE,
+            ContentType::Wad => &WAD,
             ContentType::Wasm => &WASM,
             ContentType::Wav => &WAV,
             ContentType::Webm => &WEBM,
@@ -2646,6 +5438,8 @@ impl ContentType {
             ContentType::Woff => &WOFF,
             ContentType::Woff2 => &WOFF2,
             ContentType::Xar => &XAR,
+            ContentType::Xcf => &XCF,
+            ContentType::Xcoff => &XCOFF,
             ContentType::Xls => &XLS,
             ContentType::Xlsb => &XLSB,
             ContentType::Xlsx => &XLSX,
@@ -2657,6 +5451,7 @@ impl ContentType {
             ContentType::Zig => &ZIG,
             ContentType::Zip => &ZIP,
             ContentType::Zlibstream => &ZLIBSTREAM,
+            ContentType::Zst => &ZST,
         }
     }
 }

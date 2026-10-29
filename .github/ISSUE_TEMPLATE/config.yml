@@ -1,0 +1,17 @@
+# GitHub issue template chooser configuration (shown at "New issue").
+# - blank_issues_enabled keeps the "open a blank issue" option, used for bugs
+#   and feature requests, which have no template on purpose.
+# - contact_links are listed next to the templates and link out instead of
+#   opening an issue.
+# Reference: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+blank_issues_enabled: true
+contact_links:
+  - name: How to contribute
+    url: https://securityresearch.google/magika/contributing/how-to-contribute/
+    about: Read this before opening a pull request. PRs are reviewed only for `help wanted` issues and the always-welcome list.
+  - name: Reporting issues
+    url: https://securityresearch.google/magika/contributing/reporting-issues/
+    about: What to include for misdetections, new content types, bugs, and how to share samples.
+  - name: Security vulnerabilities
+    url: https://github.com/google/magika/blob/main/SECURITY.md
+    about: Report privately to magika-dev@google.com; do not open a public issue.

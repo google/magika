@@ -32,22 +32,9 @@ classifiers = [
     "Topic :: Software Development",
     "Typing :: Typed",
 ]
-version = "1.0.2"
+version = "2.0.0.dev0"
 
-dependencies = [
-    "click>=8.1.7",
-
-    # Python 3.14+: Min version 1.24.1
-    "onnxruntime>=1.24.1 ; python_version >= '3.14'",
-    # Python 3.13: Min version 1.21.0
-    "onnxruntime>=1.21.0 ; python_version == '3.13'",
-    # Python 3.11 - 3.12: Min version 1.17.0
-    "onnxruntime>=1.17.0 ; python_version >= '3.11' and python_version < '3.13'",
-    # Python 3.10: Support dropped in 1.24.1 (use latest compatible)
-    "onnxruntime>=1.17.0, <1.24.1 ; python_version == '3.10'",
-    # Python 3.9: Support dropped in 1.20.0
-    "onnxruntime>=1.17.0, <1.20.0 ; python_version <= '3.9'",
-]
+dependencies = []
 
 
 [project.urls]
@@ -60,15 +47,16 @@ Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.11.2",
+    "ty>=0.0.87",
     "ipython>=8.12.3",
     "pytest>=8.3.2",
-    "ruff>=0.14.0",
+    "ruff>=0.14.3",
     "tomli-w>=1.0.0",
     "tomli>=2.0.1",
     "tqdm>=4.67.1",
     "dacite>=1.9.2",
     "requests>=2.32.4",
+    "coverage>=7.6.1",
 ]
 
 [build-system]
@@ -79,12 +67,25 @@ build-backend = "maturin"
 url = "https://pypi.org/simple"
 default = true
 
+[tool.uv]
+exclude-newer = "2 weeks"
+exclude-newer-package = { certifi = false, pip = false }
+required-version = ">=0.13.4"
+constraint-dependencies = [
+    "certifi>=2026.10.19",
+    "pip>=26.2.2",
+]
+
 [tool.maturin]
 python-source = "src"
-module-name = "magika"
-bindings = "bin"
-manifest-path = "../rust/cli/Cargo.toml"
+module-name = "magika._magika"
+manifest-path = "../rust/pyo3/Cargo.toml"
+data = "wheel_data"
 locked = true
+editable-profile = "release-fast"
+
+[tool.coverage.run]
+source = ["src/magika"]
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
@@ -102,3 +103,15 @@ convention = "google"
 
 [tool.ruff.format]
 docstring-code-format = true
+
+[tool.ty.src]
+include = ["src/magika", "tests"]
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
+
+[tool.ty.rules]
+blanket-ignore-comment = "error"
+missing-type-argument = "error"
+unsound-return-statement = "error"
+unused-ignore-comment = "error"

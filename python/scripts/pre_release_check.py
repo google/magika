@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# /// script
+# dependencies = ["click", "magika"]
+#
+# [tool.uv]
+# required-version = ">=0.13.4"
+#
+# [tool.uv.sources]
+# magika = { path = "..", editable = true }
+# ///
 
 
 """
@@ -18,6 +28,7 @@ It performs a number of checks to determine whether the package is ready for rel
 """
 
 import re
+import shutil
 import subprocess
 import sys
 
@@ -43,16 +54,10 @@ import magika
     default=True,
     help="Enable/disable version check via 'pip show'. (Default: Enabled)",
 )
-@click.option(
-    "--use-python-client",
-    is_flag=True,
-    help="Use the Python client instead of Rust client. (Default: False)",
-)
 def main(
     expected_version: str,
     report_only: bool,
     check_pip_show_package_version: bool,
-    use_python_client: bool,
 ) -> None:
     """Checks versions consistency for the `magika` package."""
 
@@ -60,8 +65,6 @@ def main(
         click.echo('Running in "report only" mode.')
     if not check_pip_show_package_version:
         click.echo("Skipping checking package version via pip show.")
-    if use_python_client:
-        click.echo("Using python client instead of Rust client.")
 
     strict_mode = not report_only
     if strict_mode:
@@ -85,10 +88,7 @@ def main(
     else:
         pip_show_package_version = ""
 
-    if use_python_client:
-        cli_version = instance_version
-    else:
-        cli_version = get_rust_cli_version()
+    cli_version = get_rust_cli_version()
 
     if module_version == "":
         click.echo("ERROR: failed to get module_version.")
@@ -127,11 +127,17 @@ def main(
         click.echo(f"ERROR: {module_version=} is not a valid python version.")
         with_errors = True
 
-    if module_version.endswith("-dev") or cli_version.endswith("-dev"):
-        click.echo("ERROR: One of the versions is a -dev version.")
+    is_module_dev = (
+        re.search(r"(\.dev\d*|-dev)$", module_version, re.IGNORECASE) is not None
+    )
+    is_cli_dev = cli_version.endswith("-dev")
+    if is_module_dev or is_cli_dev:
+        click.echo("ERROR: One of the versions is a dev version.")
         with_errors = True
 
-    if cli_version.endswith("-rc") and not module_version.endswith("-rc"):
+    is_module_rc = re.search(r"(rc\d+|-rc)$", module_version, re.IGNORECASE) is not None
+    is_cli_rc = "-rc" in cli_version
+    if is_cli_rc and not is_module_rc:
         click.echo("ERROR: The CLI has an -rc version, but the python module does not.")
         with_errors = True
 
@@ -148,9 +154,36 @@ def get_rust_cli_version() -> str:
 
     Returns an empty string ("") if an error is encountered.
     """
+    import os
+    import sysconfig
+    from pathlib import Path
+
+    client_path = shutil.which("magika")
+    cmd = []
+    if client_path:
+        cmd = [client_path]
+    else:
+        # Try manual resolution on Windows if shutil.which failed
+        if os.name == "nt":
+            candidate = Path(sysconfig.get_path("scripts")) / "magika"
+            if candidate.is_file():
+                cmd = [str(candidate)]
+                # Check if it is a python script
+                try:
+                    with open(candidate, "r", encoding="utf-8", errors="replace") as f:
+                        if "python" in f.readline():
+                            cmd = [sys.executable, str(candidate)]
+                            click.echo(
+                                f"Windows workaround in pre-release check: running Python script with {sys.executable}"
+                            )
+                except Exception:
+                    pass
+        if not cmd:
+            cmd = ["magika"]  # fallback
+
     try:
         result = subprocess.run(
-            ["magika", "--version"], capture_output=True, text=True, check=True
+            cmd + ["--version"], capture_output=True, text=True, check=True
         )
         parts = result.stdout.strip().split()
         if len(parts) < 2:
@@ -166,7 +199,9 @@ def get_rust_cli_version() -> str:
 def get_magika_package_version_via_pip_show() -> str:
     try:
         r = subprocess.run(
-            ["python3", "-m", "pip", "show", "magika"], capture_output=True, text=True
+            [sys.executable, "-m", "pip", "show", "magika"],
+            capture_output=True,
+            text=True,
         )
         lines = r.stdout.strip().split("\n")
         for line in lines:

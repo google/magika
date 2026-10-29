@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::future::Future;
 use std::io::{Read, Seek, SeekFrom};
+use std::path::Path;
 
-use tokio::io::{AsyncReadExt as _, AsyncSeekExt as _};
+use anyhow::Result;
 
+use crate::cached_input::CachedInput;
 use crate::config::ModelConfig;
-use crate::future::exec;
-use crate::{ContentType, Result};
+use crate::{ContentType, DebugInfo, FileType, Options, RegularFileType, Rules, RulesDebugInfo};
 
 /// Features to identify a file using AI.
-pub struct Features(pub(crate) Vec<i32>);
+pub struct Features {
+    pub(crate) features: Vec<i32>,
+    pub(crate) use_resolvers: bool,
+    pub(crate) use_custom_rules: Option<Rules>,
+}
 
-/// Synchronous abstraction over file content.
-pub trait SyncInput {
+/// Abstraction over file content.
+pub trait Input {
     /// Returns the size of the input.
     fn length(&self) -> Result<u64>;
 
@@ -33,21 +37,12 @@ pub trait SyncInput {
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()>;
 }
 
-/// Asynchronous abstraction over file content.
-pub trait AsyncInput {
-    /// Returns the size of the input.
-    fn length(&self) -> impl Future<Output = Result<u64>>;
-
-    /// Reads from the input at the given offset to fill the buffer.
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>>;
-}
-
 const _: () = const {
     // We assume in the rest of the file, that u64 holds any usize.
     assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
 };
 
-impl SyncInput for &[u8] {
+impl Input for &[u8] {
     fn length(&self) -> Result<u64> {
         Ok(self.len() as u64)
     }
@@ -59,7 +54,7 @@ impl SyncInput for &[u8] {
     }
 }
 
-impl SyncInput for std::fs::File {
+impl Input for std::fs::File {
     fn length(&self) -> Result<u64> {
         Ok(self.metadata()?.len())
     }
@@ -70,98 +65,125 @@ impl SyncInput for std::fs::File {
     }
 }
 
-impl<T: SyncInput> SyncInput for &mut T {
+impl<T: Input> Input for &mut T {
     fn length(&self) -> Result<u64> {
-        <T as SyncInput>::length(self)
+        <T as Input>::length(self)
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        <T as SyncInput>::read_at(self, buffer, offset)
-    }
-}
-
-impl<T: SyncInput> AsyncInput for T {
-    fn length(&self) -> impl Future<Output = Result<u64>> {
-        std::future::ready(self.length())
-    }
-
-    fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> impl Future<Output = Result<()>> {
-        std::future::ready(self.read_at(buffer, offset))
-    }
-}
-
-impl AsyncInput for tokio::fs::File {
-    async fn length(&self) -> Result<u64> {
-        Ok(self.metadata().await?.len())
-    }
-
-    async fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        self.seek(SeekFrom::Start(offset)).await?;
-        self.read_exact(buffer).await?;
-        Ok(())
+        <T as Input>::read_at(self, buffer, offset)
     }
 }
 
 /// Result of features extraction.
-pub enum FeaturesOrRuled {
+pub enum FeaturesOr<T> {
     /// Features extracted for identification using AI.
     Features(Features),
 
-    /// Content identified with rules.
-    Ruled(ContentType),
+    /// File or content identified without AI.
+    Ruled(T),
 }
 
-impl FeaturesOrRuled {
-    /// Extracts the features from a file (synchronously).
+impl FeaturesOr<FileType> {
+    /// Extracts the features from a file path.
     ///
-    /// Returns the content type directly if the file cannot be identified using AI.
-    pub fn extract_sync(file: impl SyncInput) -> Result<Self> {
-        exec(Self::extract(file))
-    }
-
-    /// Extracts the features from a file (asynchronously).
-    ///
-    /// Returns the content type directly if the file cannot be identified using AI.
-    pub async fn extract_async(file: impl AsyncInput) -> Result<Self> {
-        Self::extract(file).await
-    }
-
-    pub(crate) async fn extract(file: impl AsyncInput) -> Result<Self> {
-        let config = &crate::model::CONFIG;
-        let file_len = file.length().await?;
-        if file_len == 0 {
-            return Ok(FeaturesOrRuled::Ruled(ContentType::Empty));
-        }
-        let (first_block, features) = extract_features_async(config, file, file_len).await?;
-        if features[config.min_file_size_for_dl - 1] != config.padding_token {
-            return Ok(FeaturesOrRuled::Features(Features(features)));
-        }
-        debug_assert!(first_block.len() <= config.block_size);
-        let content_type = match std::str::from_utf8(&first_block) {
-            Ok(_) => ContentType::Txt,
-            Err(_) => ContentType::Unknown,
+    /// Returns the file type directly if the file cannot be identified using AI.
+    pub fn extract_file(file: impl AsRef<Path>, options: &Options) -> Result<Self> {
+        let file = file.as_ref();
+        let metadata = if options.follow_symlink {
+            std::fs::metadata(file)?
+        } else {
+            std::fs::symlink_metadata(file)?
         };
-        Ok(FeaturesOrRuled::Ruled(content_type))
+        if metadata.is_dir() {
+            Ok(FeaturesOr::Ruled(FileType::Directory))
+        } else if metadata.is_symlink() {
+            Ok(FeaturesOr::Ruled(FileType::Symlink))
+        } else if !metadata.is_file() {
+            Ok(FeaturesOr::Ruled(FileType::Unsupported))
+        } else {
+            Ok(FeaturesOr::extract_content(std::fs::File::open(file)?, options)?.into())
+        }
     }
 }
 
-async fn extract_features_async(
-    config: &ModelConfig, mut file: impl AsyncInput, file_len: u64,
-) -> Result<(Vec<u8>, Vec<i32>)> {
+impl From<FeaturesOr<RegularFileType>> for FeaturesOr<FileType> {
+    fn from(value: FeaturesOr<RegularFileType>) -> Self {
+        match value {
+            FeaturesOr::Features(x) => FeaturesOr::Features(x),
+            FeaturesOr::Ruled(x) => FeaturesOr::Ruled(x.into()),
+        }
+    }
+}
+
+impl FeaturesOr<RegularFileType> {
+    /// Extracts the features from file content.
+    ///
+    /// Returns the file type directly if the content cannot be identified using AI.
+    pub fn extract_content(file: impl Input, options: &Options) -> Result<Self> {
+        let config = &crate::model::CONFIG;
+        let mut file = CachedInput::new(file)?;
+        if file.length() == 0 {
+            let content_types = vec![ContentType::Empty];
+            let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
+            return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+        }
+        if let Some(custom_rules) = &options.use_custom_rules {
+            let content_types = custom_rules.identify(&mut file)?;
+            if !content_types.is_empty() {
+                let debug_info =
+                    options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
+                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+            }
+        }
+        if options.use_resolvers {
+            let content_types = crate::resolvers::identify(&mut file)?;
+            if !content_types.is_empty() {
+                let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Resolvers));
+                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+            }
+        }
+        if options.use_model {
+            let features = extract_features(config, &mut file)?;
+            if features[config.min_file_size_for_dl - 1] != config.padding_token {
+                return Ok(FeaturesOr::Features(Features {
+                    features,
+                    use_resolvers: options.use_resolvers,
+                    use_custom_rules: options.use_custom_rules.clone(),
+                }));
+            }
+        }
+        let prefix_len = file.ensure_prefix(config.block_size)?;
+        let prefix = file.prefix(prefix_len);
+        let content_type = match std::str::from_utf8(prefix) {
+            // The file is not UTF-8.
+            Err(_) if file.length() == prefix.len() as u64 => ContentType::Unknown,
+            // The first block doesn't disprove that the file may be UTF-8.
+            Err(e) if e.error_len().is_none() => ContentType::Txt,
+            // The first block disproves that the file is UTF-8.
+            Err(_) => ContentType::Unknown,
+            // The file is UTF-8 or its first block doesn't disprove that it can't be.
+            Ok(_) => ContentType::Txt,
+        };
+        let content_types = vec![content_type];
+        let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
+        Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }))
+    }
+}
+
+fn extract_features(config: &ModelConfig, file: &mut CachedInput<impl Input>) -> Result<Vec<i32>> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
-    let buffer_size = std::cmp::min(config.block_size as u64, file_len) as usize;
-    let mut content_beg = vec![0; buffer_size];
-    file.read_at(&mut content_beg, 0).await?;
-    let beg = strip_prefix(&content_beg);
-    let mut end = vec![0; buffer_size];
-    file.read_at(&mut end, file_len - buffer_size as u64).await?;
-    let end = strip_suffix(&end);
+    let prefix_len = file.ensure_prefix(config.block_size)?;
+    let suffix_len = file.ensure_suffix(config.block_size)?;
+    debug_assert_eq!(prefix_len, suffix_len);
+    let beg = strip_prefix(file.prefix(prefix_len));
+    let end = strip_suffix(file.suffix(suffix_len));
     let mut features = vec![config.padding_token; config.features_size()];
     let split_features = config.split_features(&mut features);
     copy_features(split_features.beg, beg, 0);
     copy_features(split_features.end, end, 1);
-    Ok((content_beg, features))
+    Ok(features)
 }
 
 fn copy_features(dst: &mut [i32], src: &[u8], align: usize) {
@@ -274,9 +296,9 @@ mod tests {
             expected.extend_from_slice(&test.features.beg);
             expected.extend_from_slice(&test.features.end);
             let content = BASE64.decode(test.content_base64.as_bytes()).unwrap();
-            let actual = extract_features_async(&config, content.as_slice(), content.len() as u64);
-            let actual = exec(actual).unwrap().1;
-            let actual: Vec<_> = actual.into_iter().map(|x| x as usize).collect();
+            let mut file = CachedInput::new(&content[..]).unwrap();
+            let actual = extract_features(&config, &mut file);
+            let actual: Vec<_> = actual.unwrap().into_iter().map(|x| x as usize).collect();
             assert_eq!(actual, expected, "{test:?}");
         }
     }

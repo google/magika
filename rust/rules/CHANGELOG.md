@@ -1,0 +1,8 @@
+# Changelog
+
+## 0.1.0-dev
+
+This is the initial version of a bounded YARA subset evaluated in pure Rust over the first 4 KiB.
+`RuleSet::bundled` loads the precompiled bundled rules; regexes are built on first use, and only where a match can start.
+Rules read facts about zip archives and PE executables; `RuleSet::tail_len` and `RuleSet::tail_start` say which tail a scan of an archive needs.
+Syntax errors name their line and column.

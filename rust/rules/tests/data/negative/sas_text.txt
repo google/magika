@@ -1,0 +1,2 @@
+SAS Viya deployment notes
+This document describes the install.

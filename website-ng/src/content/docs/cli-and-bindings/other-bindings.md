@@ -15,4 +15,4 @@ Official bindings for other languages are not yet available. However, since Magi
 
 - .NET: Integration can be achieved using P/Invoke.
 
-We encourage community contributions to create and maintain new bindings. If you are interested in developing one, please feel free to contact us to discuss it.
+Community-maintained bindings are welcome. If you are interested in developing one, open a GitHub issue first; see [New bindings](/magika/contributing/developer-guide/#new-bindings) in the developer guide.

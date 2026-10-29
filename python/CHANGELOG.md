@@ -9,6 +9,21 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
+## [Unreleased]
+- Identify through the library's pipeline: `Magika()` returns at once and identifies on the CPU while the GPU is prepared, and `identify_paths` reads and identifies files in parallel.
+- Add the `rules` and `rules_files` arguments of `Magika` to identify with custom format rules before the built-in rules.
+- Replace the pure-Python ONNX Runtime implementation with native Rust bindings (`magika` crate via PyO3), removing all runtime Python dependencies (`onnxruntime`, `click`, `numpy`) while maintaining public API compatibility.
+- Bundle the updated Rust engine and CLI, which combine fast bounded format rules (`magika-rules`) with a heavily optimized pure-Rust inference runtime (`tract` with CPU SIMD and Metal/CUDA GPU support) for significantly faster startup and inference.
+- Expand pre-built `abi3-py38` binary wheel support to cover additional platforms and architectures:
+  - Linux (`glibc`): `x86_64` (`manylinux_2_28`), `aarch64` (`manylinux_2_28`), `armv7l` (`manylinux2014`), `riscv64` (`manylinux_2_31`).
+  - Linux (`musl`): `x86_64` (`musllinux_1_2`), `aarch64` (`musllinux_1_2`).
+  - macOS: `aarch64` (Apple Silicon) and `x86_64` (Intel).
+  - Windows: `x86_64`.
+- Add 62 content types to the knowledge base and `ContentTypeLabel`, such as AVIF, QOI, GGUF, DuckDB and Microsoft Access. The model's outputs are unchanged.
+
+## [1.0.3] - 2026-05-04
+- Update magika CLI binary.
+
 ## [1.0.2] - 2026-02-25
 - Mark python 3.14 as supported.
 - Remove direct dependency on numpy.
@@ -63,6 +78,7 @@ This release introduces several breaking changes. Please review this guide caref
 
   ```python
   import magika
+
   m = magika.Magika()
   result = m.identify_path("my_file.py")
   print(result.output.ct_label)  # Assumed success
@@ -71,6 +87,7 @@ This release introduces several breaking changes. Please review this guide caref
 - **After (v0.6.1):**
   ```python
   import magika
+
   m = magika.Magika()
   result = m.identify_path("my_file.py")
   if result.ok():

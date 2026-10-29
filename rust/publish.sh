@@ -21,8 +21,8 @@ set -e
 [ -z "$(git status -s)" ] || error "Repository is not clean"
 
 info "Removing all -dev suffixes (if any)"
-sed -i 's/-dev"/"/' $(git ls-files '*/Cargo.*')
-sed -i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
+sed_i 's/-dev"/"/' $(git ls-files '*/Cargo.*')
+sed_i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
 if [ -n "$(git status -s)" ]; then
   info "Creating a commit with those changes"
   git commit -aqm'Release Rust crates'
@@ -36,10 +36,13 @@ git log -1 --pretty=%s | grep -q '^Release Rust crates (#[0-9]*)$' \
 
 [ "$1" = --no-dry-run ] || success "Run with --no-dry-run to actually publish"
 
+info "Publishing the tract runtime"
+( cd tract-runtime && cargo publish )
+
 info "Publishing the library"
 ( cd lib && cargo publish )
 
 info "Publishing the CLI"
-( cd cli && ./publish.sh )
+( cd cli && cargo publish )
 
 success 'All crates have been published'

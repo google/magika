@@ -1,9 +1,29 @@
 # Changelog
 
-## 1.0.3-dev
+## 1.2.0-dev
+
+### Minor
+
+- Start identifying files on the CPU while the GPU is prepared
+- Report files that are not regular instead of trying to read them
+- Detect cycles through symbolic links during recursive traversal
+- Remove the dependency on the ONNX Runtime
 
 ### Patch
 
+- Fix panic with JSON output when a file name is not UTF-8
+- Remove deprecated `package.authors` field in `Cargo.toml`
+- Update dependencies
+
+## 1.1.0
+
+### Minor
+
+- Exit successfully when the standard output is closed by the user
+
+### Patch
+
+- Join all threads before shutdown to avoid segmentation faults in ONNX Runtime
 - Update dependencies
 - Fix new clippy lints
 

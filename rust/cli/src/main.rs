@@ -13,23 +13,19 @@
 // limitations under the License.
 
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::fmt::Write;
-use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
+use std::io::{ErrorKind, Write as _};
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{bail, ensure, Result};
-use clap::{Args, Parser};
+use anyhow::{Result, ensure};
+use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
-use magika_lib::{
-    self as magika, ContentType, Features, FeaturesOrRuled, FileType, InferredType,
-    OverwriteReason, Session, TypeInfo,
+use magika::pipeline::{DIRECTORY_CYCLE, Engine, Identified, Pipeline, PipelineOptions};
+use magika::{
+    self, Backend, ContentType, FileType, ModelDebugInfo, OverwriteReason, Rules, Runtime, TypeInfo,
 };
-use ort::session::builder::GraphOptimizationLevel;
 use serde::Serialize;
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
 
 /// Determines file content types using AI.
 #[derive(Parser)]
@@ -129,49 +125,63 @@ struct Format {
 
 #[derive(Args)]
 struct Experimental {
+    /// Enables the custom rules (can be repeated).
+    #[arg(hide = true, long, value_name = "PATH")]
+    custom_rules_file: Vec<PathBuf>,
+
+    /// Checks the rules of --custom-rules-file, prints the content types they identify, and exits.
+    #[arg(hide = true, long, requires = "rules_file")]
+    custom_rules_check: bool,
+
+    /// Disables the resolvers.
+    #[arg(hide = true, long)]
+    no_resolvers: bool,
+
+    /// Disables model inference.
+    #[arg(hide = true, long)]
+    no_model: bool,
+
+    /// Selects the backend for inference.
+    #[arg(hide = true, long, value_enum, default_value_t)]
+    backend: BackendChoice,
+
+    /// Reports the selected inference backend and exits.
+    #[arg(hide = true, long)]
+    backend_info: bool,
+
     /// Number of files to identify in a single inference.
-    #[arg(hide = true, long, default_value = "1")]
+    #[arg(hide = true, long, default_value = "8")]
     batch_size: usize,
 
-    /// Number of tasks for batch parallelism.
-    #[arg(hide = true, long)]
-    num_tasks: Option<usize>,
-
-    /// Number of threads for graph parallelism (ONNX Runtime configuration).
+    /// Number of resident inference threads.
     ///
-    /// This has no effect if --parallel-execution is false or unset.
+    /// Inference on a GPU is bound by the device rather than by the host, so a handful of threads
+    /// keep it busy and more only contend for it. Inference on a CPU is bound by the host, so every
+    /// thread is one more core doing the work. This defaults accordingly: four on a GPU, all
+    /// available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
     #[arg(hide = true, long)]
-    inter_threads: Option<usize>,
+    threads: Option<usize>,
 
-    /// Number of threads for node parallelism (ONNX Runtime configuration).
-    #[arg(hide = true, long)]
-    intra_threads: Option<usize>,
-
-    /// Graph optimization level, from 0 to 3 (ONNX Runtime configuration).
-    #[arg(hide = true, long)]
-    optimization_level: Option<usize>,
-
-    /// Whether to enable parallel execution (ONNX Runtime configuration).
-    #[arg(hide = true, long)]
-    parallel_execution: Option<bool>,
+    /// Number of resident threads reading files and extracting features.
+    ///
+    /// Reading costs far less than inference, so this defaults to one per inference thread, which
+    /// is already more than a run makes use of.
+    #[arg(hide = true, long, default_value = "1")]
+    readers: usize,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let mut flags = Flags::parse();
-    ensure!(0 < flags.experimental.batch_size, "--batch-size cannot be zero");
-    // If --num-tasks is set, we don't do any guessing.
-    let num_tasks = flags.experimental.num_tasks.unwrap_or_else(|| {
-        // Otherwise, if --intra-thread is set, we use a single task.
-        if flags.experimental.intra_threads.is_some() {
-            return 1;
-        }
-        // Otherwise, we use the minimum number of intra threads (which is 2).
-        flags.experimental.intra_threads = Some(2);
-        // And as many tasks as physical CPUs with a minimum of 2.
-        std::cmp::max(2, num_cpus::get_physical())
-    });
-    ensure!(0 < num_tasks, "--num-tasks cannot be zero");
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum BackendChoice {
+    #[default]
+    Auto,
+    Cpu,
+    Gpu,
+}
+
+fn main() -> Result<()> {
+    let flags = Flags::parse();
+    let batch_size = flags.experimental.batch_size;
+    ensure!((1..=64).contains(&batch_size), "--batch-size must be between 1 and 64");
     ensure!(
         flags.path.iter().filter(|x| x.to_str() == Some("-")).count() <= 1,
         "only one path can be the standard input"
@@ -183,227 +193,100 @@ async fn main() -> Result<()> {
     if flags.colors.disable {
         colored::control::set_override(false);
     }
-    let (result_sender, mut result_receiver) =
-        tokio::sync::mpsc::channel::<Result<Response>>(num_tasks * flags.experimental.batch_size);
-    let (batch_sender, batch_receiver) = async_channel::bounded::<Batch>(num_tasks);
-    tokio::spawn({
-        let flags = flags.clone();
-        let result_sender = result_sender.clone();
-        async move {
-            if let Err(e) = extract_features(&flags, &batch_sender, &result_sender).await {
-                result_sender.send(Err(e)).await.unwrap();
-            }
+    let mut builder = Runtime::builder();
+    builder = builder.with_max_batch(batch_size);
+    builder.options.debug_mode = true;
+    if !flags.experimental.custom_rules_file.is_empty() {
+        let rules = Rules::from_files(&flags.experimental.custom_rules_file)?;
+        if flags.experimental.custom_rules_check {
+            println!("{rules:?}");
+            return Ok(());
         }
-    });
-    for _ in 0..num_tasks {
-        let mut magika = build_session(&flags)?;
-        tokio::spawn({
-            let batch_receiver = batch_receiver.clone();
-            let result_sender = result_sender.clone();
-            async move {
-                if let Err(e) = infer_batch(&mut magika, &batch_receiver, &result_sender).await {
-                    result_sender.send(Err(e)).await.unwrap();
-                }
-            }
-        });
+        builder.options.use_custom_rules = Some(rules);
     }
-    drop(result_sender);
-    if flags.format.json {
-        print!("[");
+    builder.options.use_resolvers = !flags.experimental.no_resolvers;
+    builder.options.use_model = !flags.experimental.no_model;
+    builder.options.follow_symlink = !flags.no_dereference;
+    builder = match flags.experimental.backend {
+        BackendChoice::Auto => builder,
+        BackendChoice::Cpu => builder.with_backend(Backend::Cpu),
+        BackendChoice::Gpu => builder.with_backend(Backend::Gpu),
+    };
+    if flags.experimental.backend_info {
+        let info = builder.build()?.backend_info();
+        let backend = match info.backend() {
+            Backend::Cpu => "cpu",
+            Backend::Gpu => "gpu",
+        };
+        println!("{backend} ({})", info.implementation());
+        return Ok(());
     }
-    let mut reorder = Reorder::default();
+    let options = builder.options.clone();
+    let threads = flags.experimental.threads;
+    ensure!(threads.is_none_or(|x| (1..=256).contains(&x)), "--threads must be between 1 and 256");
+    let readers = flags.experimental.readers;
+    ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
+    let mut config = PipelineOptions::default();
+    config.recursive = flags.recursive;
+    config.stdin = true;
+    config.batch_size = batch_size;
+    config.threads = threads;
+    config.readers = readers;
+    let pipeline = Pipeline::new(Arc::new(Engine::new(builder)?), options, config)?;
     let mut errors = false;
-    while let Some(response) = result_receiver.recv().await {
-        reorder.push(response?);
-        while let Some(response) = reorder.pop() {
-            errors |= response.result.is_err();
-            if flags.format.json {
-                if reorder.next != 1 {
-                    print!(",");
-                }
-                for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
-                    print!("\n  {line}");
-                }
-            } else {
-                println!("{}", response.format(&flags)?);
-            }
+    let result = match print(&flags, &mut errors, pipeline.identify_paths(flags.path.clone())?) {
+        Err(e)
+            if e.root_cause()
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|x| x.kind() == std::io::ErrorKind::BrokenPipe) =>
+        {
+            Ok(())
         }
-    }
-    debug_assert!(reorder.is_empty());
-    if flags.format.json {
-        if reorder.next != 0 {
-            println!();
-        }
-        println!("]");
-    }
+        x => x,
+    };
+    result?;
     if errors {
         std::process::exit(1);
     }
     Ok(())
 }
 
-async fn extract_features(
-    flags: &Flags, batch_sender: &async_channel::Sender<Batch>,
-    result_sender: &tokio::sync::mpsc::Sender<Result<Response>>,
-) -> Result<()> {
-    let mut paths = Vec::new();
-    let mut features = Vec::new();
-    let mut flags_paths = flags.path.clone();
-    flags_paths.reverse();
-    let mut order = 0;
-    while let Some(path) = flags_paths.pop() {
-        let mut result = None;
-        match process_path(flags, &mut flags_paths, &path).await {
-            Err(x) => result = Some(Err(x)),
-            Ok(ProcessPath::Recursive) => continue,
-            Ok(ProcessPath::Ruled(x)) => result = Some(Ok(x)),
-            Ok(ProcessPath::Features(x)) => features.push(x),
-        };
-        match result {
-            Some(result) => result_sender.send(Ok(Response { order, path, result })).await?,
-            None => paths.push((order, path)),
-        }
-        order += 1;
-        if features.len() == flags.experimental.batch_size {
-            batch_sender.send(Batch { paths, features }).await?;
-            paths = Vec::new();
-            features = Vec::new();
-        }
+fn print(flags: &Flags, errors: &mut bool, identified: Identified) -> Result<()> {
+    let mut stdout = std::io::stdout().lock();
+    if flags.format.json {
+        write!(stdout, "[")?;
     }
-    if !paths.is_empty() {
-        batch_sender.send(Batch { paths, features }).await?;
-    }
-    Ok(())
-}
-
-enum ProcessPath {
-    Recursive,
-    Features(Features),
-    Ruled(FileType),
-}
-
-impl From<FeaturesOrRuled> for ProcessPath {
-    fn from(value: FeaturesOrRuled) -> Self {
-        match value {
-            FeaturesOrRuled::Features(x) => ProcessPath::Features(x),
-            FeaturesOrRuled::Ruled(x) => ProcessPath::Ruled(FileType::Ruled(x)),
-        }
-    }
-}
-
-async fn process_path(
-    flags: &Flags, paths: &mut Vec<PathBuf>, path: &Path,
-) -> magika::Result<ProcessPath> {
-    if path.to_str() == Some("-") {
-        let mut stdin = Vec::new();
-        tokio::io::stdin().read_to_end(&mut stdin).await?;
-        return Ok(FeaturesOrRuled::extract_sync(&stdin[..])?.into());
-    }
-    let metadata = if flags.no_dereference {
-        tokio::fs::symlink_metadata(&path).await?
-    } else {
-        tokio::fs::metadata(&path).await?
-    };
-    if metadata.is_dir() {
-        return Ok(if flags.recursive {
-            let mut entries = tokio::fs::read_dir(&path).await?;
-            let mut dir_paths = Vec::new();
-            while let Some(entry) = entries.next_entry().await? {
-                dir_paths.push(entry.path());
+    let mut count = 0;
+    for item in identified {
+        let (path, result) = item?;
+        let response = Response { path, result };
+        *errors |= response.result.is_err();
+        if flags.format.json {
+            if count != 0 {
+                write!(stdout, ",")?;
             }
-            dir_paths.sort();
-            while let Some(path) = dir_paths.pop() {
-                paths.push(path);
+            for line in serde_json::to_string_pretty(&response.json()?)?.lines() {
+                write!(stdout, "\n  {line}")?;
             }
-            ProcessPath::Recursive
         } else {
-            ProcessPath::Ruled(FileType::Directory)
-        });
-    }
-    if metadata.is_symlink() {
-        return Ok(ProcessPath::Ruled(FileType::Symlink));
-    }
-    let file = File::open(&path).await?;
-    Ok(FeaturesOrRuled::extract_async(file).await?.into())
-}
-
-fn build_session(flags: &Flags) -> Result<Session> {
-    ort::init().with_telemetry(false).commit();
-    let mut magika = Session::builder();
-    if let Some(inter_threads) = flags.experimental.inter_threads {
-        magika = magika.with_inter_threads(inter_threads);
-    }
-    // Apparently, SetIntraOpNumThreads must be called on MacOS, otherwise we get the following
-    // error: intra op thread pool must have at least one thread for RunAsync.
-    let intra_threads_default = cfg!(target_os = "macos").then_some(4);
-    if let Some(intra_threads) = flags.experimental.intra_threads.or(intra_threads_default) {
-        magika = magika.with_intra_threads(intra_threads);
-    }
-    if let Some(opt_level) = flags.experimental.optimization_level {
-        let opt_level = match opt_level {
-            0 => GraphOptimizationLevel::Disable,
-            1 => GraphOptimizationLevel::Level1,
-            2 => GraphOptimizationLevel::Level2,
-            3 => GraphOptimizationLevel::Level3,
-            _ => bail!("--optimization-level must be 0, 1, 2, or 3"),
-        };
-        magika = magika.with_optimization_level(opt_level);
-    }
-    if let Some(parallel_execution) = flags.experimental.parallel_execution {
-        magika = magika.with_parallel_execution(parallel_execution);
-    }
-    Ok(magika.build()?)
-}
-
-async fn infer_batch(
-    magika: &mut Session, receiver: &async_channel::Receiver<Batch>,
-    sender: &tokio::sync::mpsc::Sender<Result<Response>>,
-) -> Result<()> {
-    while let Ok(Batch { paths, features }) = receiver.recv().await {
-        let batch = magika.identify_features_batch_async(&features).await?;
-        assert_eq!(batch.len(), paths.len());
-        for ((order, path), output) in paths.into_iter().zip(batch) {
-            let result = Ok(output);
-            sender.send(Ok(Response { order, path, result })).await?;
+            writeln!(stdout, "{}", response.format(flags)?)?;
         }
+        count += 1;
+    }
+    if flags.format.json {
+        if count != 0 {
+            writeln!(stdout)?;
+        }
+        writeln!(stdout, "]")?;
     }
     Ok(())
 }
 
-#[derive(Debug, Default)]
-struct Reorder {
-    next: usize,
-    todo: HashMap<usize, Response>,
-}
-
-impl Reorder {
-    fn is_empty(&self) -> bool {
-        self.todo.is_empty()
-    }
-
-    fn push(&mut self, response: Response) {
-        debug_assert!(self.next <= response.order);
-        let prev = self.todo.insert(response.order, response);
-        debug_assert!(prev.is_none());
-    }
-
-    fn pop(&mut self) -> Option<Response> {
-        let result = self.todo.remove(&self.next)?;
-        self.next += 1;
-        Some(result)
-    }
-}
-
-struct Batch {
-    paths: Vec<(usize, PathBuf)>,
-    features: Vec<Features>,
-}
-
+/// A path and its identification.
 #[derive(Debug)]
 struct Response {
-    order: usize,
     path: PathBuf,
-    result: Result<FileType, magika::Error>,
+    result: Result<FileType>,
 }
 
 #[derive(Serialize)]
@@ -412,6 +295,7 @@ enum JsonError {
     Unknown,
     FileDoesNotExist,
     PermissionError,
+    DirectoryCycle,
 }
 
 #[derive(Serialize)]
@@ -421,14 +305,17 @@ struct JsonResult<'a> {
     score: f32,
 }
 
-impl From<magika::Error> for JsonError {
-    fn from(value: magika::Error) -> Self {
-        match value {
-            magika::Error::IOError(x) => match x.kind() {
-                ErrorKind::NotFound => JsonError::FileDoesNotExist,
-                ErrorKind::PermissionDenied => JsonError::PermissionError,
-                _ => JsonError::Unknown,
-            },
+impl From<anyhow::Error> for JsonError {
+    fn from(value: anyhow::Error) -> Self {
+        if let Some(x) = value.root_cause().downcast_ref::<std::io::Error>() {
+            match x.kind() {
+                ErrorKind::NotFound => return JsonError::FileDoesNotExist,
+                ErrorKind::PermissionDenied => return JsonError::PermissionError,
+                _ => (),
+            }
+        }
+        match value.to_string().as_str() {
+            DIRECTORY_CYCLE => JsonError::DirectoryCycle,
             _ => JsonError::Unknown,
         }
     }
@@ -468,19 +355,25 @@ impl Response {
                     Some('s') => write!(&mut result, "{:.2}", self.score())?,
                     Some('S') => write!(&mut result, "{}%", (100. * self.score()).trunc())?,
                     Some('b') => {
-                        if let Ok(FileType::Inferred(InferredType {
-                            content_type: Some((_, OverwriteReason::LowConfidence)),
-                            inferred_type,
-                            score,
-                        })) = &self.result
+                        if let Some(debug) = self.model_debug_info()
+                            && let Some(reason) = debug.overwrite_reason
                         {
-                            write!(
-                                &mut result,
-                                " [Low-confidence model best-guess: {} ({}), score={:.3}]",
-                                inferred_type.info().description,
-                                inferred_type.info().group,
-                                score,
-                            )?;
+                            let reason = match reason {
+                                OverwriteReason::LowConfidence => Some("Low-confidence"),
+                                OverwriteReason::OverwriteMap => None,
+                                OverwriteReason::ResolversVeto => Some("Resolvers-veto"),
+                                OverwriteReason::RulesVeto => Some("Rules-veto"),
+                            };
+                            if let Some(reason) = reason {
+                                let best = debug.best_guess();
+                                let score = debug.output[best];
+                                let info = magika::MODEL_TRAINING_LABELS[best].info();
+                                write!(
+                                    &mut result,
+                                    " [{reason} model best-guess: {} ({}), score={score:.3}]",
+                                    info.description, info.group,
+                                )?;
+                            }
                         }
                     }
                     Some(c) => result.push(c),
@@ -493,16 +386,23 @@ impl Response {
         Ok(self.color(result.into()))
     }
 
+    fn model_debug_info(&self) -> Option<&ModelDebugInfo> {
+        self.result.as_ref().ok()?.debug_info()?.model()
+    }
+
     fn json(self) -> Result<serde_json::Value> {
-        let path = self.path.to_path_buf();
+        let path = self.path.to_string_lossy();
+        let (score, dl) = match self.model_debug_info() {
+            Some(debug) => {
+                let best = debug.best_guess();
+                (debug.output[best], magika::MODEL_TRAINING_LABELS[best].info())
+            }
+            None => (1.0, ContentType::Undefined.info()),
+        };
         let result = match self.result {
             Ok(x) => {
-                let dl = match &x {
-                    FileType::Inferred(x) => x.inferred_type.info(),
-                    _ => ContentType::Undefined.info(),
-                };
                 let output = x.info();
-                let score = (x.score() * 1000.).trunc() / 1000.;
+                let score = (score * 1000.).trunc() / 1000.;
                 let value = serde_json::to_value(JsonResult { dl, output, score })?;
                 serde_json::json!({ "status": "ok", "value": value })
             }
@@ -547,10 +447,7 @@ impl Response {
     }
 
     fn score(&self) -> f32 {
-        match &self.result {
-            Err(_) => 1.0,
-            Ok(x) => x.score(),
-        }
+        self.model_debug_info().map_or(1.0, |x| x.output[x.best_guess()])
     }
 
     fn color(&self, result: ColoredString) -> ColoredString {

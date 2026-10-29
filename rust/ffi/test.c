@@ -1,0 +1,289 @@
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "magika.h"
+
+int main(void) {
+    // Test runtime creation with explicit options (including rules)
+    MagikaRuntimeOptions options = {
+        .backend = MAGIKA_BACKEND_CPU,
+        .max_batch = 1,
+        .options = {
+            .use_resolvers = true,
+            .use_model = true,
+            .prediction_mode = MAGIKA_PREDICTION_MODE_HIGH_CONFIDENCE,
+        },
+    };
+    MagikaRuntime* runtime_opt = NULL;
+    MagikaStatus status_opt = magika_runtime_new(&options, &runtime_opt);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(runtime_opt != NULL);
+    MagikaSession* session_opt = NULL;
+    status_opt = magika_session_new(runtime_opt, &session_opt);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(session_opt != NULL);
+    const uint8_t gzip_content[] = "\x1f\x8b\x08\x00\0\0\0\0\0\x03hello, world";
+    size_t gzip_len = sizeof(gzip_content) - 1;
+    const MagikaTypeInfo* ruled_result = NULL;
+    status_opt = magika_identify_content(session_opt, gzip_content, gzip_len, &ruled_result);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(ruled_result != NULL);
+    assert(strcmp(ruled_result->label, "gzip") == 0);
+    magika_session_free(session_opt);
+    magika_runtime_free(runtime_opt);
+
+    // Test custom rules: the shared fixture enforces the PNG signature, which the resolvers leave
+    // to the model, so without the model a PNG is identified only with custom rules.
+    FILE* custom_file = fopen("../../tests_data/rules/custom.yar", "rb");
+    assert(custom_file != NULL);
+    char custom_source[4096];
+    size_t custom_len = fread(custom_source, 1, sizeof(custom_source), custom_file);
+    fclose(custom_file);
+    char rules_error[256];
+    MagikaRules* rules = NULL;
+    status_opt = magika_rules_new(custom_source, custom_len, rules_error, sizeof(rules_error),
+                                  &rules);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(rules != NULL);
+    MagikaRuntimeOptions rules_only = options;
+    rules_only.options.use_model = false;
+    MagikaRuntime* rules_runtime = NULL;
+    status_opt = magika_runtime_new(&rules_only, &rules_runtime);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    MagikaSession* rules_session = NULL;
+    status_opt = magika_session_new(rules_runtime, &rules_session);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    const char* png_path = "../../tests_data/basic/png/magika_test.png";
+    const MagikaTypeInfo* png_result = NULL;
+    status_opt = magika_identify_file(rules_session, png_path, &png_result);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(png_result != NULL);
+    assert(strcmp(png_result->label, "unknown") == 0);
+    magika_session_free(rules_session);
+    magika_runtime_free(rules_runtime);
+    rules_only.options.use_custom_rules = rules;
+    status_opt = magika_runtime_new(&rules_only, &rules_runtime);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    magika_rules_free(rules);  // The runtime keeps its own reference.
+    status_opt = magika_session_new(rules_runtime, &rules_session);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    status_opt = magika_identify_file(rules_session, png_path, &png_result);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(png_result != NULL);
+    assert(strcmp(png_result->label, "png") == 0);
+    magika_session_free(rules_session);
+    magika_runtime_free(rules_runtime);
+    const char broken[] = "rule broken {";
+    rules = (MagikaRules*)0x1234;
+    status_opt = magika_rules_new(broken, strlen(broken), rules_error, sizeof(rules_error),
+                                  &rules);
+    assert(status_opt == MAGIKA_STATUS_INVALID_RULES);
+    assert(rules == NULL);
+    assert(strstr(rules_error, "line 1, column 14") != NULL);
+    status_opt = magika_rules_new(broken, strlen(broken), NULL, 0, &rules);
+    assert(status_opt == MAGIKA_STATUS_INVALID_RULES);
+    magika_rules_free(NULL);
+
+    // Test identifying several paths in parallel with an engine.
+    MagikaEngine* engine = NULL;
+    status_opt = magika_engine_new(NULL, &engine);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(engine != NULL);
+    const char* engine_paths[2] = { "src/lib.rs", "this_file_does_not_exist_12345.xyz" };
+    const MagikaTypeInfo* engine_results[2] = { NULL, NULL };
+    MagikaStatus engine_statuses[2];
+    status_opt = magika_engine_identify_paths(engine, engine_paths, 2, NULL, engine_results,
+                                              engine_statuses);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    assert(engine_statuses[0] == MAGIKA_STATUS_OK);
+    assert(engine_results[0] != NULL);
+    assert(strcmp(engine_results[0]->label, "rust") == 0);
+    assert(engine_statuses[1] == MAGIKA_STATUS_IO_ERROR);
+    status_opt = magika_engine_identify_paths(engine, NULL, 0, NULL, NULL, NULL);
+    assert(status_opt == MAGIKA_STATUS_OK);
+    status_opt = magika_engine_identify_paths(NULL, engine_paths, 2, NULL, engine_results,
+                                              engine_statuses);
+    assert(status_opt == MAGIKA_STATUS_INVALID_ARGUMENT);
+    magika_engine_free(engine);
+    magika_engine_free(NULL);
+    // Test runtime creation with default options
+    MagikaRuntime* runtime = NULL;
+    MagikaStatus status = magika_runtime_new(NULL, &runtime);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(runtime != NULL);
+
+    // Test session creation from runtime
+    MagikaSession* session = NULL;
+    status = magika_session_new(runtime, &session);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(session != NULL);
+
+    // Test identifying a known file by path
+    const MagikaTypeInfo* result = NULL;
+    const char* test_path = "src/lib.rs";
+    status = magika_identify_file(session, test_path, &result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(result != NULL);
+    assert(strcmp(result->label, "rust") == 0);
+    assert(strcmp(result->mime_type, "application/x-rust") == 0);
+    assert(strcmp(result->group, "code") == 0);
+    assert(result->is_text == true);
+
+    // Test extensions list
+    assert(result->extensions != NULL);
+    bool found_rs_ext = false;
+    for (const char* const* ext = result->extensions; *ext != NULL; ++ext) {
+        if (strcmp(*ext, "rs") == 0) {
+            found_rs_ext = true;
+        }
+    }
+    assert(found_rs_ext);
+
+    // Test identifying content in memory
+    const char shell_content[] = "#!/bin/sh\necho hello\n";
+    const uint8_t* data_ptr = (const uint8_t*)shell_content;
+    size_t data_len = strlen(shell_content);
+    status = magika_identify_content(session, data_ptr, data_len, &result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(result != NULL);
+    assert(strcmp(result->label, "shell") == 0);
+
+    // Test identifying empty content
+    status = magika_identify_content(session, NULL, 0, &result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(result != NULL);
+    assert(strcmp(result->label, "empty") == 0);
+
+    // Test error on non-existent file
+    const char* nonexistent_path = "this_file_does_not_exist_12345.xyz";
+    status = magika_identify_file(session, nonexistent_path, &result);
+    assert(status == MAGIKA_STATUS_IO_ERROR);
+
+    // Test invalid argument on NULL pointers
+    status = magika_identify_file(NULL, test_path, &result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_identify_file(session, NULL, &result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_identify_file(session, test_path, NULL);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_session_new(NULL, &session);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    // Test feature extraction from file
+    MagikaFeatures* feat_file = NULL;
+    status = magika_features_extract_file(test_path, NULL, &feat_file, &result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(feat_file != NULL);
+
+    // Test single feature identification
+    const MagikaTypeInfo* feat_result = NULL;
+    status = magika_identify_features(session, feat_file, &feat_result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(feat_result != NULL);
+    assert(strcmp(feat_result->label, "rust") == 0);
+
+    // Test feature extraction from memory content
+    MagikaFeatures* feat_content = NULL;
+    status = magika_features_extract_content(data_ptr, data_len, NULL, &feat_content, &result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(feat_content != NULL);
+
+    // Test batch feature identification
+    const MagikaFeatures* batch[2] = { feat_file, feat_content };
+    const MagikaTypeInfo* batch_results[2] = { NULL, NULL };
+    status = magika_identify_features_batch(session, batch, 2, batch_results);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(batch_results[0] != NULL);
+    assert(strcmp(batch_results[0]->label, "rust") == 0);
+    assert(batch_results[1] != NULL);
+    assert(strcmp(batch_results[1]->label, "shell") == 0);
+
+    // Test batch with count == 0
+    status = magika_identify_features_batch(NULL, NULL, 0, NULL);
+    assert(status == MAGIKA_STATUS_OK);
+
+    // Test feature extraction on empty content (ruled, out_features set to NULL)
+    MagikaFeatures* empty_feat = (MagikaFeatures*)0x1234;
+    status = magika_features_extract_content(NULL, 0, NULL, &empty_feat, &result);
+    assert(status == MAGIKA_STATUS_OK);
+    assert(empty_feat == NULL);
+    assert(result != NULL);
+    assert(strcmp(result->label, "empty") == 0);
+
+    // Test error on extracting features from non-existent file
+    MagikaFeatures* missing_feat = NULL;
+    status = magika_features_extract_file(nonexistent_path, NULL, &missing_feat, &result);
+    assert(status == MAGIKA_STATUS_IO_ERROR);
+    assert(missing_feat == NULL);
+
+    // Test invalid argument on NULL pointers for feature extraction
+    MagikaFeatures* dummy_feat = NULL;
+    status = magika_features_extract_file(NULL, NULL, &dummy_feat, &result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_features_extract_file(test_path, NULL, NULL, &result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_features_extract_content(NULL, 10, NULL, &dummy_feat, &result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_features_extract_content(data_ptr, data_len, NULL, NULL, &result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    // Test invalid argument on NULL pointers for identify_features
+    status = magika_identify_features(NULL, feat_file, &feat_result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_identify_features(session, NULL, &feat_result);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_identify_features(session, feat_file, NULL);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    // Test invalid argument on NULL pointers for identify_features_batch
+    status = magika_identify_features_batch(NULL, batch, 2, batch_results);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_identify_features_batch(session, NULL, 2, batch_results);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    status = magika_identify_features_batch(session, batch, 2, NULL);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    // Test null element inside batch
+    const MagikaFeatures* null_batch[2] = { feat_file, NULL };
+    status = magika_identify_features_batch(session, null_batch, 2, batch_results);
+    assert(status == MAGIKA_STATUS_INVALID_ARGUMENT);
+
+    // Test freeing features
+    magika_features_free(feat_file);
+    magika_features_free(feat_content);
+    magika_features_free(NULL); // Safe no-op
+
+    // Test cleanup
+    magika_session_free(session);
+    magika_session_free(NULL); // Safe no-op
+
+    magika_runtime_free(runtime);
+    magika_runtime_free(NULL); // Safe no-op
+
+    return 0;
+}

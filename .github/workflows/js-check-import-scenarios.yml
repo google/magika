@@ -7,26 +7,28 @@ on:
       - "main"
   pull_request:
     paths:
-      - 'js/simple_examples/**'
-      - '.github/workflows/run-js-examples.yml'
+      - 'js/**'
+      - '.github/workflows/js-check-import-scenarios.yml'
+
+permissions:
+  contents: read
 
 jobs:
   run-examples:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: js/simple_examples
     steps:
       - name: Checkout
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          persist-credentials: false
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # pin@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         name: Set up Node.js
         with:
-          node-version: "20.x"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "22.x"
 
       - name: Install Magika dependencies
         run: yarn install --frozen-lockfile

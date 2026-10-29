@@ -1,0 +1,57 @@
+name: KB - Check content types knowledge base
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    paths:
+      - ".github/workflows/kb-check.yml"
+      - "assets/active_model.txt"
+      - "assets/content_types.yaml"
+      - "assets/content_types_kb.min.json"
+      - "assets/models/**"
+      - "js/src/content-type-label.ts"
+      - "js/src/content-types-infos.ts"
+      - "python/scripts/sync.py"
+      - "python/src/magika/types/content_type_label.py"
+      - "rust/lib/src/resolvers/**"
+      - "rust/lib/src/resolvers.rs"
+      - "scripts/sync_kb.py"
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.13.4"
+
+jobs:
+  check-kb:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+
+      - name: Run sync_kb.py self-tests
+        run: uv run scripts/sync_kb.py --self-test
+
+      - name: Check content_types_kb.min.json is in sync
+        run: uv run scripts/sync_kb.py --check
+
+      - name: Check Python and JS generated files are in sync
+        run: |
+          uv run python/scripts/sync.py python
+          uv run python/scripts/sync.py js
+          if ! git diff --exit-code -- \
+            python/src/magika/types/content_type_label.py \
+            js/src/content-type-label.ts \
+            js/src/content-types-infos.ts
+          then
+            echo "::error::Python and JS files generated from assets/content_types.yaml are out of sync. Run 'just sync-kb' locally and commit the changes."
+            exit 1
+          fi

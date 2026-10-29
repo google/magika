@@ -8,7 +8,15 @@ tmp/
 *.egg-info
 dist/*
 *.pickle
+*.so
+*.pyd
 .s.yml
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 */models-data/*
 

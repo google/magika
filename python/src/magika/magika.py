@@ -59,7 +59,7 @@ class Magika:
         debug: bool = False,
         use_colors: bool = False,
         rules: Optional[str] = None,
-        rules_files: Optional[Sequence[Union[str, os.PathLike]]] = None,
+        rules_files: Optional[Sequence[Union[str, os.PathLike[str]]]] = None,
     ) -> None:
         """Initializes the Magika instance.
 
@@ -73,8 +73,8 @@ class Magika:
             debug: If True, enable debug logging. Defaults to False.
             use_colors: If True, use colors in the logger. Defaults to False.
             rules: Custom format rules, as YARA text, checked before the
-                built-in rules. They use the YARA subset and metadata of the
-                built-in rules. Raises ValueError if they are invalid.
+                resolvers. They use the YARA subset and metadata of the
+                `magika-rules` crate. Raises ValueError if they are invalid.
             rules_files: Paths of files holding custom rules, as an
                 alternative to `rules`.
         """
@@ -154,7 +154,7 @@ class Magika:
         )
         return MagikaResult(path=path, status=status, prediction=prediction)
 
-    def identify_path(self, path: Union[str, os.PathLike]) -> MagikaResult:
+    def identify_path(self, path: Union[str, os.PathLike[str]]) -> MagikaResult:
         """Identify the content type of a file given its path."""
         if not isinstance(path, (str, os.PathLike)):
             raise TypeError(
@@ -165,7 +165,7 @@ class Magika:
         return self._convert_pyo3_result(pyo3_res, path)
 
     def identify_paths(
-        self, paths: Sequence[Union[str, os.PathLike]]
+        self, paths: Sequence[Union[str, os.PathLike[str]]]
     ) -> List[MagikaResult]:
         """Identify the content type of a list of files given their paths."""
         # Note: `str` and `bytes` are registered as `Sequence`, but iterating

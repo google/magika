@@ -38,7 +38,6 @@ assert (REPO_ROOT_DIR / ".git").exists()
 
 
 IGNORE_PREFIX_PATTERNS = [
-    ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
     "python/.venv",

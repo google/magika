@@ -590,6 +590,8 @@ dependencies = [
  "flate2",
  "magika-rules",
  "magika-tract-runtime",
+ "memchr",
+ "miniz_oxide",
  "ndarray",
  "serde",
  "serde_json",

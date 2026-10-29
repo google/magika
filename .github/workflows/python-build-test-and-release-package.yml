@@ -36,7 +36,7 @@ jobs:
   # commits in the last 6 hours.
   gate:
     name: Check whether the pipeline should run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       should-run: ${{ steps.check-should-run.outputs.should-run }}
     steps:
@@ -75,7 +75,7 @@ jobs:
             echo "should-run=false" >> "$GITHUB_OUTPUT"
           fi
 
-  # Source checks (ruff, mypy, full test suite, quick tests, report-only
+  # Source checks (ruff, ty, full test suite, quick tests, report-only
   # pre-release check) on a single representative configuration. This is the
   # same workflow that runs on PRs.
   source-checks:
@@ -93,27 +93,27 @@ jobs:
       matrix:
         platform:
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             target: x86_64-unknown-linux-gnu
             manylinux: "2_28"
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             target: aarch64-unknown-linux-gnu
             manylinux: "2_28"
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             target: armv7-unknown-linux-gnueabihf
             manylinux: "2014"
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             target: riscv64gc-unknown-linux-gnu
             manylinux: "2_31"
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             target: x86_64-unknown-linux-musl
             manylinux: "musllinux_1_2"
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             target: aarch64-unknown-linux-musl
             manylinux: "musllinux_1_2"
           - os: macOS
@@ -123,24 +123,24 @@ jobs:
             runner: macos-14
             target: x86_64-apple-darwin
           - os: Windows
-            runner: windows-latest
+            runner: windows-2025
             target: x86_64-pc-windows-msvc
           # --- Targets blocked by upstream tract-linalg 0.23.4 assembly/compiler limitations ---
           # 1. Windows ARM64: tract-linalg 0.23.4 build.rs fails on MSVC ARM64 (lacks MASM/Clang
           #    support for arm64simd GNU assembly kernels; causes LNK1181).
           # - os: Windows
-          #   runner: windows-latest
+          #   runner: windows-2025
           #   target: aarch64-pc-windows-msvc
           # 2. Linux ARMv7 (musl): tract-linalg 0.23.4 build.rs fails with conflicting FPU flags
           #    (-mfpu=vfpv3-d16 vs -mfpu=neon) in musllinux GCC cross-compiler.
           # - os: Linux
-          #   runner: ubuntu-latest
+          #   runner: ubuntu-26.04
           #   target: armv7-unknown-linux-musleabihf
           #   manylinux: "musllinux_1_2"
           # 3. Linux ARMv6: tract-linalg 0.23.4 build.rs fails looking for arm-linux-gnueabihf-gcc
           #    which is absent from the manylinux container PATH.
           # - os: Linux
-          #   runner: ubuntu-latest
+          #   runner: ubuntu-26.04
           #   target: arm-unknown-linux-gnueabihf
           #   manylinux: "auto"
 
@@ -151,7 +151,7 @@ jobs:
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: Setup Rust
         if: matrix.platform.os != 'Linux'
@@ -205,9 +205,9 @@ jobs:
   # build (release-fast) used by the source checks.
   #
   # Tested Platforms:
-  # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-latest
+  # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-26.04
   # - macOS Apple Silicon (aarch64-apple-darwin) on macos-14
-  # - Windows x64 (x86_64-pc-windows-msvc) on windows-latest
+  # - Windows x64 (x86_64-pc-windows-msvc) on windows-2025
   #
   # Uncovered Build Targets (not tested in this matrix):
   # - x86_64-apple-darwin: Cross-compiled on macos-14 (Apple Silicon). The runner host
@@ -234,13 +234,13 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         platform:
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             target: x86_64-unknown-linux-gnu
           - os: macOS
             runner: macos-14
             target: aarch64-apple-darwin
           - os: Windows
-            runner: windows-latest
+            runner: windows-2025
             target: x86_64-pc-windows-msvc
 
     steps:
@@ -261,7 +261,7 @@ jobs:
           path: dist
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "${{ matrix.python-version }}"
           allow-prereleases: true
@@ -390,6 +390,9 @@ jobs:
 
   # Python 3.8 and 3.9 reached EOL and are not supported by pip >= 26.2.2, so we
   # test the built abi3 wheel on 3.8 and 3.9 using uv only.
+  # Note: Linux is pinned to ubuntu-24.04 (and macOS to macos-14) because
+  # actions/setup-python does not provide prebuilt Python 3.8 or 3.9 binaries
+  # for Ubuntu 26.04.
   test-wheels-legacy-python:
     name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with legacy Python ${{ matrix.python-version }}
     needs: [build-wheels]
@@ -400,13 +403,13 @@ jobs:
         python-version: ["3.8", "3.9"]
         platform:
           - os: Linux
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
           - os: macOS
             runner: macos-14
             target: aarch64-apple-darwin
           - os: Windows
-            runner: windows-latest
+            runner: windows-2025
             target: x86_64-pc-windows-msvc
 
     steps:
@@ -423,7 +426,7 @@ jobs:
           path: dist
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "${{ matrix.python-version }}"
 
@@ -459,7 +462,7 @@ jobs:
     name: Publish to PyPI
     if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
     needs: [test-wheels, test-wheels-legacy-python]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     environment:
       name: pypi
@@ -499,7 +502,7 @@ jobs:
     name: Publish to TestPyPI
     if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
     needs: [test-wheels, test-wheels-legacy-python]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     environment:
       name: testpypi

@@ -18,9 +18,9 @@ Practical notes for the contributions we accept; see [How to Contribute](/magika
 ## Running tests
 
 - Rust: `cd rust && ./test.sh` runs every crate; each crate also has its own `test.sh` (for example `rust/rules/test.sh`).
-- Python: `cd python && uv run pytest tests -m "not slow"`.
+- Python: [`python/justfile`](https://github.com/google/magika/blob/main/python/justfile) defines common development recipes (runnable from the repository root via `just python <recipe>`, or from `python/` via `just <recipe>`), including `test`, `check-source`, `fix-source`, `quick-tests`, `coverage`, `sync-dev`, and `build-wheel`. Without [`just`](https://github.com/casey/just), run `cd python && uv run pytest tests -m "not slow"`.
 - JavaScript: `cd js && yarn install && yarn test`.
-- Documentation: `cd python && uv run ./scripts/check_documentation.py` validates links and version references across all Markdown files.
+- Documentation: `just python check-docs` (or `cd python && uv run ./scripts/check_documentation.py`) validates links and version references across all Markdown files.
 
 ## Updating the content types knowledge base
 

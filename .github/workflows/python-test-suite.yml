@@ -12,6 +12,7 @@ on:
     paths:
       - "python/**"
       - "rust/**"
+      - "scripts/check_copyright.py"
       - "tests_data/**"
       - ".github/actions/rust-cache/**"
       - ".github/workflows/python-test-suite.yml"
@@ -73,7 +74,6 @@ jobs:
         run: uv run --python ${{ env.PYTHON_VERSION }} ty check
 
       - name: Run copyright checks
-        working-directory: python
         run: uv run ./scripts/check_copyright.py
 
       - name: Run the python tests suite

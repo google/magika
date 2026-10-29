@@ -125,9 +125,7 @@ const REFUTED: &[(&str, &str, &str, &[&str])] = &[
         "zip",
         "gzip",
         "alibaba/fastjson `issue859.zip` is a gzip stream: `gzip -t` passes, no zip end of central directory.",
-        &[
-            "b0d2436a3a8021f76c3d85f9f4b0b512f1f8d53a74096b546e678899de8bca6e",
-        ],
+        &["b0d2436a3a8021f76c3d85f9f4b0b512f1f8d53a74096b546e678899de8bca6e"],
     ),
 ];
 

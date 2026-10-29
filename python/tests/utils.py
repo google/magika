@@ -56,19 +56,19 @@ def get_previously_missdetected_files_dir() -> Path:
 
 def get_basic_test_files_paths() -> List[Path]:
     tests_files_dir = get_basic_tests_files_dir()
-    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
+    test_files_paths = sorted(p for p in tests_files_dir.rglob("*") if p.is_file())
     return test_files_paths
 
 
 def get_mitra_test_files_paths() -> List[Path]:
     tests_files_dir = get_mitra_tests_files_dir()
-    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
+    test_files_paths = sorted(p for p in tests_files_dir.rglob("*") if p.is_file())
     return test_files_paths
 
 
 def get_previously_missdetected_files_paths() -> List[Path]:
     tests_files_dir = get_previously_missdetected_files_dir()
-    test_files_paths = sorted(filter(lambda p: p.is_file(), tests_files_dir.rglob("*")))
+    test_files_paths = sorted(p for p in tests_files_dir.rglob("*") if p.is_file())
     return test_files_paths
 
 
@@ -133,16 +133,6 @@ def write_random_file_with_size(sample_path: Path, sample_size: int) -> None:
         else:
             f.write(b"A" * sample_size)
     print("Random file created")
-
-
-def get_models_dir() -> Path:
-    return Path(__file__).parent.parent / "src" / "magika" / "models"
-
-
-def get_default_model_dir() -> Path:
-    from magika.magika import Magika
-
-    return get_models_dir() / Magika._get_default_model_name()
 
 
 def generate_whitespaces(size: int) -> bytes:

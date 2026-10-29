@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.png binary
+*.woff2 binary
+
+docs/** linguist-documentation
+fixtures/** linguist-generated
+vendor/** linguist-vendored

@@ -1,0 +1,682 @@
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//! C API bindings for Magika.
+
+use std::ffi::c_char;
+use std::sync::Arc;
+
+mod content;
+
+/// Status and error codes returned by Magika C API functions.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(C)]
+pub enum MagikaStatus {
+    /// Operation completed successfully.
+    Ok = 0,
+    /// An argument was invalid or a required pointer was null.
+    InvalidArgument = -1,
+    /// An I/O error occurred while reading the file.
+    IoError = -2,
+    /// An error occurred during neural network inference.
+    InferenceError = -3,
+    /// An internal panic was caught across the FFI boundary.
+    Panic = -4,
+    /// Custom rules were invalid.
+    InvalidRules = -5,
+}
+
+/// Content type information.
+///
+/// All instances and their fields live in static memory, so no cleanup function is needed.
+#[derive(Debug, Copy, Clone)]
+#[repr(C)]
+pub struct MagikaTypeInfo {
+    /// The unique label identifying this file type (null-terminated UTF-8 string).
+    pub label: *const c_char,
+    /// The MIME type of the file type (null-terminated UTF-8 string).
+    pub mime_type: *const c_char,
+    /// The group of the file type (null-terminated UTF-8 string).
+    pub group: *const c_char,
+    /// The human-readable description of the file type (null-terminated UTF-8 string).
+    pub description: *const c_char,
+    /// Null-terminated array of null-terminated extension strings.
+    pub extensions: *const *const c_char,
+    /// Whether the file type is text.
+    pub is_text: bool,
+}
+
+unsafe impl Sync for MagikaTypeInfo {}
+unsafe impl Send for MagikaTypeInfo {}
+
+/// Hardware backend to use for neural network inference.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[repr(C)]
+pub enum MagikaBackend {
+    /// Automatically select the best available backend.
+    #[default]
+    Auto = 0,
+    /// Use CPU inference.
+    Cpu = 1,
+    /// Use GPU inference.
+    Gpu = 2,
+}
+
+/// Minimum confidence level for inference.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[repr(C)]
+pub enum MagikaPredictionMode {
+    /// The model output is only used when highly confident.
+    #[default]
+    HighConfidence = 0,
+    /// The model output is used when reasonably confident.
+    MediumConfidence = 1,
+    /// The model output is always used.
+    BestGuess = 2,
+}
+
+impl From<MagikaPredictionMode> for magika::PredictionMode {
+    fn from(mode: MagikaPredictionMode) -> Self {
+        match mode {
+            MagikaPredictionMode::HighConfidence => magika::PredictionMode::HighConfidence,
+            MagikaPredictionMode::MediumConfidence => magika::PredictionMode::MediumConfidence,
+            MagikaPredictionMode::BestGuess => magika::PredictionMode::BestGuess,
+        }
+    }
+}
+
+/// Configuration options for identification.
+#[derive(Debug, Copy, Clone)]
+#[repr(C)]
+pub struct MagikaOptions {
+    /// Identifies using resolvers (after custom rules, before inference).
+    pub use_resolvers: bool,
+    /// Rules checked before the resolvers, or NULL for none.
+    ///
+    /// The options hold their own reference, so the rules may be freed once the call that takes
+    /// these options returns.
+    pub use_custom_rules: *const MagikaRules,
+    /// Identifies using inference (after resolvers).
+    pub use_model: bool,
+    /// Configures the minimum confidence level for inference.
+    pub prediction_mode: MagikaPredictionMode,
+    /// Whether to follow symlinks.
+    pub follow_symlink: bool,
+}
+
+impl Default for MagikaOptions {
+    fn default() -> Self {
+        Self {
+            use_resolvers: true,
+            use_custom_rules: std::ptr::null(),
+            use_model: true,
+            prediction_mode: MagikaPredictionMode::HighConfidence,
+            follow_symlink: true,
+        }
+    }
+}
+
+impl MagikaOptions {
+    /// # Safety
+    ///
+    /// `use_custom_rules` must be NULL or point to a valid `MagikaRules`.
+    unsafe fn to_options(self) -> magika::Options {
+        let mut result = magika::Options::default();
+        result.use_resolvers = self.use_resolvers;
+        result.use_custom_rules = self.use_custom_rules.as_ref().map(|rules| rules.inner.clone());
+        result.use_model = self.use_model;
+        result.prediction_mode = self.prediction_mode.into();
+        result.follow_symlink = self.follow_symlink;
+        result
+    }
+}
+
+/// Options for configuring a Magika runtime.
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(C)]
+pub struct MagikaRuntimeOptions {
+    /// The backend to use for inference.
+    pub backend: MagikaBackend,
+    /// The maximum batch size to optimize for (0 for runtime default).
+    pub max_batch: usize,
+    /// Configuration options for identification.
+    pub options: MagikaOptions,
+}
+
+/// Compiled custom rules (thread-safe, shareable between runtimes and options).
+pub struct MagikaRules {
+    inner: magika::Rules,
+}
+
+/// Shared engine identifying many files in parallel (thread-safe).
+pub struct MagikaEngine {
+    inner: Arc<magika::pipeline::Engine>,
+}
+/// Shared Magika inference runtime (thread-safe).
+pub struct MagikaRuntime {
+    inner: magika::Runtime,
+}
+
+/// Magika identification session (not thread-safe, one per thread).
+pub struct MagikaSession {
+    inner: magika::Session,
+}
+
+/// Features extracted from a file or buffer for neural network inference.
+pub struct MagikaFeatures {
+    inner: magika::Features,
+}
+
+fn error_status(err: &anyhow::Error) -> MagikaStatus {
+    if err.downcast_ref::<std::io::Error>().is_some() || err.root_cause().is::<std::io::Error>() {
+        MagikaStatus::IoError
+    } else {
+        MagikaStatus::InferenceError
+    }
+}
+
+unsafe fn catch_unwind<T>(
+    f: impl FnOnce() -> anyhow::Result<T>, g: impl FnOnce(T),
+) -> MagikaStatus {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(Ok(x)) => {
+            g(x);
+            MagikaStatus::Ok
+        }
+        Ok(Err(err)) => error_status(&err),
+        Err(_) => MagikaStatus::Panic,
+    }
+}
+
+/// Initializes the shared Magika inference runtime (loads models and plans).
+///
+/// If `options` is NULL, the default configuration is used.
+///
+/// # Safety
+///
+/// `out_runtime` must point to a valid, writable pointer to `MagikaRuntime`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_runtime_new(
+    options: *const MagikaRuntimeOptions, out_runtime: *mut *mut MagikaRuntime,
+) -> MagikaStatus {
+    if out_runtime.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    *out_runtime = std::ptr::null_mut();
+    catch_unwind(
+        || builder(options).build(),
+        |runtime| *out_runtime = Box::into_raw(Box::new(MagikaRuntime { inner: runtime })),
+    )
+}
+
+/// # Safety
+///
+/// `options` may be NULL, or must point to a valid `MagikaRuntimeOptions` struct.
+unsafe fn builder(options: *const MagikaRuntimeOptions) -> magika::Builder {
+    let mut builder = magika::Runtime::builder();
+    if let Some(opts) = options.as_ref() {
+        match opts.backend {
+            MagikaBackend::Auto => (),
+            MagikaBackend::Cpu => builder = builder.with_backend(magika::Backend::Cpu),
+            MagikaBackend::Gpu => builder = builder.with_backend(magika::Backend::Gpu),
+        }
+        if opts.max_batch > 0 {
+            builder = builder.with_max_batch(opts.max_batch);
+        }
+        builder = builder.with_options(opts.options.to_options());
+    }
+    builder
+}
+
+/// Starts a shared engine to identify many files in parallel (thread-safe).
+///
+/// The engine identifies on the CPU at once and moves full batches to the GPU once it is prepared,
+/// so this returns before the model is ready. Only `backend` and `max_batch` of `options` are
+/// used; identification options are given with each call. If `options` is NULL, the default
+/// configuration is used.
+///
+/// # Safety
+///
+/// - `options` may be NULL, or must point to a valid `MagikaRuntimeOptions` struct.
+/// - `out_engine` must point to a valid, writable pointer to `MagikaEngine`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_engine_new(
+    options: *const MagikaRuntimeOptions, out_engine: *mut *mut MagikaEngine,
+) -> MagikaStatus {
+    if out_engine.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    *out_engine = std::ptr::null_mut();
+    catch_unwind(
+        || magika::pipeline::Engine::new(builder(options)),
+        |engine| *out_engine = Box::into_raw(Box::new(MagikaEngine { inner: Arc::new(engine) })),
+    )
+}
+
+/// Frees an engine. Passing NULL is a safe no-op.
+///
+/// A runtime still being prepared finishes on its background thread, so the library must not be
+/// unloaded right after freeing an engine.
+///
+/// # Safety
+///
+/// If non-null, `engine` must have been returned by `magika_engine_new` and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn magika_engine_free(engine: *mut MagikaEngine) {
+    if !engine.is_null() {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            drop(Box::from_raw(engine));
+        }));
+    }
+}
+
+/// Identifies files in parallel, reading and identifying several at once.
+///
+/// For each path `i`, `out_statuses[i]` is `MAGIKA_STATUS_OK` and `out_results[i]` is its result,
+/// or `out_statuses[i]` is the error (such as `MAGIKA_STATUS_IO_ERROR`) and `out_results[i]` is
+/// left unchanged. The return value is an error only if the identification itself failed, in which
+/// case both arrays are unspecified. If `options` is NULL, the default configuration is used.
+///
+/// # Safety
+///
+/// - `engine` must point to a valid `MagikaEngine`.
+/// - `paths` must point to `count` null-terminated C strings (may be NULL only if `count == 0`).
+/// - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
+/// - `out_results` and `out_statuses` must point to `count` writable elements each.
+#[no_mangle]
+pub unsafe extern "C" fn magika_engine_identify_paths(
+    engine: *const MagikaEngine, paths: *const *const c_char, count: usize,
+    options: *const MagikaOptions, out_results: *mut *const MagikaTypeInfo,
+    out_statuses: *mut MagikaStatus,
+) -> MagikaStatus {
+    if count == 0 {
+        return MagikaStatus::Ok;
+    }
+    if engine.is_null() || paths.is_null() || out_results.is_null() || out_statuses.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    let mut path_bufs = Vec::with_capacity(count);
+    for i in 0..count {
+        let Some(path) = parse_path(*paths.add(i)) else { return MagikaStatus::InvalidArgument };
+        path_bufs.push(path.to_path_buf());
+    }
+    let options =
+        if options.is_null() { magika::Options::default() } else { (*options).to_options() };
+    let engine = (*engine).inner.clone();
+    catch_unwind(
+        || {
+            use magika::pipeline::{Pipeline, PipelineOptions};
+            let pipeline = Pipeline::new(engine, options, PipelineOptions::default())?;
+            // Without recursion, there is one result per path, in order. Checking it guarantees
+            // that every status is written.
+            let results = pipeline
+                .identify_paths(path_bufs)?
+                .map(|item| Ok(item?.1))
+                .collect::<anyhow::Result<Vec<_>>>()?;
+            anyhow::ensure!(results.len() == count, "{} results for {count} paths", results.len());
+            Ok(results)
+        },
+        |results| {
+            for (i, result) in results.into_iter().enumerate() {
+                match result {
+                    Ok(file_type) => {
+                        *out_results.add(i) = file_type_to_c(&file_type);
+                        *out_statuses.add(i) = MagikaStatus::Ok;
+                    }
+                    Err(err) => *out_statuses.add(i) = error_status(&err),
+                }
+            }
+        },
+    )
+}
+
+/// Compiles custom rules from YARA text, checked before the resolvers.
+///
+/// Rules use the YARA subset and metadata of the `magika-rules` crate. On invalid rules, returns
+/// `MAGIKA_STATUS_INVALID_RULES` and, if `error` is non-null, writes a null-terminated message
+/// truncated to `error_capacity` bytes.
+///
+/// # Safety
+///
+/// - `source` must point to at least `len` readable bytes of UTF-8.
+/// - `error` may be NULL, or must point to at least `error_capacity` writable bytes.
+/// - `out_rules` must point to a valid, writable pointer to `MagikaRules`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_rules_new(
+    source: *const c_char, len: usize, error: *mut c_char, error_capacity: usize,
+    out_rules: *mut *mut MagikaRules,
+) -> MagikaStatus {
+    if out_rules.is_null() || (source.is_null() && len > 0) {
+        return MagikaStatus::InvalidArgument;
+    }
+    *out_rules = std::ptr::null_mut();
+    let bytes = if len == 0 { &[][..] } else { std::slice::from_raw_parts(source.cast(), len) };
+    let compiled = std::panic::catch_unwind(|| {
+        let text = std::str::from_utf8(bytes)?;
+        magika::Rules::compile(text)
+    });
+    match compiled {
+        Ok(Ok(inner)) => {
+            *out_rules = Box::into_raw(Box::new(MagikaRules { inner }));
+            MagikaStatus::Ok
+        }
+        Ok(Err(e)) => {
+            if !error.is_null() && error_capacity > 0 {
+                let message = format!("{e:#}");
+                let n = message.len().min(error_capacity - 1);
+                std::ptr::copy_nonoverlapping(message.as_ptr(), error.cast(), n);
+                *error.add(n) = 0;
+            }
+            MagikaStatus::InvalidRules
+        }
+        Err(_) => MagikaStatus::Panic,
+    }
+}
+
+/// Frees custom rules. Passing NULL is a safe no-op.
+///
+/// # Safety
+///
+/// If non-null, `rules` must have been returned by `magika_rules_new` and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn magika_rules_free(rules: *mut MagikaRules) {
+    if !rules.is_null() {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            drop(Box::from_raw(rules));
+        }));
+    }
+}
+/// Frees a Magika runtime. Passing NULL is a safe no-op.
+///
+/// # Safety
+///
+/// If non-null, `runtime` must have been returned by `magika_runtime_new` and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn magika_runtime_free(runtime: *mut MagikaRuntime) {
+    if !runtime.is_null() {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            drop(Box::from_raw(runtime));
+        }));
+    }
+}
+
+/// Spawns a new identification session from the runtime.
+///
+/// # Safety
+///
+/// - `runtime` must point to a valid `MagikaRuntime`.
+/// - `out_session` must point to a valid, writable pointer to `MagikaSession`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_session_new(
+    runtime: *const MagikaRuntime, out_session: *mut *mut MagikaSession,
+) -> MagikaStatus {
+    if runtime.is_null() || out_session.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    *out_session = std::ptr::null_mut();
+    catch_unwind(
+        || (*runtime).inner.session(),
+        |session| *out_session = Box::into_raw(Box::new(MagikaSession { inner: session })),
+    )
+}
+
+/// Frees a Magika session. Passing NULL is a safe no-op.
+///
+/// # Safety
+///
+/// If non-null, `session` must have been returned by `magika_session_new` and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn magika_session_free(session: *mut MagikaSession) {
+    if !session.is_null() {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            drop(Box::from_raw(session));
+        }));
+    }
+}
+
+/// Frees Magika features. Passing NULL is a safe no-op.
+///
+/// # Safety
+///
+/// If non-null, `features` must have been returned by a Magika features extraction
+/// function and not previously freed.
+#[no_mangle]
+pub unsafe extern "C" fn magika_features_free(features: *mut MagikaFeatures) {
+    if !features.is_null() {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            drop(Box::from_raw(features));
+        }));
+    }
+}
+
+fn file_type_to_c(file_type: &magika::FileType) -> &'static MagikaTypeInfo {
+    match file_type {
+        magika::FileType::Directory => &content::DIRECTORY,
+        magika::FileType::Symlink => &content::SYMLINK,
+        magika::FileType::Regular(x) => content::content_type_info(x.content_type()),
+        magika::FileType::Unsupported => &content::UNSUPPORTED,
+        _ => unreachable!(),
+    }
+}
+
+unsafe fn identify<T: Into<magika::FileType>>(
+    session: *mut MagikaSession, out_result: *mut *const MagikaTypeInfo,
+    f: impl FnOnce(&mut magika::Session) -> anyhow::Result<T>,
+) -> MagikaStatus {
+    *out_result = std::ptr::null();
+    catch_unwind(
+        || f(&mut (*session).inner),
+        |file_type| *out_result = file_type_to_c(&file_type.into()),
+    )
+}
+
+unsafe fn parse_path<'a>(path: *const c_char) -> Option<&'a std::path::Path> {
+    if path.is_null() {
+        return None;
+    }
+    let c_str = std::ffi::CStr::from_ptr(path);
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        Some(std::path::Path::new(std::ffi::OsStr::from_bytes(c_str.to_bytes())))
+    }
+    #[cfg(not(unix))]
+    {
+        c_str.to_str().ok().map(std::path::Path::new)
+    }
+}
+
+/// Identifies the content type of a file on disk.
+///
+/// # Safety
+///
+/// - `session` must point to a valid `MagikaSession`.
+/// - `path` must point to a null-terminated C string.
+/// - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_identify_file(
+    session: *mut MagikaSession, path: *const c_char, out_result: *mut *const MagikaTypeInfo,
+) -> MagikaStatus {
+    if session.is_null() || out_result.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    let Some(path_ref) = parse_path(path) else { return MagikaStatus::InvalidArgument };
+    identify(session, out_result, |sess| sess.identify_file(path_ref))
+}
+
+/// Identifies the content type of an in-memory buffer.
+///
+/// # Safety
+///
+/// - `session` must point to a valid `MagikaSession`.
+/// - `data` must point to at least `len` readable bytes (may be NULL only if `len == 0`).
+/// - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_identify_content(
+    session: *mut MagikaSession, data: *const u8, len: usize,
+    out_result: *mut *const MagikaTypeInfo,
+) -> MagikaStatus {
+    if session.is_null() || out_result.is_null() || (data.is_null() && len > 0) {
+        return MagikaStatus::InvalidArgument;
+    }
+    let bytes = if len == 0 { &[][..] } else { std::slice::from_raw_parts(data, len) };
+    identify(session, out_result, |sess| sess.identify_content(bytes))
+}
+
+unsafe fn extract_features<T: Into<magika::FileType>>(
+    out_features: *mut *mut MagikaFeatures, out_result: *mut *const MagikaTypeInfo,
+    f: impl FnOnce() -> anyhow::Result<magika::FeaturesOr<T>>,
+) -> MagikaStatus {
+    catch_unwind(f, |result| match result {
+        magika::FeaturesOr::Features(features) => {
+            *out_features = Box::into_raw(Box::new(MagikaFeatures { inner: features }));
+        }
+        magika::FeaturesOr::Ruled(file_type) => {
+            if !out_result.is_null() {
+                *out_result = file_type_to_c(&file_type.into());
+            }
+        }
+    })
+}
+
+/// Extracts features from a file on disk for neural network inference.
+///
+/// If `options` is NULL, the default configuration is used.
+///
+/// If the file does not require neural network inference (for example, if it is empty
+/// or identified by rules):
+/// - `*out_features` is set to NULL.
+/// - If `out_result` is non-null, `*out_result` is populated with the identification result.
+///
+/// If the file requires neural network inference:
+/// - `*out_features` is set to a newly allocated `MagikaFeatures` (which must be freed
+///   with `magika_features_free`).
+/// - `out_result` is left unchanged.
+///
+/// # Safety
+///
+/// - `path` must point to a null-terminated C string.
+/// - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
+/// - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
+/// - `out_result` may be NULL, or must point to a valid, writable pointer to `const MagikaTypeInfo`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_features_extract_file(
+    path: *const c_char, options: *const MagikaOptions, out_features: *mut *mut MagikaFeatures,
+    out_result: *mut *const MagikaTypeInfo,
+) -> MagikaStatus {
+    if out_features.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    *out_features = std::ptr::null_mut();
+    let Some(path_ref) = parse_path(path) else { return MagikaStatus::InvalidArgument };
+    let options =
+        if options.is_null() { magika::Options::default() } else { (*options).to_options() };
+    extract_features(out_features, out_result, || {
+        magika::FeaturesOr::extract_file(path_ref, &options)
+    })
+}
+
+/// Extracts features from an in-memory buffer for neural network inference.
+///
+/// If `options` is NULL, the default configuration is used.
+///
+/// If the buffer does not require neural network inference (for example, if it is empty
+/// or identified by rules):
+/// - `*out_features` is set to NULL.
+/// - If `out_result` is non-null, `*out_result` is populated with the identification result.
+///
+/// If the buffer requires neural network inference:
+/// - `*out_features` is set to a newly allocated `MagikaFeatures` (which must be freed
+///   with `magika_features_free`).
+/// - `out_result` is left unchanged.
+///
+/// # Safety
+///
+/// - `data` must point to at least `len` readable bytes (may be NULL only if `len == 0`).
+/// - `options` may be NULL, or must point to a valid `MagikaOptions` struct.
+/// - `out_features` must point to a valid, writable pointer to `MagikaFeatures`.
+/// - `out_result` may be NULL, or must point to a valid, writable pointer to `const MagikaTypeInfo`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_features_extract_content(
+    data: *const u8, len: usize, options: *const MagikaOptions,
+    out_features: *mut *mut MagikaFeatures, out_result: *mut *const MagikaTypeInfo,
+) -> MagikaStatus {
+    if out_features.is_null() || (data.is_null() && len > 0) {
+        return MagikaStatus::InvalidArgument;
+    }
+    *out_features = std::ptr::null_mut();
+    let bytes = if len == 0 { &[][..] } else { std::slice::from_raw_parts(data, len) };
+    let options =
+        if options.is_null() { magika::Options::default() } else { (*options).to_options() };
+    extract_features(out_features, out_result, || {
+        magika::FeaturesOr::extract_content(bytes, &options)
+    })
+}
+
+/// Identifies the content type of a file from its extracted features.
+///
+/// # Safety
+///
+/// - `session` must point to a valid `MagikaSession`.
+/// - `features` must point to a valid `MagikaFeatures`.
+/// - `out_result` must point to a valid, writable pointer to `const MagikaTypeInfo`.
+#[no_mangle]
+pub unsafe extern "C" fn magika_identify_features(
+    session: *mut MagikaSession, features: *const MagikaFeatures,
+    out_result: *mut *const MagikaTypeInfo,
+) -> MagikaStatus {
+    if session.is_null() || features.is_null() || out_result.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    identify(session, out_result, |sess| sess.identify_features(&(*features).inner))
+}
+
+/// Identifies the content types of multiple files from their extracted features in a batch.
+///
+/// # Safety
+///
+/// Unless `count` is 0:
+/// - `session` must point to a valid `MagikaSession`.
+/// - `features` must point to an array of at least `count` valid, non-null `MagikaFeatures`
+///   pointers.
+/// - `out_results` must point to an array of at least `count` writable `const MagikaTypeInfo*`
+///   pointers.
+#[no_mangle]
+pub unsafe extern "C" fn magika_identify_features_batch(
+    session: *mut MagikaSession, features: *const *const MagikaFeatures, count: usize,
+    out_results: *mut *const MagikaTypeInfo,
+) -> MagikaStatus {
+    if count == 0 {
+        return MagikaStatus::Ok;
+    }
+    if session.is_null() || features.is_null() || out_results.is_null() {
+        return MagikaStatus::InvalidArgument;
+    }
+    for i in 0..count {
+        if (*features.add(i)).is_null() {
+            return MagikaStatus::InvalidArgument;
+        }
+    }
+    catch_unwind(
+        || {
+            let feats: Vec<_> = (0..count).map(|i| &(*(*features.add(i))).inner).collect();
+            (*session).inner.identify_features_batch(&feats)
+        },
+        |file_types| {
+            for (i, file_type) in file_types.into_iter().enumerate() {
+                *out_results.add(i) = file_type_to_c(&file_type.into());
+            }
+        },
+    )
+}

@@ -2,15 +2,11 @@
 title: Known Limitations
 ---
 
-Magika significantly improves over the state of the art, but there's always room for improvement. More work can be done to increase detection accuracy, support for additional content types, bindings for more languages, etc.
+Magika significantly improves over the state of the art, but there is always room for improvement: detection accuracy, support for additional content types, bindings for more languages.
 
-This initial release is not targeting polyglot detection, and we're looking forward to seeing adversarial examples from the community.
+Magika currently does not support polyglot detection, and we are looking forward to seeing adversarial examples from the community.
 
-We would also love to hear from the community about encountered problems, misdetections, features requests, need for support for additional content types, etc.
-
-Check our open GitHub issues to see what is on our roadmap and please report misdetections or feature requests by either opening GitHub issues (preferred) or by emailing us at magika-dev@google.com.
-
-Check [GitHub's open issues labeled as "help wanted"](https://github.com/google/magika/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) as a starting point.
+Open GitHub issues are the best view of what is on our roadmap. To report a misdetection or request a content type, see [Reporting Issues](/magika/contributing/reporting-issues/); to help fix one, start from [How to Contribute](/magika/contributing/how-to-contribute/).
 
 :::caution
 Do **NOT** send reports about files that may contain PII!

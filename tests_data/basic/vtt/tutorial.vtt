@@ -1,0 +1,15 @@
+WEBVTT
+Kind: captions
+Language: en
+
+00:00:00.000 --> 00:00:03.500
+Welcome to this short tutorial.
+
+00:00:04.000 --> 00:00:08.250
+First, open the project and locate the configuration file.
+
+00:00:09.000 --> 00:00:13.750
+Update the setting, save your changes, and run the tests.
+
+00:00:14.500 --> 00:00:18.000
+The final report should confirm that every check passed.

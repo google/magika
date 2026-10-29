@@ -434,7 +434,7 @@ def test_api_call_with_bad_types() -> None:
     _ = m.identify_path(Path("/non_existing.txt"))
     _ = m.identify_path("/non_existing.txt")
     with pytest.raises(TypeError):
-        _ = m.identify_path(b"/non_existing.txt")  # type: ignore[arg-type]
+        _ = m.identify_path(b"/non_existing.txt")  # ty: ignore[invalid-argument-type]
 
     _ = m.identify_paths([Path("/non_existing.txt")])
     _ = m.identify_paths(["/non_existing.txt"])
@@ -442,23 +442,23 @@ def test_api_call_with_bad_types() -> None:
     _ = m.identify_paths([Path("/non_existing.txt"), "/not_existing2.txt"])
     _ = m.identify_paths(["/non_existing.txt", "/not_existing2.txt"])
     with pytest.raises(TypeError):
-        _ = m.identify_paths(Path("/non_existing.txt"))  # type: ignore[arg-type]
+        _ = m.identify_paths(Path("/non_existing.txt"))  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_paths([b"/non_existing.txt"])  # type: ignore[list-item]
+        _ = m.identify_paths([b"/non_existing.txt"])  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_paths([Path("/non_existing.txt"), b"/not_existing2.txt"])  # type: ignore[list-item]
+        _ = m.identify_paths([Path("/non_existing.txt"), b"/not_existing2.txt"])  # ty: ignore[invalid-argument-type]
 
     _ = m.identify_bytes(b"bytes content")
     with pytest.raises(TypeError):
-        _ = m.identify_bytes("str content")  # type: ignore[arg-type]
+        _ = m.identify_bytes("str content")  # ty: ignore[invalid-argument-type]
 
     _ = m.identify_stream(io.BytesIO(b"bytes stream content"))
     with pytest.raises(TypeError):
-        _ = m.identify_stream(io.StringIO("str stream content"))  # type: ignore[arg-type]
+        _ = m.identify_stream(io.StringIO("str stream content"))  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_stream(b"bytes content")  # type: ignore[arg-type]
+        _ = m.identify_stream(b"bytes content")  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_stream("str content")  # type: ignore[arg-type]
+        _ = m.identify_stream("str content")  # ty: ignore[invalid-argument-type]
 
 
 def test_access_magika_result_and_prediction():
@@ -479,9 +479,9 @@ def test_access_magika_result_and_prediction():
     assert isinstance(res.score, float)
     # test access to non-existing properties
     with pytest.raises(AttributeError):
-        _ = res.foo  # type: ignore[attr-defined]
+        _ = res.foo  # ty: ignore[unresolved-attribute]
     with pytest.raises(AttributeError):
-        _ = res.prediction.foo  # type: ignore[attr-defined]
+        _ = res.prediction.foo  # ty: ignore[unresolved-attribute]
 
     res = m.identify_path(Path("/non_existing.txt"))
     assert isinstance(res, MagikaResult)
@@ -503,9 +503,9 @@ def test_access_magika_result_and_prediction():
     with pytest.raises(ValueError):
         _ = res.score
     with pytest.raises(AttributeError):
-        _ = res.foo  # type: ignore[attr-defined]
+        _ = res.foo  # ty: ignore[unresolved-attribute]
     with pytest.raises(ValueError):
-        _ = res.prediction.foo  # type: ignore[attr-defined]
+        _ = res.prediction.foo  # ty: ignore[unresolved-attribute]
 
 
 def test_access_backward_compatibility_layer() -> None:
@@ -832,10 +832,10 @@ def test_magika_prediction_immutability() -> None:
     assert res.ok
 
     with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
-        res.prediction.score = 0.5  # type: ignore[misc]
+        res.prediction.score = 0.5  # ty: ignore[invalid-assignment]
 
     with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
-        res.prediction.output = res.prediction.dl  # type: ignore[misc]
+        res.prediction.output = res.prediction.dl  # ty: ignore[invalid-assignment]
 
 
 def test_magika_constructor_options_and_errors() -> None:

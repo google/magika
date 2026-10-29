@@ -47,7 +47,7 @@ Changelog = "https://github.com/google/magika/blob/main/python/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.11.2",
+    "ty>=0.0.87",
     "ipython>=8.12.3",
     "pytest>=8.3.2",
     "ruff>=0.14.3",
@@ -103,3 +103,13 @@ convention = "google"
 
 [tool.ruff.format]
 docstring-code-format = true
+
+[tool.ty.src]
+include = ["src/magika", "tests"]
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
+
+[tool.ty.rules]
+blanket-ignore-comment = "error"
+unused-ignore-comment = "error"

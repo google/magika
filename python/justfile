@@ -13,7 +13,7 @@ check-source:
     uv lock --check
     uv run ruff check
     uv run ruff format --check
-    uv run mypy src/magika tests
+    uv run ty check
     uv run ./scripts/check_copyright.py
 
 # Auto-fix lint issues and format Python code.

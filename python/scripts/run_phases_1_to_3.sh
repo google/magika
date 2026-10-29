@@ -21,7 +21,7 @@
 #   Phase 1: Local Development & Workspace Checks (On This Machine)
 #            - Verifies `uv run magika` invokes the native Rust CLI (ELF binary).
 #            - Runs pytest unit tests against the PyO3 native extension.
-#            - Runs static analysis and linters: ruff check, ruff format, mypy.
+#            - Runs static analysis and linters: ruff check, ruff format, ty.
 #            - Runs in-process Python smoke test via `uv run python`.
 #
 #   Phase 2: Wheel Creation & Inspection
@@ -190,9 +190,9 @@ log_info "Running 'uv run ruff format --check'..."
 uv run ruff format --check
 log_success "Ruff formatter check passed."
 
-log_info "Running 'uv run mypy src/magika'..."
-uv run mypy src/magika
-log_success "Mypy type checker passed (strict types verified, 0 errors)."
+log_info "Running 'uv run ty check'..."
+uv run ty check
+log_success "ty type checker passed (0 errors)."
 
 cd "$REPO_ROOT"
 
@@ -432,7 +432,7 @@ log_success "Python library detection succeeded in clean environment."
 # ==============================================================================
 log_header "ALL 3 PHASES PASSED SUCCESSFULLY!"
 echo -e "${GREEN}${BOLD}Summary:${RESET}"
-echo -e "  ${GREEN}✓${RESET} Phase 1: Local workspace, native CLI, pytest suite, ruff, and mypy passed."
+echo -e "  ${GREEN}✓${RESET} Phase 1: Local workspace, native CLI, pytest suite, ruff, and ty passed."
 echo -e "  ${GREEN}✓${RESET} Phase 2: Release wheel created without legacy CLI/models, verified 0 dependencies."
 echo -e "  ${GREEN}✓${RESET} Phase 3: Installed wheel into pristine venv; verified zero external dependencies, native CLI binary execution, and Python library inference."
 echo ""

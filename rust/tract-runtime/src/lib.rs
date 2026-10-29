@@ -136,42 +136,32 @@ impl PreparedPlan {
 impl Runtime {
     /// Prepares every fixed batch plan for the requested device class.
     pub fn new(request: BackendRequest) -> Result<Self> {
-        Self::with_classes(request, &BATCH_CLASSES, &BATCH_CLASSES)
+        Self::with_classes(request, &BATCH_CLASSES)
     }
 
     /// Prepares plans for requests accumulated up to `max_batch` items.
-    ///
-    /// The x86_64 CPU graph keeps only the largest reachable class: smaller requests are padded
-    /// into that optimized fused graph and their extra scores discarded. Other architectures keep
-    /// the original set of reachable fixed plans and routing behavior.
     pub fn with_max_batch(request: BackendRequest, max_batch: usize) -> Result<Self> {
         ensure!(max_batch > 0, "the maximum batch cannot be zero");
         let classes: Vec<usize> =
             BATCH_CLASSES.iter().copied().filter(|class| *class <= max_batch).collect();
         ensure!(!classes.is_empty(), "no resident plan can serve a batch of {max_batch}");
-        #[cfg(target_arch = "x86_64")]
-        let cpu_classes = &classes[classes.len() - 1..];
-        #[cfg(not(target_arch = "x86_64"))]
-        let cpu_classes = classes.as_slice();
-        Self::with_classes(request, cpu_classes, &classes)
+        Self::with_classes(request, &classes)
     }
 
-    fn with_classes(
-        request: BackendRequest, cpu_classes: &[usize], gpu_classes: &[usize],
-    ) -> Result<Self> {
+    fn with_classes(request: BackendRequest, classes: &[usize]) -> Result<Self> {
         match request {
-            BackendRequest::Cpu => Self::prepare_cpu(cpu_classes),
+            BackendRequest::Cpu => Self::prepare_cpu(classes),
             BackendRequest::Gpu => {
-                let gpu = Self::prepare_gpu(gpu_classes)?;
+                let gpu = Self::prepare_gpu(classes)?;
                 ensure!(
                     gpu.passes_gpu_probe()?,
                     "the GPU does not identify files correctly on this machine"
                 );
                 Ok(gpu)
             }
-            BackendRequest::Auto => match Self::prepare_gpu(gpu_classes) {
+            BackendRequest::Auto => match Self::prepare_gpu(classes) {
                 Ok(gpu) if gpu_agreement_passes(gpu.passes_gpu_probe()) => Ok(gpu),
-                _ => Self::prepare_cpu(cpu_classes),
+                _ => Self::prepare_cpu(classes),
             },
         }
     }
@@ -246,7 +236,7 @@ impl Runtime {
             fused_layer_norm == EXPECTED_LAYER_NORMS,
             "required {EXPECTED_LAYER_NORMS} CPU LayerNorm fusions for batch {batch}, matched {fused_layer_norm}"
         );
-        if batch >= DIRECT_FUSED_MIN_BATCH {
+        if should_fuse_cpu_conv(batch) {
             let fused_conv = direct_conv::fuse_magika_conv_max(&mut model, batch)?;
             ensure!(
                 fused_conv == EXPECTED_CONVOLUTIONS,
@@ -313,6 +303,15 @@ impl Runtime {
     fn prepare_gpu(_classes: &[usize]) -> Result<Self> {
         bail!("this build does not include a GPU backend")
     }
+}
+
+/// Whether the CPU graph for `batch` uses [`direct_conv::fuse_magika_conv_max`].
+///
+/// On `x86_64`, the 48-column cache-sized tile and deferred GELU reduction beat unfused `im2col`
+/// even for a single file. Other targets use whole-batch tiles on the portable virtual-input path,
+/// which only pays off once `im2col` outgrows cache at `DIRECT_FUSED_MIN_BATCH` and above.
+fn should_fuse_cpu_conv(batch: usize) -> bool {
+    cfg!(target_arch = "x86_64") || batch >= DIRECT_FUSED_MIN_BATCH
 }
 
 fn gpu_agreement_passes(agreement: Result<bool>) -> bool {
@@ -408,9 +407,8 @@ impl SessionPlan {
     /// A session holds one plan per resident batch class, but a caller that accumulates full
     /// batches only ever routes to the largest. Spawning every class up front made a session cost
     /// the sum of all of them: the execution state is negligible until the plan runs once, and
-    /// then it holds that plan's intermediate tensors for good. On this model the classes below
-    /// eight are the expensive ones, because only eight and above carry the fused convolution and
-    /// the rest still expand the input before multiplying.
+    /// then it holds that plan's intermediate tensors for good. On targets without a small-batch
+    /// fused convolution, the classes below eight still expand the input before multiplying.
     fn state(&mut self) -> Result<&mut dyn State> {
         let state = match &mut self.state {
             Some(state) => state,
@@ -439,8 +437,8 @@ impl Session {
         let mut remaining = batch;
         let mut outputs = Vec::new();
         while remaining > 0 {
-            // Use the largest plan that fits. If none does (the x86_64 runtime deliberately keeps
-            // only its largest optimized class), pad the tail through the smallest resident plan.
+            // Use the largest plan that fits. If none does, pad the tail through the smallest
+            // resident plan.
             let index =
                 self.plans.iter().rposition(|plan| plan.plan.batch <= remaining).unwrap_or(0);
             let plan = &mut self.plans[index];
@@ -545,6 +543,23 @@ mod tests {
     }
 
     #[test]
+    fn with_max_batch_keeps_small_cpu_classes_for_single_file_calls() -> Result<()> {
+        let runtime = Runtime::with_max_batch(BackendRequest::Cpu, 8)?;
+        let classes: Vec<usize> = runtime.plans.iter().map(|plan| plan.batch).collect();
+        assert_eq!(classes, [1, 4, 8]);
+        let prepared = || -> Vec<bool> {
+            runtime.plans.iter().map(|plan| plan.runnable.lock().unwrap().is_some()).collect()
+        };
+        // A single-file caller prepares only batch 1 and runs it directly without preparing or
+        // padding into batch 8.
+        assert_eq!(prepared(), [true, false, false]);
+        let input = vec![PADDING_TOKEN; FEATURE_SIZE];
+        assert_eq!(runtime.session()?.run(&input, 1)?.len(), NUM_LABELS);
+        assert_eq!(prepared(), [true, false, false]);
+        Ok(())
+    }
+
+    #[test]
     fn embedded_gpu_probe_matches_the_release_cpu_model() -> Result<()> {
         let input = (0..FEATURE_SIZE)
             .map(|index| (index % (PADDING_TOKEN as usize + 1)) as i32)
@@ -644,12 +659,16 @@ mod tests {
 
     #[test]
     fn release_cpu_graph_has_every_required_fusion() -> Result<()> {
-        let mut model = load_model(DIRECT_FUSED_MIN_BATCH)?;
-        assert_eq!(layer_norm::fuse_magika_layer_norm(&mut model)?, EXPECTED_LAYER_NORMS);
-        assert_eq!(
-            direct_conv::fuse_magika_conv_max(&mut model, DIRECT_FUSED_MIN_BATCH)?,
-            EXPECTED_CONVOLUTIONS
-        );
+        for batch in BATCH_CLASSES {
+            let mut model = load_model(batch)?;
+            assert_eq!(layer_norm::fuse_magika_layer_norm(&mut model)?, EXPECTED_LAYER_NORMS);
+            if should_fuse_cpu_conv(batch) {
+                assert_eq!(
+                    direct_conv::fuse_magika_conv_max(&mut model, batch)?,
+                    EXPECTED_CONVOLUTIONS
+                );
+            }
+        }
         Ok(())
     }
 
@@ -659,31 +678,32 @@ mod tests {
     /// dimensions of nothing.
     #[test]
     fn the_fallback_packing_path_scores_the_release_model_the_same() -> Result<()> {
-        let batch = DIRECT_FUSED_MIN_BATCH;
-        let prepare = |portable: bool| -> Result<Vec<f32>> {
-            let mut model = load_model(batch)?;
-            ensure!(layer_norm::fuse_magika_layer_norm(&mut model)? == EXPECTED_LAYER_NORMS);
-            let fused = if portable {
-                direct_conv::fuse_magika_conv_max_portable(&mut model, batch)?
-            } else {
-                direct_conv::fuse_magika_conv_max(&mut model, batch)?
+        for batch in [1, DIRECT_FUSED_MIN_BATCH].into_iter().filter(|&b| should_fuse_cpu_conv(b)) {
+            let prepare = |portable: bool| -> Result<Vec<f32>> {
+                let mut model = load_model(batch)?;
+                ensure!(layer_norm::fuse_magika_layer_norm(&mut model)? == EXPECTED_LAYER_NORMS);
+                let fused = if portable {
+                    direct_conv::fuse_magika_conv_max_portable(&mut model, batch)?
+                } else {
+                    direct_conv::fuse_magika_conv_max(&mut model, batch)?
+                };
+                ensure!(fused == EXPECTED_CONVOLUTIONS);
+                static CPU: DefaultRuntime = DefaultRuntime;
+                let options =
+                    RunOptions { executor: Some(Executor::SingleThread), ..RunOptions::default() };
+                let runnable = CPU.prepare_with_options(model, &options)?;
+                let input: Vec<i32> =
+                    (0..batch * FEATURE_SIZE).map(|index| (index % 257) as i32).collect();
+                run_plan(runnable.spawn()?.as_mut(), &input, batch)
             };
-            ensure!(fused == EXPECTED_CONVOLUTIONS);
-            static CPU: DefaultRuntime = DefaultRuntime;
-            let options =
-                RunOptions { executor: Some(Executor::SingleThread), ..RunOptions::default() };
-            let runnable = CPU.prepare_with_options(model, &options)?;
-            let input: Vec<i32> =
-                (0..batch * FEATURE_SIZE).map(|index| (index % 257) as i32).collect();
-            run_plan(runnable.spawn()?.as_mut(), &input, batch)
-        };
-        let scores = prepare(false)?;
-        let fallback = prepare(true)?;
-        ensure!(scores.len() == batch * NUM_LABELS);
-        // The two paths walk the reduction in a different order, so they agree closely rather than
-        // to the bit. This bound is far below the gap between two different content types.
-        for (left, right) in scores.iter().zip(fallback.iter()) {
-            ensure!((left - right).abs() <= 1e-5, "{left} != {right}");
+            let scores = prepare(false)?;
+            let fallback = prepare(true)?;
+            ensure!(scores.len() == batch * NUM_LABELS);
+            // The two paths walk the reduction in a different order, so they agree closely rather
+            // than to the bit. This bound is far below the gap between two different content types.
+            for (left, right) in scores.iter().zip(fallback.iter()) {
+                ensure!((left - right).abs() <= 1e-5, "batch {batch}: {left} != {right}");
+            }
         }
         Ok(())
     }

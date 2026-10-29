@@ -59,7 +59,7 @@ class Magika:
         debug: bool = False,
         use_colors: bool = False,
         rules: Optional[str] = None,
-        rules_files: Optional[Sequence[Union[str, os.PathLike]]] = None,
+        rules_files: Optional[Sequence[Union[str, os.PathLike[str]]]] = None,
     ) -> None:
         """Initializes the Magika instance.
 
@@ -154,7 +154,7 @@ class Magika:
         )
         return MagikaResult(path=path, status=status, prediction=prediction)
 
-    def identify_path(self, path: Union[str, os.PathLike]) -> MagikaResult:
+    def identify_path(self, path: Union[str, os.PathLike[str]]) -> MagikaResult:
         """Identify the content type of a file given its path."""
         if not isinstance(path, (str, os.PathLike)):
             raise TypeError(
@@ -165,7 +165,7 @@ class Magika:
         return self._convert_pyo3_result(pyo3_res, path)
 
     def identify_paths(
-        self, paths: Sequence[Union[str, os.PathLike]]
+        self, paths: Sequence[Union[str, os.PathLike[str]]]
     ) -> List[MagikaResult]:
         """Identify the content type of a list of files given their paths."""
         if not isinstance(paths, Sequence):

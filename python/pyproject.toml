@@ -112,4 +112,6 @@ respect-type-ignore-comments = false
 
 [tool.ty.rules]
 blanket-ignore-comment = "error"
+missing-type-argument = "error"
+unsound-return-statement = "error"
 unused-ignore-comment = "error"

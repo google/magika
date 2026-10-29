@@ -46,7 +46,7 @@ jobs:
         uses: ./.github/actions/rust-cache
 
       - name: Build and stage magika CLI binary
-        run: ./python/scripts/build_and_stage_cli.sh
+        run: ./python/scripts/build_and_stage_cli.sh --profile release-fast
 
       - name: Check that uv.lock is in sync
         working-directory: python
@@ -94,11 +94,7 @@ jobs:
 
       - name: Run "magika module" quick tests
         working-directory: python
-        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py
-
-      - name: Run "magika module" quick tests + perf measurement
-        working-directory: python
-        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py --print-inference-stats --repeat 10
+        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py --print-inference-stats
 
       # Report-only: this shows which versions CI sees (module, CLI, etc.) so
       # they can be inspected before tagging a release. The strict check against

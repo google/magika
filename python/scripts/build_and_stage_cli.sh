@@ -30,30 +30,71 @@
 # building a wheel or running `uv sync` whenever the `magika` CLI binary is
 # expected to be present in the Python environment:
 #
-#   1. Local builds & CI unit test suites (`python-test-suite.yml`, `build_wheel.sh`, `sync_dev.sh`):
-#      Run `./python/scripts/build_and_stage_cli.sh` (no arguments) on the host
-#      before `uv sync` or `uv build` so `magika` is compiled for the host target
-#      and installed into `.venv/bin/magika`.
+#   1. Local dev & CI unit test suites (`python-test-suite.yml`, `sync_dev.sh`):
+#      Run `./python/scripts/build_and_stage_cli.sh --profile release-fast` on
+#      the host before `uv sync` so `magika` is compiled without fat LTO overhead
+#      (matching `[tool.maturin] editable-profile = "release-fast"`) and installed
+#      into `.venv/bin/magika`.
 #
-#   2. macOS and Windows wheel builds (`python-build-test-and-release-package.yml`):
+#   2. Local release wheel builds (`build_wheel.sh`):
+#      Run `./python/scripts/build_and_stage_cli.sh` (defaults to `--profile release`)
+#      before `uv build --wheel`.
+#
+#   3. macOS and Windows wheel builds (`python-build-test-and-release-package.yml`):
 #      Run `./python/scripts/build_and_stage_cli.sh <target-triple>` on the
 #      runner host immediately before `PyO3/maturin-action` packages the wheel.
 #
-#   3. Linux manylinux / musllinux wheel builds (`python-build-test-and-release-package.yml`):
+#   4. Linux manylinux / musllinux wheel builds (`python-build-test-and-release-package.yml`):
 #      Passed to `PyO3/maturin-action` via `before-script-linux` so the CLI is
 #      compiled *inside* the manylinux/musllinux Docker container against the
 #      exact same C library sysroot (`glibc` or `musl`) as the `_magika.abi3.so`
 #      PyO3 extension.
 #
 # Usage:
-#   ./python/scripts/build_and_stage_cli.sh [RUST_TARGET_TRIPLE]
+#   ./python/scripts/build_and_stage_cli.sh [--profile <PROFILE>] [RUST_TARGET_TRIPLE]
 # ==============================================================================
 
 set -euo pipefail
 
-# Accept an explicit target triple as $1, falling back to $CARGO_BUILD_TARGET
-# (which is set automatically by maturin-action inside cross-compilation containers).
-TARGET="${1:-${CARGO_BUILD_TARGET:-}}"
+PROFILE="release"
+TARGET=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --profile)
+            if [[ $# -lt 2 || -z "$2" ]]; then
+                echo "Error: --profile requires a non-empty value." >&2
+                exit 1
+            fi
+            PROFILE="$2"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE="${1#--profile=}"
+            if [[ -z "$PROFILE" ]]; then
+                echo "Error: --profile requires a non-empty value." >&2
+                exit 1
+            fi
+            shift
+            ;;
+        -*)
+            echo "Error: Unknown option '$1'. Usage: $0 [--profile <PROFILE>] [RUST_TARGET_TRIPLE]" >&2
+            exit 1
+            ;;
+        *)
+            if [[ -n "$TARGET" ]]; then
+                echo "Error: Unexpected extra argument '$1'. Usage: $0 [--profile <PROFILE>] [RUST_TARGET_TRIPLE]" >&2
+                exit 1
+            fi
+            TARGET="$1"
+            shift
+            ;;
+    esac
+done
+
+# Fall back to $CARGO_BUILD_TARGET when no target triple was passed explicitly
+# (set automatically by maturin-action inside cross-compilation containers).
+TARGET="${TARGET:-${CARGO_BUILD_TARGET:-}}"
+
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &>/dev/null && pwd)
 cd "$ROOT_DIR"
 
@@ -64,26 +105,38 @@ mkdir -p python/wheel_data/scripts
 rm -f python/wheel_data/scripts/*
 
 if [ -n "$TARGET" ]; then
-    echo "Building magika CLI for target $TARGET..."
-    cargo build --release --manifest-path rust/cli/Cargo.toml --target "$TARGET"
+    echo "Building magika CLI (profile: $PROFILE) for target $TARGET..."
+    cargo build --profile "$PROFILE" --manifest-path rust/cli/Cargo.toml --target "$TARGET"
 else
-    echo "Building magika CLI for default host target..."
-    cargo build --release --manifest-path rust/cli/Cargo.toml
+    echo "Building magika CLI (profile: $PROFILE) for default host target..."
+    cargo build --profile "$PROFILE" --manifest-path rust/cli/Cargo.toml
 fi
+
+# Cargo places `--profile dev` artifacts in `debug/` and all other profiles in `<profile>/`.
+if [ "$PROFILE" = "dev" ]; then
+    PROFILE_DIR="debug"
+else
+    PROFILE_DIR="$PROFILE"
+fi
+
+# Honor $CARGO_TARGET_DIR when set (e.g. shared target cache across git worktrees),
+# falling back to `.cargo/config.toml`'s `rust/target`.
+TARGET_DIR="${CARGO_TARGET_DIR:-rust/target}"
+TARGET_DIR="${TARGET_DIR%/}"
 
 # Locate the compiled binary across candidate Cargo target directories.
 # Depending on whether `--target` or `CARGO_BUILD_TARGET` was used (and whether
-# we are on Unix or Windows), the binary lives under `rust/target/<triple>/release/`
-# or `rust/target/release/` as either `magika` or `magika.exe`.
+# we are on Unix or Windows), the binary lives under `<target-dir>/<triple>/<profile-dir>/`
+# or `<target-dir>/<profile-dir>/` as either `magika` or `magika.exe`.
 SRC_BIN=""
 CANDIDATES=()
 if [ -n "$TARGET" ]; then
-    CANDIDATES+=("rust/target/$TARGET/release/magika" "rust/target/$TARGET/release/magika.exe")
+    CANDIDATES+=("$TARGET_DIR/$TARGET/$PROFILE_DIR/magika" "$TARGET_DIR/$TARGET/$PROFILE_DIR/magika.exe")
 fi
-if [ -n "${CARGO_BUILD_TARGET:-}" ]; then
-    CANDIDATES+=("rust/target/$CARGO_BUILD_TARGET/release/magika" "rust/target/$CARGO_BUILD_TARGET/release/magika.exe")
+if [ -n "${CARGO_BUILD_TARGET:-}" ] && [ "${CARGO_BUILD_TARGET}" != "$TARGET" ]; then
+    CANDIDATES+=("$TARGET_DIR/$CARGO_BUILD_TARGET/$PROFILE_DIR/magika" "$TARGET_DIR/$CARGO_BUILD_TARGET/$PROFILE_DIR/magika.exe")
 fi
-CANDIDATES+=("rust/target/release/magika" "rust/target/release/magika.exe")
+CANDIDATES+=("$TARGET_DIR/$PROFILE_DIR/magika" "$TARGET_DIR/$PROFILE_DIR/magika.exe")
 
 for candidate in "${CANDIDATES[@]}"; do
     if [ -f "$candidate" ]; then
@@ -92,9 +145,9 @@ for candidate in "${CANDIDATES[@]}"; do
     fi
 done
 
-# Fallback search in case Cargo placed the release binary under another target subdirectory.
+# Fallback search in case Cargo placed the binary under another target subdirectory.
 if [ -z "$SRC_BIN" ]; then
-    SRC_BIN=$(find rust/target -type f \( -name "magika" -o -name "magika.exe" \) -path "*/release/*" 2>/dev/null | head -n 1 || true)
+    SRC_BIN=$(find "$TARGET_DIR" -type f \( -name "magika" -o -name "magika.exe" \) -path "*/$PROFILE_DIR/*" 2>/dev/null | head -n 1 || true)
 fi
 
 if [ -n "$SRC_BIN" ] && [ -f "$SRC_BIN" ]; then
@@ -109,6 +162,6 @@ else
     for c in "${CANDIDATES[@]}"; do
         echo "  - $c" >&2
     done
-    ls -la rust/target/ 2>/dev/null || true
+    ls -la "$TARGET_DIR/" 2>/dev/null || true
     exit 1
 fi

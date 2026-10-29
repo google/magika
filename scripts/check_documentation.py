@@ -33,7 +33,7 @@ import click
 import requests
 from packaging.version import Version
 
-REPO_ROOT_DIR = Path(__file__).parent.parent.parent.resolve()
+REPO_ROOT_DIR = Path(__file__).resolve().parent.parent
 assert (REPO_ROOT_DIR / ".git").exists()
 
 
@@ -162,6 +162,9 @@ def get_demo_model_name() -> str:
 
 
 def get_rust_default_model_name() -> str:
+    active_model_path = REPO_ROOT_DIR / "assets" / "active_model.txt"
+    if active_model_path.is_file():
+        return active_model_path.read_text(encoding="utf-8").strip()
     model_symlink_path = REPO_ROOT_DIR / "rust" / "gen" / "model"
     assert model_symlink_path.is_symlink()
     return model_symlink_path.readlink().name

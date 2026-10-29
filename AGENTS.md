@@ -30,14 +30,15 @@ and a website (`website-ng/`).
   then `cd rust && ./sync.sh` and `just sync-kb`, and commit the generated files.
 - Python tasks (`python/justfile`, runnable via `just python <recipe>` from the
   root or `cd python && just <recipe>`): `sync-dev`, `check-source`,
-  `fix-source`, `test`, `quick-tests`, `coverage`, `check-docs`, and
-  `build-wheel` (across `git worktree`s, set `CARGO_TARGET_DIR` to a shared
-  absolute path such as `$HOME/.cache/cargo-target/magika` to reuse compiled
-  Rust dependencies during `uv sync` / `sync-dev`).
+  `fix-source`, `test`, `quick-tests`, `coverage`, and `build-wheel` (across
+  `git worktree`s, set `CARGO_TARGET_DIR` to a shared absolute path such as
+  `$HOME/.cache/cargo-target/magika` to reuse compiled Rust dependencies during
+  `uv sync` / `sync-dev`).
 - Tests: `cd rust && ./test.sh`; `just python test` (or
   `cd python && uv run pytest tests -m "not slow"`);
   `cd js && yarn install && yarn test`.
-- Documentation links are checked by `just python check-docs` (or
-  `cd python && uv run ./scripts/check_documentation.py`).
+- Repo-wide checks: `just check-docs` (or `uv run scripts/check_documentation.py`)
+  for documentation links and versions, and `just check-copyright` (or
+  `uv run scripts/check_copyright.py`) for copyright headers.
 - Do not bump versions, edit CHANGELOGs, update models, or add sample files to
   `tests_data/` unless explicitly asked.

@@ -20,7 +20,8 @@ Practical notes for the contributions we accept; see [How to Contribute](/magika
 - Rust: `cd rust && ./test.sh` runs every crate; each crate also has its own `test.sh` (for example `rust/rules/test.sh`).
 - Python: [`python/justfile`](https://github.com/google/magika/blob/main/python/justfile) defines common development recipes (runnable from the repository root via `just python <recipe>`, or from `python/` via `just <recipe>`), including `test`, `check-source`, `fix-source`, `quick-tests`, `coverage`, `sync-dev`, and `build-wheel`. Without [`just`](https://github.com/casey/just), run `cd python && uv run pytest tests -m "not slow"`.
 - JavaScript: `cd js && yarn install && yarn test`.
-- Documentation: `just python check-docs` (or `cd python && uv run ./scripts/check_documentation.py`) validates links and version references across all Markdown files.
+- Documentation: `just check-docs` (or `uv run scripts/check_documentation.py`) validates links and version references across all Markdown files.
+- Copyright headers: `just check-copyright` (or `uv run scripts/check_copyright.py`) checks that source files carry a copyright notice.
 
 By default, Cargo builds into `rust/target/` inside each checkout ([`.cargo/config.toml`](https://github.com/google/magika/blob/main/.cargo/config.toml)). When working across multiple `git worktree`s on Python bindings, set `CARGO_TARGET_DIR` to a shared **absolute** path (for example, `export CARGO_TARGET_DIR="$HOME/.cache/cargo-target/magika"`) so external Rust crates compile once instead of rebuilding from scratch on every new worktree's `uv sync` or `just python sync-dev`.
 

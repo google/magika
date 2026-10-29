@@ -28,7 +28,7 @@ jobs:
   # configuration. The built wheels are tested across the full OS × Python
   # version matrix in python-build-test-and-release-package.yml.
   unit-testing:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -113,7 +113,7 @@ jobs:
   changelog-check:
     # This compares against the PR's base branch, so it only makes sense on PRs.
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

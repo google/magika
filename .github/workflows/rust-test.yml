@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   changelog:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,7 +27,7 @@ jobs:
       - run: ./changelog.sh
         working-directory: rust
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     continue-on-error: ${{ matrix.toolchain == 'nightly' }}
     strategy:
       matrix:
@@ -45,7 +45,7 @@ jobs:
       - run: ./test.sh
         working-directory: rust
   tract:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,7 +63,7 @@ jobs:
   # ran the shipped command line there against known answers: the ubuntu test job never reaches the
   # Metal path, and a backend that computes the wrong thing still exits successfully.
   tract-macos:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,7 +90,7 @@ jobs:
       fail-fast: false
       matrix:
         # ubuntu-24.04-arm covers aarch64-unknown-linux-gnu; the rest map onto the other triples.
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26, windows-2025]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -105,10 +105,10 @@ jobs:
         run: ./test.sh
         working-directory: rust/tract-runtime
   run:
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu, macos, windows]
+        os: [ubuntu-26.04, macos-26, windows-2025]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

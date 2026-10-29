@@ -23,15 +23,11 @@ use serde::Deserialize;
 fn main() -> Result<()> {
     let content_types: BTreeMap<String, ContentType> =
         serde_json::from_reader(File::open("../../assets/content_types_kb.min.json")?)?;
-    let model_name = std::fs::read_link("model")?;
-    let model_name = model_name
-        .components()
-        .next_back()
-        .context("model link")?
-        .as_os_str()
-        .to_str()
-        .context("model name")?;
-    let model_config = serde_json::from_reader(File::open("model/config.min.json")?)?;
+    let active_model = std::fs::read_to_string("../../assets/active_model.txt")?;
+    let model_name = active_model.trim();
+    ensure!(!model_name.is_empty(), "assets/active_model.txt is empty");
+    let model_path = format!("../../assets/models/{model_name}/config.min.json");
+    let model_config = serde_json::from_reader(File::open(model_path)?)?;
     let content_types = filter_content_types(content_types, &model_config)?;
     generate_lib_content(&content_types, model_name, &model_config)?;
     generate_lib_model(model_config)?;
@@ -43,18 +39,21 @@ fn main() -> Result<()> {
 fn filter_content_types(
     mut content_types: BTreeMap<String, ContentType>, model_config: &ModelConfig,
 ) -> Result<BTreeMap<String, ContentType>> {
-    // We only want to generate content types that are already exposed or that are model or rule
-    // labels. This is a conservative approach to avoid exposing the whole knowledge base if it
-    // contains experimental content types that won't ever be exposed in the future.
+    // We only want to generate content types that are already exposed or that are active heuristic,
+    // resolver, or model labels. This is a conservative approach to avoid exposing the whole
+    // knowledge base if it contains experimental content types that won't ever be exposed in the
+    // future.
     let content_types_content = std::fs::read_to_string("content_types")?;
-    let rules_content_types = std::fs::read_to_string("rules/content_types")?;
-    let rules_labels = rules_content_types.lines().collect::<BTreeSet<_>>();
     let model_labels =
         model_config.target_labels_space.iter().map(|x| x.as_str()).collect::<BTreeSet<_>>();
-    let mut labels = content_types_content.lines().collect::<BTreeSet<_>>();
-    labels.extend(&model_labels);
-    labels.extend(&rules_labels);
-    check_content_types(&content_types, model_config, &rules_labels, &model_labels, &labels)?;
+    let mut labels = content_types_content.lines().map(str::to_owned).collect::<BTreeSet<_>>();
+    labels.extend(model_config.target_labels_space.iter().cloned());
+    for (label, info) in &content_types {
+        if info.in_heuristics || info.in_resolvers || info.in_ml_model {
+            labels.insert(label.clone());
+        }
+    }
+    check_content_types(&content_types, model_config, &model_labels, &labels)?;
     let mut content_types_file = File::create("content_types")?;
     for label in &labels {
         writeln!(&mut content_types_file, "{label}")?;
@@ -65,19 +64,18 @@ fn filter_content_types(
 
 fn check_content_types(
     content_types: &BTreeMap<String, ContentType>, model_config: &ModelConfig,
-    rules_labels: &BTreeSet<&str>, model_labels: &BTreeSet<&str>, labels: &BTreeSet<&str>,
+    model_labels: &BTreeSet<&str>, labels: &BTreeSet<String>,
 ) -> Result<()> {
     for (label, info) in content_types {
-        let in_rules = matches!(info.rule_coverage, RuleCoverage::Full | RuleCoverage::Partial);
         ensure!(
-            in_rules == rules_labels.contains(label.as_str()),
-            "inconsistent rule_coverage for {label:?}"
+            !info.vetoed_by_resolvers || info.in_resolvers,
+            "vetoed_by_resolvers requires in_resolvers for {label:?}"
         );
         let in_model = model_labels.contains(label.as_str())
             && !model_config.overwrite_map.contains_key(label.as_str());
         ensure!(info.in_ml_model == in_model, "inconsistent in_ml_model for {label:?}");
     }
-    for &label in labels {
+    for label in labels {
         ensure!(content_types.contains_key(label), "unknown content type {label:?}");
     }
     Ok(())
@@ -103,8 +101,10 @@ fn generate_lib_content(
         let description = info.description(label);
         let extensions = &info.extensions;
         let is_text = info.is_text;
-        let model_support = info.in_ml_model;
-        let rules_support = info.rule_coverage != RuleCoverage::None;
+        let in_heuristics = info.in_heuristics;
+        let in_resolvers = info.in_resolvers;
+        let in_ml_model = info.in_ml_model;
+        let vetoed_by_resolvers = info.vetoed_by_resolvers;
         if !is_special_label(label) {
             variants.push(Variant { label: label.clone(), doc: description.clone() });
         }
@@ -115,8 +115,10 @@ fn generate_lib_content(
         writeln!(output, "    description: {description:?},")?;
         writeln!(output, "    extensions: &{extensions:?},")?;
         writeln!(output, "    is_text: {is_text:?},")?;
-        writeln!(output, "    model_support: {model_support:?},")?;
-        writeln!(output, "    rules_support: {rules_support:?},")?;
+        writeln!(output, "    in_heuristics: {in_heuristics:?},")?;
+        writeln!(output, "    in_resolvers: {in_resolvers:?},")?;
+        writeln!(output, "    in_ml_model: {in_ml_model:?},")?;
+        writeln!(output, "    vetoed_by_resolvers: {vetoed_by_resolvers:?},")?;
         writeln!(output, "}};\n")?;
     }
     writeln!(output, "impl TypeInfo {{")?;
@@ -294,17 +296,10 @@ struct ContentType {
     description: Option<String>,
     extensions: Vec<String>,
     is_text: bool,
-    rule_coverage: RuleCoverage,
+    in_heuristics: bool,
+    in_resolvers: bool,
     in_ml_model: bool,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum RuleCoverage {
-    Full,
-    Partial,
-    Builtin,
-    None,
+    vetoed_by_resolvers: bool,
 }
 
 impl ContentType {

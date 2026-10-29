@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kb-check.yml"
+      - "assets/active_model.txt"
       - "assets/content_types.yaml"
       - "assets/content_types_kb.min.json"
       - "assets/models/**"
@@ -15,8 +16,8 @@ on:
       - "js/src/content-types-infos.ts"
       - "python/scripts/sync.py"
       - "python/src/magika/types/content_type_label.py"
-      - "rust/gen/model"
-      - "rust/rules/rulesets/**"
+      - "rust/lib/src/resolvers/**"
+      - "rust/lib/src/resolvers.rs"
       - "scripts/sync_kb.py"
 
 permissions:

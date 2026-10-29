@@ -102,9 +102,6 @@ macro_rules! require {
     };
 }
 
-#[cfg(test)]
-pub(crate) mod notworking;
-
 /// Big-endian `u32` representation of a 4-byte ASCII tag.
 #[inline]
 pub(crate) const fn tag_u32(tag: &[u8; 4]) -> u32 {

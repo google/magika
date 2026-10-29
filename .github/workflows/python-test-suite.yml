@@ -68,9 +68,9 @@ jobs:
         working-directory: python
         run: uv run --python ${{ env.PYTHON_VERSION }} ruff format --check --verbose
 
-      - name: Run mypy
+      - name: Run ty check
         working-directory: python
-        run: uv run --python ${{ env.PYTHON_VERSION }} mypy src/magika tests
+        run: uv run --python ${{ env.PYTHON_VERSION }} ty check
 
       - name: Run copyright checks
         working-directory: python

@@ -75,7 +75,7 @@ jobs:
             echo "should-run=false" >> "$GITHUB_OUTPUT"
           fi
 
-  # Source checks (ruff, mypy, full test suite, quick tests, report-only
+  # Source checks (ruff, ty, full test suite, quick tests, report-only
   # pre-release check) on a single representative configuration. This is the
   # same workflow that runs on PRs.
   source-checks:

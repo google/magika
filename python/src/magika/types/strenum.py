@@ -37,7 +37,7 @@ class StrEnum(str, enum.Enum):
     Python 3.11.
     """
 
-    def __new__(cls, value: Union[str, StrEnum], *args, **kwargs):  # type: ignore[no-untyped-def]
+    def __new__(cls, value: Union[str, StrEnum], *args, **kwargs):
         if not isinstance(value, (str, enum.auto)):
             raise TypeError(
                 f"Values of StrEnums must be strings: {value!r} is a {type(value)}"
@@ -47,10 +47,10 @@ class StrEnum(str, enum.Enum):
     def __str__(self) -> str:
         return str(self.value)
 
-    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def,override]
+    def _generate_next_value_(name, *_):  # ty: ignore[invalid-method-override]
         return name
 
 
 class LowerCaseStrEnum(StrEnum):
-    def _generate_next_value_(name, *_):  # type: ignore[no-untyped-def,override]
+    def _generate_next_value_(name, *_):
         return name.lower()

@@ -31,7 +31,9 @@ and a website (`website-ng/`).
 - Python tasks (`python/justfile`, runnable via `just python <recipe>` from the
   root or `cd python && just <recipe>`): `sync-dev`, `check-source`,
   `fix-source`, `test`, `quick-tests`, `coverage`, `check-docs`, and
-  `build-wheel`.
+  `build-wheel` (across `git worktree`s, set `CARGO_TARGET_DIR` to a shared
+  absolute path such as `$HOME/.cache/cargo-target/magika` to reuse compiled
+  Rust dependencies during `uv sync` / `sync-dev`).
 - Tests: `cd rust && ./test.sh`; `just python test` (or
   `cd python && uv run pytest tests -m "not slow"`);
   `cd js && yarn install && yarn test`.

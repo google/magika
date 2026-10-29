@@ -26,7 +26,7 @@ https://github.com/irgeek/StrEnum/blob/master/strenum/__init__.py#L21
 from __future__ import annotations
 
 import enum
-from typing import Union
+from typing import Any, Union
 
 
 class StrEnum(str, enum.Enum):
@@ -47,10 +47,16 @@ class StrEnum(str, enum.Enum):
     def __str__(self) -> str:
         return str(self.value)
 
-    def _generate_next_value_(name, *_):  # ty: ignore[invalid-method-override]
+    @staticmethod
+    def _generate_next_value_(
+        name: str, start: int, count: int, last_values: list[Any]
+    ) -> str:
         return name
 
 
 class LowerCaseStrEnum(StrEnum):
-    def _generate_next_value_(name, *_):
+    @staticmethod
+    def _generate_next_value_(
+        name: str, start: int, count: int, last_values: list[Any]
+    ) -> str:
         return name.lower()

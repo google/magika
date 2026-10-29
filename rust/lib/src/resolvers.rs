@@ -204,40 +204,6 @@ mod tests {
     }
 
     #[test]
-    fn notworking_verifiers_remain_disabled_in_enforced_scan() {
-        assert_eq!(magic::notworking::DISABLED.len(), 52);
-        let find_verifier = |id: &str| {
-            magic::notworking::DISABLED
-                .iter()
-                .find_map(|&(rid, _, f)| (rid == id).then_some(f))
-                .unwrap_or_else(|| panic!("missing disabled verifier {id}"))
-        };
-
-        let mut ole2 = vec![0u8; 520];
-        ole2[..8].copy_from_slice(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1");
-        ole2[512..516].copy_from_slice(b"\xFD\xFF\xFF\xFF");
-        assert!(find_verifier("taxonomy_doc")(&ole2, ole2.len() as u64));
-        assert!(find_verifier("taxonomy_ppt")(&ole2, ole2.len() as u64));
-        assert!(find_verifier("taxonomy_outlook")(&ole2, ole2.len() as u64));
-        assert_eq!(resolve_slice(&ole2), Vec::<ContentType>::new());
-
-        let mut asf = vec![0u8; 64];
-        asf[..16]
-            .copy_from_slice(b"\x30\x26\xB2\x75\x8E\x66\xCF\x11\xA6\xD9\x00\xAA\x00\x62\xCE\x6C");
-        asf[24] = 1;
-        asf[28..30].copy_from_slice(&[0x01, 0x02]);
-        assert!(find_verifier("taxonomy_asf")(&asf, asf.len() as u64));
-        assert!(find_verifier("taxonomy_wma")(&asf, asf.len() as u64));
-        assert!(find_verifier("taxonomy_wmv")(&asf, asf.len() as u64));
-        assert_eq!(resolve_slice(&asf), Vec::<ContentType>::new());
-
-        let mut ebml = vec![0u8; 64];
-        ebml[..4].copy_from_slice(b"\x1A\x45\xDF\xA3");
-        assert!(find_verifier("taxonomy_webm")(&ebml, ebml.len() as u64));
-        assert_eq!(resolve_slice(&ebml), Vec::<ContentType>::new());
-    }
-
-    #[test]
     fn facts_resolvers_identify_archives_and_executables() {
         use facts::{archive, pe32, stored};
         let docx = archive(

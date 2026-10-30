@@ -16,11 +16,6 @@
 set -e
 . ./color.sh
 
-info "Sync bundled rules"
-( cd rules
-  cargo run --bin=gen --no-default-features --features=_gen
-)
-
 info "Sync generated files"
 ( cd gen; cargo run; )
 

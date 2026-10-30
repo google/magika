@@ -115,24 +115,45 @@ fn rule(id: &str, label: &str, patterns: &str, condition: &str) -> String {
 }
 
 #[test]
-fn bundled_structural_rules_preserve_identifying_fields() {
-    let text = std::fs::read_to_string(format!(
-        "{}/rulesets/notworking/formats.yar",
-        env!("CARGO_MANIFEST_DIR")
-    ))
-    .unwrap();
-    let structural: String = text
-        .split("\nrule ")
-        .skip(1)
-        .filter(|source| source.starts_with("xz_v1 {") || source.starts_with("sqlite_v1 {"))
-        .map(|source| format!("rule {source}"))
-        .collect();
-    let pack = compile(
-        &structural
-            .replace("enforced = false", "enforced = true")
-            .replace("class = \"not-working\"", "class = \"full\"")
-            .replace("\"unmeasured\"", "0"),
-    );
+fn structural_rules_preserve_identifying_fields() {
+    const STRUCTURAL: &str = r#"
+        rule xz_v1 {
+            meta: label = "xz" enforced = true class = "full" fp_rate = 0 fn_rate = 0
+            condition:
+                prefix_size >= 12 and original_size >= 32 and original_size % 4 == 0 and
+                uint32be(0) == 0xfd377a58 and uint16be(4) == 0x5a00 and uint8(6) == 0 and
+                (
+                    (uint8(7) == 0 and uint32(8) == 0x41d912ff) or
+                    (uint8(7) == 1 and uint32(8) == 0x36de2269) or
+                    (uint8(7) == 4 and uint32(8) == 0x46b4d6e6) or
+                    (uint8(7) == 10 and uint32(8) == 0xa10cfbe1)
+                )
+        }
+        rule sqlite_v1 {
+            meta: label = "sqlite" enforced = true class = "full" fp_rate = 0 fn_rate = 0
+            condition:
+                prefix_size >= 100 and original_size >= 512 and
+                uint32be(0) == 0x53514c69 and uint32be(4) == 0x74652066 and
+                uint32be(8) == 0x6f726d61 and uint32be(12) == 0x74203300 and
+                (uint8(18) == 1 or uint8(18) == 2) and (uint8(19) == 1 or uint8(19) == 2) and
+                uint8(21) == 64 and uint8(22) == 32 and uint8(23) == 32 and
+                uint32be(44) >= 1 and uint32be(44) <= 4 and
+                uint32be(56) >= 1 and uint32be(56) <= 3 and
+                uint32be(72) == 0 and uint32be(76) == 0 and uint32be(80) == 0 and
+                uint32be(84) == 0 and uint32be(88) == 0 and uint32be(96) > 0 and
+                (
+                    (uint16be(16) == 512 and original_size % 512 == 0) or
+                    (uint16be(16) == 1024 and original_size % 1024 == 0) or
+                    (uint16be(16) == 2048 and original_size % 2048 == 0) or
+                    (uint16be(16) == 4096 and original_size % 4096 == 0) or
+                    (uint16be(16) == 8192 and original_size % 8192 == 0) or
+                    (uint16be(16) == 16384 and original_size % 16384 == 0) or
+                    (uint16be(16) == 32768 and original_size % 32768 == 0) or
+                    (uint16be(16) == 1 and original_size % 65536 == 0)
+                )
+        }
+    "#;
+    let pack = compile(STRUCTURAL);
     for (path, expected, identifying_byte) in [
         ("../../tests_data/mitra/xz/xz.xz", "xz", 8),
         ("../../tests_data/previous_missdetections/sqlite/test-gh-616.db", "sqlite", 21),
@@ -322,11 +343,4 @@ fn pattern_placement_respects_at_and_in_bounds() {
     ] {
         assert_eq!(matched(scan(&both, data)), expected, "{data:?}");
     }
-}
-
-#[cfg(feature = "bundled")]
-#[test]
-fn bundled_pack_compiles() {
-    let rules = RuleSet::bundled();
-    assert!(!rules.labels().is_empty());
 }

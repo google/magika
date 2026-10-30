@@ -1,6 +1,6 @@
 # magika-rules
 
-Bounded format rules for Magika: a YARA subset evaluated in pure Rust over the first 4 KiB
+Bounded custom format rules for Magika: a YARA subset evaluated in pure Rust over the first 4 KiB
 of an input. The crate has no native dependency, no `unsafe`, no environment reads and no
 global state, and never names a Magika content type: callers map the rule labels to their
 own label type.
@@ -12,9 +12,10 @@ partial rules can decide a label: partial means some files of that format are mi
 ## Usage
 
 ```rust,no_run
-use magika_rules::{Input, Outcome, RuleSet};
+use magika_rules::{Input, Outcome, RuleSet, Source};
 
-let rules = RuleSet::bundled();
+let yara = std::fs::read_to_string("custom.yar")?;
+let rules = RuleSet::compile(&Source::parse(&yara)?)?;
 let bytes = std::fs::read("example.png")?;
 let prefix = &bytes[..bytes.len().min(magika_rules::PREFIX_LIMIT)];
 match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
@@ -27,25 +28,12 @@ match rules.scan(Input { prefix, size: bytes.len() as u64, tail: None }) {
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`RuleSet::bundled` loads the precompiled bundled rules in well under a millisecond: it parses no
-YARA and builds each regex the first time a scan needs it. `Source::parse` and `RuleSet::compile`
-accept custom rules with the same validation. A `RuleSet` is `Send + Sync` and scans take `&self`,
-so one compiled pack can be shared through an `Arc`.
+`Source::parse` and `RuleSet::compile` validate and compile custom YARA rules, building each regex
+the first time a scan needs it. A `RuleSet` is `Send + Sync` and scans take `&self`, so one
+compiled pack can be shared through an `Arc`.
 
 `Input::prefix` must be exactly the first `min(size, PREFIX_LIMIT)` bytes; anything else is
 `Outcome::InsufficientInput`.
-
-## Directory
-
-- `rulesets/full/`: rules with zero observed false positives and false negatives.
-- `rulesets/partial/`: zero observed false positives and some false negatives.
-- `rulesets/notworking/`: rules kept for reference and never enforced, including rules
-  refuted by evaluation.
-- `LICENSES`: notices for the sources rules were adapted from; exact references stay with
-  each rule's `source_refs`.
-- `src/bin/gen.rs`: compiles the rulesets with the crate's own `source`, `lower` and `codegen`
-  modules into `src/bundled.rs` (loaded by `RuleSet::bundled` with the default `bundled` feature)
-  and writes the rule labels to `../gen/rules/content_types`.
 
 ## Rule metadata
 
@@ -56,20 +44,20 @@ Every non-private rule is checked when a source is parsed:
   `fn_rate = 0` or `class = "partial"` with `0 < fn_rate < 1`. Rates are fractions in
   `[0, 1]`, or `"unmeasured"`.
 - Rule ids are unique; imports, includes and global rules are rejected.
-- A rule's directory must agree with its metadata: `full` holds enforced full rules,
-  `partial` enforced partial rules, `notworking` unenforced `class = "not-working"` rules.
 
 Metadata records the author's evidence; the crate cannot verify it.
 
-## Custom rules
+## Custom rules in Magika
 
-Magika checks custom rules before these ones: `magika::Rules::compile` in the library,
-`--rules-file` (and `--rules-check` to validate a file) in the CLI, `Magika(rules=...)` in Python,
-and `magika_rules_new` in C. They use the same YARA subset and metadata, except that their
-directory is not checked, and their labels must be Magika content types. Custom rules identify a
-file when the ones that match agree; otherwise these rules, then the model, decide as usual. When
-every enforced rule of a content type has `class = "full"`, a model prediction of it is vetoed if
-none of them matched. `tests_data/rules/custom.yar` is a small example.
+Magika checks custom rules before its built-in format resolvers (`rust/lib/src/resolvers/`) and
+deep learning model: `magika::Rules::compile` (or `Rules::from_files`, passed via
+`Options::use_custom_rules`) in the Rust library, `--custom-rules-file` (and `--custom-rules-check`
+to validate a file) in the CLI, `Magika(rules=..., rules_files=...)` in Python, and
+`magika_rules_new` in C. Custom rules use this YARA subset and metadata, and their `label` values
+must be Magika content types. Custom rules identify a file when the ones that match agree;
+otherwise the built-in resolvers, then the model, decide as usual. When every enforced custom rule
+of a content type has `class = "full"`, a model prediction of it is vetoed if none of them matched.
+`tests_data/rules/custom.yar` is a small example.
 
 ## Supported YARA
 
@@ -92,9 +80,5 @@ oriented: `\xff` is one byte, never a UTF-8 sequence.
 
 ## Tests
 
-`./test.sh` runs the full suite, including a release-mode gate that no bundled rule
-mislabels a sample under `tests_data/basic` and a compile and scan budget.
-`tests/regressions.rs` replays the signature regressions recorded from #1447 (reviewed
-headers, corruptions, truncations and reported false positives in `tests/data`). The ignored
-`tests/dataset.rs` measures the rules over the evaluation dataset; its documentation
-describes how to export the manifest it reads.
+`./test.sh` runs the full suite: unit and integration tests, documentation tests, formatting, and
+clippy checks.

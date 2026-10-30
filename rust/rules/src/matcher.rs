@@ -402,12 +402,8 @@ mod tests {
             "/(?u)é/",
             "/(?u)[\\x{70}-\\x{3000}]/",
         ];
-        #[cfg(feature = "bundled")]
-        let bundled = crate::RuleSet::bundled().program.patterns;
-        #[cfg(not(feature = "bundled"))]
-        let bundled = Vec::new();
-        for pattern in patterns.map(pattern).iter().chain(&bundled) {
-            let Pattern::Regex(pattern) = pattern else { continue };
+        for pattern in patterns.map(pattern) {
+            let Pattern::Regex(pattern) = &pattern else { continue };
             assert_eq!(pattern.first, dfa_first_bytes(pattern), "{}", pattern.source);
         }
     }

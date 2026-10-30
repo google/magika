@@ -3218,7 +3218,7 @@ fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     let valid = facts.is_zip_valid();
     let dir_names = facts.has_zip_dir_names();
 
-    // Full rules (rulesets/full/facts.yar)
+    // Full rules
     if valid {
         if has_line(b"\nmodel.weights.h5\n") && has_line(b"\nmetadata.json\n") {
             return Some(Label::Keras);
@@ -3237,7 +3237,7 @@ fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         }
     }
 
-    // Partial central-directory rules (rulesets/partial/facts.yar)
+    // Partial central-directory rules
     if dir_names
         && has_line(b"\nAndroidManifest.xml\n")
         && (has_line(b"\nclasses.dex\n") || has_line(b"\nresources.arsc\n"))

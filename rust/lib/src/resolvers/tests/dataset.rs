@@ -1,14 +1,25 @@
 // Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-//! The bundled rules over the evaluation dataset (`dataset/` on the dataset branch): zero
-//! false positives against validated labels, plus throughput on real files. Not run in CI.
+//! The resolvers over the evaluation dataset (`dataset/` on the dataset branch): zero false
+//! positives against validated labels, plus throughput on real files. Not run in CI.
 //!
-//! A false positive is an enforced match or conflict on a sample whose `label_status` is
-//! `validated_*` when the rule's label is not one the sample's class accepts: its
-//! `format_id`, the Magika labels the dataset maps it to, or a label in `REFINES`. On
-//! unverified samples (`need_review`, `conflicting`) a mismatch is printed as a disagreement
-//! to adjudicate in the dataset, never treated as a label here.
+//! A false positive is a match on a sample whose `label_status` is `validated_*` when the
+//! resolver's label is not one the sample's class accepts: its `format_id`, the Magika labels the
+//! dataset maps it to, or a label in `REFINES`. On unverified samples (`need_review`,
+//! `conflicting`) a mismatch is printed as a disagreement to adjudicate in the dataset, never
+//! treated as a label here.
 //!
 //! Export the manifest (`sha256<TAB>format_id<TAB>label_status<TAB>magika_labels<TAB>path`,
 //! labels comma-separated) from `dataset/`:
@@ -27,15 +38,14 @@
 //! EOF
 //! ```
 //!
-//! Then: `MAGIKA_RULES_DATASET=manifest.tsv cargo test --release --test dataset -- --ignored --nocapture`
-
-#![cfg(feature = "bundled")]
+//! Then (from `rust/lib/`):
+//! `MAGIKA_RULES_DATASET=manifest.tsv cargo test --release --lib resolvers::tests::dataset -- --ignored --nocapture`
 
 use std::collections::BTreeMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::time::{Duration, Instant};
 
-use magika_rules::{Input, Outcome, RuleSet, PREFIX_LIMIT};
+use crate::resolvers::{PREFIX_LIMIT, facts, magic};
 
 /// Dataset classes that refine a Magika label with no label of their own.
 const REFINES: &[(&str, &str)] = &[
@@ -43,8 +53,8 @@ const REFINES: &[(&str, &str)] = &[
     ("geoparquet", "parquet"),
 ];
 
-/// Validated samples whose label the bytes refute, checked outside the rules. Each must scan
-/// to the proven label. Fix them in the dataset and drop the group.
+/// Validated samples whose label the bytes refute, checked outside the resolvers. Each must
+/// resolve to the proven label. Fix them in the dataset and drop the group.
 const REFUTED: &[(&str, &str, &str, &[&str])] = &[
     (
         "ar",
@@ -115,17 +125,14 @@ const REFUTED: &[(&str, &str, &str, &[&str])] = &[
         "zip",
         "gzip",
         "alibaba/fastjson `issue859.zip` is a gzip stream: `gzip -t` passes, no zip end of central directory.",
-        &[
-            "b0d2436a3a8021f76c3d85f9f4b0b512f1f8d53a74096b546e678899de8bca6e",
-        ],
+        &["b0d2436a3a8021f76c3d85f9f4b0b512f1f8d53a74096b546e678899de8bca6e"],
     ),
 ];
 
 #[test]
 #[ignore = "needs MAGIKA_RULES_DATASET, a manifest exported from the evaluation dataset"]
-fn bundled_rules_never_contradict_a_validated_label() {
+fn resolvers_never_contradict_a_validated_label() {
     let manifest = std::env::var("MAGIKA_RULES_DATASET").expect("MAGIKA_RULES_DATASET");
-    let rules = RuleSet::bundled();
     let (mut files, mut verified, mut hits, mut agreements) = (0usize, 0usize, 0usize, 0usize);
     let (mut bytes_scanned, mut elapsed) = (0usize, Duration::ZERO);
     let mut false_positives = Vec::new();
@@ -150,14 +157,20 @@ fn bundled_rules_never_contradict_a_validated_label() {
         let size = file.metadata().unwrap().len();
         let wanted = size.min(PREFIX_LIMIT as u64) as usize;
         file.read_exact(&mut prefix[..wanted]).unwrap();
-        // The tail a caller reads: the last `tail_len` bytes, back to `tail_start` if needed.
-        let mut tail = vec![0; rules.tail_len(&prefix[..wanted], size)];
-        file.seek(SeekFrom::Start(size - tail.len() as u64)).unwrap();
-        file.read_exact(&mut tail).unwrap();
-        if let Some(start) = rules.tail_start(&tail, size) {
-            tail = vec![0; (size - start) as usize];
-            file.seek(SeekFrom::Start(start)).unwrap();
+        let tail_len = if facts::wants_tail(&prefix[..wanted]) && size > wanted as u64 {
+            size.min(facts::ZIP_TAIL_BYTES as u64) as usize
+        } else {
+            0
+        };
+        let mut tail = vec![0; tail_len];
+        if !tail.is_empty() {
+            file.seek(SeekFrom::Start(size - tail.len() as u64)).unwrap();
             file.read_exact(&mut tail).unwrap();
+            if let Some(start) = facts::directory_start(&tail, size) {
+                tail = vec![0; (size - start) as usize];
+                file.seek(SeekFrom::Start(start)).unwrap();
+                file.read_exact(&mut tail).unwrap();
+            }
         }
         let validated = status.starts_with("validated_");
         files += 1;
@@ -165,32 +178,24 @@ fn bundled_rules_never_contradict_a_validated_label() {
         bytes_scanned += wanted;
         let start = Instant::now();
         let tail = (!tail.is_empty()).then_some(tail.as_slice());
-        let outcome = rules.scan(Input { prefix: &prefix[..wanted], size, tail });
+        let ctx = magic::Ctx { prefix: &prefix[..wanted], size, tail };
+        let outcome = (size > 0).then(|| magic::identify(&ctx)).flatten();
         elapsed += start.elapsed();
-        let said = match &outcome {
-            Outcome::Match(labels) => match &labels[..] {
-                [i] if accepts(&rules.labels()[*i]) => {
-                    if validated {
-                        hits += 1;
-                    } else {
-                        agreements += 1;
-                    }
-                    continue;
+        let said = match outcome {
+            Some(ct) if accepts(ct.info().label) => {
+                if validated {
+                    hits += 1;
+                } else {
+                    agreements += 1;
                 }
-                [i] => rules.labels()[*i].clone(),
-                [] if refuted.is_some() => "<no match>".to_string(),
-                [] => continue,
-                labels => {
-                    let names: Vec<_> =
-                        labels.iter().map(|&i| rules.labels()[i].as_str()).collect();
-                    format!("<conflict: {}>", names.join(", "))
-                }
-            },
-            Outcome::InsufficientInput if refuted.is_some() => "<no match>".to_string(),
-            Outcome::InsufficientInput => continue,
+                continue;
+            }
+            Some(ct) => ct.info().label.to_string(),
+            None if refuted.is_some() => "<no match>".to_string(),
+            None => continue,
         };
         if validated {
-            false_positives.push(format!("{sha256} {format_id} ({status}): rules say {said}"));
+            false_positives.push(format!("{sha256} {format_id} ({status}): resolvers say {said}"));
         } else {
             *disagreements.entry((format_id.to_string(), said)).or_default() += 1;
         }

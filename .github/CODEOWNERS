@@ -11,12 +11,10 @@
 # But Ange owns the resolvers (with Julien for Rust code)
 /rust/lib/src/resolvers.rs @corkamig @ia0
 /rust/lib/src/resolvers/ @corkamig @ia0
-# But Yanick owns ML, KB, and YARA related files (including generated ones)
+# But Yanick owns ML and KB related files (including generated ones)
 /rust/ffi/src/content.rs @reyammer
 /rust/lib/src/content.rs @reyammer
 /rust/lib/src/model.rs @reyammer
-/rust/rules/**/*.yar @reyammer
-/rust/rules/src/bundled.rs @reyammer
 /rust/tract-runtime/models/ @reyammer
 
 # Luca owns the JS code, docs, and website

@@ -28,12 +28,16 @@ const (
 
 // ContentType holds the definition of a content type.
 type ContentType struct {
-	Label       string   // As keyed in the content types KB.
-	MimeType    string   `json:"mime_type"`
-	Group       string   `json:"group"`
-	Description string   `json:"description"`
-	Extensions  []string `json:"extensions"`
-	IsText      bool     `json:"is_text"`
+	Label             string   // As keyed in the content types KB.
+	MimeType          string   `json:"mime_type"`
+	Group             string   `json:"group"`
+	Description       string   `json:"description"`
+	Extensions        []string `json:"extensions"`
+	IsText            bool     `json:"is_text"`
+	InHeuristics      bool     `json:"in_heuristics"`
+	InResolvers       bool     `json:"in_resolvers"`
+	InMLModel         bool     `json:"in_ml_model"`
+	VetoedByResolvers bool     `json:"vetoed_by_resolvers"`
 }
 
 // readContentTypesKB is a helper that reads and unmarshal a content types KB,

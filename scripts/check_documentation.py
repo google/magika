@@ -163,11 +163,8 @@ def get_demo_model_name() -> str:
 
 def get_rust_default_model_name() -> str:
     active_model_path = REPO_ROOT_DIR / "assets" / "active_model.txt"
-    if active_model_path.is_file():
-        return active_model_path.read_text(encoding="utf-8").strip()
-    model_symlink_path = REPO_ROOT_DIR / "rust" / "gen" / "model"
-    assert model_symlink_path.is_symlink()
-    return model_symlink_path.readlink().name
+    assert active_model_path.is_file()
+    return active_model_path.read_text(encoding="utf-8").strip()
 
 
 def check_markdown_links(verbose: bool) -> bool:

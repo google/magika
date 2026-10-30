@@ -17,8 +17,10 @@ set -e
 . ../color.sh
 
 x cargo check
+x cargo check --features=_gen
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
+x cargo clippy --features=_gen -- --deny=warnings
 
 x cargo build --release
 NATIVE_LIBS=$(cargo rustc --release --lib -- --print=native-static-libs 2>&1 \
@@ -30,7 +32,7 @@ compile_test() {
   x rm test
 }
 
-TARGET_DIR=../target/release
+TARGET_DIR=${CARGO_TARGET_DIR:-../target}/release
 for cc in gcc clang; do
   which $cc >/dev/null 2>&1 || continue
   compile_test -Iinclude test.c $TARGET_DIR/libmagika.a $NATIVE_LIBS -o test

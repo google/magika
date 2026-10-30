@@ -21,6 +21,10 @@ class ContentTypeInfo:
     description: str
     extensions: List[str]
     is_text: bool
+    in_heuristics: bool
+    in_resolvers: bool
+    in_ml_model: bool
+    vetoed_by_resolvers: bool
 
 class MagikaResult:
     path: Optional[str]
@@ -32,6 +36,10 @@ class MagikaResult:
     description: str
     extensions: List[str]
     is_text: bool
+    in_heuristics: bool
+    in_resolvers: bool
+    in_ml_model: bool
+    vetoed_by_resolvers: bool
     score: float
     dl_label: str
     overwrite_reason: str

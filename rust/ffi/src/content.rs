@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // DO NOT EDIT, see link below for more information:
-// https://github.com/google/magika/tree/main/rust/gen
+// https://github.com/google/magika/blob/main/scripts/sync_kb.py
 
 use std::ptr;
 

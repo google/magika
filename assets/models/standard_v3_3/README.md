@@ -9,224 +9,224 @@
 
 This is the full list of all possible tool's outputs (which are different than the possible raw output of the model, see table below). E.g., this is the list of all possible values for Magika python module's `MagikaResult.prediction.output.label`.
 
-| Index   |      Content Type Label      | Description |
-|----------|:-------------:|------|
-| 1 | 3gp | 3GPP multimedia file |
-| 2 | ace | ACE archive |
-| 3 | ai | Adobe Illustrator Artwork |
-| 4 | aidl | Android Interface Definition Language |
-| 5 | apk | Android package |
-| 6 | applebplist | Apple binary property list |
-| 7 | appleplist | Apple property list |
-| 8 | asm | Assembly |
-| 9 | asp | ASP source |
-| 10 | autohotkey | AutoHotKey script |
-| 11 | autoit | AutoIt script |
-| 12 | awk | Awk |
-| 13 | batch | DOS batch file |
-| 14 | bazel | Bazel build file |
-| 15 | bib | BibTeX |
-| 16 | bmp | BMP image data |
-| 17 | bzip | bzip2 compressed data |
-| 18 | c | C source |
-| 19 | cab | Microsoft Cabinet archive data |
-| 20 | cat | Windows Catalog file |
-| 21 | chm | MS Windows HtmlHelp Data |
-| 22 | clojure | Clojure |
-| 23 | cmake | CMake build file |
-| 24 | cobol | Cobol |
-| 25 | coff | Intel 80386 COFF |
-| 26 | coffeescript | CoffeeScript |
-| 27 | cpp | C++ source |
-| 28 | crt | Certificates (binary format) |
-| 29 | crx | Google Chrome extension |
-| 30 | cs | C# source |
-| 31 | csproj | .NET project config |
-| 32 | css | CSS source |
-| 33 | csv | CSV document |
-| 34 | dart | Dart source |
-| 35 | deb | Debian binary package |
-| 36 | dex | Dalvik dex file |
-| 37 | dicom | DICOM |
-| 38 | diff | Diff file |
-| 39 | directory | A directory |
-| 40 | dm | Dream Maker |
-| 41 | dmg | Apple disk image |
-| 42 | doc | Microsoft Word CDF document |
-| 43 | dockerfile | Dockerfile |
-| 44 | docx | Microsoft Word 2007+ document |
-| 45 | dsstore | Application Desktop Services Store |
-| 46 | dwg | Autocad Drawing |
-| 47 | dxf | Audocad Drawing Exchange Format |
-| 48 | elf | ELF executable |
-| 49 | elixir | Elixir script |
-| 50 | emf | Windows Enhanced Metafile image data |
-| 51 | eml | RFC 822 mail |
-| 52 | empty | Empty file |
-| 53 | epub | EPUB document |
-| 54 | erb | Embedded Ruby source |
-| 55 | erlang | Erlang source |
-| 56 | flac | FLAC audio bitstream data |
-| 57 | flv | Flash Video |
-| 58 | fortran | Fortran |
-| 59 | gemfile | Gemfile file |
-| 60 | gemspec | Gemspec file |
-| 61 | gif | GIF image data |
-| 62 | gitattributes | Gitattributes file |
-| 63 | gitmodules | Gitmodules file |
-| 64 | go | Golang source |
-| 65 | gradle | Gradle source |
-| 66 | groovy | Groovy source |
-| 67 | gzip | gzip compressed data |
-| 68 | h5 | Hierarchical Data Format v5 |
-| 69 | handlebars | Handlebars source |
-| 70 | haskell | Haskell source |
-| 71 | hcl | HashiCorp configuration language |
-| 72 | hlp | MS Windows help |
-| 73 | htaccess | Apache access configuration |
-| 74 | html | HTML document |
-| 75 | icns | Mac OS X icon |
-| 76 | ico | MS Windows icon resource |
-| 77 | ics | Internet Calendaring and Scheduling |
-| 78 | ignorefile | Ignorefile |
-| 79 | ini | INI configuration file |
-| 80 | internetshortcut | MS Windows Internet shortcut |
-| 81 | ipynb | Jupyter notebook |
-| 82 | iso | ISO 9660 CD-ROM filesystem data |
-| 83 | jar | Java archive data (JAR) |
-| 84 | java | Java source |
-| 85 | javabytecode | Java compiled bytecode |
-| 86 | javascript | JavaScript source |
-| 87 | jinja | Jinja template |
-| 88 | jp2 | jpeg2000 |
-| 89 | jpeg | JPEG image data |
-| 90 | json | JSON document |
-| 91 | jsonl | JSONL document |
-| 92 | julia | Julia source |
-| 93 | kotlin | Kotlin source |
-| 94 | latex | LaTeX document |
-| 95 | lha | LHarc archive |
-| 96 | lisp | Lisp source |
-| 97 | lnk | MS Windows shortcut |
-| 98 | lua | Lua |
-| 99 | m3u | M3U playlist |
-| 100 | m4 | GNU Macro |
-| 101 | macho | Mach-O executable |
-| 102 | makefile | Makefile source |
-| 103 | markdown | Markdown document |
-| 104 | matlab | Matlab Source |
-| 105 | mht | MHTML document |
-| 106 | midi | Midi |
-| 107 | mkv | Matroska |
-| 108 | mp3 | MP3 media file |
-| 109 | mp4 | MP4 media file |
-| 110 | mscompress | MS Compress archive data |
-| 111 | msi | Microsoft Installer file |
-| 112 | mum | Windows Update Package file |
-| 113 | npy | Numpy Array |
-| 114 | npz | Numpy Arrays Archive |
-| 115 | nupkg | NuGet Package |
-| 116 | objectivec | ObjectiveC source |
-| 117 | ocaml | OCaml |
-| 118 | odp | OpenDocument Presentation |
-| 119 | ods | OpenDocument Spreadsheet |
-| 120 | odt | OpenDocument Text |
-| 121 | ogg | Ogg data |
-| 122 | one | One Note |
-| 123 | onnx | Open Neural Network Exchange |
-| 124 | otf | OpenType font |
-| 125 | outlook | MS Outlook Message |
-| 126 | parquet | Apache Parquet |
-| 127 | pascal | Pascal source |
-| 128 | pcap | pcap capture file |
-| 129 | pdb | Windows Program Database |
-| 130 | pdf | PDF document |
-| 131 | pebin | PE Windows executable |
-| 132 | pem | PEM certificate |
-| 133 | perl | Perl source |
-| 134 | php | PHP source |
-| 135 | pickle | Python pickle |
-| 136 | png | PNG image |
-| 137 | po | Portable Object (PO) for i18n |
-| 138 | postscript | PostScript document |
-| 139 | powershell | Powershell source |
-| 140 | ppt | Microsoft PowerPoint CDF document |
-| 141 | pptx | Microsoft PowerPoint 2007+ document |
-| 142 | prolog | Prolog source |
-| 143 | proteindb | Protein DB |
-| 144 | proto | Protocol buffer definition |
-| 145 | psd | Adobe Photoshop |
-| 146 | python | Python source |
-| 147 | pythonbytecode | Python compiled bytecode |
-| 148 | pytorch | Pytorch storage file |
-| 149 | qt | QuickTime |
-| 150 | r | R (language) |
-| 151 | rar | RAR archive data |
-| 152 | rdf | Resource Description Framework document (RDF) |
-| 153 | rpm | RedHat Package Manager archive (RPM) |
-| 154 | rst | ReStructuredText document |
-| 155 | rtf | Rich Text Format document |
-| 156 | ruby | Ruby source |
-| 157 | rust | Rust source |
-| 158 | scala | Scala source |
-| 159 | scss | SCSS source |
-| 160 | sevenzip | 7-zip archive data |
-| 161 | sgml | sgml |
-| 162 | shell | Shell script |
-| 163 | smali | Smali source |
-| 164 | snap | Snap archive |
-| 165 | solidity | Solidity source |
-| 166 | sql | SQL source |
-| 167 | sqlite | SQLITE database |
-| 168 | squashfs | Squash filesystem |
-| 169 | srt | SubRip Text Format |
-| 170 | stlbinary | Stereolithography CAD (binary) |
-| 171 | stltext | Stereolithography CAD (text) |
-| 172 | sum | Checksum file |
-| 173 | svg | SVG Scalable Vector Graphics image data |
-| 174 | swf | Small Web File |
-| 175 | swift | Swift |
-| 176 | symlink | Symbolic link |
-| 177 | tar | POSIX tar archive |
-| 178 | tcl | Tickle |
-| 179 | textproto | Text protocol buffer |
-| 180 | tga | Targa image data |
-| 181 | thumbsdb | Windows thumbnail cache |
-| 182 | tiff | TIFF image data |
-| 183 | toml | Tom's obvious, minimal language |
-| 184 | torrent | BitTorrent file |
-| 185 | tsv | TSV document |
-| 186 | ttf | TrueType Font data |
-| 187 | twig | Twig template |
-| 188 | txt | Generic text document |
-| 189 | typescript | TypeScript source |
-| 190 | unknown | Unknown binary data |
-| 191 | vba | MS Visual Basic source (VBA) |
-| 192 | vcxproj | Visual Studio MSBuild project |
-| 193 | verilog | Verilog source |
-| 194 | vhdl | VHDL source |
-| 195 | vtt | Web Video Text Tracks |
-| 196 | vue | Vue source |
-| 197 | wasm | Web Assembly |
-| 198 | wav | Waveform Audio file (WAV) |
-| 199 | webm | WebM media file |
-| 200 | webp | WebP media file |
-| 201 | winregistry | Windows Registry text |
-| 202 | wmf | Windows metafile |
-| 203 | woff | Web Open Font Format |
-| 204 | woff2 | Web Open Font Format v2 |
-| 205 | xar | XAR archive compressed data |
-| 206 | xls | Microsoft Excel CDF document |
-| 207 | xlsb | Microsoft Excel 2007+ document (binary format) |
-| 208 | xlsx | Microsoft Excel 2007+ document |
-| 209 | xml | XML document |
-| 210 | xpi | Compressed installation archive (XPI) |
-| 211 | xz | XZ compressed data |
-| 212 | yaml | YAML source |
-| 213 | yara | YARA rule |
-| 214 | zig | Zig source |
-| 215 | zip | Zip archive data |
-| 216 | zlibstream | zlib compressed data |
+|      Content Type Label      | Description |
+|:-------------:|------|
+| 3gp | 3GPP multimedia file |
+| ace | ACE archive |
+| ai | Adobe Illustrator Artwork |
+| aidl | Android Interface Definition Language |
+| apk | Android package |
+| applebplist | Apple binary property list |
+| appleplist | Apple property list |
+| asm | Assembly |
+| asp | ASP source |
+| autohotkey | AutoHotKey script |
+| autoit | AutoIt script |
+| awk | Awk |
+| batch | DOS batch file |
+| bazel | Bazel build file |
+| bib | BibTeX |
+| bmp | BMP image data |
+| bzip | bzip2 compressed data |
+| c | C source |
+| cab | Microsoft Cabinet archive data |
+| cat | Windows Catalog file |
+| chm | MS Windows HtmlHelp Data |
+| clojure | Clojure |
+| cmake | CMake build file |
+| cobol | Cobol |
+| coff | Intel 80386 COFF |
+| coffeescript | CoffeeScript |
+| cpp | C++ source |
+| crt | Certificates (binary format) |
+| crx | Google Chrome extension |
+| cs | C# source |
+| csproj | .NET project config |
+| css | CSS source |
+| csv | CSV document |
+| dart | Dart source |
+| deb | Debian binary package |
+| dex | Dalvik dex file |
+| dicom | DICOM |
+| diff | Diff file |
+| directory | A directory |
+| dm | Dream Maker |
+| dmg | Apple disk image |
+| doc | Microsoft Word CDF document |
+| dockerfile | Dockerfile |
+| docx | Microsoft Word 2007+ document |
+| dsstore | Application Desktop Services Store |
+| dwg | Autocad Drawing |
+| dxf | Audocad Drawing Exchange Format |
+| elf | ELF executable |
+| elixir | Elixir script |
+| emf | Windows Enhanced Metafile image data |
+| eml | RFC 822 mail |
+| empty | Empty file |
+| epub | EPUB document |
+| erb | Embedded Ruby source |
+| erlang | Erlang source |
+| flac | FLAC audio bitstream data |
+| flv | Flash Video |
+| fortran | Fortran |
+| gemfile | Gemfile file |
+| gemspec | Gemspec file |
+| gif | GIF image data |
+| gitattributes | Gitattributes file |
+| gitmodules | Gitmodules file |
+| go | Golang source |
+| gradle | Gradle source |
+| groovy | Groovy source |
+| gzip | gzip compressed data |
+| h5 | Hierarchical Data Format v5 |
+| handlebars | Handlebars source |
+| haskell | Haskell source |
+| hcl | HashiCorp configuration language |
+| hlp | MS Windows help |
+| htaccess | Apache access configuration |
+| html | HTML document |
+| icns | Mac OS X icon |
+| ico | MS Windows icon resource |
+| ics | Internet Calendaring and Scheduling |
+| ignorefile | Ignorefile |
+| ini | INI configuration file |
+| internetshortcut | MS Windows Internet shortcut |
+| ipynb | Jupyter notebook |
+| iso | ISO 9660 CD-ROM filesystem data |
+| jar | Java archive data (JAR) |
+| java | Java source |
+| javabytecode | Java compiled bytecode |
+| javascript | JavaScript source |
+| jinja | Jinja template |
+| jp2 | jpeg2000 |
+| jpeg | JPEG image data |
+| json | JSON document |
+| jsonl | JSONL document |
+| julia | Julia source |
+| kotlin | Kotlin source |
+| latex | LaTeX document |
+| lha | LHarc archive |
+| lisp | Lisp source |
+| lnk | MS Windows shortcut |
+| lua | Lua |
+| m3u | M3U playlist |
+| m4 | GNU Macro |
+| macho | Mach-O executable |
+| makefile | Makefile source |
+| markdown | Markdown document |
+| matlab | Matlab Source |
+| mht | MHTML document |
+| midi | Midi |
+| mkv | Matroska |
+| mp3 | MP3 media file |
+| mp4 | MP4 media file |
+| mscompress | MS Compress archive data |
+| msi | Microsoft Installer file |
+| mum | Windows Update Package file |
+| npy | Numpy Array |
+| npz | Numpy Arrays Archive |
+| nupkg | NuGet Package |
+| objectivec | ObjectiveC source |
+| ocaml | OCaml |
+| odp | OpenDocument Presentation |
+| ods | OpenDocument Spreadsheet |
+| odt | OpenDocument Text |
+| ogg | Ogg data |
+| one | One Note |
+| onnx | Open Neural Network Exchange |
+| otf | OpenType font |
+| outlook | MS Outlook Message |
+| parquet | Apache Parquet |
+| pascal | Pascal source |
+| pcap | pcap capture file |
+| pdb | Windows Program Database |
+| pdf | PDF document |
+| pebin | PE Windows executable |
+| pem | PEM certificate |
+| perl | Perl source |
+| php | PHP source |
+| pickle | Python pickle |
+| png | PNG image |
+| po | Portable Object (PO) for i18n |
+| postscript | PostScript document |
+| powershell | Powershell source |
+| ppt | Microsoft PowerPoint CDF document |
+| pptx | Microsoft PowerPoint 2007+ document |
+| prolog | Prolog source |
+| proteindb | Protein DB |
+| proto | Protocol buffer definition |
+| psd | Adobe Photoshop |
+| python | Python source |
+| pythonbytecode | Python compiled bytecode |
+| pytorch | Pytorch storage file |
+| qt | QuickTime |
+| r | R (language) |
+| rar | RAR archive data |
+| rdf | Resource Description Framework document (RDF) |
+| rpm | RedHat Package Manager archive (RPM) |
+| rst | ReStructuredText document |
+| rtf | Rich Text Format document |
+| ruby | Ruby source |
+| rust | Rust source |
+| scala | Scala source |
+| scss | SCSS source |
+| sevenzip | 7-zip archive data |
+| sgml | sgml |
+| shell | Shell script |
+| smali | Smali source |
+| snap | Snap archive |
+| solidity | Solidity source |
+| sql | SQL source |
+| sqlite | SQLITE database |
+| squashfs | Squash filesystem |
+| srt | SubRip Text Format |
+| stlbinary | Stereolithography CAD (binary) |
+| stltext | Stereolithography CAD (text) |
+| sum | Checksum file |
+| svg | SVG Scalable Vector Graphics image data |
+| swf | Small Web File |
+| swift | Swift |
+| symlink | Symbolic link |
+| tar | POSIX tar archive |
+| tcl | Tickle |
+| textproto | Text protocol buffer |
+| tga | Targa image data |
+| thumbsdb | Windows thumbnail cache |
+| tiff | TIFF image data |
+| toml | Tom's obvious, minimal language |
+| torrent | BitTorrent file |
+| tsv | TSV document |
+| ttf | TrueType Font data |
+| twig | Twig template |
+| txt | Generic text document |
+| typescript | TypeScript source |
+| unknown | Unknown binary data |
+| vba | MS Visual Basic source (VBA) |
+| vcxproj | Visual Studio MSBuild project |
+| verilog | Verilog source |
+| vhdl | VHDL source |
+| vtt | Web Video Text Tracks |
+| vue | Vue source |
+| wasm | Web Assembly |
+| wav | Waveform Audio file (WAV) |
+| webm | WebM media file |
+| webp | WebP media file |
+| winregistry | Windows Registry text |
+| wmf | Windows metafile |
+| woff | Web Open Font Format |
+| woff2 | Web Open Font Format v2 |
+| xar | XAR archive compressed data |
+| xls | Microsoft Excel CDF document |
+| xlsb | Microsoft Excel 2007+ document (binary format) |
+| xlsx | Microsoft Excel 2007+ document |
+| xml | XML document |
+| xpi | Compressed installation archive (XPI) |
+| xz | XZ compressed data |
+| yaml | YAML source |
+| yara | YARA rule |
+| zig | Zig source |
+| zip | Zip archive data |
+| zlibstream | zlib compressed data |
 
 
 ## List of possible model's outputs

@@ -37,9 +37,8 @@ impl Builder {
 
     /// Declares the largest batch this session will ever be asked to identify.
     ///
-    /// Declaring a smaller maximum skips unreachable fixed plans and makes startup cheaper. On an
-    /// x86_64 CPU, smaller tails are padded through the largest resident optimized plan;
-    /// elsewhere, requests are decomposed over the original resident classes.
+    /// Declaring a smaller maximum skips unreachable fixed plans and makes startup cheaper;
+    /// requests are decomposed over the reachable resident classes.
     pub fn with_max_batch(mut self, max_batch: usize) -> Self {
         self.max_batch = Some(max_batch);
         self

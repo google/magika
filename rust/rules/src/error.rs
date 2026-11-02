@@ -6,7 +6,7 @@
 pub enum Error {
     /// The YARA text is syntactically invalid.
     Parse(String),
-    /// A rule's metadata is missing, malformed, or inconsistent with its bucket.
+    /// A rule's metadata is missing, malformed, or inconsistent.
     Metadata {
         /// Rule identifier, empty when the error is not tied to a rule.
         rule: String,

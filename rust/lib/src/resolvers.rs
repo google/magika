@@ -155,6 +155,10 @@ pub(crate) const VETOS: &[ContentType] = &[
 
 #[cfg(test)]
 mod tests {
+    mod corpus;
+    mod dataset;
+    mod regressions;
+
     use std::collections::HashSet;
 
     use super::*;

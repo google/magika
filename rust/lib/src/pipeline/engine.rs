@@ -53,6 +53,8 @@ struct Prepared {
     runtime: Arc<OnceLock<Result<Runtime>>>,
     /// Disconnected once `runtime` is set.
     resolved: Receiver<()>,
+    /// Deferred builder when `use_model` is disabled.
+    deferred: Option<Builder>,
 }
 
 /// One thread's way to identify with an [`Engine`].
@@ -72,6 +74,10 @@ impl Engine {
     /// With `Backend::Gpu`, failing to prepare the GPU is an error at the first identification;
     /// with no backend, the CPU keeps identifying.
     pub fn new(builder: Builder) -> Result<Self> {
+        if !builder.options.use_model {
+            let cpu = builder.with_backend(Backend::Cpu);
+            return Ok(Engine { cpu: Prepared::deferred(cpu), gpu: None });
+        }
         let cpu = builder.clone().with_backend(Backend::Cpu);
         let cpu = Prepared::start("magika-cpu", cpu, None)?;
         let gpu = match builder.backend {
@@ -169,6 +175,12 @@ impl EngineSession<'_> {
 }
 
 impl Prepared {
+    /// Defers preparing a runtime until it is explicitly waited on.
+    fn deferred(builder: Builder) -> Self {
+        let (_resolve, resolved) = crossbeam_channel::bounded(0);
+        Prepared { runtime: Arc::new(OnceLock::new()), resolved, deferred: Some(builder) }
+    }
+
     /// Starts preparing a runtime, once `after` disconnects if given.
     fn start(name: &str, builder: Builder, after: Option<Receiver<()>>) -> Result<Self> {
         let runtime = Arc::new(OnceLock::new());
@@ -183,10 +195,16 @@ impl Prepared {
                 drop(resolve);
             }
         })?;
-        Ok(Prepared { runtime, resolved })
+        Ok(Prepared { runtime, resolved, deferred: None })
     }
 
     fn wait(&self) -> Result<&Runtime> {
+        if let Some(builder) = &self.deferred {
+            return match self.runtime.get_or_init(|| builder.clone().build()) {
+                Ok(runtime) => Ok(runtime),
+                Err(error) => Err(anyhow!("{error:#}")),
+            };
+        }
         let _ = self.resolved.recv();
         match self.runtime.get() {
             Some(Ok(runtime)) => Ok(runtime),
@@ -206,13 +224,13 @@ mod tests {
         fn done(runtime: Result<Runtime>) -> Self {
             let (resolve, resolved) = crossbeam_channel::bounded::<()>(0);
             drop(resolve);
-            Prepared { runtime: Arc::new(OnceLock::from(runtime)), resolved }
+            Prepared { runtime: Arc::new(OnceLock::from(runtime)), resolved, deferred: None }
         }
 
         /// A preparation still running until the returned sender is dropped.
         fn running() -> (Self, crossbeam_channel::Sender<()>) {
             let (resolve, resolved) = crossbeam_channel::bounded(0);
-            (Prepared { runtime: Arc::default(), resolved }, resolve)
+            (Prepared { runtime: Arc::default(), resolved, deferred: None }, resolve)
         }
     }
 

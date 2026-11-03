@@ -1602,28 +1602,117 @@ def generate_js_content_types_infos(
     kb: Mapping[str, Mapping[str, Any]], exposed_labels: Sequence[str]
 ) -> str:
     """Generates `js/src/content-types-infos.ts`."""
-    entry_blocks: list[str] = []
+    entry_lines: list[str] = []
     for label in exposed_labels:
-        enum_member = label_to_screaming_snake(label)
-        is_text = _rust_bool(kb[label]["is_text"])
-        entry_blocks.append(
-            f"    [ContentTypeLabel.{enum_member}]: {{\n"
-            f"      label: ContentTypeLabel.{enum_member},\n"
-            f"      is_text: {is_text},\n"
-            f"    }},"
+        info = kb[label]
+        mime_type, group, description = _resolve_entry_metadata(label, info)
+        default_mime = (
+            "text/plain" if info["is_text"] else "application/octet-stream"
+        )
+        compact_mime = "" if mime_type == default_mime else mime_type
+        compact_group = "" if group == "unknown" else group
+        compact_desc = "" if description == label else description
+        extensions_expr = (
+            "[" + ", ".join(_ts_quote(ext) for ext in info["extensions"]) + "]"
+        )
+        flags = (
+            (1 if info["is_text"] else 0)
+            | (2 if info["in_heuristics"] else 0)
+            | (4 if info["in_resolvers"] else 0)
+            | (8 if info["in_ml_model"] else 0)
+            | (16 if info["vetoed_by_resolvers"] else 0)
+        )
+        entry_lines.append(
+            f"  [{_ts_quote(label)}, {_ts_quote(compact_mime)}, "
+            f"{_ts_quote(compact_group)}, {_ts_quote(compact_desc)}, "
+            f"{extensions_expr}, {flags}],"
         )
 
-    return (
-        _TS_GENERATED_HEADER
-        + "\n"
-        + 'import { ContentTypeInfo } from "./content-type-info.js";\n'
-        + 'import { ContentTypeLabel } from "./content-type-label.js";\n\n'
-        + "export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;\n\n"
-        + "export const ContentTypesInfos = {\n"
-        + "  get: (): ContentTypesInfos => ({\n"
-        + "\n".join(entry_blocks)
-        + "\n  }),\n};\n"
-    )
+    lines = [
+        _TS_GENERATED_HEADER.rstrip("\n"),
+        "",
+        'import { ContentTypeInfo } from "./content-type-info.js";',
+        'import { ContentTypeLabel } from "./content-type-label.js";',
+        "",
+        "export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;",
+        "",
+        '// Compact tuple encoding: [label, mime_type ("" = default), group ("" = "unknown"),',
+        '// description ("" = label), extensions, flags].',
+        "// Flags bitmask: 1 = is_text, 2 = in_heuristics, 4 = in_resolvers,",
+        "// 8 = in_ml_model, 16 = vetoed_by_resolvers.",
+        "type CompactContentTypeInfo = readonly [",
+        "  `${ContentTypeLabel}`,",
+        "  string,",
+        "  string,",
+        "  string,",
+        "  readonly string[],",
+        "  number,",
+        "];",
+        "",
+        "// prettier-ignore",
+        "const COMPACT_CONTENT_TYPES_INFOS: readonly CompactContentTypeInfo[] = [",
+        *entry_lines,
+        "];",
+        "",
+        "function hydrateContentTypeInfo([",
+        "  rawLabel,",
+        "  mimeType,",
+        "  group,",
+        "  description,",
+        "  extensions,",
+        "  flags,",
+        "]: CompactContentTypeInfo): ContentTypeInfo {",
+        "  const label = rawLabel as ContentTypeLabel;",
+        "  const isText = (flags & 1) !== 0;",
+        '  const defaultMime = isText ? "text/plain" : "application/octet-stream";',
+        "  return {",
+        "    label,",
+        "    mime_type: mimeType || defaultMime,",
+        '    group: group || "unknown",',
+        "    description: description || rawLabel,",
+        "    extensions: [...extensions],",
+        "    is_text: isText,",
+        "    in_heuristics: (flags & 2) !== 0,",
+        "    in_resolvers: (flags & 4) !== 0,",
+        "    in_ml_model: (flags & 8) !== 0,",
+        "    vetoed_by_resolvers: (flags & 16) !== 0,",
+        "  };",
+        "}",
+        "",
+        "let cachedInfosMap: Map<string, ContentTypeInfo> | undefined;",
+        "",
+        "function getCachedInfosMap(): Map<string, ContentTypeInfo> {",
+        "  if (cachedInfosMap === undefined) {",
+        "    cachedInfosMap = new Map(",
+        "      COMPACT_CONTENT_TYPES_INFOS.map((entry) => {",
+        "        const info = hydrateContentTypeInfo(entry);",
+        "        return [info.label, info];",
+        "      }),",
+        "    );",
+        "  }",
+        "  return cachedInfosMap;",
+        "}",
+        "",
+        "export const ContentTypesInfos = {",
+        "  get: (): ContentTypesInfos => {",
+        "    const infos = {} as ContentTypesInfos;",
+        "    for (const entry of COMPACT_CONTENT_TYPES_INFOS) {",
+        "      const info = hydrateContentTypeInfo(entry);",
+        "      infos[info.label] = info;",
+        "    }",
+        "    return infos;",
+        "  },",
+        "  getInfo: (label: ContentTypeLabel | string): ContentTypeInfo | undefined => {",
+        "    const info = getCachedInfosMap().get(label);",
+        "    if (info === undefined) {",
+        "      return undefined;",
+        "    }",
+        "    return { ...info, extensions: [...info.extensions] };",
+        "  },",
+        "};",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def generate_model_readme(
@@ -1733,6 +1822,15 @@ def _rust_quote(text: str) -> str:
             escaped.append(ch)
     escaped.append('"')
     return "".join(escaped)
+
+
+def _ts_quote(text: str) -> str:
+    """Formats `text` as a double-quoted TypeScript string literal."""
+    return (
+        json.dumps(text, ensure_ascii=False)
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
 
 
 def _md_escape(text: str) -> str:
@@ -2276,7 +2374,14 @@ def run_self_test() -> int:
             "UNEXPOSED_TYPE" not in py_labels,
             '  _3GP = "3gp",' in js_labels,
             "UNEXPOSED_TYPE" not in js_labels,
-            "[ContentTypeLabel.TXT]: {\n      label: ContentTypeLabel.TXT,\n      is_text: true,"
+            '  ["3gp", "video/3gpp", "video", "3GPP multimedia file", ["3gp", "3GPP"], 28],'
+            in js_infos,
+            '  ["null", "", "", "", ["null"], 0],' in js_infos,
+            '  ["randomtxt", "", "", "Random text", [], 1],' in js_infos,
+            '  ["txt", "", "text", "Generic text document", ["txt"], 11],'
+            in js_infos,
+            '"unexposed_type"' not in js_infos,
+            "getInfo: (label: ContentTypeLabel | string): ContentTypeInfo | undefined =>"
             in js_infos,
             "## List of possible outputs" in model_readme,
             "## List of possible model's outputs" in model_readme,

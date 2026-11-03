@@ -20,6 +20,9 @@ import { MagikaResult } from "./src/magika-result.js";
 import { ModelNode } from "./src/model-node.js";
 import { ModelConfigNode } from "./src/model-config-node.js";
 
+export { ContentTypeLabel } from "./magika.js";
+export type { ContentTypeInfo } from "./magika.js";
+
 /**
  * The main Magika object for Node use (`MagikaNode`).
  *

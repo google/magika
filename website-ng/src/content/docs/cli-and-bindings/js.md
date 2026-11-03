@@ -40,6 +40,56 @@ console.log(prediction);
 
 For more, see the API reference below.
 
+## Content type metadata and supported outputs
+
+Both `"magika"` and `"magika/node"` export `ContentTypeLabel` and the `ContentTypeInfo` type. Every prediction (`result.prediction.output` and `result.prediction.dl`) and `Magika.getContentTypeInfo(label)` return full knowledge-base metadata along with pipeline stage-coverage flags:
+
+```ts
+import {
+  type ContentTypeInfo,
+  ContentTypeLabel,
+  Magika,
+} from "magika";
+
+const info: ContentTypeInfo = Magika.getContentTypeInfo(
+  ContentTypeLabel.PARQUET,
+);
+// {
+//   label: "parquet",
+//   mime_type: "application/vnd.apache.parquet",
+//   group: "unknown",
+//   description: "Apache Parquet",
+//   extensions: ["pqt", "parquet"],
+//   is_text: false,
+//   in_heuristics: false,
+//   in_resolvers: true,
+//   in_ml_model: true,
+//   vetoed_by_resolvers: true,
+// }
+```
+
+On a loaded `Magika` (or `MagikaNode`) instance:
+
+- `magika.getOutputContentTypes()` returns the sorted list of `ContentTypeLabel`s that the JavaScript runtime can emit in `result.prediction.output.label` (byte/stream heuristics `empty`, `txt`, `unknown` plus the loaded ML model's output space after `overwrite_map`).
+- `magika.getModelContentTypes()` returns the sorted list of `ContentTypeLabel`s supported directly by the loaded ML model.
+
+:::note[JavaScript TF.js pipeline vs. full Rust pipeline]
+`ContentTypeLabel` contains all exposed content types shared across Magika's Rust, C, Python, and JavaScript bindings. Because the JavaScript library runs byte/stream heuristics and the TensorFlow.js ML model without filesystem `stat` checks or the native Rust format resolvers, `magika.getOutputContentTypes()` excludes filesystem-only inode labels (`directory`, `symlink`, `unsupported`), resolver-only labels (`in_resolvers && !in_ml_model`), and internal labels (`undefined`, `randombytes`, `randomtxt`).
+
+You can use the stage-coverage booleans on `ContentTypeInfo` to inspect or filter across pipelines:
+
+```ts
+// Labels emitted by this JavaScript TF.js instance:
+const jsOutputs = magika.getOutputContentTypes();
+
+// Labels emitted by the full native Rust/Python pipeline:
+const rustOutputs = Object.values(ContentTypeLabel).filter((label) => {
+  const info = Magika.getContentTypeInfo(label);
+  return info.in_heuristics || info.in_resolvers || info.in_ml_model;
+});
+```
+:::
+
 ## Command-line tool
 
 Please use the official CLI as it can perform batch processing and search for files recursively.

@@ -15,8 +15,12 @@ title: "JavaScript API Reference"
 *   [Magika][6]
     *   [identifyBytes][7]
         *   [Parameters][8]
-    *   [create][9]
-        *   [Parameters][10]
+    *   [getOutputContentTypes][9]
+    *   [getModelContentTypes][10]
+    *   [create][11]
+        *   [Parameters][12]
+    *   [getContentTypeInfo][13]
+        *   [Parameters][14]
 
 ## MagikaNode
 
@@ -53,7 +57,7 @@ Identifies the content type from a read stream
 #### Parameters
 
 *   `stream` **ReadStream** A read stream.
-*   `length` **[number][11]** Total length of stream data.
+*   `length` **[number][15]** Total length of stream data.
 
 Returns **MagikaResult** An object containing the result of the content type
 prediction.
@@ -67,7 +71,7 @@ Factory method to create a Magika instance.
 *   `options` **MagikaOptions** The urls or file paths where the model and
     its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
 
-Returns **[Promise][12]<[MagikaNode][1]>**&#x20;
+Returns **[Promise][16]<[MagikaNode][1]>**&#x20;
 
 ## Magika
 
@@ -96,10 +100,36 @@ Identifies the content type of a byte array.
 
 #### Parameters
 
-*   `fileBytes` **[Uint8Array][13]** A fixed-length sequence of bytes.
+*   `fileBytes` **[Uint8Array][17]** A fixed-length sequence of bytes.
 
 Returns **MagikaResult** An object containing the result of the content type
 prediction.
+
+### getOutputContentTypes
+
+Returns the sorted list of all possible content type labels that this
+JavaScript `Magika` instance can return in
+`MagikaResult.prediction.output.label`.
+
+This includes the byte/stream heuristic labels (`empty`, `txt`, `unknown`)
+and the loaded ML model's output labels after applying `overwrite_map`.
+Unlike the native Rust/Python pipeline, this excludes filesystem-only
+labels (`directory`, `symlink`, `unsupported`) and labels detected
+exclusively by the native Rust format resolvers (`in_resolvers &&
+!in_ml_model`). To inspect all exposed KB labels or filter by Rust
+pipeline stage coverage, iterate `Object.values(ContentTypeLabel)` with
+`Magika.getContentTypeInfo(label)`.
+
+Returns **[Array][18]\<ContentTypeLabel>** Sorted list of possible output labels.
+
+### getModelContentTypes
+
+Returns the sorted list of content type labels supported by the loaded ML
+model (excluding labels remapped by `overwrite_map`).
+
+Most callers should use `getOutputContentTypes()` instead.
+
+Returns **[Array][18]\<ContentTypeLabel>** Sorted list of ML model content type labels.
 
 ### create
 
@@ -110,7 +140,27 @@ Factory method to create a Magika instance.
 *   `options` **MagikaOptions** The urls or file paths where the model and
     its config are stored.Parameters are optional. If not provided, the model will be loaded from GitHub.
 
-Returns **[Promise][12]<[Magika][6]>**&#x20;
+Returns **[Promise][16]<[Magika][6]>**&#x20;
+
+### getContentTypeInfo
+
+Returns knowledge-base metadata and detection-stage coverage for an
+exposed Magika content type label.
+
+Note: `ContentTypeLabel` covers all exposed content types across Magika's
+heuristics, native Rust format resolvers, and ML model. Because the
+JavaScript binding runs byte/stream heuristics and the TensorFlow.js ML
+model without the native Rust format resolvers, labels covered only by
+resolvers (`in_resolvers && !in_ml_model`) are not emitted by
+`identifyBytes` / `identifyStream`; call `magika.getOutputContentTypes()`
+on a loaded instance to list the labels this runtime can emit.
+
+#### Parameters
+
+*   `label` **(ContentTypeLabel | [string][19])** An exposed `ContentTypeLabel` or
+    string label (e.g., `"python"`).
+
+Returns **ContentTypeInfo** Metadata and stage coverage for `label`.
 
 [1]: #magikanode
 
@@ -128,12 +178,24 @@ Returns **[Promise][12]<[Magika][6]>**&#x20;
 
 [8]: #parameters-2
 
-[9]: #create-1
+[9]: #getoutputcontenttypes
 
-[10]: #parameters-3
+[10]: #getmodelcontenttypes
 
-[11]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+[11]: #create-1
 
-[12]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
+[12]: #parameters-3
 
-[13]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
+[13]: #getcontenttypeinfo
+
+[14]: #parameters-4
+
+[15]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[16]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
+
+[17]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
+
+[18]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array
+
+[19]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String

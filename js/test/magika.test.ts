@@ -33,8 +33,16 @@ import * as path from "path";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
 import { ReadableStream } from "stream/web";
-import { MagikaNode as Magika } from "../magika-node";
-import { ContentTypeLabel } from "../src/content-type-label";
+import {
+  type ContentTypeInfo,
+  ContentTypeLabel as BrowserContentTypeLabel,
+  Magika as BrowserMagika,
+} from "../magika";
+import {
+  type ContentTypeInfo as NodeContentTypeInfo,
+  ContentTypeLabel,
+  MagikaNode as Magika,
+} from "../magika-node";
 
 /**
  * Returns a list of test files and their correct labels.
@@ -245,4 +253,209 @@ describe("Magika class", () => {
       }
     },
   );
+
+  it("should expose full ContentTypeInfo metadata for all exposed labels", async () => {
+    const exposedPath = path.resolve(
+      __dirname,
+      "../../assets/exposed_content_types.txt",
+    );
+    const kbPath = path.resolve(
+      __dirname,
+      "../../assets/content_types_kb.min.json",
+    );
+    const expectedExposed = (await readFile(exposedPath, "utf-8"))
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .sort();
+    const rawKb = JSON.parse(await readFile(kbPath, "utf-8")) as Record<
+      string,
+      {
+        mime_type: string | null;
+        group: string | null;
+        description: string | null;
+        extensions: string[];
+        is_text: boolean;
+        in_heuristics: boolean;
+        in_resolvers: boolean;
+        in_ml_model: boolean;
+        vetoed_by_resolvers: boolean;
+      }
+    >;
+
+    expect(BrowserContentTypeLabel).toBe(ContentTypeLabel);
+    expect(Object.values(ContentTypeLabel)).toStrictEqual(expectedExposed);
+
+    for (const ct of Object.values(ContentTypeLabel)) {
+      const entry = rawKb[ct];
+      expect(entry).toBeDefined();
+
+      const info: ContentTypeInfo = Magika.getContentTypeInfo(ct);
+      const nodeInfo: NodeContentTypeInfo = BrowserMagika.getContentTypeInfo(
+        ct as string,
+      );
+      expect(nodeInfo).toStrictEqual(info);
+
+      const expectedMime =
+        entry.mime_type ??
+        (entry.is_text ? "text/plain" : "application/octet-stream");
+      expect(info).toStrictEqual({
+        label: ct,
+        mime_type: expectedMime,
+        group: entry.group ?? "unknown",
+        description: entry.description ?? ct,
+        extensions: entry.extensions,
+        is_text: entry.is_text,
+        in_heuristics: entry.in_heuristics,
+        in_resolvers: entry.in_resolvers,
+        in_ml_model: entry.in_ml_model,
+        vetoed_by_resolvers: entry.vetoed_by_resolvers,
+      });
+      if (info.vetoed_by_resolvers) {
+        expect(info.in_resolvers).toBe(true);
+      }
+    }
+
+    // Spot-check filesystem heuristic, resolver-vetoed ML type, resolver-only
+    // type, and inactive exposed labels.
+    const dirInfo = Magika.getContentTypeInfo(ContentTypeLabel.DIRECTORY);
+    expect(dirInfo.in_heuristics).toBe(true);
+    expect(dirInfo.in_resolvers).toBe(false);
+    expect(dirInfo.in_ml_model).toBe(false);
+    expect(dirInfo.vetoed_by_resolvers).toBe(false);
+
+    const parquetInfo = Magika.getContentTypeInfo("parquet");
+    expect(parquetInfo.in_resolvers).toBe(true);
+    expect(parquetInfo.in_ml_model).toBe(true);
+    expect(parquetInfo.vetoed_by_resolvers).toBe(true);
+
+    const llvmBitcodeInfo = Magika.getContentTypeInfo(
+      ContentTypeLabel.LLVM_BITCODE,
+    );
+    expect(llvmBitcodeInfo.in_heuristics).toBe(false);
+    expect(llvmBitcodeInfo.in_resolvers).toBe(true);
+    expect(llvmBitcodeInfo.in_ml_model).toBe(false);
+
+    const undefinedInfo = Magika.getContentTypeInfo(ContentTypeLabel.UNDEFINED);
+    expect(undefinedInfo.in_heuristics).toBe(false);
+    expect(undefinedInfo.in_resolvers).toBe(false);
+    expect(undefinedInfo.in_ml_model).toBe(false);
+
+    // Defensive copies prevent caller mutations from polluting cached entries.
+    const pythonInfo = Magika.getContentTypeInfo(ContentTypeLabel.PYTHON);
+    const origExtensions = [...pythonInfo.extensions];
+    pythonInfo.extensions.push("mutated_ext");
+    pythonInfo.description = "mutated_desc";
+    expect(Magika.getContentTypeInfo(ContentTypeLabel.PYTHON)).toMatchObject({
+      description: "Python source",
+      extensions: origExtensions,
+    });
+
+    // Unknown, unexposed catalog-only, prototype-key, and non-string inputs.
+    for (const badLabel of [
+      "not_a_real_content_type",
+      "3ds",
+      "toString",
+      "__proto__",
+      "constructor",
+    ]) {
+      expect(() => Magika.getContentTypeInfo(badLabel)).toThrow(
+        /Unknown content type label/,
+      );
+    }
+    expect(() => Magika.getContentTypeInfo(123 as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("should list output and model content types and match prediction metadata", async () => {
+    class UnloadedMagika extends BrowserMagika {
+      public static createUnloaded(): UnloadedMagika {
+        return new UnloadedMagika();
+      }
+    }
+    const unloaded = UnloadedMagika.createUnloaded();
+    expect(() => unloaded.getOutputContentTypes()).toThrow(
+      /model config has not been loaded/,
+    );
+    expect(() => unloaded.getModelContentTypes()).toThrow(
+      /model config has not been loaded/,
+    );
+
+    const magika = await Magika.create({
+      modelConfigPath: workdir.model_config,
+      modelPath: workdir.model,
+    });
+    const modelTypes = magika.getModelContentTypes();
+    const outputTypes = magika.getOutputContentTypes();
+
+    expect(modelTypes).toStrictEqual([...new Set(modelTypes)].sort());
+    expect(outputTypes).toStrictEqual([...new Set(outputTypes)].sort());
+
+    const expectedModelTypes = Object.values(ContentTypeLabel)
+      .filter((ct) => Magika.getContentTypeInfo(ct).in_ml_model)
+      .sort();
+    expect(modelTypes).toStrictEqual(expectedModelTypes);
+
+    const expectedOutputTypes = Array.from(
+      new Set<ContentTypeLabel>([
+        ContentTypeLabel.EMPTY,
+        ContentTypeLabel.TXT,
+        ContentTypeLabel.UNKNOWN,
+        ...magika.model_config.target_labels_space.map(
+          (ct) => magika.model_config.overwrite_map[ct] ?? ct,
+        ),
+      ]),
+    ).sort();
+    expect(outputTypes).toStrictEqual(expectedOutputTypes);
+
+    // JS TF.js pipeline includes byte/stream heuristics + ML types, and
+    // excludes inactive labels, filesystem-only inode types, and resolver-only
+    // types.
+    for (const included of [
+      ContentTypeLabel.EMPTY,
+      ContentTypeLabel.TXT,
+      ContentTypeLabel.UNKNOWN,
+      ContentTypeLabel.PYTHON,
+      ContentTypeLabel.PDF,
+    ]) {
+      expect(outputTypes).toContain(included);
+    }
+    for (const excluded of [
+      ContentTypeLabel.UNDEFINED,
+      ContentTypeLabel.RANDOMBYTES,
+      ContentTypeLabel.RANDOMTXT,
+      ContentTypeLabel.DIRECTORY,
+      ContentTypeLabel.SYMLINK,
+      ContentTypeLabel.UNSUPPORTED,
+      ContentTypeLabel.LLVM_BITCODE,
+    ]) {
+      expect(outputTypes).not.toContain(excluded);
+    }
+
+    // Predictions carry full ContentTypeInfo matching getContentTypeInfo.
+    const emptyRes = await magika.identifyBytes(new Uint8Array(0));
+    expect(emptyRes.prediction.output).toStrictEqual(
+      Magika.getContentTypeInfo(ContentTypeLabel.EMPTY),
+    );
+    expect(emptyRes.prediction.dl).toStrictEqual(
+      Magika.getContentTypeInfo(ContentTypeLabel.UNDEFINED),
+    );
+
+    const pyBytes = Buffer.from("def hello() -> int:\n    return 42\n");
+    const pyRes = await magika.identifyBytes(pyBytes);
+    expect(pyRes.prediction.output).toStrictEqual(
+      Magika.getContentTypeInfo(pyRes.prediction.output.label),
+    );
+    expect(pyRes.prediction.dl).toStrictEqual(
+      Magika.getContentTypeInfo(pyRes.prediction.dl.label),
+    );
+
+    // Mutating prediction metadata must not corrupt subsequent predictions.
+    pyRes.prediction.output.extensions.push("mutated_ext");
+    const pyResAgain = await magika.identifyBytes(pyBytes);
+    expect(pyResAgain.prediction.output).toStrictEqual(
+      Magika.getContentTypeInfo(pyResAgain.prediction.output.label),
+    );
+  });
 });

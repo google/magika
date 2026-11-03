@@ -9,17 +9,6 @@ use yara_x_parser::ast::{Item, MetaValue, Rule, RuleFlags, AST};
 
 use crate::Error;
 
-/// Which ruleset directory a rule ships in; checked against its metadata.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Bucket {
-    /// `rulesets/full`: enforced, no observed false positive or false negative.
-    Full,
-    /// `rulesets/partial`: enforced, no observed false positive, some false negatives.
-    Partial,
-    /// `rulesets/notworking`: kept for reference, never enforced.
-    NotWorking,
-}
-
 /// Declared coverage class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Class {
@@ -27,8 +16,6 @@ pub enum Class {
     Full,
     /// `class = "partial"`.
     Partial,
-    /// `class = "not-working"`.
-    NotWorking,
     /// No `class` metadata.
     Untested,
 }
@@ -44,8 +31,6 @@ pub struct RuleInfo {
     pub class: Class,
     /// Whether the rule takes part in scans.
     pub enforced: bool,
-    /// The bucket the rule was validated against, if any.
-    pub bucket: Option<Bucket>,
 }
 
 /// Validated YARA text.
@@ -61,25 +46,6 @@ impl Source {
 
     /// Parses and validates `text`.
     pub fn parse(text: &str) -> Result<Self, Error> {
-        Self::parse_inner(text, None)
-    }
-
-    /// Like `parse`, also checking every rule's metadata agrees with `bucket`.
-    pub fn parse_in_bucket(text: &str, bucket: Bucket) -> Result<Self, Error> {
-        Self::parse_inner(text, Some(bucket))
-    }
-
-    /// The validated YARA text.
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    /// Metadata of every non-private rule, in source order.
-    pub fn rules(&self) -> &[RuleInfo] {
-        &self.rules
-    }
-
-    fn parse_inner(text: &str, bucket: Option<Bucket>) -> Result<Self, Error> {
         if text.len() > Self::MAX_BYTES {
             return Err(Error::Parse("source exceeds 4 MiB".into()));
         }
@@ -107,16 +73,26 @@ impl Source {
             if rule.flags.contains(RuleFlags::Private) {
                 continue;
             }
-            rules.push(Self::info(rule, bucket)?);
+            rules.push(Self::info(rule)?);
         }
         Ok(Source { text: text.to_string(), rules })
     }
 
-    fn info(rule: &Rule<'_>, bucket: Option<Bucket>) -> Result<RuleInfo, Error> {
+    /// The validated YARA text.
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    /// Metadata of every non-private rule, in source order.
+    pub fn rules(&self) -> &[RuleInfo] {
+        &self.rules
+    }
+
+    fn info(rule: &Rule<'_>) -> Result<RuleInfo, Error> {
         let id = rule.identifier.name.to_string();
         let fail = |reason: &str| Error::Metadata { rule: id.clone(), reason: reason.into() };
         let metadata = metadata::Metadata::read(rule).map_err(fail)?;
-        let enforced = metadata.enforced(bucket).map_err(|reason| fail(&reason))?;
+        let enforced = metadata.enforced().map_err(fail)?;
         let mut labels = Vec::new();
         for meta in rule.meta.iter().flatten().filter(|meta| meta.identifier.name == "label") {
             let MetaValue::String((value, _)) = &meta.value else {
@@ -131,7 +107,7 @@ impl Source {
         if enforced && label.is_none() {
             return Err(fail("enforced rule needs a label"));
         }
-        Ok(RuleInfo { class: metadata.class, id, label, enforced, bucket })
+        Ok(RuleInfo { class: metadata.class, id, label, enforced })
     }
 }
 
@@ -149,7 +125,7 @@ mod metadata {
 
     use yara_x_parser::ast::{MetaValue, Rule};
 
-    use super::{Bucket, Class};
+    use super::Class;
 
     pub(super) struct Metadata {
         pub(super) class: Class,
@@ -179,8 +155,7 @@ mod metadata {
                         let value = match *value {
                             "full" => Class::Full,
                             "partial" => Class::Partial,
-                            "not-working" => Class::NotWorking,
-                            _ => return Err("class must be full, partial or not-working"),
+                            _ => return Err("class must be full or partial"),
                         };
                         if class.replace(value).is_some() {
                             return Err("duplicate class metadata");
@@ -219,24 +194,13 @@ mod metadata {
             })
         }
 
-        /// Whether the rule is enforced, checking its evidence and, when given, its bucket.
-        pub(super) fn enforced(&self, bucket: Option<Bucket>) -> Result<bool, String> {
-            if let Some(bucket) = bucket {
-                let agrees = matches!(
-                    (bucket, self.class, self.active),
-                    (Bucket::Full, Class::Full, true)
-                        | (Bucket::Partial, Class::Partial, true)
-                        | (Bucket::NotWorking, Class::NotWorking, false)
-                );
-                if !agrees {
-                    return Err(format!("metadata disagrees with its {bucket:?} directory"));
-                }
-            }
+        /// Whether the rule is enforced, checking its declared error rates and class.
+        pub(super) fn enforced(&self) -> Result<bool, &'static str> {
             if !self.active {
                 return Ok(false);
             }
             if self.fp_rate != Some(0.0) {
-                return Err("enforced rules require fp_rate = 0".into());
+                return Err("enforced rules require fp_rate = 0");
             }
             let consistent = match (self.class, self.fn_rate) {
                 (Class::Full, Some(rate)) => rate == 0.0,
@@ -245,8 +209,7 @@ mod metadata {
             };
             if !consistent {
                 return Err("enforced rules require class full with fn_rate = 0, \
-                            or partial with 0 < fn_rate < 1"
-                    .into());
+                            or partial with 0 < fn_rate < 1");
             }
             Ok(true)
         }
@@ -270,27 +233,28 @@ fn syntax_error(text: &str, error: &yara_x_parser::ast::Error) -> String {
     let line = before.iter().filter(|&&b| b == b'\n').count() + 1;
     format!("line {line}, column {}: {message}", before.len() - line_start + 1)
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn bucket_membership_requires_matching_evidence_and_enablement() {
-        for (bucket, class, active, fp, missed, valid) in [
-            (Bucket::Full, "full", true, 0.0, 0.0, true),
-            (Bucket::Partial, "partial", true, 0.0, 0.25, true),
-            (Bucket::NotWorking, "not-working", false, 0.1, 0.5, true),
-            (Bucket::Full, "partial", true, 0.0, 0.25, false),
-            (Bucket::Full, "full", true, 0.01, 0.0, false),
-            (Bucket::Partial, "partial", true, 0.0, 1.0, false),
-            (Bucket::NotWorking, "full", true, 0.0, 0.0, false),
-            (Bucket::Full, "full", false, 0.0, 0.0, false),
+    fn enforcement_requires_consistent_error_rates_and_class() {
+        for (class, active, fp, missed, valid) in [
+            (Some("full"), true, 0.0, 0.0, true),
+            (Some("partial"), true, 0.0, 0.25, true),
+            (None, false, 0.1, 0.5, true),
+            (Some("full"), true, 0.01, 0.0, false),
+            (Some("partial"), true, 0.0, 1.0, false),
+            (None, true, 0.0, 0.0, false),
+            (Some("full"), false, 0.0, 0.0, true),
         ] {
+            let class = class.map_or(String::new(), |c| format!("class = \"{c}\" "));
             let source = format!(
-                "rule example {{ meta: label = \"png\" class = \"{class}\" enforced = {active} \
+                "rule example {{ meta: label = \"png\" {class}enforced = {active} \
                  fp_rate = {fp} fn_rate = {missed} condition: uint8(0) == 1 }}"
             );
-            assert_eq!(Source::parse_in_bucket(&source, bucket).is_ok(), valid, "{source}");
+            assert_eq!(Source::parse(&source).is_ok(), valid, "{source}");
         }
     }
 }

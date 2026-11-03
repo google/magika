@@ -61,6 +61,26 @@ impl PyContentTypeInfo {
     fn is_text(&self) -> bool {
         self.info.is_text
     }
+
+    #[getter]
+    fn in_heuristics(&self) -> bool {
+        self.info.in_heuristics
+    }
+
+    #[getter]
+    fn in_resolvers(&self) -> bool {
+        self.info.in_resolvers
+    }
+
+    #[getter]
+    fn in_ml_model(&self) -> bool {
+        self.info.in_ml_model
+    }
+
+    #[getter]
+    fn vetoed_by_resolvers(&self) -> bool {
+        self.info.vetoed_by_resolvers
+    }
 }
 
 #[pyclass(name = "MagikaResult")]
@@ -83,6 +103,14 @@ pub struct PyMagikaResult {
     pub extensions: Vec<String>,
     #[pyo3(get)]
     pub is_text: bool,
+    #[pyo3(get)]
+    pub in_heuristics: bool,
+    #[pyo3(get)]
+    pub in_resolvers: bool,
+    #[pyo3(get)]
+    pub in_ml_model: bool,
+    #[pyo3(get)]
+    pub vetoed_by_resolvers: bool,
     #[pyo3(get)]
     pub score: f32,
     #[pyo3(get)]
@@ -134,6 +162,10 @@ fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult 
         description: info.description.to_string(),
         extensions: info.extensions.iter().map(|s| s.to_string()).collect(),
         is_text: info.is_text,
+        in_heuristics: info.in_heuristics,
+        in_resolvers: info.in_resolvers,
+        in_ml_model: info.in_ml_model,
+        vetoed_by_resolvers: info.vetoed_by_resolvers,
         score,
         dl_label,
         overwrite_reason,
@@ -156,6 +188,10 @@ fn from_io_error(e: &std::io::Error, path: Option<String>) -> PyMagikaResult {
         description: String::new(),
         extensions: Vec::new(),
         is_text: false,
+        in_heuristics: false,
+        in_resolvers: false,
+        in_ml_model: false,
+        vetoed_by_resolvers: false,
         score: 0.0,
         dl_label: String::new(),
         overwrite_reason: "none".to_string(),
@@ -196,6 +232,10 @@ fn from_error(error: anyhow::Error, path: &str) -> PyMagikaResult {
             description: error.to_string(),
             extensions: Vec::new(),
             is_text: false,
+            in_heuristics: false,
+            in_resolvers: false,
+            in_ml_model: false,
+            vetoed_by_resolvers: false,
             score: 0.0,
             dl_label: String::new(),
             overwrite_reason: "none".to_string(),
@@ -237,12 +277,11 @@ impl PyMagika {
 #[pymethods]
 impl PyMagika {
     #[new]
-    #[pyo3(signature = (use_resolvers=true, use_builtin_rules=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
+    #[pyo3(signature = (use_resolvers=true, use_model=true, prediction_mode="high_confidence", follow_symlink=true, rules=None, rules_files=None))]
     #[allow(clippy::too_many_arguments)]
     fn new(
-        py: Python<'_>, use_resolvers: bool, use_builtin_rules: bool, use_model: bool,
-        prediction_mode: &str, follow_symlink: bool, rules: Option<&str>,
-        rules_files: Option<Vec<std::path::PathBuf>>,
+        py: Python<'_>, use_resolvers: bool, use_model: bool, prediction_mode: &str,
+        follow_symlink: bool, rules: Option<&str>, rules_files: Option<Vec<std::path::PathBuf>>,
     ) -> PyResult<Self> {
         let custom_rules = match (rules, rules_files) {
             (None, None) => None,
@@ -273,7 +312,6 @@ impl PyMagika {
         let mut options = Options::default();
         options.use_resolvers = use_resolvers;
         options.use_custom_rules = custom_rules;
-        options.use_builtin_rules = use_builtin_rules;
         options.use_model = use_model;
         options.prediction_mode = prediction_mode;
         options.follow_symlink = follow_symlink;
@@ -347,7 +385,10 @@ fn get_default_model_name() -> &'static str {
 
 #[pyfunction]
 fn content_type_from_label(label: &str) -> Option<PyContentTypeInfo> {
-    ContentType::from_label(label).map(|x| PyContentTypeInfo { info: x.info() })
+    TypeInfo::ALL
+        .binary_search_by_key(&label, |x| x.label)
+        .ok()
+        .map(|i| PyContentTypeInfo { info: TypeInfo::ALL[i] })
 }
 
 #[pyfunction]

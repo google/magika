@@ -26,7 +26,6 @@ pub struct Features {
     pub(crate) features: Vec<i32>,
     pub(crate) use_resolvers: bool,
     pub(crate) use_custom_rules: Option<Rules>,
-    pub(crate) use_builtin_rules: bool,
 }
 
 /// Abstraction over file content.
@@ -144,15 +143,6 @@ impl FeaturesOr<RegularFileType> {
                 return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
             }
         }
-        if options.use_builtin_rules {
-            let content_types = Rules::builtin().identify(&mut file)?;
-            if !content_types.is_empty() {
-                let debug_info = options
-                    .debug_mode
-                    .then(|| Box::new(DebugInfo::BuiltinRules(RulesDebugInfo {})));
-                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
-            }
-        }
         if options.use_model {
             let features = extract_features(config, &mut file)?;
             if features[config.min_file_size_for_dl - 1] != config.padding_token {
@@ -160,7 +150,6 @@ impl FeaturesOr<RegularFileType> {
                     features,
                     use_resolvers: options.use_resolvers,
                     use_custom_rules: options.use_custom_rules.clone(),
-                    use_builtin_rules: options.use_builtin_rules,
                 }));
             }
         }

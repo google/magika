@@ -13,13 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Syncs the local editable Python dev environment (stages the native `magika`
+# CLI with `--profile release-fast` and installs the `_magika` PyO3 extension).
+# Across multiple git worktrees, set `CARGO_TARGET_DIR` to a shared absolute
+# path (e.g. `export CARGO_TARGET_DIR="$HOME/.cache/cargo-target/magika"`) to
+# reuse compiled Rust dependencies instead of rebuilding from scratch.
+
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." &>/dev/null && pwd)
 cd "$ROOT_DIR"
 
-echo "Building and staging native CLI binary (magika)..."
-./python/scripts/build_and_stage_cli.sh
+echo "Building and staging native CLI binary (magika, release-fast)..."
+./python/scripts/build_and_stage_cli.sh --profile release-fast
 
 echo "Syncing local Python environment and reinstalling editable magika package..."
 cd python

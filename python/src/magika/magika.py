@@ -24,7 +24,7 @@ import io
 import logging
 import os
 from pathlib import Path
-from typing import Any, BinaryIO, List, Optional, Sequence, Union
+from typing import BinaryIO, List, Optional, Sequence, Union
 
 from magika.logger import get_logger
 from magika.types import (
@@ -59,7 +59,7 @@ class Magika:
         debug: bool = False,
         use_colors: bool = False,
         rules: Optional[str] = None,
-        rules_files: Optional[Sequence[Union[str, os.PathLike]]] = None,
+        rules_files: Optional[Sequence[Union[str, os.PathLike[str]]]] = None,
     ) -> None:
         """Initializes the Magika instance.
 
@@ -73,8 +73,8 @@ class Magika:
             debug: If True, enable debug logging. Defaults to False.
             use_colors: If True, use colors in the logger. Defaults to False.
             rules: Custom format rules, as YARA text, checked before the
-                built-in rules. They use the YARA subset and metadata of the
-                built-in rules. Raises ValueError if they are invalid.
+                resolvers. They use the YARA subset and metadata of the
+                `magika-rules` crate. Raises ValueError if they are invalid.
             rules_files: Paths of files holding custom rules, as an
                 alternative to `rules`.
         """
@@ -120,7 +120,26 @@ class Magika:
         """Gets the name of the loaded model."""
         return str(self._pyo3_session.get_model_name())
 
-    def _convert_pyo3_result(self, pyo3_res: Any, path: Path) -> MagikaResult:
+    @staticmethod
+    def _convert_pyo3_content_type_info(
+        pyo3_info: _magika.ContentTypeInfo,
+    ) -> ContentTypeInfo:
+        return ContentTypeInfo(
+            label=ContentTypeLabel(pyo3_info.label),
+            mime_type=pyo3_info.mime_type,
+            group=pyo3_info.group,
+            description=pyo3_info.description,
+            extensions=pyo3_info.extensions,
+            is_text=pyo3_info.is_text,
+            in_heuristics=pyo3_info.in_heuristics,
+            in_resolvers=pyo3_info.in_resolvers,
+            in_ml_model=pyo3_info.in_ml_model,
+            vetoed_by_resolvers=pyo3_info.vetoed_by_resolvers,
+        )
+
+    def _convert_pyo3_result(
+        self, pyo3_res: _magika.MagikaResult, path: Path
+    ) -> MagikaResult:
         status = Status(pyo3_res.status)
 
         if not pyo3_res.ok:
@@ -128,14 +147,7 @@ class Magika:
 
         dl_type_info = _magika.content_type_from_label(pyo3_res.dl_label)
         assert dl_type_info is not None
-        dl_info = ContentTypeInfo(
-            label=ContentTypeLabel(dl_type_info.label),
-            mime_type=dl_type_info.mime_type,
-            group=dl_type_info.group,
-            description=dl_type_info.description,
-            extensions=dl_type_info.extensions,
-            is_text=dl_type_info.is_text,
-        )
+        dl_info = self._convert_pyo3_content_type_info(dl_type_info)
         output_info = ContentTypeInfo(
             label=ContentTypeLabel(pyo3_res.label),
             mime_type=pyo3_res.mime_type,
@@ -143,6 +155,10 @@ class Magika:
             description=pyo3_res.description,
             extensions=pyo3_res.extensions,
             is_text=pyo3_res.is_text,
+            in_heuristics=pyo3_res.in_heuristics,
+            in_resolvers=pyo3_res.in_resolvers,
+            in_ml_model=pyo3_res.in_ml_model,
+            vetoed_by_resolvers=pyo3_res.vetoed_by_resolvers,
         )
         overwrite_reason = OverwriteReason(pyo3_res.overwrite_reason)
 
@@ -154,8 +170,13 @@ class Magika:
         )
         return MagikaResult(path=path, status=status, prediction=prediction)
 
-    def identify_path(self, path: Union[str, os.PathLike]) -> MagikaResult:
-        """Identify the content type of a file given its path."""
+    def identify_path(self, path: Union[str, os.PathLike[str]]) -> MagikaResult:
+        """Identify the content type of a file given its path.
+
+        When classifying multiple files, prefer `identify_paths()` so feature
+        extraction and model inference run in parallel batches inside the
+        native Rust pipeline.
+        """
         if not isinstance(path, (str, os.PathLike)):
             raise TypeError(
                 f"Path '{path}' is invalid: input path should be of type `Union[str, os.PathLike]`"
@@ -165,9 +186,14 @@ class Magika:
         return self._convert_pyo3_result(pyo3_res, path)
 
     def identify_paths(
-        self, paths: Sequence[Union[str, os.PathLike]]
+        self, paths: Sequence[Union[str, os.PathLike[str]]]
     ) -> List[MagikaResult]:
-        """Identify the content type of a list of files given their paths."""
+        """Identify the content type of a list of files given their paths.
+
+        Feature extraction and model inference are batched and parallelized
+        across worker threads in the native Rust pipeline, making this the
+        high-throughput entry point when classifying multiple files.
+        """
         if not isinstance(paths, Sequence):
             raise TypeError("Input paths should be of type Sequence[Path]")
 
@@ -237,6 +263,29 @@ class Magika:
             return self.identify_bytes(content)
         finally:
             stream.seek(current_position)
+
+    @staticmethod
+    def get_content_type_info(label: Union[ContentTypeLabel, str]) -> ContentTypeInfo:
+        """Returns metadata and detection stage coverage for an exposed content type label.
+
+        Args:
+            label: A `ContentTypeLabel` or string label (e.g., `"python"`).
+
+        Returns:
+            The `ContentTypeInfo` associated with `label`.
+
+        Raises:
+            TypeError: If `label` is not a `ContentTypeLabel` or `str`.
+            MagikaError: If `label` is not an exposed Magika content type.
+        """
+        if not isinstance(label, (ContentTypeLabel, str)):
+            raise TypeError(
+                f"Input label should be of type `Union[ContentTypeLabel, str]`, not {type(label)}."
+            )
+        pyo3_info = _magika.content_type_from_label(str(label))
+        if pyo3_info is None:
+            raise MagikaError(f"Unknown content type label: {label!r}")
+        return Magika._convert_pyo3_content_type_info(pyo3_info)
 
     def get_output_content_types(self) -> List[ContentTypeLabel]:
         """This method returns the list of all possible output content types."""

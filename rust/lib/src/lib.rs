@@ -76,12 +76,7 @@ mod tests {
     mod gpu;
 
     fn new_session() -> Session {
-        let options = Options {
-            use_resolvers: false,
-            use_builtin_rules: false,
-            debug_mode: true,
-            ..Options::default()
-        };
+        let options = Options { use_resolvers: false, debug_mode: true, ..Options::default() };
         Runtime::builder()
             .with_backend(Backend::Cpu)
             .with_options(options)

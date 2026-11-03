@@ -137,10 +137,6 @@ struct Experimental {
     #[arg(hide = true, long)]
     no_resolvers: bool,
 
-    /// Disables the builtin rules.
-    #[arg(hide = true, long)]
-    no_builtin_rules: bool,
-
     /// Disables model inference.
     #[arg(hide = true, long)]
     no_model: bool,
@@ -209,7 +205,6 @@ fn main() -> Result<()> {
         builder.options.use_custom_rules = Some(rules);
     }
     builder.options.use_resolvers = !flags.experimental.no_resolvers;
-    builder.options.use_builtin_rules = !flags.experimental.no_builtin_rules;
     builder.options.use_model = !flags.experimental.no_model;
     builder.options.follow_symlink = !flags.no_dereference;
     builder = match flags.experimental.backend {

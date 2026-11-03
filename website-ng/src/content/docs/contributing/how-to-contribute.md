@@ -16,7 +16,7 @@ LLMs and coding agents have changed the balance between writing and reading: pro
 
 ## How we work
 
-Magika is maintained by a small team with a large surface: models, detection rules, a Rust core, bindings for several languages, and this website. Review time is our scarcest resource, so we decide what we want help with and say so explicitly with the `help wanted` label.
+Magika is maintained by a small team with a large surface: models, format resolvers, a Rust core, bindings for several languages, and this website. Review time is our scarcest resource, so we decide what we want help with and say so explicitly with the `help wanted` label.
 
 The most valuable contribution is a good issue. If we agree that a PR would help, we add the label and PRs are welcome. Otherwise we fix it ourselves.
 
@@ -32,7 +32,7 @@ The common thread: small, self-contained, and easy to verify.
 
 - **Documentation fixes**: typos, grammar, dead links, outdated snippets. One PR per logical fix, not one per typo.
 - **Metadata fixes for content types already in the [knowledge base](https://github.com/google/magika/blob/main/assets/content_types.yaml)**: description, extensions, MIME type. Cite a source, run `just sync-kb`, and commit the generated files. See the [developer guide](/magika/contributing/developer-guide/#updating-the-content-types-knowledge-base).
-- **Detection rules for content types already in the knowledge base**: new rules or fixes to existing ones, with the evidence described in the [developer guide](/magika/contributing/developer-guide/#improving-detection-with-rules). If the content type is not in the knowledge base yet, [request it](/magika/contributing/reporting-issues/#new-content-types) first.
+- **Format resolvers for content types already in the knowledge base**: new resolvers in [`rust/lib/src/resolvers/`](https://github.com/google/magika/tree/main/rust/lib/src/resolvers) or fixes to existing ones, with the evidence described in the [developer guide](/magika/contributing/developer-guide/#improving-detection-with-resolvers). If the content type is not in the knowledge base yet, [request it](/magika/contributing/reporting-issues/#new-content-types) first.
 - **Fixes that turn a red CI check on `main` green again**. Link the failing run.
 
 Not on the list, so open an issue first: new features, new bindings, refactors, sample files, dependency or version bumps, and bug fixes in the CLI or bindings (we need the reproducer anyway).

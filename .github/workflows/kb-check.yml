@@ -8,11 +8,19 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kb-check.yml"
+      - "assets/active_model.txt"
       - "assets/content_types.yaml"
       - "assets/content_types_kb.min.json"
+      - "assets/exposed_content_types.txt"
       - "assets/models/**"
-      - "rust/gen/model"
-      - "rust/rules/rulesets/**"
+      - "js/src/content-type-label.ts"
+      - "js/src/content-types-infos.ts"
+      - "python/src/magika/types/content_type_label.py"
+      - "rust/ffi/src/content.rs"
+      - "rust/lib/src/content.rs"
+      - "rust/lib/src/model.rs"
+      - "rust/lib/src/resolvers/**"
+      - "rust/lib/src/resolvers.rs"
       - "scripts/sync_kb.py"
 
 permissions:
@@ -23,9 +31,9 @@ env:
 
 jobs:
   check-kb:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -35,5 +43,5 @@ jobs:
       - name: Run sync_kb.py self-tests
         run: uv run scripts/sync_kb.py --self-test
 
-      - name: Check content_types_kb.min.json is in sync
+      - name: Check all KB artifacts are in sync
         run: uv run scripts/sync_kb.py --check

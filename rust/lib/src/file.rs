@@ -17,7 +17,7 @@ use std::borrow::Borrow;
 use anyhow::{Result, ensure};
 use ndarray::ArrayViewD;
 
-use crate::{ContentType, Features, MODEL_LABELS, MODEL_TRAINING_LABELS, Options, Rules};
+use crate::{ContentType, Features, MODEL_LABELS, MODEL_TRAINING_LABELS, Options};
 
 /// File types.
 ///
@@ -65,9 +65,6 @@ pub enum DebugInfo {
 
     /// The resolvers triggered.
     Resolvers,
-
-    /// The builtin rules triggered.
-    BuiltinRules(RulesDebugInfo),
 
     /// The rules did not trigger and the model was skipped.
     ///
@@ -220,24 +217,35 @@ pub struct TypeInfo {
     /// Whether the file type is text.
     pub is_text: bool,
 
-    /// Whether this file type is supported by the model.
+    /// Whether this file type is supported by built-in heuristics.
     #[cfg_attr(feature = "serde", serde(skip_serializing))]
-    pub model_support: bool,
+    pub in_heuristics: bool,
 
-    /// Whether this file type is supported by the rules.
+    /// Whether this file type is supported by the resolvers.
     #[cfg_attr(feature = "serde", serde(skip_serializing))]
-    pub rules_support: bool,
+    pub in_resolvers: bool,
+
+    /// Whether this file type is supported by the ML model.
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
+    pub in_ml_model: bool,
+
+    /// Whether ML model predictions of this file type are vetoed when no resolver matched.
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
+    pub vetoed_by_resolvers: bool,
 }
 
 impl TypeInfo {
     /// Returns the list of possible outputs ordered by label.
     pub fn possible_output() -> Vec<&'static Self> {
-        TypeInfo::ALL.into_iter().filter(|x| x.model_support || x.rules_support).collect()
+        TypeInfo::ALL
+            .into_iter()
+            .filter(|x| x.in_heuristics || x.in_resolvers || x.in_ml_model)
+            .collect()
     }
 
     /// Returns the list of model outputs ordered by label.
     pub fn model_output() -> Vec<&'static Self> {
-        TypeInfo::ALL.into_iter().filter(|x| x.model_support).collect()
+        TypeInfo::ALL.into_iter().filter(|x| x.in_ml_model).collect()
     }
 }
 
@@ -256,15 +264,8 @@ impl RegularFileType {
                 options.use_custom_rules == feature.borrow().use_custom_rules,
                 "use_custom_rules mismatch between extract and identify"
             );
-            let custom_rules_veto =
+            let rules_veto =
                 options.use_custom_rules.as_ref().is_some_and(|x| x.vetos().contains(&overwrite));
-            ensure!(
-                options.use_builtin_rules == feature.borrow().use_builtin_rules,
-                "use_builtin_rules mismatch between extract and identify"
-            );
-            let builtin_rules_veto =
-                options.use_builtin_rules && Rules::builtin().vetos().contains(&overwrite);
-            let rules_veto = custom_rules_veto || builtin_rules_veto;
             ensure!(
                 options.use_resolvers == feature.borrow().use_resolvers,
                 "use_resolvers mismatch between extract and identify"
@@ -304,4 +305,62 @@ fn best_index(scores: &[f32]) -> usize {
         }
     }
     best
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use super::*;
+
+    #[test]
+    fn type_info_vetos_match_resolvers_vetos() {
+        let runtime_vetos: BTreeSet<&str> =
+            crate::resolvers::VETOS.iter().map(|ct| ct.info().label).collect();
+        assert_eq!(runtime_vetos.len(), crate::resolvers::VETOS.len());
+
+        let kb_vetos: BTreeSet<&str> =
+            TypeInfo::ALL.into_iter().filter(|x| x.vetoed_by_resolvers).map(|x| x.label).collect();
+        assert_eq!(kb_vetos, runtime_vetos);
+
+        for info in TypeInfo::ALL {
+            if info.vetoed_by_resolvers {
+                assert!(
+                    info.in_resolvers,
+                    "{} has vetoed_by_resolvers without in_resolvers",
+                    info.label
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn type_info_heuristics_match_builtin_types() {
+        let expected = BTreeSet::from([
+            FileType::Directory.info().label,
+            FileType::Symlink.info().label,
+            FileType::Unsupported.info().label,
+            ContentType::Empty.info().label,
+            ContentType::Txt.info().label,
+            ContentType::Unknown.info().label,
+        ]);
+        assert_eq!(expected.len(), 6);
+
+        let actual: BTreeSet<&str> =
+            TypeInfo::ALL.into_iter().filter(|x| x.in_heuristics).map(|x| x.label).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn type_info_ml_model_matches_model_labels() {
+        let expected: BTreeSet<&str> = MODEL_LABELS
+            .iter()
+            .zip(&MODEL_TRAINING_LABELS)
+            .filter(|(out, train)| out == train)
+            .map(|(out, _)| out.info().label)
+            .collect();
+        let actual: BTreeSet<&str> =
+            TypeInfo::model_output().into_iter().map(|x| x.label).collect();
+        assert_eq!(actual, expected);
+    }
 }

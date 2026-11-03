@@ -25,7 +25,6 @@ int main(void) {
         .max_batch = 1,
         .options = {
             .use_resolvers = true,
-            .use_builtin_rules = true,
             .use_model = true,
             .prediction_mode = MAGIKA_PREDICTION_MODE_HIGH_CONFIDENCE,
         },
@@ -48,8 +47,8 @@ int main(void) {
     magika_session_free(session_opt);
     magika_runtime_free(runtime_opt);
 
-    // Test custom rules: the shared fixture enforces the PNG signature, which the built-in rules
-    // leave to the model, so rules alone identify a PNG only with it.
+    // Test custom rules: the shared fixture enforces the PNG signature, which the resolvers leave
+    // to the model, so without the model a PNG is identified only with custom rules.
     FILE* custom_file = fopen("../../tests_data/rules/custom.yar", "rb");
     assert(custom_file != NULL);
     char custom_source[4096];

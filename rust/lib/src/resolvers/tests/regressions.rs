@@ -1,26 +1,37 @@
 // Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 //! Signature regressions carried over from #1447's `test_rule_regressions.py`: reviewed
 //! headers and their corruptions, truncations, reported false positives and adversarial
-//! lookalikes, now asserted against this engine.
+//! lookalikes, now asserted against the native format resolvers.
 //!
-//! `data/regressions.json` holds every input and expectation that test built, recorded by
-//! `data/export_regressions.py` running the original test with its scanner replaced by a
-//! recorder. An input is a repository file or stored bytes, cut to a length and optionally
-//! patched. The prefix and the size reach every scan; when the whole input is held (a
-//! repository file, or a stored zip input, stored whole), so does its tail, as a caller reads
+//! `tests_data/resolvers/regressions.json` holds every input and expectation that test built,
+//! recorded by `tests_data/resolvers/export_regressions.py` running the original test with its
+//! scanner replaced by a recorder. An input is a repository file or stored bytes, cut to a length
+//! and optionally patched. The prefix and the size reach every check; when the whole input is held
+//! (a repository file, or a stored zip input, stored whole), so does its tail, as `identify` reads
 //! it.
-
-#![cfg(feature = "bundled")]
 
 use std::path::PathBuf;
 
-use magika_rules::{Input, Outcome, RuleSet, PREFIX_LIMIT};
 use serde_json::Value;
 
+use crate::cached_input::CachedInput;
+use crate::resolvers::{PREFIX_LIMIT, identify, magic};
+
 /// Recorded cases whose expectation the evaluation dataset overturned, by test and index, with
-/// the labels they now scan to.
+/// the labels they now resolve to.
 const SUPERSEDED: &[(&str, usize, &[&str])] = &[
     // A DLL without an entry point holds only resources, like the 838 validated MUI files the
     // dataset keeps apart from executables, so pebin abstains on it (#1447's builder never
@@ -29,11 +40,11 @@ const SUPERSEDED: &[(&str, usize, &[&str])] = &[
 ];
 
 fn data(relative: &str) -> PathBuf {
-    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests_data");
     match relative.split_once('/') {
-        Some(("rules_negative", name)) => manifest.join("tests/data/negative").join(name),
-        Some(("rules_positive", name)) => manifest.join("tests/data/positive").join(name),
-        _ => manifest.join("../../tests_data").join(relative),
+        Some(("rules_negative", name)) => root.join("resolvers/negative").join(name),
+        Some(("rules_positive", name)) => root.join("resolvers/positive").join(name),
+        _ => root.join(relative),
     }
 }
 
@@ -59,27 +70,23 @@ fn blob(segments: &Value) -> Vec<u8> {
 
 /// The labels of an input of `size` bytes, of which `held` are known: all of them, or at least
 /// the prefix.
-fn labels(rules: &RuleSet, held: &[u8], size: u64) -> Vec<String> {
-    let prefix = &held[..held.len().min(PREFIX_LIMIT)];
-    let mut tail = None;
-    if held.len() as u64 == size {
-        // The tail a caller reads: the last `tail_len` bytes, back to `tail_start` if needed.
-        let mut start = held.len() - rules.tail_len(prefix, size);
-        if let Some(earlier) = rules.tail_start(&held[start..], size) {
-            start = earlier as usize;
-        }
-        tail = (start < held.len()).then(|| &held[start..]);
+fn labels(held: &[u8], size: u64) -> Vec<String> {
+    if size == 0 || held.len() < size.min(PREFIX_LIMIT as u64) as usize {
+        return Vec::new();
     }
-    match rules.scan(Input { prefix, size, tail }) {
-        Outcome::Match(labels) => labels.into_iter().map(|i| rules.labels()[i].clone()).collect(),
-        Outcome::InsufficientInput => Vec::new(),
-    }
+    let content_types = if held.len() as u64 == size {
+        identify(&mut CachedInput::new(held).unwrap()).unwrap()
+    } else {
+        let prefix = &held[..held.len().min(PREFIX_LIMIT)];
+        magic::identify(&magic::Ctx { prefix, size, tail: None }).into_iter().collect()
+    };
+    content_types.into_iter().map(|ct| ct.info().label.to_string()).collect()
 }
 
 #[test]
 fn recorded_signature_regressions_hold() {
-    let rules = RuleSet::bundled();
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/data/regressions.json");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests_data/resolvers/regressions.json");
     let recorded: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     let blobs: Vec<Vec<u8>> = recorded["blobs"].as_array().unwrap().iter().map(blob).collect();
     let (mut checked, mut failures) = (0usize, Vec::new());
@@ -106,7 +113,7 @@ fn recorded_signature_regressions_hold() {
                     let bytes = hex(patch[1].as_str().unwrap());
                     held[offset..offset + bytes.len()].copy_from_slice(&bytes);
                 }
-                let actual = labels(&rules, &held, size);
+                let actual = labels(&held, size);
                 let superseded = SUPERSEDED.iter().find(|x| x.0 == test && x.1 == index);
                 let holds = match (case.get("labels"), case.get("absent")) {
                     _ if superseded.is_some() => actual == superseded.unwrap().2,
@@ -134,11 +141,10 @@ fn recorded_signature_regressions_hold() {
     assert_eq!(checked, 15169, "the recording changed; regenerate it deliberately");
 }
 
-/// Ported from `test_all_public_fixture_incomplete_prefixes_abstain`: no rule decides from
+/// Ported from `test_all_public_fixture_incomplete_prefixes_abstain`: no resolver decides from
 /// fewer than eight bytes of any repository sample.
 #[test]
-fn no_rule_decides_from_fewer_than_eight_bytes() {
-    let rules = RuleSet::bundled();
+fn no_resolver_decides_from_fewer_than_eight_bytes() {
     let mut pending = vec![PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests_data")];
     let mut files = 0;
     while let Some(path) = pending.pop() {
@@ -149,14 +155,8 @@ fn no_rule_decides_from_fewer_than_eight_bytes() {
         let bytes = std::fs::read(&path).unwrap();
         files += 1;
         for length in 0..=bytes.len().min(7) {
-            let outcome =
-                rules.scan(Input { prefix: &bytes[..length], size: length as u64, tail: None });
-            assert!(
-                matches!(&outcome, Outcome::Match(labels) if labels.is_empty())
-                    || outcome == Outcome::InsufficientInput,
-                "{} decided from {length} bytes: {outcome:?}",
-                path.display()
-            );
+            let got = identify(&mut CachedInput::new(&bytes[..length]).unwrap()).unwrap();
+            assert!(got.is_empty(), "{} decided from {length} bytes: {got:?}", path.display());
         }
     }
     assert!(files > 100, "only {files} repository samples found");

@@ -18,6 +18,8 @@
 # required-version = ">=0.13.4"
 # ///
 
+from __future__ import annotations
+
 import re
 import subprocess
 import sys
@@ -25,14 +27,17 @@ from pathlib import Path
 
 import click
 
-EXTENSIONS = (".py", ".sh", ".ts", ".rs")
-RELEVANT_DIRS = ("python/", "js/", "rust/")
+REPO_ROOT_DIR = Path(__file__).resolve().parent.parent
+assert (REPO_ROOT_DIR / ".git").exists()
+
+EXTENSIONS = (".py", ".sh", ".ts", ".rs", ".go")
+RELEVANT_DIRS = ("scripts/", "python/", "js/", "go/", "rust/")
 EXCLUDE_DIRS = ("js/simple_examples",)
 COPYRIGHT_PATTERN = re.compile(r"Copyright", re.IGNORECASE)
 
 
 @click.command()
-def main():
+def main() -> None:
     """
     Check for missing copyright headers in the target files.
 
@@ -58,29 +63,26 @@ def main():
 
 
 def get_relevant_files_paths() -> list[Path]:
-    """Finds relevant, tracked files using Git.
+    """Finds relevant, non-ignored files in the repository using Git.
 
     Filters the output of `git ls-files` based on three criteria defined
     in global constants:
     - File must have an extension in `EXTENSIONS`.
-    - File path must be within a directory in `DIRECTORIES`.
-    - File path must NOT contain the string in `EXCLUDED_PATH`.
+    - File path must start with a prefix in `RELEVANT_DIRS`.
+    - File path must NOT start with a prefix in `EXCLUDE_DIRS`.
     """
-
-    repo_root_dir = Path(__file__).parent.parent.parent.resolve()
-    assert (repo_root_dir / ".git").exists()
 
     paths = []
     try:
         result = subprocess.run(
-            ["git", "ls-files", str(repo_root_dir)],
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
             capture_output=True,
             text=True,
             check=True,
-            cwd=str(repo_root_dir),
+            cwd=str(REPO_ROOT_DIR),
         )
-        for rel_path_str in result.stdout.strip().splitlines():
-            path = repo_root_dir / rel_path_str
+        for rel_path_str in sorted(set(result.stdout.strip().splitlines())):
+            path = REPO_ROOT_DIR / rel_path_str
             if (
                 path.is_file()
                 and path.stat().st_size > 0

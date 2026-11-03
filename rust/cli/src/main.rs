@@ -163,11 +163,8 @@ struct Experimental {
     threads: Option<usize>,
 
     /// Number of resident threads reading files and extracting features.
-    ///
-    /// Reading costs far less than inference, so this defaults to one per inference thread, which
-    /// is already more than a run makes use of.
-    #[arg(hide = true, long, default_value = "1")]
-    readers: usize,
+    #[arg(hide = true, long)]
+    readers: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
@@ -225,13 +222,15 @@ fn main() -> Result<()> {
     let threads = flags.experimental.threads;
     ensure!(threads.is_none_or(|x| (1..=256).contains(&x)), "--threads must be between 1 and 256");
     let readers = flags.experimental.readers;
-    ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
+    ensure!(readers.is_none_or(|x| (1..=256).contains(&x)), "--readers must be between 1 and 256");
     let mut config = PipelineOptions::default();
     config.recursive = flags.recursive;
     config.stdin = true;
     config.batch_size = batch_size;
     config.threads = threads;
-    config.readers = readers;
+    if let Some(readers) = readers {
+        config.readers = readers;
+    }
     let pipeline = Pipeline::new(Arc::new(Engine::new(builder)?), options, config)?;
     let mut errors = false;
     let result = match print(&flags, &mut errors, pipeline.identify_paths(flags.path.clone())?) {

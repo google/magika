@@ -20,15 +20,24 @@ and a website (`website-ng/`).
 
 ## Working in the repository
 
-- Developer guide (tests, knowledge base, detection rules, bindings):
+- Developer guide (tests, knowledge base, resolvers, detection rules, bindings):
   `website-ng/src/content/docs/contributing/developer-guide.md`.
-- `assets/content_types.yaml` is the knowledge base source of truth. After
-  editing it, run `just sync-kb` from the repository root and commit the
-  generated files. Never hand-edit `assets/content_types_kb.min.json` or the
-  generated Python, JavaScript, Rust, and C content type tables.
-- Format resolvers live in `rust/lib/src/resolvers/` (and `rust/lib/src/resolvers.rs`);
-  run `cd rust/lib && ./test.sh` and `just sync-kb`, and commit the generated files.
-  Custom YARA rules support (`--custom-rules-file` / `use_custom_rules`) lives in
+- `assets/content_types.yaml` is the knowledge base source of truth, and
+  `assets/exposed_content_types.txt` tracks the append-only monotonic list of
+  exposed content types across Rust, C, Python, and JavaScript. After editing
+  `assets/content_types.yaml`, Rust format resolvers (`rust/lib/src/resolvers/`
+  and `rust/lib/src/resolvers.rs`), or the active model
+  (`assets/active_model.txt`), run `just sync-kb` (or `uv run scripts/sync_kb.py`)
+  from the repository root and commit all generated files (`just sync-kb --check`
+  verifies them in `<0.2s`). Never hand-edit `assets/content_types_kb.min.json`,
+  generated Rust/C/Python/JavaScript content type tables, or
+  `assets/models/<active_model>/README.md`.
+- Rust tasks (`rust/justfile`, runnable via `just rust <recipe>` from the root
+  or `cd rust && just <recipe>`): `test` (`./test.sh`), `sync` (`./sync.sh`,
+  regenerating C FFI `rust/ffi/include/magika.h`, the embedded `tract` NNEF
+  model, and CLI snapshot output), and `changelog` (`./changelog.sh`). Format
+  resolvers live in `rust/lib/src/resolvers/` (`cd rust/lib && ./test.sh`), while
+  custom YARA rules support (`--custom-rules-file` / `use_custom_rules`) lives in
   `rust/rules/` (`cd rust/rules && ./test.sh`).
 - Python tasks (`python/justfile`, runnable via `just python <recipe>` from the
   root or `cd python && just <recipe>`): `sync-dev`, `check-source`,
@@ -36,11 +45,12 @@ and a website (`website-ng/`).
   `git worktree`s, set `CARGO_TARGET_DIR` to a shared absolute path such as
   `$HOME/.cache/cargo-target/magika` to reuse compiled Rust dependencies during
   `uv sync` / `sync-dev`).
-- Tests: `cd rust && ./test.sh`; `just python test` (or
+- Tests: `just rust test` (or `cd rust && ./test.sh`); `just python test` (or
   `cd python && uv run pytest tests -m "not slow"`);
-  `cd js && yarn install && yarn test`.
-- Repo-wide checks: `just check-docs` (or `uv run scripts/check_documentation.py`)
-  for documentation links and versions, and `just check-copyright` (or
+  `cd js && yarn install && yarn test`; `cd go && go test ./...`.
+- Repo-wide checks: `just sync-kb --check` for KB and binding synchronization,
+  `just check-docs` (or `uv run scripts/check_documentation.py`) for
+  documentation links and versions, and `just check-copyright` (or
   `uv run scripts/check_copyright.py`) for copyright headers.
 - Do not bump versions, edit CHANGELOGs, update models, or add sample files to
   `tests_data/` unless explicitly asked.

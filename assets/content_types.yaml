@@ -4,13 +4,9 @@
 # known to Magika. `assets/content_types_kb.min.json`, which all the bindings
 # consume, is generated from it: do not edit the JSON file by hand.
 #
-# After editing this file, run `just sync-kb` (or the individual commands below)
-# from the repository root:
-#
-#   uv run scripts/sync_kb.py
-#   uv run python/scripts/sync.py python
-#   uv run python/scripts/sync.py js
-#   (cd rust && ./sync.sh)
+# After editing this file, run `just sync-kb` (or `uv run scripts/sync_kb.py`)
+# from the repository root to regenerate `assets/content_types_kb.min.json`,
+# `assets/exposed_content_types.txt`, all language bindings, and generated docs.
 #
 # Format (validated by `scripts/sync_kb.py`):
 # - All strings are quoted: content type names, `mime_type`, `group`,

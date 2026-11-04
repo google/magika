@@ -144,8 +144,9 @@ impl FeaturesOr<RegularFileType> {
             }
         }
         if options.use_model {
-            let features = extract_features(config, &mut file)?;
-            if features[config.min_file_size_for_dl - 1] != config.padding_token {
+            let prefix_len = file.ensure_prefix(config.block_size)?;
+            if strip_prefix(file.prefix(prefix_len)).len() >= config.min_file_size_for_dl {
+                let features = extract_features(config, &mut file)?;
                 return Ok(FeaturesOr::Features(Features {
                     features,
                     use_resolvers: options.use_resolvers,

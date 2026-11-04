@@ -65,7 +65,7 @@ jobs:
             exit 0
           fi
 
-          RECENT_COMMITS=$(git --no-pager log --since="6 hours ago" --oneline -- python/ rust/ tests_data/ ".github/workflows/python-*")
+          RECENT_COMMITS=$(git --no-pager log --since="6 hours ago" --oneline -- assets/exposed_content_types.txt python/ rust/ tests_data/ ".github/workflows/python-*")
           if [[ -n "${RECENT_COMMITS}" ]]; then
             echo "Found relevant commits in the last 6 hours; running the pipeline:"
             echo "${RECENT_COMMITS}"
@@ -196,13 +196,13 @@ jobs:
 
   # Download, install, and test the built wheels across supported Python versions (3.8 through 3.14).
   #
-  # The wheels are tested as black boxes: we only check out the test data and
-  # the test scripts (not python/src/), so `import magika` can only resolve to
-  # the installed wheel. All platforms run the quick tests and the smoke tests;
-  # the full test suite runs on a single configuration (Linux x86_64, Python
-  # 3.13), as it already runs from source in the source-checks job. This also
-  # covers the release build profile (LTO), which differs from the editable
-  # build (release-fast) used by the source checks.
+  # The wheels are tested as black boxes: we only check out the test data, test
+  # scripts, and KB allowlist (not python/src/), so `import magika` can only
+  # resolve to the installed wheel. All platforms run the quick tests and the
+  # smoke tests; the full test suite runs on a single configuration (Linux
+  # x86_64, Python 3.13), as it already runs from source in the source-checks
+  # job. This also covers the release build profile (LTO), which differs from
+  # the editable build (release-fast) used by the source checks.
   #
   # Tested Platforms:
   # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-26.04
@@ -244,15 +244,18 @@ jobs:
             target: x86_64-pc-windows-msvc
 
     steps:
-      # Only check out the test data and test scripts: the magika package under
-      # test must come from the wheel, not from python/src/.
+      # Only check out the test data, test scripts, and KB allowlist: the magika
+      # package under test must come from the wheel, not from python/src/.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: |
-            tests_data
-            python/tests
-            python/scripts
+            /assets/exposed_content_types.txt
+            /tests_data/
+            /python/pytest.ini
+            /python/tests/
+            /python/scripts/
+          sparse-checkout-cone-mode: false
 
       - name: Download wheel artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1

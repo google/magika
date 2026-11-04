@@ -52,14 +52,18 @@ pub struct PipelineOptions {
     /// available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
     pub threads: Option<usize>,
     /// Number of threads reading files and extracting features, between 1 and 256.
-    ///
-    /// Reading costs far less than inference, so one is already more than a run makes use of.
     pub readers: usize,
 }
 
 impl Default for PipelineOptions {
     fn default() -> Self {
-        PipelineOptions { recursive: false, stdin: false, batch_size: 8, threads: None, readers: 1 }
+        PipelineOptions {
+            recursive: false,
+            stdin: false,
+            batch_size: 8,
+            threads: None,
+            readers: default_reader_threads(),
+        }
     }
 }
 
@@ -101,11 +105,13 @@ impl Pipeline {
     pub fn identify_paths(&self, paths: Vec<PathBuf>) -> Result<Identified> {
         let Pipeline { engine, options, config } = self;
         let batch_size = config.batch_size;
+        let readers =
+            if config.recursive { config.readers } else { config.readers.min(paths.len().max(1)) };
         // Queues are sized before knowing which backend identifies the files, so for the busiest.
         let threads = config.threads.unwrap_or_else(|| {
             default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
         });
-        let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(config.readers);
+        let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
         let (read_sender, read_receiver) =
             std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
         let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
@@ -129,7 +135,7 @@ impl Pipeline {
                 }
             })
         })?;
-        for index in 0..config.readers {
+        for index in 0..readers {
             let (config, options) = (config.clone(), options.clone());
             let (work_receiver, read_sender) = (work_receiver.clone(), read_sender.clone());
             spawn(
@@ -208,7 +214,7 @@ impl Pipeline {
             reorder: Reorder::default(),
             handles,
             #[cfg(feature = "_trace")]
-            trace: (trace, config.readers),
+            trace: (trace, readers),
         })
     }
 }
@@ -261,6 +267,10 @@ impl Drop for Identified {
         #[cfg(feature = "_trace")]
         self.trace.0.report(self.trace.1);
     }
+}
+
+fn default_reader_threads() -> usize {
+    std::thread::available_parallelism().map_or(1, |x| x.get()).min(8)
 }
 
 /// Returns how many inference threads it takes to keep a backend busy.

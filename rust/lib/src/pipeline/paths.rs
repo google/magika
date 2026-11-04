@@ -526,7 +526,7 @@ fn process_path(
     if !metadata.is_file() {
         return Ok(ProcessPath::Ruled(FileType::Unsupported));
     }
-    Ok(ProcessPath::Content(length))
+    Ok(ProcessPath::Content(full_meta.map(|m| m.len())))
 }
 
 #[derive(Default)]

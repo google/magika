@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "allowed_spdx": ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "CC0-1.0", "Unlicense", "BSL-1.0", "Zlib"],
+  "basis": "Existing dataset preferred-license list, applied to future repository inventory and sample draws.",
+  "unknown_policy": "Report but exclude from sample selection until reviewed.",
+  "scope": "Repository license reported by GitHub at the pinned revision; file-level and dependency overrides are not resolved."
+}

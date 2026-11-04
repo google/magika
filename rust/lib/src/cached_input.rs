@@ -17,21 +17,14 @@ use anyhow::Result;
 use crate::Input;
 
 /// Files up to this size are read in a single call instead of splitting prefix and suffix reads.
-pub(crate) const SMALL_FILE_MAX: usize = 64 * 1024;
+const SMALL_FILE_MAX: usize = 64 * 1024;
 
-pub(crate) enum CachedInput<'a, I: Input> {
+pub(crate) enum CachedInput<I: Input> {
     Partial { input: I, length: u64, prefix: Box<[u8]>, suffix: Box<[u8]> },
     Full { content: Box<[u8]> },
-    Borrowed { content: &'a [u8] },
 }
 
-impl<'a> CachedInput<'a, &'a [u8]> {
-    pub(crate) fn borrowed(content: &'a [u8]) -> Self {
-        Self::Borrowed { content }
-    }
-}
-
-impl<I: Input> CachedInput<'_, I> {
+impl<I: Input> CachedInput<I> {
     pub(crate) fn new(input: I) -> Result<Self> {
         let length = input.length()?;
         Ok(Self::with_length(input, length))
@@ -45,7 +38,6 @@ impl<I: Input> CachedInput<'_, I> {
         match self {
             CachedInput::Partial { length, .. } => *length,
             CachedInput::Full { content } => content.len() as u64,
-            CachedInput::Borrowed { content } => content.len() as u64,
         }
     }
 
@@ -60,7 +52,7 @@ impl<I: Input> CachedInput<'_, I> {
         if len <= prefix.len() {
             return Ok(len);
         }
-        if *length <= SMALL_FILE_MAX.max(len).saturating_add(suffix.len()) as u64 {
+        if *length <= SMALL_FILE_MAX.max(len.saturating_add(suffix.len())) as u64 {
             self.make_full()?;
             return Ok(len);
         }
@@ -76,10 +68,9 @@ impl<I: Input> CachedInput<'_, I> {
     ///
     /// The prefix must have been cached for that length.
     pub(crate) fn prefix(&self, len: usize) -> &[u8] {
-        let content: &[u8] = match self {
+        let content = match self {
             CachedInput::Partial { prefix, .. } => prefix,
             CachedInput::Full { content } => content,
-            CachedInput::Borrowed { content } => content,
         };
         &content[..len]
     }
@@ -95,7 +86,7 @@ impl<I: Input> CachedInput<'_, I> {
         if len <= suffix.len() {
             return Ok(len);
         }
-        if *length <= prefix.len().saturating_add(len) as u64 {
+        if *length <= SMALL_FILE_MAX.max(prefix.len().saturating_add(len)) as u64 {
             self.make_full()?;
             return Ok(len);
         }
@@ -112,10 +103,9 @@ impl<I: Input> CachedInput<'_, I> {
     ///
     /// The suffix must have been cached for that length.
     pub(crate) fn suffix(&self, len: usize) -> &[u8] {
-        let content: &[u8] = match self {
+        let content = match self {
             CachedInput::Partial { suffix, .. } => suffix,
             CachedInput::Full { content } => content,
-            CachedInput::Borrowed { content } => content,
         };
         &content[content.len() - len..]
     }

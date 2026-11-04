@@ -12,19 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::cell::RefCell;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use anyhow::Result;
 
-use crate::cached_input::{CachedInput, SMALL_FILE_MAX};
+use crate::cached_input::CachedInput;
 use crate::config::ModelConfig;
 use crate::{ContentType, DebugInfo, FileType, Options, RegularFileType, Rules, RulesDebugInfo};
-
-thread_local! {
-    static SMALL_BUF: RefCell<[u8; SMALL_FILE_MAX]> = const { RefCell::new([0u8; SMALL_FILE_MAX]) };
-}
 
 /// Features to identify a file using AI.
 pub struct Features {
@@ -183,9 +178,7 @@ impl FeaturesOr<RegularFileType> {
     }
 }
 
-fn extract_features(
-    config: &ModelConfig, file: &mut CachedInput<'_, impl Input>,
-) -> Result<Vec<i32>> {
+fn extract_features(config: &ModelConfig, file: &mut CachedInput<impl Input>) -> Result<Vec<i32>> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
     let prefix_len = file.ensure_prefix(config.block_size)?;

@@ -376,10 +376,7 @@ fn extract_path(
     if config.stdin && path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOr::extract_cached(
-            crate::cached_input::CachedInput::borrowed(&stdin),
-            options,
-        );
+        return FeaturesOr::extract_content(&stdin[..], options);
     }
     let file = std::fs::File::open(path)?;
     match length {

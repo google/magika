@@ -105,7 +105,8 @@ impl Pipeline {
         let threads = config.threads.unwrap_or_else(|| {
             default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
         });
-        let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(config.readers);
+        let (work_sender, work_receiver) =
+            crossbeam_channel::bounded::<(Pending, Option<u64>)>(config.readers);
         let (read_sender, read_receiver) =
             std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
         let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
@@ -296,7 +297,8 @@ fn default_inference_threads(backend: Backend) -> usize {
 /// happens on several threads at once instead of serializing behind traversal.
 fn walk_paths(
     paths: Vec<PathBuf>, config: &PipelineOptions, options: &Options,
-    work_sender: &crossbeam_channel::Sender<Pending>, result_sender: &SyncSender<Result<Response>>,
+    work_sender: &crossbeam_channel::Sender<(Pending, Option<u64>)>,
+    result_sender: &SyncSender<Result<Response>>,
 ) -> Result<()> {
     let mut traversal = Traversal::new(paths);
     let mut order = 0;
@@ -307,7 +309,7 @@ fn walk_paths(
         }
         let pending = Pending { order, path };
         match processed {
-            Ok(ProcessPath::Content) => work_sender.send(pending)?,
+            Ok(ProcessPath::Content(length)) => work_sender.send((pending, length))?,
             Ok(ProcessPath::Ruled(file_type)) => {
                 result_sender.send(Ok(Response::new(pending, Ok(file_type))))?
             }
@@ -326,11 +328,11 @@ fn walk_paths(
 /// on a dedicated thread costs a system call per block instead, and there is nothing else for the
 /// thread to interleave anyway.
 fn read_files(
-    work_receiver: &crossbeam_channel::Receiver<Pending>, sender: &SyncSender<ReadItem>,
-    config: &PipelineOptions, options: &Options,
+    work_receiver: &crossbeam_channel::Receiver<(Pending, Option<u64>)>,
+    sender: &SyncSender<ReadItem>, config: &PipelineOptions, options: &Options,
 ) {
-    while let Ok(pending) = work_receiver.recv() {
-        let extracted = extract_path(&pending.path, config, options);
+    while let Ok((pending, length)) = work_receiver.recv() {
+        let extracted = extract_path(&pending.path, length, config, options);
         if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
@@ -369,14 +371,21 @@ fn batch_files(
 
 /// Reads a file and extracts its features, unless rules identify it.
 fn extract_path(
-    path: &Path, config: &PipelineOptions, options: &Options,
+    path: &Path, length: Option<u64>, config: &PipelineOptions, options: &Options,
 ) -> Result<FeaturesOr<RegularFileType>> {
     if config.stdin && path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
         return FeaturesOr::extract_content(&stdin[..], options);
     }
-    FeaturesOr::extract_content(std::fs::File::open(path)?, options)
+    let file = std::fs::File::open(path)?;
+    match length {
+        Some(len) => FeaturesOr::extract_cached(
+            crate::cached_input::CachedInput::with_length(file, len),
+            options,
+        ),
+        None => FeaturesOr::extract_content(file, options),
+    }
 }
 
 fn infer_batches(
@@ -398,7 +407,7 @@ fn infer_batches(
 
 enum ProcessPath {
     Recursive,
-    Content,
+    Content(Option<u64>),
     Ruled(FileType),
 }
 
@@ -479,7 +488,7 @@ fn process_path(
     known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if config.stdin && path.to_str() == Some("-") {
-        return Ok(ProcessPath::Content);
+        return Ok(ProcessPath::Content(None));
     }
     // `read_dir` already reported the type of every entry it produced, so reading its metadata
     // again would be one extra system call per file on the one task that feeds every reader. Only
@@ -520,7 +529,7 @@ fn process_path(
     if !metadata.is_file() {
         return Ok(ProcessPath::Ruled(FileType::Unsupported));
     }
-    Ok(ProcessPath::Content)
+    Ok(ProcessPath::Content(length))
 }
 
 #[derive(Default)]

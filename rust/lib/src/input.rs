@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use anyhow::Result;
@@ -60,8 +59,24 @@ impl Input for std::fs::File {
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        self.seek(SeekFrom::Start(offset))?;
-        Ok(self.read_exact(buffer)?)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::FileExt;
+            Ok(self.read_exact_at(buffer, offset)?)
+        }
+        #[cfg(windows)]
+        {
+            use std::io::Read;
+            use std::os::windows::fs::FileExt;
+            let n = self.seek_read(buffer, offset)?;
+            Ok(self.read_exact(&mut buffer[n..])?)
+        }
+        #[cfg(not(any(unix, windows)))]
+        {
+            use std::io::{Read, Seek, SeekFrom};
+            self.seek(SeekFrom::Start(offset))?;
+            Ok(self.read_exact(buffer)?)
+        }
     }
 }
 

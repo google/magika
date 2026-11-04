@@ -417,15 +417,20 @@ struct BatchItem {
     features: Features,
 }
 
+#[cfg(unix)]
+type DirId = (u64, u64);
+#[cfg(not(unix))]
+type DirId = PathBuf;
+
 /// A path still to process, or the point where traversal leaves a directory.
 enum WalkEntry {
     Path(PathBuf, Option<std::fs::FileType>),
-    LeaveDirectory(PathBuf),
+    LeaveDirectory(DirId),
 }
 
 struct Traversal {
     pending: Vec<WalkEntry>,
-    ancestors: HashSet<PathBuf>,
+    ancestors: HashSet<DirId>,
 }
 
 impl Traversal {
@@ -434,10 +439,27 @@ impl Traversal {
         Traversal { pending, ancestors: HashSet::new() }
     }
 
-    fn push(&mut self, path: &Path) -> Result<()> {
-        let canonical = std::fs::canonicalize(path)?;
-        ensure!(self.ancestors.insert(canonical.clone()), DIRECTORY_CYCLE);
-        self.pending.push(WalkEntry::LeaveDirectory(canonical));
+    fn push(&mut self, path: &Path, meta: Option<&std::fs::Metadata>) -> Result<()> {
+        #[cfg(unix)]
+        let id = {
+            use std::os::unix::fs::MetadataExt;
+            match meta {
+                Some(m) => (m.dev(), m.ino()),
+                None => {
+                    let m = std::fs::metadata(path)?;
+                    (m.dev(), m.ino())
+                }
+            }
+        };
+        #[cfg(not(unix))]
+        let id = {
+            let _ = meta;
+            std::fs::canonicalize(path)?
+        };
+        #[allow(clippy::clone_on_copy)]
+        let leave = id.clone();
+        ensure!(self.ancestors.insert(id), DIRECTORY_CYCLE);
+        self.pending.push(WalkEntry::LeaveDirectory(leave));
         Ok(())
     }
 
@@ -445,7 +467,7 @@ impl Traversal {
         while let Some(entry) = self.pending.pop() {
             match entry {
                 WalkEntry::Path(path, kind) => return Some((path, kind)),
-                WalkEntry::LeaveDirectory(path) => drop(self.ancestors.remove(&path)),
+                WalkEntry::LeaveDirectory(id) => drop(self.ancestors.remove(&id)),
             }
         }
         None
@@ -462,19 +484,22 @@ fn process_path(
     // `read_dir` already reported the type of every entry it produced, so reading its metadata
     // again would be one extra system call per file on the one task that feeds every reader. Only
     // a symlink still needs a lookup, and only when it is being followed.
-    let metadata = match known {
-        Some(known) if !options.follow_symlink || !known.is_symlink() => known,
+    let (metadata, full_meta) = match known {
+        Some(known) if !options.follow_symlink || !known.is_symlink() => (known, None),
         _ => {
-            if options.follow_symlink {
-                std::fs::metadata(path)?.file_type()
+            let meta = if options.follow_symlink {
+                std::fs::metadata(path)?
             } else {
-                std::fs::symlink_metadata(path)?.file_type()
-            }
+                std::fs::symlink_metadata(path)?
+            };
+            (meta.file_type(), Some(meta))
         }
     };
     if metadata.is_dir() {
         return Ok(if config.recursive {
-            traversal.push(path)?;
+            if options.follow_symlink {
+                traversal.push(path, full_meta.as_ref())?;
+            }
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;

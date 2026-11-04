@@ -24,7 +24,11 @@ pub(crate) enum CachedInput<I: Input> {
 impl<I: Input> CachedInput<I> {
     pub(crate) fn new(input: I) -> Result<Self> {
         let length = input.length()?;
-        Ok(Self::Partial { input, length, prefix: Box::new([]), suffix: Box::new([]) })
+        Ok(Self::with_length(input, length))
+    }
+
+    pub(crate) fn with_length(input: I, length: u64) -> Self {
+        Self::Partial { input, length, prefix: Box::new([]), suffix: Box::new([]) }
     }
 
     pub(crate) fn length(&self) -> u64 {

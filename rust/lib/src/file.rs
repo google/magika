@@ -270,8 +270,7 @@ impl RegularFileType {
                 options.use_resolvers == feature.borrow().use_resolvers,
                 "use_resolvers mismatch between extract and identify"
             );
-            let resolvers_veto =
-                options.use_resolvers && crate::resolvers::VETOS.contains(&overwrite);
+            let resolvers_veto = options.use_resolvers && overwrite.info().vetoed_by_resolvers;
             let fallback =
                 if overwrite.info().is_text { ContentType::Txt } else { ContentType::Unknown };
             let (content_type, mut overwrite_reason) = if !ml_is_confident {

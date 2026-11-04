@@ -102,7 +102,9 @@ impl FeaturesOr<FileType> {
         } else if !metadata.is_file() {
             Ok(FeaturesOr::Ruled(FileType::Unsupported))
         } else {
-            Ok(FeaturesOr::extract_content(std::fs::File::open(file)?, options)?.into())
+            let file = std::fs::File::open(file)?;
+            Ok(FeaturesOr::extract_cached(CachedInput::with_length(file, metadata.len()), options)?
+                .into())
         }
     }
 }
@@ -121,8 +123,13 @@ impl FeaturesOr<RegularFileType> {
     ///
     /// Returns the file type directly if the content cannot be identified using AI.
     pub fn extract_content(file: impl Input, options: &Options) -> Result<Self> {
+        Self::extract_cached(CachedInput::new(file)?, options)
+    }
+
+    pub(crate) fn extract_cached(
+        mut file: CachedInput<impl Input>, options: &Options,
+    ) -> Result<Self> {
         let config = &crate::model::CONFIG;
-        let mut file = CachedInput::new(file)?;
         if file.length() == 0 {
             let content_types = vec![ContentType::Empty];
             let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));

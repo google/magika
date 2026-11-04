@@ -42,7 +42,7 @@ export { ContentTypeLabel };
  *
  * Demos:
  * - Node: `<MAGIKA_REPO>/js/magika-cli.js`, which you can run with `yarn run bin -h`.
- * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
+ * - Client-side: see `<MAGIKA_REPO>/website-ng/src/components/MagikaDemo.svelte`
  */
 export class Magika {
   model_config: ModelConfig;

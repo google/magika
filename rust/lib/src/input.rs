@@ -108,7 +108,8 @@ impl FeaturesOr<FileType> {
             Ok(FeaturesOr::Ruled(FileType::Unsupported))
         } else {
             let file = std::fs::File::open(file)?;
-            Ok(FeaturesOr::extract_std_file(file, Some(metadata.len()), options)?.into())
+            Ok(FeaturesOr::extract_cached(CachedInput::with_length(file, metadata.len()), options)?
+                .into())
         }
     }
 }
@@ -130,29 +131,8 @@ impl FeaturesOr<RegularFileType> {
         Self::extract_cached(CachedInput::new(file)?, options)
     }
 
-    pub(crate) fn extract_std_file(
-        mut file: std::fs::File, length: Option<u64>, options: &Options,
-    ) -> Result<Self> {
-        let len = match length {
-            Some(len) => len,
-            None => file.length()?,
-        };
-        if len == 0 {
-            return Self::extract_cached(CachedInput::borrowed(&[]), options);
-        }
-        if len <= SMALL_FILE_MAX as u64 {
-            let len = len as usize;
-            return SMALL_BUF.with(|cell| {
-                let mut buf = cell.borrow_mut();
-                file.read_at(&mut buf[..len], 0)?;
-                Self::extract_cached(CachedInput::borrowed(&buf[..len]), options)
-            });
-        }
-        Self::extract_cached(CachedInput::with_length(file, len), options)
-    }
-
     pub(crate) fn extract_cached(
-        mut file: CachedInput<'_, impl Input>, options: &Options,
+        mut file: CachedInput<impl Input>, options: &Options,
     ) -> Result<Self> {
         let config = &crate::model::CONFIG;
         if file.length() == 0 {

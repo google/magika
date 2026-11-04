@@ -57,6 +57,7 @@ pub(crate) fn identify(file: &mut CachedInput<impl Input>) -> Result<Vec<Content
 /// If the resolvers don't return a match for a given file, and the model returns a content type
 /// from this list, then that content type will be vetoed and "txt" or "unknown" will be used (based
 /// on "is_text" from the content type that was vetoed).
+#[cfg_attr(not(test), allow(dead_code))] // cannot use cfg(test) because of sync_kb.py
 pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Keras,
     ContentType::Qgis,

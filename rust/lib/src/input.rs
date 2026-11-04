@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use anyhow::Result;
@@ -60,8 +59,24 @@ impl Input for std::fs::File {
     }
 
     fn read_at(&mut self, buffer: &mut [u8], offset: u64) -> Result<()> {
-        self.seek(SeekFrom::Start(offset))?;
-        Ok(self.read_exact(buffer)?)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::FileExt;
+            Ok(self.read_exact_at(buffer, offset)?)
+        }
+        #[cfg(windows)]
+        {
+            use std::io::Read;
+            use std::os::windows::fs::FileExt;
+            let n = self.seek_read(buffer, offset)?;
+            Ok(self.read_exact(&mut buffer[n..])?)
+        }
+        #[cfg(not(any(unix, windows)))]
+        {
+            use std::io::{Read, Seek, SeekFrom};
+            self.seek(SeekFrom::Start(offset))?;
+            Ok(self.read_exact(buffer)?)
+        }
     }
 }
 
@@ -150,17 +165,17 @@ impl FeaturesOr<RegularFileType> {
                 return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
             }
         }
-        if options.use_model {
-            let features = extract_features(config, &mut file)?;
-            if features[config.min_file_size_for_dl - 1] != config.padding_token {
-                return Ok(FeaturesOr::Features(Features {
-                    features,
-                    use_resolvers: options.use_resolvers,
-                    use_custom_rules: options.use_custom_rules.clone(),
-                }));
-            }
-        }
         let prefix_len = file.ensure_prefix(config.block_size)?;
+        if options.use_model
+            && strip_prefix(file.prefix(prefix_len)).len() >= config.min_file_size_for_dl
+        {
+            let features = extract_features(config, &mut file)?;
+            return Ok(FeaturesOr::Features(Features {
+                features,
+                use_resolvers: options.use_resolvers,
+                use_custom_rules: options.use_custom_rules.clone(),
+            }));
+        }
         let prefix = file.prefix(prefix_len);
         let content_type = match std::str::from_utf8(prefix) {
             // The file is not UTF-8.

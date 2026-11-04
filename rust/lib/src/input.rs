@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(not(any(unix, windows)))]
-use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use anyhow::Result;
@@ -68,30 +66,14 @@ impl Input for std::fs::File {
         }
         #[cfg(windows)]
         {
+            use std::io::Read;
             use std::os::windows::fs::FileExt;
-            let mut buffer = buffer;
-            let mut offset = offset;
-            while !buffer.is_empty() {
-                match self.seek_read(buffer, offset) {
-                    Ok(0) => {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::UnexpectedEof,
-                            "failed to fill whole buffer",
-                        )
-                        .into());
-                    }
-                    Ok(n) => {
-                        buffer = &mut buffer[n..];
-                        offset += n as u64;
-                    }
-                    Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
-                    Err(e) => return Err(e.into()),
-                }
-            }
-            Ok(())
+            let n = self.seek_read(buffer, offset)?;
+            Ok(self.read_exact(&mut buffer[n..])?)
         }
         #[cfg(not(any(unix, windows)))]
         {
+            use std::io::{Read, Seek, SeekFrom};
             self.seek(SeekFrom::Start(offset))?;
             Ok(self.read_exact(buffer)?)
         }

@@ -448,27 +448,24 @@ impl Traversal {
         Traversal { pending, ancestors: HashSet::new() }
     }
 
-    fn push(&mut self, path: &Path, meta: Option<&std::fs::Metadata>) -> Result<()> {
+    #[allow(clippy::clone_on_copy)]
+    fn push(&mut self, path: &Path, meta: Option<std::fs::Metadata>) -> Result<()> {
         #[cfg(unix)]
         let id = {
             use std::os::unix::fs::MetadataExt;
-            match meta {
-                Some(m) => (m.dev(), m.ino()),
-                None => {
-                    let m = std::fs::metadata(path)?;
-                    (m.dev(), m.ino())
-                }
-            }
+            let meta = match meta {
+                Some(meta) => meta,
+                None => std::fs::metadata(path)?,
+            };
+            (meta.dev(), meta.ino())
         };
         #[cfg(not(unix))]
         let id = {
             let _ = meta;
             std::fs::canonicalize(path)?
         };
-        #[allow(clippy::clone_on_copy)]
-        let leave = id.clone();
-        ensure!(self.ancestors.insert(id), DIRECTORY_CYCLE);
-        self.pending.push(WalkEntry::LeaveDirectory(leave));
+        ensure!(self.ancestors.insert(id.clone()), DIRECTORY_CYCLE);
+        self.pending.push(WalkEntry::LeaveDirectory(id));
         Ok(())
     }
 
@@ -507,7 +504,7 @@ fn process_path(
     if metadata.is_dir() {
         return Ok(if config.recursive {
             if options.follow_symlink {
-                traversal.push(path, full_meta.as_ref())?;
+                traversal.push(path, full_meta)?;
             }
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {

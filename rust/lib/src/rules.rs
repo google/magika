@@ -74,7 +74,7 @@ impl Rules {
 
     /// Returns the content types of the rules that match a file.
     pub(crate) fn identify(
-        &self, file: &mut CachedInput<impl crate::Input>,
+        &self, file: &mut CachedInput<'_, impl crate::Input>,
     ) -> Result<Vec<ContentType>> {
         let rules = &self.0;
         let size = file.length();

@@ -12,14 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::cell::RefCell;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use anyhow::Result;
 
-use crate::cached_input::CachedInput;
+use crate::cached_input::{CachedInput, SMALL_FILE_MAX};
 use crate::config::ModelConfig;
 use crate::{ContentType, DebugInfo, FileType, Options, RegularFileType, Rules, RulesDebugInfo};
+
+thread_local! {
+    static SMALL_BUF: RefCell<[u8; SMALL_FILE_MAX]> = const { RefCell::new([0u8; SMALL_FILE_MAX]) };
+}
 
 /// Features to identify a file using AI.
 pub struct Features {
@@ -102,7 +107,8 @@ impl FeaturesOr<FileType> {
         } else if !metadata.is_file() {
             Ok(FeaturesOr::Ruled(FileType::Unsupported))
         } else {
-            Ok(FeaturesOr::extract_content(std::fs::File::open(file)?, options)?.into())
+            let file = std::fs::File::open(file)?;
+            Ok(FeaturesOr::extract_std_file(file, Some(metadata.len()), options)?.into())
         }
     }
 }
@@ -121,8 +127,34 @@ impl FeaturesOr<RegularFileType> {
     ///
     /// Returns the file type directly if the content cannot be identified using AI.
     pub fn extract_content(file: impl Input, options: &Options) -> Result<Self> {
+        Self::extract_cached(CachedInput::new(file)?, options)
+    }
+
+    pub(crate) fn extract_std_file(
+        mut file: std::fs::File, length: Option<u64>, options: &Options,
+    ) -> Result<Self> {
+        let len = match length {
+            Some(len) => len,
+            None => file.length()?,
+        };
+        if len == 0 {
+            return Self::extract_cached(CachedInput::borrowed(&[]), options);
+        }
+        if len <= SMALL_FILE_MAX as u64 {
+            let len = len as usize;
+            return SMALL_BUF.with(|cell| {
+                let mut buf = cell.borrow_mut();
+                file.read_at(&mut buf[..len], 0)?;
+                Self::extract_cached(CachedInput::borrowed(&buf[..len]), options)
+            });
+        }
+        Self::extract_cached(CachedInput::with_length(file, len), options)
+    }
+
+    pub(crate) fn extract_cached(
+        mut file: CachedInput<'_, impl Input>, options: &Options,
+    ) -> Result<Self> {
         let config = &crate::model::CONFIG;
-        let mut file = CachedInput::new(file)?;
         if file.length() == 0 {
             let content_types = vec![ContentType::Empty];
             let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
@@ -171,7 +203,9 @@ impl FeaturesOr<RegularFileType> {
     }
 }
 
-fn extract_features(config: &ModelConfig, file: &mut CachedInput<impl Input>) -> Result<Vec<i32>> {
+fn extract_features(
+    config: &ModelConfig, file: &mut CachedInput<'_, impl Input>,
+) -> Result<Vec<i32>> {
     debug_assert!(config.beg_size < config.block_size);
     debug_assert!(config.end_size < config.block_size);
     let prefix_len = file.ensure_prefix(config.block_size)?;

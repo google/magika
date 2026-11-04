@@ -111,7 +111,7 @@ impl Pipeline {
         let threads = config.threads.unwrap_or_else(|| {
             default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
         });
-        let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(readers);
+        let (work_sender, work_receiver) = crossbeam_channel::bounded::<(Pending, Option<u64>)>(readers);
         let (read_sender, read_receiver) =
             std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
         let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
@@ -306,7 +306,8 @@ fn default_inference_threads(backend: Backend) -> usize {
 /// happens on several threads at once instead of serializing behind traversal.
 fn walk_paths(
     paths: Vec<PathBuf>, config: &PipelineOptions, options: &Options,
-    work_sender: &crossbeam_channel::Sender<Pending>, result_sender: &SyncSender<Result<Response>>,
+    work_sender: &crossbeam_channel::Sender<(Pending, Option<u64>)>,
+    result_sender: &SyncSender<Result<Response>>,
 ) -> Result<()> {
     let mut traversal = Traversal::new(paths);
     let mut order = 0;
@@ -317,7 +318,7 @@ fn walk_paths(
         }
         let pending = Pending { order, path };
         match processed {
-            Ok(ProcessPath::Content) => work_sender.send(pending)?,
+            Ok(ProcessPath::Content(length)) => work_sender.send((pending, length))?,
             Ok(ProcessPath::Ruled(file_type)) => {
                 result_sender.send(Ok(Response::new(pending, Ok(file_type))))?
             }
@@ -336,11 +337,11 @@ fn walk_paths(
 /// on a dedicated thread costs a system call per block instead, and there is nothing else for the
 /// thread to interleave anyway.
 fn read_files(
-    work_receiver: &crossbeam_channel::Receiver<Pending>, sender: &SyncSender<ReadItem>,
-    config: &PipelineOptions, options: &Options,
+    work_receiver: &crossbeam_channel::Receiver<(Pending, Option<u64>)>,
+    sender: &SyncSender<ReadItem>, config: &PipelineOptions, options: &Options,
 ) {
-    while let Ok(pending) = work_receiver.recv() {
-        let extracted = extract_path(&pending.path, config, options);
+    while let Ok((pending, length)) = work_receiver.recv() {
+        let extracted = extract_path(&pending.path, length, config, options);
         if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
@@ -379,14 +380,21 @@ fn batch_files(
 
 /// Reads a file and extracts its features, unless rules identify it.
 fn extract_path(
-    path: &Path, config: &PipelineOptions, options: &Options,
+    path: &Path, length: Option<u64>, config: &PipelineOptions, options: &Options,
 ) -> Result<FeaturesOr<RegularFileType>> {
     if config.stdin && path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
         return FeaturesOr::extract_content(&stdin[..], options);
     }
-    FeaturesOr::extract_content(std::fs::File::open(path)?, options)
+    let file = std::fs::File::open(path)?;
+    match length {
+        Some(len) => FeaturesOr::extract_cached(
+            crate::cached_input::CachedInput::with_length(file, len),
+            options,
+        ),
+        None => FeaturesOr::extract_content(file, options),
+    }
 }
 
 fn infer_batches(
@@ -408,7 +416,7 @@ fn infer_batches(
 
 enum ProcessPath {
     Recursive,
-    Content,
+    Content(Option<u64>),
     Ruled(FileType),
 }
 
@@ -427,15 +435,20 @@ struct BatchItem {
     features: Features,
 }
 
+#[cfg(unix)]
+type DirId = (u64, u64);
+#[cfg(not(unix))]
+type DirId = PathBuf;
+
 /// A path still to process, or the point where traversal leaves a directory.
 enum WalkEntry {
     Path(PathBuf, Option<std::fs::FileType>),
-    LeaveDirectory(PathBuf),
+    LeaveDirectory(DirId),
 }
 
 struct Traversal {
     pending: Vec<WalkEntry>,
-    ancestors: HashSet<PathBuf>,
+    ancestors: HashSet<DirId>,
 }
 
 impl Traversal {
@@ -444,10 +457,24 @@ impl Traversal {
         Traversal { pending, ancestors: HashSet::new() }
     }
 
-    fn push(&mut self, path: &Path) -> Result<()> {
-        let canonical = std::fs::canonicalize(path)?;
-        ensure!(self.ancestors.insert(canonical.clone()), DIRECTORY_CYCLE);
-        self.pending.push(WalkEntry::LeaveDirectory(canonical));
+    #[allow(clippy::clone_on_copy)]
+    fn push(&mut self, path: &Path, meta: Option<std::fs::Metadata>) -> Result<()> {
+        #[cfg(unix)]
+        let id = {
+            use std::os::unix::fs::MetadataExt;
+            let meta = match meta {
+                Some(meta) => meta,
+                None => std::fs::metadata(path)?,
+            };
+            (meta.dev(), meta.ino())
+        };
+        #[cfg(not(unix))]
+        let id = {
+            let _ = meta;
+            std::fs::canonicalize(path)?
+        };
+        ensure!(self.ancestors.insert(id.clone()), DIRECTORY_CYCLE);
+        self.pending.push(WalkEntry::LeaveDirectory(id));
         Ok(())
     }
 
@@ -455,7 +482,7 @@ impl Traversal {
         while let Some(entry) = self.pending.pop() {
             match entry {
                 WalkEntry::Path(path, kind) => return Some((path, kind)),
-                WalkEntry::LeaveDirectory(path) => drop(self.ancestors.remove(&path)),
+                WalkEntry::LeaveDirectory(id) => drop(self.ancestors.remove(&id)),
             }
         }
         None
@@ -467,24 +494,27 @@ fn process_path(
     known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if config.stdin && path.to_str() == Some("-") {
-        return Ok(ProcessPath::Content);
+        return Ok(ProcessPath::Content(None));
     }
     // `read_dir` already reported the type of every entry it produced, so reading its metadata
     // again would be one extra system call per file on the one task that feeds every reader. Only
     // a symlink still needs a lookup, and only when it is being followed.
-    let metadata = match known {
-        Some(known) if !options.follow_symlink || !known.is_symlink() => known,
+    let (metadata, full_meta) = match known {
+        Some(known) if !options.follow_symlink || !known.is_symlink() => (known, None),
         _ => {
-            if options.follow_symlink {
-                std::fs::metadata(path)?.file_type()
+            let meta = if options.follow_symlink {
+                std::fs::metadata(path)?
             } else {
-                std::fs::symlink_metadata(path)?.file_type()
-            }
+                std::fs::symlink_metadata(path)?
+            };
+            (meta.file_type(), Some(meta))
         }
     };
     if metadata.is_dir() {
         return Ok(if config.recursive {
-            traversal.push(path)?;
+            if options.follow_symlink {
+                traversal.push(path, full_meta)?;
+            }
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
@@ -505,7 +535,7 @@ fn process_path(
     if !metadata.is_file() {
         return Ok(ProcessPath::Ruled(FileType::Unsupported));
     }
-    Ok(ProcessPath::Content)
+    Ok(ProcessPath::Content(full_meta.map(|m| m.len())))
 }
 
 #[derive(Default)]

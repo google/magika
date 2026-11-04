@@ -1,0 +1,20 @@
+name: Spell check (typos)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  typos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+
+      - name: Run typos spell checker
+        uses: crate-ci/typos@631208b7aac2daa8b707f55e7331f9112b0e062d # pin@v1.44.0

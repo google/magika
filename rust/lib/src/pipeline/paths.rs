@@ -149,60 +149,71 @@ impl Pipeline {
             })
         })?;
         drop(batch_sender);
-        spawn("magika-model".to_string(), {
-            let (engine, options, config) = (engine.clone(), options.clone(), config.clone());
-            #[cfg(feature = "_trace")]
-            let trace = trace.clone();
-            Box::new(move || {
-                let workers =
-                    config.threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
-                // The CPU competes with preparing the GPU, which a long run waits for, so the
-                // workers leave it a third of the host until it is ready. A GPU is as fast with as
-                // many workers.
-                let starting = match (engine.has_gpu(), config.threads) {
-                    (false, _) | (true, Some(_)) => workers,
-                    (true, None) => {
-                        (workers * 2 / 3).max(default_inference_threads(Backend::Gpu)).min(workers)
-                    }
-                };
-                let (engine, options) = (&*engine, &options);
-                let (batch_receiver, result_sender) = (&batch_receiver, &result_sender);
+        if options.use_model {
+            spawn("magika-model".to_string(), {
+                let (engine, options, config) = (engine.clone(), options.clone(), config.clone());
                 #[cfg(feature = "_trace")]
-                let trace = &trace;
-                std::thread::scope(|scope| {
-                    // Each starting worker holds `done` until it finishes, which is when the run
-                    // ends.
-                    let spawn = |worker: usize, done: Option<crossbeam_channel::Sender<()>>| {
-                        let work = move || {
-                            let _done = done;
-                            if let Err(e) =
-                                infer_batches(engine, options, batch_receiver, result_sender)
-                            {
-                                let _ = result_sender.send(Err(e));
+                let trace = trace.clone();
+                Box::new(move || {
+                    let workers =
+                        config.threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
+                    // The CPU competes with preparing the GPU, which a long run waits for, so the
+                    // workers leave it a third of the host until it is ready. A GPU is as fast with
+                    // as many workers.
+                    let starting = match (engine.has_gpu(), config.threads) {
+                        (false, _) | (true, Some(_)) => workers,
+                        (true, None) => (workers * 2 / 3)
+                            .max(default_inference_threads(Backend::Gpu))
+                            .min(workers),
+                    };
+                    let (engine, options) = (&*engine, &options);
+                    let (batch_receiver, result_sender) = (&batch_receiver, &result_sender);
+                    #[cfg(feature = "_trace")]
+                    let trace = &trace;
+                    std::thread::scope(|scope| {
+                        // Each starting worker holds `done` until it finishes, which is when the
+                        // run ends. Workers are spawned lazily as batches arrive so runs resolved
+                        // entirely by rules or with few batches do not spawn idle OS threads.
+                        let spawn = |worker: usize,
+                                     first: Vec<BatchItem>,
+                                     done: Option<crossbeam_channel::Sender<()>>| {
+                            let work = move || {
+                                let _done = done;
+                                if let Err(e) = infer_batches(
+                                    engine,
+                                    options,
+                                    first,
+                                    batch_receiver,
+                                    result_sender,
+                                ) {
+                                    let _ = result_sender.send(Err(e));
+                                }
+                            };
+                            #[cfg(feature = "_trace")]
+                            let work = trace.stage(work);
+                            let spawned = std::thread::Builder::new()
+                                .name(format!("magika-infer-{worker}"))
+                                .spawn_scoped(scope, work);
+                            if let Err(e) = spawned {
+                                let _ = result_sender.send(Err(e.into()));
                             }
                         };
-                        #[cfg(feature = "_trace")]
-                        let work = trace.stage(work);
-                        let spawned = std::thread::Builder::new()
-                            .name(format!("magika-infer-{worker}"))
-                            .spawn_scoped(scope, work);
-                        if let Err(e) = spawned {
-                            let _ = result_sender.send(Err(e.into()));
+                        let (done, finished) = crossbeam_channel::bounded(0);
+                        for worker in 0..starting {
+                            let Ok(first) = batch_receiver.recv() else { break };
+                            spawn(worker, first, Some(done.clone()));
                         }
-                    };
-                    let (done, finished) = crossbeam_channel::bounded(0);
-                    for worker in 0..starting {
-                        spawn(worker, Some(done.clone()));
-                    }
-                    drop(done);
-                    if engine.gpu_failed(&finished) {
-                        for worker in starting..workers {
-                            spawn(worker, None);
+                        drop(done);
+                        if engine.gpu_failed(&finished) {
+                            for worker in starting..workers {
+                                let Ok(first) = batch_receiver.recv() else { break };
+                                spawn(worker, first, None);
+                            }
                         }
-                    }
-                });
-            })
-        })?;
+                    });
+                })
+            })?;
+        }
         Ok(Identified {
             results: Some(result_receiver),
             reorder: Reorder::default(),
@@ -380,12 +391,13 @@ fn extract_path(
 }
 
 fn infer_batches(
-    engine: &Engine, options: &Options, receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>,
-    sender: &SyncSender<Result<Response>>,
+    engine: &Engine, options: &Options, first: Vec<BatchItem>,
+    receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>, sender: &SyncSender<Result<Response>>,
 ) -> Result<()> {
     // Sessions are spawned on a backend's first batch: a short run never reaches most threads.
     let mut session = engine.session(Some(options.clone()));
-    while let Ok(batch) = receiver.recv() {
+    let mut next = Some(first);
+    while let Some(batch) = next.take().or_else(|| receiver.recv().ok()) {
         let features = batch.iter().map(|x| &x.features).collect::<Vec<_>>();
         let results = session.identify_features_batch(&features)?;
         debug_assert_eq!(results.len(), batch.len());

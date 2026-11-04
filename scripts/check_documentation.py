@@ -42,8 +42,6 @@ IGNORE_PREFIX_PATTERNS = [
     ".ruff_cache",
     "python/.venv",
     "python/dist",
-    "website/node_modules",
-    "website/dist",
     "js/node_modules",
     "js/dist",
     "website-ng/node_modules",

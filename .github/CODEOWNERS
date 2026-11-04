@@ -17,7 +17,6 @@
 /rust/lib/src/model.rs @reyammer
 /rust/tract-runtime/models/ @reyammer
 
-# Luca owns the JS code, docs, and website
+# Luca owns the JS code and docs
 /js/ @invernizzi
 /docs/js.md @invernizzi
-/website/ @invernizzi

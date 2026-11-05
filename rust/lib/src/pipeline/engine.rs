@@ -20,8 +20,8 @@ use anyhow::{Context, Result, anyhow};
 use crossbeam_channel::Receiver;
 
 use crate::{
-    Backend, BackendInfo, Builder, Features, FileType, Input, Options, RegularFileType, Runtime,
-    Session,
+    Backend, BackendInfo, Builder, Features, FeaturesOr, FileType, Input, Options, RegularFileType,
+    Runtime, Session,
 };
 
 /// Batches smaller than this stay on the CPU in automatic mode: a GPU only pays off on full ones.
@@ -39,6 +39,7 @@ const GPU_MIN_BATCH: usize = 8;
 pub struct Engine {
     cpu: Prepared,
     gpu: Option<Gpu>,
+    options: Options,
 }
 
 struct Gpu {
@@ -47,14 +48,18 @@ struct Gpu {
     required: bool,
 }
 
-/// A runtime being prepared on its own thread.
-struct Prepared {
-    /// Set by the preparing thread, once.
-    runtime: Arc<OnceLock<Result<Runtime>>>,
-    /// Disconnected once `runtime` is set.
-    resolved: Receiver<()>,
-    /// Deferred builder when `use_model` is disabled.
-    deferred: Option<Builder>,
+/// A runtime prepared on its own thread, or deferred until waited on when `use_model` is disabled.
+enum Prepared {
+    Running {
+        /// Set by the preparing thread, once.
+        runtime: Arc<OnceLock<Result<Runtime>>>,
+        /// Disconnected once `runtime` is set.
+        resolved: Receiver<()>,
+    },
+    Deferred {
+        runtime: OnceLock<Result<Runtime>>,
+        builder: Builder,
+    },
 }
 
 /// One thread's way to identify with an [`Engine`].
@@ -65,7 +70,7 @@ pub struct EngineSession<'a> {
     engine: &'a Engine,
     /// The session of each backend, by [`Backend`] value.
     sessions: [Option<Session>; 2],
-    options: Option<Options>,
+    options: Options,
 }
 
 impl Engine {
@@ -74,23 +79,31 @@ impl Engine {
     /// With `Backend::Gpu`, failing to prepare the GPU is an error at the first identification;
     /// with no backend, the CPU keeps identifying.
     pub fn new(builder: Builder) -> Result<Self> {
-        if !builder.options.use_model {
-            let cpu = builder.with_backend(Backend::Cpu);
-            return Ok(Engine { cpu: Prepared::deferred(cpu), gpu: None });
+        let options = builder.options.clone();
+        if !options.use_model {
+            let cpu = Prepared::deferred(builder.clone().with_backend(Backend::Cpu));
+            let gpu = match builder.backend {
+                Some(Backend::Gpu) => Some(Gpu {
+                    prepared: Prepared::deferred(builder.with_backend(Backend::Gpu)),
+                    required: true,
+                }),
+                _ => None,
+            };
+            return Ok(Engine { cpu, gpu, options });
         }
         let cpu = builder.clone().with_backend(Backend::Cpu);
-        let cpu = Prepared::start("magika-cpu", cpu, None)?;
+        let (cpu, cpu_resolved) = Prepared::start("magika-cpu", cpu, None)?;
         let gpu = match builder.backend {
             Some(Backend::Cpu) => None,
             backend => {
                 // Preparing a GPU competes with preparing the CPU, which a short run waits for,
                 // so it starts once the CPU is ready.
                 let gpu = builder.with_backend(Backend::Gpu);
-                let prepared = Prepared::start("magika-gpu", gpu, Some(cpu.resolved.clone()))?;
+                let (prepared, _) = Prepared::start("magika-gpu", gpu, Some(cpu_resolved))?;
                 Some(Gpu { prepared, required: backend == Some(Backend::Gpu) })
             }
         };
-        Ok(Engine { cpu, gpu })
+        Ok(Engine { cpu, gpu, options })
     }
 
     /// Returns the backend that identifies a full batch now.
@@ -103,6 +116,7 @@ impl Engine {
 
     /// Returns a session to identify with this engine from the current thread.
     pub fn session(&self, options: Option<Options>) -> EngineSession<'_> {
+        let options = options.unwrap_or_else(|| self.options.clone());
         EngineSession { engine: self, sessions: [None, None], options }
     }
 
@@ -111,13 +125,28 @@ impl Engine {
         self.gpu.is_some()
     }
 
-    /// Waits until the GPU is prepared or `done` disconnects, and returns whether it failed.
-    pub(crate) fn gpu_failed(&self, done: &Receiver<()>) -> bool {
-        let Some(gpu) = &self.gpu else { return false };
+    /// Sends `batch` to an idle worker unless `stop` is signaled, or returns `Err(batch)` if
+    /// preparing the GPU failed first.
+    pub(crate) fn send_or_gpu_failed<T>(
+        &self, work_sender: &crossbeam_channel::Sender<T>, stop: &Receiver<()>, batch: T,
+    ) -> std::result::Result<bool, T> {
+        if let Some(Gpu { prepared: Prepared::Running { runtime, resolved }, .. }) = &self.gpu
+            && !matches!(runtime.get(), Some(Ok(_)))
+        {
+            crossbeam_channel::select! {
+                send(work_sender, batch) -> _ => return Ok(true),
+                recv(stop) -> _ => return Ok(false),
+                // A preparing thread that panicked set nothing: the GPU failed too.
+                recv(resolved) -> _ => {
+                    if !matches!(runtime.get(), Some(Ok(_))) {
+                        return Err(batch);
+                    }
+                }
+            }
+        }
         crossbeam_channel::select! {
-            // A preparing thread that panicked set nothing: the GPU failed too.
-            recv(gpu.prepared.resolved) -> _ => !matches!(gpu.prepared.runtime.get(), Some(Ok(_))),
-            recv(done) -> _ => false,
+            send(work_sender, batch) -> _ => Ok(true),
+            recv(stop) -> _ => Ok(false),
         }
     }
 
@@ -127,7 +156,7 @@ impl Engine {
             if gpu.required {
                 return gpu.prepared.wait().context("preparing the GPU");
             }
-            if let Some(Ok(runtime)) = gpu.prepared.runtime.get()
+            if let Some(Ok(runtime)) = gpu.prepared.get()
                 && len >= GPU_MIN_BATCH
             {
                 return Ok(runtime);
@@ -140,12 +169,26 @@ impl Engine {
 impl EngineSession<'_> {
     /// Identifies a file.
     pub fn identify_file(&mut self, path: impl AsRef<Path>) -> Result<FileType> {
-        self.session(1)?.identify_file(path)
+        match FeaturesOr::extract_file(path, &self.options)? {
+            FeaturesOr::Ruled(file_type) => Ok(file_type),
+            FeaturesOr::Features(features) => {
+                let [file_type] =
+                    self.identify_features_batch(&[features])?.try_into().ok().unwrap();
+                Ok(file_type.into())
+            }
+        }
     }
 
     /// Identifies content.
     pub fn identify_content(&mut self, input: impl Input) -> Result<RegularFileType> {
-        self.session(1)?.identify_content(input)
+        match FeaturesOr::extract_content(input, &self.options)? {
+            FeaturesOr::Ruled(file_type) => Ok(file_type),
+            FeaturesOr::Features(features) => {
+                let [file_type] =
+                    self.identify_features_batch(&[features])?.try_into().ok().unwrap();
+                Ok(file_type)
+            }
+        }
     }
 
     /// Identifies files from their features, on the GPU if it is ready and the batch is full.
@@ -164,9 +207,7 @@ impl EngineSession<'_> {
             Some(session) => session,
             slot => {
                 let mut session = runtime.session()?;
-                if let Some(options) = &self.options {
-                    *session.options_mut() = options.clone();
-                }
+                *session.options_mut() = self.options.clone();
                 slot.insert(session)
             }
         };
@@ -177,12 +218,13 @@ impl EngineSession<'_> {
 impl Prepared {
     /// Defers preparing a runtime until it is explicitly waited on.
     fn deferred(builder: Builder) -> Self {
-        let (_resolve, resolved) = crossbeam_channel::bounded(0);
-        Prepared { runtime: Arc::new(OnceLock::new()), resolved, deferred: Some(builder) }
+        Prepared::Deferred { runtime: OnceLock::new(), builder }
     }
 
     /// Starts preparing a runtime, once `after` disconnects if given.
-    fn start(name: &str, builder: Builder, after: Option<Receiver<()>>) -> Result<Self> {
+    fn start(
+        name: &str, builder: Builder, after: Option<Receiver<()>>,
+    ) -> Result<(Self, Receiver<()>)> {
         let runtime = Arc::new(OnceLock::new());
         let (resolve, resolved) = crossbeam_channel::bounded(0);
         std::thread::Builder::new().name(name.to_string()).spawn({
@@ -195,21 +237,29 @@ impl Prepared {
                 drop(resolve);
             }
         })?;
-        Ok(Prepared { runtime, resolved, deferred: None })
+        Ok((Prepared::Running { runtime, resolved: resolved.clone() }, resolved))
+    }
+
+    fn get(&self) -> Option<&Result<Runtime>> {
+        match self {
+            Prepared::Running { runtime, .. } => runtime.get(),
+            Prepared::Deferred { runtime, .. } => runtime.get(),
+        }
     }
 
     fn wait(&self) -> Result<&Runtime> {
-        if let Some(builder) = &self.deferred {
-            return match self.runtime.get_or_init(|| builder.clone().build()) {
-                Ok(runtime) => Ok(runtime),
-                Err(error) => Err(anyhow!("{error:#}")),
-            };
-        }
-        let _ = self.resolved.recv();
-        match self.runtime.get() {
-            Some(Ok(runtime)) => Ok(runtime),
-            Some(Err(error)) => Err(anyhow!("{error:#}")),
-            None => Err(anyhow!("the preparing thread panicked")),
+        let result = match self {
+            Prepared::Running { runtime, resolved } => {
+                let _ = resolved.recv();
+                runtime.get().ok_or_else(|| anyhow!("the preparing thread panicked"))?
+            }
+            Prepared::Deferred { runtime, builder } => {
+                runtime.get_or_init(|| builder.clone().build())
+            }
+        };
+        match result {
+            Ok(runtime) => Ok(runtime),
+            Err(error) => Err(anyhow!("{error:#}")),
         }
     }
 }
@@ -217,20 +267,19 @@ impl Prepared {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::FeaturesOr;
 
     impl Prepared {
         /// A preparation that already ended with `runtime`.
         fn done(runtime: Result<Runtime>) -> Self {
             let (resolve, resolved) = crossbeam_channel::bounded::<()>(0);
             drop(resolve);
-            Prepared { runtime: Arc::new(OnceLock::from(runtime)), resolved, deferred: None }
+            Prepared::Running { runtime: Arc::new(OnceLock::from(runtime)), resolved }
         }
 
         /// A preparation still running until the returned sender is dropped.
         fn running() -> (Self, crossbeam_channel::Sender<()>) {
             let (resolve, resolved) = crossbeam_channel::bounded(0);
-            (Prepared { runtime: Arc::default(), resolved, deferred: None }, resolve)
+            (Prepared::Running { runtime: Arc::default(), resolved }, resolve)
         }
     }
 
@@ -252,28 +301,54 @@ mod tests {
     #[test]
     fn a_gpu_still_preparing_leaves_the_cpu_identifying() {
         let (prepared, resolve) = Prepared::running();
-        let engine = Engine { cpu: cpu(), gpu: Some(Gpu { prepared, required: false }) };
+        let engine = Engine {
+            cpu: cpu(),
+            gpu: Some(Gpu { prepared, required: false }),
+            options: Options::default(),
+        };
         let results = engine.session(None).identify_features_batch(&features(8));
         assert_eq!(results.unwrap()[0].info().label, "rust");
         assert_eq!(engine.backend_info().unwrap().backend(), Backend::Cpu);
-        let (done, finished) = crossbeam_channel::bounded::<()>(0);
-        drop(done);
-        assert!(!engine.gpu_failed(&finished), "the run ended first");
+        let (work_sender, _work_receiver) = crossbeam_channel::bounded::<()>(0);
+        let (stop, stopped) = crossbeam_channel::bounded::<()>(1);
+        drop(stop);
+        assert_eq!(engine.send_or_gpu_failed(&work_sender, &stopped, ()), Ok(false));
         drop(resolve);
     }
 
     #[test]
     fn a_failed_gpu_is_an_error_only_when_required() {
         let failed = || Prepared::done(Err(anyhow!("no GPU here")));
-        let (_done, running) = crossbeam_channel::bounded::<()>(0);
-        let automatic =
-            Engine { cpu: cpu(), gpu: Some(Gpu { prepared: failed(), required: false }) };
-        assert!(automatic.gpu_failed(&running));
+        let (work_sender, _work_receiver) = crossbeam_channel::bounded::<()>(0);
+        let (_stop, running) = crossbeam_channel::bounded::<()>(0);
+        let automatic = Engine {
+            cpu: cpu(),
+            gpu: Some(Gpu { prepared: failed(), required: false }),
+            options: Options::default(),
+        };
+        assert_eq!(automatic.send_or_gpu_failed(&work_sender, &running, ()), Err(()));
         let results = automatic.session(None).identify_features_batch(&features(8));
         assert_eq!(results.unwrap().len(), 8);
-        let required = Engine { cpu: cpu(), gpu: Some(Gpu { prepared: failed(), required: true }) };
+        let required = Engine {
+            cpu: cpu(),
+            gpu: Some(Gpu { prepared: failed(), required: true }),
+            options: Options::default(),
+        };
         let error = required.session(None).identify_features_batch(&features(1));
         assert_eq!(format!("{:#}", error.unwrap_err()), "preparing the GPU: no GPU here");
+    }
+
+    #[test]
+    fn disabled_model_defers_runtime_until_needed() {
+        let options = Options { use_model: false, ..Options::default() };
+        let builder = Builder::default().with_backend(Backend::Cpu).with_options(options);
+        let engine = Engine::new(builder).unwrap();
+        let mut session = engine.session(None);
+        let rust = "../../tests_data/basic/rust/code.rs";
+        assert_eq!(session.identify_file(rust).unwrap().info().label, "txt");
+        assert!(engine.cpu.get().is_none(), "ruled identification must not build the runtime");
+        assert_eq!(engine.backend_info().unwrap().backend(), Backend::Cpu);
+        assert!(engine.cpu.get().is_some());
     }
 
     #[test]

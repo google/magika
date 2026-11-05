@@ -17,7 +17,6 @@ mod magic;
 
 use anyhow::Result;
 
-use crate::cached_input::CachedInput;
 use crate::{ContentType, Input};
 
 const PREFIX_LIMIT: usize = 4096;
@@ -27,7 +26,7 @@ const PREFIX_LIMIT: usize = 4096;
 /// The returned list may have false negatives (the file should have a content type that's not
 /// returned). In particular, the list may be empty, in which case the model will also try to
 /// identify the file.
-pub(crate) fn identify(file: &mut CachedInput<impl Input>) -> Result<Vec<ContentType>> {
+pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
     let size = file.length();
     if size == 0 {
         return Ok(Vec::new());
@@ -165,7 +164,7 @@ mod tests {
     use super::*;
 
     fn resolve_slice(bytes: &[u8]) -> Vec<ContentType> {
-        let mut input = CachedInput::new(bytes).unwrap();
+        let mut input = Input::from_slice(bytes);
         identify(&mut input).unwrap()
     }
 
@@ -195,7 +194,7 @@ mod tests {
                 if !path.is_file() {
                     continue;
                 }
-                let mut input = CachedInput::new(std::fs::File::open(&path).unwrap()).unwrap();
+                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
                 let got = identify(&mut input).unwrap();
                 if let [ct] = got[..] {
                     assert_eq!(ct.info().label, expected, "mismatch on {}", path.display());

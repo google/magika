@@ -17,7 +17,7 @@
 
 use std::path::Path;
 
-use crate::cached_input::CachedInput;
+use crate::Input;
 use crate::resolvers::identify;
 
 /// Samples whose directory names the wrong label, with the label their bytes prove. Each
@@ -49,7 +49,7 @@ fn resolvers_never_mislabel_a_sample() {
                 .find(|(sample, _)| *sample == relative)
                 .map_or(label.as_str(), |(_, proven)| proven);
             files += 1;
-            let mut input = CachedInput::new(std::fs::File::open(&path).unwrap()).unwrap();
+            let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
             let got = identify(&mut input).unwrap();
             match &got[..] {
                 [ct] if ct.info().label == expected => hits += 1,

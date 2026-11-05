@@ -27,7 +27,7 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-use crate::cached_input::CachedInput;
+use crate::Input;
 use crate::resolvers::{PREFIX_LIMIT, identify, magic};
 
 /// Recorded cases whose expectation the evaluation dataset overturned, by test and index, with
@@ -75,7 +75,7 @@ fn labels(held: &[u8], size: u64) -> Vec<String> {
         return Vec::new();
     }
     let content_types = if held.len() as u64 == size {
-        identify(&mut CachedInput::new(held).unwrap()).unwrap()
+        identify(&mut Input::from_slice(held)).unwrap()
     } else {
         let prefix = &held[..held.len().min(PREFIX_LIMIT)];
         magic::identify(&magic::Ctx { prefix, size, tail: None }).into_iter().collect()
@@ -155,7 +155,7 @@ fn no_resolver_decides_from_fewer_than_eight_bytes() {
         let bytes = std::fs::read(&path).unwrap();
         files += 1;
         for length in 0..=bytes.len().min(7) {
-            let got = identify(&mut CachedInput::new(&bytes[..length]).unwrap()).unwrap();
+            let got = identify(&mut Input::from_slice(&bytes[..length])).unwrap();
             assert!(got.is_empty(), "{} decided from {length} bytes: {got:?}", path.display());
         }
     }

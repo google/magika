@@ -254,7 +254,7 @@ fn main() -> Result<()> {
 }
 
 fn print(flags: &Flags, errors: &mut bool, identified: Identified) -> Result<()> {
-    let mut stdout = std::io::stdout().lock();
+    let mut stdout = std::io::BufWriter::new(std::io::stdout().lock());
     if flags.format.json {
         write!(stdout, "[")?;
     }
@@ -281,6 +281,7 @@ fn print(flags: &Flags, errors: &mut bool, identified: Identified) -> Result<()>
         }
         writeln!(stdout, "]")?;
     }
+    stdout.flush()?;
     Ok(())
 }
 

@@ -150,60 +150,109 @@ impl Pipeline {
             })
         })?;
         drop(batch_sender);
-        spawn("magika-model".to_string(), {
-            let (engine, options, config) = (engine.clone(), options.clone(), config.clone());
-            #[cfg(feature = "_trace")]
-            let trace = trace.clone();
-            Box::new(move || {
-                let workers =
-                    config.threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
-                // The CPU competes with preparing the GPU, which a long run waits for, so the
-                // workers leave it a third of the host until it is ready. A GPU is as fast with as
-                // many workers.
-                let starting = match (engine.has_gpu(), config.threads) {
-                    (false, _) | (true, Some(_)) => workers,
-                    (true, None) => {
-                        (workers * 2 / 3).max(default_inference_threads(Backend::Gpu)).min(workers)
-                    }
-                };
-                let (engine, options) = (&*engine, &options);
-                let (batch_receiver, result_sender) = (&batch_receiver, &result_sender);
+        if options.use_model {
+            spawn("magika-model".to_string(), {
+                let (engine, options, config) = (engine.clone(), options.clone(), config.clone());
                 #[cfg(feature = "_trace")]
-                let trace = &trace;
-                std::thread::scope(|scope| {
-                    // Each starting worker holds `done` until it finishes, which is when the run
-                    // ends.
-                    let spawn = |worker: usize, done: Option<crossbeam_channel::Sender<()>>| {
-                        let work = move || {
-                            let _done = done;
-                            if let Err(e) =
-                                infer_batches(engine, options, batch_receiver, result_sender)
+                let trace = trace.clone();
+                Box::new(move || {
+                    let workers =
+                        config.threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
+                    // The CPU competes with preparing the GPU, which a long run waits for, so the
+                    // workers leave it a third of the host until it is ready. A GPU is as fast with
+                    // as many workers.
+                    let starting = match (engine.has_gpu(), config.threads) {
+                        (false, _) | (true, Some(_)) => workers,
+                        (true, None) => (workers * 2 / 3)
+                            .max(default_inference_threads(Backend::Gpu))
+                            .min(workers),
+                    };
+                    let (work_sender, work_receiver) = crossbeam_channel::bounded(0);
+                    let (stop_sender, stop_receiver) = crossbeam_channel::bounded(1);
+                    let (engine, options) = (&*engine, &options);
+                    let (work_receiver, result_sender) = (&work_receiver, &result_sender);
+                    let stop_sender = &stop_sender;
+                    #[cfg(feature = "_trace")]
+                    let trace = &trace;
+                    std::thread::scope(|scope| {
+                        // Workers pull from the zero-capacity `work_receiver`, so `try_send`
+                        // hands each batch to an already-idle worker first and only spawns a new
+                        // thread when every existing worker is busy.
+                        let spawn = |worker: usize, first: Vec<BatchItem>| -> bool {
+                            let work = move || {
+                                struct Stop<'a>(&'a crossbeam_channel::Sender<()>);
+                                impl Drop for Stop<'_> {
+                                    fn drop(&mut self) {
+                                        let _ = self.0.try_send(());
+                                    }
+                                }
+                                let _stop = Stop(stop_sender);
+                                if let Err(e) = infer_batches(
+                                    engine,
+                                    options,
+                                    first,
+                                    work_receiver,
+                                    result_sender,
+                                ) {
+                                    let _ = result_sender.send(Err(e));
+                                }
+                            };
+                            #[cfg(feature = "_trace")]
+                            let work = trace.stage(work);
+                            match std::thread::Builder::new()
+                                .name(format!("magika-infer-{worker}"))
+                                .spawn_scoped(scope, work)
                             {
-                                let _ = result_sender.send(Err(e));
+                                Ok(_) => true,
+                                Err(e) => {
+                                    let _ = result_sender.send(Err(e.into()));
+                                    false
+                                }
                             }
                         };
-                        #[cfg(feature = "_trace")]
-                        let work = trace.stage(work);
-                        let spawned = std::thread::Builder::new()
-                            .name(format!("magika-infer-{worker}"))
-                            .spawn_scoped(scope, work);
-                        if let Err(e) = spawned {
-                            let _ = result_sender.send(Err(e.into()));
+                        let mut limit = starting;
+                        let mut spawned = 0;
+                        while stop_receiver.is_empty() {
+                            let batch = crossbeam_channel::select! {
+                                recv(batch_receiver) -> batch => match batch {
+                                    Ok(batch) => batch,
+                                    Err(_) => break,
+                                },
+                                recv(stop_receiver) -> _ => break,
+                            };
+                            let Err(batch) = work_sender.try_send(batch) else { continue };
+                            let batch = batch.into_inner();
+                            if spawned < limit {
+                                if !spawn(spawned, batch) {
+                                    break;
+                                }
+                                spawned += 1;
+                            } else if limit < workers {
+                                match engine.send_or_gpu_failed(&work_sender, &stop_receiver, batch)
+                                {
+                                    Ok(true) => {}
+                                    Ok(false) => break,
+                                    Err(batch) => {
+                                        limit = workers;
+                                        if !spawn(spawned, batch) {
+                                            break;
+                                        }
+                                        spawned += 1;
+                                    }
+                                }
+                            } else {
+                                crossbeam_channel::select! {
+                                    send(work_sender, batch) -> _ => {}
+                                    recv(stop_receiver) -> _ => break,
+                                }
+                            }
                         }
-                    };
-                    let (done, finished) = crossbeam_channel::bounded(0);
-                    for worker in 0..starting {
-                        spawn(worker, Some(done.clone()));
-                    }
-                    drop(done);
-                    if engine.gpu_failed(&finished) {
-                        for worker in starting..workers {
-                            spawn(worker, None);
-                        }
-                    }
-                });
-            })
-        })?;
+                        drop(batch_receiver);
+                        drop(work_sender);
+                    });
+                })
+            })?;
+        }
         Ok(Identified {
             results: Some(result_receiver),
             reorder: Reorder::default(),
@@ -389,12 +438,13 @@ fn extract_path(
 }
 
 fn infer_batches(
-    engine: &Engine, options: &Options, receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>,
-    sender: &SyncSender<Result<Response>>,
+    engine: &Engine, options: &Options, first: Vec<BatchItem>,
+    receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>, sender: &SyncSender<Result<Response>>,
 ) -> Result<()> {
     // Sessions are spawned on a backend's first batch: a short run never reaches most threads.
     let mut session = engine.session(Some(options.clone()));
-    while let Ok(batch) = receiver.recv() {
+    let mut next = Some(first);
+    while let Some(batch) = next.take().or_else(|| receiver.recv().ok()) {
         let features = batch.iter().map(|x| &x.features).collect::<Vec<_>>();
         let results = session.identify_features_batch(&features)?;
         debug_assert_eq!(results.len(), batch.len());
@@ -706,5 +756,18 @@ mod tests {
         let engine = Arc::new(Engine::new(Builder::default().with_backend(Backend::Cpu)).unwrap());
         let config = PipelineOptions { batch_size: 0, ..PipelineOptions::default() };
         assert!(Pipeline::new(engine, Options::default(), config).is_err());
+    }
+
+    #[test]
+    fn identifies_without_model() {
+        let options = Options { use_model: false, ..Options::default() };
+        let builder = Builder::default().with_backend(Backend::Cpu).with_options(options.clone());
+        let engine = Arc::new(Engine::new(builder).unwrap());
+        let pipeline = Pipeline::new(engine, options, PipelineOptions::default()).unwrap();
+        let png = Path::new("../../tests_data/basic/png/magika_test.png");
+        let rust = Path::new("../../tests_data/basic/rust/code.rs");
+        let results = identify(&pipeline, &[png, rust]);
+        assert_eq!(label(&results[0].1), "unknown");
+        assert_eq!(label(&results[1].1), "txt");
     }
 }

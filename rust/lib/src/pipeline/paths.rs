@@ -111,7 +111,8 @@ impl Pipeline {
         let threads = config.threads.unwrap_or_else(|| {
             default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
         });
-        let (work_sender, work_receiver) = crossbeam_channel::bounded::<(Pending, Option<u64>)>(readers);
+        let (work_sender, work_receiver) =
+            crossbeam_channel::bounded::<(Pending, Option<u64>)>(readers);
         let (read_sender, read_receiver) =
             std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
         let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);

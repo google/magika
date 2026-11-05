@@ -215,7 +215,13 @@ pub unsafe extern "C" fn magika_runtime_new(
     }
     *out_runtime = std::ptr::null_mut();
     catch_unwind(
-        || builder(options).build(),
+        || {
+            let mut builder = builder(options);
+            if let Some(opts) = options.as_ref() {
+                builder = builder.with_options(opts.options.to_options());
+            }
+            builder.build()
+        },
         |runtime| *out_runtime = Box::into_raw(Box::new(MagikaRuntime { inner: runtime })),
     )
 }
@@ -234,7 +240,6 @@ unsafe fn builder(options: *const MagikaRuntimeOptions) -> magika::Builder {
         if opts.max_batch > 0 {
             builder = builder.with_max_batch(opts.max_batch);
         }
-        builder = builder.with_options(opts.options.to_options());
     }
     builder
 }

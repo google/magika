@@ -105,7 +105,8 @@ impl Pipeline {
         let threads = config.threads.unwrap_or_else(|| {
             default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
         });
-        let (work_sender, work_receiver) = crossbeam_channel::bounded::<Pending>(config.readers);
+        let (work_sender, work_receiver) =
+            crossbeam_channel::bounded::<(Pending, Option<u64>)>(config.readers);
         let (read_sender, read_receiver) =
             std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
         let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
@@ -149,60 +150,109 @@ impl Pipeline {
             })
         })?;
         drop(batch_sender);
-        spawn("magika-model".to_string(), {
-            let (engine, options, config) = (engine.clone(), options.clone(), config.clone());
-            #[cfg(feature = "_trace")]
-            let trace = trace.clone();
-            Box::new(move || {
-                let workers =
-                    config.threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
-                // The CPU competes with preparing the GPU, which a long run waits for, so the
-                // workers leave it a third of the host until it is ready. A GPU is as fast with as
-                // many workers.
-                let starting = match (engine.has_gpu(), config.threads) {
-                    (false, _) | (true, Some(_)) => workers,
-                    (true, None) => {
-                        (workers * 2 / 3).max(default_inference_threads(Backend::Gpu)).min(workers)
-                    }
-                };
-                let (engine, options) = (&*engine, &options);
-                let (batch_receiver, result_sender) = (&batch_receiver, &result_sender);
+        if options.use_model {
+            spawn("magika-model".to_string(), {
+                let (engine, options, config) = (engine.clone(), options.clone(), config.clone());
                 #[cfg(feature = "_trace")]
-                let trace = &trace;
-                std::thread::scope(|scope| {
-                    // Each starting worker holds `done` until it finishes, which is when the run
-                    // ends.
-                    let spawn = |worker: usize, done: Option<crossbeam_channel::Sender<()>>| {
-                        let work = move || {
-                            let _done = done;
-                            if let Err(e) =
-                                infer_batches(engine, options, batch_receiver, result_sender)
+                let trace = trace.clone();
+                Box::new(move || {
+                    let workers =
+                        config.threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
+                    // The CPU competes with preparing the GPU, which a long run waits for, so the
+                    // workers leave it a third of the host until it is ready. A GPU is as fast with
+                    // as many workers.
+                    let starting = match (engine.has_gpu(), config.threads) {
+                        (false, _) | (true, Some(_)) => workers,
+                        (true, None) => (workers * 2 / 3)
+                            .max(default_inference_threads(Backend::Gpu))
+                            .min(workers),
+                    };
+                    let (work_sender, work_receiver) = crossbeam_channel::bounded(0);
+                    let (stop_sender, stop_receiver) = crossbeam_channel::bounded(1);
+                    let (engine, options) = (&*engine, &options);
+                    let (work_receiver, result_sender) = (&work_receiver, &result_sender);
+                    let stop_sender = &stop_sender;
+                    #[cfg(feature = "_trace")]
+                    let trace = &trace;
+                    std::thread::scope(|scope| {
+                        // Workers pull from the zero-capacity `work_receiver`, so `try_send`
+                        // hands each batch to an already-idle worker first and only spawns a new
+                        // thread when every existing worker is busy.
+                        let spawn = |worker: usize, first: Vec<BatchItem>| -> bool {
+                            let work = move || {
+                                struct Stop<'a>(&'a crossbeam_channel::Sender<()>);
+                                impl Drop for Stop<'_> {
+                                    fn drop(&mut self) {
+                                        let _ = self.0.try_send(());
+                                    }
+                                }
+                                let _stop = Stop(stop_sender);
+                                if let Err(e) = infer_batches(
+                                    engine,
+                                    options,
+                                    first,
+                                    work_receiver,
+                                    result_sender,
+                                ) {
+                                    let _ = result_sender.send(Err(e));
+                                }
+                            };
+                            #[cfg(feature = "_trace")]
+                            let work = trace.stage(work);
+                            match std::thread::Builder::new()
+                                .name(format!("magika-infer-{worker}"))
+                                .spawn_scoped(scope, work)
                             {
-                                let _ = result_sender.send(Err(e));
+                                Ok(_) => true,
+                                Err(e) => {
+                                    let _ = result_sender.send(Err(e.into()));
+                                    false
+                                }
                             }
                         };
-                        #[cfg(feature = "_trace")]
-                        let work = trace.stage(work);
-                        let spawned = std::thread::Builder::new()
-                            .name(format!("magika-infer-{worker}"))
-                            .spawn_scoped(scope, work);
-                        if let Err(e) = spawned {
-                            let _ = result_sender.send(Err(e.into()));
+                        let mut limit = starting;
+                        let mut spawned = 0;
+                        while stop_receiver.is_empty() {
+                            let batch = crossbeam_channel::select! {
+                                recv(batch_receiver) -> batch => match batch {
+                                    Ok(batch) => batch,
+                                    Err(_) => break,
+                                },
+                                recv(stop_receiver) -> _ => break,
+                            };
+                            let Err(batch) = work_sender.try_send(batch) else { continue };
+                            let batch = batch.into_inner();
+                            if spawned < limit {
+                                if !spawn(spawned, batch) {
+                                    break;
+                                }
+                                spawned += 1;
+                            } else if limit < workers {
+                                match engine.send_or_gpu_failed(&work_sender, &stop_receiver, batch)
+                                {
+                                    Ok(true) => {}
+                                    Ok(false) => break,
+                                    Err(batch) => {
+                                        limit = workers;
+                                        if !spawn(spawned, batch) {
+                                            break;
+                                        }
+                                        spawned += 1;
+                                    }
+                                }
+                            } else {
+                                crossbeam_channel::select! {
+                                    send(work_sender, batch) -> _ => {}
+                                    recv(stop_receiver) -> _ => break,
+                                }
+                            }
                         }
-                    };
-                    let (done, finished) = crossbeam_channel::bounded(0);
-                    for worker in 0..starting {
-                        spawn(worker, Some(done.clone()));
-                    }
-                    drop(done);
-                    if engine.gpu_failed(&finished) {
-                        for worker in starting..workers {
-                            spawn(worker, None);
-                        }
-                    }
-                });
-            })
-        })?;
+                        drop(batch_receiver);
+                        drop(work_sender);
+                    });
+                })
+            })?;
+        }
         Ok(Identified {
             results: Some(result_receiver),
             reorder: Reorder::default(),
@@ -296,7 +346,8 @@ fn default_inference_threads(backend: Backend) -> usize {
 /// happens on several threads at once instead of serializing behind traversal.
 fn walk_paths(
     paths: Vec<PathBuf>, config: &PipelineOptions, options: &Options,
-    work_sender: &crossbeam_channel::Sender<Pending>, result_sender: &SyncSender<Result<Response>>,
+    work_sender: &crossbeam_channel::Sender<(Pending, Option<u64>)>,
+    result_sender: &SyncSender<Result<Response>>,
 ) -> Result<()> {
     let mut traversal = Traversal::new(paths);
     let mut order = 0;
@@ -307,7 +358,7 @@ fn walk_paths(
         }
         let pending = Pending { order, path };
         match processed {
-            Ok(ProcessPath::Content) => work_sender.send(pending)?,
+            Ok(ProcessPath::Content(length)) => work_sender.send((pending, length))?,
             Ok(ProcessPath::Ruled(file_type)) => {
                 result_sender.send(Ok(Response::new(pending, Ok(file_type))))?
             }
@@ -326,11 +377,11 @@ fn walk_paths(
 /// on a dedicated thread costs a system call per block instead, and there is nothing else for the
 /// thread to interleave anyway.
 fn read_files(
-    work_receiver: &crossbeam_channel::Receiver<Pending>, sender: &SyncSender<ReadItem>,
-    config: &PipelineOptions, options: &Options,
+    work_receiver: &crossbeam_channel::Receiver<(Pending, Option<u64>)>,
+    sender: &SyncSender<ReadItem>, config: &PipelineOptions, options: &Options,
 ) {
-    while let Ok(pending) = work_receiver.recv() {
-        let extracted = extract_path(&pending.path, config, options);
+    while let Ok((pending, length)) = work_receiver.recv() {
+        let extracted = extract_path(&pending.path, length, config, options);
         if sender.send(ReadItem { pending, extracted }).is_err() {
             break;
         }
@@ -369,23 +420,31 @@ fn batch_files(
 
 /// Reads a file and extracts its features, unless rules identify it.
 fn extract_path(
-    path: &Path, config: &PipelineOptions, options: &Options,
+    path: &Path, length: Option<u64>, config: &PipelineOptions, options: &Options,
 ) -> Result<FeaturesOr<RegularFileType>> {
     if config.stdin && path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
         return FeaturesOr::extract_content(&stdin[..], options);
     }
-    FeaturesOr::extract_content(std::fs::File::open(path)?, options)
+    let file = std::fs::File::open(path)?;
+    match length {
+        Some(len) => FeaturesOr::extract_cached(
+            crate::cached_input::CachedInput::with_length(file, len),
+            options,
+        ),
+        None => FeaturesOr::extract_content(file, options),
+    }
 }
 
 fn infer_batches(
-    engine: &Engine, options: &Options, receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>,
-    sender: &SyncSender<Result<Response>>,
+    engine: &Engine, options: &Options, first: Vec<BatchItem>,
+    receiver: &crossbeam_channel::Receiver<Vec<BatchItem>>, sender: &SyncSender<Result<Response>>,
 ) -> Result<()> {
     // Sessions are spawned on a backend's first batch: a short run never reaches most threads.
     let mut session = engine.session(Some(options.clone()));
-    while let Ok(batch) = receiver.recv() {
+    let mut next = Some(first);
+    while let Some(batch) = next.take().or_else(|| receiver.recv().ok()) {
         let features = batch.iter().map(|x| &x.features).collect::<Vec<_>>();
         let results = session.identify_features_batch(&features)?;
         debug_assert_eq!(results.len(), batch.len());
@@ -398,7 +457,7 @@ fn infer_batches(
 
 enum ProcessPath {
     Recursive,
-    Content,
+    Content(Option<u64>),
     Ruled(FileType),
 }
 
@@ -417,15 +476,20 @@ struct BatchItem {
     features: Features,
 }
 
+#[cfg(unix)]
+type DirId = (u64, u64);
+#[cfg(not(unix))]
+type DirId = PathBuf;
+
 /// A path still to process, or the point where traversal leaves a directory.
 enum WalkEntry {
     Path(PathBuf, Option<std::fs::FileType>),
-    LeaveDirectory(PathBuf),
+    LeaveDirectory(DirId),
 }
 
 struct Traversal {
     pending: Vec<WalkEntry>,
-    ancestors: HashSet<PathBuf>,
+    ancestors: HashSet<DirId>,
 }
 
 impl Traversal {
@@ -434,10 +498,24 @@ impl Traversal {
         Traversal { pending, ancestors: HashSet::new() }
     }
 
-    fn push(&mut self, path: &Path) -> Result<()> {
-        let canonical = std::fs::canonicalize(path)?;
-        ensure!(self.ancestors.insert(canonical.clone()), DIRECTORY_CYCLE);
-        self.pending.push(WalkEntry::LeaveDirectory(canonical));
+    #[allow(clippy::clone_on_copy)]
+    fn push(&mut self, path: &Path, meta: Option<std::fs::Metadata>) -> Result<()> {
+        #[cfg(unix)]
+        let id = {
+            use std::os::unix::fs::MetadataExt;
+            let meta = match meta {
+                Some(meta) => meta,
+                None => std::fs::metadata(path)?,
+            };
+            (meta.dev(), meta.ino())
+        };
+        #[cfg(not(unix))]
+        let id = {
+            let _ = meta;
+            std::fs::canonicalize(path)?
+        };
+        ensure!(self.ancestors.insert(id.clone()), DIRECTORY_CYCLE);
+        self.pending.push(WalkEntry::LeaveDirectory(id));
         Ok(())
     }
 
@@ -445,7 +523,7 @@ impl Traversal {
         while let Some(entry) = self.pending.pop() {
             match entry {
                 WalkEntry::Path(path, kind) => return Some((path, kind)),
-                WalkEntry::LeaveDirectory(path) => drop(self.ancestors.remove(&path)),
+                WalkEntry::LeaveDirectory(id) => drop(self.ancestors.remove(&id)),
             }
         }
         None
@@ -457,24 +535,27 @@ fn process_path(
     known: Option<std::fs::FileType>,
 ) -> Result<ProcessPath> {
     if config.stdin && path.to_str() == Some("-") {
-        return Ok(ProcessPath::Content);
+        return Ok(ProcessPath::Content(None));
     }
     // `read_dir` already reported the type of every entry it produced, so reading its metadata
     // again would be one extra system call per file on the one task that feeds every reader. Only
     // a symlink still needs a lookup, and only when it is being followed.
-    let metadata = match known {
-        Some(known) if !options.follow_symlink || !known.is_symlink() => known,
+    let (metadata, full_meta) = match known {
+        Some(known) if !options.follow_symlink || !known.is_symlink() => (known, None),
         _ => {
-            if options.follow_symlink {
-                std::fs::metadata(path)?.file_type()
+            let meta = if options.follow_symlink {
+                std::fs::metadata(path)?
             } else {
-                std::fs::symlink_metadata(path)?.file_type()
-            }
+                std::fs::symlink_metadata(path)?
+            };
+            (meta.file_type(), Some(meta))
         }
     };
     if metadata.is_dir() {
         return Ok(if config.recursive {
-            traversal.push(path)?;
+            if options.follow_symlink {
+                traversal.push(path, full_meta)?;
+            }
             let mut dir_paths = Vec::new();
             for entry in std::fs::read_dir(path)? {
                 let entry = entry?;
@@ -495,7 +576,7 @@ fn process_path(
     if !metadata.is_file() {
         return Ok(ProcessPath::Ruled(FileType::Unsupported));
     }
-    Ok(ProcessPath::Content)
+    Ok(ProcessPath::Content(full_meta.map(|m| m.len())))
 }
 
 #[derive(Default)]
@@ -675,5 +756,18 @@ mod tests {
         let engine = Arc::new(Engine::new(Builder::default().with_backend(Backend::Cpu)).unwrap());
         let config = PipelineOptions { batch_size: 0, ..PipelineOptions::default() };
         assert!(Pipeline::new(engine, Options::default(), config).is_err());
+    }
+
+    #[test]
+    fn identifies_without_model() {
+        let options = Options { use_model: false, ..Options::default() };
+        let builder = Builder::default().with_backend(Backend::Cpu).with_options(options.clone());
+        let engine = Arc::new(Engine::new(builder).unwrap());
+        let pipeline = Pipeline::new(engine, options, PipelineOptions::default()).unwrap();
+        let png = Path::new("../../tests_data/basic/png/magika_test.png");
+        let rust = Path::new("../../tests_data/basic/rust/code.rs");
+        let results = identify(&pipeline, &[png, rust]);
+        assert_eq!(label(&results[0].1), "unknown");
+        assert_eq!(label(&results[1].1), "txt");
     }
 }

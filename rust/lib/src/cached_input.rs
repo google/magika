@@ -16,6 +16,9 @@ use anyhow::Result;
 
 use crate::Input;
 
+/// Files up to this size are read in a single call instead of splitting prefix and suffix reads.
+const SMALL_FILE_MAX: usize = 64 * 1024;
+
 pub(crate) enum CachedInput<I: Input> {
     Partial { input: I, length: u64, prefix: Box<[u8]>, suffix: Box<[u8]> },
     Full { content: Box<[u8]> },
@@ -24,7 +27,11 @@ pub(crate) enum CachedInput<I: Input> {
 impl<I: Input> CachedInput<I> {
     pub(crate) fn new(input: I) -> Result<Self> {
         let length = input.length()?;
-        Ok(Self::Partial { input, length, prefix: Box::new([]), suffix: Box::new([]) })
+        Ok(Self::with_length(input, length))
+    }
+
+    pub(crate) fn with_length(input: I, length: u64) -> Self {
+        Self::Partial { input, length, prefix: Box::new([]), suffix: Box::new([]) }
     }
 
     pub(crate) fn length(&self) -> u64 {
@@ -45,7 +52,7 @@ impl<I: Input> CachedInput<I> {
         if len <= prefix.len() {
             return Ok(len);
         }
-        if *length <= len.saturating_add(suffix.len()) as u64 {
+        if *length <= SMALL_FILE_MAX.max(len.saturating_add(suffix.len())) as u64 {
             self.make_full()?;
             return Ok(len);
         }
@@ -79,7 +86,7 @@ impl<I: Input> CachedInput<I> {
         if len <= suffix.len() {
             return Ok(len);
         }
-        if *length <= prefix.len().saturating_add(len) as u64 {
+        if *length <= SMALL_FILE_MAX.max(prefix.len().saturating_add(len)) as u64 {
             self.make_full()?;
             return Ok(len);
         }

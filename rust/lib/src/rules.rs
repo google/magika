@@ -19,8 +19,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use magika_rules::{Class, Outcome, RuleSet, Source};
 
-use crate::ContentType;
-use crate::cached_input::CachedInput;
+use crate::{ContentType, Input};
 
 /// Format rules supplied by the caller, checked before the resolvers.
 ///
@@ -73,9 +72,7 @@ impl Rules {
     }
 
     /// Returns the content types of the rules that match a file.
-    pub(crate) fn identify(
-        &self, file: &mut CachedInput<impl crate::Input>,
-    ) -> Result<Vec<ContentType>> {
+    pub(crate) fn identify(&self, file: &mut Input) -> Result<Vec<ContentType>> {
         let rules = &self.0;
         let size = file.length();
         let prefix_len = file.ensure_prefix(magika_rules::PREFIX_LIMIT)?;

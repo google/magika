@@ -22,7 +22,7 @@ use std::thread::JoinHandle;
 use anyhow::{Result, ensure};
 
 use super::Engine;
-use crate::{Features, FeaturesOr, FileType, Options, RegularFileType};
+use crate::{Features, FeaturesOr, FileType, Input, Options, RegularFileType};
 
 /// Inference threads it takes to keep a GPU queued.
 ///
@@ -440,19 +440,18 @@ fn batch_files(
 fn extract_path(
     path: &Path, length: Option<u64>, config: &PipelineOptions, options: &Options,
 ) -> Result<FeaturesOr<RegularFileType>> {
-    if config.stdin && path.to_str() == Some("-") {
+    let input = if config.stdin && path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOr::extract_content(&stdin[..], options);
-    }
-    let file = std::fs::File::open(path)?;
-    match length {
-        Some(len) => FeaturesOr::extract_cached(
-            crate::cached_input::CachedInput::with_length(file, len),
-            options,
-        ),
-        None => FeaturesOr::extract_content(file, options),
-    }
+        Input::from_vec(stdin)
+    } else {
+        let file = std::fs::File::open(path)?;
+        match length {
+            Some(len) => Input::from_file_with_length(file, len),
+            None => Input::from_file(file)?,
+        }
+    };
+    FeaturesOr::extract_content(input, options)
 }
 
 fn infer_batches(

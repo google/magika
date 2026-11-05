@@ -163,6 +163,11 @@ struct Experimental {
     threads: Option<usize>,
 
     /// Number of resident threads reading files and extracting features.
+    ///
+    /// Reading and running rules or format resolvers happens here, while backpressure on the batch
+    /// queue throttles readers once model inference is the bottleneck. This defaults to at most
+    /// eight logical CPUs when rules or resolvers are enabled or the model is disabled, one when
+    /// only the model is used, and no more than the input paths when not walking recursively.
     #[arg(hide = true, long)]
     readers: Option<usize>,
 }
@@ -228,9 +233,7 @@ fn main() -> Result<()> {
     config.stdin = true;
     config.batch_size = batch_size;
     config.threads = threads;
-    if let Some(readers) = readers {
-        config.readers = readers;
-    }
+    config.readers = readers;
     let pipeline = Pipeline::new(Arc::new(Engine::new(builder)?), options, config)?;
     let mut errors = false;
     let result = match print(&flags, &mut errors, pipeline.identify_paths(flags.path.clone())?) {

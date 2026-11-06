@@ -164,10 +164,12 @@ struct Experimental {
 
     /// Number of resident threads reading files and extracting features.
     ///
-    /// Reading costs far less than inference, so this defaults to one per inference thread, which
-    /// is already more than a run makes use of.
-    #[arg(hide = true, long, default_value = "1")]
-    readers: usize,
+    /// Reading and running rules or format resolvers happens here, while backpressure on the batch
+    /// queue throttles readers once model inference is the bottleneck. This defaults to at most
+    /// eight logical CPUs when rules or resolvers are enabled or the model is disabled, one when
+    /// only the model is used, and no more than the input paths when not walking recursively.
+    #[arg(hide = true, long)]
+    readers: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
@@ -225,7 +227,7 @@ fn main() -> Result<()> {
     let threads = flags.experimental.threads;
     ensure!(threads.is_none_or(|x| (1..=256).contains(&x)), "--threads must be between 1 and 256");
     let readers = flags.experimental.readers;
-    ensure!((1..=256).contains(&readers), "--readers must be between 1 and 256");
+    ensure!(readers.is_none_or(|x| (1..=256).contains(&x)), "--readers must be between 1 and 256");
     let mut config = PipelineOptions::default();
     config.recursive = flags.recursive;
     config.stdin = true;
@@ -252,7 +254,7 @@ fn main() -> Result<()> {
 }
 
 fn print(flags: &Flags, errors: &mut bool, identified: Identified) -> Result<()> {
-    let mut stdout = std::io::stdout().lock();
+    let mut stdout = std::io::BufWriter::new(std::io::stdout().lock());
     if flags.format.json {
         write!(stdout, "[")?;
     }
@@ -279,6 +281,7 @@ fn print(flags: &Flags, errors: &mut bool, identified: Identified) -> Result<()>
         }
         writeln!(stdout, "]")?;
     }
+    stdout.flush()?;
     Ok(())
 }
 

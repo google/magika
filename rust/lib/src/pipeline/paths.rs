@@ -22,7 +22,7 @@ use std::thread::JoinHandle;
 use anyhow::{Result, ensure};
 
 use super::Engine;
-use crate::{Backend, Features, FeaturesOr, FileType, Options, RegularFileType};
+use crate::{Features, FeaturesOr, FileType, Input, Options, RegularFileType};
 
 /// Inference threads it takes to keep a GPU queued.
 ///
@@ -51,15 +51,25 @@ pub struct PipelineOptions {
     /// thread is one more core doing the work. This defaults accordingly: four on a GPU, all
     /// available logical CPUs on x86_64 Linux, and one fewer on other CPU targets.
     pub threads: Option<usize>,
-    /// Number of threads reading files and extracting features, between 1 and 256.
+    /// Number of threads reading files and extracting features, between 1 and 256, or `None` to
+    /// size them for the host and options.
     ///
-    /// Reading costs far less than inference, so one is already more than a run makes use of.
-    pub readers: usize,
+    /// Reading and running rules or format resolvers happens here, while backpressure on the batch
+    /// queue throttles readers once model inference is the bottleneck. This defaults to at most
+    /// eight logical CPUs when rules or resolvers are enabled or the model is disabled, one when
+    /// only the model is used, and no more than the input paths when not walking recursively.
+    pub readers: Option<usize>,
 }
 
 impl Default for PipelineOptions {
     fn default() -> Self {
-        PipelineOptions { recursive: false, stdin: false, batch_size: 8, threads: None, readers: 1 }
+        PipelineOptions {
+            recursive: false,
+            stdin: false,
+            batch_size: 8,
+            threads: None,
+            readers: None,
+        }
     }
 }
 
@@ -87,7 +97,7 @@ impl Pipeline {
             "the number of threads must be between 1 and 256"
         );
         ensure!(
-            (1..=256).contains(&config.readers),
+            config.readers.is_none_or(|x| (1..=256).contains(&x)),
             "the number of readers must be between 1 and 256"
         );
         Ok(Pipeline { engine, options, config })
@@ -101,17 +111,16 @@ impl Pipeline {
     pub fn identify_paths(&self, paths: Vec<PathBuf>) -> Result<Identified> {
         let Pipeline { engine, options, config } = self;
         let batch_size = config.batch_size;
-        // Queues are sized before knowing which backend identifies the files, so for the busiest.
-        let threads = config.threads.unwrap_or_else(|| {
-            default_inference_threads(Backend::Cpu).max(default_inference_threads(Backend::Gpu))
-        });
+        let ThreadCounts { readers, queue_threads, workers, starting } =
+            thread_counts(config, options, engine.has_gpu(), paths.len());
         let (work_sender, work_receiver) =
-            crossbeam_channel::bounded::<(Pending, Option<u64>)>(config.readers);
+            crossbeam_channel::bounded::<(Pending, Option<u64>)>(readers);
         let (read_sender, read_receiver) =
-            std::sync::mpsc::sync_channel::<ReadItem>(threads * batch_size);
-        let (batch_sender, batch_receiver) = crossbeam_channel::bounded::<Vec<BatchItem>>(threads);
+            std::sync::mpsc::sync_channel::<ReadItem>(queue_threads * batch_size);
+        let (batch_sender, batch_receiver) =
+            crossbeam_channel::bounded::<Vec<BatchItem>>(queue_threads);
         let (result_sender, result_receiver) =
-            std::sync::mpsc::sync_channel::<Result<Response>>(threads * batch_size);
+            std::sync::mpsc::sync_channel::<Result<Response>>(queue_threads * batch_size);
         #[cfg(feature = "_trace")]
         let trace = Trace::default();
         let mut handles = Vec::new();
@@ -130,7 +139,7 @@ impl Pipeline {
                 }
             })
         })?;
-        for index in 0..config.readers {
+        for index in 0..readers {
             let (config, options) = (config.clone(), options.clone());
             let (work_receiver, read_sender) = (work_receiver.clone(), read_sender.clone());
             spawn(
@@ -152,21 +161,10 @@ impl Pipeline {
         drop(batch_sender);
         if options.use_model {
             spawn("magika-model".to_string(), {
-                let (engine, options, config) = (engine.clone(), options.clone(), config.clone());
+                let (engine, options) = (engine.clone(), options.clone());
                 #[cfg(feature = "_trace")]
                 let trace = trace.clone();
                 Box::new(move || {
-                    let workers =
-                        config.threads.unwrap_or_else(|| default_inference_threads(Backend::Cpu));
-                    // The CPU competes with preparing the GPU, which a long run waits for, so the
-                    // workers leave it a third of the host until it is ready. A GPU is as fast with
-                    // as many workers.
-                    let starting = match (engine.has_gpu(), config.threads) {
-                        (false, _) | (true, Some(_)) => workers,
-                        (true, None) => (workers * 2 / 3)
-                            .max(default_inference_threads(Backend::Gpu))
-                            .min(workers),
-                    };
                     let (work_sender, work_receiver) = crossbeam_channel::bounded(0);
                     let (stop_sender, stop_receiver) = crossbeam_channel::bounded(1);
                     let (engine, options) = (&*engine, &options);
@@ -258,7 +256,7 @@ impl Pipeline {
             reorder: Reorder::default(),
             handles,
             #[cfg(feature = "_trace")]
-            trace: (trace, config.readers),
+            trace: (trace, readers),
         })
     }
 }
@@ -313,31 +311,51 @@ impl Drop for Identified {
     }
 }
 
-/// Returns how many inference threads it takes to keep a backend busy.
+struct ThreadCounts {
+    readers: usize,
+    queue_threads: usize,
+    workers: usize,
+    starting: usize,
+}
+
+/// Sizes the reader and inference thread pools for the host, backend, and active stages.
 ///
 /// `available_parallelism` is the portable answer on every target magika ships to, and it reports
 /// what this process may use rather than what the machine is built from, so a container's CPU quota
 /// and a restricted affinity mask both count.
-fn default_inference_threads(backend: Backend) -> usize {
+fn thread_counts(
+    config: &PipelineOptions, options: &Options, has_gpu: bool, paths: usize,
+) -> ThreadCounts {
     let available = std::thread::available_parallelism().map_or(1, |x| x.get()).min(256);
-    match backend {
-        // The device is the limit, not the host, so never ask the host for more than it takes to
-        // keep the device queued, nor for more than it has.
-        Backend::Gpu => available.min(GPU_INFERENCE_THREADS),
-        Backend::Cpu => {
-            // The x86_64 Linux inference graph benefits from both SMT siblings, and traversal is
-            // too small to justify reserving a logical CPU. Keep the original portable/macOS
-            // policy, whose graph and host scheduling have different scaling behavior.
-            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-            {
-                available
-            }
-            #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
-            {
-                available.saturating_sub(1).max(1)
-            }
+    let has_rules = options.use_resolvers || options.use_custom_rules.is_some();
+    let readers = config.readers.unwrap_or_else(|| {
+        let max_readers = if has_rules || !options.use_model { available.min(8) } else { 1 };
+        match (config.recursive, paths) {
+            (_, 0) => 1,
+            (false, n) => max_readers.min(n),
+            (true, _) => max_readers,
         }
-    }
+    });
+    // The device is the limit on a GPU, not the host, so never ask the host for more than it takes
+    // to keep the device queued, nor for more than it has.
+    let gpu_threads = available.min(GPU_INFERENCE_THREADS);
+    // The x86_64 Linux inference graph benefits from both SMT siblings, and traversal is too small
+    // to justify reserving a logical CPU. Keep the original portable/macOS policy, whose graph and
+    // host scheduling have different scaling behavior.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    let cpu_threads = available;
+    #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+    let cpu_threads = available.saturating_sub(1).max(1);
+    // Queues are sized before knowing which backend identifies the files, so for the busiest.
+    let queue_threads = config.threads.unwrap_or_else(|| cpu_threads.max(gpu_threads));
+    let workers = config.threads.unwrap_or(cpu_threads);
+    // The CPU competes with preparing the GPU, which a long run waits for, so the workers leave it
+    // a third of the host until it is ready. A GPU is as fast with as many workers.
+    let starting = match (has_gpu, config.threads) {
+        (false, _) | (true, Some(_)) => workers,
+        (true, None) => (workers * 2 / 3).max(gpu_threads).min(workers),
+    };
+    ThreadCounts { readers, queue_threads, workers, starting }
 }
 
 /// Walks the requested paths and hands regular files to the read threads.
@@ -422,19 +440,18 @@ fn batch_files(
 fn extract_path(
     path: &Path, length: Option<u64>, config: &PipelineOptions, options: &Options,
 ) -> Result<FeaturesOr<RegularFileType>> {
-    if config.stdin && path.to_str() == Some("-") {
+    let input = if config.stdin && path.to_str() == Some("-") {
         let mut stdin = Vec::new();
         std::io::stdin().read_to_end(&mut stdin)?;
-        return FeaturesOr::extract_content(&stdin[..], options);
-    }
-    let file = std::fs::File::open(path)?;
-    match length {
-        Some(len) => FeaturesOr::extract_cached(
-            crate::cached_input::CachedInput::with_length(file, len),
-            options,
-        ),
-        None => FeaturesOr::extract_content(file, options),
-    }
+        Input::from_vec(stdin)
+    } else {
+        let file = std::fs::File::open(path)?;
+        match length {
+            Some(len) => Input::from_file_with_length(file, len),
+            None => Input::from_file(file)?,
+        }
+    };
+    FeaturesOr::extract_content(input, options)
 }
 
 fn infer_batches(
@@ -676,7 +693,7 @@ impl Trace {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Builder, Runtime};
+    use crate::{Backend, Builder, Runtime};
 
     fn pipeline(recursive: bool) -> Pipeline {
         let engine = Arc::new(Engine::new(Builder::default().with_backend(Backend::Cpu)).unwrap());

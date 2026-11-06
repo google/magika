@@ -180,7 +180,7 @@ impl EngineSession<'_> {
     }
 
     /// Identifies content.
-    pub fn identify_content(&mut self, input: impl Input) -> Result<RegularFileType> {
+    pub fn identify_content<'a>(&mut self, input: impl Into<Input<'a>>) -> Result<RegularFileType> {
         match FeaturesOr::extract_content(input, &self.options)? {
             FeaturesOr::Ruled(file_type) => Ok(file_type),
             FeaturesOr::Features(features) => {

@@ -257,11 +257,11 @@ impl PyMagika {
         // Dropping a session touches tract's own thread-locals, which tract creates when it first
         // runs the model. Thread-locals are destroyed in reverse order of creation, so running the
         // model before `SESSION` is created keeps them alive while `SESSION` is destroyed.
-        if !WARMED_UP.replace(true) {
+        if !WARMED_UP.get() {
             let mut options = Options::default();
-            options.use_builtin_rules = false;
             options.use_resolvers = false;
             engine.session(Some(options)).identify_content(&[b'a'; 64][..])?;
+            WARMED_UP.set(true);
         }
         SESSION.with(|cell| {
             let mut slot = cell.borrow_mut();

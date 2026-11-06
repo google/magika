@@ -314,7 +314,7 @@ fn find_one_hot_embedding(
             let Some(classes) = model.outlet_fact(equal.inputs[constant_slot])?.concretize() else {
                 continue;
             };
-            let Ok(classes) = classes.try_as_plain() else {
+            let Ok(classes) = classes.try_as_plain_ram() else {
                 continue;
             };
             let Ok(classes) = classes.as_slice::<i32>() else {

@@ -122,7 +122,9 @@ macro_rules! require {
     };
 }
 
-pub(crate) use {bytes, guid, require};
+pub(crate) use bytes;
+pub(crate) use guid;
+pub(crate) use require;
 
 /// Big-endian `u32` representation of a 4-byte ASCII tag.
 #[inline]

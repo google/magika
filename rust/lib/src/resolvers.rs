@@ -375,7 +375,8 @@ mod tests {
         let tail = &bytes[bytes.len() - magic::ZIP_TAIL_BYTES..];
         let start = magic::directory_start(tail, size).unwrap();
         assert!(start < size - tail.len() as u64);
-        let valid = |tail| magic::identify(&magic::Ctx { prefix, size, tail: Some(tail) }).is_some();
+        let valid =
+            |tail| magic::identify(&magic::Ctx { prefix, size, tail: Some(tail) }).is_some();
         assert!(!valid(tail));
         assert!(valid(&bytes[start as usize..]));
     }

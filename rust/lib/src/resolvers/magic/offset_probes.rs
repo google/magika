@@ -14,8 +14,8 @@
 
 //! Tier 4 (`offset_probes`): length-gated signatures at fixed non-zero offsets or trailers.
 
-use crate::ContentType as Label;
 use super::*;
+use crate::ContentType as Label;
 
 /// Tier 4 (`offset_probes`): probes fixed non-zero offsets and container trailers.
 #[inline]

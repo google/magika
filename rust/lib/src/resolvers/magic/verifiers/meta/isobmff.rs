@@ -26,14 +26,13 @@ pub(crate) fn ftyp(prefix: &[u8]) -> Option<Label> {
     const MAJOR_BRAND: usize = 8; // @8..12: 4-byte major brand code
     const MIN_LEN: usize = 16; // 8-byte box header + 4-byte major brand + 4-byte minor version
     const BRANDS_3GP: &[&[u8; 4]] = &[
-        b"3ge6", b"3ge7", b"3ge9", b"3gg6", b"3gg9", b"3gh9", b"3gm9", b"3gmA", b"3gp1",
-        b"3gp2", b"3gp3", b"3gp4", b"3gp5", b"3gp6", b"3gp7", b"3gp8", b"3gp9", b"3gr6",
-        b"3gr9", b"3gs6", b"3gs7", b"3gs9", b"3gt8", b"3gt9", b"3gtv",
+        b"3ge6", b"3ge7", b"3ge9", b"3gg6", b"3gg9", b"3gh9", b"3gm9", b"3gmA", b"3gp1", b"3gp2",
+        b"3gp3", b"3gp4", b"3gp5", b"3gp6", b"3gp7", b"3gp8", b"3gp9", b"3gr6", b"3gr9", b"3gs6",
+        b"3gs7", b"3gs9", b"3gt8", b"3gt9", b"3gtv",
     ];
     const BRANDS_AVIF: &[&[u8; 4]] = &[b"avif", b"avis"];
-    const BRANDS_HEIF: &[&[u8; 4]] = &[
-        b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"hevm", b"hevs",
-    ];
+    const BRANDS_HEIF: &[&[u8; 4]] =
+        &[b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"hevm", b"hevs"];
 
     require!(prefix.len() >= MIN_LEN, eq_at(prefix, 4, FTYP_BOX));
     let box_len = be32(prefix, BOX_LEN)?;

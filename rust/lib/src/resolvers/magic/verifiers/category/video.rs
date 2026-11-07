@@ -104,10 +104,16 @@ pub(crate) fn mpegts(prefix: &[u8]) -> Option<Label> {
         has_bin
     }
 
-    if prefix.len() >= TS_MIN_LEN && u8_at(prefix, 0) == Some(SYNC) && valid_packets(prefix, 0, TS_STRIDE) {
+    if prefix.len() >= TS_MIN_LEN
+        && u8_at(prefix, 0) == Some(SYNC)
+        && valid_packets(prefix, 0, TS_STRIDE)
+    {
         return Some(Label::Mpegts);
     }
-    if prefix.len() >= M2TS_MIN_LEN && u8_at(prefix, 4) == Some(SYNC) && valid_packets(prefix, 4, M2TS_STRIDE) {
+    if prefix.len() >= M2TS_MIN_LEN
+        && u8_at(prefix, 4) == Some(SYNC)
+        && valid_packets(prefix, 4, M2TS_STRIDE)
+    {
         return Some(Label::Mpegts);
     }
     None
@@ -150,9 +156,7 @@ pub(crate) fn srt(prefix: &[u8], size: u64) -> Option<Label> {
     }
     require!((1..=6).contains(&idx_len));
     let after_idx = &win[idx_len..];
-    let after_nl = after_idx
-        .strip_prefix(b"\r\n")
-        .or_else(|| after_idx.strip_prefix(b"\n"))?;
+    let after_nl = after_idx.strip_prefix(b"\r\n").or_else(|| after_idx.strip_prefix(b"\n"))?;
     require!(
         after_nl.len() >= 29,
         after_nl[2] == b':',

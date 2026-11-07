@@ -14,8 +14,8 @@
 
 //! Tier 3 (`magic8`): 1-byte stream dispatch at offset 0.
 
-use crate::ContentType as Label;
 use super::*;
+use crate::ContentType as Label;
 
 /// Tier 3 (`magic8`): dispatches on the leading byte `b0` at offset 0.
 #[inline]

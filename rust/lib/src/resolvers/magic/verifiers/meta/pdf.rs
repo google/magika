@@ -62,31 +62,33 @@ pub(crate) fn pdf_or_ai_at(prefix: &[u8], size: u64, offset: usize) -> Option<La
             || contains(rest, PDF_TRAILER_TAG)
             || contains(rest, PDF_PAGES_TAG)
             || contains(rest, PDF_ROOT_TAG));
-    let valid_ver = if starts(rest, PDF_V1_MAGIC) || starts(rest, PDF_V2_MAGIC) || starts(rest, PDF_V0_MAGIC) {
-        if rest.len() >= 8 && u8_at(rest, 7)?.is_ascii_digit() {
-            rest.len() == 8
-                || matches!(
-                    u8_at(rest, 8)?,
-                    b'\r' | b'\n' | b' ' | b'\t' | b'%' | b'/' | 0x00 | 0x80..=0xFF
-                )
+    let valid_ver =
+        if starts(rest, PDF_V1_MAGIC) || starts(rest, PDF_V2_MAGIC) || starts(rest, PDF_V0_MAGIC) {
+            if rest.len() >= 8 && u8_at(rest, 7)?.is_ascii_digit() {
+                rest.len() == 8
+                    || matches!(
+                        u8_at(rest, 8)?,
+                        b'\r' | b'\n' | b' ' | b'\t' | b'%' | b'/' | 0x00 | 0x80..=0xFF
+                    )
+            } else {
+                // Truncated minor version (`%PDF-1.\r`, `%PDF-1.\n`, `%PDF-1. `, `%PDF-1.\0`)
+                rest.len() >= 8
+                    && matches!(u8_at(rest, 7)?, b'\r' | b'\n' | b' ' | b'\t' | 0x00)
+                    && (offset == 0 || has_body_tokens)
+            }
+        } else if starts(rest, PDF_NULL_MAGIC) || starts(rest, PDF_XREF_MAGIC) {
+            // Minimal/truncated `%PDF-\0` or `%PDF-xref` header with PDF object/trailer syntax
+            contains(rest, PDF_DICT_OPEN)
+                && (contains(rest, PDF_OBJ_TAG) || contains(rest, PDF_TRAILER_TAG))
         } else {
-            // Truncated minor version (`%PDF-1.\r`, `%PDF-1.\n`, `%PDF-1. `, `%PDF-1.\0`)
-            rest.len() >= 8
-                && matches!(u8_at(rest, 7)?, b'\r' | b'\n' | b' ' | b'\t' | 0x00)
-                && (offset == 0 || has_body_tokens)
-        }
-    } else if starts(rest, PDF_NULL_MAGIC) || starts(rest, PDF_XREF_MAGIC) {
-        // Minimal/truncated `%PDF-\0` or `%PDF-xref` header with PDF object/trailer syntax
-        contains(rest, PDF_DICT_OPEN) && (contains(rest, PDF_OBJ_TAG) || contains(rest, PDF_TRAILER_TAG))
-    } else {
-        // Minimal `%PDF` header (accepted by PDFium/Chrome when followed by PDF object dictionary)
-        (offset == 0 || matches!(u8_at(prefix, offset - 1)?, b'\r' | b'\n'))
-            && rest.len() >= 5
-            && rest[4..rest.len().min(20)]
-                .iter()
-                .any(|&b| matches!(b, b'\r' | b'\n' | b' ' | b'\t' | 0x00))
-            && has_body_tokens
-    };
+            // Minimal `%PDF` header (accepted by PDFium/Chrome when followed by PDF object dictionary)
+            (offset == 0 || matches!(u8_at(prefix, offset - 1)?, b'\r' | b'\n'))
+                && rest.len() >= 5
+                && rest[4..rest.len().min(20)]
+                    .iter()
+                    .any(|&b| matches!(b, b'\r' | b'\n' | b' ' | b'\t' | 0x00))
+                && has_body_tokens
+        };
     require!(valid_ver);
     let _ = get_slice(prefix, offset, prefix.len().min(offset + 64));
     if contains(prefix, AI_PRIVATE_DATA)

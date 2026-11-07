@@ -45,8 +45,7 @@ pub(crate) fn blend(prefix: &[u8]) -> Option<Label> {
 /// `18`, `21`, `24`, `27`, `32`), five zero bytes at `@6..11`, and ≥ 128-byte header.
 pub(crate) fn dwg(prefix: &[u8]) -> Option<Label> {
     const MAGIC: &[u8] = b"AC10"; // @0..4: AutoCAD DWG version prefix
-    const VERSIONS: &[&[u8]] =
-        &[b"09", b"12", b"14", b"15", b"18", b"21", b"24", b"27", b"32"];
+    const VERSIONS: &[&[u8]] = &[b"09", b"12", b"14", b"15", b"18", b"21", b"24", b"27", b"32"];
     const ZERO_PAD: usize = 6; // @6..11: 5 reserved zero bytes
     const MIN_LEN: usize = 128;
 
@@ -192,7 +191,7 @@ pub(crate) fn three_dsm_legacy(prefix: &[u8], size: u64) -> Option<Label> {
         prefix.len() >= MIN_LEN,
         starts(prefix, LEGACY_3DS_MAGIC),
         le32(prefix, 4)? >= MIN_LEN as u32,
-        get_slice(prefix, 8, MIN_LEN)?.iter().any(|&b| b == 0),
+        get_slice(prefix, 8, MIN_LEN)?.contains(&0),
     );
     Some(Label::_3dsm)
 }
@@ -203,11 +202,7 @@ pub(crate) const STL_SOLID_PREFIX: &[u8; 6] = b"solid ";
 /// triangle count at `@80` validated by `crate::deep::cad::verify_stl_binary` or
 /// exact `84 + num_triangles * 50 == size` geometry.
 pub(crate) fn stl_binary(prefix: &[u8], size: u64) -> Option<Label> {
-    require!(
-        size >= 84,
-        prefix.len() >= 84,
-        !starts(prefix, STL_SOLID_PREFIX),
-    );
+    require!(size >= 84, prefix.len() >= 84, !starts(prefix, STL_SOLID_PREFIX),);
     let n_tri = le32(prefix, 80)? as u64;
     require!(n_tri <= 50_000_000, 84 + n_tri * 50 == size);
     let has_banner = starts(prefix, b"STLB ")
@@ -250,11 +245,7 @@ pub(crate) fn stl_ascii(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn dxf_binary(prefix: &[u8], size: u64) -> Option<Label> {
     const DXF_BINARY_MAGIC: &[u8; 22] = b"AutoCAD Binary DXF\r\n\x1A\x00";
 
-    require!(
-        size >= 22,
-        prefix.len() >= 22,
-        starts(prefix, DXF_BINARY_MAGIC),
-    );
+    require!(size >= 22, prefix.len() >= 22, starts(prefix, DXF_BINARY_MAGIC),);
     Some(Label::Dxf)
 }
 
@@ -327,7 +318,9 @@ pub(crate) fn lightwave_scene(prefix: &[u8], size: u64) -> Option<Label> {
     require!(
         size >= 16,
         prefix.len() >= 12,
-        starts(prefix, LWSC_LF_MAGIC) || starts(prefix, LWSC_CRLF_MAGIC) || starts(prefix, LWS_LF_MAGIC),
+        starts(prefix, LWSC_LF_MAGIC)
+            || starts(prefix, LWSC_CRLF_MAGIC)
+            || starts(prefix, LWS_LF_MAGIC),
         is_utf8_text_header(prefix, size as usize),
     );
     Some(Label::Lightwave)
@@ -343,7 +336,8 @@ pub(crate) fn maya_binary(prefix: &[u8], size: u64) -> Option<Label> {
         size >= 16,
         prefix.len() >= 16,
         u8_at(prefix, 4)? == 0,
-        (starts(prefix, IFF_FOR4_MAGIC) && (eq_at(prefix, 8, MAYA_UPPER_FORM) || eq_at(prefix, 8, MAYA_MIXED_FORM)))
+        (starts(prefix, IFF_FOR4_MAGIC)
+            && (eq_at(prefix, 8, MAYA_UPPER_FORM) || eq_at(prefix, 8, MAYA_MIXED_FORM)))
             || (starts(prefix, IFF_FOR8_MAGIC)
                 && (eq_at(prefix, 12, MAYA_UPPER_FORM) || eq_at(prefix, 12, MAYA_MIXED_FORM))),
     );
@@ -388,10 +382,7 @@ pub(crate) fn usd(prefix: &[u8], size: u64) -> Option<Label> {
         require!(u8_at(prefix, 8)? <= 2);
         return Some(Label::Usd);
     }
-    require!(
-        starts(prefix, USDA_ASCII_MAGIC),
-        is_utf8_text_header(prefix, size as usize),
-    );
+    require!(starts(prefix, USDA_ASCII_MAGIC), is_utf8_text_header(prefix, size as usize),);
     Some(Label::Usd)
 }
 
@@ -424,8 +415,7 @@ pub(crate) fn zbrush(prefix: &[u8], size: u64) -> Option<Label> {
         prefix.len() >= 24,
         ((starts(prefix, ZBR4_MAGIC) || starts(prefix, ZBRUSH_COPYRIGHT_HDR))
             && has_non_ascii_text_byte(&prefix[4..24]))
-            || (starts(prefix, ZPR_HDR_LEN_MAGIC)
-                && contains(prefix, ZBRUSH_NAME_TAG)),
+            || (starts(prefix, ZPR_HDR_LEN_MAGIC) && contains(prefix, ZBRUSH_NAME_TAG)),
     );
     Some(Label::Zbrush)
 }
@@ -459,7 +449,9 @@ pub(crate) fn mtl(prefix: &[u8], size: u64) -> Option<Label> {
         prefix.len() >= 16,
         (starts(prefix, WAVEFRONT_COMMENT) || starts(prefix, MTL_NEWMTL_KW))
             && contains(prefix, MTL_NEWMTL_KW)
-            && (contains(prefix, MTL_KD_LF) || contains(prefix, MTL_KA_LF) || contains(prefix, MTL_KD_CRLF)),
+            && (contains(prefix, MTL_KD_LF)
+                || contains(prefix, MTL_KA_LF)
+                || contains(prefix, MTL_KD_CRLF)),
         is_utf8_text_header(prefix, size as usize),
     );
     Some(Label::Mtl)

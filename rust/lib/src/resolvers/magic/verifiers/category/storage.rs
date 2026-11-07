@@ -102,11 +102,7 @@ pub(crate) fn dmg_header(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn dmg_koly(size: u64, tail: Option<&[u8]>) -> Option<Label> {
     const DMG_KOLY_MAGIC: &[u8] = bytes!(b"koly", &4u32.to_be_bytes(), &512u32.to_be_bytes());
     let t = tail?;
-    require!(
-        size >= 512,
-        t.len() >= 512,
-        eq_at(t, t.len() - 512, DMG_KOLY_MAGIC),
-    );
+    require!(size >= 512, t.len() >= 512, eq_at(t, t.len() - 512, DMG_KOLY_MAGIC),);
     Some(Label::Dmg)
 }
 
@@ -154,7 +150,7 @@ pub(crate) fn dosmbr(prefix: &[u8], size: u64) -> Option<Label> {
 /// Block (`@11..22`) with power-of-two `spc`, valid media descriptor, and `tot16 * 512 == size`.
 pub(crate) fn img_fat12(prefix: &[u8], size: u64) -> Option<Label> {
     require!(
-        size >= 2048 && size % 512 == 0,
+        size >= 2048 && size.is_multiple_of(512),
         prefix.len() >= 32,
         matches!(prefix[0], 0xEB | 0xE9),
     );

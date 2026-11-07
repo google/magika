@@ -243,9 +243,7 @@ pub(crate) fn is_all_zeros(slice: &[u8]) -> bool {
 /// if it contains `0x00`, disallowed C0 control bytes, `0x7F`, or invalid UTF-8 sequences.
 #[inline]
 pub(crate) fn raw_utf8_text_first_bad_offset(
-    slice: &[u8],
-    size: usize,
-    extra_ctrl_mask: u32,
+    slice: &[u8], size: usize, extra_ctrl_mask: u32,
 ) -> Option<usize> {
     if slice.is_empty() {
         return Some(0);
@@ -296,9 +294,7 @@ pub(crate) fn is_utf8_text_header(prefix: &[u8], size: usize) -> bool {
 /// (i.e. any byte outside `0x20..=0x7E`, `\t`, `\n`, `\r`).
 #[inline]
 pub(crate) fn has_non_ascii_text_byte(slice: &[u8]) -> bool {
-    slice
-        .iter()
-        .any(|&b| !matches!(b, 0x20..=0x7E | b'\t' | b'\n' | b'\r'))
+    slice.iter().any(|&b| !matches!(b, 0x20..=0x7E | b'\t' | b'\n' | b'\r'))
 }
 
 /// Validates that the entire header buffer `prefix` is mostly printable text:

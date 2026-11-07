@@ -29,7 +29,8 @@ pub(crate) fn ipynb_or_json(prefix: &[u8], size: u64) -> Option<Label> {
     if starts(prefix, UTF8_BOM) {
         i = 3;
     }
-    while i < prefix.len().min(64) && matches!(u8_at(prefix, i), Some(b' ' | b'\t' | b'\r' | b'\n')) {
+    while i < prefix.len().min(64) && matches!(u8_at(prefix, i), Some(b' ' | b'\t' | b'\r' | b'\n'))
+    {
         i += 1;
     }
     let open = u8_at(prefix, i)?;
@@ -43,15 +44,14 @@ pub(crate) fn ipynb_or_json(prefix: &[u8], size: u64) -> Option<Label> {
     }
     // Validate JSON structure: '{' followed by whitespace and '"' or '}', or '[' followed by valid value
     let mut j = i + 1;
-    while j < prefix.len().min(i + 64) && matches!(u8_at(prefix, j), Some(b' ' | b'\t' | b'\r' | b'\n')) {
+    while j < prefix.len().min(i + 64)
+        && matches!(u8_at(prefix, j), Some(b' ' | b'\t' | b'\r' | b'\n'))
+    {
         j += 1;
     }
     let next = u8_at(prefix, j)?;
     if open == b'{' {
-        require!(
-            (next == b'"' && contains(prefix, b":"))
-                || (next == b'}' && size <= 64)
-        );
+        require!((next == b'"' && contains(prefix, b":")) || (next == b'}' && size <= 64));
         return Some(Label::Json);
     }
     if open == b'[' {
@@ -194,9 +194,6 @@ pub(crate) fn gltf_json(prefix: &[u8]) -> Option<Label> {
     i += 1;
     require!(skip_ws(prefix, &mut i, 16), u8_at(prefix, i) == Some(b'['),);
     i += 1;
-    require!(
-        skip_ws(prefix, &mut i, 64),
-        eq_at(prefix, i, EXT_KHR) || eq_at(prefix, i, EXT_EXT),
-    );
+    require!(skip_ws(prefix, &mut i, 64), eq_at(prefix, i, EXT_KHR) || eq_at(prefix, i, EXT_EXT),);
     Some(Label::Gltf)
 }

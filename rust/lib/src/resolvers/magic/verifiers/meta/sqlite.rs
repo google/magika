@@ -49,11 +49,7 @@ pub(crate) fn sqlite_family(prefix: &[u8], size: u64) -> Option<Label> {
     const MBTILES_TABLE_METADATA: &[u8] = b"CREATE TABLE metadata";
     const SQLITE_FRACTIONS: &[u8; 3] = &[64, 32, 32];
 
-    require!(
-        size >= 100,
-        prefix.len() >= 100,
-        starts(prefix, SQLITE3_MAGIC),
-    );
+    require!(size >= 100, prefix.len() >= 100, starts(prefix, SQLITE3_MAGIC),);
     let app_id = be32(prefix, APP_ID)?;
     if matches!(app_id, APP_GPKG | APP_GP10) {
         return Some(Label::Geopackage);

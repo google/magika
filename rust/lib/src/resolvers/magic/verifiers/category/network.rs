@@ -157,9 +157,7 @@ pub(crate) fn torrent(prefix: &[u8]) -> Option<Label> {
     );
     let valid = (starts(prefix, ROOT_ANNOUNCE) && has_tracker_url(&prefix[11..]))
         || (starts(prefix, ROOT_ANNOUNCE_LIST_LL) && has_tracker_url(&prefix[19..]))
-        || (scan_range(prefix, 0, 4089, TAG_INFOD)
-            && has_piece_length(prefix)
-            && has_name(prefix));
+        || (scan_range(prefix, 0, 4089, TAG_INFOD) && has_piece_length(prefix) && has_name(prefix));
     require!(valid);
     let _ = get_slice(prefix, 0, prefix.len().min(96));
     Some(Label::Torrent)

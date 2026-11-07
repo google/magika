@@ -70,11 +70,15 @@ pub(crate) fn npy(prefix: &[u8]) -> Option<Label> {
     let ok = match u8_at(prefix, MAJOR)? {
         1 => {
             let len = le16(prefix, HDR_LEN)?;
-            len >= 54 && len % 16 == 6 && get_slice(prefix, 10, prefix.len()).is_some_and(match_dict)
+            len >= 54
+                && len % 16 == 6
+                && get_slice(prefix, 10, prefix.len()).is_some_and(match_dict)
         }
         2 | 3 => {
             let len = le32(prefix, HDR_LEN)?;
-            len >= 52 && len % 16 == 4 && get_slice(prefix, 12, prefix.len()).is_some_and(match_dict)
+            len >= 52
+                && len % 16 == 4
+                && get_slice(prefix, 12, prefix.len()).is_some_and(match_dict)
         }
         _ => false,
     };
@@ -187,8 +191,24 @@ pub(crate) fn pickle_binary(prefix: &[u8], size: u64) -> Option<Label> {
     let op = u8_at(prefix, 2)?;
     require!(matches!(
         op,
-        0x95 | b'}' | b']' | b'(' | b')' | b'c' | b'C' | b'B' | b'X' | b'U' | b'K' | b'M' | b'J'
-            | b'G' | 0x89 | 0x88 | b'N' | 0x8C | 0x94
+        0x95 | b'}'
+            | b']'
+            | b'('
+            | b')'
+            | b'c'
+            | b'C'
+            | b'B'
+            | b'X'
+            | b'U'
+            | b'K'
+            | b'M'
+            | b'J'
+            | b'G'
+            | 0x89
+            | 0x88
+            | b'N'
+            | 0x8C
+            | 0x94
     ));
     let _ = get_slice(prefix, 0, 8);
     Some(Label::Pickle)
@@ -227,7 +247,9 @@ pub(crate) fn textproto(prefix: &[u8], size: u64) -> Option<Label> {
         size >= 20,
         prefix.len() >= 20,
         (starts(prefix, PROTO_FILE_HEADER) && contains(prefix, PROTO_MESSAGE_HEADER))
-            || (starts(prefix, TF_NODE_OPEN) && contains(prefix, TF_NAME_FIELD) && contains(prefix, TF_OP_FIELD)),
+            || (starts(prefix, TF_NODE_OPEN)
+                && contains(prefix, TF_NAME_FIELD)
+                && contains(prefix, TF_OP_FIELD)),
         is_utf8_text_header(prefix, size as usize),
     );
     Some(Label::Textproto)
@@ -377,14 +399,29 @@ pub(crate) fn protobuf(prefix: &[u8], size: u64) -> Option<Label> {
         if !(name.ends_with(PROTO_EXT) || name.ends_with(PROTODEVEL_EXT)) {
             return None;
         }
-        if !name.iter().all(|&b| b.is_ascii_alphanumeric() || matches!(b, b'/' | b'.' | b'_' | b'-')) {
+        if !name
+            .iter()
+            .all(|&b| b.is_ascii_alphanumeric() || matches!(b, b'/' | b'.' | b'_' | b'-'))
+        {
             return None;
         }
         p += name_len;
         let next_tag = *slice.get(p)?;
         if !matches!(
             next_tag,
-            0x12 | 0x1A | 0x22 | 0x2A | 0x32 | 0x3A | 0x42 | 0x4A | 0x50 | 0x52 | 0x58 | 0x5A | 0x62 | 0x70
+            0x12 | 0x1A
+                | 0x22
+                | 0x2A
+                | 0x32
+                | 0x3A
+                | 0x42
+                | 0x4A
+                | 0x50
+                | 0x52
+                | 0x58
+                | 0x5A
+                | 0x62
+                | 0x70
         ) {
             return None;
         }
@@ -442,7 +479,11 @@ pub(crate) fn bson(prefix: &[u8], size: u64) -> Option<Label> {
         prefix[5..5 + nul_pos].iter().all(|&b| b.is_ascii_graphic()),
     );
     let _ = get_slice(prefix, 0, (6 + nul_pos).min(prefix.len()));
-    let _ = get_slice(prefix, prefix.len().min(doc_len as usize) - 1, prefix.len().min(doc_len as usize));
+    let _ = get_slice(
+        prefix,
+        prefix.len().min(doc_len as usize) - 1,
+        prefix.len().min(doc_len as usize),
+    );
     Some(Label::Bson)
 }
 

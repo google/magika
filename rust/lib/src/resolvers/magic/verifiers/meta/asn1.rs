@@ -126,10 +126,7 @@ pub(crate) fn verify_asn1_der(prefix: &[u8], size: u64) -> Option<Label> {
 
     if c0_end < prefix.len() {
         let (c1_tag, c1_start, _, _) = read_tlv(prefix, c0_end)?;
-        require!(
-            c1_tag == ASN1_TAG_SEQUENCE,
-            u8_at(prefix, c1_start) == Some(ASN1_TAG_OID),
-        );
+        require!(c1_tag == ASN1_TAG_SEQUENCE, u8_at(prefix, c1_start) == Some(ASN1_TAG_OID),);
     }
 
     Some(Label::Crt)

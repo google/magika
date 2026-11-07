@@ -94,7 +94,8 @@ pub(crate) fn fits(prefix: &[u8]) -> Option<Label> {
         prefix.len() >= BLOCK_LEN,
         be16(prefix, SECOND_CARD_PAD)? == 0x2020,
         match_simple(prefix),
-        match_bitpix(get_slice(prefix, CARD_LEN, prefix.len())?) || match_bitpix(get_slice(prefix, 2 * CARD_LEN, prefix.len())?),
+        match_bitpix(get_slice(prefix, CARD_LEN, prefix.len())?)
+            || match_bitpix(get_slice(prefix, 2 * CARD_LEN, prefix.len())?),
     );
     Some(Label::Fits)
 }
@@ -364,11 +365,7 @@ pub(crate) fn dicom(prefix: &[u8]) -> Option<Label> {
     const MAGIC: &[u8] = b"DICM";
     const MIN_LEN: usize = 132;
 
-    require!(
-        prefix.len() >= MIN_LEN,
-        u8_at(prefix, 0)? == 0,
-        eq_at(prefix, MAGIC_OFFSET, MAGIC),
-    );
+    require!(prefix.len() >= MIN_LEN, u8_at(prefix, 0)? == 0, eq_at(prefix, MAGIC_OFFSET, MAGIC),);
     Some(Label::Dicom)
 }
 
@@ -448,11 +445,7 @@ pub(crate) fn png(prefix: &[u8], size: u64) -> Option<Label> {
 
     require!(size >= MIN_PNG_SIZE, prefix.len() >= 33, starts(prefix, PNG_SIG));
     // Apple CgBI PNGs prepend a 16-byte `CgBI` chunk (`length == 4`) at `@8..24` before `IHDR`.
-    let ihdr = if be32(prefix, 8) == Some(4) && eq_at(prefix, 12, CGBI_TAG) {
-        24
-    } else {
-        8
-    };
+    let ihdr = if be32(prefix, 8) == Some(4) && eq_at(prefix, 12, CGBI_TAG) { 24 } else { 8 };
     require!(
         prefix.len() >= ihdr + 25,
         be32(prefix, ihdr)? == 13,
@@ -474,11 +467,7 @@ pub(crate) fn jpeg(prefix: &[u8], size: u64) -> Option<Label> {
     const MIN_JPEG_SIZE: u64 = 20; // SOI (2B) + minimal frame/quant/huffman/EOI markers
     const JPEG_SOI_PREFIX: &[u8] = &[0xFF, 0xD8, 0xFF];
 
-    require!(
-        size >= MIN_JPEG_SIZE,
-        prefix.len() >= 4,
-        starts(prefix, JPEG_SOI_PREFIX),
-    );
+    require!(size >= MIN_JPEG_SIZE, prefix.len() >= 4, starts(prefix, JPEG_SOI_PREFIX),);
     let m = u8_at(prefix, 3)?;
     require!((0xC0..=0xFE).contains(&m), m != 0xF7);
     Some(Label::Jpeg)
@@ -510,9 +499,15 @@ pub(crate) fn tiff(prefix: &[u8], size: u64) -> Option<Label> {
         let off = be32(prefix, 4)?;
         off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size
     } else if starts(prefix, BIGTIFF_LE_MAGIC) {
-        prefix.len() >= 16 && le16(prefix, 4)? == 8 && le16(prefix, 6)? == 0 && le64(prefix, 8)? >= 16
+        prefix.len() >= 16
+            && le16(prefix, 4)? == 8
+            && le16(prefix, 6)? == 0
+            && le64(prefix, 8)? >= 16
     } else if starts(prefix, BIGTIFF_BE_MAGIC) {
-        prefix.len() >= 16 && be16(prefix, 4)? == 8 && be16(prefix, 6)? == 0 && be64(prefix, 8)? >= 16
+        prefix.len() >= 16
+            && be16(prefix, 4)? == 8
+            && be16(prefix, 6)? == 0
+            && be64(prefix, 8)? >= 16
     } else {
         false
     };
@@ -600,14 +595,15 @@ pub(crate) fn tga(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label
     }
 
     // Check TGA v2.0 26-byte footer ("TRUEVISION-XFILE.\0" at tail end - 18)
-    if let Some(t) = tail {
-        if t.len() >= 26 && eq_at(t, t.len() - 18, TGA_V2_FOOTER_MAGIC) {
-            return Some(Label::Tga);
-        }
+    if let Some(t) = tail
+        && t.len() >= 26
+        && eq_at(t, t.len() - 18, TGA_V2_FOOTER_MAGIC)
+    {
+        return Some(Label::Tga);
     }
 
     // Uncompressed TGA v1.0 exact size match (18B header + ID + colormap + width*height*(bpp/8))
-    if matches!(img_type, 1 | 2 | 3) {
+    if matches!(img_type, 1..=3) {
         let id_len = u8_at(prefix, 0)? as u64;
         let cmap_bytes = cmap_len * ((cmap_bpp as u64).div_ceil(8));
         let pixel_bytes = width * height * ((bpp as u64).div_ceil(8));
@@ -640,16 +636,18 @@ pub(crate) fn is_borland_delphi1_dfm_or_qrp(b: &[u8]) -> bool {
     if !(2..=64).contains(&name_len) || 4 + name_len > b.len() || b[4] != b'T' {
         return false;
     }
-    b[4..4 + name_len]
-        .iter()
-        .all(|&c| c.is_ascii_alphanumeric() || c == b'_')
+    b[4..4 + name_len].iter().all(|&c| c.is_ascii_alphanumeric() || c == b'_')
 }
 
 /// Validates a raw JPEG XL codestream (`FF 0A`) `SizeHeader` + `ImageMetadata` + `CustomTransformData`
 /// + `ZeroPadToByte` + `FrameHeader` / `Toc` bitstream (ISO/IEC 18181-1 Annex A & B).
 pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
     const JXL_CODESTREAM_MAGIC: &[u8] = &[0xFF, 0x0A];
-    if size < 8 || b.len() < 8 || !starts(b, JXL_CODESTREAM_MAGIC) || is_borland_delphi1_dfm_or_qrp(b) {
+    if size < 8
+        || b.len() < 8
+        || !starts(b, JXL_CODESTREAM_MAGIC)
+        || is_borland_delphi1_dfm_or_qrp(b)
+    {
         return None;
     }
     let mut val = 0u128;
@@ -669,9 +667,7 @@ pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
         Some(res)
     }
     macro_rules! u {
-        ($n:expr) => {{
-            read_bits(val, &mut pos, max_bits, $n)?
-        }};
+        ($n:expr) => {{ read_bits(val, &mut pos, max_bits, $n)? }};
     }
     macro_rules! u_enum {
         () => {{
@@ -740,7 +736,12 @@ pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
             _ => ysize * 2,
         }
     };
-    if ysize == 0 || xsize == 0 || ysize > 65536 || xsize > 65536 || (b[2] == 0 && b[3] == 0 && ysize == 1 && xsize == 1) {
+    if ysize == 0
+        || xsize == 0
+        || ysize > 65536
+        || xsize > 65536
+        || (b[2] == 0 && b[3] == 0 && ysize == 1 && xsize == 1)
+    {
         return None;
     }
 
@@ -1128,7 +1129,9 @@ pub(crate) fn printfox(prefix: &[u8], size: u64) -> Option<Label> {
     };
     let ok = match slice[0] {
         b'B' => (64..=9220).contains(&size) && rle16(1, &[8000, 8192], &[8000, 8192, 9216]),
-        b'G' => (64..=40200).contains(&size) && rle16(1, &[32000, 32768], &[32000, 32768, 36096, 40192]),
+        b'G' => {
+            (64..=40200).contains(&size) && rle16(1, &[32000, 32768], &[32000, 32768, 36096, 40192])
+        }
         _ => false,
     };
     require!(ok);

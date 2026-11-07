@@ -276,8 +276,7 @@ pub(crate) fn wiredtiger(prefix: &[u8], size: u64) -> Option<Label> {
             || (starts(prefix, WT_BTREE_MAGIC)
                 && matches!(le16(prefix, 4)?, 1..=3)
                 && le16(prefix, 6)? == 0)
-            || (starts(prefix, WT_LOG_MAGIC)
-                && matches!(le16(prefix, 4)?, 1..=3)),
+            || (starts(prefix, WT_LOG_MAGIC) && matches!(le16(prefix, 4)?, 1..=3)),
     );
     Some(Label::Wiredtiger)
 }
@@ -294,10 +293,7 @@ pub(crate) fn firebird(prefix: &[u8], size: u64) -> Option<Label> {
         prefix.len() >= 32,
         starts(prefix, FIREBIRD_GBK_MAGIC)
             || (starts(prefix, FIREBIRD_ODS_HDR)
-                && matches!(
-                    le16(prefix, 16)?,
-                    1024 | 2048 | 4096 | 8192 | 16384 | 32768
-                )
+                && matches!(le16(prefix, 16)?, 1024 | 2048 | 4096 | 8192 | 16384 | 32768)
                 && matches!(le16(prefix, 18)? & 0x0FFF, 10..=14)),
     );
     Some(Label::Firebird)
@@ -381,11 +377,7 @@ pub(crate) fn filemaker(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn leveldb(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label> {
     const LEVELDB_FOOTER_MAGIC: &[u8] = &[0x57, 0xFB, 0x80, 0x8B, 0x24, 0x75, 0x47, 0xDB];
     let t = tail.unwrap_or(prefix);
-    require!(
-        size >= 48,
-        t.len() >= 48,
-        eq_at(t, t.len() - 8, LEVELDB_FOOTER_MAGIC),
-    );
+    require!(size >= 48, t.len() >= 48, eq_at(t, t.len() - 8, LEVELDB_FOOTER_MAGIC),);
     Some(Label::Leveldb)
 }
 
@@ -428,8 +420,7 @@ pub(crate) fn oracle_dbf(prefix: &[u8], size: u64) -> Option<Label> {
     require!(
         size >= 512,
         prefix.len() >= 32,
-        eq_at(prefix, 20, ORACLE_DBF_MAGIC_LE)
-            || eq_at(prefix, 20, ORACLE_DBF_MAGIC_BE),
+        eq_at(prefix, 20, ORACLE_DBF_MAGIC_LE) || eq_at(prefix, 20, ORACLE_DBF_MAGIC_BE),
     );
     Some(Label::OracleDb)
 }
@@ -702,10 +693,7 @@ pub(crate) fn cdf(prefix: &[u8], size: u64) -> Option<Label> {
         return Some(Label::Cdf);
     }
     if starts(prefix, NASA_CDF3_MAGIC) || starts(prefix, NASA_CDF2_MAGIC) {
-        require!(
-            eq_at(prefix, 4, NASA_CDF_UNCOMPRESSED)
-                || eq_at(prefix, 4, NASA_CDF_COMPRESSED)
-        );
+        require!(eq_at(prefix, 4, NASA_CDF_UNCOMPRESSED) || eq_at(prefix, 4, NASA_CDF_COMPRESSED));
         return Some(Label::Cdf);
     }
     require!(
@@ -730,7 +718,9 @@ pub(crate) fn orc(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label
     require!(!t.is_empty());
     let ps_len = u8_at(t, t.len() - 1)? as usize;
     require!(ps_len >= 1 && ps_len + 4 <= t.len());
-    if contains(t, ORC_MAGIC) && (u8_at(prefix, 3)? == 0x82 || u8_at(prefix, 3)? == 0x0A || ps_len <= 64) {
+    if contains(t, ORC_MAGIC)
+        && (u8_at(prefix, 3)? == 0x82 || u8_at(prefix, 3)? == 0x0A || ps_len <= 64)
+    {
         return Some(Label::Orc);
     }
     None

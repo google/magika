@@ -196,7 +196,9 @@ impl ZipEocd {
 
 /// Resolves a ZIP64 End of Central Directory Locator (`PK\x06\x07`) and Record (`PK\x06\x06`)
 /// immediately preceding `eocd`, returning `(entries, cd_size, cd_offset, record_abs)`.
-pub(crate) fn zip64_directory(tail: &[u8], eocd: usize, tail_start: u64) -> Option<(u64, u64, u64, u64)> {
+pub(crate) fn zip64_directory(
+    tail: &[u8], eocd: usize, tail_start: u64,
+) -> Option<(u64, u64, u64, u64)> {
     let locator = eocd.checked_sub(ZIP_ZIP64_LOCATOR_LEN)?;
     if !eq_at(tail, locator, ZIP_ZIP64_LOCATOR_SIGNATURE) {
         return None;
@@ -231,11 +233,7 @@ pub(crate) fn zip_entry_name(directory: &[u8], at: usize) -> Option<(&[u8], usiz
 /// Walks the PKZIP Central Directory in two passes (top-level entries first, nested paths second),
 /// populating `view` with newline-delimited entry names and returning `(valid_cd, has_dir_names)`.
 pub(crate) fn walk_zip_directory(
-    first: &[u8],
-    size: u64,
-    tail: &[u8],
-    eocd: usize,
-    view: &mut ZipViewWriter<'_>,
+    first: &[u8], size: u64, tail: &[u8], eocd: usize, view: &mut ZipViewWriter<'_>,
 ) -> (bool, bool) {
     let Some(tail_start) = size.checked_sub(tail.len() as u64) else {
         return (false, false);
@@ -300,9 +298,7 @@ pub(crate) fn walk_zip_directory(
 /// Extracts or inflates (via `miniz_oxide`) the first local file entry (`PK\x03\x04`) into `out`
 /// as `<entry_name>\n<uncompressed_bytes>`, returning the number of bytes written.
 pub(crate) fn zip_first_entry(
-    first: &[u8],
-    out: &mut [u8; ZIP_FIRST_ENTRY_BYTES],
-    inflater: &mut DecompressorOxide,
+    first: &[u8], out: &mut [u8; ZIP_FIRST_ENTRY_BYTES], inflater: &mut DecompressorOxide,
 ) -> usize {
     if !starts(first, ZIP_LOCAL_SIGNATURE) {
         return 0;
@@ -501,8 +497,7 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     const CT_DOCM_MAIN: &[u8] = b"application/vnd.ms-word.document.macroEnabled.main+xml";
     const CT_DOTX_MAIN: &[u8] =
         b"application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml";
-    const CT_DOTM_MAIN: &[u8] =
-        b"application/vnd.ms-word.template.macroEnabledTemplate.main+xml";
+    const CT_DOTM_MAIN: &[u8] = b"application/vnd.ms-word.template.macroEnabledTemplate.main+xml";
     const CT_XLSB_MAIN: &[u8] = b"application/vnd.ms-excel.sheet.binary.macroEnabled.main";
 
     let mut names_buf = Box::new([0u8; ZIP_NAMES_BYTES]);
@@ -607,12 +602,7 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 /// `pytorch`, `xpi`, plus Central-Directory / Local-File-Header OOXML fallbacks) and
 /// returns `Label::Zip` for valid generic ZIP archives.
 pub(crate) fn zip_subtypes_and_fallback(
-    prefix: &[u8],
-    size: u64,
-    names: &[u8],
-    valid: bool,
-    dir_names: bool,
-    first_is_ct: bool,
+    prefix: &[u8], size: u64, names: &[u8], valid: bool, dir_names: bool, first_is_ct: bool,
 ) -> Option<Label> {
     const ZIP_EMPTY_ARCHIVE: &[u8; 22] = bytes!(ZIP_EOCD_SIGNATURE, &[0u8; 18]);
 
@@ -663,10 +653,7 @@ pub(crate) fn zip_subtypes_and_fallback(
 
     // Check Central Directory `names` view
     if !names.is_empty() {
-        if dir_names
-            && !first_is_ct
-            && memchr::memmem::find(names, LINE_CONTENT_TYPES).is_some()
-        {
+        if dir_names && !first_is_ct && memchr::memmem::find(names, LINE_CONTENT_TYPES).is_some() {
             if memchr::memmem::find(names, CD_WORD_DOC).is_some() {
                 return Some(Label::Docx);
             }
@@ -741,18 +728,21 @@ pub(crate) fn zip_subtypes_and_fallback(
                 if first_name.starts_with(LFH_PAYLOAD_DIR) && contains(prefix, CD_IOS_APP_DIR) {
                     return Some(Label::Iosapp);
                 }
-                if first_name.ends_with(LFH_MAFF_INDEX_RDF) || contains(prefix, LFH_MAFF_INDEX_RDF) {
+                if first_name.ends_with(LFH_MAFF_INDEX_RDF) || contains(prefix, LFH_MAFF_INDEX_RDF)
+                {
                     return Some(Label::Maff);
                 }
                 if first_name == LFH_PT2_ARCHIVE_FORMAT
-                    || (contains(prefix, LFH_PT2_ARCHIVE_FORMAT) && contains(prefix, LFH_PT2_MODELS_DIR))
+                    || (contains(prefix, LFH_PT2_ARCHIVE_FORMAT)
+                        && contains(prefix, LFH_PT2_MODELS_DIR))
                 {
                     return Some(Label::PytorchExport);
                 }
                 if first_name == LFH_SH3D_HOME || first_name == LFH_SH3D_HOME_XML {
                     return Some(Label::Sh3d);
                 }
-                if first_name == LFH_SKOPS_SCHEMA_ROOT || first_name.ends_with(LFH_SKOPS_SCHEMA_SUB) {
+                if first_name == LFH_SKOPS_SCHEMA_ROOT || first_name.ends_with(LFH_SKOPS_SCHEMA_SUB)
+                {
                     return Some(Label::Skops);
                 }
                 if first_name == LFH_TMDX_DOC_TMD || first_name == LFH_TMDX_DOC_XML {
@@ -760,17 +750,18 @@ pub(crate) fn zip_subtypes_and_fallback(
                 }
                 if first_name.ends_with(LFH_TORCHSCRIPT_CONST_SUB)
                     || first_name == LFH_TORCHSCRIPT_CONST_ROOT
-                    || (contains(prefix, LFH_TORCHSCRIPT_CONST_ROOT) && contains(prefix, CD_TORCHSCRIPT_CODE_DIR))
+                    || (contains(prefix, LFH_TORCHSCRIPT_CONST_ROOT)
+                        && contains(prefix, CD_TORCHSCRIPT_CODE_DIR))
                 {
                     return Some(Label::Torchscript);
                 }
-                if first_name.ends_with(LFH_PYTORCH_DATA_SUB)
+                if (first_name.ends_with(LFH_PYTORCH_DATA_SUB)
                     || first_name == LFH_PYTORCH_DATA_ROOT
-                    || first_name.ends_with(LFH_PYTORCH_VERSION_SUB)
+                    || first_name.ends_with(LFH_PYTORCH_VERSION_SUB))
+                    && (contains(prefix, LFH_PYTORCH_DATA_ROOT)
+                        || contains(prefix, LFH_PYTORCH_BYTEORDER))
                 {
-                    if contains(prefix, LFH_PYTORCH_DATA_ROOT) || contains(prefix, LFH_PYTORCH_BYTEORDER) {
-                        return Some(Label::Pytorch);
-                    }
+                    return Some(Label::Pytorch);
                 }
                 if first_name == LFH_XPI_INSTALL_RDF || first_name == LFH_XPI_CHROME_MANIFEST {
                     return Some(Label::Xpi);
@@ -792,11 +783,7 @@ pub(crate) fn zip_subtypes_and_fallback(
         }
     }
 
-    if valid
-        || (size >= 22
-            && prefix.len() >= 22
-            && starts(prefix, ZIP_EMPTY_ARCHIVE))
-    {
+    if valid || (size >= 22 && prefix.len() >= 22 && starts(prefix, ZIP_EMPTY_ARCHIVE)) {
         return Some(Label::Zip);
     }
     None

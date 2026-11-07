@@ -14,8 +14,8 @@
 
 //! Tier 5 (`heuristics`): structural and text heuristics without a fixed offset-0 magic key.
 
-use crate::ContentType as Label;
 use super::*;
+use crate::ContentType as Label;
 
 /// Last-resort heuristics evaluated only if no earlier magic or structural format matched.
 #[inline]

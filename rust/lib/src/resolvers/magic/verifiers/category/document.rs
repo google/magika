@@ -70,21 +70,11 @@ pub(crate) fn rtf(prefix: &[u8], size: u64) -> Option<Label> {
     const MIN_RTF_SIZE: u64 = 6; // "{\rt}\n" or "{\rtf1}"
     let text = prefix.strip_suffix(b"\0").unwrap_or(prefix);
 
+    require!(size >= MIN_RTF_SIZE, prefix.len() >= 6, starts(prefix, RTF_MAGIC),);
+    let next_byte =
+        if starts(prefix, RTF_FULL_MAGIC) { u8_at(prefix, 5)? } else { u8_at(prefix, 4)? };
     require!(
-        size >= MIN_RTF_SIZE,
-        prefix.len() >= 6,
-        starts(prefix, RTF_MAGIC),
-    );
-    let next_byte = if starts(prefix, RTF_FULL_MAGIC) {
-        u8_at(prefix, 5)?
-    } else {
-        u8_at(prefix, 4)?
-    };
-    require!(
-        matches!(
-            next_byte,
-            b'0'..=b'9' | b'\\' | b'{' | b'}' | b' ' | b'\t' | b'\r' | b'\n'
-        ),
+        matches!(next_byte, b'0'..=b'9' | b'\\' | b'{' | b'}' | b' ' | b'\t' | b'\r' | b'\n'),
         is_utf8_text_header(text, text.len()),
     );
     Some(Label::Rtf)
@@ -128,11 +118,7 @@ pub(crate) fn outlook_pst(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn word_dos(prefix: &[u8], size: u64) -> Option<Label> {
     const WORD_DOS_MAGIC: &[u8] = &[0x31, 0xBE, 0x00, 0x00, 0x00, 0xAB];
 
-    require!(
-        size >= 128,
-        prefix.len() >= 16,
-        starts(prefix, WORD_DOS_MAGIC),
-    );
+    require!(size >= 128, prefix.len() >= 16, starts(prefix, WORD_DOS_MAGIC),);
     Some(Label::Doc)
 }
 
@@ -194,11 +180,7 @@ pub(crate) fn mht_or_eml(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn asd(prefix: &[u8], size: u64) -> Option<Label> {
     const ASD_V01_MAGIC: &[u8; 6] = b"ASD01\x1A";
 
-    require!(
-        size >= 16,
-        prefix.len() >= 12,
-        starts(prefix, ASD_V01_MAGIC),
-    );
+    require!(size >= 16, prefix.len() >= 12, starts(prefix, ASD_V01_MAGIC),);
     Some(Label::Asd)
 }
 
@@ -206,11 +188,7 @@ pub(crate) fn asd(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn hwp_v3(prefix: &[u8], size: u64) -> Option<Label> {
     const HWP_V3_MAGIC: &[u8; 25] = b"HWP Document File V3.00 \x1A";
 
-    require!(
-        size >= 32,
-        prefix.len() >= 30,
-        starts(prefix, HWP_V3_MAGIC),
-    );
+    require!(size >= 32, prefix.len() >= 30, starts(prefix, HWP_V3_MAGIC),);
     Some(Label::Hwp)
 }
 
@@ -232,7 +210,10 @@ pub(crate) fn ics(prefix: &[u8], size: u64) -> Option<Label> {
     if scan_range(prefix, 16, 256, VCALENDAR_VER_1_0) {
         return Some(Label::Vcs);
     }
-    require!(scan_range(prefix, 16, 256, VERSION_PROP) || scan_range(prefix, 16, 256, VCALENDAR_PRODID_PROP));
+    require!(
+        scan_range(prefix, 16, 256, VERSION_PROP)
+            || scan_range(prefix, 16, 256, VCALENDAR_PRODID_PROP)
+    );
     Some(Label::Ics)
 }
 

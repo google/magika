@@ -130,11 +130,7 @@ fn classify_clsid(clsid: &[u8]) -> Option<Label> {
 /// either `prefix` or `tail`.
 #[inline]
 fn slice_at<'a>(
-    prefix: &'a [u8],
-    size: u64,
-    tail: Option<&'a [u8]>,
-    abs_off: usize,
-    len: usize,
+    prefix: &'a [u8], size: u64, tail: Option<&'a [u8]>, abs_off: usize, len: usize,
 ) -> Option<&'a [u8]> {
     let end = abs_off.checked_add(len)?;
     if end <= prefix.len() {
@@ -184,7 +180,10 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
         let fat_idx = (sec_id as usize) / entries_per_fat;
         let fat_sub = (sec_id as usize) % entries_per_fat;
         let fat_sec_id = *fat_sector_ids.get(fat_idx)?;
-        let entry_abs = (fat_sec_id as usize).checked_add(1)?.checked_mul(sector_size)?.checked_add(fat_sub * 4)?;
+        let entry_abs = (fat_sec_id as usize)
+            .checked_add(1)?
+            .checked_mul(sector_size)?
+            .checked_add(fat_sub * 4)?;
         let bytes = slice_at(prefix, size, tail, entry_abs, 4)?;
         Some(u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
     };
@@ -215,7 +214,9 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
 
     let entries_per_sector = sector_size / OLE2_DIR_ENTRY_SIZE;
     for dir_sec in dir_sectors {
-        let Some(dir_abs) = (dir_sec as usize).checked_add(1).and_then(|s| s.checked_mul(sector_size)) else {
+        let Some(dir_abs) =
+            (dir_sec as usize).checked_add(1).and_then(|s| s.checked_mul(sector_size))
+        else {
             continue;
         };
         for i in 0..entries_per_sector {
@@ -237,7 +238,7 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
                 entry[OLE2_DIR_OFF_NAME_LEN],
                 entry[OLE2_DIR_OFF_NAME_LEN + 1],
             ]) as usize;
-            if !(2..=64).contains(&name_len) || name_len % 2 != 0 {
+            if !(2..=64).contains(&name_len) || !name_len.is_multiple_of(2) {
                 continue;
             }
             let raw_name = &entry[..name_len - 2];

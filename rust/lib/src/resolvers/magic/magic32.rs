@@ -14,8 +14,8 @@
 
 //! Tier 1 (`magic32`): 4-byte magic dispatch table at offset 0.
 
-use crate::ContentType as Label;
 use super::*;
+use crate::ContentType as Label;
 
 /// Tier 1 (`magic32`): dispatches on the 4-byte key at offset 0.
 #[inline]

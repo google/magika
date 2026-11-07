@@ -207,7 +207,11 @@ pub(crate) fn pythonbytecode(prefix: &[u8]) -> Option<Label> {
     // All 89 magics end in either 0x99 0x00 (Python 1.0..1.2) or 0x0D 0x0A ("\r\n").
     let marker = (u8_at(prefix, 2)?, u8_at(prefix, 3)?);
     if marker == (0x99, 0x00) {
-        require!(u8_at(prefix, 1)? == 0x09, matches!(u8_at(prefix, 0)?, 0x02 | 0x03), u8_at(prefix, 8)? == 0x43,);
+        require!(
+            u8_at(prefix, 1)? == 0x09,
+            matches!(u8_at(prefix, 0)?, 0x02 | 0x03),
+            u8_at(prefix, 8)? == 0x43,
+        );
         return Some(Label::Pythonbytecode);
     }
     require!(marker == (0x0D, 0x0A));
@@ -251,7 +255,9 @@ pub(crate) fn odex(prefix: &[u8], size: u64) -> Option<Label> {
     require!(
         size >= 40,
         prefix.len() >= 40,
-        starts(prefix, ODEX_035_MAGIC) || starts(prefix, ODEX_036_MAGIC) || starts(prefix, ODEX_037_MAGIC),
+        starts(prefix, ODEX_035_MAGIC)
+            || starts(prefix, ODEX_036_MAGIC)
+            || starts(prefix, ODEX_037_MAGIC),
     );
     Some(Label::Odex)
 }

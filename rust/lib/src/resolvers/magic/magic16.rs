@@ -14,8 +14,8 @@
 
 //! Tier 2 (`magic16`): 2-byte magic dispatch table at offset 0.
 
-use crate::ContentType as Label;
 use super::*;
+use crate::ContentType as Label;
 
 /// Tier 2 (`magic16`): dispatches on the 2-byte key at offset 0.
 #[inline]

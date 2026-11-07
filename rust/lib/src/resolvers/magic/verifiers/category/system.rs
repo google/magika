@@ -105,11 +105,7 @@ pub(crate) fn icc(prefix: &[u8]) -> Option<Label> {
     ];
     const MIN_LEN: usize = 132; // 128-byte header + 4-byte tag count
 
-    require!(
-        prefix.len() >= MIN_LEN,
-        u8_at(prefix, 0)? == 0,
-        eq_at(prefix, MAGIC_OFFSET, MAGIC),
-    );
+    require!(prefix.len() >= MIN_LEN, u8_at(prefix, 0)? == 0, eq_at(prefix, MAGIC_OFFSET, MAGIC),);
     let dev: &[u8; 4] = get_slice(prefix, DEVICE_CLASS, DEVICE_CLASS + 4)?.try_into().ok()?;
     require!(DEVICE_CLASSES.contains(&dev));
     Some(Label::Icc)
@@ -138,14 +134,13 @@ pub(crate) fn winregistry(prefix: &[u8], size: u64) -> Option<Label> {
     const REGEDIT5_HDR: &[u8; 36] = b"Windows Registry Editor Version 5.00";
     const HKEY_OPEN: &[u8] = b"[HKEY_";
     const HKEY_DEL: &[u8] = b"[-HKEY_";
-    const UTF16LE_REGEDIT5_HDR: &[u8] = b"\xFF\xFEW\0i\0n\0d\0o\0w\0s\0 \0R\0e\0g\0i\0s\0t\0r\0y\0 \0E\0d\0i\0t\0o\0r\0 \0V\0e\0r\0s\0i\0o\0n\0 \05\0.\00\00\0";
+    const UTF16LE_REGEDIT5_HDR: &[u8] = b"\xFF\xFEW\0i\0n\0d\0o\0w\0s\0 \0R\0e\0g\0i\0s\0t\0r\0y\0 \0E\0d\0i\0t\0o\0r\0 \0V\0e\0r\0s\0i\0o\0n\0 \x005\0.\x000\x000\0";
     const UTF16LE_HKEY_OPEN: &[u8] = b"[\0H\0K\0E\0Y\0_\0";
     const UTF16LE_HKEY_DEL: &[u8] = b"[\0-\0H\0K\0E\0Y\0_\0";
 
     require!(size >= MIN_WIN_REG_SIZE, prefix.len() >= 29);
     if (starts(prefix, REGEDIT4_HDR) && matches!(u8_at(prefix, 8), Some(b'\r' | b'\n')))
-        || (starts(prefix, REGEDIT5_HDR)
-            && matches!(u8_at(prefix, 36), Some(b'\r' | b'\n')))
+        || (starts(prefix, REGEDIT5_HDR) && matches!(u8_at(prefix, 36), Some(b'\r' | b'\n')))
     {
         require!(
             contains(prefix, HKEY_OPEN) || contains(prefix, HKEY_DEL),
@@ -154,9 +149,7 @@ pub(crate) fn winregistry(prefix: &[u8], size: u64) -> Option<Label> {
         return Some(Label::Winregistry);
     }
     if starts(prefix, UTF16LE_REGEDIT5_HDR) {
-        require!(
-            contains(prefix, UTF16LE_HKEY_OPEN) || contains(prefix, UTF16LE_HKEY_DEL)
-        );
+        require!(contains(prefix, UTF16LE_HKEY_OPEN) || contains(prefix, UTF16LE_HKEY_DEL));
         return Some(Label::Winregistry);
     }
     None
@@ -209,13 +202,14 @@ pub(crate) fn internetshortcut(prefix: &[u8], size: u64) -> Option<Label> {
     const URL_KEY_MIXED: &[u8] = b"\nUrl=";
 
     require!(size >= MIN_WIN_URL_SIZE, prefix.len() >= 24);
-    let is_direct =
-        starts(prefix, URL_SECTION_CRLF) || starts(prefix, URL_SECTION_LF);
-    let is_prop_first = starts(prefix, URL_PROPSTORE_GUID_SEC)
-        && contains(prefix, URL_SECTION_BARE);
+    let is_direct = starts(prefix, URL_SECTION_CRLF) || starts(prefix, URL_SECTION_LF);
+    let is_prop_first =
+        starts(prefix, URL_PROPSTORE_GUID_SEC) && contains(prefix, URL_SECTION_BARE);
     require!(
         is_direct || is_prop_first,
-        contains(prefix, URL_KEY_UPPER) || contains(prefix, URL_KEY_LOWER) || contains(prefix, URL_KEY_MIXED),
+        contains(prefix, URL_KEY_UPPER)
+            || contains(prefix, URL_KEY_LOWER)
+            || contains(prefix, URL_KEY_MIXED),
         is_utf8_text_header(prefix, size as usize),
     );
     Some(Label::Internetshortcut)

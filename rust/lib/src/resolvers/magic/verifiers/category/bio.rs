@@ -98,13 +98,9 @@ pub(crate) fn fasta(prefix: &[u8], size: u64) -> Option<Label> {
     let seq_line_end = seq.iter().position(|&b| b == b'\n' || b == b'\r').unwrap_or(seq.len());
     require!(
         seq_line_end >= 4,
-        seq[..seq_line_end]
-            .iter()
-            .all(|&b| FASTA_ALPHABET_MIXED.contains(&b)),
+        seq[..seq_line_end].iter().all(|&b| FASTA_ALPHABET_MIXED.contains(&b)),
         seq_line_end >= 16
-            || seq[..seq_line_end]
-                .iter()
-                .all(|&b| FASTA_ALPHABET_UPPER.contains(&b)),
+            || seq[..seq_line_end].iter().all(|&b| FASTA_ALPHABET_UPPER.contains(&b)),
     );
     let _ = get_slice(prefix, 0, 2);
     let _ = get_slice(prefix, nl.saturating_sub(1), (nl + 1 + seq_line_end + 2).min(prefix.len()));

@@ -75,7 +75,7 @@ pub(crate) fn pdb(prefix: &[u8]) -> Option<Label> {
         let vlen = le32(prefix, 12)? as usize;
         require!(
             (4..=64).contains(&vlen),
-            vlen % 4 == 0,
+            vlen.is_multiple_of(4),
             eq_at(prefix, 16, PDB_V1_0) || contains(prefix, PDB_STREAM),
         );
         return Some(Label::Pdb);
@@ -237,7 +237,9 @@ pub(crate) fn coff(prefix: &[u8], size: u64) -> Option<Label> {
 }
 
 /// AutoIt v3 compiled script 16-byte signature (`A3 48 4B BE 98 6C 4A A9 99 4C 53 0A 86 D6 48 7D`).
-pub(crate) const AUTOIT_V3_MAGIC: &[u8] = &[0xA3, 0x48, 0x4B, 0xBE, 0x98, 0x6C, 0x4A, 0xA9, 0x99, 0x4C, 0x53, 0x0A, 0x86, 0xD6, 0x48, 0x7D];
+pub(crate) const AUTOIT_V3_MAGIC: &[u8] = &[
+    0xA3, 0x48, 0x4B, 0xBE, 0x98, 0x6C, 0x4A, 0xA9, 0x99, 0x4C, 0x53, 0x0A, 0x86, 0xD6, 0x48, 0x7D,
+];
 
 /// AutoIt v3 EA05/EA06 archive marker (`"AU3!EA0"`).
 pub(crate) const AUTOIT_EA0_MAGIC: &[u8] = b"AU3!EA0";
@@ -252,15 +254,18 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     if contains(prefix, AUTOIT_V3_MAGIC) || contains(prefix, AUTOIT_EA0_MAGIC) {
         return Some(Label::Autoit);
     }
-    if let Some(t) = ctx.tail {
-        if contains(t, AUTOIT_V3_MAGIC) || contains(t, AUTOIT_EA0_MAGIC) {
-            return Some(Label::Autoit);
-        }
+    if let Some(t) = ctx.tail
+        && (contains(t, AUTOIT_V3_MAGIC) || contains(t, AUTOIT_EA0_MAGIC))
+    {
+        return Some(Label::Autoit);
     }
     if is_windows_pebin(prefix, ctx.size) {
         return Some(Label::Pebin);
     }
-    if prefix.len() >= 0x28 && eq_at(prefix, 2, PE_MAGIC) && matches!(le16(prefix, 6), Some(0x014C | 0x8664 | 0xAA64)) {
+    if prefix.len() >= 0x28
+        && eq_at(prefix, 2, PE_MAGIC)
+        && matches!(le16(prefix, 6), Some(0x014C | 0x8664 | 0xAA64))
+    {
         return Some(Label::Pebin);
     }
     if prefix.len() >= 0x40 {
@@ -292,7 +297,8 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
             }
         }
     }
-    if prefix.len() >= 0x36 && starts(prefix, DOS32_ADAM_MAGIC) && eq_at(prefix, 0x22, TMT_STUB_TAG) {
+    if prefix.len() >= 0x36 && starts(prefix, DOS32_ADAM_MAGIC) && eq_at(prefix, 0x22, TMT_STUB_TAG)
+    {
         let _ = get_slice(prefix, 0, 0x36);
         return Some(Label::Pebin);
     }
@@ -305,7 +311,11 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     let e_cblp = le16(prefix, 2)?;
     let e_cp = le16(prefix, 4)?;
     let e_cparhdr = le16(prefix, 8)?;
-    require!(e_cblp <= 512, (1..=16384).contains(&e_cp), e_cparhdr >= 2 || starts(prefix, b"MZ\x00\x00"));
+    require!(
+        e_cblp <= 512,
+        (1..=16384).contains(&e_cp),
+        e_cparhdr >= 2 || starts(prefix, b"MZ\x00\x00")
+    );
     Some(Label::Pebin)
 }
 

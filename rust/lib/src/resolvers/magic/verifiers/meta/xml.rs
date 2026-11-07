@@ -114,16 +114,13 @@ pub(crate) fn xml_or_html(prefix: &[u8], size: u64) -> Option<Label> {
     const XML_CLOSE_TAG: &[u8] = b"</";
     const XML_SELF_CLOSE_TAG: &[u8] = b"/>";
 
-    require!(
-        size >= 8,
-        prefix.len() >= 8,
-        !prefix[..prefix.len().min(256)].contains(&0),
-    );
+    require!(size >= 8, prefix.len() >= 8, !prefix[..prefix.len().min(256)].contains(&0),);
     let mut i = 0usize;
     if starts(prefix, UTF8_BOM) {
         i = 3;
     }
-    while i < prefix.len().min(64) && matches!(u8_at(prefix, i), Some(b' ' | b'\t' | b'\r' | b'\n')) {
+    while i < prefix.len().min(64) && matches!(u8_at(prefix, i), Some(b' ' | b'\t' | b'\r' | b'\n'))
+    {
         i += 1;
     }
     require!(u8_at(prefix, i) == Some(b'<'));
@@ -140,11 +137,16 @@ pub(crate) fn xml_or_html(prefix: &[u8], size: u64) -> Option<Label> {
         return Some(Label::Svg);
     }
     // 3. W3C Resource Description Framework (`rdf`)
-    if contains(prefix, RDF_QUALIFIED_TAG) || (contains(prefix, RDF_BARE_TAG) && contains(prefix, RDF_XMLNS)) {
+    if contains(prefix, RDF_QUALIFIED_TAG)
+        || (contains(prefix, RDF_BARE_TAG) && contains(prefix, RDF_XMLNS))
+    {
         return Some(Label::Rdf);
     }
     // 4. Windows Update Package Manifest (`mum`)
-    if contains(prefix, MUM_ASSEMBLY_TAG) && contains(prefix, PACKAGE_TAG) && contains(prefix, MUM_ASM_NS) {
+    if contains(prefix, MUM_ASSEMBLY_TAG)
+        && contains(prefix, PACKAGE_TAG)
+        && contains(prefix, MUM_ASM_NS)
+    {
         return Some(Label::Mum);
     }
     // 5. HTML / XHTML (`html`)
@@ -167,7 +169,9 @@ pub(crate) fn xml_or_html(prefix: &[u8], size: u64) -> Option<Label> {
             || eq_at(prefix, i, XML_DECL_CR)
             || eq_at(prefix, i, XML_DECL_LF)
             || (u8_at(prefix, i + 1).is_some_and(|b| b.is_ascii_alphabetic())
-                && (contains(prefix, XMLNS_ATTR) || contains(prefix, XML_CLOSE_TAG) || contains(prefix, XML_SELF_CLOSE_TAG))))
+                && (contains(prefix, XMLNS_ATTR)
+                    || contains(prefix, XML_CLOSE_TAG)
+                    || contains(prefix, XML_SELF_CLOSE_TAG))))
     {
         return Some(Label::Xml);
     }
@@ -195,11 +199,7 @@ pub(crate) fn xml_subtypes(prefix: &[u8], size: u64) -> Option<Label> {
     const XSD_BARE_SCHEMA: &[u8] = b"<schema";
     const XSD_NAMESPACE_URI: &[u8] = b"http://www.w3.org/2001/XMLSchema";
 
-    require!(
-        size >= 16,
-        prefix.len() >= 16,
-        !prefix[..prefix.len().min(256)].contains(&0),
-    );
+    require!(size >= 16, prefix.len() >= 16, !prefix[..prefix.len().min(256)].contains(&0),);
     let mut i = 0usize;
     if starts(prefix, UTF8_BOM) {
         i = 3;

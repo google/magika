@@ -82,9 +82,6 @@ pub(crate) fn openpgp_binary(prefix: &[u8], size: u64) -> Option<Label> {
     };
     let ver = u8_at(prefix, hdr_len)?;
     let alg = u8_at(prefix, hdr_len + 5)?;
-    require!(
-        matches!(ver, 3..=6),
-        matches!(alg, 1 | 2 | 3 | 16 | 17 | 18 | 19 | 22 | 27 | 28),
-    );
+    require!(matches!(ver, 3..=6), matches!(alg, 1 | 2 | 3 | 16 | 17 | 18 | 19 | 22 | 27 | 28),);
     Some(Label::Pgp)
 }

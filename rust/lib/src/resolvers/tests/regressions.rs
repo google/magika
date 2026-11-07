@@ -44,7 +44,11 @@ const SUPERSEDED: &[(&str, usize, &[&str])] = &[
     ("test_epub_directory_names_decide_when_the_local_header_is_not_canonical", 3, &["zip"]),
     ("test_ftyp_sibling_and_incomplete_brands_abstain", 4, &["mp4"]),
     ("test_images_outside_the_pe_contract_abstain", 6, &["pebin"]),
-    ("test_manifest_first_package_needs_code_or_resources_in_the_prefix_or_the_directory", 0, &["zip"]),
+    (
+        "test_manifest_first_package_needs_code_or_resources_in_the_prefix_or_the_directory",
+        0,
+        &["zip"],
+    ),
     ("test_names_beyond_the_view_are_not_seen", 0, &["zip"]),
     ("test_names_in_the_comment_or_member_data_do_not_count", 0, &["zip"]),
     ("test_opendocument_media_type_and_content_decide", 1, &["zip"]),

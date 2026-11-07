@@ -136,12 +136,10 @@ pub(crate) fn id3_mp3(prefix: &[u8], size: u64) -> Option<Label> {
 
 /// Verifies at least two consecutive valid MPEG-1/2/2.5 Layer I/II/III audio frame headers.
 pub(crate) fn verify_mpeg_audio_frames(buf: &[u8], start: usize) -> bool {
-    const BITRATES_V1_L3: [u32; 16] = [
-        0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0,
-    ];
-    const BITRATES_V2_L3: [u32; 16] = [
-        0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0,
-    ];
+    const BITRATES_V1_L3: [u32; 16] =
+        [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+    const BITRATES_V2_L3: [u32; 16] =
+        [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
     const SRATES_V1: [u32; 4] = [44100, 48000, 32000, 0];
     const SRATES_V2: [u32; 4] = [22050, 24000, 16000, 0];
     const SRATES_V25: [u32; 4] = [11025, 12000, 8000, 0];
@@ -157,7 +155,7 @@ pub(crate) fn verify_mpeg_audio_frames(buf: &[u8], start: usize) -> bool {
     let layer_bits = ((hdr >> 17) & 0x03) as u8;
     let br_idx = ((hdr >> 12) & 0x0F) as usize;
     let sr_idx = ((hdr >> 10) & 0x03) as usize;
-    let padding = ((hdr >> 9) & 0x01) as u32;
+    let padding = (hdr >> 9) & 0x01;
     if ver_bits == 1 || layer_bits != 1 || br_idx == 0 || br_idx == 15 || sr_idx == 3 {
         return false;
     }
@@ -180,12 +178,10 @@ pub(crate) fn verify_mpeg_audio_frames(buf: &[u8], start: usize) -> bool {
 
 /// Verifies at least two consecutive valid MPEG-1/2/2.5 Layer II (`mp2`) audio frame headers.
 pub(crate) fn verify_mpeg_audio_layer2(buf: &[u8], start: usize) -> bool {
-    const BITRATES_V1_L2: [u32; 16] = [
-        0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0,
-    ];
-    const BITRATES_V2_L2: [u32; 16] = [
-        0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0,
-    ];
+    const BITRATES_V1_L2: [u32; 16] =
+        [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0];
+    const BITRATES_V2_L2: [u32; 16] =
+        [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
     const SRATES_V1: [u32; 4] = [44100, 48000, 32000, 0];
     const SRATES_V2: [u32; 4] = [22050, 24000, 16000, 0];
     const SRATES_V25: [u32; 4] = [11025, 12000, 8000, 0];
@@ -201,7 +197,7 @@ pub(crate) fn verify_mpeg_audio_layer2(buf: &[u8], start: usize) -> bool {
     let layer_bits = ((hdr >> 17) & 0x03) as u8;
     let br_idx = ((hdr >> 12) & 0x0F) as usize;
     let sr_idx = ((hdr >> 10) & 0x03) as usize;
-    let padding = ((hdr >> 9) & 0x01) as u32;
+    let padding = (hdr >> 9) & 0x01;
     if ver_bits == 1 || layer_bits != 2 || br_idx == 0 || br_idx == 15 || sr_idx == 3 {
         return false;
     }

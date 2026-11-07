@@ -62,12 +62,7 @@ pub(crate) fn rlib_or_ar(prefix: &[u8], size: u64) -> Option<Label> {
     const RLIB_METADATA_BIN: &[u8] = b"rust.metadata.bin";
     const RLIB_RMETA_EXT: &[u8] = b".rmeta";
 
-    require!(
-        size >= 68,
-        prefix.len() >= 68,
-        starts(prefix, AR_MAGIC),
-        eq_at(prefix, 66, AR_FMAG),
-    );
+    require!(size >= 68, prefix.len() >= 68, starts(prefix, AR_MAGIC), eq_at(prefix, 66, AR_FMAG),);
     let name_hdr = get_slice(prefix, 8, 24)?;
     require!(name_hdr.iter().all(|&b| (0x20..=0x7E).contains(&b)));
     if contains(prefix, RLIB_METADATA_BIN) || contains(prefix, RLIB_RMETA_EXT) {

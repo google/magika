@@ -139,7 +139,8 @@ pub(crate) fn xar(prefix: &[u8]) -> Option<Label> {
         prefix.len() >= HEADER_LEN,
         starts(prefix, MAGIC),
         be32(prefix, TOC_COMP_HI)? == 0 && (1..0x0800_0000).contains(&be32(prefix, TOC_COMP_LO)?),
-        be32(prefix, TOC_UNCOMP_HI)? == 0 && (1..0x0800_0000).contains(&be32(prefix, TOC_UNCOMP_LO)?),
+        be32(prefix, TOC_UNCOMP_HI)? == 0
+            && (1..0x0800_0000).contains(&be32(prefix, TOC_UNCOMP_LO)?),
     );
     Some(Label::Xar)
 }
@@ -352,7 +353,7 @@ pub(crate) fn zlibstream(prefix: &[u8], size: u64) -> Option<Label> {
     require!(
         cmf == 0x78,
         matches!(flg, 0x01 | 0x5E | 0x9C | 0xDA),
-        ((cmf as u16) * 256 + (flg as u16)) % 31 == 0,
+        ((cmf as u16) * 256 + (flg as u16)).is_multiple_of(31),
         ((u8_at(prefix, 2)? >> 1) & 0x03) != 0b11,
     );
     Some(Label::Zlibstream)
@@ -386,11 +387,7 @@ pub(crate) fn tar(prefix: &[u8], size: u64) -> Option<Label> {
     const TAR_USTAR_POSIX_MAGIC: &[u8; 6] = b"ustar\0";
     const TAR_USTAR_GNU_MAGIC: &[u8; 8] = b"ustar  \0";
 
-    require!(
-        size >= 512,
-        prefix.len() >= 512,
-        u8_at(prefix, 0)?.is_ascii_graphic()
-    );
+    require!(size >= 512, prefix.len() >= 512, u8_at(prefix, 0)?.is_ascii_graphic());
     let _is_ustar =
         eq_at(prefix, 257, TAR_USTAR_POSIX_MAGIC) || eq_at(prefix, 257, TAR_USTAR_GNU_MAGIC);
     let chk_field = get_slice(prefix, 148, 156)?;
@@ -438,12 +435,7 @@ pub(crate) fn bzip3(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn lzx(prefix: &[u8], size: u64) -> Option<Label> {
     const LZX_MAGIC: &[u8; 4] = b"LZX\x00";
 
-    require!(
-        size >= 32,
-        prefix.len() >= 16,
-        starts(prefix, LZX_MAGIC),
-        u8_at(prefix, 6)? <= 20,
-    );
+    require!(size >= 32, prefix.len() >= 16, starts(prefix, LZX_MAGIC), u8_at(prefix, 6)? <= 20,);
     Some(Label::Lzx)
 }
 
@@ -478,10 +470,7 @@ pub(crate) fn arc(prefix: &[u8], size: u64) -> Option<Label> {
     );
     let name = get_slice(prefix, 2, 15)?;
     let nul = name.iter().position(|&b| b == 0)?;
-    require!(
-        (1..=12).contains(&nul),
-        name[..nul].iter().all(|&b| (0x21..=0x7E).contains(&b)),
-    );
+    require!((1..=12).contains(&nul), name[..nul].iter().all(|&b| (0x21..=0x7E).contains(&b)),);
     let comp_size = le32(prefix, 15)? as u64;
     require!(29 + comp_size <= size);
     Some(Label::Arc)

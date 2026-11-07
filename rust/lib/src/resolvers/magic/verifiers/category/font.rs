@@ -129,11 +129,7 @@ pub(crate) fn ttf(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn otf(prefix: &[u8], size: u64) -> Option<Label> {
     const MIN_OTF_SIZE: u64 = 28; // 12B sfnt header + >=1 16B table record
 
-    require!(
-        size >= MIN_OTF_SIZE,
-        prefix.len() >= 28,
-        starts(prefix, OTF_MAGIC),
-    );
+    require!(size >= MIN_OTF_SIZE, prefix.len() >= 28, starts(prefix, OTF_MAGIC),);
     let num_tables = be16(prefix, 4)?;
     let search_range = be16(prefix, 6)?;
     require!(

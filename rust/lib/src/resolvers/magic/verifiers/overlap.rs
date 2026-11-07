@@ -14,8 +14,8 @@
 
 //! Cross-category magic-key collision disambiguators.
 
-use crate::ContentType as Label;
 use super::super::*;
+use crate::ContentType as Label;
 
 /// Evaluates `0xFF`-prefixed streams (`jpeg`, `jp2`, `jxl`, `mp3`).
 pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {

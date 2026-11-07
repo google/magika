@@ -974,11 +974,12 @@ def test_special_device_file() -> None:
 
 def test_magika_module_with_custom_rules() -> None:
     png = utils.get_tests_data_dir() / "basic" / "png" / "magika_test.png"
+    pyc = utils.get_tests_data_dir() / "basic" / "pythonbytecode" / "magika_test.pyc"
     custom = utils.get_tests_data_dir() / "rules" / "custom.yar"
 
-    inferred = Magika().identify_path(png)
-    assert inferred.output.label == ContentTypeLabel.PNG
-    assert inferred.dl.label == ContentTypeLabel.PNG
+    inferred = Magika().identify_path(pyc)
+    assert inferred.output.label == ContentTypeLabel.PYTHONBYTECODE
+    assert inferred.dl.label == ContentTypeLabel.PYTHONBYTECODE
 
     for m in [Magika(rules_files=[custom]), Magika(rules=custom.read_text())]:
         results = [
@@ -992,12 +993,13 @@ def test_magika_module_with_custom_rules() -> None:
 
 
 def test_magika_module_with_custom_rules_veto() -> None:
-    png = utils.get_tests_data_dir() / "basic" / "png" / "magika_test.png"
-    # The rule claims to never miss PNG files, yet does not match this one.
+    pyc = utils.get_tests_data_dir() / "basic" / "pythonbytecode" / "magika_test.pyc"
+    # The rule claims to never miss pythonbytecode files, yet does not match this one.
     never = (utils.get_tests_data_dir() / "rules" / "custom.yar").read_text()
+    never = never.replace('label = "png"', 'label = "pythonbytecode"')
     never = never.replace("$signature at 0", "$signature at 1")
-    res = Magika(rules=never).identify_path(png)
-    assert res.dl.label == ContentTypeLabel.PNG
+    res = Magika(rules=never).identify_path(pyc)
+    assert res.dl.label == ContentTypeLabel.PYTHONBYTECODE
     assert res.output.label == ContentTypeLabel.UNKNOWN
     assert res.prediction.overwrite_reason == OverwriteReason.RULES_VETO
 
@@ -1062,7 +1064,7 @@ def test_get_content_type_info_and_exposed_labels() -> None:
     with pytest.raises(MagikaError, match="Unknown content type label"):
         Magika.get_content_type_info("not_a_real_content_type")
     with pytest.raises(MagikaError, match="Unknown content type label"):
-        Magika.get_content_type_info("3ds")  # catalog-only KB entry, not exposed
+        Magika.get_content_type_info("abnf")  # catalog-only KB entry, not exposed
     bad_label: Any = 123
     with pytest.raises(TypeError, match="Input label should be of type"):
         Magika.get_content_type_info(bad_label)

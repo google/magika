@@ -354,7 +354,7 @@ describe("Magika class", () => {
     // Unknown, unexposed catalog-only, prototype-key, and non-string inputs.
     for (const badLabel of [
       "not_a_real_content_type",
-      "3ds",
+      "abnf",
       "toString",
       "__proto__",
       "constructor",

@@ -24,6 +24,10 @@ export default defineConfig({
         },
       ],
       customCss: ["./src/styles/global.css"],
+      routeMiddleware: "./src/routeData.ts",
+      components: {
+        MarkdownContent: "./src/components/MarkdownContent.astro",
+      },
       sidebar: [
         {
           label: "Introduction",
@@ -57,6 +61,10 @@ export default defineConfig({
             {
               label: "Understanding the Output",
               slug: "core-concepts/understanding-the-output",
+            },
+            {
+              label: "Supported Content Types",
+              slug: "content-types",
             },
           ],
         },

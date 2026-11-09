@@ -117,10 +117,10 @@ jobs:
             target: aarch64-unknown-linux-musl
             manylinux: "musllinux_1_2"
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: aarch64-apple-darwin
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: x86_64-apple-darwin
           - os: Windows
             runner: windows-2025
@@ -206,13 +206,13 @@ jobs:
   #
   # Tested Platforms:
   # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-26.04
-  # - macOS Apple Silicon (aarch64-apple-darwin) on macos-14
+  # - macOS Apple Silicon (aarch64-apple-darwin) on macos-26
   # - Windows x64 (x86_64-pc-windows-msvc) on windows-2025
   #
   # Uncovered Build Targets (not tested in this matrix):
-  # - x86_64-apple-darwin: Cross-compiled on macos-14 (Apple Silicon). The runner host
-  #   interpreter is ARM64 (pip rejects x86_64 wheels). Running x64 Python via Rosetta
-  #   is blocked for Python 3.8/3.9 due to lack of setup-python x64 binaries on macOS 14.
+  # - x86_64-apple-darwin: Cross-compiled on macos-26 (Apple Silicon). The runner host
+  #   interpreter is ARM64 (pip rejects x86_64 wheels). Testing it would require an
+  #   x64 Python running under Rosetta, which this matrix does not set up.
   # - aarch64-unknown-linux-gnu: Built via QEMU on x86_64 runner. Cannot execute natively
   #   on host; native ubuntu-24.04-arm runners lack setup-python binaries for Python 3.8/3.9.
   # - x86_64-unknown-linux-musl, aarch64-unknown-linux-musl, armv7-unknown-linux-musleabihf:
@@ -237,7 +237,7 @@ jobs:
             runner: ubuntu-26.04
             target: x86_64-unknown-linux-gnu
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: aarch64-apple-darwin
           - os: Windows
             runner: windows-2025
@@ -393,9 +393,9 @@ jobs:
 
   # Python 3.8 and 3.9 reached EOL and are not supported by pip >= 26.2.2, so we
   # test the built abi3 wheel on 3.8 and 3.9 using uv only.
-  # Note: Linux is pinned to ubuntu-24.04 (and macOS to macos-14) because
-  # actions/setup-python does not provide prebuilt Python 3.8 or 3.9 binaries
-  # for Ubuntu 26.04.
+  # Note: Linux is pinned to ubuntu-24.04 because actions/setup-python does not
+  # provide prebuilt Python 3.8 or 3.9 binaries for Ubuntu 26.04. On macOS,
+  # setup-python's arm64 builds (3.8.10, 3.9.13) are not tied to an OS version.
   test-wheels-legacy-python:
     name: Test on ${{ matrix.platform.os }} (${{ matrix.platform.target }}) with legacy Python ${{ matrix.python-version }}
     needs: [build-wheels]
@@ -409,7 +409,7 @@ jobs:
             runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: aarch64-apple-darwin
           - os: Windows
             runner: windows-2025

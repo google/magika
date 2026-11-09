@@ -23,6 +23,9 @@ set -e
 info "Removing all -dev suffixes (if any)"
 sed_i 's/-dev"/"/' $(git ls-files '*/Cargo.*')
 sed_i 's/-dev//' $(git ls-files '*/CHANGELOG.md')
+info "Freezing release snapshots of supported content types (if new stable versions)"
+( cd .. && uv run scripts/sync_kb.py )
+git add ../assets/content_types_snapshots.sha256 ../website-ng/src/content/docs/content-types
 if [ -n "$(git status -s)" ]; then
   info "Creating a commit with those changes"
   git commit -aqm'Release Rust crates'
@@ -33,6 +36,11 @@ fi
 info "Making sure we run from a merged PR"
 git log -1 --pretty=%s | grep -q '^Release Rust crates (#[0-9]*)$' \
   || error "This is not a merged release PR"
+
+info "Verifying release snapshots of supported content types"
+( cd .. && uv run scripts/sync_kb.py --verify-release rust \
+    && uv run scripts/sync_kb.py --verify-release cli ) \
+  || error "Release snapshots do not match this tree"
 
 [ "$1" = --no-dry-run ] || success "Run with --no-dry-run to actually publish"
 

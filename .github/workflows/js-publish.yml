@@ -4,6 +4,9 @@ on:
 permissions:
   contents: read
 
+env:
+  UV_VERSION: "0.13.4"
+
 jobs:
   build:
     runs-on: ubuntu-26.04
@@ -11,6 +14,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+
+      # Release gate: js/package.json must declare a stable version whose frozen
+      # supported-content-types snapshot (created by `just sync-kb` in the
+      # release PR) is reproduced by this tree.
+      - name: Verify release snapshot
+        run: uv run scripts/sync_kb.py --verify-release js
 
       - name: Enable Corepack
         run: corepack enable

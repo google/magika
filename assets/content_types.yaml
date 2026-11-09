@@ -4,13 +4,9 @@
 # known to Magika. `assets/content_types_kb.min.json`, which all the bindings
 # consume, is generated from it: do not edit the JSON file by hand.
 #
-# After editing this file, run `just sync-kb` (or the individual commands below)
-# from the repository root:
-#
-#   uv run scripts/sync_kb.py
-#   uv run python/scripts/sync.py python
-#   uv run python/scripts/sync.py js
-#   (cd rust && ./sync.sh)
+# After editing this file, run `just sync-kb` (or `uv run scripts/sync_kb.py`)
+# from the repository root to regenerate `assets/content_types_kb.min.json`,
+# `assets/exposed_content_types.txt`, all language bindings, and generated docs.
 #
 # Format (validated by `scripts/sync_kb.py`):
 # - All strings are quoted: content type names, `mime_type`, `group`,
@@ -110,6 +106,13 @@
   extensions: ["aidl"]
   is_text: true
 
+"alembic":
+  mime_type: null
+  group: "image"
+  description: "Alembic geometry cache"
+  extensions: ["abc"]
+  is_text: false
+
 "algol68":
   mime_type: null
   group: null
@@ -179,6 +182,13 @@
   description: "Arc"
   extensions: ["arc"]
   is_text: false
+
+"arcgrid":
+  mime_type: null
+  group: "application"
+  description: "ESRI ASCII Grid"
+  extensions: ["asc", "grd"]
+  is_text: true
 
 "arj":
   mime_type: "application/arj"
@@ -383,6 +393,13 @@
   extensions: ["brf", "bfm"]
   is_text: false
 
+"bson":
+  mime_type: null
+  group: "application"
+  description: "BSON"
+  extensions: ["bson"]
+  is_text: false
+
 "bzip":
   mime_type: "application/x-bzip2"
   group: "archive"
@@ -418,11 +435,39 @@
   extensions: []
   is_text: false
 
+"caffe":
+  mime_type: null
+  group: "application"
+  description: "Caffe model"
+  extensions: ["caffemodel", "prototxt"]
+  is_text: false
+
+"castledb":
+  mime_type: null
+  group: "application"
+  description: "CastleDB"
+  extensions: ["cdb"]
+  is_text: true
+
 "cat":
   mime_type: "application/octet-stream"
   group: "application"
   description: "Windows Catalog file"
   extensions: ["cat"]
+  is_text: false
+
+"catboost":
+  mime_type: null
+  group: "application"
+  description: "CatBoost model"
+  extensions: ["cbm"]
+  is_text: false
+
+"cbor":
+  mime_type: "application/cbor"
+  group: "application"
+  description: "CBOR"
+  extensions: ["cbor"]
   is_text: false
 
 "cdf":
@@ -493,6 +538,20 @@
   group: "executable"
   description: null
   extensions: []
+  is_text: false
+
+"coreml":
+  mime_type: null
+  group: "application"
+  description: "Core ML model"
+  extensions: ["mlmodel"]
+  is_text: false
+
+"couchdb":
+  mime_type: null
+  group: "application"
+  description: "CouchDB database"
+  extensions: ["couch"]
   is_text: false
 
 "cpl":
@@ -578,6 +637,13 @@
   description: "Dart source"
   extensions: ["dart"]
   is_text: true
+
+"db2":
+  mime_type: null
+  group: "application"
+  description: "IBM DB2 database / backup"
+  extensions: ["db2"]
+  is_text: false
 
 "dbase":
   mime_type: null
@@ -803,6 +869,13 @@
   extensions: ["erb"]
   is_text: true
 
+"erdas":
+  mime_type: null
+  group: "image"
+  description: "ERDAS Imagine"
+  extensions: ["img"]
+  is_text: false
+
 "erlang":
   mime_type: "text/x-erlang"
   group: "code"
@@ -831,6 +904,20 @@
   extensions: []
   is_text: false
 
+"fasta":
+  mime_type: null
+  group: "application"
+  description: "FASTA sequence data"
+  extensions: ["fa", "fasta"]
+  is_text: true
+
+"fastq":
+  mime_type: null
+  group: "application"
+  description: "FASTQ sequence data"
+  extensions: ["fastq", "fq"]
+  is_text: true
+
 "fbx":
   mime_type: null
   group: "geometry"
@@ -843,6 +930,13 @@
   group: "database"
   description: "FileMaker database"
   extensions: ["fmp12", "fp7"]
+  is_text: false
+
+"firebird":
+  mime_type: null
+  group: "application"
+  description: "Firebird / InterBase database"
+  extensions: ["fdb", "gdb"]
   is_text: false
 
 "fits":
@@ -920,6 +1014,13 @@
   group: "gis"
   description: "OGC GeoPackage"
   extensions: ["gpkg"]
+  is_text: false
+
+"ggml":
+  mime_type: null
+  group: "application"
+  description: "Legacy GGML model"
+  extensions: ["ggml"]
   is_text: false
 
 "gguf":
@@ -1020,6 +1121,13 @@
   extensions: ["h"]
   is_text: true
 
+"h2":
+  mime_type: null
+  group: "application"
+  description: "H2 database"
+  extensions: ["h2.db", "mv.db"]
+  is_text: false
+
 "h5":
   mime_type: "application/x-hdf5"
   group: "archive"
@@ -1083,6 +1191,13 @@
   extensions: ["hh", "hpp", "hxx", "h++"]
   is_text: true
 
+"hsql":
+  mime_type: null
+  group: "application"
+  description: "HSQLDB database"
+  extensions: ["data", "script"]
+  is_text: false
+
 "hta":
   mime_type: "application/hta"
   group: "code"
@@ -1144,6 +1259,13 @@
   group: "application"
   description: "Internet Calendaring and Scheduling"
   extensions: ["ics"]
+  is_text: true
+
+"iges":
+  mime_type: "model/iges"
+  group: "image"
+  description: "IGES CAD exchange"
+  extensions: ["iges", "igs"]
   is_text: true
 
 "ignorefile":
@@ -1257,6 +1379,13 @@
   description: "Java Network Launch Protocol"
   extensions: ["jnlp"]
   is_text: true
+
+"joblib":
+  mime_type: null
+  group: "application"
+  description: "Joblib persistence"
+  extensions: ["joblib"]
+  is_text: false
 
 "jp2":
   mime_type: "image/jpeg2000"
@@ -1391,6 +1520,13 @@
   extensions: []
   is_text: false
 
+"leveldb":
+  mime_type: null
+  group: "application"
+  description: "LevelDB"
+  extensions: ["ldb", "log"]
+  is_text: false
+
 "lha":
   mime_type: "application/x-lha"
   group: "archive"
@@ -1403,6 +1539,13 @@
   group: "text"
   description: "License file"
   extensions: []
+  is_text: true
+
+"lightgbm":
+  mime_type: null
+  group: "application"
+  description: "LightGBM model"
+  extensions: ["txt"]
   is_text: true
 
 "lightwave":
@@ -1432,6 +1575,13 @@
   description: "LLVM bitcode"
   extensions: ["bc"]
   is_text: false
+
+"llvm_ir":
+  mime_type: null
+  group: "code"
+  description: "LLVM textual IR"
+  extensions: ["ll"]
+  is_text: true
 
 "lmdb":
   mime_type: null
@@ -1531,6 +1681,13 @@
   extensions: []
   is_text: true
 
+"mapinfo":
+  mime_type: null
+  group: "application"
+  description: "MapInfo dataset"
+  extensions: ["map", "mid", "mif", "tab"]
+  is_text: false
+
 "markdown":
   mime_type: "text/markdown"
   group: "text"
@@ -1551,6 +1708,20 @@
   description: "Matlab Source"
   extensions: ["m", "matlab"]
   is_text: true
+
+"max":
+  mime_type: null
+  group: "image"
+  description: "3ds Max scene"
+  extensions: ["max"]
+  is_text: false
+
+"maya":
+  mime_type: null
+  group: "image"
+  description: "Maya scene"
+  extensions: ["ma", "mb"]
+  is_text: false
 
 "mbtiles":
   mime_type: null
@@ -1585,6 +1756,13 @@
   group: "video"
   description: "Matroska"
   extensions: ["mkv"]
+  is_text: false
+
+"mongodb_bson":
+  mime_type: null
+  group: "application"
+  description: "MongoDB BSON dump"
+  extensions: ["bson"]
   is_text: false
 
 "mp2":
@@ -1622,6 +1800,13 @@
   extensions: []
   is_text: false
 
+"msgpack":
+  mime_type: null
+  group: "application"
+  description: "MessagePack"
+  extensions: ["mpk", "msgpack"]
+  is_text: false
+
 "msi":
   mime_type: "application/x-msi"
   group: "archive"
@@ -1636,12 +1821,26 @@
   extensions: ["msix"]
   is_text: false
 
+"mssql":
+  mime_type: null
+  group: "application"
+  description: "SQL Server database / backup"
+  extensions: ["bak", "ldf", "mdf", "ndf"]
+  is_text: false
+
 "mst":
   mime_type: null
   group: null
   description: null
   extensions: ["mst"]
   is_text: false
+
+"mtl":
+  mime_type: "model/mtl"
+  group: "image"
+  description: "Wavefront material library"
+  extensions: ["mtl"]
+  is_text: true
 
 "mui":
   mime_type: "application/x-dosexec"
@@ -1663,6 +1862,27 @@
   description: null
   extensions: ["mun"]
   is_text: false
+
+"mxnet":
+  mime_type: null
+  group: "application"
+  description: "MXNet parameters"
+  extensions: ["params"]
+  is_text: false
+
+"mysql_storage":
+  mime_type: null
+  group: "application"
+  description: "MySQL / MariaDB storage"
+  extensions: ["ibd", "myd", "myi"]
+  is_text: false
+
+"ncnn":
+  mime_type: null
+  group: "application"
+  description: "NCNN model"
+  extensions: ["param"]
+  is_text: true
 
 "netcdf":
   mime_type: null
@@ -1719,6 +1939,13 @@
   description: "NuGet Package"
   extensions: ["nupkg"]
   is_text: false
+
+"obj":
+  mime_type: "model/obj"
+  group: "image"
+  description: "Wavefront OBJ"
+  extensions: ["obj"]
+  is_text: true
 
 "object":
   mime_type: null
@@ -1797,6 +2024,13 @@
   extensions: []
   is_text: false
 
+"omf":
+  mime_type: null
+  group: "executable"
+  description: "OMF object"
+  extensions: ["obj"]
+  is_text: false
+
 "one":
   mime_type: "application/msonenote"
   group: "document"
@@ -1816,6 +2050,27 @@
   group: null
   description: null
   extensions: []
+  is_text: false
+
+"openscad":
+  mime_type: null
+  group: "code"
+  description: "OpenSCAD source"
+  extensions: ["scad"]
+  is_text: true
+
+"openvino_ir":
+  mime_type: null
+  group: "application"
+  description: "OpenVINO IR"
+  extensions: ["xml"]
+  is_text: true
+
+"oracle_db":
+  mime_type: null
+  group: "application"
+  description: "Oracle database / export"
+  extensions: ["dbf", "dmp"]
   is_text: false
 
 "orc":
@@ -1844,6 +2099,13 @@
   group: "application"
   description: "MS Outlook Message"
   extensions: []
+  is_text: false
+
+"paddle":
+  mime_type: null
+  group: "application"
+  description: "PaddlePaddle parameters"
+  extensions: ["pdiparams", "pdmodel", "pdparams"]
   is_text: false
 
 "palmos":
@@ -1893,6 +2155,13 @@
   group: "binary"
   description: "Packet capture PCAPNG"
   extensions: ["pcapng"]
+  is_text: false
+
+"pcd":
+  mime_type: null
+  group: "image"
+  description: "Point Cloud Data"
+  extensions: ["pcd"]
   is_text: false
 
 "pdb":
@@ -1956,6 +2225,13 @@
   group: "geometry"
   description: "Polygon File Format"
   extensions: ["ply"]
+  is_text: false
+
+"pmtiles":
+  mime_type: null
+  group: "application"
+  description: "PMTiles"
+  extensions: ["pmtiles"]
   is_text: false
 
 "png":
@@ -2049,6 +2325,13 @@
   extensions: ["psd"]
   is_text: false
 
+"ptx":
+  mime_type: null
+  group: "code"
+  description: "NVIDIA PTX"
+  extensions: ["ptx"]
+  is_text: true
+
 "pub":
   mime_type: "application/x-mspublisher"
   group: null
@@ -2082,6 +2365,13 @@
   group: "application"
   description: "Pytorch storage file"
   extensions: ["pt", "pth"]
+  is_text: false
+
+"pytorch_export":
+  mime_type: null
+  group: "application"
+  description: "PyTorch exported program"
+  extensions: ["pt2"]
   is_text: false
 
 "qgis":
@@ -2161,6 +2451,20 @@
   extensions: []
   is_text: false
 
+"realm":
+  mime_type: null
+  group: "application"
+  description: "Realm database"
+  extensions: ["realm"]
+  is_text: false
+
+"redis_aof":
+  mime_type: null
+  group: "application"
+  description: "Redis append-only log"
+  extensions: ["aof"]
+  is_text: false
+
 "redis_rdb":
   mime_type: null
   group: "database"
@@ -2194,6 +2498,13 @@
   group: "executable"
   description: "Resource Library"
   extensions: ["rll"]
+  is_text: false
+
+"rocksdb":
+  mime_type: null
+  group: "application"
+  description: "RocksDB"
+  extensions: ["sst"]
   is_text: false
 
 "rpm":
@@ -2287,6 +2598,13 @@
   extensions: ["scss"]
   is_text: true
 
+"segy":
+  mime_type: null
+  group: "application"
+  description: "SEG-Y seismic data"
+  extensions: ["segy", "sgy"]
+  is_text: false
+
 "sevenzip":
   mime_type: "application/x-7z-compressed"
   group: "archive"
@@ -2327,6 +2645,13 @@
   group: "geometry"
   description: "SketchUp model"
   extensions: ["skp"]
+  is_text: false
+
+"skops":
+  mime_type: null
+  group: "application"
+  description: "skops model"
+  extensions: ["skops"]
   is_text: false
 
 "smali":
@@ -2391,6 +2716,13 @@
   description: "Squash filesystem"
   extensions: []
   is_text: false
+
+"srecord":
+  mime_type: null
+  group: "executable"
+  description: "Motorola S-record firmware"
+  extensions: ["s19", "srec"]
+  is_text: true
 
 "srt":
   mime_type: "text/srt"
@@ -2497,12 +2829,54 @@
   extensions: ["tcl"]
   is_text: true
 
+"tensorflow_checkpoint":
+  mime_type: null
+  group: "application"
+  description: "TensorFlow checkpoint"
+  extensions: ["ckpt", "index"]
+  is_text: false
+
+"tensorflowjs":
+  mime_type: null
+  group: "application"
+  description: "TensorFlow.js model"
+  extensions: ["json"]
+  is_text: true
+
+"tensorrt":
+  mime_type: null
+  group: "application"
+  description: "TensorRT engine"
+  extensions: ["engine", "plan"]
+  is_text: false
+
+"terraform":
+  mime_type: null
+  group: "code"
+  description: "Terraform configuration"
+  extensions: ["tf", "tfvars"]
+  is_text: true
+
 "textproto":
   mime_type: "text/plain"
   group: "code"
   description: "Text protocol buffer"
   extensions: ["textproto", "textpb", "pbtxt"]
   is_text: true
+
+"tflite":
+  mime_type: null
+  group: "application"
+  description: "TensorFlow Lite / LiteRT"
+  extensions: ["tflite"]
+  is_text: false
+
+"tfrecord":
+  mime_type: null
+  group: "application"
+  description: "TensorFlow TFRecord"
+  extensions: ["tfrecord", "tfrecords"]
+  is_text: false
 
 "tga":
   mime_type: "image/x-tga"
@@ -2538,6 +2912,13 @@
   description: "Tom's obvious, minimal language"
   extensions: ["toml"]
   is_text: true
+
+"torchscript":
+  mime_type: null
+  group: "application"
+  description: "TorchScript archive"
+  extensions: ["pt"]
+  is_text: false
 
 "torrent":
   mime_type: "application/x-bittorrent"
@@ -2623,6 +3004,13 @@
   extensions: []
   is_text: false
 
+"uefi_fv":
+  mime_type: null
+  group: "executable"
+  description: "UEFI firmware volume"
+  extensions: ["fd", "fv"]
+  is_text: false
+
 "uf2":
   mime_type: null
   group: "executable"
@@ -2658,6 +3046,13 @@
   extensions: []
   is_text: false
 
+"usd":
+  mime_type: null
+  group: "image"
+  description: "Universal Scene Description"
+  extensions: ["usd", "usda", "usdc", "usdz"]
+  is_text: false
+
 "vba":
   mime_type: "text/vbscript"
   group: "code"
@@ -2678,6 +3073,13 @@
   description: null
   extensions: ["vcard"]
   is_text: false
+
+"vcf_genomics":
+  mime_type: null
+  group: "application"
+  description: "Variant Call Format"
+  extensions: ["vcf"]
+  is_text: true
 
 "vcs":
   mime_type: null
@@ -2726,6 +3128,13 @@
   group: "document"
   description: "Microsoft Visio"
   extensions: ["vsd", "vsdm", "vsdx", "vdw"]
+  is_text: false
+
+"vtk":
+  mime_type: null
+  group: "image"
+  description: "VTK dataset"
+  extensions: ["vtk", "vtp", "vtu"]
   is_text: false
 
 "vtt":
@@ -2798,6 +3207,20 @@
   extensions: ["reg"]
   is_text: true
 
+"wiredtiger":
+  mime_type: null
+  group: "application"
+  description: "WiredTiger storage"
+  extensions: ["wt"]
+  is_text: false
+
+"wkt":
+  mime_type: null
+  group: "application"
+  description: "Well-Known Text geometry"
+  extensions: ["wkt"]
+  is_text: true
+
 "wma":
   mime_type: "audio/x-ms-wma"
   group: "audio"
@@ -2852,6 +3275,13 @@
   group: "executable"
   description: "XCOFF"
   extensions: ["o"]
+  is_text: false
+
+"xgboost":
+  mime_type: null
+  group: "application"
+  description: "XGBoost model"
+  extensions: ["json", "ubj"]
   is_text: false
 
 "xls":
@@ -2916,6 +3346,13 @@
   description: "YARA rule"
   extensions: ["yar", "yara"]
   is_text: true
+
+"zbrush":
+  mime_type: null
+  group: "image"
+  description: "ZBrush project / tool"
+  extensions: ["zpr", "ztl"]
+  is_text: false
 
 "zig":
   mime_type: "text/zig"

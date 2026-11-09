@@ -1,0 +1,58 @@
+# Cloud Build configuration to build and deploy website-ng to App Engine.
+#
+# Triggered on pushes to `main` touching `website-ng/**`.
+
+substitutions:
+  _NODE_VERSION: "22"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
+
+steps:
+  - id: Install dependencies
+    name: node:$_NODE_VERSION
+    dir: website-ng
+    entrypoint: npm
+    args:
+      - install
+
+  - id: Build Astro site
+    name: node:$_NODE_VERSION
+    dir: website-ng
+    entrypoint: npm
+    args:
+      - run
+      - build
+
+  # App Engine enforces a hard project-wide cap of 210 versions across all
+  # services and does not clean up old versions automatically. Keep the live
+  # (100% traffic) version plus the most recent 0%-traffic version before
+  # deploying, leaving at most 3 versions total (live + 2 rollbacks) afterward.
+  - id: Prune old App Engine versions
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        OLD_VERSIONS=$$(gcloud app versions list \
+          --service=magika \
+          --filter="traffic_split=0" \
+          --sort-by="~version.createTime" \
+          --format="value(version.id)" | tail -n +2)
+        if [ -n "$$OLD_VERSIONS" ]; then
+          echo "Deleting stale magika App Engine versions:"
+          echo "$$OLD_VERSIONS"
+          gcloud app versions delete $$OLD_VERSIONS --service=magika --quiet
+        fi
+
+  - id: Deploy to App Engine
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    dir: website-ng
+    entrypoint: gcloud
+    args:
+      - app
+      - deploy
+      - --quiet

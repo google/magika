@@ -63,7 +63,7 @@ The `value` field is present on successful scans and contains the following deta
 - `output`: Contains the final prediction from "Magika the tool." This result considers the model's prediction, its confidence score, and the selected prediction mode. In this example, the model's confidence was high, so the final output matches the model's prediction.
 
 Within both `dl` and `output`, you will find:
-- `label`: A simple, machine-readable content type label (e.g., `javascript`). The possible values for `dl.label` and `output.label` are documented in each model's README.
+- `label`: A simple, machine-readable content type label (e.g., `javascript`). The possible values for `output.label` depend on the artifact and version (see [Models & Supported Content Types](/magika/core-concepts/models-and-content-types)), while the raw `dl.label` classes are documented on each [model's page](/magika/models/standard_v3_3).
 - `description`: A human-readable description.
 - `mime_type`: The corresponding MIME type.
 - `group`: A high-level category (e.g., code, document, media).

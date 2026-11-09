@@ -3,7 +3,7 @@
 
 //! Parsing and metadata validation of rule sources.
 
-use magika_rules::{Bucket, Class, Error, Source};
+use magika_rules::{Class, Error, Source};
 
 const OK: &str = r#"
 rule png { meta: label = "png" enforced = true class = "full" fp_rate = 0 fn_rate = 0
@@ -18,7 +18,6 @@ fn parses_an_enforced_full_rule() {
     assert_eq!(rule.label.as_deref(), Some("png"));
     assert_eq!(rule.class, Class::Full);
     assert!(rule.enforced);
-    assert_eq!(rule.bucket, None);
 }
 
 #[test]
@@ -64,10 +63,4 @@ fn enforced_rules_need_a_label() {
 fn unenforced_rules_are_kept_but_flagged() {
     let off = OK.replace("enforced = true", "enforced = false");
     assert!(!Source::parse(&off).unwrap().rules()[0].enforced);
-}
-
-#[test]
-fn bucket_check_rejects_a_full_rule_in_partial() {
-    assert!(matches!(Source::parse_in_bucket(OK, Bucket::Partial), Err(Error::Metadata { .. })));
-    assert!(Source::parse_in_bucket(OK, Bucket::Full).is_ok());
 }

@@ -17,7 +17,6 @@ mod magic;
 
 use anyhow::Result;
 
-use crate::cached_input::CachedInput;
 use crate::{ContentType, Input};
 
 const PREFIX_LIMIT: usize = 4096;
@@ -27,7 +26,7 @@ const PREFIX_LIMIT: usize = 4096;
 /// The returned list may have false negatives (the file should have a content type that's not
 /// returned). In particular, the list may be empty, in which case the model will also try to
 /// identify the file.
-pub(crate) fn identify(file: &mut CachedInput<impl Input>) -> Result<Vec<ContentType>> {
+pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
     let size = file.length();
     if size == 0 {
         return Ok(Vec::new());
@@ -57,6 +56,7 @@ pub(crate) fn identify(file: &mut CachedInput<impl Input>) -> Result<Vec<Content
 /// If the resolvers don't return a match for a given file, and the model returns a content type
 /// from this list, then that content type will be vetoed and "txt" or "unknown" will be used (based
 /// on "is_text" from the content type that was vetoed).
+#[cfg_attr(not(test), allow(dead_code))] // cannot use cfg(test) because of sync_kb.py
 pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Keras,
     ContentType::Qgis,
@@ -155,12 +155,16 @@ pub(crate) const VETOS: &[ContentType] = &[
 
 #[cfg(test)]
 mod tests {
+    mod corpus;
+    mod dataset;
+    mod regressions;
+
     use std::collections::HashSet;
 
     use super::*;
 
     fn resolve_slice(bytes: &[u8]) -> Vec<ContentType> {
-        let mut input = CachedInput::new(bytes).unwrap();
+        let mut input = Input::from_slice(bytes);
         identify(&mut input).unwrap()
     }
 
@@ -190,7 +194,7 @@ mod tests {
                 if !path.is_file() {
                     continue;
                 }
-                let mut input = CachedInput::new(std::fs::File::open(&path).unwrap()).unwrap();
+                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
                 let got = identify(&mut input).unwrap();
                 if let [ct] = got[..] {
                     assert_eq!(ct.info().label, expected, "mismatch on {}", path.display());

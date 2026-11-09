@@ -62,7 +62,7 @@ impl Session {
     }
 
     /// Identifies a single file from its content.
-    pub fn identify_content(&mut self, file: impl Input) -> Result<RegularFileType> {
+    pub fn identify_content<'a>(&mut self, file: impl Into<Input<'a>>) -> Result<RegularFileType> {
         self.identify_features_or(FeaturesOr::extract_content(file, &self.options)?)
     }
 

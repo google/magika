@@ -14,7 +14,34 @@
 
 import { ContentTypeLabel } from "./content-type-label.js";
 
+/**
+ * Metadata and detection-stage coverage for an exposed Magika content type.
+ */
 export interface ContentTypeInfo {
+  /** Unique content type label. */
   label: ContentTypeLabel;
+  /** MIME type associated with the content type. */
+  mime_type: string;
+  /** High-level category (e.g., `"code"`, `"document"`). */
+  group: string;
+  /** Human-readable description of the content type. */
+  description: string;
+  /** Common file extensions (without leading dots). */
+  extensions: string[];
+  /** Whether the content type is text-based. */
   is_text: boolean;
+  /** Whether this content type is supported by built-in heuristics. */
+  in_heuristics: boolean;
+  /**
+   * Whether this content type is supported by the native Rust format resolvers
+   * (not executed by the JavaScript TF.js pipeline).
+   */
+  in_resolvers: boolean;
+  /** Whether this content type is supported by the default active ML model. */
+  in_ml_model: boolean;
+  /**
+   * Whether ML model predictions of this content type are vetoed when no
+   * native Rust format resolver matched.
+   */
+  vetoed_by_resolvers: boolean;
 }

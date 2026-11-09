@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # /// script
+# requires-python = ">=3.11"
 # dependencies = ["click", "pyyaml"]
 #
 # [tool.uv]
 # required-version = ">=0.13.4"
 # ///
-"""Synchronize the content types KB, language bindings, and active model README.
+"""Synchronize the content types KB, language bindings, and generated docs.
 
 `assets/content_types.yaml` is the human-editable source of truth for content
 type metadata. This script validates the YAML, derives the 4 boolean coverage
@@ -26,23 +27,43 @@ fields (`in_heuristics`, `in_resolvers`, `in_ml_model`, `vetoed_by_resolvers`)
 from built-in heuristics, the Rust resolvers (`rust/lib/src/resolvers/`), and
 the active ML model config (`assets/active_model.txt`), maintains the monotonic
 `assets/exposed_content_types.txt` allowlist, and deterministically generates
-`assets/content_types_kb.min.json`, Rust/C FFI/Python/JS bindings, and the
-active model's `README.md` in a single pure-Python pass.
+`assets/content_types_kb.min.json`, Rust/C FFI/Python/JS bindings, the active
+model's documentation (`assets/models/<active_model>/README.md` and
+`website-ng/src/content/docs/models/<active_model>.md`), the decoupled `main`
+supported-content-types reference, and the per-version index
+(`website-ng/src/content/docs/content-types/{main,index}.md`) in a single
+pure-Python pass.
 
 Usage (from anywhere in the repository):
 
-    uv run scripts/sync_kb.py               # Regenerate all KB artifacts.
-    uv run scripts/sync_kb.py --check       # Fail if any KB artifact is stale.
-    uv run scripts/sync_kb.py --self-test   # Run the validation self-tests.
+    uv run scripts/sync_kb.py                           # Regenerate all KB artifacts.
+    uv run scripts/sync_kb.py --check                   # Fail if any KB artifact is stale.
+    uv run scripts/sync_kb.py --self-test               # Run the validation self-tests.
+    uv run scripts/sync_kb.py --verify-release python   # Gate publishing (release CI).
+
+Release snapshots (`website-ng/src/content/docs/content-types/<artifact>-v*.md`)
+are driven by the versions declared in each artifact's own manifest
+(`rust/lib/Cargo.toml`, `rust/cli/Cargo.toml`, `python/pyproject.toml`,
+`js/package.json`). Between releases these carry a pre-release suffix (e.g.
+`2.0.0-dev`, `2.0.0.dev0`) and are ignored. The release PR drops the suffix;
+running this script then writes the snapshot of the new stable version and pins
+its sha256 in `assets/content_types_snapshots.sha256` (`--check` fails until
+it does). Pinned snapshots are frozen: `--check` fails if one is modified or
+deleted, or if an unpinned one appears. At publish time, `--verify-release`
+checks that the released tree reproduces its snapshot byte for byte.
 """
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
 import sys
-from collections.abc import Mapping, Sequence
+import tempfile
+import tomllib
+from collections.abc import Container, Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +93,18 @@ PYTHON_CONTENT_TYPE_LABEL_PATH = (
 )
 JS_CONTENT_TYPE_LABEL_PATH = REPO_ROOT_DIR / "js" / "src" / "content-type-label.ts"
 JS_CONTENT_TYPES_INFOS_PATH = REPO_ROOT_DIR / "js" / "src" / "content-types-infos.ts"
+WEBSITE_DOCS_DIR = REPO_ROOT_DIR / "website-ng" / "src" / "content" / "docs"
+WEBSITE_MODELS_DIR = WEBSITE_DOCS_DIR / "models"
+WEBSITE_CONTENT_TYPES_DIR = WEBSITE_DOCS_DIR / "content-types"
+MAIN_CONTENT_TYPES_DOC_PATH = WEBSITE_CONTENT_TYPES_DIR / "main.md"
+CONTENT_TYPES_INDEX_DOC_PATH = WEBSITE_CONTENT_TYPES_DIR / "index.md"
+# Live docs in `content-types/` regenerated on every sync (never frozen).
+GENERATED_CONTENT_TYPES_DOC_NAMES = frozenset(
+    {MAIN_CONTENT_TYPES_DOC_PATH.name, CONTENT_TYPES_INDEX_DOC_PATH.name}
+)
+SNAPSHOTS_MANIFEST_PATH = ASSETS_DIR / "content_types_snapshots.sha256"
+# `sha256sum`-compatible manifest line: "<sha256>  <snapshot file name>".
+_SNAPSHOTS_MANIFEST_LINE_RE = re.compile(r"^([0-9a-f]{64})  ([a-z0-9_.-]+\.md)$")
 
 # The human-authored fields of each content type, in the order in which they
 # must appear in the YAML source and at the start of each JSON KB entry.
@@ -82,6 +115,10 @@ MIME_TYPE_RE = re.compile(
 )
 EXTENSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_+.-]*$")
 ACTIVE_MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
+# A stable release version; anything else (e.g. `2.0.0-dev`, `2.0.0.dev0`,
+# `1.0.4rc1`) is a pre-release and never gets a snapshot.
+STABLE_VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+_SNAPSHOT_FILE_NAME_RE = re.compile(r"^([a-z]+)-v([0-9]+)_([0-9]+)_([0-9]+)\.md$")
 
 VALID_GROUPS = frozenset(
     {
@@ -110,8 +147,54 @@ VALID_GROUPS = frozenset(
 HEURISTIC_CONTENT_TYPES = frozenset(
     {"directory", "empty", "symlink", "txt", "unknown", "unsupported"}
 )
+# Byte/stream heuristics active in the pure-TypeScript TensorFlow.js runtime.
+JS_HEURISTIC_CONTENT_TYPES = frozenset({"empty", "txt", "unknown"})
 # Non-regular file types represented on Rust's `FileType` enum rather than `ContentType`.
 SPECIAL_FILE_TYPE_LABELS = frozenset({"directory", "symlink", "unsupported"})
+
+
+@dataclass(frozen=True)
+class ReleaseArtifact:
+    """A published artifact whose supported content types are snapshotted per release."""
+
+    key: str  # Snapshot file prefix and `--verify-release` argument.
+    title: str  # e.g. "Python `magika`".
+    short_title: str  # e.g. "Python".
+    version_file: Path  # Manifest declaring the artifact's version.
+    js_pipeline: bool  # TF.js runtime: byte heuristics + ML model, no resolvers.
+
+
+RELEASE_ARTIFACTS: tuple[ReleaseArtifact, ...] = (
+    ReleaseArtifact(
+        "cli",
+        "`magika` CLI",
+        "CLI",
+        REPO_ROOT_DIR / "rust" / "cli" / "Cargo.toml",
+        False,
+    ),
+    ReleaseArtifact(
+        "rust",
+        "Rust `magika` library",
+        "Rust",
+        REPO_ROOT_DIR / "rust" / "lib" / "Cargo.toml",
+        False,
+    ),
+    ReleaseArtifact(
+        "python",
+        "Python `magika`",
+        "Python",
+        REPO_ROOT_DIR / "python" / "pyproject.toml",
+        False,
+    ),
+    ReleaseArtifact(
+        "js",
+        "JavaScript / TypeScript `magika`",
+        "JavaScript",
+        REPO_ROOT_DIR / "js" / "package.json",
+        True,
+    ),
+)
+RELEASE_ARTIFACTS_BY_KEY = {artifact.key: artifact for artifact in RELEASE_ARTIFACTS}
 
 _CFG_TEST_RE = re.compile(r"#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]")
 _IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -202,7 +285,9 @@ class KbError(Exception):
 @click.option(
     "--check",
     is_flag=True,
-    help="Do not write anything; exit with an error if any generated KB artifact is stale.",
+    help="Do not write anything; exit with an error if any generated KB artifact is "
+    "stale, a declared stable version has no release snapshot, or a frozen release "
+    "snapshot was tampered with.",
 )
 @click.option(
     "--self-test",
@@ -216,10 +301,34 @@ class KbError(Exception):
     help="Model directory containing config.min.json "
     "(default: assets/models/<active_model> from assets/active_model.txt).",
 )
-def main(check: bool, self_test: bool, model_dir: Path | None) -> None:
+@click.option(
+    "--verify-release",
+    type=click.Choice([artifact.key for artifact in RELEASE_ARTIFACTS]),
+    default=None,
+    help="Release gate (run by the publishing workflows): check that ARTIFACT declares "
+    "a stable version whose release snapshot is pinned and reproduced byte for byte "
+    "by this tree, then exit.",
+)
+@click.option(
+    "--expected-version",
+    default=None,
+    help="With --verify-release: also require the declared version to equal this "
+    "one (e.g. the version in the release tag).",
+)
+def main(
+    check: bool,
+    self_test: bool,
+    model_dir: Path | None,
+    verify_release: str | None,
+    expected_version: str | None,
+) -> None:
     """Synchronize the content types KB, language bindings, and generated docs."""
-    if check and self_test:
-        raise click.UsageError("--check and --self-test are mutually exclusive.")
+    if sum((check, self_test, verify_release is not None)) > 1:
+        raise click.UsageError(
+            "--check, --self-test, and --verify-release are mutually exclusive."
+        )
+    if expected_version is not None and verify_release is None:
+        raise click.UsageError("--expected-version requires --verify-release.")
 
     if self_test:
         sys.exit(run_self_test())
@@ -242,18 +351,57 @@ def main(check: bool, self_test: bool, model_dir: Path | None) -> None:
                 ACTIVE_MODEL_PATH, MODELS_DIR
             )
         model_config, model_display_path = _read_model_config(resolved_model_dir)
+        kb = build_kb(
+            CONTENT_TYPES_YAML_PATH.read_text(encoding="utf-8"),
+            resolver_sources,
+            model_config,
+            source_name=yaml_display_path,
+            model_source_name=model_display_path,
+            require_heuristics=True,
+        )
+        declared_versions = read_declared_versions(RELEASE_ARTIFACTS)
+
+        if verify_release is not None:
+            artifact = RELEASE_ARTIFACTS_BY_KEY[verify_release]
+            snapshot_path = verify_release_snapshot(
+                kb,
+                artifact,
+                declared_versions[artifact.key],
+                model_name,
+                expected_version=expected_version,
+                snapshots_dir=WEBSITE_CONTENT_TYPES_DIR,
+                manifest_path=SNAPSHOTS_MANIFEST_PATH,
+            )
+            click.echo(
+                f"OK: {_display_path(snapshot_path)} is pinned and reproduced by this "
+                f"tree for {artifact.title} {declared_versions[artifact.key]}."
+            )
+            return
+
+        manifest = _read_snapshots_manifest(SNAPSHOTS_MANIFEST_PATH)
+        new_snapshots = plan_release_snapshots(
+            kb, model_name, declared_versions, pinned=manifest
+        )
+        snapshot_texts = {
+            name: (WEBSITE_CONTENT_TYPES_DIR / name).read_text(encoding="utf-8")
+            for name in manifest
+            if (WEBSITE_CONTENT_TYPES_DIR / name).is_file()
+        }
+        snapshot_texts.update(new_snapshots)
         artifacts = build_repo_artifacts(
-            yaml_text=CONTENT_TYPES_YAML_PATH.read_text(encoding="utf-8"),
-            resolver_sources=resolver_sources,
+            kb=kb,
             model_name=model_name,
             model_config=model_config,
             existing_exposed_text=EXPOSED_CONTENT_TYPES_PATH.read_text(
                 encoding="utf-8"
             ),
             resolved_model_dir=resolved_model_dir,
-            yaml_source_name=yaml_display_path,
             model_source_name=model_display_path,
             exposed_source_name=exposed_display_path,
+            snapshot_texts=snapshot_texts,
+        )
+        num_frozen, frozen_errors = verify_frozen_snapshots(
+            WEBSITE_CONTENT_TYPES_DIR, SNAPSHOTS_MANIFEST_PATH
         )
     except KbError as e:
         click.echo(f"ERROR: {e}", err=True)
@@ -265,6 +413,16 @@ def main(check: bool, self_test: bool, model_dir: Path | None) -> None:
             stale_paths.append(_display_path(path))
 
     if check:
+        if new_snapshots:
+            formatted = "\n".join(
+                f"- {_display_path(WEBSITE_CONTENT_TYPES_DIR / name)}"
+                for name in new_snapshots
+            )
+            click.echo(
+                f"ERROR: {len(new_snapshots)} declared stable release version(s) have no "
+                f"release snapshot yet:\n{formatted}\nRun: just sync-kb",
+                err=True,
+            )
         if stale_paths:
             formatted = "\n".join(f"- {p}" for p in stale_paths)
             click.echo(
@@ -273,21 +431,259 @@ def main(check: bool, self_test: bool, model_dir: Path | None) -> None:
                 "Run: just sync-kb",
                 err=True,
             )
+        _echo_frozen_snapshot_errors(frozen_errors)
+        if new_snapshots or stale_paths or frozen_errors:
             sys.exit(1)
         click.echo(
-            f"All {len(artifacts)} KB artifacts are in sync with {yaml_display_path}."
+            f"All {len(artifacts)} KB artifacts are in sync with {yaml_display_path}, "
+            f"and all {num_frozen} frozen release snapshots are unchanged."
         )
         return
 
+    try:
+        for name, doc in new_snapshots.items():
+            path = write_frozen_snapshot(
+                WEBSITE_CONTENT_TYPES_DIR, SNAPSHOTS_MANIFEST_PATH, name, doc
+            )
+            click.echo(
+                f"Froze new release snapshot {_display_path(path)} (pinned in "
+                f"{_display_path(SNAPSHOTS_MANIFEST_PATH)})."
+            )
+    except KbError as e:
+        click.echo(f"ERROR: {e}", err=True)
+        sys.exit(1)
+
     if not stale_paths:
         click.echo(f"All {len(artifacts)} KB artifacts are already up to date.")
-        return
-
     for path, expected_bytes in artifacts.items():
         if not path.is_file() or path.read_bytes() != expected_bytes:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(expected_bytes)
             click.echo(f"Updated {_display_path(path)}.")
+
+    # Frozen snapshots are never regenerated, so violations need a manual fix.
+    _echo_frozen_snapshot_errors(frozen_errors)
+    if frozen_errors:
+        sys.exit(1)
+
+
+def _echo_frozen_snapshot_errors(errors: Sequence[str]) -> None:
+    if not errors:
+        return
+    formatted = "\n".join(f"- {e}" for e in errors)
+    click.echo(
+        f"ERROR: {len(errors)} frozen release snapshot problem(s):\n{formatted}\n"
+        "Release snapshots are immutable: restore them with git. New ones are created "
+        "by 'just sync-kb' when an artifact declares a new stable version.",
+        err=True,
+    )
+
+
+def read_declared_versions(
+    artifacts: Sequence[ReleaseArtifact],
+) -> dict[str, str]:
+    """Reads the version each release artifact declares in its own manifest."""
+    versions: dict[str, str] = {}
+    for artifact in artifacts:
+        if not artifact.version_file.is_file():
+            raise KbError(f"{_display_path(artifact.version_file)}: file not found")
+        versions[artifact.key] = _parse_declared_version(
+            artifact.version_file.name,
+            artifact.version_file.read_text(encoding="utf-8"),
+            _display_path(artifact.version_file),
+        )
+    return versions
+
+
+def _parse_declared_version(file_name: str, text: str, source_name: str) -> str:
+    """Extracts the package version from `Cargo.toml`, `pyproject.toml`, or `package.json`."""
+    try:
+        if file_name == "package.json":
+            version = json.loads(text).get("version")
+        elif file_name == "Cargo.toml":
+            version = tomllib.loads(text).get("package", {}).get("version")
+        elif file_name == "pyproject.toml":
+            version = tomllib.loads(text).get("project", {}).get("version")
+        else:
+            raise KbError(f"{source_name}: unsupported version file")
+    except (json.JSONDecodeError, tomllib.TOMLDecodeError) as e:
+        raise KbError(f"{source_name}: cannot parse: {e}") from e
+    if not isinstance(version, str) or not version:
+        raise KbError(f"{source_name}: no literal package version found")
+    return version
+
+
+def snapshot_file_name(artifact_key: str, version: str) -> str:
+    """Returns the release snapshot file name, e.g. `python-v1_0_4.md`."""
+    return f"{artifact_key}-v{version.replace('.', '_')}.md"
+
+
+def plan_release_snapshots(
+    kb: Mapping[str, Mapping[str, Any]],
+    model_name: str,
+    declared_versions: Mapping[str, str],
+    *,
+    pinned: Container[str],
+) -> dict[str, str]:
+    """Returns `{file name: doc}` for declared stable versions that have no pinned snapshot."""
+    docs: dict[str, str] = {}
+    for artifact in RELEASE_ARTIFACTS:
+        version = declared_versions[artifact.key]
+        if not STABLE_VERSION_RE.match(version):
+            continue
+        name = snapshot_file_name(artifact.key, version)
+        if name not in pinned:
+            docs[name] = generate_release_snapshot_doc(
+                kb, artifact, version, model_name
+            )
+    return docs
+
+
+def verify_release_snapshot(
+    kb: Mapping[str, Mapping[str, Any]],
+    artifact: ReleaseArtifact,
+    declared_version: str,
+    model_name: str,
+    *,
+    expected_version: str | None,
+    snapshots_dir: Path,
+    manifest_path: Path,
+) -> Path:
+    """Checks that this tree is a releasable state of `artifact`; returns its snapshot path."""
+    version_file = _display_path(artifact.version_file)
+    if expected_version is not None and expected_version != declared_version:
+        raise KbError(
+            f"{version_file} declares version {declared_version!r}, but the release "
+            f"expects {expected_version!r} (does the release tag match the release PR?)"
+        )
+    if not STABLE_VERSION_RE.match(declared_version):
+        raise KbError(
+            f"{version_file} declares {declared_version!r}, which is not a stable release "
+            "version: the release PR must drop the pre-release suffix"
+        )
+
+    name = snapshot_file_name(artifact.key, declared_version)
+    path = snapshots_dir / name
+    manifest = _read_snapshots_manifest(manifest_path)
+    if name not in manifest or not path.is_file():
+        raise KbError(
+            f"{_display_path(path)}: release snapshot is missing or not pinned in "
+            f"{_display_path(manifest_path)} (run 'just sync-kb' in the release PR)"
+        )
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != manifest[name]:
+        raise KbError(
+            f"{_display_path(path)}: modified after being frozen "
+            f"(sha256 differs from {_display_path(manifest_path)})"
+        )
+    expected_doc = generate_release_snapshot_doc(
+        kb, artifact, declared_version, model_name
+    )
+    if data != expected_doc.encode("utf-8"):
+        raise KbError(
+            f"{_display_path(path)}: does not match the supported content types of this "
+            "tree (the release PR probably changed after its snapshot was frozen, e.g. "
+            f"by a rebase). As {artifact.title} {declared_version} is not published yet: "
+            f"delete the snapshot and its line in {_display_path(manifest_path)}, run "
+            "'just sync-kb', merge, and release from the new commit"
+        )
+    return path
+
+
+def write_frozen_snapshot(
+    snapshots_dir: Path, manifest_path: Path, file_name: str, doc: str
+) -> Path:
+    """Writes a new release snapshot and pins its sha256; refuses to overwrite one."""
+    manifest = _read_snapshots_manifest(manifest_path)
+    path = snapshots_dir / file_name
+    if path.exists() or file_name in manifest:
+        raise KbError(
+            f"{_display_path(path)}: release snapshot already exists and is frozen"
+        )
+    data = doc.encode("utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    manifest[file_name] = hashlib.sha256(data).hexdigest()
+    manifest_path.write_text(
+        "".join(f"{digest}  {name}\n" for name, digest in sorted(manifest.items())),
+        encoding="utf-8",
+    )
+    return path
+
+
+def verify_frozen_snapshots(
+    snapshots_dir: Path, manifest_path: Path
+) -> tuple[int, list[str]]:
+    """Returns `(num_pinned_snapshots, errors)` for modified, missing, or unpinned snapshots."""
+    manifest = _read_snapshots_manifest(manifest_path)
+    manifest_display = _display_path(manifest_path)
+    errors: list[str] = []
+    on_disk = (
+        sorted(
+            p.name
+            for p in snapshots_dir.glob("*.md")
+            if p.name not in GENERATED_CONTENT_TYPES_DOC_NAMES
+        )
+        if snapshots_dir.is_dir()
+        else []
+    )
+    for name in on_disk:
+        if name not in manifest:
+            errors.append(
+                f"{_display_path(snapshots_dir / name)}: release snapshot is not pinned in "
+                f"{manifest_display}"
+            )
+    for name, digest in manifest.items():
+        path = snapshots_dir / name
+        if not path.is_file():
+            errors.append(
+                f"{_display_path(path)}: pinned in {manifest_display} but missing"
+            )
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            errors.append(
+                f"{_display_path(path)}: modified after being frozen "
+                f"(sha256 differs from {manifest_display})"
+            )
+    return len(manifest), errors
+
+
+def _read_snapshots_manifest(manifest_path: Path) -> dict[str, str]:
+    """Parses the snapshots manifest into `{file name: sha256}` (empty if absent)."""
+    if not manifest_path.is_file():
+        return {}
+    source_name = _display_path(manifest_path)
+    entries: dict[str, str] = {}
+    errors: list[str] = []
+    previous: str | None = None
+    for line_no, line in enumerate(
+        manifest_path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        match = _SNAPSHOTS_MANIFEST_LINE_RE.match(line)
+        if match is None:
+            errors.append(
+                f"{source_name}:{line_no}: expected '<sha256>  <snapshot>.md', got {line!r}"
+            )
+            continue
+        digest, name = match.groups()
+        if name in GENERATED_CONTENT_TYPES_DOC_NAMES:
+            errors.append(
+                f"{source_name}:{line_no}: {name} is regenerated by 'just sync-kb' and cannot be frozen"
+            )
+        elif name in entries:
+            errors.append(f"{source_name}:{line_no}: duplicate entry {name!r}")
+        elif previous is not None and name < previous:
+            errors.append(
+                f"{source_name}:{line_no}: entries must be sorted, but {name!r} comes after {previous!r}"
+            )
+        else:
+            entries[name] = digest
+            previous = name
+    if errors:
+        raise KbError(
+            f"{source_name}: found {len(errors)} error(s):\n"
+            + "\n".join(f"- {e}" for e in errors)
+        )
+    return entries
 
 
 def _display_path(path: Path) -> str:
@@ -361,33 +757,25 @@ def _read_model_config(model_dir: Path) -> tuple[Any, str]:
 
 def build_repo_artifacts(
     *,
-    yaml_text: str,
-    resolver_sources: Mapping[str, str],
+    kb: Mapping[str, Mapping[str, Any]],
     model_name: str,
     model_config: Any,
     existing_exposed_text: str,
     resolved_model_dir: Path,
-    yaml_source_name: str,
     model_source_name: str,
     exposed_source_name: str,
+    snapshot_texts: Mapping[str, str],
 ) -> dict[Path, bytes]:
     """Builds all generated KB, language-binding, and documentation artifacts in memory."""
-    kb = build_kb(
-        yaml_text,
-        resolver_sources,
-        model_config,
-        source_name=yaml_source_name,
-        model_source_name=model_source_name,
-        require_heuristics=True,
-    )
     validate_model_config_for_codegen(model_config, model_source_name)
     exposed_labels, exposed_text = resolve_exposed_content_types(
         existing_exposed_text, kb, model_config, exposed_source_name
     )
     kb_json = json.dumps(kb, separators=(",", ":"), ensure_ascii=True)
-    model_readme_path = resolved_model_dir.resolve() / "README.md"
+    resolved_dir = resolved_model_dir.resolve()
+    model_readme_path = resolved_dir / "README.md"
 
-    return {
+    artifacts: dict[Path, bytes] = {
         EXPOSED_CONTENT_TYPES_PATH: exposed_text.encode("utf-8"),
         CONTENT_TYPES_KB_PATH: kb_json.encode("ascii"),
         RUST_LIB_CONTENT_RS_PATH: generate_rust_lib_content(
@@ -406,8 +794,22 @@ def build_repo_artifacts(
         JS_CONTENT_TYPES_INFOS_PATH: generate_js_content_types_infos(
             kb, exposed_labels
         ).encode("utf-8"),
-        model_readme_path: generate_model_readme(kb, model_config).encode("utf-8"),
+        model_readme_path: generate_model_readme(kb, model_name, model_config).encode(
+            "utf-8"
+        ),
+        MAIN_CONTENT_TYPES_DOC_PATH: generate_main_content_types_doc(
+            kb, model_name
+        ).encode("utf-8"),
+        CONTENT_TYPES_INDEX_DOC_PATH: generate_content_types_index_doc(
+            kb, model_name, snapshot_texts
+        ).encode("utf-8"),
     }
+    if resolved_dir.parent == MODELS_DIR.resolve():
+        website_model_path = WEBSITE_MODELS_DIR / f"{model_name}.md"
+        artifacts[website_model_path] = generate_website_model_doc(
+            kb, model_name, model_config
+        ).encode("utf-8")
+    return artifacts
 
 
 def generate_kb_json(
@@ -1717,58 +2119,372 @@ def generate_js_content_types_infos(
 
 def generate_model_readme(
     kb: Mapping[str, Mapping[str, Any]],
+    model_name: str,
     model_config: Mapping[str, Any],
 ) -> str:
-    """Generates `assets/models/<active_model>/README.md` for the active ML model."""
-    output_labels = [
-        label
-        for label, info in kb.items()
-        if info["in_heuristics"] or info["in_resolvers"] or info["in_ml_model"]
-    ]
-    raw_model_labels = set(model_config["target_labels_space"])
-    if "undefined" in kb:
-        raw_model_labels.add("undefined")
-    model_output_labels = sorted(raw_model_labels)
-
-    lines = [
-        "<!-- DO NOT EDIT: generated by scripts/sync_kb.py -->",
-        "",
-        "# Model documentation",
-        "",
-        "## Table of Contents",
-        "",
-        "1. [List of possible outputs](#list-of-possible-outputs)",
-        "1. [List of possible model's outputs](#list-of-possible-models-outputs)",
-        "",
-        "## List of possible outputs",
-        "",
-        "This is the full list of all possible tool's outputs (which are different than the possible raw output of the model, see table below). E.g., this is the list of all possible values for Magika python module's `MagikaResult.prediction.output.label`.",
-        "",
-        "|      Content Type Label      | Description |",
-        "|:-------------:|------|",
-    ]
-    for label in output_labels:
-        _, _, description = _resolve_entry_metadata(label, kb[label])
-        lines.append(f"| {label} | {_md_escape(description)} |")
-
-    lines.extend(
+    """Generates `assets/models/<active_model>/README.md` strictly for the ML model."""
+    body = _render_model_doc_body(
+        kb,
+        model_name,
+        model_config,
+        index_url="https://securityresearch.google/magika/content-types",
+        main_coverage_url="https://securityresearch.google/magika/content-types/main",
+    )
+    return "\n".join(
         [
+            "<!-- DO NOT EDIT: generated by scripts/sync_kb.py -->",
             "",
+            f"# `{model_name}` Model Documentation",
             "",
-            "## List of possible model's outputs",
-            "",
-            'This is the full list of all possible model\'s output. E.g., this is the list of all possible values for Magika python module\'s `MagikaResult.prediction.dl.label`. Note that, in general, the list of "model outputs" is different than the "tool outputs" as in some cases the model is not even used, or the model\'s output is overwritten due to a low-confidence score or other reasons. This list is useful mostly for debugging purposes; the vast majority of client should just consult the table above.',
-            "",
-            "| Index   |      Content Type Label      | Description |",
-            "|----------|:-------------:|------|",
+            body,
         ]
     )
-    for idx, label in enumerate(model_output_labels, start=1):
-        _, _, description = _resolve_entry_metadata(label, kb[label])
-        lines.append(f"| {idx} | {label} | {_md_escape(description)} |")
+
+
+def generate_website_model_doc(
+    kb: Mapping[str, Mapping[str, Any]],
+    model_name: str,
+    model_config: Mapping[str, Any],
+) -> str:
+    """Generates `website-ng/src/content/docs/models/<active_model>.md` strictly for the ML model."""
+    body = _render_model_doc_body(
+        kb,
+        model_name,
+        model_config,
+        index_url="/magika/content-types",
+        main_coverage_url="/magika/content-types/main",
+    )
+    return "\n".join(
+        [
+            "---",
+            f"title: {model_name} model",
+            "---",
+            "",
+            "<!-- DO NOT EDIT: generated by scripts/sync_kb.py -->",
+            "",
+            body,
+        ]
+    )
+
+
+def _render_model_doc_body(
+    kb: Mapping[str, Mapping[str, Any]],
+    model_name: str,
+    model_config: Mapping[str, Any],
+    *,
+    index_url: str,
+    main_coverage_url: str,
+) -> str:
+    """Renders the resolver-independent Markdown body for a deep learning model."""
+    target_labels = sorted(model_config["target_labels_space"])
+    overwrite_map: Mapping[str, str] = model_config["overwrite_map"]
+    thresholds: Mapping[str, Any] = model_config["thresholds"]
+    effective_ml_count = len(set(target_labels) - set(overwrite_map.keys()))
+
+    if thresholds:
+        thresholds_summary = (
+            f"default `medium_confidence_threshold` = `{model_config['medium_confidence_threshold']}`, "
+            f"with per-label high-confidence overrides on {len(thresholds)} label(s) (see `Notes` below)."
+        )
+    else:
+        thresholds_summary = (
+            f"default `medium_confidence_threshold` = `{model_config['medium_confidence_threshold']}` "
+            "(no per-label overrides)."
+        )
+
+    if overwrite_map:
+        formatted_pairs = ", ".join(
+            f"`{src}` -> `{dst}`" for src, dst in sorted(overwrite_map.items())
+        )
+        overwrite_summary = (
+            f"{formatted_pairs} (raw calibration classes that may appear in `dl.label` "
+            "before being remapped when producing `output.label`)."
+        )
+    else:
+        overwrite_summary = "none."
+
+    lines = [
+        f"> **Looking for Magika's supported output content types?** This document covers only the **`{model_name}` deep learning model** itself. Magika (the CLI and language bindings) combines built-in heuristics, native format resolvers, and the deep learning model, so the full output space (`output.label`) depends on the artifact and version. See [Supported Content Types by Version]({index_url}) (or the [`main` branch coverage reference]({main_coverage_url})).",
+        "",
+        "## Model Overview & Configuration",
+        "",
+        f"- **Trained target classes (`target_labels_space`)**: {len(target_labels)} labels ({effective_ml_count} effective model-predicted content types after `overwrite_map`).",
+        f"- **Input feature window**: first `{model_config['beg_size']}` bytes (`beg_size`) and last `{model_config['end_size']}` bytes (`end_size`) read within `{model_config['block_size']}`-byte blocks (`block_size`), padded with token `{model_config['padding_token']}` (`padding_token`); minimum file size for model inference is `{model_config['min_file_size_for_dl']}` bytes (`min_file_size_for_dl`).",
+        f"- **Confidence thresholds**: {thresholds_summary}",
+        f"- **Canonical label remapping (`overwrite_map`)**: {overwrite_summary}",
+        "- **Skipped-inference sentinel (`undefined`)**: not a neural-network output class, but reported in `dl.label` whenever the model was not evaluated (for example on directories, symlinks, empty or tiny files, or inputs resolved ahead of model inference).",
+        "",
+        "## Model Output Labels",
+        "",
+        f"The table below lists all {len(target_labels)} labels in `{model_name}`'s `target_labels_space` in alphabetical order (for the exact 0-based softmax class order, consult `target_labels_space` in `config.min.json`).",
+        "",
+        "| Label | Description | MIME Type | Group | Notes |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for label in target_labels:
+        mime_type, group, description = _resolve_entry_metadata(label, kb[label])
+        notes_parts: list[str] = []
+        if label in overwrite_map:
+            notes_parts.append(f"Remapped to `{overwrite_map[label]}`")
+        if label in thresholds:
+            notes_parts.append(f"Threshold: `{thresholds[label]}`")
+        notes = "; ".join(notes_parts)
+        lines.append(
+            f"| `{label}` | {_md_escape(description)} | `{mime_type}` | `{group}` | {notes} |"
+        )
 
     lines.append("")
     return "\n".join(lines)
+
+
+def generate_main_content_types_doc(
+    kb: Mapping[str, Mapping[str, Any]],
+    model_name: str,
+) -> str:
+    """Generates `website-ng/src/content/docs/content-types/main.md` for the `main` branch."""
+    rows: list[
+        tuple[str, str, str, str, Sequence[str], bool, bool, bool, bool, bool]
+    ] = []
+    for label, info in kb.items():
+        if not (info["in_heuristics"] or info["in_resolvers"] or info["in_ml_model"]):
+            continue
+        mime_type, group, description = _resolve_entry_metadata(label, info)
+        rows.append(
+            (
+                label,
+                mime_type,
+                group,
+                description,
+                info["extensions"],
+                info["is_text"],
+                info["in_heuristics"],
+                info["in_resolvers"],
+                info["in_ml_model"],
+                info["vetoed_by_resolvers"],
+            )
+        )
+
+    native_total = len(rows)
+    special_present = [r[0] for r in rows if r[0] in SPECIAL_FILE_TYPE_LABELS]
+    regular_total = native_total - len(special_present)
+    heuristics_labels = [r[0] for r in rows if r[6]]
+    resolvers_count = sum(1 for r in rows if r[7])
+    ml_count = sum(1 for r in rows if r[8])
+    vetoed_count = sum(1 for r in rows if r[9])
+    js_total = sum(
+        1
+        for label, info in kb.items()
+        if label in JS_HEURISTIC_CONTENT_TYPES or info["in_ml_model"]
+    )
+    heuristics_fmt = ", ".join(f"`{label}`" for label in heuristics_labels)
+    special_fmt = ", ".join(f"`{label}`" for label in special_present)
+
+    lines = [
+        "---",
+        "title: Supported Content Types (main)",
+        "---",
+        "",
+        "<!-- DO NOT EDIT: generated by scripts/sync_kb.py -->",
+        "",
+        f"This reference lists the supported output content types (`output.label`) and detection stage coverage on the unreleased **`main`** development branch (default model: [`{model_name}`](/magika/models/{model_name})). For released package versions, see the [per-version index](/magika/content-types).",
+        "",
+        "## Pipeline Coverage Summary",
+        "",
+        f"- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **{native_total}** supported outputs (**{regular_total}** regular-file `ContentType`s plus **{len(special_present)}** filesystem path `FileType`s: {special_fmt}).",
+        f"  - **Heuristics (`in_heuristics`)**: **{len(heuristics_labels)}** content types ({heuristics_fmt}) — path metadata checks, empty-file detection, and short-file / low-confidence fallbacks.",
+        f"  - **Format Resolvers (`in_resolvers`)**: **{resolvers_count}** content types (**{vetoed_count}** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).",
+        f"  - **ML Model (`in_ml_model`)**: **{ml_count}** content types predicted by [`{model_name}`](/magika/models/{model_name}) (after `overwrite_map`).",
+        f"- **JavaScript / TypeScript TensorFlow.js pipeline (`magika` on `main`)**: **{js_total}** supported outputs — runs byte/stream heuristics (`empty`, `txt`, `unknown`) plus the [`{model_name}`](/magika/models/{model_name}) ML model (`in_ml_model`), without filesystem `stat` checks or native Rust format resolvers (`in_resolvers`).",
+        "",
+        "## Supported Content Types",
+        "",
+        *_render_content_types_table(rows),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def generate_release_snapshot_doc(
+    kb: Mapping[str, Mapping[str, Any]],
+    artifact: ReleaseArtifact,
+    version: str,
+    model_name: str,
+) -> str:
+    """Renders the frozen supported-content-types snapshot of `artifact` at `version`."""
+    rows: list[
+        tuple[str, str, str, str, Sequence[str], bool, bool, bool, bool, bool]
+    ] = []
+    for label, info in kb.items():
+        if artifact.js_pipeline:
+            in_heur = label in JS_HEURISTIC_CONTENT_TYPES
+            in_res = False
+            in_ml = bool(info["in_ml_model"])
+            vetoed = False
+        else:
+            in_heur = bool(info["in_heuristics"])
+            in_res = bool(info["in_resolvers"])
+            in_ml = bool(info["in_ml_model"])
+            vetoed = bool(info["vetoed_by_resolvers"])
+
+        if not (in_heur or in_res or in_ml):
+            continue
+        mime_type, group, description = _resolve_entry_metadata(label, info)
+        rows.append(
+            (
+                label,
+                mime_type,
+                group,
+                description,
+                info["extensions"],
+                info["is_text"],
+                in_heur,
+                in_res,
+                in_ml,
+                vetoed,
+            )
+        )
+
+    total = len(rows)
+    heuristics_labels = [r[0] for r in rows if r[6]]
+    resolvers_count = sum(1 for r in rows if r[7])
+    ml_count = sum(1 for r in rows if r[8])
+    vetoed_count = sum(1 for r in rows if r[9])
+    heuristics_fmt = ", ".join(f"`{label}`" for label in heuristics_labels)
+
+    if artifact.js_pipeline:
+        resolvers_line = "  - **Format Resolvers (`in_resolvers`)**: **0** content types (the pure-TypeScript TensorFlow.js runtime does not run native Rust format resolvers)."
+    elif resolvers_count == 0:
+        resolvers_line = "  - **Format Resolvers (`in_resolvers`)**: **0** content types (this release predates native format resolvers)."
+    else:
+        resolvers_line = (
+            f"  - **Format Resolvers (`in_resolvers`)**: **{resolvers_count}** content types "
+            f"(**{vetoed_count}** marked `vetoed_by_resolvers`)."
+        )
+
+    lines = [
+        "---",
+        f"title: Supported Content Types ({artifact.short_title} {version})",
+        "---",
+        "",
+        f"<!-- DO NOT EDIT: frozen release snapshot generated by scripts/sync_kb.py for {artifact.title} {version} (declared in {_display_path(artifact.version_file)}). Its sha256 is pinned in assets/content_types_snapshots.sha256 and enforced by 'just sync-kb --check'. -->",
+        "",
+        f"This reference is the frozen output-space (`output.label`) and detection stage-coverage snapshot for **{artifact.title} `{version}`** (default model: [`{model_name}`](/magika/models/{model_name})). For other versions and the `main` development branch, see the [per-version index](/magika/content-types).",
+        "",
+        "## Pipeline Coverage Summary",
+        "",
+        f"- **Total supported outputs**: **{total}** content types.",
+        f"  - **Heuristics (`in_heuristics`)**: **{len(heuristics_labels)}** content types ({heuristics_fmt}).",
+        resolvers_line,
+        f"  - **ML Model (`in_ml_model`)**: **{ml_count}** content types predicted by [`{model_name}`](/magika/models/{model_name}) (after `overwrite_map`).",
+        "",
+        "## Supported Content Types",
+        "",
+        *_render_content_types_table(rows),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+_SNAPSHOT_MODEL_RE = re.compile(r"default model: \[`([^`]+)`\]")
+_SNAPSHOT_RESOLVERS_RE = re.compile(
+    r"Format Resolvers \(`in_resolvers`\)\*\*: \*\*([0-9]+)\*\*"
+)
+
+
+def generate_content_types_index_doc(
+    kb: Mapping[str, Mapping[str, Any]],
+    model_name: str,
+    snapshot_texts: Mapping[str, str],
+) -> str:
+    """Generates `content-types/index.md`: `main` plus every frozen release snapshot."""
+    native_total = sum(
+        1
+        for info in kb.values()
+        if info["in_heuristics"] or info["in_resolvers"] or info["in_ml_model"]
+    )
+    entries: list[tuple[int, tuple[int, ...], str]] = []
+    artifact_order = {artifact.key: i for i, artifact in enumerate(RELEASE_ARTIFACTS)}
+    for name, text in snapshot_texts.items():
+        name_match = _SNAPSHOT_FILE_NAME_RE.match(name)
+        if name_match is None or name_match.group(1) not in RELEASE_ARTIFACTS_BY_KEY:
+            raise KbError(
+                f"{name}: release snapshot names must be '<artifact>-v<MAJOR>_<MINOR>_<PATCH>.md' "
+                f"with <artifact> in {sorted(RELEASE_ARTIFACTS_BY_KEY)}"
+            )
+        artifact = RELEASE_ARTIFACTS_BY_KEY[name_match.group(1)]
+        version_parts = tuple(int(x) for x in name_match.groups()[1:])
+        version = ".".join(str(x) for x in version_parts)
+        model_match = _SNAPSHOT_MODEL_RE.search(text)
+        resolvers_match = _SNAPSHOT_RESOLVERS_RE.search(text)
+        if model_match is None or resolvers_match is None:
+            raise KbError(f"{name}: cannot find the default model or resolvers summary")
+        if artifact.js_pipeline:
+            stages = "Byte Heuristics + ML Model (TF.js)"
+        elif int(resolvers_match.group(1)) > 0:
+            stages = "Heuristics + Format Resolvers + ML Model"
+        else:
+            stages = "Heuristics + ML Model"
+        snapshot_model = model_match.group(1)
+        count = sum(1 for line in text.splitlines() if line.startswith("| `"))
+        row = (
+            f"| {artifact.title} `{version}` | {stages} | "
+            f"[`{snapshot_model}`](/magika/models/{snapshot_model}) | "
+            f"[{count} content types](/magika/content-types/{name.removesuffix('.md')}) |"
+        )
+        entries.append(
+            (artifact_order[artifact.key], tuple(-x for x in version_parts), row)
+        )
+
+    lines = [
+        "---",
+        "title: Supported Content Types by Version",
+        "---",
+        "",
+        "<!-- DO NOT EDIT: generated by scripts/sync_kb.py -->",
+        "",
+        "Each reference page below lists every content type that a branch or released package can emit in `output.label`, together with its metadata (`mime_type`, `group`, `description`, `extensions`, `is_text`) and orthogonal stage-coverage flags (`in_heuristics`, `in_resolvers`, `in_ml_model`, `vetoed_by_resolvers`). Release snapshots are frozen when the release is cut; see [Models & Supported Content Types](/magika/core-concepts/models-and-content-types) for background.",
+        "",
+        "| Version / Artifact | Pipeline Stages | Default Model | Supported Content Types |",
+        "| --- | --- | --- | --- |",
+        f"| `main` (unreleased development branch) | Heuristics + Format Resolvers + ML Model | [`{model_name}`](/magika/models/{model_name}) | [{native_total} content types](/magika/content-types/main) |",
+        *(row for _, _, row in sorted(entries)),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _render_content_types_table(
+    rows: Sequence[
+        tuple[str, str, str, str, Sequence[str], bool, bool, bool, bool, bool]
+    ],
+) -> list[str]:
+    """Renders the unified 10-column supported-content-types Markdown table."""
+    table_lines = [
+        "| Label | Description | MIME Type | Group | Extensions | Text | Heuristics | Resolvers | ML Model | Vetoed |",
+        "| --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |",
+    ]
+    for (
+        label,
+        mime_type,
+        group,
+        description,
+        extensions,
+        is_text,
+        in_heuristics,
+        in_resolvers,
+        in_ml_model,
+        vetoed_by_resolvers,
+    ) in rows:
+        ext_cell = ", ".join(f"`{ext}`" for ext in extensions) if extensions else "—"
+        text_cell = "✓" if is_text else ""
+        heur_cell = "✓" if in_heuristics else ""
+        res_cell = "✓" if in_resolvers else ""
+        ml_cell = "✓" if in_ml_model else ""
+        veto_cell = "✓" if vetoed_by_resolvers else ""
+        table_lines.append(
+            f"| `{label}` | {_md_escape(description)} | `{mime_type}` | `{group}` | {ext_cell} | {text_cell} | {heur_cell} | {res_cell} | {ml_cell} | {veto_cell} |"
+        )
+    return table_lines
 
 
 def _resolve_entry_metadata(
@@ -2339,7 +3055,45 @@ def run_self_test() -> int:
         py_labels = generate_python_content_type_label(exposed_labels)
         js_labels = generate_js_content_type_label(exposed_labels)
         js_infos = generate_js_content_types_infos(complex_kb, exposed_labels)
-        model_readme = generate_model_readme(complex_kb, complex_model_config)
+        model_readme = generate_model_readme(
+            complex_kb, "standard_v3_3", complex_model_config
+        )
+        website_model_doc = generate_website_model_doc(
+            complex_kb, "standard_v3_3", complex_model_config
+        )
+        kb_without_resolvers = build_kb(
+            complex_yaml, _SELF_TEST_VALID_RESOLVERS, complex_model_config
+        )
+        model_readme_without_resolvers = generate_model_readme(
+            kb_without_resolvers, "standard_v3_3", complex_model_config
+        )
+        website_model_without_resolvers = generate_website_model_doc(
+            kb_without_resolvers, "standard_v3_3", complex_model_config
+        )
+        main_content_types_doc = generate_main_content_types_doc(
+            complex_kb, "standard_v3_3"
+        )
+        py_snap_doc = generate_release_snapshot_doc(
+            complex_kb, RELEASE_ARTIFACTS_BY_KEY["python"], "1.1.0", "standard_v3_3"
+        )
+        js_snap_doc = generate_release_snapshot_doc(
+            complex_kb, RELEASE_ARTIFACTS_BY_KEY["js"], "1.0.0", "standard_v3_3"
+        )
+        planned = plan_release_snapshots(
+            complex_kb,
+            "standard_v3_3",
+            {"cli": "1.1.0", "rust": "2.0.0-dev", "python": "1.0.4", "js": "1.1.0-dev"},
+            pinned={"cli-v1_1_0.md"},
+        )
+        index_doc = generate_content_types_index_doc(
+            complex_kb,
+            "standard_v3_3",
+            {
+                "js-v1_0_0.md": js_snap_doc,
+                "python-v1_0_4.md": planned.get("python-v1_0_4.md", ""),
+                "python-v1_1_0.md": py_snap_doc,
+            },
+        )
     except KbError as e:
         failures.append(f"complex resolver & codegen source: unexpected error: {e}")
     else:
@@ -2383,12 +3137,52 @@ def run_self_test() -> int:
             '"unexposed_type"' not in js_infos,
             "getInfo: (label: ContentTypeLabel | string): ContentTypeInfo | undefined =>"
             in js_infos,
-            "## List of possible outputs" in model_readme,
-            "## List of possible model's outputs" in model_readme,
-            "\n| llvm_bitcode | LLVM bitcode |" in model_readme,
-            "| 2 | randomtxt | Random text |" in model_readme,
-            "overwrite_map" not in model_readme,
+            "# `standard_v3_3` Model Documentation" in model_readme,
+            "## Model Overview & Configuration" in model_readme,
+            "## Model Output Labels" in model_readme,
+            "List of possible outputs" not in model_readme,
+            "llvm_bitcode" not in model_readme,
+            "`directory`" not in model_readme,
+            "| `randomtxt` | Random text | `text/plain` | `unknown` | Remapped to `txt` |"
+            in model_readme,
+            "| `txt` | Generic text document | `text/plain` | `text` | Threshold: `0.75` |"
+            in model_readme,
             "unexposed_type" not in model_readme,
+            model_readme == model_readme_without_resolvers,
+            website_model_doc == website_model_without_resolvers,
+            "title: standard_v3_3 model" in website_model_doc,
+            "[Supported Content Types by Version](/magika/content-types)" in website_model_doc,
+            "title: Supported Content Types (main)" in main_content_types_doc,
+            "| `3gp` | 3GPP multimedia file | `video/3gpp` | `video` | `3gp`, `3GPP` |  |  | ✓ | ✓ | ✓ |"
+            in main_content_types_doc,
+            "| `directory` | A directory | `inode/directory` | `inode` | — |  | ✓ |  |  |  |"
+            in main_content_types_doc,
+            "| `llvm_bitcode` | LLVM bitcode | `application/x-llvm` | `executable` | `bc` |  |  | ✓ |  |  |"
+            in main_content_types_doc,
+            "| `txt` | Generic text document | `text/plain` | `text` | `txt` | ✓ | ✓ |  | ✓ |  |"
+            in main_content_types_doc,
+            "`randomtxt`" not in main_content_types_doc,
+            "unexposed_type" not in main_content_types_doc,
+            snapshot_file_name("python", "1.1.0") == "python-v1_1_0.md",
+            "title: Supported Content Types (Python 1.1.0)" in py_snap_doc,
+            "declared in python/pyproject.toml" in py_snap_doc,
+            "| `llvm_bitcode` |" in py_snap_doc,
+            "| `directory` |" in py_snap_doc,
+            "| `llvm_bitcode` |" not in js_snap_doc,
+            "| `directory` |" not in js_snap_doc,
+            "| `txt` | Generic text document | `text/plain` | `text` | `txt` | ✓ | ✓ |  | ✓ |  |"
+            in js_snap_doc,
+            # Only stable versions without a pinned snapshot are planned.
+            list(planned) == ["python-v1_0_4.md"],
+            # `main` first, then artifacts in RELEASE_ARTIFACTS order, newest first.
+            index_doc.index("(/magika/content-types/main)")
+            < index_doc.index("python-v1_1_0)")
+            < index_doc.index("python-v1_0_4)")
+            < index_doc.index("js-v1_0_0)"),
+            "| Python `magika` `1.1.0` | Heuristics + Format Resolvers + ML Model |"
+            in index_doc,
+            "| JavaScript / TypeScript `magika` `1.0.0` | Byte Heuristics + ML Model (TF.js) | [`standard_v3_3`](/magika/models/standard_v3_3) | [2 content types](/magika/content-types/js-v1_0_0) |"
+            in index_doc,
         )
         if not all(checks):
             failures.append(
@@ -2477,8 +3271,11 @@ def run_self_test() -> int:
         else:
             failures.append(f"{description}: expected an error, got none")
 
+    failures.extend(_self_test_declared_versions())
+    failures.extend(_self_test_frozen_snapshots())
+
     total = (
-        3
+        5
         + len(_SELF_TEST_INVALID_CASES)
         + len(_SELF_TEST_INVALID_DERIVED_CASES)
         + len(_SELF_TEST_INVALID_EXPOSED_CASES)
@@ -2488,6 +3285,164 @@ def run_self_test() -> int:
         click.echo(f"FAIL: {failure}", err=True)
     click.echo(f"{total - len(failures)}/{total} self-tests passed.")
     return 1 if failures else 0
+
+
+def _self_test_declared_versions() -> list[str]:
+    """Exercises version parsing and the stable vs. pre-release distinction."""
+    checks: list[tuple[str, bool]] = [
+        (
+            "Cargo.toml",
+            _parse_declared_version(
+                "Cargo.toml", '[package]\nname = "magika"\nversion = "2.0.0-dev"\n', "c"
+            )
+            == "2.0.0-dev",
+        ),
+        (
+            "pyproject.toml",
+            _parse_declared_version(
+                "pyproject.toml", '[project]\nversion = "2.0.0.dev0"\n', "p"
+            )
+            == "2.0.0.dev0",
+        ),
+        (
+            "package.json",
+            _parse_declared_version("package.json", '{"version": "1.1.0"}', "j")
+            == "1.1.0",
+        ),
+        (
+            "stable vs. pre-release",
+            [
+                bool(STABLE_VERSION_RE.match(v))
+                for v in ("1.0.4", "2.0.0-dev", "2.0.0.dev0", "1.0.4rc1", "v1.0.4")
+            ]
+            == [True, False, False, False, False],
+        ),
+    ]
+    try:
+        _parse_declared_version("pyproject.toml", '[project]\nname = "x"\n', "p")
+        checks.append(("missing version is rejected", False))
+    except KbError as e:
+        checks.append(
+            ("missing version is rejected", "no literal package version" in str(e))
+        )
+    return [f"declared versions: {name}" for name, ok in checks if not ok]
+
+
+def _self_test_frozen_snapshots() -> list[str]:
+    """Exercises pinning, immutability, tamper detection, and the release gate."""
+    kb = build_kb(
+        _SELF_TEST_VALID_YAML, _SELF_TEST_VALID_RESOLVERS, _SELF_TEST_VALID_MODEL_CONFIG
+    )
+    python = RELEASE_ARTIFACTS_BY_KEY["python"]
+    with tempfile.TemporaryDirectory() as tmp:
+        snapshots_dir = Path(tmp) / "content-types"
+        manifest_path = Path(tmp) / "content_types_snapshots.sha256"
+        snapshots_dir.mkdir()
+        for name in GENERATED_CONTENT_TYPES_DOC_NAMES:
+            (snapshots_dir / name).write_text("live, not frozen\n", encoding="utf-8")
+
+        def _verify() -> tuple[int, list[str]]:
+            return verify_frozen_snapshots(snapshots_dir, manifest_path)
+
+        def _gate(version: str, expected: str | None = None) -> str:
+            try:
+                verify_release_snapshot(
+                    kb,
+                    python,
+                    version,
+                    "standard_v3_3",
+                    expected_version=expected,
+                    snapshots_dir=snapshots_dir,
+                    manifest_path=manifest_path,
+                )
+            except KbError as e:
+                return str(e)
+            return "OK"
+
+        try:
+            write_frozen_snapshot(
+                snapshots_dir,
+                manifest_path,
+                "python-v1_0_4.md",
+                generate_release_snapshot_doc(kb, python, "1.0.4", "standard_v3_3"),
+            )
+            write_frozen_snapshot(snapshots_dir, manifest_path, "js-v1_0_0.md", "b\n")
+        except KbError as e:
+            return [f"frozen snapshots: unexpected error: {e}"]
+
+        checks: list[tuple[str, bool]] = [
+            (
+                "manifest is sorted",
+                manifest_path.read_text().splitlines()[0].endswith("  js-v1_0_0.md"),
+            ),
+            ("clean state verifies", _verify() == (2, [])),
+            ("release gate passes", _gate("1.0.4", "1.0.4") == "OK"),
+            (
+                "gate rejects pre-release",
+                "not a stable release version" in _gate("1.0.5-dev"),
+            ),
+            (
+                "gate rejects tag mismatch",
+                "but the release expects '1.0.5'" in _gate("1.0.4", "1.0.5"),
+            ),
+            (
+                "gate rejects missing snapshot",
+                "missing or not pinned" in _gate("1.0.5"),
+            ),
+        ]
+        try:
+            write_frozen_snapshot(snapshots_dir, manifest_path, "js-v1_0_0.md", "c\n")
+            checks.append(("overwrite is refused", False))
+        except KbError as e:
+            checks.append(
+                ("overwrite is refused", "already exists and is frozen" in str(e))
+            )
+
+        # A snapshot that is pinned but no longer reproduced by the tree (stale release PR).
+        stale = "stale\n"
+        (snapshots_dir / "python-v1_0_4.md").write_text(stale, encoding="utf-8")
+        lines = manifest_path.read_text().splitlines()
+        lines[1] = f"{hashlib.sha256(stale.encode()).hexdigest()}  python-v1_0_4.md"
+        manifest_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        checks.append(
+            (
+                "gate rejects stale snapshot",
+                "does not match the supported content types" in _gate("1.0.4"),
+            )
+        )
+
+        (snapshots_dir / "js-v1_0_0.md").write_text("tampered\n", encoding="utf-8")
+        checks.append(
+            (
+                "modification is detected",
+                any("modified after being frozen" in e for e in _verify()[1]),
+            )
+        )
+        (snapshots_dir / "js-v1_0_0.md").unlink()
+        checks.append(
+            ("deletion is detected", any("but missing" in e for e in _verify()[1]))
+        )
+        (snapshots_dir / "rust-v9_9_9.md").write_text("x\n", encoding="utf-8")
+        checks.append(
+            (
+                "unpinned snapshot is detected",
+                any("is not pinned" in e for e in _verify()[1]),
+            )
+        )
+
+        manifest_path.write_text("not-a-hash  js-v1_0_0.md\n", encoding="utf-8")
+        try:
+            _verify()
+            checks.append(("malformed manifest is rejected", False))
+        except KbError as e:
+            checks.append(
+                (
+                    "malformed manifest is rejected",
+                    "expected '<sha256>  <snapshot>.md'" in str(e),
+                )
+            )
+
+    return [f"frozen snapshots: {name}" for name, ok in checks if not ok]
 
 
 if __name__ == "__main__":

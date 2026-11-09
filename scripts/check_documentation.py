@@ -70,29 +70,31 @@ def main(verbose: bool) -> None:
 
 
 def check_versions_are_up_to_date() -> bool:
-    """Checks that the mentioned latest versions and models are up to date.
+    """Checks that the bindings overview table matches the published versions.
+
+    Each row must show the latest published version, the default model, and a
+    link to the frozen supported-content-types snapshot of exactly that version.
     Returns True if everything is good, False otherwise."""
+    rust_cli_version = get_max_stable_version_for_crate("magika-cli")
+    rust_lib_version = get_max_stable_version_for_crate("magika")
+    rust_model = get_rust_default_model_name()
+    python_version = get_python_latest_stable_version()
+    python_model = get_python_default_model_name()
+    js_version = get_latest_version_for_npm_package("magika")
+    js_model = get_javascript_default_model_name()
+    demo_model = get_demo_model_name()
 
-    # Actual last versions and models
-    rust_cli_latest_stable_version = get_max_stable_version_for_crate("magika-cli")
-    rust_lib_latest_stable_version = get_max_stable_version_for_crate("magika")
-    rust_default_model_name = get_rust_default_model_name()
-    python_latest_stable_version = get_python_latest_stable_version()
-    python_default_model_name = get_python_default_model_name()
-    javascript_latest_stable_version = get_latest_version_for_npm_package("magika")
-    javascript_default_model_name = get_javascript_default_model_name()
-    demo_model_name = get_demo_model_name()
-
-    expected_table = [
-        (rust_cli_latest_stable_version, rust_default_model_name),
-        (python_latest_stable_version, python_default_model_name),
-        (javascript_latest_stable_version, javascript_default_model_name),
-        (rust_lib_latest_stable_version, rust_default_model_name),
-        ("-", demo_model_name),
-        ("-", "-"),
+    # (latest version, default model, snapshot artifact key) per overview row,
+    # in table order. The demo runs the JavaScript package's pipeline.
+    expected_rows = [
+        (rust_cli_version, rust_model, ("cli", rust_cli_version)),
+        (python_version, python_model, ("python", python_version)),
+        (js_version, js_model, ("js", js_version)),
+        (rust_lib_version, rust_model, ("rust", rust_lib_version)),
+        ("-", demo_model, ("js", js_version)),
+        ("-", "-", None),
     ]
 
-    # Extract documented last versions and models
     bindings_overview_path = (
         REPO_ROOT_DIR
         / "website-ng"
@@ -103,27 +105,79 @@ def check_versions_are_up_to_date() -> bool:
         / "overview.md"
     )
     assert bindings_overview_path.is_file()
-    lines = bindings_overview_path.read_text().splitlines()
-    parsed_table = []
-    for line in lines:
-        # This is a hack to parse the table in the binding's overview, but it is
-        # simple and self-contained enough to not cause problems. And we'll
-        # notice immediately if things break.
-        if line.startswith("| ["):
-            cols = line.split("|")
-            latest_version = cols[3].strip(" `")
-            default_model = cols[4].strip()
-            if default_model != "-":
-                default_model = default_model.split("]")[0].split("[")[1].strip(" `")
-            parsed_table.append((latest_version, default_model))
-
-    if expected_table == parsed_table:
-        return True
-    else:
+    rows = [
+        [c.strip() for c in line.split("|")[1:-1]]
+        for line in bindings_overview_path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("| [")
+    ]
+    if len(rows) != len(expected_rows) or any(len(cols) != 5 for cols in rows):
         print(
-            f"ERROR: Found stale information in binding's overview table:\n{expected_table=}\n{parsed_table=}"
+            f"ERROR: Expected {len(expected_rows)} rows of 5 columns in the binding's overview table, got {rows}"
         )
         return False
+
+    ok = True
+    for idx, ((version, model, snapshot), cols) in enumerate(zip(expected_rows, rows)):
+        context = f"cli-and-bindings/overview.md row {idx + 1}"
+        documented_version = cols[2].strip(" `")
+        documented_model = _extract_markdown_link_text(cols[3])
+        if (documented_version, documented_model) != (version, model):
+            print(
+                f"ERROR: {context}: expected version/model {(version, model)}, "
+                f"got {(documented_version, documented_model)}"
+            )
+            ok = False
+        if snapshot is None:
+            if cols[4] != "-":
+                print(f"ERROR: {context}: expected '-' for supported outputs, got {cols[4]!r}")
+                ok = False
+        elif not _validate_snapshot_cell(cols[4], *snapshot, context=context):
+            ok = False
+    return ok
+
+
+_MARKDOWN_LINK_RE = re.compile(r"^\[([^\]]+)\]\(([^)]+)\)$")
+_COUNT_TEXT_RE = re.compile(r"^(\d+) content types$")
+
+
+def _extract_markdown_link_text(cell: str) -> str:
+    if cell == "-":
+        return "-"
+    match = _MARKDOWN_LINK_RE.fullmatch(cell)
+    assert match is not None, f"Expected Markdown link or '-', got {cell!r}"
+    return match.group(1).strip(" `")
+
+
+def _validate_snapshot_cell(
+    cell: str, artifact_key: str, version: str, *, context: str
+) -> bool:
+    """Checks that `cell` is `[<N> content types](<snapshot of artifact at version>)`."""
+    slug = f"{artifact_key}-v{version.replace('.', '_')}"
+    snapshot_path = (
+        REPO_ROOT_DIR
+        / "website-ng"
+        / "src"
+        / "content"
+        / "docs"
+        / "content-types"
+        / f"{slug}.md"
+    )
+    if not snapshot_path.is_file():
+        print(
+            f"ERROR: {context}: no release snapshot {snapshot_path.relative_to(REPO_ROOT_DIR)} for "
+            f"published version {version} (it is created by 'just sync-kb' in the release PR)"
+        )
+        return False
+    rows = sum(
+        1
+        for line in snapshot_path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("| `")
+    )
+    expected_cell = f"[{rows} content types](/magika/content-types/{slug})"
+    if cell != expected_cell:
+        print(f"ERROR: {context}: expected {expected_cell!r}, got {cell!r}")
+        return False
+    return True
 
 
 def get_python_latest_stable_version() -> str:

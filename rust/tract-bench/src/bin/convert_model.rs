@@ -23,7 +23,8 @@ use flate2::{Compression, GzBuilder};
 use tract_core::internal::DimLike as _;
 use tract_core::ops::binary::TypedBinOp;
 use tract_core::ops::element_wise::ElementWiseOp;
-use tract_core::ops::math::{Add, Mul, Pow, Tanh};
+use tract_core::ops::math::{Add, Mul, Pow, Tanh, add, erf, mul};
+use tract_core::ops::nn::GeluExact;
 use tract_core::runtime::{DefaultRuntime, Runtime as _};
 use tract_hir::infer::{Factoid, InferenceModelPatch};
 use tract_hir::ops::array::Gather;
@@ -110,7 +111,8 @@ fn prepare_nnef(
         .context("lowering dynamic batch normalization")?;
     let mut model = model.into_typed().context("resolving the ONNX model")?;
     fuse_gelu_approximations(&mut model).context("fusing canonical GELU approximations")?;
-    let model = model.into_decluttered().context("optimizing the portable model")?;
+    let mut model = model.into_decluttered().context("optimizing the portable model")?;
+    expand_gelu_exact(&mut model).context("expanding exact GELU for NNEF serialization")?;
     symbolize_batch(model).context("restoring a symbolic batch dimension")
 }
 
@@ -531,6 +533,43 @@ fn fuse_gelu_approximations(model: &mut TypedModel) -> TractResult<()> {
     Ok(())
 }
 
+/// Expands `GeluExact` back into `0.5 * x * (1 + erf(x / sqrt(2)))` so `tract-nnef` can serialize
+/// it via `tract_core_erf`; `into_decluttered()` re-fuses it back into `GeluExact` when loaded.
+fn expand_gelu_exact(model: &mut TypedModel) -> TractResult<()> {
+    while let Some(node) = model
+        .nodes()
+        .iter()
+        .find(|node| node.op_as::<ElementWiseOp>().is_some_and(|op| op.0.is::<GeluExact>()))
+    {
+        ensure!(node.inputs.len() == 1, "GeluExact must have one input");
+        let node_id = node.id;
+        let name = node.name.clone();
+        let input = node.inputs[0];
+        let fact = model.outlet_fact(input)?;
+        let dt = fact.datum_type;
+        let const_shape = vec![1; fact.rank()];
+        let scalar = |value: f32| -> TractResult<Tensor> {
+            Ok(Tensor::from_shape(&const_shape, &[value])?.cast_to_dt(dt)?.into_owned())
+        };
+
+        let mut patch = TypedModelPatch::default();
+        let x = patch.tap_model(model, input)?;
+        let inv_sqrt2 =
+            patch.add_const(format!("{name}.inv_sqrt2"), scalar(2.0_f32.sqrt().recip())?)?;
+        let scaled = patch.wire_node(format!("{name}.scale"), mul(), &[x, inv_sqrt2])?[0];
+        let erf_x = patch.wire_node(format!("{name}.erf"), erf(), &[scaled])?[0];
+        let one = patch.add_const(format!("{name}.one"), scalar(1.0)?)?;
+        let one_plus_erf = patch.wire_node(format!("{name}.add_one"), add(), &[erf_x, one])?[0];
+        let half = patch.add_const(format!("{name}.half"), scalar(0.5)?)?;
+        let half_x = patch.wire_node(format!("{name}.half_x"), mul(), &[x, half])?[0];
+        let output = patch.wire_node(format!("{name}.out"), mul(), &[half_x, one_plus_erf])?[0];
+        patch.shunt_outside(model, node_id.into(), output)?;
+        patch.apply(model)?;
+        model.compact()?;
+    }
+    Ok(())
+}
+
 fn match_expanded_gelu(model: &TypedModel, node: &TypedNode) -> Option<OutletId> {
     if !is_mul(node) || node.inputs.len() != 2 {
         return None;
@@ -694,6 +733,7 @@ mod tests {
         assert!(!model.nodes().iter().any(|node| node.op.name().as_ref() == "BatchNorm"));
         let model = prepare_nnef(model, &epsilons).unwrap();
         assert_eq!(model.nodes().iter().filter(|node| node.op.name() == "Gather").count(), 1);
+        tract_nnef::ser::to_proto_model(&tract_nnef::nnef(), &model).unwrap();
     }
 
     #[test]

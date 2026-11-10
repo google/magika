@@ -478,8 +478,10 @@ pub(crate) fn pythonpar(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option
         prefix.len() >= 32,
         starts(prefix, SHEBANG_MAGIC) && contains(prefix, PYTHON_INTERP),
     );
-    let t = tail.unwrap_or(prefix);
-    require!(contains(prefix, ZIP_LOCAL_SIGNATURE) || contains(t, ZIP_EOCD_SIGNATURE));
+    require!(
+        contains(prefix, ZIP_LOCAL_SIGNATURE)
+            || tail.is_some_and(|t| contains(t, ZIP_EOCD_SIGNATURE))
+    );
     Some(Label::Pythonpar)
 }
 

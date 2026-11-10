@@ -92,6 +92,7 @@ def check_versions_are_up_to_date() -> bool:
         (js_version, js_model, ("js", js_version)),
         (rust_lib_version, rust_model, ("rust", rust_lib_version)),
         ("-", demo_model, ("js", js_version)),
+        ("-", "-", None),  # Go (experimental, not yet published)
         ("-", "-", None),
     ]
 

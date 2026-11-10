@@ -446,10 +446,11 @@ fn extract_path(
         Input::from_vec(stdin)
     } else {
         let file = std::fs::File::open(path)?;
-        match length {
+        let input = match length {
             Some(len) => Input::from_file_with_length(file, len),
             None => Input::from_file(file)?,
-        }
+        };
+        input.with_path(path)
     };
     FeaturesOr::extract_content(input, options)
 }

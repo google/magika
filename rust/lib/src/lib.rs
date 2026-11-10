@@ -128,10 +128,12 @@ mod tests {
     }
 
     fn assert_prediction(actual: RegularFileType, expected: Prediction, debug: &str) {
-        let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
+        let RegularFileType { content_types, metadata, debug_info: Some(debug_info) } = actual
+        else {
             unreachable!()
         };
         let [content_type] = content_types[..] else { unreachable!() };
+        assert!(metadata.is_empty(), "{debug}");
         assert_eq!(content_type.info().label, expected.output, "{debug}");
         let model = match &*debug_info {
             DebugInfo::Heuristic => {

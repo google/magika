@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::Result;
@@ -260,22 +261,33 @@ impl FeaturesOr<RegularFileType> {
         let mut file = file.into();
         if file.length() == 0 {
             let content_types = vec![ContentType::Empty];
+            let metadata = HashMap::new();
             let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
-            return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+            return Ok(FeaturesOr::Ruled(RegularFileType { content_types, metadata, debug_info }));
         }
         if let Some(custom_rules) = &options.use_custom_rules {
             let content_types = custom_rules.identify(&mut file)?;
             if !content_types.is_empty() {
+                let metadata = HashMap::new();
                 let debug_info =
                     options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
-                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+                return Ok(FeaturesOr::Ruled(RegularFileType {
+                    content_types,
+                    metadata,
+                    debug_info,
+                }));
             }
         }
         if options.use_resolvers {
             let content_types = crate::resolvers::identify(&mut file)?;
             if !content_types.is_empty() {
+                let metadata = HashMap::new();
                 let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Resolvers));
-                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+                return Ok(FeaturesOr::Ruled(RegularFileType {
+                    content_types,
+                    metadata,
+                    debug_info,
+                }));
             }
         }
         let prefix_len = file.ensure_prefix(config.block_size)?;
@@ -301,8 +313,9 @@ impl FeaturesOr<RegularFileType> {
             Ok(_) => ContentType::Txt,
         };
         let content_types = vec![content_type];
+        let metadata = HashMap::new();
         let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
-        Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }))
+        Ok(FeaturesOr::Ruled(RegularFileType { content_types, metadata, debug_info }))
     }
 }
 

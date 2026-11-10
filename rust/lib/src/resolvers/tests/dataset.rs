@@ -45,7 +45,7 @@ use std::collections::BTreeMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::time::{Duration, Instant};
 
-use crate::resolvers::{PREFIX_LIMIT, facts, magic};
+use crate::resolvers::{PREFIX_LIMIT, magic};
 
 /// Dataset classes that refine a Magika label with no label of their own.
 const REFINES: &[(&str, &str)] = &[
@@ -157,8 +157,8 @@ fn resolvers_never_contradict_a_validated_label() {
         let size = file.metadata().unwrap().len();
         let wanted = size.min(PREFIX_LIMIT as u64) as usize;
         file.read_exact(&mut prefix[..wanted]).unwrap();
-        let tail_len = if facts::wants_tail(&prefix[..wanted]) && size > wanted as u64 {
-            size.min(facts::ZIP_TAIL_BYTES as u64) as usize
+        let tail_len = if magic::wants_tail(&prefix[..wanted]) && size > wanted as u64 {
+            size.min(magic::ZIP_TAIL_BYTES as u64) as usize
         } else {
             0
         };
@@ -166,7 +166,7 @@ fn resolvers_never_contradict_a_validated_label() {
         if !tail.is_empty() {
             file.seek(SeekFrom::Start(size - tail.len() as u64)).unwrap();
             file.read_exact(&mut tail).unwrap();
-            if let Some(start) = facts::directory_start(&tail, size) {
+            if let Some(start) = magic::directory_start(&tail, size) {
                 tail = vec![0; (size - start) as usize];
                 file.seek(SeekFrom::Start(start)).unwrap();
                 file.read_exact(&mut tail).unwrap();

@@ -8,9 +8,9 @@ This reference lists the supported output content types (`output.label`) and det
 
 ## Pipeline Coverage Summary
 
-- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **298** supported outputs (**295** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
+- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **401** supported outputs (**398** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
   - **Heuristics (`in_heuristics`)**: **6** content types (`directory`, `empty`, `symlink`, `txt`, `unknown`, `unsupported`) — path metadata checks, empty-file detection, and short-file / low-confidence fallbacks.
-  - **Format Resolvers (`in_resolvers`)**: **137** content types (**93** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
+  - **Format Resolvers (`in_resolvers`)**: **310** content types (**93** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
   - **ML Model (`in_ml_model`)**: **212** content types predicted by [`standard_v3_3`](/magika/models/standard_v3_3) (after `overwrite_map`).
 - **JavaScript / TypeScript TensorFlow.js pipeline (`magika` on `main`)**: **214** supported outputs — runs byte/stream heuristics (`empty`, `txt`, `unknown`) plus the [`standard_v3_3`](/magika/models/standard_v3_3) ML model (`in_ml_model`), without filesystem `stat` checks or native Rust format resolvers (`in_resolvers`).
 
@@ -18,51 +18,71 @@ This reference lists the supported output content types (`output.label`) and det
 
 | Label | Description | MIME Type | Group | Extensions | Text | Heuristics | Resolvers | ML Model | Vetoed |
 | --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
+| `3ds` | Nintendo 3DS roms | `application/octet-stream` | `unknown` | `3ds` |  |  | ✓ |  |  |
 | `3dsm` | 3D studio Max | `application/x-3ds` | `image` | `3ds` |  |  | ✓ |  | ✓ |
 | `3dsx` | Nintendo 3DS homebrew | `application/octet-stream` | `unknown` | `3dsx` |  |  | ✓ |  | ✓ |
 | `3gp` | 3GPP multimedia file | `video/3gpp` | `video` | `3gp` |  |  | ✓ | ✓ | ✓ |
 | `3mf` | 3D Manufacturing Format | `application/vnd.ms-package.3dmanufacturing-3dmodel+xml` | `image` | `3mf` |  |  | ✓ |  |  |
+| `access` | Microsoft Access database | `application/octet-stream` | `database` | `accdb`, `mdb` |  |  | ✓ |  |  |
 | `ace` | ACE archive | `application/x-ace-compressed` | `archive` | `ace` |  |  | ✓ | ✓ | ✓ |
-| `ai` | Adobe Illustrator Artwork | `application/pdf` | `document` | `ai` |  |  |  | ✓ |  |
+| `aff` | Hunspell Affix | `text/plain` | `unknown` | `aff` | ✓ |  | ✓ |  |  |
+| `ai` | Adobe Illustrator Artwork | `application/pdf` | `document` | `ai` |  |  | ✓ | ✓ |  |
 | `aidl` | Android Interface Definition Language | `text/plain` | `unknown` | `aidl` | ✓ |  |  | ✓ |  |
+| `alembic` | Alembic geometry cache | `application/octet-stream` | `image` | `abc` |  |  | ✓ |  |  |
 | `ani` | Animated cursor | `application/x-navi-animation` | `unknown` | `ani` |  |  | ✓ |  | ✓ |
+| `aout` | a.out object / executable | `application/octet-stream` | `executable` | `out` |  |  | ✓ |  |  |
 | `apk` | Android package | `application/vnd.android.package-archive` | `executable` | `apk` |  |  | ✓ | ✓ |  |
 | `applebplist` | Apple binary property list | `application/x-bplist` | `application` | `bplist`, `plist` |  |  | ✓ | ✓ | ✓ |
 | `appledouble` | AppleDouble | `multipart/appledouble` | `unknown` | — |  |  | ✓ |  | ✓ |
-| `appleplist` | Apple property list | `application/x-plist` | `application` | `plist` | ✓ |  |  | ✓ |  |
+| `appleplist` | Apple property list | `application/x-plist` | `application` | `plist` | ✓ |  | ✓ | ✓ |  |
 | `applesingle` | AppleSingle | `application/applefile` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `ar` | AR Archive | `application/x-archive` | `archive` | — |  |  | ✓ |  |  |
+| `arc` | Arc | `application/x-arc` | `archive` | `arc` |  |  | ✓ |  |  |
+| `arcgrid` | ESRI ASCII Grid | `text/plain` | `application` | `asc`, `grd` | ✓ |  | ✓ |  |  |
+| `arj` | Arj | `application/arj` | `archive` | — |  |  | ✓ |  |  |
 | `arrow` | arrow | `application/vnd.apache.arrow.file` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `asd` | asd | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `asf` | Microsoft Advanced Systems Format | `video/x-ms-asf` | `application` | `asf` |  |  | ✓ |  |  |
 | `asm` | Assembly | `text/x-asm` | `code` | `s`, `S`, `asm` | ✓ |  |  | ✓ |  |
 | `asp` | ASP source | `text/html` | `code` | `aspx`, `asp` | ✓ |  |  | ✓ |  |
 | `au` | NeXT/Sun AU | `audio/basic` | `audio` | `au` |  |  | ✓ |  | ✓ |
 | `autohotkey` | AutoHotKey script | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
-| `autoit` | AutoIt script | `text/plain` | `code` | `au3` | ✓ |  |  | ✓ |  |
+| `autoit` | AutoIt script | `text/plain` | `code` | `au3` | ✓ |  | ✓ | ✓ |  |
 | `avi` | Audio Video Interleave | `video/x-msvideo` | `video` | `avi` |  |  | ✓ |  | ✓ |
 | `avif` | AV1 Image File Format | `image/avif` | `image` | `avif`, `avifs` |  |  | ✓ |  | ✓ |
 | `avro` | Apache Avro binary | `application/x-avro-binary` | `unknown` | `avro` |  |  | ✓ |  | ✓ |
 | `awk` | Awk | `text/plain` | `code` | `awk` | ✓ |  |  | ✓ |  |
 | `bam` | BAM alignment | `application/octet-stream` | `scientific` | `bam` |  |  | ✓ |  | ✓ |
-| `batch` | DOS batch file | `text/x-msdos-batch` | `code` | `bat` | ✓ |  |  | ✓ |  |
+| `batch` | DOS batch file | `text/x-msdos-batch` | `code` | `bat` | ✓ |  | ✓ | ✓ |  |
 | `bazel` | Bazel build file | `text/plain` | `code` | `bzl` | ✓ |  |  | ✓ |  |
 | `beam` | Erlang BEAM | `application/octet-stream` | `executable` | `beam` |  |  | ✓ |  | ✓ |
+| `berkeleydb` | Berkeley DB | `application/octet-stream` | `database` | `db` |  |  | ✓ |  |  |
 | `bib` | BibTeX | `text/x-bibtex` | `text` | `bib` | ✓ |  |  | ✓ |  |
 | `blend` | Blender scene | `application/octet-stream` | `geometry` | `blend` |  |  | ✓ |  | ✓ |
 | `bmp` | BMP image data | `image/bmp` | `image` | `bmp` |  |  | ✓ | ✓ |  |
 | `bpg` | BPG | `image/bpg` | `image` | `bpg` |  |  | ✓ |  | ✓ |
+| `bpl` | bpl | `application/octet-stream` | `unknown` | `bpl` |  |  | ✓ |  |  |
+| `bson` | BSON | `application/octet-stream` | `application` | `bson` |  |  | ✓ |  |  |
 | `bzip` | bzip2 compressed data | `application/x-bzip2` | `archive` | `bz2`, `tbz2`, `tar.bz2` |  |  | ✓ | ✓ | ✓ |
+| `bzip3` | bzip3 compressed data | `application/x-bzip3` | `archive` | `bz3` |  |  | ✓ |  |  |
 | `c` | C source | `text/x-c` | `code` | `c` | ✓ |  |  | ✓ |  |
 | `cab` | Microsoft Cabinet archive data | `application/vnd.ms-cab-compressed` | `archive` | `cab` |  |  | ✓ | ✓ |  |
-| `cat` | Windows Catalog file | `application/octet-stream` | `application` | `cat` |  |  |  | ✓ |  |
-| `chm` | MS Windows HtmlHelp Data | `application/chm` | `application` | `chm` |  |  |  | ✓ |  |
+| `castledb` | CastleDB | `text/plain` | `application` | `cdb` | ✓ |  | ✓ |  |  |
+| `cat` | Windows Catalog file | `application/octet-stream` | `application` | `cat` |  |  | ✓ | ✓ |  |
+| `catboost` | CatBoost model | `application/octet-stream` | `application` | `cbm` |  |  | ✓ |  |  |
+| `cbor` | CBOR | `application/cbor` | `application` | `cbor` |  |  | ✓ |  |  |
+| `cdf` | cdf | `application/octet-stream` | `archive` | — |  |  | ✓ |  |  |
+| `chm` | MS Windows HtmlHelp Data | `application/chm` | `application` | `chm` |  |  | ✓ | ✓ |  |
+| `cinema4d` | Cinema 4D scene | `application/octet-stream` | `geometry` | `c4d` |  |  | ✓ |  |  |
 | `clojure` | Clojure | `text/x-clojure` | `code` | `clj`, `cljs`, `cljc`, `cljr` | ✓ |  |  | ✓ |  |
 | `cmake` | CMake build file | `text/x-cmake` | `code` | `cmake` | ✓ |  |  | ✓ |  |
 | `cobol` | Cobol | `text/x-cobol` | `code` | `cbl`, `cob`, `cpy`, `CBL`, `COB`, `CPY` | ✓ |  |  | ✓ |  |
-| `coff` | Intel 80386 COFF | `application/x-coff` | `executable` | `obj`, `o` |  |  |  | ✓ |  |
+| `coff` | Intel 80386 COFF | `application/x-coff` | `executable` | `obj`, `o` |  |  | ✓ | ✓ |  |
 | `coffeescript` | CoffeeScript | `text/coffeescript` | `code` | `coffee` | ✓ |  |  | ✓ |  |
 | `collada` | COLLADA digital asset | `model/vnd.collada+xml` | `geometry` | `dae` | ✓ |  | ✓ |  | ✓ |
 | `cpp` | C++ source | `text/x-c` | `code` | `cc`, `cpp`, `cxx`, `c++`, `cppm`, `ixx` | ✓ |  |  | ✓ |  |
 | `cram` | CRAM alignment | `application/octet-stream` | `scientific` | `cram` |  |  | ✓ |  | ✓ |
-| `crt` | Certificates (binary format) | `application/x-x509-ca-cert` | `text` | `der`, `cer`, `crt` |  |  |  | ✓ |  |
+| `crt` | Certificates (binary format) | `application/x-x509-ca-cert` | `text` | `der`, `cer`, `crt` |  |  | ✓ | ✓ |  |
 | `crx` | Google Chrome extension | `application/x-chrome-extension` | `executable` | `crx` |  |  | ✓ | ✓ |  |
 | `cs` | C# source | `text/plain` | `code` | `cs`, `csx` | ✓ |  |  | ✓ |  |
 | `csproj` | .NET project config | `text/plain` | `code` | `csproj` | ✓ |  |  | ✓ |  |
@@ -70,81 +90,101 @@ This reference lists the supported output content types (`output.label`) and det
 | `csv` | CSV document | `text/csv` | `code` | `csv` | ✓ |  |  | ✓ |  |
 | `cubin` | NVIDIA CUDA binary | `application/octet-stream` | `executable` | `cubin` |  |  | ✓ |  | ✓ |
 | `dart` | Dart source | `text/plain` | `code` | `dart` | ✓ |  |  | ✓ |  |
+| `db2` | IBM DB2 database / backup | `application/octet-stream` | `application` | `db2` |  |  | ✓ |  |  |
 | `dbase` | dBASE / FoxPro table | `application/octet-stream` | `database` | `dbf` |  |  | ✓ |  |  |
-| `deb` | Debian binary package | `application/vnd.debian.binary-package` | `archive` | `deb` |  |  |  | ✓ |  |
+| `deb` | Debian binary package | `application/vnd.debian.binary-package` | `archive` | `deb` |  |  | ✓ | ✓ |  |
 | `degas` | Atari ST DEGAS image | `application/octet-stream` | `image` | `pi1`, `pi2`, `pi3`, `pc1`, `pc2`, `pc3` |  |  | ✓ |  |  |
 | `dex` | Dalvik dex file | `application/x-android-dex` | `executable` | `dex` |  |  | ✓ | ✓ | ✓ |
 | `dicom` | DICOM | `application/dicom` | `image` | `dcm` |  |  | ✓ | ✓ | ✓ |
 | `diff` | Diff file | `text/plain` | `text` | `diff`, `patch` | ✓ |  |  | ✓ |  |
 | `directory` | A directory | `inode/directory` | `inode` | — |  | ✓ |  |  |  |
 | `dm` | Dream Maker | `text/plain` | `code` | `dm` | ✓ |  |  | ✓ |  |
-| `dmg` | Apple disk image | `application/x-apple-diskimage` | `archive` | `dmg` |  |  |  | ✓ |  |
-| `doc` | Microsoft Word CDF document | `application/msword` | `document` | `doc` |  |  |  | ✓ |  |
+| `dmg` | Apple disk image | `application/x-apple-diskimage` | `archive` | `dmg` |  |  | ✓ | ✓ |  |
+| `doc` | Microsoft Word CDF document | `application/msword` | `document` | `doc` |  |  | ✓ | ✓ |  |
 | `dockerfile` | Dockerfile | `text/x-dockerfile` | `code` | — | ✓ |  |  | ✓ |  |
 | `docx` | Microsoft Word 2007+ document | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `document` | `docx`, `docm` |  |  | ✓ | ✓ |  |
+| `dosmbr` | Master boot record | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `dotx` | Office Word 2007 template | `application/vnd.openxmlformats-officedocument.wordprocessingml.template` | `document` | `dotx` |  |  | ✓ |  |  |
 | `dsstore` | Application Desktop Services Store | `application/octet-stream` | `unknown` | — |  |  | ✓ | ✓ | ✓ |
 | `duckdb` | DuckDB database | `application/octet-stream` | `database` | `duckdb` |  |  | ✓ |  | ✓ |
 | `dwg` | Autocad Drawing | `image/x-dwg` | `image` | `dwg` |  |  | ✓ | ✓ | ✓ |
-| `dxf` | Autocad Drawing Exchange Format | `image/vnd.dxf` | `image` | `dxf` | ✓ |  |  | ✓ |  |
-| `elf` | ELF executable | `application/x-executable-elf` | `executable` | `elf` |  |  |  | ✓ |  |
+| `dxf` | Autocad Drawing Exchange Format | `image/vnd.dxf` | `image` | `dxf` | ✓ |  | ✓ | ✓ |  |
+| `elf` | ELF executable | `application/x-executable-elf` | `executable` | `elf` |  |  | ✓ | ✓ |  |
 | `elixir` | Elixir script | `text/plain` | `code` | `exs` | ✓ |  |  | ✓ |  |
 | `emf` | Windows Enhanced Metafile image data | `application/octet-stream` | `application` | `emf` |  |  | ✓ | ✓ |  |
-| `eml` | RFC 822 mail | `message/rfc822` | `text` | `eml` | ✓ |  |  | ✓ |  |
+| `eml` | RFC 822 mail | `message/rfc822` | `text` | `eml` | ✓ |  | ✓ | ✓ |  |
 | `empty` | Empty file | `inode/x-empty` | `inode` | — |  | ✓ |  |  |  |
 | `epub` | EPUB document | `application/epub+zip` | `document` | `epub` |  |  | ✓ | ✓ |  |
 | `erb` | Embedded Ruby source | `text/x-ruby` | `code` | `erb` | ✓ |  |  | ✓ |  |
+| `erdas` | ERDAS Imagine | `application/octet-stream` | `image` | `img` |  |  | ✓ |  |  |
 | `erlang` | Erlang source | `text/x-erlang` | `code` | `erl`, `hrl` | ✓ |  |  | ✓ |  |
 | `ese` | ESE Db | `application/x-ms-ese` | `unknown` | `dat` |  |  | ✓ |  | ✓ |
+| `fasta` | FASTA sequence data | `text/plain` | `application` | `fa`, `fasta` | ✓ |  | ✓ |  |  |
+| `fastq` | FASTQ sequence data | `text/plain` | `application` | `fastq`, `fq` | ✓ |  | ✓ |  |  |
 | `fbx` | Autodesk FBX | `application/octet-stream` | `geometry` | `fbx` |  |  | ✓ |  | ✓ |
+| `filemaker` | FileMaker database | `application/octet-stream` | `database` | `fmp12`, `fp7` |  |  | ✓ |  |  |
+| `firebird` | Firebird / InterBase database | `application/octet-stream` | `application` | `fdb`, `gdb` |  |  | ✓ |  |  |
 | `fits` | FITS astronomy data | `application/octet-stream` | `scientific` | `fit`, `fits`, `fts` |  |  | ✓ |  | ✓ |
 | `flac` | FLAC audio bitstream data | `audio/flac` | `audio` | `flac` |  |  | ✓ | ✓ |  |
+| `flatgeobuf` | FlatGeobuf | `application/octet-stream` | `gis` | `fgb` |  |  | ✓ |  |  |
 | `flv` | Flash Video | `video/x-flv` | `video` | `flv` |  |  | ✓ | ✓ | ✓ |
 | `fortran` | Fortran | `text/x-fortran` | `code` | `f90`, `f95`, `f03`, `F90` | ✓ |  |  | ✓ |  |
+| `fpx` | Flashpix | `application/octet-stream` | `image` | `fpx` |  |  | ✓ |  |  |
 | `gemfile` | Gemfile file | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `gemspec` | Gemspec file | `text/plain` | `code` | `gemspec` | ✓ |  |  | ✓ |  |
+| `geojson` | GeoJSON | `application/geo+json` | `gis` | `geojson` | ✓ |  | ✓ |  |  |
 | `geopackage` | OGC GeoPackage | `application/geopackage+sqlite3` | `gis` | `gpkg` |  |  | ✓ |  | ✓ |
+| `ggml` | Legacy GGML model | `application/octet-stream` | `application` | `ggml` |  |  | ✓ |  |  |
 | `gguf` | GGUF | `application/octet-stream` | `model` | `gguf` |  |  | ✓ |  | ✓ |
 | `gif` | GIF image data | `image/gif` | `image` | `gif` |  |  | ✓ | ✓ |  |
 | `gitattributes` | Gitattributes file | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `gitmodules` | Gitmodules file | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `gltf` | glTF | `application/octet-stream` | `geometry` | `glb`, `gltf` |  |  | ✓ |  | ✓ |
+| `gml` | Geography Markup Language | `application/gml+xml` | `gis` | `gml` | ✓ |  | ✓ |  |  |
 | `go` | Golang source | `text/x-golang` | `code` | `go` | ✓ |  |  | ✓ |  |
 | `gpx` | XML document | `application/octet-stream` | `unknown` | `gpx` |  |  | ✓ |  | ✓ |
 | `gradle` | Gradle source | `text/x-groovy` | `code` | `gradle` | ✓ |  |  | ✓ |  |
 | `grib` | GRIB meteorological data | `application/octet-stream` | `scientific` | `grb`, `grb2`, `grib`, `grib2` |  |  | ✓ |  | ✓ |
 | `groovy` | Groovy source | `text/x-groovy` | `code` | `groovy` | ✓ |  |  | ✓ |  |
 | `gzip` | gzip compressed data | `application/gzip` | `archive` | `gz`, `gzip`, `tgz`, `tar.gz` |  |  | ✓ | ✓ | ✓ |
-| `h5` | Hierarchical Data Format v5 | `application/x-hdf5` | `archive` | `h5`, `hdf5` |  |  |  | ✓ |  |
+| `h2` | H2 database | `application/octet-stream` | `application` | `h2.db`, `mv.db` |  |  | ✓ |  |  |
+| `h5` | Hierarchical Data Format v5 | `application/x-hdf5` | `archive` | `h5`, `hdf5` |  |  | ✓ | ✓ |  |
 | `handlebars` | Handlebars source | `text/x-handlebars-template` | `code` | `hbs`, `handlebars` | ✓ |  |  | ✓ |  |
 | `haskell` | Haskell source | `text/plain` | `code` | `hs`, `lhs` | ✓ |  |  | ✓ |  |
 | `hcl` | HashiCorp configuration language | `text/x-hcl` | `code` | `hcl` | ✓ |  |  | ✓ |  |
 | `hdf4` | HDF4 | `application/octet-stream` | `scientific` | `h4`, `hdf` |  |  | ✓ |  | ✓ |
 | `heif` | High Efficiency Image File | `image/heic` | `image` | `heif`, `heifs`, `heic`, `heics` |  |  | ✓ |  | ✓ |
+| `hfs` | hfs | `application/x-hfs` | `unknown` | `hfs` |  |  | ✓ |  |  |
 | `hlp` | MS Windows help | `application/winhlp` | `application` | `hlp` |  |  | ✓ | ✓ |  |
+| `hta` | HTML Application | `application/hta` | `code` | `hta` |  |  | ✓ |  |  |
 | `htaccess` | Apache access configuration | `text/x-apache-conf` | `code` | — | ✓ |  |  | ✓ |  |
-| `html` | HTML document | `text/html` | `code` | `html`, `htm`, `xhtml`, `xht` | ✓ |  |  | ✓ |  |
+| `html` | HTML document | `text/html` | `code` | `html`, `htm`, `xhtml`, `xht` | ✓ |  | ✓ | ✓ |  |
 | `hve` | hve | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `hwp` | Hangul Word Processor | `application/x-hwp` | `document` | `hwp` |  |  | ✓ |  |  |
 | `icc` | ICC profile | `application/vnd.iccprofile` | `unknown` | `icc` |  |  | ✓ |  | ✓ |
 | `icns` | Mac OS X icon | `image/x-icns` | `image` | `icns` |  |  | ✓ | ✓ | ✓ |
 | `ico` | MS Windows icon resource | `image/vnd.microsoft.icon` | `image` | `ico` |  |  | ✓ | ✓ |  |
-| `ics` | Internet Calendaring and Scheduling | `text/calendar` | `application` | `ics` | ✓ |  |  | ✓ |  |
+| `ics` | Internet Calendaring and Scheduling | `text/calendar` | `application` | `ics` | ✓ |  | ✓ | ✓ |  |
+| `iges` | IGES CAD exchange | `model/iges` | `image` | `iges`, `igs` | ✓ |  | ✓ |  |  |
 | `ignorefile` | Ignorefile | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `ilbm` | Amiga IFF ILBM image | `image/x-ilbm` | `image` | `iff`, `ilbm`, `lbm` |  |  | ✓ |  |  |
+| `img` | img | `application/octet-stream` | `unknown` | `img` |  |  | ✓ |  |  |
 | `ini` | INI configuration file | `text/plain` | `text` | `ini` | ✓ |  |  | ✓ |  |
 | `intelhex` | Intel HEX | `text/plain` | `executable` | `hex`, `ihex` | ✓ |  | ✓ |  |  |
-| `internetshortcut` | MS Windows Internet shortcut | `application/x-mswinurl` | `application` | `url` | ✓ |  |  | ✓ |  |
-| `ipynb` | Jupyter notebook | `application/json` | `code` | `ipynb` | ✓ |  |  | ✓ |  |
-| `iso` | ISO 9660 CD-ROM filesystem data | `application/x-iso9660-image` | `archive` | `iso` |  |  |  | ✓ |  |
+| `internetshortcut` | MS Windows Internet shortcut | `application/x-mswinurl` | `application` | `url` | ✓ |  | ✓ | ✓ |  |
+| `iosapp` | iosapp | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `ipynb` | Jupyter notebook | `application/json` | `code` | `ipynb` | ✓ |  | ✓ | ✓ |  |
+| `iso` | ISO 9660 CD-ROM filesystem data | `application/x-iso9660-image` | `archive` | `iso` |  |  | ✓ | ✓ |  |
 | `jar` | Java archive data (JAR) | `application/java-archive` | `archive` | `jar`, `klib` |  |  | ✓ | ✓ |  |
 | `java` | Java source | `text/x-java` | `code` | `java` | ✓ |  |  | ✓ |  |
-| `javabytecode` | Java compiled bytecode | `application/x-java-applet` | `executable` | `class` |  |  |  | ✓ |  |
+| `javabytecode` | Java compiled bytecode | `application/x-java-applet` | `executable` | `class` |  |  | ✓ | ✓ |  |
 | `javascript` | JavaScript source | `application/javascript` | `code` | `js`, `mjs`, `cjs` | ✓ |  |  | ✓ |  |
 | `jinja` | Jinja template | `text/x-jinja2-template` | `code` | `jinja`, `jinja2`, `j2` | ✓ |  |  | ✓ |  |
 | `jng` | JPEG network graphics | `image/jng` | `image` | `jng` |  |  | ✓ |  | ✓ |
+| `jnlp` | Java Network Launch Protocol | `application/x-java-jnlp-file` | `code` | `jnlp` | ✓ |  | ✓ |  |  |
 | `jp2` | jpeg2000 | `image/jpeg2000` | `image` | `jp2` |  |  | ✓ | ✓ |  |
-| `jpeg` | JPEG image data | `image/jpeg` | `image` | `jpg`, `jpeg` |  |  |  | ✓ |  |
-| `json` | JSON document | `application/json` | `code` | `json` | ✓ |  |  | ✓ |  |
+| `jpeg` | JPEG image data | `image/jpeg` | `image` | `jpg`, `jpeg` |  |  | ✓ | ✓ |  |
+| `json` | JSON document | `application/json` | `code` | `json` | ✓ |  | ✓ | ✓ |  |
 | `jsonl` | JSONL document | `application/json` | `code` | `jsonl`, `jsonld` | ✓ |  |  | ✓ |  |
 | `julia` | Julia source | `text/x-julia` | `code` | `jl` | ✓ |  |  | ✓ |  |
 | `jxl` | JPEG XL | `image/jxl` | `image` | `jxl` |  |  | ✓ |  |  |
@@ -153,166 +193,229 @@ This reference lists the supported output content types (`output.label`) and det
 | `kmz` | Keyhole Markup Language archive | `application/vnd.google-earth.kmz` | `gis` | `kmz` |  |  | ✓ |  |  |
 | `koala` | Commodore 64 Koala Painter image | `application/octet-stream` | `image` | `koa` |  |  | ✓ |  |  |
 | `kotlin` | Kotlin source | `text/plain` | `code` | `kt`, `kts` | ✓ |  |  | ✓ |  |
-| `latex` | LaTeX document | `text/x-tex` | `text` | `tex`, `sty` | ✓ |  |  | ✓ |  |
-| `lha` | LHarc archive | `application/x-lha` | `archive` | `lha`, `lzh` |  |  |  | ✓ |  |
+| `las` | LAS point cloud | `application/octet-stream` | `gis` | `las` |  |  | ✓ |  |  |
+| `latex` | LaTeX document | `text/x-tex` | `text` | `tex`, `sty` | ✓ |  | ✓ | ✓ |  |
+| `leveldb` | LevelDB | `application/octet-stream` | `application` | `ldb`, `log` |  |  | ✓ |  |  |
+| `lha` | LHarc archive | `application/x-lha` | `archive` | `lha`, `lzh` |  |  | ✓ | ✓ |  |
+| `lightwave` | LightWave object / scene | `application/octet-stream` | `geometry` | `lwo`, `lws` |  |  | ✓ |  |  |
 | `lisp` | Lisp source | `text/x-lisp` | `code` | `lisp`, `lsp`, `l`, `cl` | ✓ |  |  | ✓ |  |
 | `llvm_bitcode` | LLVM bitcode | `application/octet-stream` | `executable` | `bc` |  |  | ✓ |  | ✓ |
+| `llvm_ir` | LLVM textual IR | `text/plain` | `code` | `ll` | ✓ |  | ✓ |  |  |
+| `lmdb` | LMDB | `application/octet-stream` | `database` | `mdb` |  |  | ✓ |  |  |
 | `lnk` | MS Windows shortcut | `application/x-ms-shortcut` | `application` | `lnk` |  |  | ✓ | ✓ | ✓ |
 | `lrz` | LRZip | `application/x-lrzip` | `unknown` | `lrz` |  |  | ✓ |  | ✓ |
 | `lua` | Lua | `text/plain` | `code` | `lua` | ✓ |  |  | ✓ |  |
 | `luabytecode` | Lua bytecode | `application/octet-stream` | `executable` | `luac` |  |  | ✓ |  | ✓ |
 | `lz` | LZip | `application/x-lzip` | `archive` | `lz` |  |  | ✓ |  | ✓ |
 | `lz4` | LZ4 | `application/x-lz4` | `archive` | `lz4` |  |  | ✓ |  | ✓ |
-| `m3u` | M3U playlist | `text/plain` | `application` | `m3u8`, `m3u` | ✓ |  |  | ✓ |  |
+| `lzx` | lzx | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `m3u` | M3U playlist | `text/plain` | `application` | `m3u8`, `m3u` | ✓ |  | ✓ | ✓ |  |
 | `m4` | GNU Macro | `text/plain` | `code` | `m4` | ✓ |  |  | ✓ |  |
 | `macho` | Mach-O executable | `application/x-mach-o` | `executable` | — |  |  | ✓ | ✓ |  |
+| `maff` | maff | `application/x-maff` | `unknown` | `maff` |  |  | ✓ |  |  |
 | `makefile` | Makefile source | `text/x-makefile` | `code` | — | ✓ |  |  | ✓ |  |
+| `mapinfo` | MapInfo dataset | `application/octet-stream` | `application` | `map`, `mid`, `mif`, `tab` |  |  | ✓ |  |  |
 | `markdown` | Markdown document | `text/markdown` | `text` | `md`, `markdown` | ✓ |  |  | ✓ |  |
 | `mat` | MATLAB MAT data | `application/octet-stream` | `scientific` | `mat` |  |  | ✓ |  | ✓ |
 | `matlab` | Matlab Source | `text/x-matlab` | `code` | `m`, `matlab` | ✓ |  |  | ✓ |  |
-| `mht` | MHTML document | `application/x-mimearchive` | `code` | `mht` | ✓ |  |  | ✓ |  |
+| `max` | 3ds Max scene | `application/octet-stream` | `image` | `max` |  |  | ✓ |  |  |
+| `maya` | Maya scene | `application/octet-stream` | `image` | `ma`, `mb` |  |  | ✓ |  |  |
+| `mbtiles` | MBTiles tile set | `application/octet-stream` | `gis` | `mbtiles` |  |  | ✓ |  |  |
+| `mht` | MHTML document | `application/x-mimearchive` | `code` | `mht` | ✓ |  | ✓ | ✓ |  |
 | `midi` | Midi | `audio/midi` | `audio` | `mid` |  |  | ✓ | ✓ | ✓ |
 | `minidump` | Windows minidump | `application/octet-stream` | `application` | `dmp`, `mdmp` |  |  | ✓ |  | ✓ |
 | `mkv` | Matroska | `video/x-matroska` | `video` | `mkv` |  |  | ✓ | ✓ |  |
-| `mp3` | MP3 media file | `audio/mpeg` | `audio` | `mp3` |  |  |  | ✓ |  |
-| `mp4` | MP4 media file | `video/mp4` | `video` | `mp4` |  |  |  | ✓ |  |
+| `mp2` | MP2 stream | `application/octet-stream` | `unknown` | `mp2` |  |  | ✓ |  |  |
+| `mp3` | MP3 media file | `audio/mpeg` | `audio` | `mp3` |  |  | ✓ | ✓ |  |
+| `mp4` | MP4 media file | `video/mp4` | `video` | `mp4` |  |  | ✓ | ✓ |  |
 | `mpegts` | MPEG Transport stream | `video/MP2T` | `video` | `ts`, `tsv`, `tsa`, `m2t` |  |  | ✓ |  | ✓ |
 | `mscompress` | MS Compress archive data | `application/x-ms-compress-szdd` | `archive` | — |  |  | ✓ | ✓ |  |
-| `msi` | Microsoft Installer file | `application/x-msi` | `archive` | `msi` |  |  |  | ✓ |  |
+| `msgpack` | MessagePack | `application/octet-stream` | `application` | `mpk`, `msgpack` |  |  | ✓ |  |  |
+| `msi` | Microsoft Installer file | `application/x-msi` | `archive` | `msi` |  |  | ✓ | ✓ |  |
 | `msix` | Windows app package | `application/msix` | `application` | `msix` |  |  | ✓ |  |  |
-| `mum` | Windows Update Package file | `text/xml` | `application` | `mum` | ✓ |  |  | ✓ |  |
+| `mst` | mst | `application/octet-stream` | `unknown` | `mst` |  |  | ✓ |  |  |
+| `mtl` | Wavefront material library | `model/mtl` | `image` | `mtl` | ✓ |  | ✓ |  |  |
+| `mum` | Windows Update Package file | `text/xml` | `application` | `mum` | ✓ |  | ✓ | ✓ |  |
+| `mysql_storage` | MySQL / MariaDB storage | `application/octet-stream` | `application` | `ibd`, `myd`, `myi` |  |  | ✓ |  |  |
 | `netcdf` | NetCDF | `application/octet-stream` | `scientific` | `cdf`, `nc` |  |  | ✓ |  |  |
+| `nifti` | NIfTI neuroimaging data | `application/octet-stream` | `scientific` | `nii` |  |  | ✓ |  |  |
 | `npy` | Numpy Array | `application/octet-stream` | `archive` | `npy` |  |  | ✓ | ✓ | ✓ |
-| `npz` | Numpy Arrays Archive | `application/octet-stream` | `archive` | `npz` |  |  |  | ✓ |  |
+| `npz` | Numpy Arrays Archive | `application/octet-stream` | `archive` | `npz` |  |  | ✓ | ✓ |  |
 | `nrrd` | Nearly Raw Raster Data | `application/octet-stream` | `scientific` | `nhdr`, `nrrd` |  |  | ✓ |  | ✓ |
-| `nupkg` | NuGet Package | `application/octet-stream` | `unknown` | `nupkg` |  |  |  | ✓ |  |
+| `nupkg` | NuGet Package | `application/octet-stream` | `unknown` | `nupkg` |  |  | ✓ | ✓ |  |
+| `obj` | Wavefront OBJ | `model/obj` | `image` | `obj` | ✓ |  | ✓ |  |  |
 | `objectivec` | ObjectiveC source | `text/x-objcsrc` | `code` | `m`, `mm` | ✓ |  |  | ✓ |  |
 | `ocaml` | OCaml | `text/ocaml` | `code` | `ml`, `mli` | ✓ |  |  | ✓ |  |
+| `odex` | ODEX ELF executable | `application/x-executable-elf` | `executable` | `odex` |  |  | ✓ |  |  |
 | `odp` | OpenDocument Presentation | `application/vnd.oasis.opendocument.presentation` | `document` | `odp` |  |  | ✓ | ✓ |  |
 | `ods` | OpenDocument Spreadsheet | `application/vnd.oasis.opendocument.spreadsheet` | `document` | `ods` |  |  | ✓ | ✓ |  |
 | `odt` | OpenDocument Text | `application/vnd.oasis.opendocument.text` | `document` | `odt` |  |  | ✓ | ✓ |  |
 | `ogg` | Ogg data | `audio/ogg` | `audio` | `ogg` |  |  | ✓ | ✓ |  |
+| `omf` | OMF object | `application/octet-stream` | `executable` | `obj` |  |  | ✓ |  |  |
 | `one` | OneNote | `application/msonenote` | `document` | `one` |  |  | ✓ | ✓ | ✓ |
-| `onnx` | Open Neural Network Exchange | `application/octet-stream` | `archive` | `onnx` |  |  |  | ✓ |  |
+| `onnx` | Open Neural Network Exchange | `application/octet-stream` | `archive` | `onnx` |  |  | ✓ | ✓ |  |
+| `openvino_ir` | OpenVINO IR | `text/plain` | `application` | `xml` | ✓ |  | ✓ |  |  |
+| `oracle_db` | Oracle database / export | `application/octet-stream` | `application` | `dbf`, `dmp` |  |  | ✓ |  |  |
+| `orc` | Apache ORC | `application/octet-stream` | `scientific` | `orc` |  |  | ✓ |  |  |
 | `osm` | OpenStreetMap data | `application/octet-stream` | `gis` | `osm`, `pbf` |  |  | ✓ |  |  |
-| `otf` | OpenType font | `font/otf` | `font` | `otf` |  |  |  | ✓ |  |
-| `outlook` | MS Outlook Message | `application/vnd.ms-outlook` | `application` | — |  |  |  | ✓ |  |
+| `otf` | OpenType font | `font/otf` | `font` | `otf` |  |  | ✓ | ✓ |  |
+| `outlook` | MS Outlook Message | `application/vnd.ms-outlook` | `application` | — |  |  | ✓ | ✓ |  |
 | `palmos` | palmos | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `paradox` | Paradox database | `application/octet-stream` | `database` | `db` |  |  | ✓ |  |  |
 | `parquet` | Apache Parquet | `application/vnd.apache.parquet` | `unknown` | `pqt`, `parquet` |  |  | ✓ | ✓ | ✓ |
 | `pascal` | Pascal source | `text/x-pascal` | `code` | `pas`, `pp` | ✓ |  |  | ✓ |  |
 | `pbm` | pbm | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
 | `pcap` | pcap capture file | `application/vnd.tcpdump.pcap` | `application` | `pcap`, `pcapng` |  |  | ✓ | ✓ |  |
 | `pcapng` | Packet capture PCAPNG | `application/octet-stream` | `binary` | `pcapng` |  |  | ✓ |  | ✓ |
+| `pcd` | Point Cloud Data | `application/octet-stream` | `image` | `pcd` |  |  | ✓ |  |  |
 | `pdb` | Windows Program Database | `application/octet-stream` | `application` | `pdb` |  |  | ✓ | ✓ |  |
-| `pdf` | PDF document | `application/pdf` | `document` | `pdf` |  |  |  | ✓ |  |
+| `pdf` | PDF document | `application/pdf` | `document` | `pdf` |  |  | ✓ | ✓ |  |
 | `pebin` | PE Windows executable | `application/x-dosexec` | `executable` | `exe`, `dll` |  |  | ✓ | ✓ |  |
 | `pem` | PEM certificate | `application/x-pem-file` | `application` | `pem`, `pub`, `gpg` | ✓ |  | ✓ | ✓ |  |
 | `perl` | Perl source | `text/x-perl` | `code` | `pl` | ✓ |  |  | ✓ |  |
 | `pgp` | PGP | `application/pgp-keys` | `unknown` | `gpg`, `pgp` |  |  | ✓ |  | ✓ |
-| `php` | PHP source | `text/x-php` | `code` | `php` | ✓ |  |  | ✓ |  |
-| `pickle` | Python pickle | `application/octet-stream` | `application` | `pickle`, `pkl` |  |  |  | ✓ |  |
+| `php` | PHP source | `text/x-php` | `code` | `php` | ✓ |  | ✓ | ✓ |  |
+| `pickle` | Python pickle | `application/octet-stream` | `application` | `pickle`, `pkl` |  |  | ✓ | ✓ |  |
 | `ply` | Polygon File Format | `application/octet-stream` | `geometry` | `ply` |  |  | ✓ |  | ✓ |
-| `png` | PNG image | `image/png` | `image` | `png` |  |  |  | ✓ |  |
+| `pmtiles` | PMTiles | `application/octet-stream` | `application` | `pmtiles` |  |  | ✓ |  |  |
+| `png` | PNG image | `image/png` | `image` | `png` |  |  | ✓ | ✓ |  |
 | `po` | Portable Object (PO) for i18n | `text/gettext-translation` | `application` | `po` | ✓ |  |  | ✓ |  |
 | `postgres_dump` | PostgreSQL dump | `application/octet-stream` | `database` | `backup`, `dump`, `sql` |  |  | ✓ |  | ✓ |
 | `postscript` | PostScript document | `application/postscript` | `document` | `ps` |  |  | ✓ | ✓ |  |
 | `powershell` | Powershell source | `application/x-powershell` | `code` | `ps1` | ✓ |  |  | ✓ |  |
-| `ppt` | Microsoft PowerPoint CDF document | `application/vnd.ms-powerpoint` | `document` | `ppt` |  |  |  | ✓ |  |
+| `ppt` | Microsoft PowerPoint CDF document | `application/vnd.ms-powerpoint` | `document` | `ppt` |  |  | ✓ | ✓ |  |
 | `pptx` | Microsoft PowerPoint 2007+ document | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | `document` | `pptx`, `pptm` |  |  | ✓ | ✓ |  |
+| `printfox` | c64 | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `prolog` | Prolog source | `text/x-prolog` | `code` | `pl`, `pro`, `P` | ✓ |  |  | ✓ |  |
-| `proteindb` | Protein DB | `application/octet-stream` | `application` | `pdb` | ✓ |  |  | ✓ |  |
+| `proteindb` | Protein DB | `application/octet-stream` | `application` | `pdb` | ✓ |  | ✓ | ✓ |  |
 | `proto` | Protocol buffer definition | `text/x-proto` | `code` | `proto` | ✓ |  |  | ✓ |  |
+| `protobuf` | Protocol buffers | `application/protobuf` | `unknown` | `protobuf`, `pb` |  |  | ✓ |  |  |
 | `psd` | Adobe Photoshop | `image/vnd.adobe.photoshop` | `image` | `psd` |  |  | ✓ | ✓ | ✓ |
+| `pub` | pub | `application/x-mspublisher` | `unknown` | `pub` |  |  | ✓ |  |  |
 | `python` | Python source | `text/x-python` | `code` | `py`, `pyi` | ✓ |  |  | ✓ |  |
 | `pythonbytecode` | Python compiled bytecode | `application/x-bytecode.python` | `executable` | `pyc`, `pyo` |  |  | ✓ | ✓ |  |
-| `pytorch` | Pytorch storage file | `application/octet-stream` | `application` | `pt`, `pth` |  |  |  | ✓ |  |
+| `pythonpar` | pythonpar | `application/octet-stream` | `unknown` | `par` |  |  | ✓ |  |  |
+| `pytorch` | Pytorch storage file | `application/octet-stream` | `application` | `pt`, `pth` |  |  | ✓ | ✓ |  |
+| `pytorch_export` | PyTorch exported program | `application/octet-stream` | `application` | `pt2` |  |  | ✓ |  |  |
 | `qgis` | QGIS project archive | `application/octet-stream` | `gis` | `qgz` |  |  | ✓ |  | ✓ |
 | `qoi` | Quite Ok Image | `image/x-qoi` | `image` | `qoi` |  |  | ✓ |  | ✓ |
-| `qt` | QuickTime | `video/quicktime` | `video` | `mov` |  |  |  | ✓ |  |
+| `qt` | QuickTime | `video/quicktime` | `video` | `mov` |  |  | ✓ | ✓ |  |
 | `r` | R (language) | `text/x-R` | `code` | `R` | ✓ |  |  | ✓ |  |
 | `rar` | RAR archive data | `application/vnd.rar` | `archive` | `rar` |  |  | ✓ | ✓ | ✓ |
-| `rdf` | Resource Description Framework document (RDF) | `application/rdf+xml` | `text` | `rdf` | ✓ |  |  | ✓ |  |
+| `rdata` | R serialized data | `application/octet-stream` | `scientific` | `rda`, `rdata`, `rds` |  |  | ✓ |  |  |
+| `rdf` | Resource Description Framework document (RDF) | `application/rdf+xml` | `text` | `rdf` | ✓ |  | ✓ | ✓ |  |
+| `rdp` | rdp | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `realm` | Realm database | `application/octet-stream` | `application` | `realm` |  |  | ✓ |  |  |
+| `redis_aof` | Redis append-only log | `application/octet-stream` | `application` | `aof` |  |  | ✓ |  |  |
 | `redis_rdb` | Redis snapshot | `application/octet-stream` | `database` | `rdb` |  |  | ✓ |  | ✓ |
+| `rhinoceros` | Rhino 3DM | `application/octet-stream` | `geometry` | `3dm` |  |  | ✓ |  |  |
+| `rlib` | rust library | `application/x-archive` | `archive` | `rlib` |  |  | ✓ |  |  |
+| `rocksdb` | RocksDB | `application/octet-stream` | `application` | `sst` |  |  | ✓ |  |  |
 | `rpm` | RedHat Package Manager archive (RPM) | `application/x-rpm` | `archive` | `rpm` |  |  | ✓ | ✓ |  |
 | `rst` | ReStructuredText document | `text/x-rst` | `text` | `rst` | ✓ |  |  | ✓ |  |
-| `rtf` | Rich Text Format document | `text/rtf` | `text` | `rtf` | ✓ |  |  | ✓ |  |
+| `rtf` | Rich Text Format document | `text/rtf` | `text` | `rtf` | ✓ |  | ✓ | ✓ |  |
 | `ruby` | Ruby source | `application/x-ruby` | `code` | `rb` | ✓ |  |  | ✓ |  |
 | `rust` | Rust source | `application/x-rust` | `code` | `rs` | ✓ |  |  | ✓ |  |
 | `rzip` | Rzip | `application/octet-stream` | `unknown` | `rz` |  |  | ✓ |  | ✓ |
 | `safetensors` | Safetensors | `application/octet-stream` | `model` | `safetensors` |  |  | ✓ |  | ✓ |
 | `sas` | SAS dataset / transport | `application/octet-stream` | `scientific` | `sas7bdat`, `xpt` |  |  | ✓ |  | ✓ |
 | `scala` | Scala source | `application/x-scala` | `code` | `scala` | ✓ |  |  | ✓ |  |
+| `scriptwsf` | scriptwsf | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `scss` | SCSS source | `text/x-scss` | `code` | `scss` | ✓ |  |  | ✓ |  |
+| `segy` | SEG-Y seismic data | `application/octet-stream` | `application` | `segy`, `sgy` |  |  | ✓ |  |  |
 | `sevenzip` | 7-zip archive data | `application/x-7z-compressed` | `archive` | `7z` |  |  | ✓ | ✓ | ✓ |
 | `sgml` | sgml | `application/sgml` | `text` | `sgml` | ✓ |  |  | ✓ |  |
+| `sh3d` | sh3d | `application/octet-stream` | `unknown` | `sh3d` |  |  | ✓ |  |  |
 | `shapefile` | ESRI Shapefile | `application/octet-stream` | `gis` | `dbf`, `prj`, `shp`, `shx` |  |  | ✓ |  | ✓ |
 | `shell` | Shell script | `text/x-shellscript` | `code` | `sh` | ✓ |  |  | ✓ |  |
 | `sketchup` | SketchUp model | `application/octet-stream` | `geometry` | `skp` |  |  | ✓ |  | ✓ |
+| `skops` | skops model | `application/octet-stream` | `application` | `skops` |  |  | ✓ |  |  |
 | `smali` | Smali source | `application/x-smali` | `code` | `smali` | ✓ |  |  | ✓ |  |
-| `snap` | Snap archive | `application/octet-stream` | `archive` | `snap` |  |  |  | ✓ |  |
+| `snap` | Snap archive | `application/octet-stream` | `archive` | `snap` |  |  | ✓ | ✓ |  |
 | `solidity` | Solidity source | `text/plain` | `code` | `sol` | ✓ |  |  | ✓ |  |
 | `spirv` | SPIR-V | `application/octet-stream` | `executable` | `spv` |  |  | ✓ |  | ✓ |
 | `spss` | SPSS dataset | `application/octet-stream` | `scientific` | `por`, `sav`, `zsav` |  |  | ✓ |  | ✓ |
 | `sql` | SQL source | `application/x-sql` | `code` | `sql` | ✓ |  |  | ✓ |  |
-| `sqlite` | SQLITE database | `application/octet-stream` | `application` | `sqlite`, `sqlite3` |  |  |  | ✓ |  |
-| `squashfs` | Squash filesystem | `application/octet-stream` | `archive` | — |  |  |  | ✓ |  |
-| `srt` | SubRip Text Format | `text/srt` | `application` | `srt` | ✓ |  |  | ✓ |  |
+| `sqlite` | SQLITE database | `application/octet-stream` | `application` | `sqlite`, `sqlite3` |  |  | ✓ | ✓ |  |
+| `squashfs` | Squash filesystem | `application/octet-stream` | `archive` | — |  |  | ✓ | ✓ |  |
+| `srecord` | Motorola S-record firmware | `text/plain` | `executable` | `s19`, `srec` | ✓ |  | ✓ |  |  |
+| `srt` | SubRip Text Format | `text/srt` | `application` | `srt` | ✓ |  | ✓ | ✓ |  |
 | `stata` | Stata dataset | `application/octet-stream` | `scientific` | `dta` |  |  | ✓ |  |  |
 | `step` | ISO 10303 STEP CAD model | `model/step` | `geometry` | `step`, `stp` | ✓ |  | ✓ |  | ✓ |
-| `stlbinary` | Stereolithography CAD (binary) | `application/sla` | `image` | `stl` |  |  |  | ✓ |  |
-| `stltext` | Stereolithography CAD (text) | `application/sla` | `image` | `stl` | ✓ |  |  | ✓ |  |
+| `stlbinary` | Stereolithography CAD (binary) | `application/sla` | `image` | `stl` |  |  | ✓ | ✓ |  |
+| `stltext` | Stereolithography CAD (text) | `application/sla` | `image` | `stl` | ✓ |  | ✓ | ✓ |  |
 | `sum` | Checksum file | `text/plain` | `application` | `sum` | ✓ |  |  | ✓ |  |
-| `svg` | SVG Scalable Vector Graphics image data | `image/svg+xml` | `image` | `svg` | ✓ |  |  | ✓ |  |
+| `svd` | svd | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `svg` | SVG Scalable Vector Graphics image data | `image/svg+xml` | `image` | `svg` | ✓ |  | ✓ | ✓ |  |
 | `swf` | Small Web Format | `application/x-shockwave-flash` | `executable` | `swf` |  |  | ✓ | ✓ | ✓ |
 | `swift` | Swift | `text/x-swift` | `code` | `swift` | ✓ |  |  | ✓ |  |
 | `symlink` | Symbolic link | `inode/symlink` | `inode` | — |  | ✓ |  |  |  |
-| `tar` | POSIX tar archive | `application/x-tar` | `archive` | `tar` |  |  |  | ✓ |  |
+| `tar` | POSIX tar archive | `application/x-tar` | `archive` | `tar` |  |  | ✓ | ✓ |  |
 | `tcl` | Tcl | `application/x-tcl` | `code` | `tcl` | ✓ |  |  | ✓ |  |
-| `textproto` | Text protocol buffer | `text/plain` | `code` | `textproto`, `textpb`, `pbtxt` | ✓ |  |  | ✓ |  |
-| `tga` | Targa image data | `image/x-tga` | `image` | `tga` |  |  |  | ✓ |  |
-| `thumbsdb` | Windows thumbnail cache | `image/vnd.ms-thumb` | `application` | — |  |  |  | ✓ |  |
-| `tiff` | TIFF image data | `image/tiff` | `image` | `tiff`, `tif` |  |  |  | ✓ |  |
+| `tensorflowjs` | TensorFlow.js model | `text/plain` | `application` | `json` | ✓ |  | ✓ |  |  |
+| `textproto` | Text protocol buffer | `text/plain` | `code` | `textproto`, `textpb`, `pbtxt` | ✓ |  | ✓ | ✓ |  |
+| `tflite` | TensorFlow Lite / LiteRT | `application/octet-stream` | `application` | `tflite` |  |  | ✓ |  |  |
+| `tga` | Targa image data | `image/x-tga` | `image` | `tga` |  |  | ✓ | ✓ |  |
+| `thumbsdb` | Windows thumbnail cache | `image/vnd.ms-thumb` | `application` | — |  |  | ✓ | ✓ |  |
+| `tiff` | TIFF image data | `image/tiff` | `image` | `tiff`, `tif` |  |  | ✓ | ✓ |  |
+| `tmdx` | tmdx | `application/octet-stream` | `unknown` | `tmdx`, `tmvx` |  |  | ✓ |  |  |
 | `toml` | Tom's obvious, minimal language | `application/toml` | `text` | `toml` | ✓ |  |  | ✓ |  |
+| `torchscript` | TorchScript archive | `application/octet-stream` | `application` | `pt` |  |  | ✓ |  |  |
 | `torrent` | BitTorrent file | `application/x-bittorrent` | `application` | `torrent` |  |  | ✓ | ✓ |  |
 | `tsv` | TSV document | `text/tab-separated-values` | `code` | `tsv` | ✓ |  |  | ✓ |  |
-| `ttf` | TrueType Font data | `font/sfnt` | `font` | `ttf`, `ttc` |  |  |  | ✓ |  |
+| `ttf` | TrueType Font data | `font/sfnt` | `font` | `ttf`, `ttc` |  |  | ✓ | ✓ |  |
 | `twig` | Twig template | `text/x-twig` | `code` | `twig` | ✓ |  |  | ✓ |  |
 | `txt` | Generic text document | `text/plain` | `text` | `txt` | ✓ | ✓ |  | ✓ |  |
 | `typescript` | TypeScript source | `application/typescript` | `code` | `ts`, `mts`, `cts` | ✓ |  |  | ✓ |  |
+| `udf` | Universal Disc Format | `application/x-udf-image` | `unknown` | — |  |  | ✓ |  |  |
+| `uefi_fv` | UEFI firmware volume | `application/octet-stream` | `executable` | `fd`, `fv` |  |  | ✓ |  |  |
 | `uf2` | UF2 firmware | `application/octet-stream` | `executable` | `uf2` |  |  | ✓ |  | ✓ |
 | `unixcompress` | unixcompress | `application/x-compress` | `unknown` | `z` |  |  | ✓ |  |  |
 | `unknown` | Unknown binary data | `application/octet-stream` | `unknown` | — |  | ✓ |  |  |  |
 | `unsupported` | Unsupported file type | `inode/x-unsupported` | `inode` | — |  | ✓ |  |  |  |
+| `usd` | Universal Scene Description | `application/octet-stream` | `image` | `usd`, `usda`, `usdc`, `usdz` |  |  | ✓ |  |  |
 | `vba` | MS Visual Basic source (VBA) | `text/vbscript` | `code` | `vbs`, `vba`, `vb` | ✓ |  |  | ✓ |  |
+| `vbe` | EncryptedVBS | `application/octet-stream` | `code` | `vbe` |  |  | ✓ |  |  |
+| `vcard` | vcard | `text/vcard` | `unknown` | `vcard` |  |  | ✓ |  |  |
+| `vcf_genomics` | Variant Call Format | `text/plain` | `application` | `vcf` | ✓ |  | ✓ |  |  |
+| `vcs` | vcs | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `vcxproj` | Visual Studio MSBuild project | `application/xml` | `code` | `vcxproj` | ✓ |  |  | ✓ |  |
 | `verilog` | Verilog source | `text/x-verilog` | `code` | `v`, `verilog`, `vlg`, `vh` | ✓ |  |  | ✓ |  |
 | `vhd` | Virtual Hard Disk | `application/x-vhd` | `unknown` | — |  |  | ✓ |  | ✓ |
 | `vhdl` | VHDL source | `text/x-vhdl` | `code` | `vhd` | ✓ |  |  | ✓ |  |
 | `vib` | VMware Installation Bundle | `application/octet-stream` | `archive` | `vib` |  |  | ✓ |  | ✓ |
 | `visio` | Microsoft Visio | `application/vnd.ms-visio.drawing.main+xml` | `document` | `vsd`, `vsdm`, `vsdx`, `vdw` |  |  | ✓ |  | ✓ |
-| `vtt` | Web Video Text Tracks | `text/vtt` | `text` | `vtt`, `webvtt` | ✓ |  |  | ✓ |  |
+| `vtk` | VTK dataset | `application/octet-stream` | `image` | `vtk`, `vtp`, `vtu` |  |  | ✓ |  |  |
+| `vtt` | Web Video Text Tracks | `text/vtt` | `text` | `vtt`, `webvtt` | ✓ |  | ✓ | ✓ |  |
 | `vue` | Vue source | `application/javascript` | `code` | `vue` | ✓ |  |  | ✓ |  |
 | `wad` | WAD | `application/wad` | `archive` | `wad` |  |  | ✓ |  | ✓ |
 | `wasm` | Web Assembly | `application/wasm` | `executable` | `wasm` |  |  | ✓ | ✓ | ✓ |
 | `wav` | Waveform Audio file (WAV) | `audio/x-wav` | `audio` | `wav` |  |  | ✓ | ✓ | ✓ |
-| `webm` | WebM media file | `video/webm` | `video` | `webm` |  |  |  | ✓ |  |
-| `webp` | WebP media file | `image/webp` | `image` | `webp` |  |  |  | ✓ |  |
-| `winregistry` | Windows Registry text | `text/x-ms-regedit` | `application` | `reg` | ✓ |  |  | ✓ |  |
-| `wmf` | Windows metafile | `image/wmf` | `image` | `wmf` |  |  |  | ✓ |  |
+| `webm` | WebM media file | `video/webm` | `video` | `webm` |  |  | ✓ | ✓ |  |
+| `webp` | WebP media file | `image/webp` | `image` | `webp` |  |  | ✓ | ✓ |  |
+| `wim` | Windows Imaging Format | `application/x-ms-wim` | `unknown` | `wim`, `swm`, `esd` |  |  | ✓ |  |  |
+| `winregistry` | Windows Registry text | `text/x-ms-regedit` | `application` | `reg` | ✓ |  | ✓ | ✓ |  |
+| `wiredtiger` | WiredTiger storage | `application/octet-stream` | `application` | `wt` |  |  | ✓ |  |  |
+| `wkt` | Well-Known Text geometry | `text/plain` | `application` | `wkt` | ✓ |  | ✓ |  |  |
+| `wma` | Windows Media Audio | `audio/x-ms-wma` | `audio` | `wma` |  |  | ✓ |  |  |
+| `wmf` | Windows metafile | `image/wmf` | `image` | `wmf` |  |  | ✓ | ✓ |  |
+| `wmv` | Windows Media Video | `video/x-ms-wmv` | `video` | `wmv` |  |  | ✓ |  |  |
 | `woff` | Web Open Font Format | `font/woff` | `font` | `woff` |  |  | ✓ | ✓ | ✓ |
 | `woff2` | Web Open Font Format v2 | `font/woff2` | `font` | `woff2` |  |  | ✓ | ✓ | ✓ |
 | `xar` | XAR archive compressed data | `application/x-xar` | `archive` | `pkg`, `xar` |  |  | ✓ | ✓ | ✓ |
 | `xcf` | Gimp image | `image/x-xcf` | `image` | `xcf` |  |  | ✓ |  | ✓ |
 | `xcoff` | XCOFF | `application/octet-stream` | `executable` | `o` |  |  | ✓ |  | ✓ |
-| `xls` | Microsoft Excel CDF document | `application/vnd.ms-excel` | `document` | `xls` |  |  |  | ✓ |  |
+| `xls` | Microsoft Excel CDF document | `application/vnd.ms-excel` | `document` | `xls` |  |  | ✓ | ✓ |  |
 | `xlsb` | Microsoft Excel 2007+ document (binary format) | `application/vnd.ms-excel.sheet.binary.macroEnabled.12` | `document` | `xlsb` |  |  | ✓ | ✓ |  |
 | `xlsx` | Microsoft Excel 2007+ document | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `document` | `xlsx`, `xlsm` |  |  | ✓ | ✓ | ✓ |
-| `xml` | XML document | `text/xml` | `code` | `xml` | ✓ |  |  | ✓ |  |
-| `xpi` | Compressed installation archive (XPI) | `application/zip` | `archive` | `xpi` |  |  |  | ✓ |  |
-| `xz` | XZ compressed data | `application/x-xz` | `archive` | `xz` |  |  |  | ✓ |  |
+| `xml` | XML document | `text/xml` | `code` | `xml` | ✓ |  | ✓ | ✓ |  |
+| `xpi` | Compressed installation archive (XPI) | `application/zip` | `archive` | `xpi` |  |  | ✓ | ✓ |  |
+| `xsd` | xsd | `application/octet-stream` | `unknown` | `xsd` |  |  | ✓ |  |  |
+| `xz` | XZ compressed data | `application/x-xz` | `archive` | `xz` |  |  | ✓ | ✓ |  |
 | `yaml` | YAML source | `application/x-yaml` | `code` | `yml`, `yaml` | ✓ |  |  | ✓ |  |
 | `yara` | YARA rule | `text/x-yara` | `code` | `yar`, `yara` | ✓ |  |  | ✓ |  |
+| `zbrush` | ZBrush project / tool | `application/octet-stream` | `image` | `zpr`, `ztl` |  |  | ✓ |  |  |
 | `zig` | Zig source | `text/zig` | `code` | `zig` | ✓ |  |  | ✓ |  |
-| `zip` | Zip archive data | `application/zip` | `archive` | `zip` |  |  |  | ✓ |  |
-| `zlibstream` | zlib compressed data | `application/zlib` | `application` | — |  |  |  | ✓ |  |
+| `zip` | Zip archive data | `application/zip` | `archive` | `zip` |  |  | ✓ | ✓ |  |
+| `zlibstream` | zlib compressed data | `application/zlib` | `application` | — |  |  | ✓ | ✓ |  |
 | `zst` | Zstandard | `application/zstd` | `archive` | `zst` |  |  | ✓ |  | ✓ |

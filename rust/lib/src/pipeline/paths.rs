@@ -784,7 +784,7 @@ mod tests {
         let png = Path::new("../../tests_data/basic/png/magika_test.png");
         let rust = Path::new("../../tests_data/basic/rust/code.rs");
         let results = identify(&pipeline, &[png, rust]);
-        assert_eq!(label(&results[0].1), "unknown");
+        assert_eq!(label(&results[0].1), "png");
         assert_eq!(label(&results[1].1), "txt");
     }
 }

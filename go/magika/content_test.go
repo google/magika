@@ -72,7 +72,7 @@ func TestReadContentTypesKB(t *testing.T) {
 		{label: "parquet", inHeuristics: false, inResolvers: true, inMLModel: true, vetoedByResolvers: true},
 		{label: "3dsm", inHeuristics: false, inResolvers: true, inMLModel: false, vetoedByResolvers: true},
 		{label: "python", inHeuristics: false, inResolvers: false, inMLModel: true, vetoedByResolvers: false},
-		{label: "3ds", inHeuristics: false, inResolvers: false, inMLModel: false, vetoedByResolvers: false},
+		{label: "abnf", inHeuristics: false, inResolvers: false, inMLModel: false, vetoedByResolvers: false},
 	} {
 		ct, ok := ckb[tc.label]
 		if !ok {

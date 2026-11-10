@@ -56,9 +56,11 @@ info "Test custom rules"
 ( cd ../../tests_data
   [ "$(magika --custom-rules-file=rules/custom.yar --custom-rules-check)" = \
     'Rules { content_types: [Png] }' ] || error "custom rules check"
-  [ "$(magika --no-model --format=%l basic/png/magika_test.png)" = unknown ] \
-    || error "resolvers identify PNG"
-  [ "$(magika --no-model --custom-rules-file=rules/custom.yar --format=%l \
+  [ "$(magika --no-model --format=%l basic/png/magika_test.png)" = png ] \
+    || error "resolvers do not identify PNG"
+  [ "$(magika --no-model --no-resolvers --format=%l basic/png/magika_test.png)" = unknown ] \
+    || error "identified PNG without model or resolvers"
+  [ "$(magika --no-model --no-resolvers --custom-rules-file=rules/custom.yar --format=%l \
     basic/png/magika_test.png)" = png ] || error "custom rules do not identify PNG"
   [ "$(magika --no-resolvers --custom-rules-file=rules/custom.yar --format=%l \
     basic/png/magika_test.png)" = png ] || error "custom rules do not apply without resolvers"

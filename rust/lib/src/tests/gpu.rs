@@ -127,10 +127,13 @@ fn reference_decisions_match_on_every_gpu_batch() {
                     "{context}: probabilities do not sum to one"
                 );
                 assert_eq!(actual.info().label, sample.cpu_output, "{context}");
-                let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
+                let RegularFileType { content_types, metadata, debug_info: Some(debug_info) } =
+                    actual
+                else {
                     panic!("expected regular file with debug info: {context}")
                 };
                 let [content_type] = content_types[..] else { unreachable!() };
+                assert!(metadata.is_empty(), "{context}");
                 let DebugInfo::Model(model) = &*debug_info else {
                     panic!("expected inference: {context}")
                 };

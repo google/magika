@@ -27,11 +27,11 @@ By default, Cargo builds into `rust/target/` inside each checkout ([`.cargo/conf
 
 ## Updating the content types knowledge base
 
-Magika maintains a content types knowledge base (KB) with metadata (`mime_type`, `group`, `description`, `extensions`, and `is_text`) for all known content types. The KB is a superset of the content types detected by any given model or ruleset: adding or editing an entry updates its metadata, whereas detecting a new content type requires detection rules and/or model training.
+Magika maintains a content types knowledge base (KB) with metadata (`mime_type`, `group`, `description`, `extensions`, and `is_text`) for all known content types. The KB is a superset of the content types detected by any given model or resolver set: adding or editing an entry updates its metadata, whereas detecting a new content type requires a format resolver and/or model training.
 
 ### 1. Edit the YAML source of truth
 
-[`assets/content_types.yaml`](https://github.com/google/magika/blob/main/assets/content_types.yaml) is the human-editable source of truth. **Do not** edit [`assets/content_types_kb.min.json`](https://github.com/google/magika/blob/main/assets/content_types_kb.min.json) or any language-specific content type definitions by hand, as they are generated.
+[`assets/content_types.yaml`](https://github.com/google/magika/blob/main/assets/content_types.yaml) is the human-editable source of truth. **Do not** hand-edit [`assets/content_types_kb.min.json`](https://github.com/google/magika/blob/main/assets/content_types_kb.min.json), [`assets/exposed_content_types.txt`](https://github.com/google/magika/blob/main/assets/exposed_content_types.txt), generated language-binding content type tables, model documentation (`assets/models/<active_model>/README.md` and `website-ng/src/content/docs/models/<active_model>.md`), or [`website-ng/src/content/docs/content-types/main.md`](https://github.com/google/magika/blob/main/website-ng/src/content/docs/content-types/main.md).
 
 Each entry looks like:
 
@@ -50,31 +50,35 @@ Follow these formatting rules (enforced by [`scripts/sync_kb.py`](https://github
 - **Keep entries sorted**: content types must be sorted alphabetically by name, and names must match `^[a-z0-9_]+$`.
 - **Keep fields in order**: every entry lists `mime_type`, `group`, `description`, `extensions`, and `is_text` in that exact order. Use `null` when `mime_type`, `group`, or `description` is unknown, and `[]` when there are no known extensions.
 - **Format extensions without a leading dot**: extensions are case-sensitive and must not start with `.` (e.g., `"tsv"`, `"R"`).
-- **Do not add derived fields**: `rule_coverage` and `in_ml_model` in the JSON KB are computed automatically from the rulesets and the model configuration.
+- **Do not add derived fields**: `in_heuristics`, `in_resolvers`, `in_ml_model`, and `vetoed_by_resolvers` in the JSON KB are computed automatically from the built-in heuristics, Rust format resolvers, and active model configuration.
 
 ### 2. Regenerate derived files
 
-After editing the YAML, run `just sync-kb` (defined in the root [`justfile`](https://github.com/google/magika/blob/main/justfile)) from the repository root and commit all resulting changes in your pull request:
+After editing the YAML, Rust format resolvers, or the active model, run `just sync-kb` (defined in the root [`justfile`](https://github.com/google/magika/blob/main/justfile)) from the repository root and commit all resulting changes in your pull request:
 
 ```bash
 just sync-kb
 ```
 
-If you do not have [`just`](https://github.com/casey/just) installed, run the underlying commands directly:
+Without [`just`](https://github.com/casey/just), run `uv run scripts/sync_kb.py` directly.
 
-```bash
-uv run scripts/sync_kb.py
-uv run python/scripts/sync.py python
-uv run python/scripts/sync.py js
-(cd rust && ./sync.sh)
-```
+What `just sync-kb` does (verified in CI via `uv run scripts/sync_kb.py --check`):
 
-What each command does:
+1. Validates `assets/content_types.yaml`, derives the four stage-coverage booleans (`in_heuristics`, `in_resolvers`, `in_ml_model`, `vetoed_by_resolvers`), updates the monotonic [`assets/exposed_content_types.txt`](https://github.com/google/magika/blob/main/assets/exposed_content_types.txt) allowlist, and writes [`assets/content_types_kb.min.json`](https://github.com/google/magika/blob/main/assets/content_types_kb.min.json).
+2. Regenerates the Rust, C FFI, Python, and TypeScript content type definitions ([`rust/lib/src/content.rs`](https://github.com/google/magika/blob/main/rust/lib/src/content.rs), [`rust/lib/src/model.rs`](https://github.com/google/magika/blob/main/rust/lib/src/model.rs), [`rust/ffi/src/content.rs`](https://github.com/google/magika/blob/main/rust/ffi/src/content.rs), [`python/src/magika/types/content_type_label.py`](https://github.com/google/magika/blob/main/python/src/magika/types/content_type_label.py), [`js/src/content-type-label.ts`](https://github.com/google/magika/blob/main/js/src/content-type-label.ts), and [`js/src/content-types-infos.ts`](https://github.com/google/magika/blob/main/js/src/content-types-infos.ts)).
+3. Regenerates the decoupled `main` supported-content-types reference ([`website-ng/src/content/docs/content-types/main.md`](https://github.com/google/magika/blob/main/website-ng/src/content/docs/content-types/main.md)), the per-version index (`content-types/index.md`), and the model-only documentation for the active ML model (`assets/models/<active_model>/README.md` and `website-ng/src/content/docs/models/<active_model>.md`). Note that resolver-only changes update `content-types/main.md` without touching the active model's README.
 
-1. `uv run scripts/sync_kb.py` validates the YAML, derives `rule_coverage` and `in_ml_model`, and regenerates `assets/content_types_kb.min.json`. CI verifies this with `uv run scripts/sync_kb.py --check`.
-2. `uv run python/scripts/sync.py python` regenerates the Python `ContentTypeLabel` enum in [`python/src/magika/types/content_type_label.py`](https://github.com/google/magika/blob/main/python/src/magika/types/content_type_label.py) (only changes when labels are added, removed, or renamed).
-3. `uv run python/scripts/sync.py js` regenerates the TypeScript definitions in [`js/src/content-type-label.ts`](https://github.com/google/magika/blob/main/js/src/content-type-label.ts) and [`js/src/content-types-infos.ts`](https://github.com/google/magika/blob/main/js/src/content-types-infos.ts) (only changes when labels or `is_text` values change).
-4. `(cd rust && ./sync.sh)` regenerates the Rust and C content type tables ([`rust/lib/src/content.rs`](https://github.com/google/magika/blob/main/rust/lib/src/content.rs), [`rust/ffi/src/content.rs`](https://github.com/google/magika/blob/main/rust/ffi/src/content.rs), [`rust/ffi/include/magika.h`](https://github.com/google/magika/blob/main/rust/ffi/include/magika.h)), and the CLI snapshot outputs. CI verifies this with `(cd rust && ./sync.sh --check)`. To regenerate only the Rust content type tables, run `(cd rust/gen && cargo run)`.
+If a change also modifies C FFI signatures, the active ONNX model weights, or CLI output snapshots, run `just rust sync` (or `(cd rust && ./sync.sh)`), which CI verifies via `(cd rust && ./sync.sh --check)`.
+
+### 3. Releases: supported-content-types snapshots
+
+Each released version of the CLI, Rust library, Python module, and JavaScript package gets a frozen snapshot of its supported content types in `website-ng/src/content/docs/content-types/<artifact>-v<version>.md`, listed in the generated [per-version index](/magika/content-types). Snapshots follow the version each artifact declares in its own manifest ([`rust/cli/Cargo.toml`](https://github.com/google/magika/blob/main/rust/cli/Cargo.toml), [`rust/lib/Cargo.toml`](https://github.com/google/magika/blob/main/rust/lib/Cargo.toml), [`python/pyproject.toml`](https://github.com/google/magika/blob/main/python/pyproject.toml), [`js/package.json`](https://github.com/google/magika/blob/main/js/package.json)), so there is nothing to remember:
+
+- **Between releases**, `main` declares pre-release versions (e.g. `2.0.0-dev`, `2.0.0.dev0`, `1.1.0-dev`), which never get snapshots. Just run `just sync-kb` as usual.
+- **In the release PR**, drop the pre-release suffix and run `just sync-kb` (for Rust, `rust/publish.sh` does both): it freezes the snapshot of the new stable version and pins its sha256 in [`assets/content_types_snapshots.sha256`](https://github.com/google/magika/blob/main/assets/content_types_snapshots.sha256). CI (`just sync-kb --check`) fails the release PR until it does.
+- **When publishing** (the `python-v*` tag workflow, `rust/publish.sh`, and the JS publish workflow), `sync_kb.py --verify-release <artifact>` checks that the released tree reproduces its snapshot byte for byte, and aborts the release otherwise.
+
+Snapshots are immutable once pinned: `just sync-kb --check` fails if one is modified or deleted, or if an unpinned one is added. After publishing, `just check-docs` requires the "Latest version" row in [`cli-and-bindings/overview.md`](https://github.com/google/magika/blob/main/website-ng/src/content/docs/cli-and-bindings/overview.md) to point to the new version and its snapshot.
 
 ## Improving detection with resolvers
 

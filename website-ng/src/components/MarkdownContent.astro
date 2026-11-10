@@ -1,0 +1,23 @@
+---
+// Wraps Starlight's MarkdownContent so that wide reference table pages get a
+// `wide-tables` hook for the compact table styles in global.css, without
+// touching the generated (and partly frozen) Markdown files themselves.
+import Default from "@astrojs/starlight/components/MarkdownContent.astro";
+import { isWideTablePage } from "../lib/wide-table-pages";
+
+const wide = isWideTablePage(Astro.locals.starlightRoute.id);
+---
+
+{
+  wide ? (
+    <div class="wide-tables">
+      <Default {...Astro.props}>
+        <slot />
+      </Default>
+    </div>
+  ) : (
+    <Default {...Astro.props}>
+      <slot />
+    </Default>
+  )
+}

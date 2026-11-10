@@ -30,8 +30,15 @@ and a website (`website-ng/`).
   (`assets/active_model.txt`), run `just sync-kb` (or `uv run scripts/sync_kb.py`)
   from the repository root and commit all generated files (`just sync-kb --check`
   verifies them in `<0.2s`). Never hand-edit `assets/content_types_kb.min.json`,
-  generated Rust/C/Python/JavaScript content type tables, or
-  `assets/models/<active_model>/README.md`.
+  generated Rust/C/Python/JavaScript content type tables,
+  `assets/models/<active_model>/README.md`,
+  `website-ng/src/content/docs/models/<active_model>.md`, or
+  `website-ng/src/content/docs/content-types/{main,index}.md`. Release snapshots
+  (`website-ng/src/content/docs/content-types/<artifact>-v*.md`) are frozen and
+  sha256-pinned in `assets/content_types_snapshots.sha256`: never edit them.
+  `just sync-kb` creates one automatically when an artifact's manifest
+  (`rust/{lib,cli}/Cargo.toml`, `python/pyproject.toml`, `js/package.json`)
+  declares a new stable (non-pre-release) version, i.e. in release PRs.
 - Rust tasks (`rust/justfile`, runnable via `just rust <recipe>` from the root
   or `cd rust && just <recipe>`): `test` (`./test.sh`), `sync` (`./sync.sh`,
   regenerating C FFI `rust/ffi/include/magika.h`, the embedded `tract` NNEF

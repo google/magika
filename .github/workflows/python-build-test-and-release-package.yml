@@ -117,10 +117,10 @@ jobs:
             target: aarch64-unknown-linux-musl
             manylinux: "musllinux_1_2"
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: aarch64-apple-darwin
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: x86_64-apple-darwin
           - os: Windows
             runner: windows-2025
@@ -204,15 +204,15 @@ jobs:
   #
   # Tested Platforms:
   # - Linux x86_64 glibc (x86_64-unknown-linux-gnu) on ubuntu-26.04
-  # - macOS Apple Silicon (aarch64-apple-darwin) on macos-14
+  # - macOS Apple Silicon (aarch64-apple-darwin) on macos-26
   # - Windows x64 (x86_64-pc-windows-msvc) on windows-2025
   # - Windows ARM64 (aarch64-pc-windows-msvc) on windows-11-arm, Python 3.11+ only (python.org
   #   has no Windows ARM64 builds of earlier versions)
   #
   # Uncovered Build Targets (not tested in this matrix):
-  # - x86_64-apple-darwin: Cross-compiled on macos-14 (Apple Silicon). The runner host
-  #   interpreter is ARM64 (pip rejects x86_64 wheels). Running x64 Python via Rosetta
-  #   is blocked for Python 3.8/3.9 due to lack of setup-python x64 binaries on macOS 14.
+  # - x86_64-apple-darwin: Cross-compiled on macos-26 (Apple Silicon). The runner host
+  #   interpreter is ARM64 (pip rejects x86_64 wheels). Testing it would require an
+  #   x64 Python running under Rosetta, which this matrix does not set up.
   # - aarch64-unknown-linux-gnu: Built via QEMU on x86_64 runner. Cannot execute natively
   #   on host; native ubuntu-24.04-arm runners lack setup-python binaries for Python 3.8/3.9.
   # - x86_64-unknown-linux-musl, aarch64-unknown-linux-musl, armv7-unknown-linux-musleabihf:
@@ -235,7 +235,7 @@ jobs:
             runner: ubuntu-26.04
             target: x86_64-unknown-linux-gnu
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: aarch64-apple-darwin
           - os: Windows
             runner: windows-2025
@@ -417,7 +417,7 @@ jobs:
             runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
           - os: macOS
-            runner: macos-14
+            runner: macos-26
             target: aarch64-apple-darwin
           - os: Windows
             runner: windows-2025
@@ -467,12 +467,34 @@ jobs:
           rm -rf test-uv-venv
 
 
+  # Release gate: the tagged tree must declare the tag's version and reproduce
+  # its frozen supported-content-types snapshot (created by `just sync-kb` in
+  # the release PR). Runs under the same condition as publish-to-pypi so that
+  # it is never skipped when that job runs.
+  verify-release-snapshot:
+    name: Verify release snapshot of supported content types
+    if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
+
+      - name: Verify release snapshot
+        if: startsWith(github.ref_name, env.RELEASE_TAG_PREFIX)
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: uv run scripts/sync_kb.py --verify-release python --expected-version "${TAG_NAME#"${RELEASE_TAG_PREFIX}"}"
+
   # Adapted from https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
   # Note: The publishing is only done with pushes of release tags.
   publish-to-pypi:
     name: Publish to PyPI
     if: github.event_name == 'push' && github.ref_type == 'tag' && contains(github.ref_name, 'python')
-    needs: [test-wheels, test-wheels-legacy-python]
+    needs: [test-wheels, test-wheels-legacy-python, verify-release-snapshot]
     runs-on: ubuntu-26.04
 
     environment:

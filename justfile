@@ -10,7 +10,7 @@ mod rust
 default:
     @just --justfile "{{source_file()}}" --list --list-submodules
 
-# Sync the content types knowledge base, derived language bindings, and active model README.
+# Sync the content types knowledge base, derived language bindings, and generated docs.
 sync-kb *args:
     uv run scripts/sync_kb.py "$@"
 

@@ -141,8 +141,10 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Hve,
     ContentType::Icc,
     ContentType::Icns,
+    ContentType::Javabytecode,
     ContentType::Jng,
     ContentType::Kml,
+    ContentType::Lha,
     ContentType::LlvmBitcode,
     ContentType::Lnk,
     ContentType::Lrz,
@@ -152,15 +154,18 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Mat,
     ContentType::Midi,
     ContentType::Minidump,
+    ContentType::Mkv,
     ContentType::Mpegts,
     ContentType::Npy,
     ContentType::Nrrd,
     ContentType::One,
+    ContentType::Osm,
     ContentType::Palmos,
     ContentType::Parquet,
     ContentType::Pbm,
     ContentType::Pgp,
     ContentType::Ply,
+    ContentType::Png,
     ContentType::PostgresDump,
     ContentType::Psd,
     ContentType::Qoi,
@@ -174,6 +179,7 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Sketchup,
     ContentType::Spirv,
     ContentType::Spss,
+    ContentType::Squashfs,
     ContentType::Step,
     ContentType::Swf,
     ContentType::Uf2,
@@ -182,6 +188,7 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Wad,
     ContentType::Wasm,
     ContentType::Wav,
+    ContentType::Webm,
     ContentType::Woff,
     ContentType::Woff2,
     ContentType::Xar,
@@ -211,7 +218,7 @@ mod tests {
     #[test]
     fn vetos_are_distinct_and_complete() {
         let resolvers_vetos: HashSet<ContentType> = VETOS.iter().copied().collect();
-        assert_eq!(VETOS.len(), 93);
+        assert_eq!(VETOS.len(), 100);
         assert_eq!(resolvers_vetos.len(), VETOS.len());
     }
 

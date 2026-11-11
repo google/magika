@@ -5129,7 +5129,7 @@ pub(crate) static XLSX: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static XML: TypeInfo = TypeInfo {

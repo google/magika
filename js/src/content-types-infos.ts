@@ -426,7 +426,7 @@ const COMPACT_CONTENT_TYPES_INFOS: readonly CompactContentTypeInfo[] = [
   ["xcoff", "", "executable", "XCOFF", ["o"], 20],
   ["xls", "application/vnd.ms-excel", "document", "Microsoft Excel CDF document", ["xls"], 12],
   ["xlsb", "application/vnd.ms-excel.sheet.binary.macroEnabled.12", "document", "Microsoft Excel 2007+ document (binary format)", ["xlsb"], 12],
-  ["xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "document", "Microsoft Excel 2007+ document", ["xlsx", "xlsm"], 28],
+  ["xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "document", "Microsoft Excel 2007+ document", ["xlsx", "xlsm"], 12],
   ["xml", "text/xml", "code", "XML document", ["xml"], 13],
   ["xpi", "application/zip", "archive", "Compressed installation archive (XPI)", ["xpi"], 12],
   ["xsd", "", "", "", ["xsd"], 4],

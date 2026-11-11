@@ -98,17 +98,15 @@ pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
 /// on "is_text" from the content type that was vetoed).
 #[cfg_attr(not(test), allow(dead_code))] // cannot use cfg(test) because of sync_kb.py
 pub(crate) const VETOS: &[ContentType] = &[
-    ContentType::Keras,
-    ContentType::Qgis,
-    ContentType::Visio,
-    ContentType::Xlsx,
     ContentType::_3dsm,
     ContentType::_3dsx,
     ContentType::_3gp,
     ContentType::Ace,
+    ContentType::Ani,
     ContentType::Applebplist,
     ContentType::Appledouble,
     ContentType::Applesingle,
+    ContentType::Arrow,
     ContentType::Au,
     ContentType::Avi,
     ContentType::Avif,
@@ -143,6 +141,7 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Icns,
     ContentType::Javabytecode,
     ContentType::Jng,
+    ContentType::Keras,
     ContentType::Kml,
     ContentType::Lha,
     ContentType::LlvmBitcode,
@@ -163,11 +162,13 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Palmos,
     ContentType::Parquet,
     ContentType::Pbm,
+    ContentType::Pcapng,
     ContentType::Pgp,
     ContentType::Ply,
     ContentType::Png,
     ContentType::PostgresDump,
     ContentType::Psd,
+    ContentType::Qgis,
     ContentType::Qoi,
     ContentType::Rar,
     ContentType::RedisRdb,
@@ -185,6 +186,7 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Uf2,
     ContentType::Vhd,
     ContentType::Vib,
+    ContentType::Visio,
     ContentType::Wad,
     ContentType::Wasm,
     ContentType::Wav,
@@ -193,11 +195,8 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Woff2,
     ContentType::Xar,
     ContentType::Xcf,
-    ContentType::Zst,
-    ContentType::Ani,
-    ContentType::Arrow,
-    ContentType::Pcapng,
     ContentType::Xcoff,
+    ContentType::Zst,
 ];
 
 #[cfg(test)]
@@ -218,8 +217,9 @@ mod tests {
     #[test]
     fn vetos_are_distinct_and_complete() {
         let resolvers_vetos: HashSet<ContentType> = VETOS.iter().copied().collect();
-        assert_eq!(VETOS.len(), 100);
+        assert_eq!(VETOS.len(), 99);
         assert_eq!(resolvers_vetos.len(), VETOS.len());
+        assert!(VETOS.is_sorted_by_key(|ct| ct.info().label), "VETOS must be sorted by label");
     }
 
     #[test]

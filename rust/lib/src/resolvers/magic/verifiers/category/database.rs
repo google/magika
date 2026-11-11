@@ -374,9 +374,9 @@ pub(crate) fn filemaker(prefix: &[u8], size: u64) -> Option<Label> {
 
 /// Google LevelDB SSTable (`.ldb` / `.sst`, `leveldb`, 2011): 48-byte table footer ending with
 /// 64-bit magic `0xDB4775248B80FB57` LE at `size - 8`.
-pub(crate) fn leveldb(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label> {
+pub(crate) fn leveldb(_prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label> {
     const LEVELDB_FOOTER_MAGIC: &[u8] = &[0x57, 0xFB, 0x80, 0x8B, 0x24, 0x75, 0x47, 0xDB];
-    let t = tail.unwrap_or(prefix);
+    let t = tail?;
     require!(size >= 48, t.len() >= 48, eq_at(t, t.len() - 8, LEVELDB_FOOTER_MAGIC),);
     Some(Label::Leveldb)
 }
@@ -450,13 +450,13 @@ pub(crate) fn paradox(prefix: &[u8], size: u64) -> Option<Label> {
 
 /// Meta RocksDB SSTable (`.sst`, `rocksdb`, 2012): 53-byte table footer ending with 64-bit
 /// BlockBased, PlainTable, or CuckooTable magic at `size - 8`.
-pub(crate) fn rocksdb(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label> {
+pub(crate) fn rocksdb(_prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label> {
     const ROCKSDB_BLOCK_MAGIC_LE: &[u8] = &[0x75, 0x3F, 0x6B, 0x98, 0xF7, 0x85, 0xB2, 0x88];
     const ROCKSDB_BLOCK_MAGIC_BE: &[u8] = &[0x88, 0xB2, 0x85, 0xF7, 0x98, 0x6B, 0x3F, 0x75];
     const ROCKSDB_PLAIN_MAGIC_LE: &[u8] = &[0xF7, 0xCF, 0xF4, 0x85, 0xB7, 0x41, 0xE2, 0x88];
     const ROCKSDB_CUCKOO_MAGIC_LE: &[u8] = &[0x64, 0x95, 0xBF, 0x63, 0x96, 0x22, 0x42, 0x82];
 
-    let t = tail.unwrap_or(prefix);
+    let t = tail?;
     require!(
         size >= 53,
         t.len() >= 48,
@@ -714,7 +714,7 @@ pub(crate) fn orc(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label
         starts(prefix, ORC_MAGIC),
         has_non_ascii_text_byte(&prefix[3..4]),
     );
-    let t = tail.unwrap_or(prefix);
+    let t = tail?;
     require!(!t.is_empty());
     let ps_len = u8_at(t, t.len() - 1)? as usize;
     require!(ps_len >= 1 && ps_len + 4 <= t.len());

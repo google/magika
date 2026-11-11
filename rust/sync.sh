@@ -16,23 +16,21 @@
 set -e
 . ./color.sh
 
-info "Sync bundled rules"
-( cd rules
-  cargo run --bin=gen --no-default-features --features=_gen
+info "Sync C FFI header"
+( cd ffi
+  cargo run --bin=gen --features=_gen
 )
 
-info "Sync generated files"
-( cd gen; cargo run; )
-
 info "Sync embedded model"
+MODEL_NAME=$(tr -d '[:space:]' < ../assets/active_model.txt)
 ( cd tract-bench
   cargo run --bin=convert-model --no-default-features --features=convert -- \
-    ../gen/model/model.onnx ../tract-runtime/models/model.{nnef.tgz,probe.f32le,graph.json,weights}
+    "../../assets/models/$MODEL_NAME/model.onnx" ../tract-runtime/models/model.{nnef.tgz,probe.f32le,graph.json,weights}
 )
 
 info "Sync CLI output"
 ( cd cli; cargo build --profile=release-fast; )
-PATH=$PWD/target/release-fast:$PATH
+PATH=${CARGO_TARGET_DIR:-$PWD/target}/release-fast:$PATH
 ( cd ../tests_data/basic
   set -x
   magika rust/code.rs
@@ -61,7 +59,7 @@ info "Updating CLI output in README.md"
 
 if [ "$1" = --check ]; then
   if ! git diff --exit-code; then
-    [ -n "$CI" ] && todo 'Execute ./sync.sh from the rust directory'
+    [ -n "$CI" ] && todo 'Execute just rust sync from the repository root'
     error 'Generated files are not in sync'
   fi
 fi

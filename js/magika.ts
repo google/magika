@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ContentTypeInfo } from "./src/content-type-info.js";
+import type { ContentTypeInfo } from "./src/content-type-info.js";
 import { ContentTypeLabel } from "./src/content-type-label.js";
 import { ContentTypesInfos } from "./src/content-types-infos.js";
 import { MagikaOptions } from "./src/magika-options.js";
@@ -23,6 +23,9 @@ import { ModelPrediction } from "./src/model-prediction.js";
 import { Model } from "./src/model.js";
 import { OverwriteReason } from "./src/overwrite-reason.js";
 import { Status } from "./src/status.js";
+
+export type { ContentTypeInfo };
+export { ContentTypeLabel };
 
 /**
  * The main Magika object for client-side use.
@@ -39,7 +42,7 @@ import { Status } from "./src/status.js";
  *
  * Demos:
  * - Node: `<MAGIKA_REPO>/js/magika-cli.js`, which you can run with `yarn run bin -h`.
- * - Client-side: see `<MAGIKA_REPO>/website/src/components/FileClassifierDemo.vue`
+ * - Client-side: see `<MAGIKA_REPO>/website-ng/src/components/MagikaDemo.svelte`
  */
 export class Magika {
   model_config: ModelConfig;
@@ -73,6 +76,37 @@ export class Magika {
     return magika;
   }
 
+  /**
+   * Returns knowledge-base metadata and detection-stage coverage for an
+   * exposed Magika content type label.
+   *
+   * Note: `ContentTypeLabel` covers all exposed content types across Magika's
+   * heuristics, native Rust format resolvers, and ML model. Because the
+   * JavaScript binding runs byte/stream heuristics and the TensorFlow.js ML
+   * model without the native Rust format resolvers, labels covered only by
+   * resolvers (`in_resolvers && !in_ml_model`) are not emitted by
+   * `identifyBytes` / `identifyStream`; call `magika.getOutputContentTypes()`
+   * on a loaded instance to list the labels this runtime can emit.
+   *
+   * @param {ContentTypeLabel | string} label An exposed `ContentTypeLabel` or
+   * string label (e.g., `"python"`).
+   * @returns {ContentTypeInfo} Metadata and stage coverage for `label`.
+   */
+  public static getContentTypeInfo(
+    label: ContentTypeLabel | string,
+  ): ContentTypeInfo {
+    if (typeof label !== "string") {
+      throw new TypeError(
+        `Expected ContentTypeLabel or string, got ${typeof label}.`,
+      );
+    }
+    const info = ContentTypesInfos.getInfo(label);
+    if (info === undefined) {
+      throw new Error(`Unknown content type label: ${JSON.stringify(label)}`);
+    }
+    return info;
+  }
+
   protected async load(options?: MagikaOptions): Promise<void> {
     const modelURL = options?.modelURL || Magika.MODEL_URL;
     const modelConfigURL = options?.modelConfigURL || Magika.MODEL_CONFIG_URL;
@@ -97,6 +131,63 @@ export class Magika {
 
   public getModelName(): string {
     return this.model_name;
+  }
+
+  /**
+   * Returns the sorted list of all possible content type labels that this
+   * JavaScript `Magika` instance can return in
+   * `MagikaResult.prediction.output.label`.
+   *
+   * This includes the byte/stream heuristic labels (`empty`, `txt`, `unknown`)
+   * and the loaded ML model's output labels after applying `overwrite_map`.
+   * Unlike the native Rust/Python pipeline, this excludes filesystem-only
+   * labels (`directory`, `symlink`, `unsupported`) and labels detected
+   * exclusively by the native Rust format resolvers (`in_resolvers &&
+   * !in_ml_model`). To inspect all exposed KB labels or filter by Rust
+   * pipeline stage coverage, iterate `Object.values(ContentTypeLabel)` with
+   * `Magika.getContentTypeInfo(label)`.
+   *
+   * @returns {ContentTypeLabel[]} Sorted list of possible output labels.
+   */
+  public getOutputContentTypes(): ContentTypeLabel[] {
+    if (!this.model_config.loaded) {
+      throw new Error("model config has not been loaded");
+    }
+    const outputContentTypes = new Set<ContentTypeLabel>([
+      ContentTypeLabel.EMPTY,
+      ContentTypeLabel.TXT,
+      ContentTypeLabel.UNKNOWN,
+    ]);
+    for (const label of this.model_config.target_labels_space) {
+      outputContentTypes.add(this.model_config.overwrite_map[label] ?? label);
+    }
+    return Array.from(outputContentTypes).sort();
+  }
+
+  /**
+   * Returns the sorted list of content type labels supported by the loaded ML
+   * model (excluding labels remapped by `overwrite_map`).
+   *
+   * Most callers should use `getOutputContentTypes()` instead.
+   *
+   * @returns {ContentTypeLabel[]} Sorted list of ML model content type labels.
+   */
+  public getModelContentTypes(): ContentTypeLabel[] {
+    if (!this.model_config.loaded) {
+      throw new Error("model config has not been loaded");
+    }
+    const modelContentTypes = new Set<ContentTypeLabel>();
+    for (const label of this.model_config.target_labels_space) {
+      if (
+        !Object.prototype.hasOwnProperty.call(
+          this.model_config.overwrite_map,
+          label,
+        )
+      ) {
+        modelContentTypes.add(label);
+      }
+    }
+    return Array.from(modelContentTypes).sort();
   }
 
   private _getResultFromFewBytes(
@@ -251,7 +342,8 @@ export class Magika {
   }
 
   private _getContentTypeInfo(label: ContentTypeLabel): ContentTypeInfo {
-    return this.cts_infos[label];
+    const info = this.cts_infos[label];
+    return { ...info, extensions: [...info.extensions] };
   }
 
   private _getResultFromLabelsAndScore(

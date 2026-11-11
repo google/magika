@@ -8,6 +8,15 @@ publish = false
 name = "magika"
 crate-type = ["staticlib", "cdylib"]
 
+[[bin]]
+name = "gen"
+path = "src/bin/gen.rs"
+required-features = ["_gen"]
+
+[features]
+_gen = ["dep:cbindgen"]
+
 [dependencies]
 anyhow = "1.0.104"
+cbindgen = { version = "0.29.4", optional = true }
 magika = { version = "2.0.0-dev", path = "../lib", features = ["pipeline"] }

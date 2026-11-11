@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
@@ -61,6 +61,26 @@ impl PyContentTypeInfo {
     fn is_text(&self) -> bool {
         self.info.is_text
     }
+
+    #[getter]
+    fn in_heuristics(&self) -> bool {
+        self.info.in_heuristics
+    }
+
+    #[getter]
+    fn in_resolvers(&self) -> bool {
+        self.info.in_resolvers
+    }
+
+    #[getter]
+    fn in_ml_model(&self) -> bool {
+        self.info.in_ml_model
+    }
+
+    #[getter]
+    fn vetoed_by_resolvers(&self) -> bool {
+        self.info.vetoed_by_resolvers
+    }
 }
 
 #[pyclass(name = "MagikaResult")]
@@ -83,6 +103,14 @@ pub struct PyMagikaResult {
     pub extensions: Vec<String>,
     #[pyo3(get)]
     pub is_text: bool,
+    #[pyo3(get)]
+    pub in_heuristics: bool,
+    #[pyo3(get)]
+    pub in_resolvers: bool,
+    #[pyo3(get)]
+    pub in_ml_model: bool,
+    #[pyo3(get)]
+    pub vetoed_by_resolvers: bool,
     #[pyo3(get)]
     pub score: f32,
     #[pyo3(get)]
@@ -134,6 +162,10 @@ fn from_file_type(file_type: &FileType, path: Option<String>) -> PyMagikaResult 
         description: info.description.to_string(),
         extensions: info.extensions.iter().map(|s| s.to_string()).collect(),
         is_text: info.is_text,
+        in_heuristics: info.in_heuristics,
+        in_resolvers: info.in_resolvers,
+        in_ml_model: info.in_ml_model,
+        vetoed_by_resolvers: info.vetoed_by_resolvers,
         score,
         dl_label,
         overwrite_reason,
@@ -156,6 +188,10 @@ fn from_io_error(e: &std::io::Error, path: Option<String>) -> PyMagikaResult {
         description: String::new(),
         extensions: Vec::new(),
         is_text: false,
+        in_heuristics: false,
+        in_resolvers: false,
+        in_ml_model: false,
+        vetoed_by_resolvers: false,
         score: 0.0,
         dl_label: String::new(),
         overwrite_reason: "none".to_string(),
@@ -178,6 +214,8 @@ fn get_shared_engine() -> anyhow::Result<&'static Arc<Engine>> {
 
 thread_local! {
     static SESSION: RefCell<Option<(usize, EngineSession<'static>)>> = const { RefCell::new(None) };
+    /// Whether this thread ran the model before first using `SESSION`, see `with_session`.
+    static WARMED_UP: Cell<bool> = const { Cell::new(false) };
 }
 
 /// The result of an error identifying a path, as a result rather than an exception for I/O.
@@ -194,6 +232,10 @@ fn from_error(error: anyhow::Error, path: &str) -> PyMagikaResult {
             description: error.to_string(),
             extensions: Vec::new(),
             is_text: false,
+            in_heuristics: false,
+            in_resolvers: false,
+            in_ml_model: false,
+            vetoed_by_resolvers: false,
             score: 0.0,
             dl_label: String::new(),
             overwrite_reason: "none".to_string(),
@@ -212,6 +254,15 @@ impl PyMagika {
         &self, f: impl FnOnce(&mut EngineSession<'static>) -> anyhow::Result<R>,
     ) -> anyhow::Result<R> {
         let engine: &'static Engine = get_shared_engine()?;
+        // Dropping a session touches tract's own thread-locals, which tract creates when it first
+        // runs the model. Thread-locals are destroyed in reverse order of creation, so running the
+        // model before `SESSION` is created keeps them alive while `SESSION` is destroyed.
+        if !WARMED_UP.get() {
+            let mut options = Options::default();
+            options.use_resolvers = false;
+            engine.session(Some(options)).identify_content(&[b'a'; 64][..])?;
+            WARMED_UP.set(true);
+        }
         SESSION.with(|cell| {
             let mut slot = cell.borrow_mut();
             let session = match &mut *slot {
@@ -334,7 +385,10 @@ fn get_default_model_name() -> &'static str {
 
 #[pyfunction]
 fn content_type_from_label(label: &str) -> Option<PyContentTypeInfo> {
-    ContentType::from_label(label).map(|x| PyContentTypeInfo { info: x.info() })
+    TypeInfo::ALL
+        .binary_search_by_key(&label, |x| x.label)
+        .ok()
+        .map(|i| PyContentTypeInfo { info: TypeInfo::ALL[i] })
 }
 
 #[pyfunction]

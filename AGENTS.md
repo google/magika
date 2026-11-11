@@ -20,22 +20,44 @@ and a website (`website-ng/`).
 
 ## Working in the repository
 
-- Developer guide (tests, knowledge base, detection rules, bindings):
+- Developer guide (tests, knowledge base, resolvers, detection rules, bindings):
   `website-ng/src/content/docs/contributing/developer-guide.md`.
-- `assets/content_types.yaml` is the knowledge base source of truth. After
-  editing it, run `just sync-kb` from the repository root and commit the
-  generated files. Never hand-edit `assets/content_types_kb.min.json` or the
-  generated Python, JavaScript, Rust, and C content type tables.
-- Detection rules live in `rust/rules/rulesets/`; run `cd rust/rules && ./test.sh`,
-  then `cd rust && ./sync.sh` and `just sync-kb`, and commit the generated files.
+- `assets/content_types.yaml` is the knowledge base source of truth, and
+  `assets/exposed_content_types.txt` tracks the append-only monotonic list of
+  exposed content types across Rust, C, Python, and JavaScript. After editing
+  `assets/content_types.yaml`, Rust format resolvers (`rust/lib/src/resolvers/`
+  and `rust/lib/src/resolvers.rs`), or the active model
+  (`assets/active_model.txt`), run `just sync-kb` (or `uv run scripts/sync_kb.py`)
+  from the repository root and commit all generated files (`just sync-kb --check`
+  verifies them in `<0.2s`). Never hand-edit `assets/content_types_kb.min.json`,
+  generated Rust/C/Python/JavaScript content type tables,
+  `assets/models/<active_model>/README.md`,
+  `website-ng/src/content/docs/models/<active_model>.md`, or
+  `website-ng/src/content/docs/content-types/{main,index}.md`. Release snapshots
+  (`website-ng/src/content/docs/content-types/<artifact>-v*.md`) are frozen and
+  sha256-pinned in `assets/content_types_snapshots.sha256`: never edit them.
+  `just sync-kb` creates one automatically when an artifact's manifest
+  (`rust/{lib,cli}/Cargo.toml`, `python/pyproject.toml`, `js/package.json`)
+  declares a new stable (non-pre-release) version, i.e. in release PRs.
+- Rust tasks (`rust/justfile`, runnable via `just rust <recipe>` from the root
+  or `cd rust && just <recipe>`): `test` (`./test.sh`), `sync` (`./sync.sh`,
+  regenerating C FFI `rust/ffi/include/magika.h`, the embedded `tract` NNEF
+  model, and CLI snapshot output), and `changelog` (`./changelog.sh`). Format
+  resolvers live in `rust/lib/src/resolvers/` (`cd rust/lib && ./test.sh`), while
+  custom YARA rules support (`--custom-rules-file` / `use_custom_rules`) lives in
+  `rust/rules/` (`cd rust/rules && ./test.sh`).
 - Python tasks (`python/justfile`, runnable via `just python <recipe>` from the
   root or `cd python && just <recipe>`): `sync-dev`, `check-source`,
-  `fix-source`, `test`, `quick-tests`, `coverage`, `check-docs`, and
-  `build-wheel`.
-- Tests: `cd rust && ./test.sh`; `just python test` (or
+  `fix-source`, `test`, `quick-tests`, `coverage`, and `build-wheel` (across
+  `git worktree`s, set `CARGO_TARGET_DIR` to a shared absolute path such as
+  `$HOME/.cache/cargo-target/magika` to reuse compiled Rust dependencies during
+  `uv sync` / `sync-dev`).
+- Tests: `just rust test` (or `cd rust && ./test.sh`); `just python test` (or
   `cd python && uv run pytest tests -m "not slow"`);
-  `cd js && yarn install && yarn test`.
-- Documentation links are checked by `just python check-docs` (or
-  `cd python && uv run ./scripts/check_documentation.py`).
+  `cd js && yarn install && yarn test`; `cd go && go test ./...`.
+- Repo-wide checks: `just sync-kb --check` for KB and binding synchronization,
+  `just check-docs` (or `uv run scripts/check_documentation.py`) for
+  documentation links and versions, and `just check-copyright` (or
+  `uv run scripts/check_copyright.py`) for copyright headers.
 - Do not bump versions, edit CHANGELOGs, update models, or add sample files to
   `tests_data/` unless explicitly asked.

@@ -54,16 +54,10 @@ import magika
     default=True,
     help="Enable/disable version check via 'pip show'. (Default: Enabled)",
 )
-@click.option(
-    "--use-python-client",
-    is_flag=True,
-    help="Use the Python client instead of Rust client. (Default: False)",
-)
 def main(
     expected_version: str,
     report_only: bool,
     check_pip_show_package_version: bool,
-    use_python_client: bool,
 ) -> None:
     """Checks versions consistency for the `magika` package."""
 
@@ -71,8 +65,6 @@ def main(
         click.echo('Running in "report only" mode.')
     if not check_pip_show_package_version:
         click.echo("Skipping checking package version via pip show.")
-    if use_python_client:
-        click.echo("Using python client instead of Rust client.")
 
     strict_mode = not report_only
     if strict_mode:
@@ -96,10 +88,7 @@ def main(
     else:
         pip_show_package_version = ""
 
-    if use_python_client:
-        cli_version = instance_version
-    else:
-        cli_version = get_rust_cli_version()
+    cli_version = get_rust_cli_version()
 
     if module_version == "":
         click.echo("ERROR: failed to get module_version.")

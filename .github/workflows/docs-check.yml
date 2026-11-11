@@ -10,10 +10,13 @@ on:
       - "*.md"
       - "assets/**/*.md"
       - "docs/**/*.md"
+      - "go/**/*.md"
       - "js/**/*.md"
       - "python/**/*.md"
       - "rust/**/*.md"
       - "website-ng/**/*.md"
+      - "scripts/check_documentation.py"
+      - ".github/workflows/docs-check.yml"
   schedule:
     - cron: "42 7 * * 4" # Run weekly
 
@@ -35,7 +38,6 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
 
       - name: "Run check_documentation.py script"
-        working-directory: python
         run: uv run ./scripts/check_documentation.py
 
       - name: Make sure install.sh is downloadable

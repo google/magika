@@ -14,7 +14,7 @@ check-source:
     uv run ruff check
     uv run ruff format --check
     uv run ty check
-    uv run ./scripts/check_copyright.py
+    uv run ../scripts/check_copyright.py
 
 # Auto-fix lint issues and format Python code.
 fix-source:
@@ -34,10 +34,6 @@ quick-tests:
 coverage *args:
     uv run coverage run -m pytest tests -m "not slow" "$@"
     uv run coverage report
-
-# Validate Markdown links and version references across documentation.
-check-docs *args:
-    uv run ./scripts/check_documentation.py "$@"
 
 # Build/stage the native Rust CLI and build a Python wheel into python/dist/.
 build-wheel:

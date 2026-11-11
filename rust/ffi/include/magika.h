@@ -2,7 +2,7 @@
 #define MAGIKA_H
 
 // DO NOT EDIT, see link below for more information:
-// https://github.com/google/magika/tree/main/rust/gen
+// https://github.com/google/magika/tree/main/rust/ffi
 
 #include <stdarg.h>
 #include <stdbool.h>

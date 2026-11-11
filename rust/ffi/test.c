@@ -47,8 +47,8 @@ int main(void) {
     magika_session_free(session_opt);
     magika_runtime_free(runtime_opt);
 
-    // Test custom rules: the shared fixture enforces the PNG signature, which the resolvers leave
-    // to the model, so without the model a PNG is identified only with custom rules.
+    // Test custom rules: the shared fixture enforces the PNG signature, so without the model or
+    // resolvers a PNG is identified only with custom rules.
     FILE* custom_file = fopen("../../tests_data/rules/custom.yar", "rb");
     assert(custom_file != NULL);
     char custom_source[4096];
@@ -61,6 +61,7 @@ int main(void) {
     assert(status_opt == MAGIKA_STATUS_OK);
     assert(rules != NULL);
     MagikaRuntimeOptions rules_only = options;
+    rules_only.options.use_resolvers = false;
     rules_only.options.use_model = false;
     MagikaRuntime* rules_runtime = NULL;
     status_opt = magika_runtime_new(&rules_only, &rules_runtime);

@@ -173,7 +173,7 @@ Check the [Rust CLI docs](https://securityresearch.google/magika/cli-and-binding
 ## Using Magika as a Python module
 
 
-Here is a few examples on how to use the `Magika` Python module:
+Here are a few examples of how to use the `Magika` Python module:
 
 ```python
 >>> from magika import Magika
@@ -189,6 +189,19 @@ javascript
 >>> res = m.identify_path('./tests_data/basic/ini/doc.ini')
 >>> print(res.output.label)
 ini
+```
+
+When classifying multiple files on disk, pass them together to `identify_paths()` so feature extraction and model inference run in parallel batches inside the native Rust pipeline:
+
+```python
+>>> from magika import Magika
+>>> m = Magika()
+>>> results = m.identify_paths([
+...     './tests_data/basic/ini/doc.ini',
+...     './tests_data/basic/python/code.py',
+... ])
+>>> print([r.output.label for r in results])
+['ini', 'python']
 ```
 
 ```python

@@ -14,6 +14,8 @@ Magika on GitHub: [https://github.com/google/magika](https://github.com/google/m
 npm install magika
 ```
 
+> **Node.js compatibility:** `magika/node` targets **Node.js 22 LTS** (`>=22`); Node.js 24+ is not yet supported due to an upstream `@tensorflow/tfjs-node` incompatibility ([google/magika#1577](https://github.com/google/magika/issues/1577)).
+
 # Using MagikaJS
 
 Simple usage in Node:
@@ -124,8 +126,8 @@ Using the local model:
 ```bash
 yarn install
 yarn run build
-(cd ../website; yarn install; yarn run dev) &
-yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json ../tests_data/basic/*
+(cd ../website-ng; npm install; npm run dev) &
+yarn run bin --model-url http://localhost:8080/magika/models/standard_v3_3/model.json --model-config-url http://localhost:8080/magika/models/standard_v3_3/config.min.json ../tests_data/basic/*
 ```
 
 Using the local `magika` package when developing the website:
@@ -133,8 +135,8 @@ Using the local `magika` package when developing the website:
 ```bash
 yarn install
 yarn run build
-yarn link
-(cd ../website; yarn link magika; yarn install; yarn run dev) &
+npm link
+(cd ../website-ng; npm install; npm link magika; npm run dev) &
 ```
 
 ## Testing

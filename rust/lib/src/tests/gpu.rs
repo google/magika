@@ -39,7 +39,7 @@ struct Sample {
 fn reference_decisions_match_on_every_gpu_batch() {
     let mut cpu = RawRuntime::with_max_batch(BackendRequest::Cpu, 1).unwrap().session().unwrap();
     // The reference outputs are the model's alone, so the rules neither decide nor veto.
-    let options = Options { use_builtin_rules: false, debug_mode: true, ..Options::default() };
+    let options = Options { use_resolvers: false, debug_mode: true, ..Options::default() };
     let mut samples = Vec::new();
     // The model's label count, taken from the CPU reference's output width.
     let mut num_labels = 0;
@@ -127,10 +127,13 @@ fn reference_decisions_match_on_every_gpu_batch() {
                     "{context}: probabilities do not sum to one"
                 );
                 assert_eq!(actual.info().label, sample.cpu_output, "{context}");
-                let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
+                let RegularFileType { content_types, metadata, debug_info: Some(debug_info) } =
+                    actual
+                else {
                     panic!("expected regular file with debug info: {context}")
                 };
                 let [content_type] = content_types[..] else { unreachable!() };
+                assert!(metadata.is_empty(), "{context}");
                 let DebugInfo::Model(model) = &*debug_info else {
                     panic!("expected inference: {context}")
                 };

@@ -14,6 +14,8 @@
 
 """Module defining the ContentTypeInfo dataclass."""
 
+from __future__ import annotations
+
 import warnings
 from dataclasses import dataclass
 from typing import List
@@ -34,6 +36,14 @@ class ContentTypeInfo:
         description: A human-readable description.
         extensions: A list of common file extensions.
         is_text: A boolean indicating if the content type is text-based.
+        in_heuristics: Whether this content type is supported by built-in
+            heuristics.
+        in_resolvers: Whether this content type is supported by deterministic
+            format resolvers.
+        in_ml_model: Whether this content type is supported by the active ML
+            model.
+        vetoed_by_resolvers: Whether ML model predictions of this content type
+            are vetoed when no resolver matched.
     """
 
     label: ContentTypeLabel
@@ -42,6 +52,10 @@ class ContentTypeInfo:
     description: str
     extensions: List[str]
     is_text: bool
+    in_heuristics: bool = False
+    in_resolvers: bool = False
+    in_ml_model: bool = False
+    vetoed_by_resolvers: bool = False
 
     @property
     def ct_label(self) -> str:

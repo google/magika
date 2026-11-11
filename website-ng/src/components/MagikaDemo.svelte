@@ -19,8 +19,8 @@
 
   // Magika configuration and examples.
   const MAGIKA_MODEL_VERSION = "standard_v3_3";
-  const MAGIKA_MODEL_URL = `https://google.github.io/magika/models/standard_v3_3/model.json`;
-  const MAGIKA_MODEL_CONFIG_URL = `https://google.github.io/magika/models/standard_v3_3/config.min.json`;
+  const MAGIKA_MODEL_URL = `/magika/models/${MAGIKA_MODEL_VERSION}/model.json`;
+  const MAGIKA_MODEL_CONFIG_URL = `/magika/models/${MAGIKA_MODEL_VERSION}/config.min.json`;
   const EXAMPLE_JS_BYTES = `
 function hello() {
   const name = document.querySelector('input').value;
@@ -60,7 +60,7 @@ function hello() {
 
       magika = await Magika.create({
         modelURL: MAGIKA_MODEL_URL,
-        configURL: MAGIKA_MODEL_CONFIG_URL,
+        modelConfigURL: MAGIKA_MODEL_CONFIG_URL,
       });
       loadingProgress = 100;
       classifyText();

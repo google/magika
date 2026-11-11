@@ -21,6 +21,10 @@ class ContentTypeInfo:
     description: str
     extensions: List[str]
     is_text: bool
+    in_heuristics: bool
+    in_resolvers: bool
+    in_ml_model: bool
+    vetoed_by_resolvers: bool
 
 class MagikaResult:
     path: Optional[str]
@@ -32,6 +36,10 @@ class MagikaResult:
     description: str
     extensions: List[str]
     is_text: bool
+    in_heuristics: bool
+    in_resolvers: bool
+    in_ml_model: bool
+    vetoed_by_resolvers: bool
     score: float
     dl_label: str
     overwrite_reason: str
@@ -45,7 +53,6 @@ class Magika:
     def __init__(
         self,
         use_resolvers: bool = True,
-        use_builtin_rules: bool = True,
         use_model: bool = True,
         prediction_mode: str = "high_confidence",
         follow_symlink: bool = True,

@@ -10,6 +10,8 @@ Use Magika in the browser or in Node!
 npm install magika
 ```
 
+> **Node.js compatibility:** `magika/node` targets **Node.js 22 LTS** (`>=22`); Node.js 24+ is not yet supported due to an upstream `@tensorflow/tfjs-node` incompatibility ([google/magika#1577](https://github.com/google/magika/issues/1577)).
+
 ## Using Magika in JavaScript
 
 Simple usage in Node:
@@ -37,6 +39,56 @@ console.log(prediction);
 ```
 
 For more, see the API reference below.
+
+## Content type metadata and supported outputs
+
+Both `"magika"` and `"magika/node"` export `ContentTypeLabel` and the `ContentTypeInfo` type. Every prediction (`result.prediction.output` and `result.prediction.dl`) and `Magika.getContentTypeInfo(label)` return full knowledge-base metadata along with pipeline stage-coverage flags:
+
+```ts
+import {
+  type ContentTypeInfo,
+  ContentTypeLabel,
+  Magika,
+} from "magika";
+
+const info: ContentTypeInfo = Magika.getContentTypeInfo(
+  ContentTypeLabel.PARQUET,
+);
+// {
+//   label: "parquet",
+//   mime_type: "application/vnd.apache.parquet",
+//   group: "unknown",
+//   description: "Apache Parquet",
+//   extensions: ["pqt", "parquet"],
+//   is_text: false,
+//   in_heuristics: false,
+//   in_resolvers: true,
+//   in_ml_model: true,
+//   vetoed_by_resolvers: true,
+// }
+```
+
+On a loaded `Magika` (or `MagikaNode`) instance:
+
+- `magika.getOutputContentTypes()` returns the sorted list of `ContentTypeLabel`s that the JavaScript runtime can emit in `result.prediction.output.label` (byte/stream heuristics `empty`, `txt`, `unknown` plus the loaded ML model's output space after `overwrite_map`).
+- `magika.getModelContentTypes()` returns the sorted list of `ContentTypeLabel`s supported directly by the loaded ML model.
+
+:::note[JavaScript TF.js pipeline vs. full Rust pipeline]
+`ContentTypeLabel` contains all exposed content types shared across Magika's Rust, C, Python, and JavaScript bindings. Because the JavaScript library runs byte/stream heuristics and the TensorFlow.js ML model without filesystem `stat` checks or the native Rust format resolvers, `magika.getOutputContentTypes()` excludes filesystem-only inode labels (`directory`, `symlink`, `unsupported`), resolver-only labels (`in_resolvers && !in_ml_model`), and internal labels (`undefined`, `randombytes`, `randomtxt`).
+
+You can use the stage-coverage booleans on `ContentTypeInfo` to inspect or filter across pipelines:
+
+```ts
+// Labels emitted by this JavaScript TF.js instance:
+const jsOutputs = magika.getOutputContentTypes();
+
+// Labels emitted by the full native Rust/Python pipeline:
+const rustOutputs = Object.values(ContentTypeLabel).filter((label) => {
+  const info = Magika.getContentTypeInfo(label);
+  return info.in_heuristics || info.in_resolvers || info.in_ml_model;
+});
+```
+:::
 
 ## Command-line tool
 
@@ -103,8 +155,8 @@ Using the local model:
 ```bash
 yarn install
 yarn run build
-(cd ../website; yarn install; yarn run dev) &
-yarn run bin --model-url http://localhost:5173/magika/model/model.json --config-url http://localhost:5173/magika/model/config.json ../tests_data/basic/*
+(cd ../website-ng; npm install; npm run dev) &
+yarn run bin --model-url http://localhost:8080/magika/models/standard_v3_3/model.json --model-config-url http://localhost:8080/magika/models/standard_v3_3/config.min.json ../tests_data/basic/*
 ```
 
 Using the local `magika` package when developing the website:
@@ -112,8 +164,8 @@ Using the local `magika` package when developing the website:
 ```bash
 yarn install
 yarn run build
-yarn link
-(cd ../website; yarn link magika; yarn install; yarn run dev) &
+npm link
+(cd ../website-ng; npm install; npm link magika; npm run dev) &
 ```
 
 ## Testing

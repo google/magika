@@ -14,10 +14,10 @@ mod zip;
 
 use miniz_oxide::inflate::core::DecompressorOxide;
 
-// Fixtures for the bundled rules tests in `lib.rs`.
-#[cfg(all(test, feature = "bundled"))]
+// Fixtures for the facts rules tests in `lib.rs`.
+#[cfg(test)]
 pub(crate) use self::pe::tests::{pe32, Image};
-#[cfg(all(test, feature = "bundled"))]
+#[cfg(test)]
 pub(crate) use self::zip::tests::{archive, stored};
 use crate::ir::{Fact, View};
 

@@ -254,7 +254,7 @@ def test_magika_module_identify_stream_with_unseekable_stream() -> None:
     # The stream's own error must reach the caller, and not be masked by an
     # internal error raised while trying to restore an unknown position.
     with pytest.raises(OSError) as exc_info:
-        _ = m.identify_stream(UnseekableStream())  # type: ignore[arg-type]
+        _ = m.identify_stream(UnseekableStream())  # ty: ignore[invalid-argument-type]
     assert exc_info.value.errno == errno.ESPIPE
 
 
@@ -467,7 +467,7 @@ def test_api_call_with_bad_types() -> None:
     _ = m.identify_path(Path("/non_existing.txt"))
     _ = m.identify_path("/non_existing.txt")
     with pytest.raises(TypeError):
-        _ = m.identify_path(b"/non_existing.txt")  # type: ignore[arg-type]
+        _ = m.identify_path(b"/non_existing.txt")  # ty: ignore[invalid-argument-type]
 
     _ = m.identify_paths([Path("/non_existing.txt")])
     _ = m.identify_paths(["/non_existing.txt"])
@@ -475,23 +475,23 @@ def test_api_call_with_bad_types() -> None:
     _ = m.identify_paths([Path("/non_existing.txt"), "/not_existing2.txt"])
     _ = m.identify_paths(["/non_existing.txt", "/not_existing2.txt"])
     with pytest.raises(TypeError):
-        _ = m.identify_paths(Path("/non_existing.txt"))  # type: ignore[arg-type]
+        _ = m.identify_paths(Path("/non_existing.txt"))  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_paths([b"/non_existing.txt"])  # type: ignore[list-item]
+        _ = m.identify_paths([b"/non_existing.txt"])  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_paths([Path("/non_existing.txt"), b"/not_existing2.txt"])  # type: ignore[list-item]
+        _ = m.identify_paths([Path("/non_existing.txt"), b"/not_existing2.txt"])  # ty: ignore[invalid-argument-type]
 
     _ = m.identify_bytes(b"bytes content")
     with pytest.raises(TypeError):
-        _ = m.identify_bytes("str content")  # type: ignore[arg-type]
+        _ = m.identify_bytes("str content")  # ty: ignore[invalid-argument-type]
 
     _ = m.identify_stream(io.BytesIO(b"bytes stream content"))
     with pytest.raises(TypeError):
-        _ = m.identify_stream(io.StringIO("str stream content"))  # type: ignore[arg-type]
+        _ = m.identify_stream(io.StringIO("str stream content"))  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_stream(b"bytes content")  # type: ignore[arg-type]
+        _ = m.identify_stream(b"bytes content")  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
-        _ = m.identify_stream("str content")  # type: ignore[arg-type]
+        _ = m.identify_stream("str content")  # ty: ignore[invalid-argument-type]
 
 
 def test_access_magika_result_and_prediction():
@@ -512,9 +512,9 @@ def test_access_magika_result_and_prediction():
     assert isinstance(res.score, float)
     # test access to non-existing properties
     with pytest.raises(AttributeError):
-        _ = res.foo  # type: ignore[attr-defined]
+        _ = res.foo  # ty: ignore[unresolved-attribute]
     with pytest.raises(AttributeError):
-        _ = res.prediction.foo  # type: ignore[attr-defined]
+        _ = res.prediction.foo  # ty: ignore[unresolved-attribute]
 
     res = m.identify_path(Path("/non_existing.txt"))
     assert isinstance(res, MagikaResult)
@@ -536,9 +536,9 @@ def test_access_magika_result_and_prediction():
     with pytest.raises(ValueError):
         _ = res.score
     with pytest.raises(AttributeError):
-        _ = res.foo  # type: ignore[attr-defined]
+        _ = res.foo  # ty: ignore[unresolved-attribute]
     with pytest.raises(ValueError):
-        _ = res.prediction.foo  # type: ignore[attr-defined]
+        _ = res.prediction.foo  # ty: ignore[unresolved-attribute]
 
 
 def test_access_backward_compatibility_layer() -> None:
@@ -703,8 +703,16 @@ def test_magika_result_asdict() -> None:
         assert "description" in ct_dict
         assert "extensions" in ct_dict
         assert "is_text" in ct_dict
+        assert "in_heuristics" in ct_dict
+        assert "in_resolvers" in ct_dict
+        assert "in_ml_model" in ct_dict
+        assert "vetoed_by_resolvers" in ct_dict
         assert isinstance(ct_dict["extensions"], list)
         assert isinstance(ct_dict["is_text"], bool)
+        assert isinstance(ct_dict["in_heuristics"], bool)
+        assert isinstance(ct_dict["in_resolvers"], bool)
+        assert isinstance(ct_dict["in_ml_model"], bool)
+        assert isinstance(ct_dict["vetoed_by_resolvers"], bool)
 
     # Failed scan
     res_err = m.identify_path("/non_existing_path_12345.txt")
@@ -801,6 +809,10 @@ def test_content_type_info_field_types() -> None:
         for ext in ct.extensions:
             assert isinstance(ext, str)
         assert isinstance(ct.is_text, bool)
+        assert isinstance(ct.in_heuristics, bool)
+        assert isinstance(ct.in_resolvers, bool)
+        assert isinstance(ct.in_ml_model, bool)
+        assert isinstance(ct.vetoed_by_resolvers, bool)
 
 
 def test_content_type_label_str_behavior() -> None:
@@ -865,10 +877,10 @@ def test_magika_prediction_immutability() -> None:
     assert res.ok
 
     with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
-        res.prediction.score = 0.5  # type: ignore[misc]
+        res.prediction.score = 0.5  # ty: ignore[invalid-assignment]
 
     with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
-        res.prediction.output = res.prediction.dl  # type: ignore[misc]
+        res.prediction.output = res.prediction.dl  # ty: ignore[invalid-assignment]
 
 
 def test_magika_constructor_options_and_errors() -> None:
@@ -995,11 +1007,12 @@ def test_special_device_file() -> None:
 
 def test_magika_module_with_custom_rules() -> None:
     png = utils.get_tests_data_dir() / "basic" / "png" / "magika_test.png"
+    pyc = utils.get_tests_data_dir() / "basic" / "pythonbytecode" / "magika_test.pyc"
     custom = utils.get_tests_data_dir() / "rules" / "custom.yar"
 
-    inferred = Magika().identify_path(png)
-    assert inferred.output.label == ContentTypeLabel.PNG
-    assert inferred.dl.label == ContentTypeLabel.PNG
+    inferred = Magika().identify_path(pyc)
+    assert inferred.output.label == ContentTypeLabel.PYTHONBYTECODE
+    assert inferred.dl.label == ContentTypeLabel.PYTHONBYTECODE
 
     for m in [Magika(rules_files=[custom]), Magika(rules=custom.read_text())]:
         results = [
@@ -1013,12 +1026,13 @@ def test_magika_module_with_custom_rules() -> None:
 
 
 def test_magika_module_with_custom_rules_veto() -> None:
-    png = utils.get_tests_data_dir() / "basic" / "png" / "magika_test.png"
-    # The rule claims to never miss PNG files, yet does not match this one.
+    pyc = utils.get_tests_data_dir() / "basic" / "pythonbytecode" / "magika_test.pyc"
+    # The rule claims to never miss pythonbytecode files, yet does not match this one.
     never = (utils.get_tests_data_dir() / "rules" / "custom.yar").read_text()
+    never = never.replace('label = "png"', 'label = "pythonbytecode"')
     never = never.replace("$signature at 0", "$signature at 1")
-    res = Magika(rules=never).identify_path(png)
-    assert res.dl.label == ContentTypeLabel.PNG
+    res = Magika(rules=never).identify_path(pyc)
+    assert res.dl.label == ContentTypeLabel.PYTHONBYTECODE
     assert res.output.label == ContentTypeLabel.UNKNOWN
     assert res.prediction.overwrite_reason == OverwriteReason.RULES_VETO
 
@@ -1033,3 +1047,57 @@ def test_magika_module_with_invalid_custom_rules() -> None:
         )
     with pytest.raises(ValueError, match="not both"):
         Magika(rules="", rules_files=[])
+
+
+def test_get_content_type_info_and_exposed_labels() -> None:
+    exposed_path = utils.get_repo_root_dir() / "assets" / "exposed_content_types.txt"
+    expected_exposed = sorted(
+        line.strip()
+        for line in exposed_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    )
+    assert [ct.value for ct in ContentTypeLabel] == expected_exposed
+
+    m = Magika()
+    infos = {ct: Magika.get_content_type_info(ct) for ct in ContentTypeLabel}
+    for ct, info in infos.items():
+        assert info.label == ct
+        assert Magika.get_content_type_info(ct.value) == info
+        if info.vetoed_by_resolvers:
+            assert info.in_resolvers
+
+    expected_outputs = {
+        ct
+        for ct, info in infos.items()
+        if info.in_heuristics or info.in_resolvers or info.in_ml_model
+    }
+    expected_model_outputs = {ct for ct, info in infos.items() if info.in_ml_model}
+    assert set(m.get_output_content_types()) == expected_outputs
+    assert set(m.get_model_content_types()) == expected_model_outputs
+
+    # FileType-only heuristics ("directory", "symlink", "unsupported") must resolve too
+    dir_info = Magika.get_content_type_info(ContentTypeLabel.DIRECTORY)
+    assert dir_info.in_heuristics is True
+    assert dir_info.in_resolvers is False
+    assert dir_info.in_ml_model is False
+    assert dir_info.vetoed_by_resolvers is False
+
+    parquet_info = Magika.get_content_type_info("parquet")
+    assert parquet_info.in_resolvers is True
+    assert parquet_info.in_ml_model is True
+    assert parquet_info.vetoed_by_resolvers is True
+
+    # Identify results carry the exact same ContentTypeInfo metadata
+    res = m.identify_bytes(b"def hello() -> int:\n    return 42\n")
+    assert res.ok
+    assert res.output == Magika.get_content_type_info(res.output.label)
+    assert res.dl == Magika.get_content_type_info(res.dl.label)
+
+    # Error handling for unknown or invalid labels
+    with pytest.raises(MagikaError, match="Unknown content type label"):
+        Magika.get_content_type_info("not_a_real_content_type")
+    with pytest.raises(MagikaError, match="Unknown content type label"):
+        Magika.get_content_type_info("abnf")  # catalog-only KB entry, not exposed
+    bad_label: Any = 123
+    with pytest.raises(TypeError, match="Input label should be of type"):
+        Magika.get_content_type_info(bad_label)

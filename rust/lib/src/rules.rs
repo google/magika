@@ -14,15 +14,14 @@
 
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use magika_rules::{Class, Outcome, RuleSet, Source};
 
-use crate::ContentType;
-use crate::cached_input::CachedInput;
+use crate::{ContentType, Input};
 
-/// Format rules supplied by the caller, checked before the built-in rules.
+/// Format rules supplied by the caller, checked before the resolvers.
 ///
 /// Rules are written in the YARA subset of the `magika-rules` crate, with the same metadata: an
 /// enforced rule needs a `label` that is a Magika content type, `fp_rate = 0`, and a class. When
@@ -46,13 +45,6 @@ impl std::fmt::Debug for Rules {
 }
 
 impl Rules {
-    /// Returns the builtin rules.
-    pub fn builtin() -> &'static Self {
-        static RULES: LazyLock<Rules> =
-            LazyLock::new(|| Rules(Arc::new(Compiled::new(RuleSet::bundled()).unwrap())));
-        &RULES
-    }
-
     /// Compiles rules from YARA text.
     pub fn compile(text: &str) -> Result<Self> {
         let source = Source::parse(text)?;
@@ -80,9 +72,7 @@ impl Rules {
     }
 
     /// Returns the content types of the rules that match a file.
-    pub(crate) fn identify(
-        &self, file: &mut CachedInput<impl crate::Input>,
-    ) -> Result<Vec<ContentType>> {
+    pub(crate) fn identify(&self, file: &mut Input) -> Result<Vec<ContentType>> {
         let rules = &self.0;
         let size = file.length();
         let prefix_len = file.ensure_prefix(magika_rules::PREFIX_LIMIT)?;
@@ -166,11 +156,7 @@ mod tests {
 
     fn options(use_rules: bool, custom: Option<&str>) -> Options {
         let custom_rules = custom.map(|text| Rules::compile(text).unwrap());
-        Options {
-            use_builtin_rules: use_rules,
-            use_custom_rules: custom_rules,
-            ..Options::default()
-        }
+        Options { use_resolvers: use_rules, use_custom_rules: custom_rules, ..Options::default() }
     }
 
     fn extract(path: &str, options: &Options) -> FeaturesOr<FileType> {
@@ -185,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn custom_rules_come_before_builtin_rules() {
+    fn custom_rules_come_before_resolvers() {
         let psd = "psd/MagikaTest.psd";
         let txt = rule("txt", "full", "$psd at 0");
         assert_eq!(ruled(psd, &options(true, None)), Some(ContentType::Psd));
@@ -204,7 +190,7 @@ mod tests {
             unreachable!()
         };
         let error = session.identify_features(&features).unwrap_err();
-        assert_eq!(error.to_string(), "use_builtin_rules mismatch between extract and identify");
+        assert_eq!(error.to_string(), "use_resolvers mismatch between extract and identify");
         let custom = rule("txt", "full", "$psd at 0");
         let FeaturesOr::Features(features) =
             extract("wav/test.wav", &options(false, Some(&custom)))

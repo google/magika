@@ -62,8 +62,8 @@ current="$candidate_dir/standard_v3_3.first.nnef.tgz"
 cmp "$repo_dir/rust/tract-runtime/models/model.nnef.tgz" "$current"
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" release_cpu_graph_has_every_required_fusion
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" embedded_gpu_probe_matches_the_release_cpu_model
-# Neither gate above reaches the fused convolution: the verifier runs the unfused NNEF, the fusion
-# contract only counts matches, and the score probe is batch one, below the batch the fusion needs.
+# Neither gate above reaches the fused convolution on every target: the verifier runs the unfused
+# NNEF, the fusion contract only counts matches, and non-x86_64 targets leave batch one unfused.
 # These run the fused graph and check the numbers it produces.
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" the_fallback_packing_path_scores_the_release_model_the_same
 cargo test --quiet --manifest-path "$repo_dir/rust/tract-runtime/Cargo.toml" both_packing_paths_agree

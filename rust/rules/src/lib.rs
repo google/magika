@@ -1,15 +1,9 @@
 // Copyright 2026 Google LLC
 // SPDX-License-Identifier: Apache-2.0
 
-#![cfg_attr(feature = "bundled", doc = include_str!("../README.md"))]
-#![cfg_attr(
-    not(feature = "bundled"),
-    doc = "Bounded format rules: a YARA subset evaluated in pure Rust. See README.md."
-)]
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 
-#[cfg(any(test, feature = "_gen"))]
-mod codegen;
 mod error;
 mod eval;
 mod facts;
@@ -19,17 +13,10 @@ mod matcher;
 mod source;
 
 pub use error::Error;
-pub use source::{Bucket, Class, RuleInfo, Source};
+pub use source::{Class, RuleInfo, Source};
 
 /// Bytes of input a rule may inspect.
 pub const PREFIX_LIMIT: usize = 4096;
-
-/// Compiles `root/{full,partial,notworking}/*.yar` into `(bundled_rs, content_types)`.
-#[cfg(feature = "_gen")]
-#[doc(hidden)]
-pub fn generate(root: &std::path::Path) -> (String, String) {
-    codegen::generate(root)
-}
 
 /// What one scan looks at.
 #[derive(Clone, Copy, Debug)]
@@ -64,15 +51,6 @@ impl RuleSet {
     pub fn compile(source: &Source) -> Result<Self, Error> {
         let (program, labels) = lower::lower(source)?;
         Ok(RuleSet { program, labels, rules: source.rules().to_vec() })
-    }
-
-    /// The rules shipped with this crate.
-    ///
-    /// They are precompiled, so this parses no YARA and builds no regex: each regex is built the
-    /// first time a scan needs it.
-    #[cfg(feature = "bundled")]
-    pub fn bundled() -> Self {
-        include!("bundled.rs")
     }
 
     /// Distinct labels of the enforced rules, in source order; [`Outcome::Match`] indexes it.
@@ -113,22 +91,38 @@ impl RuleSet {
     }
 }
 
-#[cfg(all(test, feature = "bundled"))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn bundled_rules_are_the_compiled_bundled_source() {
-        let root = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/rulesets"));
-        let (expected, labels) = codegen::generate(root);
-        assert!(expected == include_str!("bundled.rs"));
-        assert!(labels == include_str!("../../gen/rules/content_types"));
-        let bundled = RuleSet::bundled();
-        let actual = codegen::rule_set(&bundled.program, &bundled.labels, &bundled.rules);
-        assert!(actual == expected);
+    const FACTS_RULES: &str = r#"
+        rule docx {
+            meta: label = "docx" enforced = true class = "partial" fp_rate = 0 fn_rate = 0.05
+            condition:
+                zip_first_entry startswith "[Content_Types].xml\n" and
+                zip_first_entry contains "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+        }
+        rule jar {
+            meta: label = "jar" enforced = true class = "partial" fp_rate = 0 fn_rate = 0.3
+            condition:
+                zip_valid == 1 and zip_entries >= 1 and zip_names_entries >= 1 and
+                zip_names contains "\nMETA-INF/MANIFEST.MF\n" and zip_names contains ".class\n"
+        }
+        rule pebin {
+            meta: label = "pebin" enforced = true class = "partial" fp_rate = 0 fn_rate = 0.01
+            condition:
+                pe_valid == 1 and pe_is_executable_image == 1 and
+                not (pe_is_dll == 1 and pe_entry_point == 0) and
+                pe_subsystem >= 1 and pe_subsystem <= 16 and
+                (pe_machine == 0x14c or pe_machine == 0x8664)
+        }
+    "#;
+
+    fn facts_ruleset() -> RuleSet {
+        RuleSet::compile(&Source::parse(FACTS_RULES).unwrap()).unwrap()
     }
 
-    /// The bundled label of `bytes`, given its tail when `tail`.
+    /// The single matching label of `bytes`, given its tail when `tail`.
     fn label<'a>(rules: &'a RuleSet, bytes: &[u8], tail: bool) -> Option<&'a str> {
         let (prefix, size) = (&bytes[..bytes.len().min(PREFIX_LIMIT)], bytes.len() as u64);
         let tail_len = rules.tail_len(prefix, size);
@@ -145,7 +139,7 @@ mod tests {
     #[test]
     fn facts_rules_identify_archives_and_executables() {
         use facts::{archive, pe32, stored};
-        let rules = RuleSet::bundled();
+        let rules = facts_ruleset();
         assert!(rules.needs_facts());
         let docx = archive(
             &[
@@ -178,7 +172,7 @@ mod tests {
     #[test]
     fn a_tail_extends_back_to_a_large_central_directory() {
         use facts::{archive, stored};
-        let rules = RuleSet::bundled();
+        let rules = facts_ruleset();
         let names: Vec<_> = (0..400).map(|i| format!("{i:0>60}")).collect();
         let entries: Vec<_> = names.iter().map(|name| stored(name.as_bytes(), b"")).collect();
         let bytes = archive(&entries, b"");

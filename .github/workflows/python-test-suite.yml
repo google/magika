@@ -12,6 +12,7 @@ on:
     paths:
       - "python/**"
       - "rust/**"
+      - "scripts/check_copyright.py"
       - "tests_data/**"
       - ".github/actions/rust-cache/**"
       - ".github/workflows/python-test-suite.yml"
@@ -28,14 +29,14 @@ jobs:
   # configuration. The built wheels are tested across the full OS × Python
   # version matrix in python-build-test-and-release-package.yml.
   unit-testing:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # pin@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "${{ env.PYTHON_VERSION }}"
 
@@ -46,7 +47,7 @@ jobs:
         uses: ./.github/actions/rust-cache
 
       - name: Build and stage magika CLI binary
-        run: ./python/scripts/build_and_stage_cli.sh
+        run: ./python/scripts/build_and_stage_cli.sh --profile release-fast
 
       - name: Check that uv.lock is in sync
         working-directory: python
@@ -68,12 +69,11 @@ jobs:
         working-directory: python
         run: uv run --python ${{ env.PYTHON_VERSION }} ruff format --check --verbose
 
-      - name: Run mypy
+      - name: Run ty check
         working-directory: python
-        run: uv run --python ${{ env.PYTHON_VERSION }} mypy src/magika tests
+        run: uv run --python ${{ env.PYTHON_VERSION }} ty check
 
       - name: Run copyright checks
-        working-directory: python
         run: uv run ./scripts/check_copyright.py
 
       - name: Run the python tests suite
@@ -94,11 +94,7 @@ jobs:
 
       - name: Run "magika module" quick tests
         working-directory: python
-        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py
-
-      - name: Run "magika module" quick tests + perf measurement
-        working-directory: python
-        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py --print-inference-stats --repeat 10
+        run: uv run --python ${{ env.PYTHON_VERSION }} scripts/run_quick_test_magika_module.py --print-inference-stats
 
       # Report-only: this shows which versions CI sees (module, CLI, etc.) so
       # they can be inspected before tagging a release. The strict check against
@@ -113,9 +109,9 @@ jobs:
   changelog-check:
     # This compares against the PR's base branch, so it only makes sense on PRs.
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # pin@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0

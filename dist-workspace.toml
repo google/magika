@@ -31,8 +31,8 @@ github-attestations = true
 post-announce-jobs = ["./cli-latest"]
 
 [dist.github-custom-runners]
-global = "ubuntu-latest"
+global = "ubuntu-24.04"
 aarch64-unknown-linux-gnu = "ubuntu-24.04-arm"
-x86_64-unknown-linux-gnu = "ubuntu-latest"
-aarch64-apple-darwin = "macos-latest"
-x86_64-pc-windows-msvc = "windows-latest"
+x86_64-unknown-linux-gnu = "ubuntu-24.04"
+aarch64-apple-darwin = "macos-26"
+x86_64-pc-windows-msvc = "windows-2025"

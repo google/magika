@@ -47,7 +47,6 @@ pub use crate::session::Session;
 
 mod backend;
 mod builder;
-mod cached_input;
 mod config;
 mod content;
 mod file;
@@ -76,12 +75,7 @@ mod tests {
     mod gpu;
 
     fn new_session() -> Session {
-        let options = Options {
-            use_resolvers: false,
-            use_builtin_rules: false,
-            debug_mode: true,
-            ..Options::default()
-        };
+        let options = Options { use_resolvers: false, debug_mode: true, ..Options::default() };
         Runtime::builder()
             .with_backend(Backend::Cpu)
             .with_options(options)
@@ -134,10 +128,12 @@ mod tests {
     }
 
     fn assert_prediction(actual: RegularFileType, expected: Prediction, debug: &str) {
-        let RegularFileType { content_types, debug_info: Some(debug_info) } = actual else {
+        let RegularFileType { content_types, metadata, debug_info: Some(debug_info) } = actual
+        else {
             unreachable!()
         };
         let [content_type] = content_types[..] else { unreachable!() };
+        assert!(metadata.is_empty(), "{debug}");
         assert_eq!(content_type.info().label, expected.output, "{debug}");
         let model = match &*debug_info {
             DebugInfo::Heuristic => {

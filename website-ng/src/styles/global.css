@@ -138,3 +138,62 @@
   list-style: revert;
   padding-inline-start: 1.25rem;
 }
+
+/*
+ * Wide reference tables (pages listed in src/lib/wide-table-pages.ts, which
+ * also drop the "On this page" pane): use the full width of the main pane, a
+ * compact font and padding, and rotated headers for the one-character ✓
+ * columns so that whole tables fit on screen.
+ */
+:root:has(.wide-tables) {
+  --sl-content-width: 100%;
+}
+
+/* Keep prose at a readable width; only tables use the extra space. */
+.wide-tables .sl-markdown-content > :not(table) {
+  max-width: 50rem;
+}
+
+.wide-tables table {
+  font-size: var(--sl-text-xs);
+  line-height: 1.35;
+}
+
+.wide-tables :is(th, td) {
+  padding: 0.2rem 0.45rem;
+}
+
+.wide-tables thead th {
+  vertical-align: bottom;
+}
+
+.wide-tables td code {
+  font-size: inherit;
+  padding: 0 0.15em;
+  overflow-wrap: anywhere;
+}
+
+/* Keep content type labels on a single line. */
+.wide-tables td:first-child,
+.wide-tables td:first-child code {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+/*
+ * Supported-content-types tables have 10 columns, the last 5 of which are ✓
+ * flags (Text, Heuristics, Resolvers, ML Model, Vetoed): make them narrow and
+ * write their headers bottom-to-top.
+ */
+.wide-tables table:has(th:nth-child(10):last-child) :is(th, td):nth-child(n + 6) {
+  width: 1%;
+  padding-inline: 0.2rem;
+  text-align: center;
+}
+
+.wide-tables table:has(th:nth-child(10):last-child) th:nth-child(n + 6) {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  text-align: start;
+}

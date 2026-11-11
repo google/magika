@@ -10,10 +10,13 @@ on:
       - "*.md"
       - "assets/**/*.md"
       - "docs/**/*.md"
+      - "go/**/*.md"
       - "js/**/*.md"
       - "python/**/*.md"
       - "rust/**/*.md"
       - "website-ng/**/*.md"
+      - "scripts/check_documentation.py"
+      - ".github/workflows/docs-check.yml"
   schedule:
     - cron: "42 7 * * 4" # Run weekly
 
@@ -25,9 +28,9 @@ env:
 
 jobs:
   run-check-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # pin@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -35,7 +38,6 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
 
       - name: "Run check_documentation.py script"
-        working-directory: python
         run: uv run ./scripts/check_documentation.py
 
       - name: Make sure install.sh is downloadable

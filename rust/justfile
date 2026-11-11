@@ -1,0 +1,17 @@
+set positional-arguments
+
+[private]
+default:
+    @just --justfile "{{source_file()}}" --list
+
+# Run the Rust crate test suites across toolchains and verify synced Rust artifacts.
+test:
+    ./test.sh
+
+# Regenerate heavy Rust artifacts (C FFI header, embedded tract model, and CLI snapshot output).
+sync *args:
+    ./sync.sh "$@"
+
+# Verify that modified publishable Rust crates have updated CHANGELOG.md entries.
+changelog:
+    ./changelog.sh

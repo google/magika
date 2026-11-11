@@ -20,6 +20,7 @@ PROFILE=release-fast
 
 x cargo check
 x cargo check --features=_trace
+x cargo test
 x cargo build --profile=$PROFILE
 x cargo fmt -- --check
 x cargo clippy -- --deny=warnings
@@ -54,6 +55,8 @@ test_suite n --no-resolvers
 
 info "Test custom rules"
 ( cd ../../tests_data
+  magika --custom-rules-check 2>&1 | grep -q -- '--custom-rules-file' \
+    || error "custom rules check without file"
   [ "$(magika --custom-rules-file=rules/custom.yar --custom-rules-check)" = \
     'Rules { content_types: [Png] }' ] || error "custom rules check"
   [ "$(magika --no-model --format=%l basic/png/magika_test.png)" = png ] \

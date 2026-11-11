@@ -1,9 +1,15 @@
 # Changelog
 
-## 1.2.0-dev
+## 2.0.0-dev
+
+### Major
+
+No major changes.
 
 ### Minor
 
+- Add `--custom-rules-{file,check}` for custom rules
+- Add `--no-{resolvers,model}` to disable resolvers or model
 - Start identifying files on the CPU while the GPU is prepared
 - Report files that are not regular instead of trying to read them
 - Detect cycles through symbolic links during recursive traversal

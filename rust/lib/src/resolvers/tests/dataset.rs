@@ -159,9 +159,11 @@ fn resolvers_never_contradict_a_validated_label() {
         files += 1;
         verified += usize::from(validated);
         let start = Instant::now();
-        let outcome =
-            crate::resolvers::identify(&mut crate::Input::from_file_with_length(file, size))
-                .unwrap();
+        let outcome = crate::resolvers::identify(
+            &mut crate::Input::from_file_with_length(file, size)
+                .with_path(std::path::Path::new(path)),
+        )
+        .unwrap();
         elapsed += start.elapsed();
         let said = match &outcome[..] {
             [ct] if accepts(ct.info().label) => {

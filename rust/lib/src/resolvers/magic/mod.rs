@@ -334,6 +334,7 @@ pub(crate) struct Ctx<'a> {
     pub(crate) prefix: &'a [u8],
     pub(crate) size: u64,
     pub(crate) tail: Option<&'a [u8]>,
+    pub(crate) path: Option<&'a std::path::Path>,
 }
 
 /// A finer-grained variant of a content type that a verifier already tells apart.

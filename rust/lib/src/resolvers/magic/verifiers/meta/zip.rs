@@ -524,16 +524,29 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     let first_entry = &first_entry_buf[..first_entry_len];
     let has_line = |line: &[u8]| memchr::memmem::find(names, line).is_some();
 
+    static KERAS_V3: Subformat = Subformat::new("Keras v3 archive");
+    static QGIS_QGZ: Subformat = Subformat::new("QGIS project archive (.qgz)");
+    static VISIO_VSDX: Subformat =
+        Subformat::with_ids("Visio drawing (OOXML .vsdx)", "fmt/924", Some("fdd000021"));
+    static DOCX_MAIN: Subformat =
+        Subformat::with_ids("Word Open XML document (.docx)", "fmt/412", Some("fdd000397"));
+    static DOCM_MAIN: Subformat =
+        Subformat::with_ids("Word Open XML macro-enabled document (.docm)", "fmt/523", None);
+    static DOTX_MAIN: Subformat =
+        Subformat::with_ids("Word Open XML template (.dotx)", "fmt/597", None);
+    static DOTM_MAIN: Subformat =
+        Subformat::with_ids("Word Open XML macro-enabled template (.dotm)", "fmt/599", None);
+
     // Full rules
     if valid {
         if has_line(LINE_MODEL_WEIGHTS) && has_line(LINE_METADATA_JSON) {
-            return Some(Label::Keras);
+            return with_subformat(Label::Keras, &KERAS_V3);
         }
         if memchr::memmem::find(names, SUFFIX_QGS).is_some() {
-            return Some(Label::Qgis);
+            return with_subformat(Label::Qgis, &QGIS_QGZ);
         }
         if has_line(LINE_VISIO_DOC) {
-            return Some(Label::Visio);
+            return with_subformat(Label::Visio, &VISIO_VSDX);
         }
         if dir_names && has_line(LINE_CONTENT_TYPES) && has_line(LINE_XL_WORKBOOK) {
             return Some(Label::Xlsx);
@@ -580,15 +593,17 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 
     // First-entry rules
     if starts(first_entry, FIRST_CONTENT_TYPES) {
-        if memchr::memmem::find(first_entry, CT_DOCX_MAIN).is_some()
-            || memchr::memmem::find(first_entry, CT_DOCM_MAIN).is_some()
-        {
-            return Some(Label::Docx);
+        if memchr::memmem::find(first_entry, CT_DOCX_MAIN).is_some() {
+            return with_subformat(Label::Docx, &DOCX_MAIN);
         }
-        if memchr::memmem::find(first_entry, CT_DOTX_MAIN).is_some()
-            || memchr::memmem::find(first_entry, CT_DOTM_MAIN).is_some()
-        {
-            return Some(Label::Dotx);
+        if memchr::memmem::find(first_entry, CT_DOCM_MAIN).is_some() {
+            return with_subformat(Label::Docx, &DOCM_MAIN);
+        }
+        if memchr::memmem::find(first_entry, CT_DOTX_MAIN).is_some() {
+            return with_subformat(Label::Dotx, &DOTX_MAIN);
+        }
+        if memchr::memmem::find(first_entry, CT_DOTM_MAIN).is_some() {
+            return with_subformat(Label::Dotx, &DOTM_MAIN);
         }
         if memchr::memmem::find(first_entry, CT_XLSB_MAIN).is_some() {
             return Some(Label::Xlsb);
@@ -604,6 +619,11 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 pub(crate) fn zip_subtypes_and_fallback(
     prefix: &[u8], size: u64, names: &[u8], valid: bool, dir_names: bool, first_is_ct: bool,
 ) -> Option<Label> {
+    static DOCX_OOXML: Subformat = Subformat::new("Word Open XML document");
+    static SH3D_BINARY: Subformat = Subformat::new("Sweet Home 3D (binary)");
+    static SH3D_XML: Subformat = Subformat::new("Sweet Home 3D (XML)");
+    static TMDX_BINARY: Subformat = Subformat::new("TextMaker document (binary)");
+    static TMDX_XML: Subformat = Subformat::new("TextMaker document (XML)");
     const ZIP_EMPTY_ARCHIVE: &[u8; 22] = bytes!(ZIP_EOCD_SIGNATURE, &[0u8; 18]);
 
     const CD_WORD_DOC: &[u8] = b"\nword/document.xml\n";
@@ -655,7 +675,7 @@ pub(crate) fn zip_subtypes_and_fallback(
     if !names.is_empty() {
         if dir_names && !first_is_ct && memchr::memmem::find(names, LINE_CONTENT_TYPES).is_some() {
             if memchr::memmem::find(names, CD_WORD_DOC).is_some() {
-                return Some(Label::Docx);
+                return with_subformat(Label::Docx, &DOCX_OOXML);
             }
             if memchr::memmem::find(names, CD_XL_WORKBOOK_BIN).is_some() {
                 return Some(Label::Xlsb);
@@ -680,20 +700,22 @@ pub(crate) fn zip_subtypes_and_fallback(
         {
             return Some(Label::PytorchExport);
         }
-        if memchr::memmem::find(names, CD_SH3D_HOME).is_some()
-            || memchr::memmem::find(names, CD_SH3D_HOME_XML).is_some()
-        {
-            return Some(Label::Sh3d);
+        if memchr::memmem::find(names, CD_SH3D_HOME).is_some() {
+            return with_subformat(Label::Sh3d, &SH3D_BINARY);
+        }
+        if memchr::memmem::find(names, CD_SH3D_HOME_XML).is_some() {
+            return with_subformat(Label::Sh3d, &SH3D_XML);
         }
         if memchr::memmem::find(names, CD_SKOPS_SCHEMA_ROOT).is_some()
             || memchr::memmem::find(names, CD_SKOPS_SCHEMA_SUB).is_some()
         {
             return Some(Label::Skops);
         }
-        if memchr::memmem::find(names, CD_TMDX_DOC_TMD).is_some()
-            || memchr::memmem::find(names, CD_TMDX_DOC_XML).is_some()
-        {
-            return Some(Label::Tmdx);
+        if memchr::memmem::find(names, CD_TMDX_DOC_TMD).is_some() {
+            return with_subformat(Label::Tmdx, &TMDX_BINARY);
+        }
+        if memchr::memmem::find(names, CD_TMDX_DOC_XML).is_some() {
+            return with_subformat(Label::Tmdx, &TMDX_XML);
         }
         if (memchr::memmem::find(names, CD_TORCHSCRIPT_CONST_SUB).is_some()
             || memchr::memmem::find(names, CD_TORCHSCRIPT_CONST_ROOT).is_some())
@@ -738,15 +760,21 @@ pub(crate) fn zip_subtypes_and_fallback(
                 {
                     return Some(Label::PytorchExport);
                 }
-                if first_name == LFH_SH3D_HOME || first_name == LFH_SH3D_HOME_XML {
-                    return Some(Label::Sh3d);
+                if first_name == LFH_SH3D_HOME {
+                    return with_subformat(Label::Sh3d, &SH3D_BINARY);
+                }
+                if first_name == LFH_SH3D_HOME_XML {
+                    return with_subformat(Label::Sh3d, &SH3D_XML);
                 }
                 if first_name == LFH_SKOPS_SCHEMA_ROOT || first_name.ends_with(LFH_SKOPS_SCHEMA_SUB)
                 {
                     return Some(Label::Skops);
                 }
-                if first_name == LFH_TMDX_DOC_TMD || first_name == LFH_TMDX_DOC_XML {
-                    return Some(Label::Tmdx);
+                if first_name == LFH_TMDX_DOC_TMD {
+                    return with_subformat(Label::Tmdx, &TMDX_BINARY);
+                }
+                if first_name == LFH_TMDX_DOC_XML {
+                    return with_subformat(Label::Tmdx, &TMDX_XML);
                 }
                 if first_name.ends_with(LFH_TORCHSCRIPT_CONST_SUB)
                     || first_name == LFH_TORCHSCRIPT_CONST_ROOT

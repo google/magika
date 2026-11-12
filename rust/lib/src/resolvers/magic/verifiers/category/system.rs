@@ -123,7 +123,8 @@ pub(crate) fn thumbcache(prefix: &[u8], size: u64) -> Option<Label> {
         (1..=64).contains(&le32(prefix, 4)?),
         le32(prefix, 8)? <= 32,
     );
-    Some(Label::Thumbsdb)
+    static THUMBCACHE: Subformat = Subformat::new("Windows thumbcache (CMMM)");
+    with_subformat(Label::Thumbsdb, &THUMBCACHE)
 }
 
 /// Microsoft Windows Registry Script (`winregistry`, 1995): `"REGEDIT4"` or
@@ -138,6 +139,10 @@ pub(crate) fn winregistry(prefix: &[u8], size: u64) -> Option<Label> {
     const UTF16LE_HKEY_OPEN: &[u8] = b"[\0H\0K\0E\0Y\0_\0";
     const UTF16LE_HKEY_DEL: &[u8] = b"[\0-\0H\0K\0E\0Y\0_\0";
 
+    static REGEDIT4: Subformat = Subformat::new("REGEDIT4");
+    static REGEDIT5: Subformat = Subformat::new("Registry Editor 5.00");
+    static REGEDIT5_UTF16LE: Subformat = Subformat::new("Registry Editor 5.00 (UTF-16LE)");
+
     require!(size >= MIN_WIN_REG_SIZE, prefix.len() >= 29);
     if (starts(prefix, REGEDIT4_HDR) && matches!(u8_at(prefix, 8), Some(b'\r' | b'\n')))
         || (starts(prefix, REGEDIT5_HDR) && matches!(u8_at(prefix, 36), Some(b'\r' | b'\n')))
@@ -146,11 +151,12 @@ pub(crate) fn winregistry(prefix: &[u8], size: u64) -> Option<Label> {
             contains(prefix, HKEY_OPEN) || contains(prefix, HKEY_DEL),
             is_utf8_text_header(prefix, size as usize),
         );
-        return Some(Label::Winregistry);
+        let sub = if starts(prefix, REGEDIT4_HDR) { &REGEDIT4 } else { &REGEDIT5 };
+        return with_subformat(Label::Winregistry, sub);
     }
     if starts(prefix, UTF16LE_REGEDIT5_HDR) {
         require!(contains(prefix, UTF16LE_HKEY_OPEN) || contains(prefix, UTF16LE_HKEY_DEL));
-        return Some(Label::Winregistry);
+        return with_subformat(Label::Winregistry, &REGEDIT5_UTF16LE);
     }
     None
 }
@@ -169,7 +175,12 @@ pub(crate) fn appledouble(prefix: &[u8]) -> Option<Label> {
         starts(prefix, MAGIC),
         matches!(be32(prefix, VERSION)?, V1 | V2),
     );
-    Some(Label::Appledouble)
+    static APPLEDOUBLE_V1: Subformat =
+        Subformat::with_ids("AppleDouble version 1", "fmt/966", Some("fdd000625"));
+    static APPLEDOUBLE_V2: Subformat =
+        Subformat::with_ids("AppleDouble version 2", "fmt/503", Some("fdd000625"));
+    let sub = if be32(prefix, VERSION)? == V1 { &APPLEDOUBLE_V1 } else { &APPLEDOUBLE_V2 };
+    with_subformat(Label::Appledouble, sub)
 }
 
 /// AppleSingle archive: magic `0x00051600`, version 1 (`0x00010000`) or 2 (`0x00020000`),
@@ -186,7 +197,12 @@ pub(crate) fn applesingle(prefix: &[u8]) -> Option<Label> {
         starts(prefix, MAGIC),
         matches!(be32(prefix, VERSION)?, V1 | V2),
     );
-    Some(Label::Applesingle)
+    static APPLESINGLE_V1: Subformat =
+        Subformat::with_ids("AppleSingle version 1", "fmt/967", None);
+    static APPLESINGLE_V2: Subformat =
+        Subformat::with_ids("AppleSingle version 2", "fmt/968", None);
+    let sub = if be32(prefix, VERSION)? == V1 { &APPLESINGLE_V1 } else { &APPLESINGLE_V2 };
+    with_subformat(Label::Applesingle, sub)
 }
 
 /// Microsoft Windows Internet Shortcut (`internetshortcut`, 1995): `"[InternetShortcut]"`
@@ -234,7 +250,12 @@ pub(crate) fn rdp(prefix: &[u8], size: u64) -> Option<Label> {
                 || contains(prefix, RDP_DESKTOPWIDTH_ASCII)
                 || contains(prefix, RDP_FULL_ADDRESS_UTF16LE)),
     );
-    Some(Label::Rdp)
+    static RDP_ASCII: Subformat = Subformat::new("RDP connection file (ASCII)");
+    static RDP_UTF16LE: Subformat = Subformat::new("RDP connection file (UTF-16LE)");
+    with_subformat(
+        Label::Rdp,
+        if starts(prefix, RDP_SCREEN_UTF16LE) { &RDP_UTF16LE } else { &RDP_ASCII },
+    )
 }
 
 /// Apple binary property list: `"bplist"` magic followed by classic `"0?"` (with 32-byte trailer),
@@ -273,5 +294,7 @@ pub(crate) fn wad(prefix: &[u8]) -> Option<Label> {
         le32(prefix, 4)? <= 1_000_000,
         (HEADER_LEN as u32..=0x0800_0000).contains(&le32(prefix, 8)?),
     );
-    Some(Label::Wad)
+    static DOOM_IWAD: Subformat = Subformat::new("Doom IWAD");
+    static DOOM_PWAD: Subformat = Subformat::new("Doom PWAD");
+    with_subformat(Label::Wad, if starts(prefix, IWAD) { &DOOM_IWAD } else { &DOOM_PWAD })
 }

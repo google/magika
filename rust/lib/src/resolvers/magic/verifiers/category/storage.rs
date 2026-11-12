@@ -62,7 +62,7 @@ pub(crate) fn squashfs(prefix: &[u8], size: u64) -> Option<Label> {
     let major = if is_le { le16(prefix, 28)? } else { be16(prefix, 28)? };
     require!(
         inodes >= 1,
-        (4096..=1_048_576).contains(&block_size),
+        (1024..=1_048_576).contains(&block_size),
         block_size.is_power_of_two(),
         (1..=4).contains(&major),
     );

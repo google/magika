@@ -153,6 +153,13 @@ pub(crate) fn hdf5_or_keras(prefix: &[u8], size: u64) -> Option<Label> {
     if contains(prefix, KERAS_VERSION_ATTR) || contains(prefix, KERAS_MODEL_CONFIG_ATTR) {
         return Some(Label::Keras);
     }
+    if contains(prefix, b"_NCProperties")
+        || contains(prefix, b"_Netcdf4Dimid")
+        || contains(prefix, b"a netCDF variable.")
+        || (contains(prefix, b"DIMENSION_SCALE") && contains(prefix, b"DIMENSION_LIST"))
+    {
+        return Some(Label::Netcdf);
+    }
     Some(Label::H5)
 }
 

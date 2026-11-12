@@ -59,7 +59,7 @@ struct Flags {
 
     /// Checks the rules of --custom-rules-file, prints the content types they identify, and exits.
     #[arg(long, requires = "custom_rules_file")]
-    custom_rules_check: bool,
+    check_custom_rules: bool,
 
     /// Disables the resolvers.
     #[arg(long)]
@@ -205,7 +205,7 @@ fn main() -> Result<()> {
     builder.options.debug_mode = true;
     if !flags.custom_rules_file.is_empty() {
         let rules = Rules::from_files(&flags.custom_rules_file)?;
-        if flags.custom_rules_check {
+        if flags.check_custom_rules {
             println!("{rules:?}");
             return Ok(());
         }

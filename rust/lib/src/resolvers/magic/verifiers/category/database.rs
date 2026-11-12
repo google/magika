@@ -104,6 +104,9 @@ pub(crate) fn ese(prefix: &[u8]) -> Option<Label> {
 /// record size `1..=0x03FF` at `@6`, field name at `@8`, type `'C'|'L'|'N'` at `@19`, length ≥ 1
 /// at `@20`).
 pub(crate) fn dbase(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
+    static DBASE_II: Subformat = Subformat::with_ids("dBASE II", "x-fmt/8", Some("fdd000325"));
+    static DBASE_III: Subformat = Subformat::with_ids("dBASE III", "x-fmt/9", Some("fdd000325"));
+    static DBASE_IV: Subformat = Subformat::with_ids("dBASE IV", "x-fmt/10", Some("fdd000325"));
     const VERSION: usize = 0; // @0: u8 — dBASE version byte
     let v0 = u8_at(prefix, 0)?;
 
@@ -122,7 +125,7 @@ pub(crate) fn dbase(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
             matches!(u8_at(prefix, 19)?, b'C' | b'L' | b'N'),
             u8_at(prefix, 20)? >= 1,
         );
-        return Some(Label::Dbase);
+        return with_subformat(Label::Dbase, &DBASE_II);
     }
 
     const DB3_MIN_PREFIX: usize = 64;
@@ -146,12 +149,16 @@ pub(crate) fn dbase(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     };
     require!(valid_type);
     let _ = VERSION;
-    Some(Label::Dbase)
+    with_subformat(Label::Dbase, if matches!(v0, 0x03 | 0x83) { &DBASE_III } else { &DBASE_IV })
 }
 
 /// Microsoft Access Jet (`"Standard Jet DB\0"`) or ACE (`"Standard ACE DB\0"`) database (`access`,
 /// 1992): `00 01 00 00` page header prefix at `@0..4` followed by the 16-byte engine signature at `@4..20`.
 pub(crate) fn access(prefix: &[u8], size: u64) -> Option<Label> {
+    static ACCESS_JET: Subformat =
+        Subformat::with_fdd("Microsoft Access Jet database (.mdb)", "fdd000462");
+    static ACCESS_ACE: Subformat =
+        Subformat::with_ids("Microsoft Access ACE database (.accdb)", "fmt/275", Some("fdd000463"));
     const ACCESS_PAGE_PREFIX: &[u8; 4] = &[0x00, 0x01, 0x00, 0x00];
     const ACCESS_JET_DB: &[u8; 16] = b"Standard Jet DB\0";
     const ACCESS_ACE_DB: &[u8; 16] = b"Standard ACE DB\0";
@@ -162,7 +169,10 @@ pub(crate) fn access(prefix: &[u8], size: u64) -> Option<Label> {
         starts(prefix, ACCESS_PAGE_PREFIX),
         eq_at(prefix, 4, ACCESS_JET_DB) || eq_at(prefix, 4, ACCESS_ACE_DB),
     );
-    Some(Label::Access)
+    with_subformat(
+        Label::Access,
+        if eq_at(prefix, 4, ACCESS_JET_DB) { &ACCESS_JET } else { &ACCESS_ACE },
+    )
 }
 
 /// IBM DB2 database backup, check/index file, bind file, or conversion table (`db2`, 1993):
@@ -205,6 +215,7 @@ pub(crate) fn h2(prefix: &[u8], size: u64) -> Option<Label> {
 /// Oracle Export dump file (`.dmp`, `oracle_db`, 1979): `"\x03\x00\x01EXPORT:"` binary export header
 /// or `"EXPORT:V"` version banner with binary dump records.
 pub(crate) fn oracle_dmp_text(prefix: &[u8], size: u64) -> Option<Label> {
+    static ORACLE_EXPORT: Subformat = Subformat::new("Oracle Export dump");
     const ORACLE_EXP_BIN_MAGIC: &[u8; 10] = b"\x03\x00\x01EXPORT:";
     const ORACLE_EXP_TEXT_MAGIC: &[u8] = b"EXPORT:V";
 
@@ -214,12 +225,14 @@ pub(crate) fn oracle_dmp_text(prefix: &[u8], size: u64) -> Option<Label> {
         starts(prefix, ORACLE_EXP_BIN_MAGIC)
             || (starts(prefix, ORACLE_EXP_TEXT_MAGIC) && has_non_ascii_text_byte(prefix)),
     );
-    Some(Label::OracleDb)
+    with_subformat(Label::OracleDb, &ORACLE_EXPORT)
 }
 
 /// Protomaps PMTiles cloud-optimized map tile archive (`pmtiles`, 2021): `"PMTiles\x03"` or
 /// `"PMTiles\x02"` magic at `@0..8` and ≥ 127-byte header.
 pub(crate) fn pmtiles(prefix: &[u8], size: u64) -> Option<Label> {
+    static PMTILES_V2: Subformat = Subformat::new("PMTiles v2");
+    static PMTILES_V3: Subformat = Subformat::new("PMTiles v3");
     const PMTILES_V3_MAGIC: &[u8; 8] = b"PMTiles\x03";
     const PMTILES_V2_MAGIC: &[u8; 8] = b"PMTiles\x02";
 
@@ -228,7 +241,10 @@ pub(crate) fn pmtiles(prefix: &[u8], size: u64) -> Option<Label> {
         prefix.len() >= 16,
         starts(prefix, PMTILES_V3_MAGIC) || starts(prefix, PMTILES_V2_MAGIC),
     );
-    Some(Label::Pmtiles)
+    with_subformat(
+        Label::Pmtiles,
+        if starts(prefix, PMTILES_V3_MAGIC) { &PMTILES_V3 } else { &PMTILES_V2 },
+    )
 }
 
 pub(crate) const REALM_TDB_MAGIC: &[u8; 4] = b"T-DB";
@@ -247,6 +263,7 @@ pub(crate) fn realm(prefix: &[u8], size: u64) -> Option<Label> {
 /// Redis 7.0+ Multi-Part Append-Only File manifest (`redis_aof`, 2022): UTF-8 manifest lines with
 /// `"file "`, `" seq "`, and `" type "` tokens.
 pub(crate) fn redis_aof_manifest(prefix: &[u8], size: u64) -> Option<Label> {
+    static REDIS_AOF_MANIFEST: Subformat = Subformat::new("Redis AOF manifest");
     const AOF_MANIFEST_FILE_KEY: &[u8] = b"file ";
     const AOF_MANIFEST_SEQ_KEY: &[u8] = b" seq ";
     const AOF_MANIFEST_TYPE_KEY: &[u8] = b" type ";
@@ -259,7 +276,7 @@ pub(crate) fn redis_aof_manifest(prefix: &[u8], size: u64) -> Option<Label> {
             && contains(prefix, AOF_MANIFEST_TYPE_KEY),
         is_utf8_text_header(prefix, size as usize),
     );
-    Some(Label::RedisAof)
+    with_subformat(Label::RedisAof, &REDIS_AOF_MANIFEST)
 }
 
 /// WiredTiger storage engine data/log file (`wiredtiger`, 2012): `"WT_FILE\0"` turtle header,
@@ -285,6 +302,8 @@ pub(crate) fn wiredtiger(prefix: &[u8], size: u64) -> Option<Label> {
 /// `01 00` database header page (`pag_type == 1`) with power-of-two page size `1024..=32768` at
 /// `@16` and ODS major version `10..=14` at `@18`.
 pub(crate) fn firebird(prefix: &[u8], size: u64) -> Option<Label> {
+    static FIREBIRD_BACKUP: Subformat = Subformat::new("Firebird backup (gbak)");
+    static FIREBIRD_DATABASE: Subformat = Subformat::new("Firebird database (ODS)");
     const FIREBIRD_GBK_MAGIC: &[u8] = &[0x01, 0x00, 0x39, 0x30];
     const FIREBIRD_ODS_HDR: &[u8] = &[0x01, 0x00];
 
@@ -296,12 +315,16 @@ pub(crate) fn firebird(prefix: &[u8], size: u64) -> Option<Label> {
                 && matches!(le16(prefix, 16)?, 1024 | 2048 | 4096 | 8192 | 16384 | 32768)
                 && matches!(le16(prefix, 18)? & 0x0FFF, 10..=14)),
     );
-    Some(Label::Firebird)
+    with_subformat(
+        Label::Firebird,
+        if starts(prefix, FIREBIRD_GBK_MAGIC) { &FIREBIRD_BACKUP } else { &FIREBIRD_DATABASE },
+    )
 }
 
 /// Redis Append-Only File RESP command stream (`redis_aof`, 2009): RESP array opening with
 /// `*2\r\n$6\r\nSELECT\r\n` or `*3\r\n$3\r\nSET\r\n`.
 pub(crate) fn redis_aof_resp(prefix: &[u8], size: u64) -> Option<Label> {
+    static REDIS_AOF_RESP: Subformat = Subformat::new("Redis AOF (RESP commands)");
     const RESP_SELECT_UPPER: &[u8] = b"*2\r\n$6\r\nSELECT\r\n";
     const RESP_SELECT_LOWER: &[u8] = b"*2\r\n$6\r\nselect\r\n";
     const RESP_SET_UPPER: &[u8] = b"*3\r\n$3\r\nSET\r\n";
@@ -314,7 +337,7 @@ pub(crate) fn redis_aof_resp(prefix: &[u8], size: u64) -> Option<Label> {
             || starts(prefix, RESP_SELECT_LOWER)
             || (starts(prefix, RESP_SET_UPPER) && contains(prefix, RESP_BULK_STR_DELIM)),
     );
-    Some(Label::RedisAof)
+    with_subformat(Label::RedisAof, &REDIS_AOF_RESP)
 }
 
 /// Realm Mobile Database (`realm`, 2014): 16-byte top-ref header with `"T-DB"` magic at `@16..20`
@@ -332,6 +355,9 @@ pub(crate) fn realm_offset(prefix: &[u8], size: u64) -> Option<Label> {
 /// Sleepycat / Oracle Berkeley DB (`berkeleydb`, 1996): Btree (`0x00053162`), Hash (`0x00061561`),
 /// or Queue (`0x00042253`) magic at `@12..16` and version `1..=20` at `@16..20` (LE or BE).
 pub(crate) fn berkeleydb(prefix: &[u8], size: u64) -> Option<Label> {
+    static BDB_BTREE: Subformat = Subformat::new("Berkeley DB (Btree)");
+    static BDB_HASH: Subformat = Subformat::new("Berkeley DB (Hash)");
+    static BDB_QUEUE: Subformat = Subformat::new("Berkeley DB (Queue)");
     const BDB_BTREE_LE: &[u8] = &[0x62, 0x31, 0x05, 0x00];
     const BDB_BTREE_BE: &[u8] = &[0x00, 0x05, 0x31, 0x62];
     const BDB_HASH_LE: &[u8] = &[0x61, 0x15, 0x06, 0x00];
@@ -349,7 +375,14 @@ pub(crate) fn berkeleydb(prefix: &[u8], size: u64) -> Option<Label> {
     {
         let ver = le32(prefix, 16)?;
         require!((1..=20).contains(&ver) || (1..=20).contains(&ver.swap_bytes()));
-        return Some(Label::Berkeleydb);
+        let sub = if eq_at(prefix, 12, BDB_BTREE_LE) || eq_at(prefix, 12, BDB_BTREE_BE) {
+            &BDB_BTREE
+        } else if eq_at(prefix, 12, BDB_HASH_LE) || eq_at(prefix, 12, BDB_HASH_BE) {
+            &BDB_HASH
+        } else {
+            &BDB_QUEUE
+        };
+        return with_subformat(Label::Berkeleydb, sub);
     }
     None
 }
@@ -384,6 +417,9 @@ pub(crate) fn leveldb(_prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<
 /// Symas Lightning Memory-Mapped Database (`lmdb`, 2011): `0xBEEFC0DE` LE magic (`DE C0 EF BE`) at
 /// `@0` (lockfile), `@12` (32-bit meta page), or `@16` (64-bit meta page).
 pub(crate) fn lmdb(prefix: &[u8], size: u64) -> Option<Label> {
+    static LMDB_LOCK: Subformat = Subformat::new("LMDB lock file");
+    static LMDB_DATA_32: Subformat = Subformat::new("LMDB data file (32-bit)");
+    static LMDB_DATA_64: Subformat = Subformat::new("LMDB data file (64-bit)");
     const LMDB_BEEFC0DE_LE: &[u8] = &[0xDE, 0xC0, 0xEF, 0xBE];
 
     require!(
@@ -393,12 +429,22 @@ pub(crate) fn lmdb(prefix: &[u8], size: u64) -> Option<Label> {
             || eq_at(prefix, 12, LMDB_BEEFC0DE_LE)
             || eq_at(prefix, 16, LMDB_BEEFC0DE_LE),
     );
-    Some(Label::Lmdb)
+    let sub = if starts(prefix, LMDB_BEEFC0DE_LE) {
+        &LMDB_LOCK
+    } else if eq_at(prefix, 12, LMDB_BEEFC0DE_LE) {
+        &LMDB_DATA_32
+    } else {
+        &LMDB_DATA_64
+    };
+    with_subformat(Label::Lmdb, sub)
 }
 
 /// MySQL / MariaDB table definition (`.frm`, `FE FE 07 01`) or MyISAM index (`.MYI`, `FE FE 09`)
 /// storage file (`mysql_storage`, 1995).
 pub(crate) fn mysql_storage(prefix: &[u8], size: u64) -> Option<Label> {
+    static MYSQL_FRM: Subformat =
+        Subformat::with_ids("MySQL table definition (.frm)", "fmt/868", Some("fdd000623"));
+    static MYISAM_MYI: Subformat = Subformat::with_ids("MyISAM index (.MYI)", "fmt/1197", None);
     const MYSQL_FRM_MAGIC: &[u8] = &[0xFE, 0xFE, 0x07, 0x01];
     const MYSQL_MYI_MAGIC: &[u8] = &[0xFE, 0xFE, 0x09];
 
@@ -408,12 +454,16 @@ pub(crate) fn mysql_storage(prefix: &[u8], size: u64) -> Option<Label> {
         starts(prefix, MYSQL_FRM_MAGIC)
             || (starts(prefix, MYSQL_MYI_MAGIC) && matches!(u8_at(prefix, 3)?, 1..=12)),
     );
-    Some(Label::MysqlStorage)
+    with_subformat(
+        Label::MysqlStorage,
+        if starts(prefix, MYSQL_FRM_MAGIC) { &MYSQL_FRM } else { &MYISAM_MYI },
+    )
 }
 
 /// Oracle Database datafile / controlfile (`.dbf` / `.ctl`, `oracle_db`, 1979): block header with
 /// magic `0x7AC2F8F0` (LE or BE) at `@20..24` and ≥ 512-byte size.
 pub(crate) fn oracle_dbf(prefix: &[u8], size: u64) -> Option<Label> {
+    static ORACLE_DATAFILE: Subformat = Subformat::new("Oracle datafile / control file");
     const ORACLE_DBF_MAGIC_LE: &[u8] = &[0xF0, 0xF8, 0xC2, 0x7A];
     const ORACLE_DBF_MAGIC_BE: &[u8] = &[0x7A, 0xC2, 0xF8, 0xF0];
 
@@ -422,7 +472,7 @@ pub(crate) fn oracle_dbf(prefix: &[u8], size: u64) -> Option<Label> {
         prefix.len() >= 32,
         eq_at(prefix, 20, ORACLE_DBF_MAGIC_LE) || eq_at(prefix, 20, ORACLE_DBF_MAGIC_BE),
     );
-    Some(Label::OracleDb)
+    with_subformat(Label::OracleDb, &ORACLE_DATAFILE)
 }
 
 /// Borland Paradox relational database table (`.db`, `paradox`, 1985): record size at `@0..2`,
@@ -472,6 +522,9 @@ pub(crate) fn rocksdb(_prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<
 /// at `@4..24`, file length ≥ 54 words at `@24`, version `1000` LE at `@28`, valid shape type at
 /// `@32`, and first record number `1` (`.shp`) or offset `50` words (`.shx`) BE at `@100`.
 pub(crate) fn shapefile(prefix: &[u8]) -> Option<Label> {
+    static SHAPEFILE_SHP: Subformat = Subformat::new("Esri Shapefile main file (.shp)");
+    static SHAPEFILE_SHX: Subformat =
+        Subformat::with_ids("Esri Shapefile index (.shx)", "fmt/277", None);
     const FILE_CODE: u32 = 9994; // @0: u32 BE — ESRI shapefile code (0x0000270A)
     const UNUSED: usize = 4; // @4..24: 5 × u32 unused zero words
     const FILE_LEN_WORDS: usize = 24; // @24: u32 BE — file length in 16-bit words (≥ 54)
@@ -492,12 +545,18 @@ pub(crate) fn shapefile(prefix: &[u8]) -> Option<Label> {
         ),
         matches!(be32(prefix, FIRST_RECORD)?, 1 | 50),
     );
-    Some(Label::Shapefile)
+    with_subformat(
+        Label::Shapefile,
+        if be32(prefix, FIRST_RECORD)? == 1 { &SHAPEFILE_SHP } else { &SHAPEFILE_SHX },
+    )
 }
 
 /// Björn Harrtell FlatGeobuf cloud-native vector geospatial format (`flatgeobuf`, 2018):
 /// `"fgb\x03fgb"`, `"fgb\x02fgb"`, or `"fgb\x01fgb"` header magic at `@0..7` and patch byte `<= 3` at `@7`.
 pub(crate) fn flatgeobuf(prefix: &[u8], size: u64) -> Option<Label> {
+    static FGB_V1: Subformat = Subformat::new("FlatGeobuf v1");
+    static FGB_V2: Subformat = Subformat::new("FlatGeobuf v2");
+    static FGB_V3: Subformat = Subformat::new("FlatGeobuf v3");
     const FGB_V3_MAGIC: &[u8; 7] = b"fgb\x03fgb";
     const FGB_V2_MAGIC: &[u8; 7] = b"fgb\x02fgb";
     const FGB_V1_MAGIC: &[u8; 7] = b"fgb\x01fgb";
@@ -510,13 +569,22 @@ pub(crate) fn flatgeobuf(prefix: &[u8], size: u64) -> Option<Label> {
             || starts(prefix, FGB_V1_MAGIC),
         u8_at(prefix, 7)? <= 3,
     );
-    Some(Label::Flatgeobuf)
+    let sub = if starts(prefix, FGB_V3_MAGIC) {
+        &FGB_V3
+    } else if starts(prefix, FGB_V2_MAGIC) {
+        &FGB_V2
+    } else {
+        &FGB_V1
+    };
+    with_subformat(Label::Flatgeobuf, sub)
 }
 
 /// Society of Exploration Geophysicists SEG-Y seismic data (`segy`, 1975): 3200-byte EBCDIC/ASCII
 /// textual reel header + 400-byte binary header with non-zero sample interval (`@3216`), sample
 /// count (`@3220`), and data sample format code `1..=8` (`@3224`).
 pub(crate) fn segy(prefix: &[u8], size: u64) -> Option<Label> {
+    static SEGY_EBCDIC: Subformat = Subformat::new("SEG-Y (EBCDIC textual header)");
+    static SEGY_ASCII: Subformat = Subformat::new("SEG-Y (ASCII textual header)");
     require!(size >= 3600, prefix.len() >= 3600);
     let interval = u16::from_be_bytes([prefix[3216], prefix[3217]]);
     let samples = u16::from_be_bytes([prefix[3220], prefix[3221]]);
@@ -529,7 +597,7 @@ pub(crate) fn segy(prefix: &[u8], size: u64) -> Option<Label> {
     );
     let _ = get_slice(prefix, 0, 4);
     let _ = get_slice(prefix, 3216, 3226);
-    Some(Label::Segy)
+    with_subformat(Label::Segy, if prefix[0] == 0xC3 { &SEGY_EBCDIC } else { &SEGY_ASCII })
 }
 
 /// Esri ARC/INFO ASCII Grid (`arcgrid`, 1991): `"ncols "` header followed by `nrows`,
@@ -595,6 +663,8 @@ pub(crate) fn avro(prefix: &[u8]) -> Option<Label> {
 /// MATLAB v5 MAT-file: `"MATLAB 5"` text prefix and 128-byte header with version `0x0100` and
 /// endianness indicator `"MI"` (little-endian) or `"IM"` (big-endian) at offset 124.
 pub(crate) fn mat(prefix: &[u8]) -> Option<Label> {
+    static MAT5_BE: Subformat = Subformat::new("MAT-file Level 5 (big-endian)");
+    static MAT5_LE: Subformat = Subformat::new("MAT-file Level 5 (little-endian)");
     const MAGIC: &[u8] = b"MATLAB 5"; // @0..8: descriptive text prefix
     const VERSION_ENDIAN: usize = 124; // @124..128: version 0x0100 + endian tag
     const BE_TAG: &[u8] = bytes!(&0x0100u16.to_be_bytes(), b"MI"); // big-endian v5 indicator
@@ -606,7 +676,10 @@ pub(crate) fn mat(prefix: &[u8]) -> Option<Label> {
         starts(prefix, MAGIC),
         eq_at(prefix, VERSION_ENDIAN, BE_TAG) || eq_at(prefix, VERSION_ENDIAN, LE_TAG),
     );
-    Some(Label::Mat)
+    with_subformat(
+        Label::Mat,
+        if eq_at(prefix, VERSION_ENDIAN, BE_TAG) { &MAT5_BE } else { &MAT5_LE },
+    )
 }
 
 /// Apache Parquet column store: `"PAR1"` leading magic, ≥ 12 bytes, and binary payload/footer bytes.
@@ -626,6 +699,10 @@ pub(crate) fn parquet(prefix: &[u8]) -> Option<Label> {
 /// compression `0..=2` at `@72`) or SPSS portable file (EBCDIC `"SPSS"` = `C9 C3 E2 C1` at `@0`,
 /// ≥ 464 bytes).
 pub(crate) fn spss(prefix: &[u8]) -> Option<Label> {
+    static SPSS_SAV: Subformat = Subformat::new("SPSS system file (.sav)");
+    static SPSS_ZSAV: Subformat = Subformat::new("SPSS compressed system file (.zsav)");
+    static SPSS_POR: Subformat =
+        Subformat::with_ids("SPSS portable file (.por)", "fmt/997", Some("fdd000468"));
     const SAV_FL2: &[u8] = b"$FL2"; // @0..4: SPSS SAV magic
     const SAV_FL3: &[u8] = b"$FL3"; // @0..4: SPSS ZSAV magic
     const PORTABLE_EBCDIC: &[u8] = &[0xC9, 0xC3, 0xE2, 0xC1]; // @0..4: EBCDIC "SPSS" in portable header
@@ -638,10 +715,13 @@ pub(crate) fn spss(prefix: &[u8]) -> Option<Label> {
         let le_ok = matches!(le32(prefix, LAYOUT_CODE)?, 2 | 3) && le32(prefix, COMPRESSION)? <= 2;
         let be_ok = matches!(be32(prefix, LAYOUT_CODE)?, 2 | 3) && be32(prefix, COMPRESSION)? <= 2;
         require!(le_ok || be_ok);
-        return Some(Label::Spss);
+        return with_subformat(
+            Label::Spss,
+            if starts(prefix, SAV_FL2) { &SPSS_SAV } else { &SPSS_ZSAV },
+        );
     }
     require!(prefix.len() >= PORTABLE_MIN_LEN, starts(prefix, PORTABLE_EBCDIC));
-    Some(Label::Spss)
+    with_subformat(Label::Spss, &SPSS_POR)
 }
 
 /// Apache Arrow IPC file (Feather v2): `"ARROW1\0\0"` padded magic and ≥ 12 bytes.
@@ -680,6 +760,12 @@ pub(crate) fn sas(prefix: &[u8]) -> Option<Label> {
 /// NASA Common Data Format (`CD F3 00 01` v3 / `CD F2 06 00` v2.6), RIFF `DMPR` CDF, or Unidata
 /// NetCDF-5 64-bit data (`"CDF\x05"`) scientific dataset (`cdf`, 1985).
 pub(crate) fn cdf(prefix: &[u8], size: u64) -> Option<Label> {
+    static CDF_RIFF_DMPR: Subformat = Subformat::new("CDF (RIFF DMPR)");
+    static NASA_CDF_V3: Subformat =
+        Subformat::with_ids("NASA CDF 3.x", "fmt/1950", Some("fdd000226"));
+    static NASA_CDF_V2_6: Subformat =
+        Subformat::with_ids("NASA CDF 2.6/2.7", "fmt/1949", Some("fdd000226"));
+    static NETCDF_5: Subformat = Subformat::new("NetCDF-5 (64-bit data)");
     const DMPR_FORM: &[u8; 4] = b"DMPR";
     const NASA_CDF3_MAGIC: &[u8] = &[0xCD, 0xF3, 0x00, 0x01];
     const NASA_CDF2_MAGIC: &[u8] = &[0xCD, 0xF2, 0x06, 0x00];
@@ -690,17 +776,20 @@ pub(crate) fn cdf(prefix: &[u8], size: u64) -> Option<Label> {
     require!(size >= 12, prefix.len() >= 12);
     if starts(prefix, RIFF_MAGIC) && eq_at(prefix, 8, DMPR_FORM) {
         require!((4..0x0800_0000).contains(&le32(prefix, 4)?));
-        return Some(Label::Cdf);
+        return with_subformat(Label::Cdf, &CDF_RIFF_DMPR);
     }
     if starts(prefix, NASA_CDF3_MAGIC) || starts(prefix, NASA_CDF2_MAGIC) {
         require!(eq_at(prefix, 4, NASA_CDF_UNCOMPRESSED) || eq_at(prefix, 4, NASA_CDF_COMPRESSED));
-        return Some(Label::Cdf);
+        return with_subformat(
+            Label::Cdf,
+            if starts(prefix, NASA_CDF3_MAGIC) { &NASA_CDF_V3 } else { &NASA_CDF_V2_6 },
+        );
     }
     require!(
         starts(prefix, NETCDF_64BIT_DATA_MAGIC),
         matches!(be32(prefix, 8).unwrap_or(0), 0 | 0x0000_000A | 0x0000_000B),
     );
-    Some(Label::Cdf)
+    with_subformat(Label::Cdf, &NETCDF_5)
 }
 
 /// Apache Optimized Row Columnar (`orc`, 2013): `"ORC"` prefix followed by binary stream bytes and

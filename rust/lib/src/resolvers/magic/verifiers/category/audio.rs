@@ -20,6 +20,8 @@ use crate::resolvers::magic::*;
 /// Sun/NeXT (`.snd`, big-endian) or DEC (`dns.`, little-endian) AU audio file: 24-byte header,
 /// data offset ≥ 24, defined encoding code (1..=14 or 16..=27), nonzero sample rate and channels.
 pub(crate) fn au(prefix: &[u8]) -> Option<Label> {
+    static AU_BE: Subformat = Subformat::new("Sun/NeXT AU (big-endian)");
+    static AU_LE: Subformat = Subformat::new("DEC AU (little-endian)");
     const BIG_MAGIC: &[u8] = b".snd"; // @0..4: big-endian AU magic
     const LITTLE_MAGIC: &[u8] = b"dns."; // @0..4: little-endian AU magic
     const MIN_LEN: usize = 24; // 6 × u32 header
@@ -28,11 +30,12 @@ pub(crate) fn au(prefix: &[u8]) -> Option<Label> {
     const SAMPLE_RATE: usize = 16; // @16: u32 — sample rate in Hz (> 0)
     const CHANNELS: usize = 20; // @20: u32 — number of channels (> 0)
 
+    type ReadU32 = fn(&[u8], usize) -> Option<u32>;
     require!(prefix.len() >= MIN_LEN);
-    let read_u32: fn(&[u8], usize) -> Option<u32> = if starts(prefix, BIG_MAGIC) {
-        be32
+    let (read_u32, sub): (ReadU32, &Subformat) = if starts(prefix, BIG_MAGIC) {
+        (be32, &AU_BE)
     } else if starts(prefix, LITTLE_MAGIC) {
-        le32
+        (le32, &AU_LE)
     } else {
         return None;
     };
@@ -43,12 +46,15 @@ pub(crate) fn au(prefix: &[u8]) -> Option<Label> {
         read_u32(prefix, SAMPLE_RATE)? > 0,
         read_u32(prefix, CHANNELS)? > 0,
     );
-    Some(Label::Au)
+    with_subformat(Label::Au, sub)
 }
 
 /// Standard MIDI File (SMF): `"MThd"` chunk of length 6, valid format (`0` with 1 track, or
 /// `1..=2` with ≥ 1 track), valid time division, and first `"MTrk"` track chunk of length ≥ 4.
 pub(crate) fn midi(prefix: &[u8]) -> Option<Label> {
+    static MIDI_FMT0: Subformat = Subformat::new("Standard MIDI (format 0)");
+    static MIDI_FMT1: Subformat = Subformat::new("Standard MIDI (format 1)");
+    static MIDI_FMT2: Subformat = Subformat::new("Standard MIDI (format 2)");
     const HEADER: &[u8] = bytes!(b"MThd", &6u32.to_be_bytes()); // @0..8: MThd tag + 6-byte header length
     const FORMAT: usize = 8; // @8: u16 BE — MIDI format (0, 1, or 2)
     const TRACKS: usize = 10; // @10: u16 BE — number of tracks
@@ -69,7 +75,13 @@ pub(crate) fn midi(prefix: &[u8]) -> Option<Label> {
     let valid_div = (1..=32767).contains(&div)
         || (matches!(u8_at(prefix, 12)?, 226 | 227 | 231 | 232) && u8_at(prefix, 13)? >= 1);
     require!(valid_fmt, valid_div);
-    Some(Label::Midi)
+    let sub = match fmt {
+        0 => &MIDI_FMT0,
+        1 => &MIDI_FMT1,
+        2 => &MIDI_FMT2,
+        _ => unreachable!(),
+    };
+    with_subformat(Label::Midi, sub)
 }
 
 /// Free Lossless Audio Codec (FLAC): `"fLaC"` magic followed by a 34-byte `STREAMINFO` block
@@ -119,19 +131,25 @@ pub(crate) fn ogg(prefix: &[u8]) -> Option<Label> {
 /// minor `< 0xFF` at `@4`, flags `(b & 0x0F) == 0` at `@5`, and 4 synchsafe size bytes
 /// (`< 0x80`) at `@6..10`.
 pub(crate) fn id3_mp3(prefix: &[u8], size: u64) -> Option<Label> {
+    static MP3_ID3V2_2: Subformat = Subformat::new("MP3 (ID3v2.2)");
+    static MP3_ID3V2_3: Subformat = Subformat::new("MP3 (ID3v2.3)");
+    static MP3_ID3V2_4: Subformat = Subformat::new("MP3 (ID3v2.4)");
     const ID3V2_MAGIC: &[u8; 3] = b"ID3";
 
+    require!(size >= 14, prefix.len() >= 10, starts(prefix, ID3V2_MAGIC));
+    let sub = match u8_at(prefix, 3)? {
+        2 => &MP3_ID3V2_2,
+        3 => &MP3_ID3V2_3,
+        4 => &MP3_ID3V2_4,
+        _ => return None,
+    };
     require!(
-        size >= 14,
-        prefix.len() >= 10,
-        starts(prefix, ID3V2_MAGIC),
-        (2..=4).contains(&u8_at(prefix, 3)?),
         u8_at(prefix, 4)? < 0xFF,
         (u8_at(prefix, 5)? & 0x0F) == 0,
         ((u8_at(prefix, 6)? | u8_at(prefix, 7)? | u8_at(prefix, 8)? | u8_at(prefix, 9)?) & 0x80)
             == 0,
     );
-    Some(Label::Mp3)
+    with_subformat(Label::Mp3, sub)
 }
 
 /// Verifies at least two consecutive valid MPEG-1/2/2.5 Layer I/II/III audio frame headers.

@@ -13,6 +13,9 @@
 // limitations under the License.
 
 mod magic;
+mod metadata;
+
+use std::collections::HashMap;
 
 use anyhow::Result;
 
@@ -20,12 +23,26 @@ use crate::{ContentType, Input};
 
 const PREFIX_LIMIT: usize = 4096;
 
+/// Returns the content types and metadata of a file without false positives.
+pub(crate) fn identify_with_metadata(
+    file: &mut Input,
+) -> Result<(Vec<ContentType>, HashMap<String, String>)> {
+    let content_types = identify(file)?;
+    let mut metadata = HashMap::new();
+    if let Some(&content_type) = content_types.first() {
+        let subformat = magic::take_subformat(content_type);
+        metadata::populate(content_type, subformat, &mut metadata);
+    }
+    Ok((content_types, metadata))
+}
+
 /// Returns the content types of a file without false positives.
 ///
 /// The returned list may have false negatives (the file should have a content type that's not
 /// returned). In particular, the list may be empty, in which case the model will also try to
 /// identify the file.
 pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
+    magic::clear_subformat();
     let size = file.length();
     if size == 0 {
         return Ok(Vec::new());
@@ -214,6 +231,11 @@ mod tests {
         identify(&mut input).unwrap()
     }
 
+    fn resolve_slice_with_metadata(bytes: &[u8]) -> (Vec<ContentType>, HashMap<String, String>) {
+        let mut input = Input::from_slice(bytes);
+        identify_with_metadata(&mut input).unwrap()
+    }
+
     #[test]
     fn vetos_are_distinct_and_complete() {
         let resolvers_vetos: HashSet<ContentType> = VETOS.iter().copied().collect();
@@ -282,6 +304,308 @@ mod tests {
             }
         }
         assert_eq!(matched, 310);
+    }
+
+    #[test]
+    fn resolvers_populate_standard_metadata() {
+        let png = std::fs::File::open("../../tests_data/resolvers/fixtures/image/png.png").unwrap();
+        let mut input = Input::from_file(png).unwrap();
+        let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+        assert_eq!(cts, vec![ContentType::Png]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PNG"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/11"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000153"));
+
+        let pdf =
+            std::fs::File::open("../../tests_data/resolvers/fixtures/document/pdf.pdf").unwrap();
+        let mut input = Input::from_file(pdf).unwrap();
+        let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF 1.3"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/17"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000316"));
+
+        // Non-matching inputs return empty metadata and do not leak prior subformat state.
+        let (cts, meta) = resolve_slice_with_metadata(b"plain text without any file signature");
+        assert!(cts.is_empty());
+        assert!(meta.is_empty());
+    }
+
+    #[test]
+    fn resolvers_fixtures_metadata_are_well_formed() {
+        let root = std::path::Path::new("../../tests_data/resolvers/fixtures");
+        let mut dirs: Vec<_> = std::fs::read_dir(root)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.is_dir())
+            .collect();
+        dirs.sort();
+        let mut with_puid = 0usize;
+        let mut with_fdd = 0usize;
+        let mut with_sub = 0usize;
+        for dir in dirs {
+            let mut entries: Vec<_> =
+                std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().path()).collect();
+            entries.sort();
+            for path in entries {
+                if !path.is_file() {
+                    continue;
+                }
+                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+                assert_eq!(cts.len(), 1, "expected 1 match on {}", path.display());
+                for (k, v) in &meta {
+                    assert!(
+                        matches!(k.as_str(), "subformat" | "pronom_puid" | "loc_fdd"),
+                        "unexpected metadata key {k:?} on {}",
+                        path.display()
+                    );
+                    assert!(!v.is_empty(), "empty metadata value for {k:?} on {}", path.display());
+                }
+                if let Some(puid) = meta.get("pronom_puid") {
+                    let rest = puid
+                        .strip_prefix("fmt/")
+                        .or_else(|| puid.strip_prefix("x-fmt/"))
+                        .unwrap_or_else(|| panic!("invalid PUID {puid:?} on {}", path.display()));
+                    assert!(
+                        !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()),
+                        "invalid PUID digits {puid:?} on {}",
+                        path.display()
+                    );
+                    with_puid += 1;
+                }
+                if let Some(fdd) = meta.get("loc_fdd") {
+                    let rest = fdd
+                        .strip_prefix("fdd")
+                        .unwrap_or_else(|| panic!("invalid FDD {fdd:?} on {}", path.display()));
+                    assert!(
+                        rest.len() == 6 && rest.bytes().all(|b| b.is_ascii_digit()),
+                        "invalid FDD digits {fdd:?} on {}",
+                        path.display()
+                    );
+                    with_fdd += 1;
+                }
+                if meta.contains_key("subformat") {
+                    with_sub += 1;
+                }
+            }
+        }
+        assert!(with_puid >= 150, "expected broad PUID coverage, got {with_puid}");
+        assert!(with_fdd >= 90, "expected broad FDD coverage, got {with_fdd}");
+        assert!(with_sub >= 100, "expected broad subformat coverage, got {with_sub}");
+    }
+
+    #[test]
+    fn resolvers_populate_subformat_overrides() {
+        // GIF87a vs GIF89a
+        let mut gif87a = *b"GIF87a\x01\x00\x01\x00\x00\x00\x00;";
+        let (cts, meta) = resolve_slice_with_metadata(&gif87a);
+        assert_eq!(cts, vec![ContentType::Gif]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GIF 87a"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/3"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        gif87a[3..6].copy_from_slice(b"89a");
+        let (cts, meta) = resolve_slice_with_metadata(&gif87a);
+        assert_eq!(cts, vec![ContentType::Gif]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GIF 89a"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/4"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000133"));
+
+        // PDF 1.4, 1.7, 2.0, and minimal header
+        let (cts, meta) = resolve_slice_with_metadata(b"%PDF-1.4\n");
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF 1.4"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/18"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000122"));
+
+        let (cts, meta) = resolve_slice_with_metadata(b"%PDF-2.0\n");
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF 2.0"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1129"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000474"));
+
+        let (cts, meta) = resolve_slice_with_metadata(b"%PDF\n1 0 obj<<>>endobj\n");
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF (non-standard header)"));
+        assert_eq!(meta.get("pronom_puid"), None);
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000030"));
+
+        // PE32 vs tiny collapsed MZPE
+        let (cts, meta) = resolve_slice_with_metadata(&build_pe32(0x0102, 0x1000));
+        assert_eq!(cts, vec![ContentType::Pebin]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PE32"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/899"));
+
+        let mut mzpe = vec![0u8; 97];
+        mzpe[..6].copy_from_slice(b"MZPE\0\0");
+        mzpe[6..8].copy_from_slice(&0x014Cu16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&mzpe);
+        assert_eq!(cts, vec![ContentType::Pebin]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("PE (tiny, header at offset 2)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/411"));
+
+        // TIFF vs BigTIFF
+        let mut tiff = vec![0u8; 32];
+        tiff[..8].copy_from_slice(b"II\x2A\x00\x08\x00\x00\x00");
+        let (cts, meta) = resolve_slice_with_metadata(&tiff);
+        assert_eq!(cts, vec![ContentType::Tiff]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("TIFF (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/353"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000022"));
+
+        let mut bigtiff = vec![0u8; 32];
+        bigtiff[..16].copy_from_slice(&[
+            b'I', b'I', 0x2B, 0x00, 0x08, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ]);
+        let (cts, meta) = resolve_slice_with_metadata(&bigtiff);
+        assert_eq!(cts, vec![ContentType::Tiff]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("BigTIFF (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1917"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000328"));
+
+        // DOCX vs DOCM
+        let docx = archive(
+            &[
+                stored(
+                    b"[Content_Types].xml",
+                    b"<Types>application/vnd.openxmlformats-officedocument.wordprocessingml.\
+                      document.main+xml</Types>",
+                ),
+                stored(b"word/document.xml", b"<w:document/>"),
+            ],
+            b"",
+        );
+        let (cts, meta) = resolve_slice_with_metadata(&docx);
+        assert_eq!(cts, vec![ContentType::Docx]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Word Open XML document (.docx)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/412"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000397"));
+
+        let docm = archive(
+            &[
+                stored(
+                    b"[Content_Types].xml",
+                    b"<Types>application/vnd.ms-word.document.macroEnabled.main+xml</Types>",
+                ),
+                stored(b"word/document.xml", b"<w:document/>"),
+            ],
+            b"",
+        );
+        let (cts, meta) = resolve_slice_with_metadata(&docm);
+        assert_eq!(cts, vec![ContentType::Docx]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Word Open XML macro-enabled document (.docm)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/523"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        // Stata 117 vs 118
+        let (cts, meta) = resolve_slice_with_metadata(
+            b"<stata_dta><header><release>117</release><byteorder>LSF</byteorder>",
+        );
+        assert_eq!(cts, vec![ContentType::Stata]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Stata DTA 117 (little-endian)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1036"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        let (cts, meta) = resolve_slice_with_metadata(
+            b"<stata_dta><header><release>118</release><byteorder>MSF</byteorder>",
+        );
+        assert_eq!(cts, vec![ContentType::Stata]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("Stata DTA 118 (big-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1037"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000471"));
+
+        // NetCDF-3 classic vs 64-bit
+        let mut nc = vec![0u8; 32];
+        nc[..4].copy_from_slice(b"CDF\x01");
+        let (cts, meta) = resolve_slice_with_metadata(&nc);
+        assert_eq!(cts, vec![ContentType::Netcdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("NetCDF-3 classic"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/282"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000330"));
+
+        nc[3] = 2;
+        let (cts, meta) = resolve_slice_with_metadata(&nc);
+        assert_eq!(cts, vec![ContentType::Netcdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("NetCDF-3 64-bit offset"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/283"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000330"));
+
+        // ISO 9660 vs High Sierra
+        let mut iso = vec![0u8; 0x8020];
+        iso[0x8000..0x8006].copy_from_slice(b"\x01CD001");
+        let (cts, meta) = resolve_slice_with_metadata(&iso);
+        assert_eq!(cts, vec![ContentType::Iso]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ISO 9660"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/468"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000348"));
+
+        iso[0x8000..0x8006].fill(0);
+        iso[0x8008..0x800E].copy_from_slice(b"\x01CDROM");
+        let (cts, meta) = resolve_slice_with_metadata(&iso);
+        assert_eq!(cts, vec![ContentType::Iso]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("High Sierra"));
+        assert_eq!(meta.get("pronom_puid"), None);
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        // GeoPackage 1.0 vs 1.2+
+        let mut gpkg = vec![0u8; 100];
+        gpkg[..16].copy_from_slice(b"SQLite format 3\0");
+        gpkg[68..72].copy_from_slice(b"GP10");
+        let (cts, meta) = resolve_slice_with_metadata(&gpkg);
+        assert_eq!(cts, vec![ContentType::Geopackage]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GeoPackage 1.0"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1700"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000419"));
+
+        gpkg[68..72].copy_from_slice(b"GPKG");
+        let (cts, meta) = resolve_slice_with_metadata(&gpkg);
+        assert_eq!(cts, vec![ContentType::Geopackage]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GeoPackage 1.2+"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1700"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000520"));
+
+        // GGUF v1 / v2 / v3
+        let mut gguf = vec![0u8; 24];
+        gguf[..4].copy_from_slice(b"GGUF");
+        for (ver, puid) in [(1u32, "fmt/2096"), (2, "fmt/2097"), (3, "fmt/2098")] {
+            gguf[4..8].copy_from_slice(&ver.to_le_bytes());
+            let (cts, meta) = resolve_slice_with_metadata(&gguf);
+            assert_eq!(cts, vec![ContentType::Gguf]);
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some(puid));
+            assert_eq!(meta.get("loc_fdd"), None);
+        }
+
+        // ASPRS LAS 1.2 vs 1.4
+        let mut las = vec![0u8; 227];
+        las[..4].copy_from_slice(b"LASF");
+        las[24] = 1;
+        las[25] = 2;
+        let (cts, meta) = resolve_slice_with_metadata(&las);
+        assert_eq!(cts, vec![ContentType::Las]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ASPRS LAS 1.2"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/370"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        las[25] = 4;
+        let (cts, meta) = resolve_slice_with_metadata(&las);
+        assert_eq!(cts, vec![ContentType::Las]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ASPRS LAS 1.4"));
+        assert_eq!(meta.get("pronom_puid"), None);
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000418"));
     }
 
     fn stored<'a>(name: &'a [u8], data: &'a [u8]) -> (&'a [u8], &'a [u8]) {

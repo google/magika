@@ -41,7 +41,12 @@ pub(crate) fn threedsx(prefix: &[u8]) -> Option<Label> {
         le32(prefix, DATA_BSS_SIZE)? % 4 == 0,
         le32(prefix, BSS_SIZE)? % 4 == 0,
     );
-    Some(Label::_3dsx)
+    static THREEDSX_BASE: Subformat = Subformat::new("3DSX (32-byte header)");
+    static THREEDSX_EXT: Subformat = Subformat::new("3DSX (44-byte extended header)");
+    with_subformat(
+        Label::_3dsx,
+        if starts(prefix, EXT_HDR) { &THREEDSX_EXT } else { &THREEDSX_BASE },
+    )
 }
 
 /// Microsoft USB Flashing Format (UF2): 512-byte block with starting magics `"UF2\n"` +
@@ -165,7 +170,10 @@ pub(crate) fn nintendo_3ds(prefix: &[u8], size: u64) -> Option<Label> {
         eq_at(prefix, 0x100, N3DS_NCSD_MAGIC) || eq_at(prefix, 0x100, N3DS_NCCH_MAGIC),
         (1..0x0800_0000).contains(&le32(prefix, 0x104)?),
     );
-    Some(Label::_3ds)
+    static N3DS_NCSD: Subformat = Subformat::new("CTR Card Image (NCSD)");
+    static N3DS_NCCH: Subformat = Subformat::new("CTR Content Container (NCCH)");
+    let sub = if eq_at(prefix, 0x100, N3DS_NCSD_MAGIC) { &N3DS_NCSD } else { &N3DS_NCCH };
+    with_subformat(Label::_3ds, sub)
 }
 
 /// UEFI Platform Initialization Firmware Volume (`uefi_fv`, 2006): 16-byte zero vector at `@0..16`

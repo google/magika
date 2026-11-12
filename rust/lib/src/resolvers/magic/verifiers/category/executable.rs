@@ -42,7 +42,24 @@ pub(crate) fn macho(prefix: &[u8]) -> Option<Label> {
     require!(!is_64 || prefix.len() >= MIN_LEN_64, read_u32(prefix, FILETYPE)? >= 1);
     let (ncmds, sizeofcmds) = (read_u32(prefix, NCMDS)?, read_u32(prefix, SIZEOFCMDS)?);
     require!((ncmds == 0 && sizeofcmds == 0) || (ncmds >= 1 && sizeofcmds >= 8));
-    Some(Label::Macho)
+    static MACHO_32_LE: Subformat =
+        Subformat::with_ids("Mach-O 32-bit (little-endian)", "fmt/692", None);
+    static MACHO_32_BE: Subformat =
+        Subformat::with_ids("Mach-O 32-bit (big-endian)", "fmt/692", None);
+    static MACHO_64_LE: Subformat =
+        Subformat::with_ids("Mach-O 64-bit (little-endian)", "fmt/693", None);
+    static MACHO_64_BE: Subformat =
+        Subformat::with_ids("Mach-O 64-bit (big-endian)", "fmt/693", None);
+    let is_le = matches!(le32(prefix, 0)?, MH_MAGIC | MH_MAGIC_64);
+    with_subformat(
+        Label::Macho,
+        match (is_64, is_le) {
+            (false, true) => &MACHO_32_LE,
+            (false, false) => &MACHO_32_BE,
+            (true, true) => &MACHO_64_LE,
+            (true, false) => &MACHO_64_BE,
+        },
+    )
 }
 
 /// Microsoft Program Database (PDB): MSF 7.00 header (`"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0"`)
@@ -63,13 +80,20 @@ pub(crate) fn pdb(prefix: &[u8]) -> Option<Label> {
     const MODERN_MIN_LEN: usize = 56;
     const OLD_MIN_LEN: usize = 60;
 
+    static EMBEDDED_PORTABLE_PDB: Subformat = Subformat::new("Embedded Portable PDB");
+    static PORTABLE_PDB: Subformat = Subformat::new("Portable PDB");
+    static MSF_7_00: Subformat = Subformat::with_ids("Microsoft PDB (MSF 7.00)", "fmt/1079", None);
+    static MSF_2_00: Subformat = Subformat::with_ids("Microsoft PDB (MSF 2.00)", "fmt/1078", None);
+    static NCB: Subformat = Subformat::new("Visual C++ NCB (MSF 2.00)");
+    static PDB_1_00: Subformat = Subformat::new("Microsoft PDB 1.00");
+
     fn valid_page_size(n: u32) -> bool {
         matches!(n, 0x0200 | 0x0400 | 0x0800 | 0x1000 | 0x2000 | 0x4000 | 0x8000)
     }
 
     if prefix.len() >= 8 && starts(prefix, MPDB_MAGIC) {
         require!(le32(prefix, 4)? >= 64);
-        return Some(Label::Pdb);
+        return with_subformat(Label::Pdb, &EMBEDDED_PORTABLE_PDB);
     }
     if prefix.len() >= 32 && starts(prefix, BSJB_MAGIC) {
         let vlen = le32(prefix, 12)? as usize;
@@ -78,7 +102,7 @@ pub(crate) fn pdb(prefix: &[u8]) -> Option<Label> {
             vlen.is_multiple_of(4),
             eq_at(prefix, 16, PDB_V1_0) || contains(prefix, PDB_STREAM),
         );
-        return Some(Label::Pdb);
+        return with_subformat(Label::Pdb, &PORTABLE_PDB);
     }
 
     let modern = prefix.len() >= MODERN_MIN_LEN
@@ -90,7 +114,16 @@ pub(crate) fn pdb(prefix: &[u8]) -> Option<Label> {
         && valid_page_size(le32(prefix, OLD_PAGE_SIZE)?);
     let pdb1 = prefix.len() >= MODERN_MIN_LEN && starts(prefix, PDB1_MAGIC);
     require!(modern || old || pdb1);
-    Some(Label::Pdb)
+    let sub = if modern {
+        &MSF_7_00
+    } else if old && starts(prefix, OLD_MAGIC) {
+        &MSF_2_00
+    } else if old {
+        &NCB
+    } else {
+        &PDB_1_00
+    };
+    with_subformat(Label::Pdb, sub)
 }
 
 /// IBM AIX XCOFF object/executable: magic `0x01F7` (XCOFF64) or `0x01DF` (XCOFF32) at `@0`,
@@ -105,14 +138,17 @@ pub(crate) fn xcoff(prefix: &[u8]) -> Option<Label> {
     const MIN_LEN: usize = 24;
 
     require!(prefix.len() >= MIN_LEN, (1..=1024).contains(&be16(prefix, N_SCNS)?),);
+    static XCOFF_32: Subformat = Subformat::new("XCOFF32");
+    static XCOFF_64: Subformat = Subformat::new("XCOFF64");
     let opt = be16(prefix, OPT_HDR)?;
-    let valid = match be16(prefix, MAGIC)? {
+    let magic = be16(prefix, MAGIC)?;
+    let valid = match magic {
         XCOFF64 => matches!(opt, 0 | 120),
         XCOFF32 => matches!(opt, 0 | 28 | 72),
         _ => false,
     };
     require!(valid);
-    Some(Label::Xcoff)
+    with_subformat(Label::Xcoff, if magic == XCOFF64 { &XCOFF_64 } else { &XCOFF_32 })
 }
 
 pub(crate) const MZ_MAGIC: &[u8; 2] = b"MZ";
@@ -186,10 +222,20 @@ pub(crate) fn is_windows_pebin(prefix: &[u8], size: u64) -> bool {
         )
 }
 
+static PE32: Subformat = Subformat::with_ids("PE32", "fmt/899", None);
+static PE32_PLUS: Subformat = Subformat::with_ids("PE32+", "fmt/900", None);
+
+/// Names the optional header magic (`0x010B` PE32 / `0x020B` PE32+) already validated by
+/// [`is_windows_pebin`].
+fn windows_pe_subformat(prefix: &[u8]) -> &'static Subformat {
+    let magic = le32(prefix, 0x3C).and_then(|e_lfanew| le16(prefix, e_lfanew as usize + 24));
+    if magic == Some(0x020B) { &PE32_PLUS } else { &PE32 }
+}
+
 /// Windows PE/COFF executable (`taxonomy_pebin`).
 pub(crate) fn pe(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     require!(is_windows_pebin(prefix, ctx.size));
-    Some(Label::Pebin)
+    with_subformat(Label::Pebin, windows_pe_subformat(prefix))
 }
 
 /// Standalone Microsoft / DJGPP COFF Object File (`coff`): `Machine` (`0x014C` i386,
@@ -210,7 +256,8 @@ pub(crate) fn coff(prefix: &[u8], size: u64) -> Option<Label> {
             ],
         )
     {
-        return Some(Label::Coff);
+        static COFF_BIGOBJ: Subformat = Subformat::new("COFF object (/bigobj)");
+        return with_subformat(Label::Coff, &COFF_BIGOBJ);
     }
     const MIN_COFF_SIZE: u64 = 60; // 20B IMAGE_FILE_HEADER + 40B IMAGE_SECTION_HEADER
 
@@ -233,7 +280,8 @@ pub(crate) fn coff(prefix: &[u8], size: u64) -> Option<Label> {
         sec_name[..name_len].iter().all(|&b| (0x20..=0x7E).contains(&b)),
         sec_name[name_len..].iter().all(|&b| b == 0),
     );
-    Some(Label::Coff)
+    static COFF_OBJECT: Subformat = Subformat::new("COFF object");
+    with_subformat(Label::Coff, &COFF_OBJECT)
 }
 
 /// AutoIt v3 compiled script 16-byte signature (`A3 48 4B BE 98 6C 4A A9 99 4C 53 0A 86 D6 48 7D`).
@@ -250,23 +298,36 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     const KKRUNCHY_TAG: &[u8] = b"KKRUNCHY";
     const DOS32_ADAM_MAGIC: &[u8; 4] = b"Adam";
     const TMT_STUB_TAG: &[u8; 3] = b"TMT";
+    static AUTOIT_EXE: Subformat = Subformat::new("AutoIt v3 compiled executable");
+    static PE_TINY: Subformat =
+        Subformat::with_ids("PE (tiny, header at offset 2)", "x-fmt/411", None);
+    static PE_NONSTANDARD: Subformat =
+        Subformat::with_ids("PE (non-standard header)", "x-fmt/411", None);
+    static NE: Subformat = Subformat::with_ids("NE executable", "x-fmt/410", None);
+    static LE: Subformat = Subformat::new("LE executable");
+    static LX: Subformat = Subformat::new("OS/2 LX executable");
+    static W3: Subformat = Subformat::new("Windows W3 executable");
+    static W4: Subformat = Subformat::new("Windows W4 executable");
+    static DOS32_ADAM: Subformat = Subformat::new("DOS32 Adam executable");
+    static DOS_MZ: Subformat = Subformat::with_ids("MS-DOS MZ executable", "x-fmt/409", None);
+    static DOS_ZM: Subformat = Subformat::with_ids("MS-DOS ZM executable", "x-fmt/409", None);
 
     if contains(prefix, AUTOIT_V3_MAGIC) || contains(prefix, AUTOIT_EA0_MAGIC) {
-        return Some(Label::Autoit);
+        return with_subformat(Label::Autoit, &AUTOIT_EXE);
     }
     if let Some(t) = ctx.tail
         && (contains(t, AUTOIT_V3_MAGIC) || contains(t, AUTOIT_EA0_MAGIC))
     {
-        return Some(Label::Autoit);
+        return with_subformat(Label::Autoit, &AUTOIT_EXE);
     }
     if is_windows_pebin(prefix, ctx.size) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, windows_pe_subformat(prefix));
     }
     if prefix.len() >= 0x28
         && eq_at(prefix, 2, PE_MAGIC)
         && matches!(le16(prefix, 6), Some(0x014C | 0x8664 | 0xAA64))
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &PE_TINY);
     }
     if prefix.len() >= 0x40 {
         let e_lfanew = le32(prefix, 0x3C).unwrap_or(0) as usize;
@@ -286,21 +347,28 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
                 || (sections == 0 && soh == 0))
                 && matches!(le16(prefix, coff), Some(0x014C | 0x8664 | 0xAA64))
             {
-                return Some(Label::Pebin);
+                return with_subformat(Label::Pebin, &PE_NONSTANDARD);
             }
             return None;
         }
         if e_lfanew >= 0x40 && e_lfanew + 4 <= prefix.len() && starts(prefix, MZ_MAGIC) {
             let ext_sig = get_slice(prefix, e_lfanew, e_lfanew + 2)?;
             if matches!(ext_sig, b"NE" | b"LE" | b"LX" | b"W3" | b"W4") {
-                return Some(Label::Pebin);
+                let sub = match ext_sig {
+                    b"NE" => &NE,
+                    b"LE" => &LE,
+                    b"LX" => &LX,
+                    b"W3" => &W3,
+                    _ => &W4,
+                };
+                return with_subformat(Label::Pebin, sub);
             }
         }
     }
     if prefix.len() >= 0x36 && starts(prefix, DOS32_ADAM_MAGIC) && eq_at(prefix, 0x22, TMT_STUB_TAG)
     {
         let _ = get_slice(prefix, 0, 0x36);
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &DOS32_ADAM);
     }
     // Also support classic DOS MZ / Win16 NE / OS/2 LE/LX executables mapped to `pebin`
     require!(
@@ -316,7 +384,7 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         (1..=16384).contains(&e_cp),
         e_cparhdr >= 2 || starts(prefix, b"MZ\x00\x00")
     );
-    Some(Label::Pebin)
+    with_subformat(Label::Pebin, if starts(prefix, MZ_MAGIC) { &DOS_MZ } else { &DOS_ZM })
 }
 
 /// MS-DOS / CP/M-80 `.COM` flat binary executable (`ORG 0x0100`, mapped to `pebin`):
@@ -339,21 +407,32 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
         0x00, 0x01, 0xB9,
     ];
 
+    static COM_ICE: Subformat = Subformat::new("MS-DOS COM (ICE packed)");
+    static COM_TPACK: Subformat = Subformat::new("MS-DOS COM (T-PACK packed)");
+    static COM_SHRINK: Subformat = Subformat::new("MS-DOS COM (SHRINK packed)");
+    static COM_COMPACT: Subformat = Subformat::new("MS-DOS COM (COMPACT packed)");
+    static COM_UPX: Subformat = Subformat::new("MS-DOS COM (UPX packed)");
+    static COM_PARAGRAPH_RELOC: Subformat = Subformat::new("MS-DOS COM (paragraph relocation)");
+    static COM_THEDRAW: Subformat = Subformat::new("TheDraw ANSI art COM");
+    static COM_TURBO_PASCAL_DOS: Subformat = Subformat::new("Turbo Pascal 3.0 COM (MS-DOS)");
+    static COM_TURBO_PASCAL_CPM: Subformat = Subformat::new("Turbo Pascal 3.0 COM (CP/M-80)");
+    static COM_DOS_VERSION_CHECK: Subformat = Subformat::new("MS-DOS COM (DOS version check)");
+
     require!((16..=MAX_DOS_COM_SIZE).contains(&size), prefix.len() >= 16);
     if prefix.len() >= 512 && prefix[510] == 0x55 && prefix[511] == 0xAA {
         return None;
     }
     if size >= 64 && starts(prefix, &[0xEB, 0x0A]) && eq_at(prefix, 12, ICE_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_ICE);
     }
     if size >= 64 && starts(prefix, TPACK_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_TPACK);
     }
     if size >= 64 && starts(prefix, SHRINK_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_SHRINK);
     }
     if size >= 48 && starts(prefix, COMPACT_PEICHL_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_COMPACT);
     }
     if size >= 56
         && prefix.len() >= 34
@@ -363,7 +442,7 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
         && u8_at(prefix, 14) == Some(0xBF)
         && eq_at(prefix, 17, &[0xFD, 0xF3, 0xA4, 0xFC])
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_UPX);
     }
     if size >= 32
         && (starts(prefix, &[0x9C, 0x55, 0x56, 0x8C])
@@ -371,14 +450,21 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
             || starts(prefix, &[0xE9, 0x79, 0x2C, 0x90])
             || starts(prefix, &[0xE9, 0x87, 0x2B, 0x90]))
     {
-        return Some(Label::Pebin);
+        let sub = if starts(prefix, &[0x9C, 0x55, 0x56, 0x8C]) {
+            &COM_PARAGRAPH_RELOC
+        } else if starts(prefix, &[0xEB, 0x3D, 0x90, 0x00]) {
+            &COM_THEDRAW
+        } else {
+            &COM_TURBO_PASCAL_DOS
+        };
+        return with_subformat(Label::Pebin, sub);
     }
     if size >= 64
         && prefix.len() >= 64
         && starts(prefix, &[0xC3, 0xE2, 0x20, 0xCD])
         && contains(get_slice(prefix, 4, 64)?, b"Copyright")
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_TURBO_PASCAL_CPM);
     }
     if starts(prefix, &[0xB4, 0x30, 0xCD, 0x21])
         && matches!(
@@ -386,7 +472,7 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
             0x3C | 0x72 | 0x73 | 0x74 | 0x75 | 0x80 | 0x86 | 0x8A | 0xA2 | 0xA3
         )
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_DOS_VERSION_CHECK);
     }
     None
 }
@@ -394,7 +480,8 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
 /// Standalone AutoIt v3 compiled script (`\xA3\x48\x4B\xBE\x98\x6C\x4A\xA9...` at `@0`).
 pub(crate) fn autoit_compiled(prefix: &[u8], size: u64) -> Option<Label> {
     require!(size >= 24, prefix.len() >= 20, starts(prefix, AUTOIT_V3_MAGIC));
-    Some(Label::Autoit)
+    static AUTOIT_A3X: Subformat = Subformat::new("AutoIt v3 compiled script (A3X)");
+    with_subformat(Label::Autoit, &AUTOIT_A3X)
 }
 
 /// AutoIt v3 Script (`autoit`): `#cs`, `#include <`, `AutoItSetOption(`, or `Opt("` script markers.
@@ -421,12 +508,16 @@ pub(crate) fn autoit_script(prefix: &[u8], size: u64) -> Option<Label> {
                 || contains(prefix, AU3_COMMENT_END)),
         is_utf8_text_header(prefix, size as usize),
     );
-    Some(Label::Autoit)
+    static AUTOIT_SCRIPT: Subformat = Subformat::new("AutoIt v3 script");
+    with_subformat(Label::Autoit, &AUTOIT_SCRIPT)
 }
 
 /// Intel 8086 Relocatable Object Module Format (`omf`, 1981): `THEADR` (`0x80`), `LHEADR` (`0x82`),
 /// or `LIBHDR` (`0xF0`) record with length-prefixed printable module name or power-of-two library page.
 pub(crate) fn omf_intel(prefix: &[u8], size: u64) -> Option<Label> {
+    static OMF_LIBRARY: Subformat = Subformat::new("OMF library");
+    static OMF_OBJECT: Subformat = Subformat::new("OMF object module");
+
     require!(size >= 16, prefix.len() >= 12);
     if u8_at(prefix, 0)? == 0xF0 {
         let rec_len = le16(prefix, 1)? as usize;
@@ -449,7 +540,7 @@ pub(crate) fn omf_intel(prefix: &[u8], size: u64) -> Option<Label> {
             let pad = get_slice(prefix, 11, prefix.len().min(page_size))?;
             require!(pad.iter().all(|&b| b == 0));
         }
-        return Some(Label::Omf);
+        return with_subformat(Label::Omf, &OMF_LIBRARY);
     }
     require!(matches!(u8_at(prefix, 0)?, 0x80 | 0x82));
     let rec_len = le16(prefix, 1)? as usize;
@@ -464,7 +555,7 @@ pub(crate) fn omf_intel(prefix: &[u8], size: u64) -> Option<Label> {
     require!(name.iter().all(|&b| (0x20..=0x7E).contains(&b)));
     let next_tag = u8_at(prefix, 3 + rec_len)?;
     require!(matches!(next_tag, 0x88 | 0x8A | 0x96 | 0x98 | 0x99 | 0x9A | 0xA0 | 0xB0));
-    Some(Label::Omf)
+    with_subformat(Label::Omf, &OMF_OBJECT)
 }
 
 /// Self-executing Python Archive (`.par` / `.pyz`, `pythonpar`, 2015): `#!` Python shebang header
@@ -510,7 +601,17 @@ pub(crate) fn aout(prefix: &[u8], size: u64) -> Option<Label> {
         b_sz <= 64 * 1024 * 1024,
     );
     let _ = get_slice(prefix, 0, 16);
-    Some(Label::Aout)
+    static AOUT_OMAGIC: Subformat = Subformat::new("a.out OMAGIC");
+    static AOUT_NMAGIC: Subformat = Subformat::new("a.out NMAGIC");
+    static AOUT_ZMAGIC: Subformat = Subformat::new("a.out ZMAGIC");
+    static AOUT_QMAGIC: Subformat = Subformat::new("a.out QMAGIC");
+    let sub = match (if is_be { m_be } else { m_le }) & 0xFFFF {
+        OMAGIC => &AOUT_OMAGIC,
+        NMAGIC => &AOUT_NMAGIC,
+        ZMAGIC => &AOUT_ZMAGIC,
+        _ => &AOUT_QMAGIC,
+    };
+    with_subformat(Label::Aout, sub)
 }
 
 /// Disambiguates `MZ`/`ZM` executables between Windows PE (`pebin`), AutoIt v3 (`autoit`), and DOS MZ (`pebin`).

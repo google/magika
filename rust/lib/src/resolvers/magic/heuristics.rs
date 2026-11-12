@@ -46,7 +46,7 @@ pub(crate) fn probe(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
             return Some(Label::Kml);
         }
         if xml.osm {
-            return Some(Label::Osm);
+            return with_subformat(Label::Osm, &OSM_XML);
         }
         if first_non_ws == Some(b'<')
             && let Some(label) = super::probe(|| xml_subtypes(prefix, size))

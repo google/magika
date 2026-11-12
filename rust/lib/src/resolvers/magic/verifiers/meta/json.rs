@@ -117,6 +117,7 @@ pub(crate) fn json_subtypes(prefix: &[u8], size: u64) -> Option<Label> {
 /// `"componentType"` in `0..=1024`, or opens with a flat `"asset": { ... }` object followed by a
 /// glTF top-level property or a `KHR_`/`EXT_` `"extensionsUsed"` list.
 pub(crate) fn gltf_json(prefix: &[u8]) -> Option<Label> {
+    static GLTF_JSON: Subformat = Subformat::with_fdd("glTF JSON", "fdd000498");
     const KEY_ACCESSORS: &[u8] = b"\"accessors\"";
     const KEY_COMPONENT_TYPE: &[u8] = b"\"componentType\"";
     const KEY_ASSET: &[u8] = b"\"asset\"";
@@ -165,7 +166,7 @@ pub(crate) fn gltf_json(prefix: &[u8]) -> Option<Label> {
             u8_at(prefix, i) == Some(b'['),
             scan_range(prefix, 0, 1024, KEY_COMPONENT_TYPE),
         );
-        return Some(Label::Gltf);
+        return with_subformat(Label::Gltf, &GLTF_JSON);
     }
 
     require!(eq_at(prefix, i, KEY_ASSET));
@@ -185,7 +186,7 @@ pub(crate) fn gltf_json(prefix: &[u8]) -> Option<Label> {
     require!(skip_ws(prefix, &mut i, 16));
 
     if GLTF_KEYS.iter().any(|k| eq_at(prefix, i, k)) {
-        return Some(Label::Gltf);
+        return with_subformat(Label::Gltf, &GLTF_JSON);
     }
 
     require!(eq_at(prefix, i, KEY_EXTENSIONS_USED));
@@ -195,5 +196,5 @@ pub(crate) fn gltf_json(prefix: &[u8]) -> Option<Label> {
     require!(skip_ws(prefix, &mut i, 16), u8_at(prefix, i) == Some(b'['),);
     i += 1;
     require!(skip_ws(prefix, &mut i, 64), eq_at(prefix, i, EXT_KHR) || eq_at(prefix, i, EXT_EXT),);
-    Some(Label::Gltf)
+    with_subformat(Label::Gltf, &GLTF_JSON)
 }

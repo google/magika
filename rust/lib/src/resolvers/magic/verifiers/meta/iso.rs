@@ -21,6 +21,8 @@ use crate::resolvers::magic::*;
 /// volume descriptor at sector 16 (`0x8000`) with `"CD001"`, `"BEA01"`, `"NSR02"`,
 /// `"NSR03"`, or `"BOOT2"` at `0x8001` (or `"CDROM"` at `0x8009`).
 pub(crate) fn iso(prefix: &[u8], size: u64) -> Option<Label> {
+    static ISO_9660: Subformat = Subformat::with_ids("ISO 9660", "fmt/468", Some("fdd000348"));
+    static HIGH_SIERRA: Subformat = Subformat::new("High Sierra");
     const PVD_OFF: usize = 0x8000;
     const UDF_BEA01_ID: &[u8; 5] = b"BEA01";
     const UDF_NSR02_ID: &[u8; 5] = b"NSR02";
@@ -39,11 +41,12 @@ pub(crate) fn iso(prefix: &[u8], size: u64) -> Option<Label> {
             return Some(Label::Udf);
         }
     }
-    let valid = (matches!(u8_at(prefix, PVD_OFF)?, 0 | 1 | 2 | 3 | 0xFF)
-        && eq_at(prefix, PVD_OFF + 1, ISO_CD001_ID))
+    let is_iso9660 = matches!(u8_at(prefix, PVD_OFF)?, 0 | 1 | 2 | 3 | 0xFF)
+        && eq_at(prefix, PVD_OFF + 1, ISO_CD001_ID);
+    let valid = is_iso9660
         || (prefix.len() >= PVD_OFF + 14
             && matches!(u8_at(prefix, PVD_OFF + 8)?, 0 | 1 | 2 | 3 | 0xFF)
             && eq_at(prefix, PVD_OFF + 9, HIGH_SIERRA_CDROM_ID));
     require!(valid);
-    Some(Label::Iso)
+    with_subformat(Label::Iso, if is_iso9660 { &ISO_9660 } else { &HIGH_SIERRA })
 }

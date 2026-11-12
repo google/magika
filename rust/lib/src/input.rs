@@ -296,9 +296,8 @@ impl FeaturesOr<RegularFileType> {
             }
         }
         if options.use_resolvers {
-            let content_types = crate::resolvers::identify(&mut file)?;
+            let (content_types, metadata) = crate::resolvers::identify_with_metadata(&mut file)?;
             if !content_types.is_empty() {
-                let metadata = HashMap::new();
                 let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Resolvers));
                 return Ok(FeaturesOr::Ruled(RegularFileType {
                     content_types,

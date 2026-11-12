@@ -17,10 +17,11 @@ export enum Status {
   OK = "ok",
 
   // Used when a file path does not exist.
-  FILE_NOT_FOUND_ERROR = "file-not-found-error",
+  FILE_NOT_FOUND_ERROR = "file_not_found_error",
 
-  //Used when a file path exists, but there are permission issues, e.g., can't  read file.
-  PERMISSION_ERROR = "permission-error",
+  // Used when a file path exists, but there are permission issues, e.g., can't
+  // read file.
+  PERMISSION_ERROR = "permission_error",
 
   // Represents a generic error-like unknown status.
   UNKNOWN = "unknown",

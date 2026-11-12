@@ -359,17 +359,18 @@ pub(crate) fn zlibstream(prefix: &[u8], size: u64) -> Option<Label> {
     Some(Label::Zlibstream)
 }
 
-/// Haruyasu Yoshizaki LHA / LHarc Archive (`lha`, 1988): method tag `"-lh0-"`..`"-lh7-"`,
-/// `"-lhd-"`, `"-lzs-"`, `"-lz4-"`, `"-lz5-"`, `"-pm0-"`, or `"-pm2-"` at `@2..7` and
+/// Haruyasu Yoshizaki LHA / LHarc Archive (`lha`, 1988): method tag `"-lh0-"`..`"-lhe-"`,
+/// `"-lh -"`, `"-lzs-"`, `"-lz2-"`..`"-lz8-"`, `"-pm0-"`..`"-pm2-"`, or `"-pc1-"` at `@2..7` and
 /// header level `0..=3` at `@20`.
 pub(crate) fn lha(prefix: &[u8], size: u64) -> Option<Label> {
     const LHA_METHODS: &[&[u8; 5]] = &[
-        b"-lh0-", b"-lh1-", b"-lh2-", b"-lh3-", b"-lh4-", b"-lh5-", b"-lh6-", b"-lh7-", b"-lhd-",
-        b"-lzs-", b"-lz4-", b"-lz5-", b"-pm0-", b"-pm2-",
+        b"-lh0-", b"-lh1-", b"-lh2-", b"-lh3-", b"-lh4-", b"-lh5-", b"-lh6-", b"-lh7-", b"-lh8-",
+        b"-lh9-", b"-lha-", b"-lhb-", b"-lhc-", b"-lhd-", b"-lhe-", b"-lh -", b"-lzs-", b"-lz2-",
+        b"-lz3-", b"-lz4-", b"-lz5-", b"-lz7-", b"-lz8-", b"-pm0-", b"-pm1-", b"-pm2-", b"-pc1-",
     ];
     require!(
-        size >= 24,
-        prefix.len() >= 24,
+        size >= 22,
+        prefix.len() >= 22,
         u8_at(prefix, 2)? == b'-',
         u8_at(prefix, 6)? == b'-',
         u8_at(prefix, 20)? <= 3,

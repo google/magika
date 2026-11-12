@@ -2100,7 +2100,7 @@ pub(crate) static JAVABYTECODE: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static JAVASCRIPT: TypeInfo = TypeInfo {
@@ -2347,7 +2347,7 @@ pub(crate) static LHA: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static LIGHTWAVE: TypeInfo = TypeInfo {
@@ -2711,7 +2711,7 @@ pub(crate) static MKV: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static MP2: TypeInfo = TypeInfo {
@@ -3140,7 +3140,7 @@ pub(crate) static OSM: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: false,
-    vetoed_by_resolvers: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static OTF: TypeInfo = TypeInfo {
@@ -3413,7 +3413,7 @@ pub(crate) static PNG: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static PO: TypeInfo = TypeInfo {
@@ -4206,7 +4206,7 @@ pub(crate) static SQUASHFS: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static SRECORD: TypeInfo = TypeInfo {
@@ -4921,7 +4921,7 @@ pub(crate) static WEBM: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: false,
+    vetoed_by_resolvers: true,
 };
 
 pub(crate) static WEBP: TypeInfo = TypeInfo {
@@ -5129,7 +5129,7 @@ pub(crate) static XLSX: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: true,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static XML: TypeInfo = TypeInfo {

@@ -182,7 +182,7 @@ Options:
       --custom-rules-file <PATH>
           Enables the custom rules (can be repeated)
 
-      --custom-rules-check
+      --check-custom-rules
           Checks the rules of --custom-rules-file, prints the content types they identify, and exits
 
       --no-resolvers

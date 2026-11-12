@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::borrow::Borrow;
+use std::collections::HashMap;
 
 use anyhow::{Result, ensure};
 use ndarray::ArrayViewD;
@@ -48,6 +49,12 @@ pub struct RegularFileType {
     /// This list is a non-empty set (there is at least one element and all elements are
     /// distinct) and its first element is the main content type.
     pub content_types: Vec<ContentType>,
+
+    /// Unstructured metadata about the content types of the file.
+    ///
+    /// There are no SemVer guarantees about the content of this key-value store. Keys may be
+    /// missing and values may be ill-formed from one version to the next.
+    pub metadata: HashMap<String, String>,
 
     /// Debugging information about the identification.
     ///
@@ -290,7 +297,8 @@ impl RegularFileType {
                 Box::new(DebugInfo::Model(ModelDebugInfo { output, overwrite_reason }))
             });
             let content_types = vec![content_type];
-            results.push(RegularFileType { content_types, debug_info });
+            let metadata = HashMap::new();
+            results.push(RegularFileType { content_types, metadata, debug_info });
         }
         Ok(results)
     }

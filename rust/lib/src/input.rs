@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::path::Path;
 
 use anyhow::Result;
@@ -31,9 +32,12 @@ pub struct Features {
 const SMALL_FILE_MAX: usize = 64 * 1024;
 
 /// File content to be identified.
-pub struct Input<'a>(Inner<'a>);
+pub struct Input<'a> {
+    content: Content<'a>,
+    path: Option<Cow<'a, Path>>,
+}
 
-enum Inner<'a> {
+enum Content<'a> {
     Partial { file: std::fs::File, length: u64, prefix: Box<[u8]>, suffix: Box<[u8]> },
     Full(Cow<'a, [u8]>),
 }
@@ -46,8 +50,18 @@ const _: () = const {
 impl<'a> Input<'a> {
     /// Creates an input from a byte slice.
     pub fn from_slice(content: &'a [u8]) -> Self {
-        Self(Inner::Full(Cow::Borrowed(content)))
+        Self { content: Content::Full(Cow::Borrowed(content)), path: None }
     }
+
+    pub(crate) fn with_path(mut self, path: impl Into<Cow<'a, Path>>) -> Self {
+        self.path = Some(path.into());
+        self
+    }
+
+    // TODO: Uncomment to use by the resolvers.
+    // pub(crate) fn path(&self) -> Option<&Path> {
+    //     self.path.as_deref()
+    // }
 }
 
 impl Input<'static> {
@@ -58,7 +72,7 @@ impl Input<'static> {
 
     /// Creates an input from a byte vector.
     pub fn from_vec(content: Vec<u8>) -> Self {
-        Self(Inner::Full(Cow::Owned(content)))
+        Self { content: Content::Full(Cow::Owned(content)), path: None }
     }
 
     /// Creates an input from a file.
@@ -68,7 +82,8 @@ impl Input<'static> {
     }
 
     pub(crate) fn from_file_with_length(file: std::fs::File, length: u64) -> Self {
-        Self(Inner::Partial { file, length, prefix: Box::new([]), suffix: Box::new([]) })
+        let content = Content::Partial { file, length, prefix: Box::new([]), suffix: Box::new([]) };
+        Self { content, path: None }
     }
 }
 
@@ -100,9 +115,9 @@ impl TryFrom<std::fs::File> for Input<'static> {
 
 impl Input<'_> {
     pub(crate) fn length(&self) -> u64 {
-        match &self.0 {
-            Inner::Partial { length, .. } => *length,
-            Inner::Full(content) => content.len() as u64,
+        match &self.content {
+            Content::Partial { length, .. } => *length,
+            Content::Full(content) => content.len() as u64,
         }
     }
 
@@ -111,7 +126,7 @@ impl Input<'_> {
     /// Returns the length of the cached prefix.
     pub(crate) fn ensure_prefix(&mut self, len: usize) -> Result<usize> {
         let len = (len as u64).min(self.length()) as usize;
-        let Inner::Partial { file, length, prefix, suffix } = &mut self.0 else {
+        let Content::Partial { file, length, prefix, suffix } = &mut self.content else {
             return Ok(len);
         };
         if len <= prefix.len() {
@@ -133,9 +148,9 @@ impl Input<'_> {
     ///
     /// The prefix must have been cached for that length.
     pub(crate) fn prefix(&self, len: usize) -> &[u8] {
-        let content: &[u8] = match &self.0 {
-            Inner::Partial { prefix, .. } => prefix,
-            Inner::Full(content) => content,
+        let content: &[u8] = match &self.content {
+            Content::Partial { prefix, .. } => prefix,
+            Content::Full(content) => content,
         };
         &content[..len]
     }
@@ -145,7 +160,7 @@ impl Input<'_> {
     /// Returns the length of the cached suffix.
     pub(crate) fn ensure_suffix(&mut self, len: usize) -> Result<usize> {
         let len = (len as u64).min(self.length()) as usize;
-        let Inner::Partial { file, length, prefix, suffix } = &mut self.0 else {
+        let Content::Partial { file, length, prefix, suffix } = &mut self.content else {
             return Ok(len);
         };
         if len <= suffix.len() {
@@ -168,22 +183,24 @@ impl Input<'_> {
     ///
     /// The suffix must have been cached for that length.
     pub(crate) fn suffix(&self, len: usize) -> &[u8] {
-        let content: &[u8] = match &self.0 {
-            Inner::Partial { suffix, .. } => suffix,
-            Inner::Full(content) => content,
+        let content: &[u8] = match &self.content {
+            Content::Partial { suffix, .. } => suffix,
+            Content::Full(content) => content,
         };
         &content[content.len() - len..]
     }
 
     fn make_full(&mut self) -> Result<()> {
-        let Inner::Partial { file, length, prefix, suffix } = &mut self.0 else { unreachable!() };
+        let Content::Partial { file, length, prefix, suffix } = &mut self.content else {
+            unreachable!()
+        };
         let length = *length as usize;
         let mut content = Vec::with_capacity(length);
         content.extend_from_slice(prefix);
         content.resize(length - suffix.len(), 0);
         read_at(file, &mut content[prefix.len()..], prefix.len() as u64)?;
         content.extend_from_slice(suffix);
-        self.0 = Inner::Full(Cow::Owned(content));
+        self.content = Content::Full(Cow::Owned(content));
         Ok(())
     }
 }
@@ -236,7 +253,8 @@ impl FeaturesOr<FileType> {
         } else if !metadata.is_file() {
             Ok(FeaturesOr::Ruled(FileType::Unsupported))
         } else {
-            let file = Input::from_file_with_length(std::fs::File::open(file)?, metadata.len());
+            let file = Input::from_file_with_length(std::fs::File::open(file)?, metadata.len())
+                .with_path(file);
             Ok(FeaturesOr::extract_content(file, options)?.into())
         }
     }
@@ -260,22 +278,33 @@ impl FeaturesOr<RegularFileType> {
         let mut file = file.into();
         if file.length() == 0 {
             let content_types = vec![ContentType::Empty];
+            let metadata = HashMap::new();
             let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
-            return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+            return Ok(FeaturesOr::Ruled(RegularFileType { content_types, metadata, debug_info }));
         }
         if let Some(custom_rules) = &options.use_custom_rules {
             let content_types = custom_rules.identify(&mut file)?;
             if !content_types.is_empty() {
+                let metadata = HashMap::new();
                 let debug_info =
                     options.debug_mode.then(|| Box::new(DebugInfo::CustomRules(RulesDebugInfo {})));
-                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+                return Ok(FeaturesOr::Ruled(RegularFileType {
+                    content_types,
+                    metadata,
+                    debug_info,
+                }));
             }
         }
         if options.use_resolvers {
             let content_types = crate::resolvers::identify(&mut file)?;
             if !content_types.is_empty() {
+                let metadata = HashMap::new();
                 let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Resolvers));
-                return Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }));
+                return Ok(FeaturesOr::Ruled(RegularFileType {
+                    content_types,
+                    metadata,
+                    debug_info,
+                }));
             }
         }
         let prefix_len = file.ensure_prefix(config.block_size)?;
@@ -301,8 +330,9 @@ impl FeaturesOr<RegularFileType> {
             Ok(_) => ContentType::Txt,
         };
         let content_types = vec![content_type];
+        let metadata = HashMap::new();
         let debug_info = options.debug_mode.then(|| Box::new(DebugInfo::Heuristic));
-        Ok(FeaturesOr::Ruled(RegularFileType { content_types, debug_info }))
+        Ok(FeaturesOr::Ruled(RegularFileType { content_types, metadata, debug_info }))
     }
 }
 

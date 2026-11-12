@@ -98,17 +98,15 @@ pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
 /// on "is_text" from the content type that was vetoed).
 #[cfg_attr(not(test), allow(dead_code))] // cannot use cfg(test) because of sync_kb.py
 pub(crate) const VETOS: &[ContentType] = &[
-    ContentType::Keras,
-    ContentType::Qgis,
-    ContentType::Visio,
-    ContentType::Xlsx,
     ContentType::_3dsm,
     ContentType::_3dsx,
     ContentType::_3gp,
     ContentType::Ace,
+    ContentType::Ani,
     ContentType::Applebplist,
     ContentType::Appledouble,
     ContentType::Applesingle,
+    ContentType::Arrow,
     ContentType::Au,
     ContentType::Avi,
     ContentType::Avif,
@@ -141,8 +139,11 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Hve,
     ContentType::Icc,
     ContentType::Icns,
+    ContentType::Javabytecode,
     ContentType::Jng,
+    ContentType::Keras,
     ContentType::Kml,
+    ContentType::Lha,
     ContentType::LlvmBitcode,
     ContentType::Lnk,
     ContentType::Lrz,
@@ -152,17 +153,22 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Mat,
     ContentType::Midi,
     ContentType::Minidump,
+    ContentType::Mkv,
     ContentType::Mpegts,
     ContentType::Npy,
     ContentType::Nrrd,
     ContentType::One,
+    ContentType::Osm,
     ContentType::Palmos,
     ContentType::Parquet,
     ContentType::Pbm,
+    ContentType::Pcapng,
     ContentType::Pgp,
     ContentType::Ply,
+    ContentType::Png,
     ContentType::PostgresDump,
     ContentType::Psd,
+    ContentType::Qgis,
     ContentType::Qoi,
     ContentType::Rar,
     ContentType::RedisRdb,
@@ -174,23 +180,23 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Sketchup,
     ContentType::Spirv,
     ContentType::Spss,
+    ContentType::Squashfs,
     ContentType::Step,
     ContentType::Swf,
     ContentType::Uf2,
     ContentType::Vhd,
     ContentType::Vib,
+    ContentType::Visio,
     ContentType::Wad,
     ContentType::Wasm,
     ContentType::Wav,
+    ContentType::Webm,
     ContentType::Woff,
     ContentType::Woff2,
     ContentType::Xar,
     ContentType::Xcf,
-    ContentType::Zst,
-    ContentType::Ani,
-    ContentType::Arrow,
-    ContentType::Pcapng,
     ContentType::Xcoff,
+    ContentType::Zst,
 ];
 
 #[cfg(test)]
@@ -211,8 +217,9 @@ mod tests {
     #[test]
     fn vetos_are_distinct_and_complete() {
         let resolvers_vetos: HashSet<ContentType> = VETOS.iter().copied().collect();
-        assert_eq!(VETOS.len(), 93);
+        assert_eq!(VETOS.len(), 99);
         assert_eq!(resolvers_vetos.len(), VETOS.len());
+        assert!(VETOS.is_sorted_by_key(|ct| ct.info().label), "VETOS must be sorted by label");
     }
 
     #[test]
@@ -429,5 +436,44 @@ mod tests {
         let mut iso_ad = isohybrid.clone();
         iso_ad[..512].fill(0xAD);
         assert_eq!(resolve_slice(&iso_ad), vec![ContentType::Iso]);
+    }
+
+    #[test]
+    fn mid_file_bytes_not_mistaken_for_eof_footer_without_tail() {
+        // leveldb footer: 48 bytes ending with 0xDB4775248B80FB57 LE
+        let mut leveldb_prefix = vec![0u8; 48];
+        leveldb_prefix[40..48].copy_from_slice(&[0x57, 0xFB, 0x80, 0x8B, 0x24, 0x75, 0x47, 0xDB]);
+        assert_eq!(magic::leveldb(&leveldb_prefix, 100, None), None);
+        assert_eq!(
+            magic::leveldb(&leveldb_prefix, 48, Some(&leveldb_prefix)),
+            Some(ContentType::Leveldb)
+        );
+
+        // rocksdb footer: 53 bytes ending with ROCKSDB_BLOCK_MAGIC_LE
+        let mut rocksdb_prefix = vec![0u8; 53];
+        rocksdb_prefix[45..53].copy_from_slice(&[0x75, 0x3F, 0x6B, 0x98, 0xF7, 0x85, 0xB2, 0x88]);
+        assert_eq!(magic::rocksdb(&rocksdb_prefix, 100, None), None);
+        assert_eq!(
+            magic::rocksdb(&rocksdb_prefix, 53, Some(&rocksdb_prefix)),
+            Some(ContentType::Rocksdb)
+        );
+
+        // orc: starts with b"ORC\x82", postscript at the end of prefix
+        let mut orc_prefix = vec![0u8; 64];
+        orc_prefix[..4].copy_from_slice(b"ORC\x82");
+        orc_prefix[55..58].copy_from_slice(b"ORC");
+        orc_prefix[63] = 4;
+        assert_eq!(magic::orc(&orc_prefix, 1000, None), None);
+        assert_eq!(magic::orc(&orc_prefix, 64, Some(&orc_prefix)), Some(ContentType::Orc));
+
+        // pythonpar: shebang without local ZIP header, but EOCD in prefix
+        let mut pypar_prefix = vec![0u8; 64];
+        pypar_prefix[..22].copy_from_slice(b"#!/usr/bin/env python\n");
+        pypar_prefix[30..34].copy_from_slice(b"PK\x05\x06");
+        assert_eq!(magic::pythonpar(&pypar_prefix, 1000, None), None);
+        assert_eq!(
+            magic::pythonpar(&pypar_prefix, 64, Some(&pypar_prefix)),
+            Some(ContentType::Pythonpar)
+        );
     }
 }

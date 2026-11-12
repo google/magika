@@ -21,6 +21,9 @@
 //! `conflicting`) a mismatch is printed as a disagreement to adjudicate in the dataset, never
 //! treated as a label here.
 //!
+//! A false negative is an empty resolver match on a `validated_*` sample whose class accepts a
+//! label in `VETOS`.
+//!
 //! Export the manifest (`sha256<TAB>format_id<TAB>label_status<TAB>magika_labels<TAB>path`,
 //! labels comma-separated) from `dataset/`:
 //!
@@ -42,10 +45,7 @@
 //! `MAGIKA_RULES_DATASET=manifest.tsv cargo test --release --lib resolvers::tests::dataset -- --ignored --nocapture`
 
 use std::collections::BTreeMap;
-use std::io::{Read, Seek, SeekFrom};
 use std::time::{Duration, Instant};
-
-use crate::resolvers::{PREFIX_LIMIT, magic};
 
 /// Dataset classes that refine a Magika label with no label of their own.
 const REFINES: &[(&str, &str)] = &[
@@ -134,10 +134,10 @@ const REFUTED: &[(&str, &str, &str, &[&str])] = &[
 fn resolvers_never_contradict_a_validated_label() {
     let manifest = std::env::var("MAGIKA_RULES_DATASET").expect("MAGIKA_RULES_DATASET");
     let (mut files, mut verified, mut hits, mut agreements) = (0usize, 0usize, 0usize, 0usize);
-    let (mut bytes_scanned, mut elapsed) = (0usize, Duration::ZERO);
+    let mut elapsed = Duration::ZERO;
     let mut false_positives = Vec::new();
+    let mut false_negatives = Vec::new();
     let mut disagreements: BTreeMap<(String, String), usize> = BTreeMap::new();
-    let mut prefix = vec![0u8; PREFIX_LIMIT];
     for line in std::fs::read_to_string(&manifest).unwrap().lines() {
         let [sha256, format_id, status, magika_labels, path] =
             line.split('\t').collect::<Vec<_>>()[..]
@@ -153,36 +153,18 @@ fn resolvers_never_contradict_a_validated_label() {
                     || REFINES.contains(&(format_id, label))
             }
         };
-        let mut file = std::fs::File::open(path).unwrap();
+        let file = std::fs::File::open(path).unwrap();
         let size = file.metadata().unwrap().len();
-        let wanted = size.min(PREFIX_LIMIT as u64) as usize;
-        file.read_exact(&mut prefix[..wanted]).unwrap();
-        let tail_len = if magic::wants_tail(&prefix[..wanted]) && size > wanted as u64 {
-            size.min(magic::ZIP_TAIL_BYTES as u64) as usize
-        } else {
-            0
-        };
-        let mut tail = vec![0; tail_len];
-        if !tail.is_empty() {
-            file.seek(SeekFrom::Start(size - tail.len() as u64)).unwrap();
-            file.read_exact(&mut tail).unwrap();
-            if let Some(start) = magic::directory_start(&tail, size) {
-                tail = vec![0; (size - start) as usize];
-                file.seek(SeekFrom::Start(start)).unwrap();
-                file.read_exact(&mut tail).unwrap();
-            }
-        }
         let validated = status.starts_with("validated_");
         files += 1;
         verified += usize::from(validated);
-        bytes_scanned += wanted;
         let start = Instant::now();
-        let tail = (!tail.is_empty()).then_some(tail.as_slice());
-        let ctx = magic::Ctx { prefix: &prefix[..wanted], size, tail };
-        let outcome = (size > 0).then(|| magic::identify(&ctx)).flatten();
+        let outcome =
+            crate::resolvers::identify(&mut crate::Input::from_file_with_length(file, size))
+                .unwrap();
         elapsed += start.elapsed();
-        let said = match outcome {
-            Some(ct) if accepts(ct.info().label) => {
+        let said = match &outcome[..] {
+            [ct] if accepts(ct.info().label) => {
                 if validated {
                     hits += 1;
                 } else {
@@ -190,9 +172,28 @@ fn resolvers_never_contradict_a_validated_label() {
                 }
                 continue;
             }
-            Some(ct) => ct.info().label.to_string(),
-            None if refuted.is_some() => "<no match>".to_string(),
-            None => continue,
+            [ct] => ct.info().label.to_string(),
+            [] => {
+                if validated
+                    && refuted.is_none()
+                    && let Some(veto) =
+                        crate::resolvers::VETOS.iter().find(|veto| accepts(veto.info().label))
+                {
+                    false_negatives.push(format!(
+                        "{sha256} {format_id} ({status}): missed vetoed label {}",
+                        veto.info().label
+                    ));
+                }
+                if refuted.is_some() {
+                    "<no match>".to_string()
+                } else {
+                    continue;
+                }
+            }
+            cts => {
+                let labels: Vec<_> = cts.iter().map(|ct| ct.info().label).collect();
+                labels.join(", ")
+            }
         };
         if validated {
             false_positives.push(format!("{sha256} {format_id} ({status}): resolvers say {said}"));
@@ -203,13 +204,15 @@ fn resolvers_never_contradict_a_validated_label() {
     let mean = elapsed / files.max(1) as u32;
     eprintln!(
         "dataset: {files} files ({verified} validated), {hits} validated hits, \
-         {agreements} unverified agreements, {} false positives, {} unverified disagreements; \
-         {bytes_scanned} prefix bytes, mean scan {mean:?}",
+         {agreements} unverified agreements, {} false positives, {} false negatives, \
+         {} unverified disagreements; mean scan {mean:?}",
         false_positives.len(),
+        false_negatives.len(),
         disagreements.values().sum::<usize>(),
     );
     for ((format_id, said), count) in &disagreements {
         eprintln!("  unverified {format_id} -> {said}: {count}");
     }
     assert!(false_positives.is_empty(), "false positives:\n{}", false_positives.join("\n"));
+    assert!(false_negatives.is_empty(), "false negatives:\n{}", false_negatives.join("\n"));
 }

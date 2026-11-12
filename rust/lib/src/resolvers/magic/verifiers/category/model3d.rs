@@ -36,7 +36,7 @@ pub(crate) fn blend(prefix: &[u8]) -> Option<Label> {
         matches!(u8_at(prefix, VER_MAJOR)?, b'1'..=b'4'),
         u8_at(prefix, 10)?.is_ascii_digit(),
         u8_at(prefix, 11)?.is_ascii_digit(),
-        u8_at(prefix, 19)? == 0,
+        u8_at(prefix, if u8_at(prefix, ENDIAN)? == b'v' { 19 } else { 16 })? == 0,
     );
     Some(Label::Blend)
 }

@@ -10,7 +10,7 @@ This reference lists the supported output content types (`output.label`) and det
 
 - **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **401** supported outputs (**398** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
   - **Heuristics (`in_heuristics`)**: **6** content types (`directory`, `empty`, `symlink`, `txt`, `unknown`, `unsupported`) — path metadata checks, empty-file detection, and short-file / low-confidence fallbacks.
-  - **Format Resolvers (`in_resolvers`)**: **310** content types (**93** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
+  - **Format Resolvers (`in_resolvers`)**: **310** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
   - **ML Model (`in_ml_model`)**: **212** content types predicted by [`standard_v3_3`](/magika/models/standard_v3_3) (after `overwrite_map`).
 - **JavaScript / TypeScript TensorFlow.js pipeline (`magika` on `main`)**: **214** supported outputs — runs byte/stream heuristics (`empty`, `txt`, `unknown`) plus the [`standard_v3_3`](/magika/models/standard_v3_3) ML model (`in_ml_model`), without filesystem `stat` checks or native Rust format resolvers (`in_resolvers`).
 
@@ -177,7 +177,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `iso` | ISO 9660 CD-ROM filesystem data | `application/x-iso9660-image` | `archive` | `iso` |  |  | ✓ | ✓ |  |
 | `jar` | Java archive data (JAR) | `application/java-archive` | `archive` | `jar`, `klib` |  |  | ✓ | ✓ |  |
 | `java` | Java source | `text/x-java` | `code` | `java` | ✓ |  |  | ✓ |  |
-| `javabytecode` | Java compiled bytecode | `application/x-java-applet` | `executable` | `class` |  |  | ✓ | ✓ |  |
+| `javabytecode` | Java compiled bytecode | `application/x-java-applet` | `executable` | `class` |  |  | ✓ | ✓ | ✓ |
 | `javascript` | JavaScript source | `application/javascript` | `code` | `js`, `mjs`, `cjs` | ✓ |  |  | ✓ |  |
 | `jinja` | Jinja template | `text/x-jinja2-template` | `code` | `jinja`, `jinja2`, `j2` | ✓ |  |  | ✓ |  |
 | `jng` | JPEG network graphics | `image/jng` | `image` | `jng` |  |  | ✓ |  | ✓ |
@@ -196,7 +196,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `las` | LAS point cloud | `application/octet-stream` | `gis` | `las` |  |  | ✓ |  |  |
 | `latex` | LaTeX document | `text/x-tex` | `text` | `tex`, `sty` | ✓ |  | ✓ | ✓ |  |
 | `leveldb` | LevelDB | `application/octet-stream` | `application` | `ldb`, `log` |  |  | ✓ |  |  |
-| `lha` | LHarc archive | `application/x-lha` | `archive` | `lha`, `lzh` |  |  | ✓ | ✓ |  |
+| `lha` | LHarc archive | `application/x-lha` | `archive` | `lha`, `lzh` |  |  | ✓ | ✓ | ✓ |
 | `lightwave` | LightWave object / scene | `application/octet-stream` | `geometry` | `lwo`, `lws` |  |  | ✓ |  |  |
 | `lisp` | Lisp source | `text/x-lisp` | `code` | `lisp`, `lsp`, `l`, `cl` | ✓ |  |  | ✓ |  |
 | `llvm_bitcode` | LLVM bitcode | `application/octet-stream` | `executable` | `bc` |  |  | ✓ |  | ✓ |
@@ -224,7 +224,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `mht` | MHTML document | `application/x-mimearchive` | `code` | `mht` | ✓ |  | ✓ | ✓ |  |
 | `midi` | Midi | `audio/midi` | `audio` | `mid` |  |  | ✓ | ✓ | ✓ |
 | `minidump` | Windows minidump | `application/octet-stream` | `application` | `dmp`, `mdmp` |  |  | ✓ |  | ✓ |
-| `mkv` | Matroska | `video/x-matroska` | `video` | `mkv` |  |  | ✓ | ✓ |  |
+| `mkv` | Matroska | `video/x-matroska` | `video` | `mkv` |  |  | ✓ | ✓ | ✓ |
 | `mp2` | MP2 stream | `application/octet-stream` | `unknown` | `mp2` |  |  | ✓ |  |  |
 | `mp3` | MP3 media file | `audio/mpeg` | `audio` | `mp3` |  |  | ✓ | ✓ |  |
 | `mp4` | MP4 media file | `video/mp4` | `video` | `mp4` |  |  | ✓ | ✓ |  |
@@ -257,7 +257,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `openvino_ir` | OpenVINO IR | `text/plain` | `application` | `xml` | ✓ |  | ✓ |  |  |
 | `oracle_db` | Oracle database / export | `application/octet-stream` | `application` | `dbf`, `dmp` |  |  | ✓ |  |  |
 | `orc` | Apache ORC | `application/octet-stream` | `scientific` | `orc` |  |  | ✓ |  |  |
-| `osm` | OpenStreetMap data | `application/octet-stream` | `gis` | `osm`, `pbf` |  |  | ✓ |  |  |
+| `osm` | OpenStreetMap data | `application/octet-stream` | `gis` | `osm`, `pbf` |  |  | ✓ |  | ✓ |
 | `otf` | OpenType font | `font/otf` | `font` | `otf` |  |  | ✓ | ✓ |  |
 | `outlook` | MS Outlook Message | `application/vnd.ms-outlook` | `application` | — |  |  | ✓ | ✓ |  |
 | `palmos` | palmos | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
@@ -278,7 +278,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `pickle` | Python pickle | `application/octet-stream` | `application` | `pickle`, `pkl` |  |  | ✓ | ✓ |  |
 | `ply` | Polygon File Format | `application/octet-stream` | `geometry` | `ply` |  |  | ✓ |  | ✓ |
 | `pmtiles` | PMTiles | `application/octet-stream` | `application` | `pmtiles` |  |  | ✓ |  |  |
-| `png` | PNG image | `image/png` | `image` | `png` |  |  | ✓ | ✓ |  |
+| `png` | PNG image | `image/png` | `image` | `png` |  |  | ✓ | ✓ | ✓ |
 | `po` | Portable Object (PO) for i18n | `text/gettext-translation` | `application` | `po` | ✓ |  |  | ✓ |  |
 | `postgres_dump` | PostgreSQL dump | `application/octet-stream` | `database` | `backup`, `dump`, `sql` |  |  | ✓ |  | ✓ |
 | `postscript` | PostScript document | `application/postscript` | `document` | `ps` |  |  | ✓ | ✓ |  |
@@ -337,7 +337,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `spss` | SPSS dataset | `application/octet-stream` | `scientific` | `por`, `sav`, `zsav` |  |  | ✓ |  | ✓ |
 | `sql` | SQL source | `application/x-sql` | `code` | `sql` | ✓ |  |  | ✓ |  |
 | `sqlite` | SQLITE database | `application/octet-stream` | `application` | `sqlite`, `sqlite3` |  |  | ✓ | ✓ |  |
-| `squashfs` | Squash filesystem | `application/octet-stream` | `archive` | — |  |  | ✓ | ✓ |  |
+| `squashfs` | Squash filesystem | `application/octet-stream` | `archive` | — |  |  | ✓ | ✓ | ✓ |
 | `srecord` | Motorola S-record firmware | `text/plain` | `executable` | `s19`, `srec` | ✓ |  | ✓ |  |  |
 | `srt` | SubRip Text Format | `text/srt` | `application` | `srt` | ✓ |  | ✓ | ✓ |  |
 | `stata` | Stata dataset | `application/octet-stream` | `scientific` | `dta` |  |  | ✓ |  |  |
@@ -391,7 +391,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `wad` | WAD | `application/wad` | `archive` | `wad` |  |  | ✓ |  | ✓ |
 | `wasm` | Web Assembly | `application/wasm` | `executable` | `wasm` |  |  | ✓ | ✓ | ✓ |
 | `wav` | Waveform Audio file (WAV) | `audio/x-wav` | `audio` | `wav` |  |  | ✓ | ✓ | ✓ |
-| `webm` | WebM media file | `video/webm` | `video` | `webm` |  |  | ✓ | ✓ |  |
+| `webm` | WebM media file | `video/webm` | `video` | `webm` |  |  | ✓ | ✓ | ✓ |
 | `webp` | WebP media file | `image/webp` | `image` | `webp` |  |  | ✓ | ✓ |  |
 | `wim` | Windows Imaging Format | `application/x-ms-wim` | `unknown` | `wim`, `swm`, `esd` |  |  | ✓ |  |  |
 | `winregistry` | Windows Registry text | `text/x-ms-regedit` | `application` | `reg` | ✓ |  | ✓ | ✓ |  |
@@ -407,7 +407,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `xcoff` | XCOFF | `application/octet-stream` | `executable` | `o` |  |  | ✓ |  | ✓ |
 | `xls` | Microsoft Excel CDF document | `application/vnd.ms-excel` | `document` | `xls` |  |  | ✓ | ✓ |  |
 | `xlsb` | Microsoft Excel 2007+ document (binary format) | `application/vnd.ms-excel.sheet.binary.macroEnabled.12` | `document` | `xlsb` |  |  | ✓ | ✓ |  |
-| `xlsx` | Microsoft Excel 2007+ document | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `document` | `xlsx`, `xlsm` |  |  | ✓ | ✓ | ✓ |
+| `xlsx` | Microsoft Excel 2007+ document | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `document` | `xlsx`, `xlsm` |  |  | ✓ | ✓ |  |
 | `xml` | XML document | `text/xml` | `code` | `xml` | ✓ |  | ✓ | ✓ |  |
 | `xpi` | Compressed installation archive (XPI) | `application/zip` | `archive` | `xpi` |  |  | ✓ | ✓ |  |
 | `xsd` | xsd | `application/octet-stream` | `unknown` | `xsd` |  |  | ✓ |  |  |

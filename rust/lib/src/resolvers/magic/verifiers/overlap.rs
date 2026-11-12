@@ -51,7 +51,7 @@ pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
 /// and Sun / Oracle JVM `.class` bytecode (`javabytecode`, 1995).
 pub(crate) fn cafebabe(prefix: &[u8], size: u64) -> Option<Label> {
     const CAFEBABE_MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
-    require!(size >= 24, prefix.len() >= 10, starts(prefix, CAFEBABE_MAGIC));
+    require!(size >= 10, prefix.len() >= 10, starts(prefix, CAFEBABE_MAGIC));
     let nfat_or_minor_major = be32(prefix, 4)?;
     // Mach-O Universal Fat binary: nfat_arch in 1..=32 and valid Mach-O cpu_type at @8
     if (1..=32).contains(&nfat_or_minor_major) && prefix.len() >= 28 {
@@ -103,8 +103,9 @@ pub(crate) fn null_prefixed(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     probe(|| sas(prefix))
         .or_else(|| probe(|| duckdb(prefix)))
         .or_else(|| probe(|| mpegts(prefix)))
-        .or_else(|| probe(|| stl_binary(prefix, size)))
         .or_else(|| probe(|| dicom(prefix)))
+        .or_else(|| probe(|| icc(prefix)))
+        .or_else(|| probe(|| stl_binary(prefix, size)))
         .or_else(|| probe(|| iso(prefix, size)))
         .or_else(|| probe(|| dosmbr(prefix, size)))
         .or_else(|| probe(|| hfs(prefix, size)))

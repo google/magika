@@ -20,8 +20,7 @@ use crate::resolvers::magic::*;
 pub(crate) const EBML_MAGIC: &[u8; 4] = &[0x1A, 0x45, 0xDF, 0xA3]; // @0..4: EBML Header element ID
 
 /// Matroska container (`.mkv`): EBML header `1A 45 DF A3`, non-zero/non-FF VINT byte at `@4`,
-/// a `DocType` element (`42 82` + VINT size 8 + `"matroska"`) starting in `@5..=28`, and
-/// `"matroska"` aligned at offset 8, 24, or 31.
+/// and a `DocType` element (`42 82` + VINT size 8 + `"matroska"`) starting in `@5..=56`.
 pub(crate) fn mkv(prefix: &[u8]) -> Option<Label> {
     const VINT_FIRST: usize = 4; // @4: u8 — first byte of EBML header size VINT (1..=254)
     const DOCTYPE_ID: &[u8] = &[0x42, 0x82]; // DocType element ID
@@ -57,8 +56,7 @@ pub(crate) fn mkv(prefix: &[u8]) -> Option<Label> {
         prefix.len() >= MIN_LEN,
         starts(prefix, EBML_MAGIC),
         (1..=254).contains(&u8_at(prefix, VINT_FIRST)?),
-        eq_at(prefix, 8, MATROSKA) || eq_at(prefix, 24, MATROSKA) || eq_at(prefix, 31, MATROSKA),
-        (5..=28).any(|pos| has_doctype_at(prefix, pos)),
+        (5..=56).any(|pos| has_doctype_at(prefix, pos)),
     );
     Some(Label::Mkv)
 }

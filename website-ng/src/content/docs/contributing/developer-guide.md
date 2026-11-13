@@ -48,7 +48,7 @@ Follow these formatting rules (enforced by [`scripts/sync_kb.py`](https://github
 
 - **Quote all strings**: content type names, `mime_type`, `group`, `description`, and every item in `extensions` must be quoted (e.g., `"null"`, `"3gp"`). Only field names and the literals `null`, `true`, and `false` are unquoted. This avoids YAML implicit-typing pitfalls.
 - **Keep entries sorted**: content types must be sorted alphabetically by name, and names must match `^[a-z0-9_]+$`.
-- **Keep fields in order**: every entry lists `mime_type`, `group`, `description`, `extensions`, and `is_text` in that exact order. Use `null` when `mime_type`, `group`, or `description` is unknown, and `[]` when there are no known extensions.
+- **Keep fields in order**: every entry lists `mime_type`, `group`, `description`, `extensions`, and `is_text` in that exact order. Use `null` when `mime_type` is unknown (or on unexposed catalog stubs whose `group` or `description` is not curated yet), and `[]` when there are no known extensions. Exposed content types (active in heuristics, resolvers, or the ML model, or listed in `assets/exposed_content_types.txt`) must set non-`null` `group` and `description`.
 - **Format extensions without a leading dot**: extensions are case-sensitive and must not start with `.` (e.g., `"tsv"`, `"R"`).
 - **Do not add derived fields**: `in_heuristics`, `in_resolvers`, `in_ml_model`, and `vetoed_by_resolvers` in the JSON KB are computed automatically from the built-in heuristics, Rust format resolvers, and active model configuration.
 

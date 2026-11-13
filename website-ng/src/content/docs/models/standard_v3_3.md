@@ -23,7 +23,7 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `3gp` | 3GPP multimedia file | `video/3gpp` | `video` |  |
 | `ace` | ACE archive | `application/x-ace-compressed` | `archive` |  |
 | `ai` | Adobe Illustrator Artwork | `application/pdf` | `document` |  |
-| `aidl` | Android Interface Definition Language | `text/plain` | `unknown` |  |
+| `aidl` | Android Interface Definition Language | `text/plain` | `code` |  |
 | `apk` | Android package | `application/vnd.android.package-archive` | `executable` |  |
 | `applebplist` | Apple binary property list | `application/x-bplist` | `application` |  |
 | `appleplist` | Apple property list | `application/x-plist` | `application` |  |
@@ -47,7 +47,7 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `coff` | Intel 80386 COFF | `application/x-coff` | `executable` |  |
 | `coffeescript` | CoffeeScript | `text/coffeescript` | `code` |  |
 | `cpp` | C++ source | `text/x-c` | `code` |  |
-| `crt` | Certificates (binary format) | `application/x-x509-ca-cert` | `text` | Threshold: `0.9` |
+| `crt` | Certificates (binary format) | `application/x-x509-ca-cert` | `application` | Threshold: `0.9` |
 | `crx` | Google Chrome extension | `application/x-chrome-extension` | `executable` |  |
 | `cs` | C# source | `text/plain` | `code` |  |
 | `csproj` | .NET project config | `text/plain` | `code` |  |
@@ -63,12 +63,12 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `doc` | Microsoft Word CDF document | `application/msword` | `document` |  |
 | `dockerfile` | Dockerfile | `text/x-dockerfile` | `code` |  |
 | `docx` | Microsoft Word 2007+ document | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `document` |  |
-| `dsstore` | Application Desktop Services Store | `application/octet-stream` | `unknown` |  |
+| `dsstore` | Application Desktop Services Store | `application/octet-stream` | `application` |  |
 | `dwg` | Autocad Drawing | `image/x-dwg` | `image` |  |
 | `dxf` | Autocad Drawing Exchange Format | `image/vnd.dxf` | `image` |  |
 | `elf` | ELF executable | `application/x-executable-elf` | `executable` |  |
 | `elixir` | Elixir script | `text/plain` | `code` |  |
-| `emf` | Windows Enhanced Metafile image data | `application/octet-stream` | `application` |  |
+| `emf` | Windows Enhanced Metafile image data | `image/emf` | `image` |  |
 | `eml` | RFC 822 mail | `message/rfc822` | `text` |  |
 | `epub` | EPUB document | `application/epub+zip` | `document` |  |
 | `erb` | Embedded Ruby source | `text/x-ruby` | `code` |  |
@@ -85,7 +85,7 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `gradle` | Gradle source | `text/x-groovy` | `code` |  |
 | `groovy` | Groovy source | `text/x-groovy` | `code` |  |
 | `gzip` | gzip compressed data | `application/gzip` | `archive` |  |
-| `h5` | Hierarchical Data Format v5 | `application/x-hdf5` | `archive` |  |
+| `h5` | Hierarchical Data Format v5 | `application/x-hdf5` | `application` |  |
 | `handlebars` | Handlebars source | `text/x-handlebars-template` | `code` | Threshold: `0.9` |
 | `haskell` | Haskell source | `text/plain` | `code` |  |
 | `hcl` | HashiCorp configuration language | `text/x-hcl` | `code` |  |
@@ -105,7 +105,7 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `javabytecode` | Java compiled bytecode | `application/x-java-applet` | `executable` |  |
 | `javascript` | JavaScript source | `application/javascript` | `code` |  |
 | `jinja` | Jinja template | `text/x-jinja2-template` | `code` |  |
-| `jp2` | jpeg2000 | `image/jpeg2000` | `image` |  |
+| `jp2` | JPEG 2000 image | `image/jpeg2000` | `image` |  |
 | `jpeg` | JPEG image data | `image/jpeg` | `image` |  |
 | `json` | JSON document | `application/json` | `code` |  |
 | `jsonl` | JSONL document | `application/json` | `code` |  |
@@ -130,9 +130,9 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `mscompress` | MS Compress archive data | `application/x-ms-compress-szdd` | `archive` |  |
 | `msi` | Microsoft Installer file | `application/x-msi` | `archive` |  |
 | `mum` | Windows Update Package file | `text/xml` | `application` |  |
-| `npy` | Numpy Array | `application/octet-stream` | `archive` |  |
+| `npy` | Numpy Array | `application/octet-stream` | `application` |  |
 | `npz` | Numpy Arrays Archive | `application/octet-stream` | `archive` |  |
-| `nupkg` | NuGet Package | `application/octet-stream` | `unknown` |  |
+| `nupkg` | NuGet Package | `application/octet-stream` | `archive` |  |
 | `objectivec` | ObjectiveC source | `text/x-objcsrc` | `code` |  |
 | `ocaml` | OCaml | `text/ocaml` | `code` | Threshold: `0.9` |
 | `odp` | OpenDocument Presentation | `application/vnd.oasis.opendocument.presentation` | `document` |  |
@@ -140,10 +140,10 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `odt` | OpenDocument Text | `application/vnd.oasis.opendocument.text` | `document` |  |
 | `ogg` | Ogg data | `audio/ogg` | `audio` |  |
 | `one` | OneNote | `application/msonenote` | `document` |  |
-| `onnx` | Open Neural Network Exchange | `application/octet-stream` | `archive` |  |
+| `onnx` | Open Neural Network Exchange | `application/octet-stream` | `application` |  |
 | `otf` | OpenType font | `font/otf` | `font` |  |
 | `outlook` | MS Outlook Message | `application/vnd.ms-outlook` | `application` |  |
-| `parquet` | Apache Parquet | `application/vnd.apache.parquet` | `unknown` |  |
+| `parquet` | Apache Parquet | `application/vnd.apache.parquet` | `application` |  |
 | `pascal` | Pascal source | `text/x-pascal` | `code` | Threshold: `0.95` |
 | `pcap` | pcap capture file | `application/vnd.tcpdump.pcap` | `application` |  |
 | `pdb` | Windows Program Database | `application/octet-stream` | `application` |  |
@@ -160,7 +160,7 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `ppt` | Microsoft PowerPoint CDF document | `application/vnd.ms-powerpoint` | `document` |  |
 | `pptx` | Microsoft PowerPoint 2007+ document | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | `document` |  |
 | `prolog` | Prolog source | `text/x-prolog` | `code` |  |
-| `proteindb` | Protein DB | `application/octet-stream` | `application` |  |
+| `proteindb` | Protein DB | `text/plain` | `application` |  |
 | `proto` | Protocol buffer definition | `text/x-proto` | `code` |  |
 | `psd` | Adobe Photoshop | `image/vnd.adobe.photoshop` | `image` |  |
 | `python` | Python source | `text/x-python` | `code` |  |
@@ -180,13 +180,13 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `scala` | Scala source | `application/x-scala` | `code` |  |
 | `scss` | SCSS source | `text/x-scss` | `code` |  |
 | `sevenzip` | 7-zip archive data | `application/x-7z-compressed` | `archive` |  |
-| `sgml` | sgml | `application/sgml` | `text` |  |
+| `sgml` | SGML document | `application/sgml` | `text` |  |
 | `shell` | Shell script | `text/x-shellscript` | `code` |  |
 | `smali` | Smali source | `application/x-smali` | `code` |  |
 | `snap` | Snap archive | `application/octet-stream` | `archive` |  |
 | `solidity` | Solidity source | `text/plain` | `code` |  |
 | `sql` | SQL source | `application/x-sql` | `code` | Threshold: `0.9` |
-| `sqlite` | SQLITE database | `application/octet-stream` | `application` |  |
+| `sqlite` | SQLite database | `application/vnd.sqlite3` | `application` |  |
 | `squashfs` | Squash filesystem | `application/octet-stream` | `archive` |  |
 | `srt` | SubRip Text Format | `text/srt` | `application` |  |
 | `stlbinary` | Stereolithography CAD (binary) | `application/sla` | `image` |  |
@@ -233,4 +233,4 @@ The table below lists all 214 labels in `standard_v3_3`'s `target_labels_space` 
 | `yara` | YARA rule | `text/x-yara` | `code` |  |
 | `zig` | Zig source | `text/zig` | `code` | Threshold: `0.9` |
 | `zip` | Zip archive data | `application/zip` | `archive` |  |
-| `zlibstream` | zlib compressed data | `application/zlib` | `application` |  |
+| `zlibstream` | zlib compressed data | `application/zlib` | `archive` |  |

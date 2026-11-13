@@ -63,7 +63,7 @@ import sys
 import tempfile
 import tomllib
 from collections.abc import Container, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Any
 
@@ -106,9 +106,73 @@ SNAPSHOTS_MANIFEST_PATH = ASSETS_DIR / "content_types_snapshots.sha256"
 # `sha256sum`-compatible manifest line: "<sha256>  <snapshot file name>".
 _SNAPSHOTS_MANIFEST_LINE_RE = re.compile(r"^([0-9a-f]{64})  ([a-z0-9_.-]+\.md)$")
 
+
+@dataclass(frozen=True)
+class ResolvedMetadata:
+    """Non-null content type metadata with canonical `TypeInfo` fallbacks applied."""
+
+    mime_type: str
+    group: str
+    description: str
+
+
+@dataclass(frozen=True)
+class YamlEntry:
+    """Human-authored content type metadata parsed from `assets/content_types.yaml`."""
+
+    mime_type: str | None
+    group: str | None
+    description: str | None
+    extensions: tuple[str, ...]
+    is_text: bool
+
+    def resolve_metadata(self, label: str) -> ResolvedMetadata:
+        """Resolves nullable KB metadata fields using the canonical `TypeInfo` fallbacks."""
+        mime_type = (
+            self.mime_type
+            if self.mime_type is not None
+            else ("text/plain" if self.is_text else "application/octet-stream")
+        )
+        group = (
+            self.group
+            if self.group is not None
+            else ("text" if self.is_text else "application")
+        )
+        description = self.description if self.description is not None else label
+        return ResolvedMetadata(
+            mime_type=mime_type,
+            group=group,
+            description=description,
+        )
+
+
+@dataclass(frozen=True)
+class KbEntry(YamlEntry):
+    """Validated content type entry enriched with derived pipeline coverage flags."""
+
+    in_heuristics: bool
+    in_resolvers: bool
+    in_ml_model: bool
+    vetoed_by_resolvers: bool
+
+    def to_json_dict(self) -> dict[str, str | bool | list[str] | None]:
+        """Returns the canonical 9-field ordered mapping for `content_types_kb.min.json`."""
+        return {
+            "mime_type": self.mime_type,
+            "group": self.group,
+            "description": self.description,
+            "extensions": list(self.extensions),
+            "is_text": self.is_text,
+            "in_heuristics": self.in_heuristics,
+            "in_resolvers": self.in_resolvers,
+            "in_ml_model": self.in_ml_model,
+            "vetoed_by_resolvers": self.vetoed_by_resolvers,
+        }
+
+
 # The human-authored fields of each content type, in the order in which they
 # must appear in the YAML source and at the start of each JSON KB entry.
-FIELDS = ("mime_type", "group", "description", "extensions", "is_text")
+FIELDS: tuple[str, ...] = tuple(f.name for f in fields(YamlEntry))
 CONTENT_TYPE_NAME_RE = re.compile(r"^[a-z0-9_]+$")
 MIME_TYPE_RE = re.compile(
     r"^[a-z0-9][a-z0-9!#$&\-\^_.+]*/[a-zA-Z0-9][a-zA-Z0-9!#$&\-\^_.+]*$"
@@ -125,18 +189,12 @@ VALID_GROUPS = frozenset(
         "application",
         "archive",
         "audio",
-        "binary",
         "code",
-        "database",
         "document",
         "executable",
         "font",
-        "geometry",
-        "gis",
         "image",
         "inode",
-        "model",
-        "scientific",
         "text",
         "undefined",
         "unknown",
@@ -519,7 +577,7 @@ def snapshot_file_name(artifact_key: str, version: str) -> str:
 
 
 def plan_release_snapshots(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_name: str,
     declared_versions: Mapping[str, str],
     *,
@@ -540,7 +598,7 @@ def plan_release_snapshots(
 
 
 def verify_release_snapshot(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     artifact: ReleaseArtifact,
     declared_version: str,
     model_name: str,
@@ -757,7 +815,7 @@ def _read_model_config(model_dir: Path) -> tuple[Any, str]:
 
 def build_repo_artifacts(
     *,
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_name: str,
     model_config: Any,
     existing_exposed_text: str,
@@ -771,7 +829,7 @@ def build_repo_artifacts(
     exposed_labels, exposed_text = resolve_exposed_content_types(
         existing_exposed_text, kb, model_config, exposed_source_name
     )
-    kb_json = json.dumps(kb, separators=(",", ":"), ensure_ascii=True)
+    kb_json = _serialize_kb_json(kb)
     resolved_dir = resolved_model_dir.resolve()
     model_readme_path = resolved_dir / "README.md"
 
@@ -830,7 +888,16 @@ def generate_kb_json(
         model_source_name=model_source_name,
         require_heuristics=require_heuristics,
     )
-    return json.dumps(kb, separators=(",", ":"), ensure_ascii=True)
+    return _serialize_kb_json(kb)
+
+
+def _serialize_kb_json(kb: Mapping[str, KbEntry]) -> str:
+    """Serializes `kb` into the canonical minified JSON representation."""
+    return json.dumps(
+        {name: entry.to_json_dict() for name, entry in kb.items()},
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
 
 
 def build_kb(
@@ -841,17 +908,10 @@ def build_kb(
     model_source_name: str = "<model_config>",
     *,
     require_heuristics: bool = False,
-) -> dict[str, dict[str, Any]]:
-    """Validates inputs and returns the ordered 9-field KB dictionary."""
-    data = load_yaml(yaml_text, source_name)
-    yaml_errors = validate(data)
-    if yaml_errors:
-        raise KbError(
-            f"{source_name}: found {len(yaml_errors)} error(s):\n"
-            + "\n".join(f"- {e}" for e in yaml_errors)
-        )
-
-    known_labels = set(data.keys())
+) -> dict[str, KbEntry]:
+    """Validates inputs and returns the ordered mapping of typed `KbEntry` records."""
+    yaml_entries = parse_yaml_kb(yaml_text, source_name)
+    known_labels = set(yaml_entries.keys())
     derived_errors: list[str] = []
     if require_heuristics:
         missing_heuristics = sorted(HEURISTIC_CONTENT_TYPES - known_labels)
@@ -874,16 +934,20 @@ def build_kb(
             + "\n".join(f"- {e}" for e in derived_errors)
         )
 
-    # Validation guarantees sorted content type keys and canonical field order.
+    # Validation guarantees sorted content type keys.
     return {
-        name: {
-            **{field: entry[field] for field in FIELDS},
-            "in_heuristics": name in HEURISTIC_CONTENT_TYPES,
-            "in_resolvers": name in in_resolvers_labels,
-            "in_ml_model": name in in_ml_model_labels,
-            "vetoed_by_resolvers": name in vetoed_labels,
-        }
-        for name, entry in data.items()
+        name: KbEntry(
+            mime_type=entry.mime_type,
+            group=entry.group,
+            description=entry.description,
+            extensions=entry.extensions,
+            is_text=entry.is_text,
+            in_heuristics=name in HEURISTIC_CONTENT_TYPES,
+            in_resolvers=name in in_resolvers_labels,
+            in_ml_model=name in in_ml_model_labels,
+            vetoed_by_resolvers=name in vetoed_labels,
+        )
+        for name, entry in yaml_entries.items()
     }
 
 
@@ -958,7 +1022,21 @@ _StrictLoader.add_implicit_resolver(
 )
 
 
-def load_yaml(text: str, source_name: str = "<string>") -> Any:
+def parse_yaml_kb(
+    yaml_text: str, source_name: str = "<string>"
+) -> dict[str, YamlEntry]:
+    """Parses and validates `content_types.yaml` into typed `YamlEntry` records."""
+    data = load_yaml(yaml_text, source_name)
+    entries, yaml_errors = _parse_and_validate_yaml_mapping(data)
+    if yaml_errors:
+        raise KbError(
+            f"{source_name}: found {len(yaml_errors)} error(s):\n"
+            + "\n".join(f"- {e}" for e in yaml_errors)
+        )
+    return entries
+
+
+def load_yaml(text: str, source_name: str = "<string>") -> object:
     """Parses `text` using `_StrictLoader`."""
     loader = _StrictLoader(_NamedStringIO(text, source_name))
     try:
@@ -969,17 +1047,25 @@ def load_yaml(text: str, source_name: str = "<string>") -> Any:
         loader.dispose()
 
 
-def validate(data: Any) -> list[str]:
-    """Validates the loaded YAML source and returns all the errors found."""
+def _parse_and_validate_yaml_mapping(
+    data: object,
+) -> tuple[dict[str, YamlEntry], list[str]]:
+    """Deserializes the raw YAML mapping into `YamlEntry` records and validates invariants."""
     if not isinstance(data, dict):
-        return [f"top level must be a mapping, got {_type_name(data)}"]
+        return {}, [f"top level must be a mapping, got {_type_name(data)}"]
     if not data:
-        return ["top level mapping must not be empty"]
+        return {}, ["top level mapping must not be empty"]
 
+    entries: dict[str, YamlEntry] = {}
     errors: list[str] = []
     previous_name: str | None = None
     rust_variants: dict[str, str] = {}
-    for name, entry in data.items():
+    for name, raw_entry in data.items():
+        if not isinstance(name, str):
+            errors.append(
+                f"{name!r}: content type name must be a string, got {_type_name(name)}"
+            )
+            continue
         if (
             not CONTENT_TYPE_NAME_RE.match(name)
             or name.startswith("_")
@@ -1004,17 +1090,29 @@ def validate(data: Any) -> list[str]:
                 f"{name!r}: content types must be sorted by name, but it comes after {previous_name!r}"
             )
         previous_name = name
-        errors.extend(f"{name}: {error}" for error in _validate_entry(entry))
-    return errors
+
+        entry, parse_errors = _deserialize_yaml_entry(raw_entry)
+        if entry is None:
+            errors.extend(f"{name}: {error}" for error in parse_errors)
+            continue
+        domain_errors = _validate_yaml_entry(entry)
+        if domain_errors:
+            errors.extend(f"{name}: {error}" for error in domain_errors)
+            continue
+        entries[name] = entry
+    return entries, errors
 
 
-def _validate_entry(entry: Any) -> list[str]:
-    if not isinstance(entry, dict):
-        return [f"entry must be a mapping, got {_type_name(entry)}"]
+def _deserialize_yaml_entry(
+    raw_entry: object,
+) -> tuple[YamlEntry | None, list[str]]:
+    """Boundary deserializer: converts an untyped YAML mapping into a `YamlEntry`."""
+    if not isinstance(raw_entry, dict):
+        return None, [f"entry must be a mapping, got {_type_name(raw_entry)}"]
 
-    keys = tuple(entry.keys())
+    keys = tuple(raw_entry.keys())
     if keys != FIELDS:
-        missing = [f for f in FIELDS if f not in entry]
+        missing = [f for f in FIELDS if f not in raw_entry]
         unknown = [k for k in keys if k not in FIELDS]
         problems = []
         if missing:
@@ -1023,80 +1121,123 @@ def _validate_entry(entry: Any) -> list[str]:
             problems.append(f"unknown {unknown}")
         if not problems:
             problems.append(f"got {list(keys)}")
-        return [
+        return None, [
             f"fields must be exactly {list(FIELDS)}, in this order ({'; '.join(problems)})"
         ]
 
     errors: list[str] = []
+    mime_type = _parse_optional_str(raw_entry["mime_type"], "mime_type", errors)
+    group = _parse_optional_str(raw_entry["group"], "group", errors)
+    description = _parse_optional_str(raw_entry["description"], "description", errors)
 
-    mime_type = entry["mime_type"]
-    if mime_type is not None:
-        if not (isinstance(mime_type, str) and mime_type):
-            errors.append(
-                f"mime_type: must be a non-empty string or null, got {mime_type!r} ({_type_name(mime_type)})"
-            )
-        elif not MIME_TYPE_RE.match(mime_type):
-            errors.append(
-                f"mime_type: {mime_type!r} must be a valid 'type/subtype' media type"
-            )
-
-    group = entry["group"]
-    if group is not None:
-        if not (isinstance(group, str) and group):
-            errors.append(
-                f"group: must be a non-empty string or null, got {group!r} ({_type_name(group)})"
-            )
-        elif group not in VALID_GROUPS:
-            errors.append(
-                f"group: unknown group {group!r} (expected one of {sorted(VALID_GROUPS)})"
-            )
-
-    description = entry["description"]
-    if description is not None:
-        if not (isinstance(description, str) and description):
-            errors.append(
-                f"description: must be a non-empty string or null, got {description!r} ({_type_name(description)})"
-            )
-        elif description != description.strip():
-            errors.append(
-                f"description: {description!r} must not have leading or trailing whitespace"
-            )
-        elif "\x00" in description or "\n" in description or "\r" in description:
-            errors.append(
-                f"description: {description!r} must not contain NUL or newline characters"
-            )
-
-    extensions = entry["extensions"]
-    if not isinstance(extensions, list):
+    raw_extensions = raw_entry["extensions"]
+    extensions: list[str] = []
+    if not isinstance(raw_extensions, list):
         errors.append(
-            f"extensions: must be a list of strings, got {extensions!r} ({_type_name(extensions)})"
+            f"extensions: must be a list of strings, got {raw_extensions!r} ({_type_name(raw_extensions)})"
         )
     else:
-        seen: set[str] = set()
-        for i, ext in enumerate(extensions):
-            if not isinstance(ext, str):
+        for i, ext in enumerate(raw_extensions):
+            if isinstance(ext, str):
+                extensions.append(ext)
+            else:
                 errors.append(
                     f"extensions[{i}]: must be a string, got {ext!r} ({_type_name(ext)}); "
                     'strings must be quoted (e.g. "null")'
                 )
-            elif not ext or ext.startswith(".") or ext != ext.strip():
-                errors.append(
-                    f"extensions[{i}]: {ext!r} must be non-empty, without a leading '.' or surrounding whitespace"
-                )
-            elif not EXTENSION_RE.match(ext):
-                errors.append(
-                    f"extensions[{i}]: {ext!r} contains invalid extension characters"
-                )
-            elif ext in seen:
-                errors.append(f"extensions[{i}]: duplicate extension {ext!r}")
-            else:
-                seen.add(ext)
 
-    is_text = entry["is_text"]
-    if not isinstance(is_text, bool):
+    raw_is_text = raw_entry["is_text"]
+    is_text = False
+    if isinstance(raw_is_text, bool):
+        is_text = raw_is_text
+    else:
         errors.append(
-            f"is_text: must be true or false, got {is_text!r} ({_type_name(is_text)})"
+            f"is_text: must be true or false, got {raw_is_text!r} ({_type_name(raw_is_text)})"
         )
+
+    if errors:
+        return None, errors
+
+    return (
+        YamlEntry(
+            mime_type=mime_type,
+            group=group,
+            description=description,
+            extensions=tuple(extensions),
+            is_text=is_text,
+        ),
+        [],
+    )
+
+
+def _parse_optional_str(
+    raw_value: object, field_name: str, errors: list[str]
+) -> str | None:
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, str) and raw_value:
+        return raw_value
+    errors.append(
+        f"{field_name}: must be a non-empty string or null, got {raw_value!r} ({_type_name(raw_value)})"
+    )
+    return None
+
+
+def _validate_yaml_entry(entry: YamlEntry) -> list[str]:
+    """Validates lexical and cross-field semantic invariants on a typed `YamlEntry`."""
+    errors: list[str] = []
+
+    if entry.mime_type is not None and not MIME_TYPE_RE.match(entry.mime_type):
+        errors.append(
+            f"mime_type: {entry.mime_type!r} must be a valid 'type/subtype' media type"
+        )
+
+    if entry.group is not None and entry.group not in VALID_GROUPS:
+        errors.append(
+            f"group: unknown group {entry.group!r} (expected one of {sorted(VALID_GROUPS)})"
+        )
+
+    if entry.description is not None:
+        if entry.description != entry.description.strip():
+            errors.append(
+                f"description: {entry.description!r} must not have leading or trailing whitespace"
+            )
+        elif (
+            "\x00" in entry.description
+            or "\n" in entry.description
+            or "\r" in entry.description
+        ):
+            errors.append(
+                f"description: {entry.description!r} must not contain NUL or newline characters"
+            )
+
+    seen: set[str] = set()
+    for i, ext in enumerate(entry.extensions):
+        if not ext or ext.startswith(".") or ext != ext.strip():
+            errors.append(
+                f"extensions[{i}]: {ext!r} must be non-empty, without a leading '.' or surrounding whitespace"
+            )
+        elif not EXTENSION_RE.match(ext):
+            errors.append(
+                f"extensions[{i}]: {ext!r} contains invalid extension characters"
+            )
+        elif ext in seen:
+            errors.append(f"extensions[{i}]: duplicate extension {ext!r}")
+        else:
+            seen.add(ext)
+
+    if (
+        entry.mime_type is not None
+        and entry.mime_type.startswith("text/")
+        and not entry.is_text
+    ):
+        errors.append(f"is_text: must be true when mime_type is {entry.mime_type!r}")
+    if entry.is_text and entry.mime_type == "application/octet-stream":
+        errors.append(
+            "mime_type: must not be 'application/octet-stream' when is_text is true (use null or a text media type)"
+        )
+    if entry.group == "text" and not entry.is_text:
+        errors.append("is_text: must be true when group is 'text'")
 
     return errors
 
@@ -1709,7 +1850,7 @@ def validate_model_config_for_codegen(
 
 def resolve_exposed_content_types(
     existing_text: str,
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_config: Mapping[str, Any],
     source_name: str = "<exposed_content_types>",
 ) -> tuple[list[str], str]:
@@ -1752,7 +1893,7 @@ def resolve_exposed_content_types(
     required_labels = {
         label
         for label, info in kb.items()
-        if info["in_heuristics"] or info["in_resolvers"] or info["in_ml_model"]
+        if info.in_heuristics or info.in_resolvers or info.in_ml_model
     }
     required_labels.update(model_config["target_labels_space"])
     required_labels.update(model_config["overwrite_map"].values())
@@ -1760,12 +1901,32 @@ def resolve_exposed_content_types(
         required_labels.add("undefined")
 
     exposed_labels = sorted(seen | required_labels)
+    incomplete_errors: list[str] = []
+    for label in exposed_labels:
+        info = kb[label]
+        missing_fields: list[str] = []
+        if info.group is None:
+            missing_fields.append("group")
+        if info.description is None:
+            missing_fields.append("description")
+        if missing_fields:
+            incomplete_errors.append(
+                f"exposed content type {label!r} must have non-null "
+                + " and ".join(missing_fields)
+                + " in the YAML KB"
+            )
+    if incomplete_errors:
+        raise KbError(
+            f"{source_name}: found {len(incomplete_errors)} incomplete exposed content type(s):\n"
+            + "\n".join(f"- {e}" for e in incomplete_errors)
+        )
+
     exposed_text = "".join(f"{label}\n" for label in exposed_labels)
     return exposed_labels, exposed_text
 
 
 def generate_rust_lib_content(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     exposed_labels: Sequence[str],
     model_name: str,
     model_config: Mapping[str, Any],
@@ -1787,24 +1948,24 @@ def generate_rust_lib_content(
     variants: list[tuple[str, str]] = []
     for label in exposed_labels:
         info = kb[label]
-        mime_type, group, description = _resolve_entry_metadata(label, info)
-        extensions = ", ".join(_rust_quote(ext) for ext in info["extensions"])
+        meta = info.resolve_metadata(label)
+        extensions = ", ".join(_rust_quote(ext) for ext in info.extensions)
         if label not in SPECIAL_FILE_TYPE_LABELS:
-            variants.append((label, description))
+            variants.append((label, meta.description))
 
         lines.extend(
             [
                 f"pub(crate) static {label_to_screaming_snake(label)}: TypeInfo = TypeInfo {{",
                 f"    label: {_rust_quote(label)},",
-                f"    mime_type: {_rust_quote(mime_type)},",
-                f"    group: {_rust_quote(group)},",
-                f"    description: {_rust_quote(description)},",
+                f"    mime_type: {_rust_quote(meta.mime_type)},",
+                f"    group: {_rust_quote(meta.group)},",
+                f"    description: {_rust_quote(meta.description)},",
                 f"    extensions: &[{extensions}],",
-                f"    is_text: {_rust_bool(info['is_text'])},",
-                f"    in_heuristics: {_rust_bool(info['in_heuristics'])},",
-                f"    in_resolvers: {_rust_bool(info['in_resolvers'])},",
-                f"    in_ml_model: {_rust_bool(info['in_ml_model'])},",
-                f"    vetoed_by_resolvers: {_rust_bool(info['vetoed_by_resolvers'])},",
+                f"    is_text: {_rust_bool(info.is_text)},",
+                f"    in_heuristics: {_rust_bool(info.in_heuristics)},",
+                f"    in_resolvers: {_rust_bool(info.in_resolvers)},",
+                f"    in_ml_model: {_rust_bool(info.in_ml_model)},",
+                f"    vetoed_by_resolvers: {_rust_bool(info.vetoed_by_resolvers)},",
                 "};",
                 "",
             ]
@@ -1917,7 +2078,7 @@ def generate_rust_lib_model(model_config: Mapping[str, Any]) -> str:
 
 
 def generate_rust_ffi_content(
-    kb: Mapping[str, Mapping[str, Any]], exposed_labels: Sequence[str]
+    kb: Mapping[str, KbEntry], exposed_labels: Sequence[str]
 ) -> str:
     """Generates `rust/ffi/src/content.rs` (rustfmt-clean)."""
     lines = [
@@ -1932,23 +2093,21 @@ def generate_rust_ffi_content(
     variants: list[str] = []
     for label in exposed_labels:
         info = kb[label]
-        mime_type, group, description = _resolve_entry_metadata(label, info)
+        meta = info.resolve_metadata(label)
         if label not in SPECIAL_FILE_TYPE_LABELS:
             variants.append(label)
-        ext_ptrs = "".join(
-            f"c{_rust_quote(ext)}.as_ptr(), " for ext in info["extensions"]
-        )
+        ext_ptrs = "".join(f"c{_rust_quote(ext)}.as_ptr(), " for ext in info.extensions)
         extensions_expr = f"[{ext_ptrs}ptr::null()].as_ptr()"
 
         lines.extend(
             [
                 f"#[rustfmt::skip] pub(crate) static {label_to_screaming_snake(label)}: MagikaTypeInfo = MagikaTypeInfo {{",
                 f"    label: c{_rust_quote(label)}.as_ptr(),",
-                f"    mime_type: c{_rust_quote(mime_type)}.as_ptr(),",
-                f"    group: c{_rust_quote(group)}.as_ptr(),",
-                f"    description: c{_rust_quote(description)}.as_ptr(),",
+                f"    mime_type: c{_rust_quote(meta.mime_type)}.as_ptr(),",
+                f"    group: c{_rust_quote(meta.group)}.as_ptr(),",
+                f"    description: c{_rust_quote(meta.description)}.as_ptr(),",
                 f"    extensions: {extensions_expr},",
-                f"    is_text: {_rust_bool(info['is_text'])},",
+                f"    is_text: {_rust_bool(info.is_text)},",
                 "};",
                 "",
             ]
@@ -2001,28 +2160,27 @@ def generate_js_content_type_label(exposed_labels: Sequence[str]) -> str:
 
 
 def generate_js_content_types_infos(
-    kb: Mapping[str, Mapping[str, Any]], exposed_labels: Sequence[str]
+    kb: Mapping[str, KbEntry], exposed_labels: Sequence[str]
 ) -> str:
     """Generates `js/src/content-types-infos.ts`."""
     entry_lines: list[str] = []
     for label in exposed_labels:
         info = kb[label]
-        mime_type, group, description = _resolve_entry_metadata(label, info)
-        default_mime = (
-            "text/plain" if info["is_text"] else "application/octet-stream"
-        )
-        compact_mime = "" if mime_type == default_mime else mime_type
-        compact_group = "" if group == "unknown" else group
-        compact_desc = "" if description == label else description
+        meta = info.resolve_metadata(label)
+        default_mime = "text/plain" if info.is_text else "application/octet-stream"
+        default_group = "text" if info.is_text else "application"
+        compact_mime = "" if meta.mime_type == default_mime else meta.mime_type
+        compact_group = "" if meta.group == default_group else meta.group
+        compact_desc = "" if meta.description == label else meta.description
         extensions_expr = (
-            "[" + ", ".join(_ts_quote(ext) for ext in info["extensions"]) + "]"
+            "[" + ", ".join(_ts_quote(ext) for ext in info.extensions) + "]"
         )
         flags = (
-            (1 if info["is_text"] else 0)
-            | (2 if info["in_heuristics"] else 0)
-            | (4 if info["in_resolvers"] else 0)
-            | (8 if info["in_ml_model"] else 0)
-            | (16 if info["vetoed_by_resolvers"] else 0)
+            (1 if info.is_text else 0)
+            | (2 if info.in_heuristics else 0)
+            | (4 if info.in_resolvers else 0)
+            | (8 if info.in_ml_model else 0)
+            | (16 if info.vetoed_by_resolvers else 0)
         )
         entry_lines.append(
             f"  [{_ts_quote(label)}, {_ts_quote(compact_mime)}, "
@@ -2038,7 +2196,7 @@ def generate_js_content_types_infos(
         "",
         "export type ContentTypesInfos = Record<ContentTypeLabel, ContentTypeInfo>;",
         "",
-        '// Compact tuple encoding: [label, mime_type ("" = default), group ("" = "unknown"),',
+        '// Compact tuple encoding: [label, mime_type ("" = default), group ("" = default),',
         '// description ("" = label), extensions, flags].',
         "// Flags bitmask: 1 = is_text, 2 = in_heuristics, 4 = in_resolvers,",
         "// 8 = in_ml_model, 16 = vetoed_by_resolvers.",
@@ -2067,10 +2225,11 @@ def generate_js_content_types_infos(
         "  const label = rawLabel as ContentTypeLabel;",
         "  const isText = (flags & 1) !== 0;",
         '  const defaultMime = isText ? "text/plain" : "application/octet-stream";',
+        '  const defaultGroup = isText ? "text" : "application";',
         "  return {",
         "    label,",
         "    mime_type: mimeType || defaultMime,",
-        '    group: group || "unknown",',
+        "    group: group || defaultGroup,",
         "    description: description || rawLabel,",
         "    extensions: [...extensions],",
         "    is_text: isText,",
@@ -2118,7 +2277,7 @@ def generate_js_content_types_infos(
 
 
 def generate_model_readme(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_name: str,
     model_config: Mapping[str, Any],
 ) -> str:
@@ -2142,7 +2301,7 @@ def generate_model_readme(
 
 
 def generate_website_model_doc(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_name: str,
     model_config: Mapping[str, Any],
 ) -> str:
@@ -2168,7 +2327,7 @@ def generate_website_model_doc(
 
 
 def _render_model_doc_body(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_name: str,
     model_config: Mapping[str, Any],
     *,
@@ -2222,7 +2381,7 @@ def _render_model_doc_body(
         "| --- | --- | --- | --- | --- |",
     ]
     for label in target_labels:
-        mime_type, group, description = _resolve_entry_metadata(label, kb[label])
+        meta = kb[label].resolve_metadata(label)
         notes_parts: list[str] = []
         if label in overwrite_map:
             notes_parts.append(f"Remapped to `{overwrite_map[label]}`")
@@ -2230,7 +2389,7 @@ def _render_model_doc_body(
             notes_parts.append(f"Threshold: `{thresholds[label]}`")
         notes = "; ".join(notes_parts)
         lines.append(
-            f"| `{label}` | {_md_escape(description)} | `{mime_type}` | `{group}` | {notes} |"
+            f"| `{label}` | {_md_escape(meta.description)} | `{meta.mime_type}` | `{meta.group}` | {notes} |"
         )
 
     lines.append("")
@@ -2238,43 +2397,27 @@ def _render_model_doc_body(
 
 
 def generate_main_content_types_doc(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_name: str,
 ) -> str:
     """Generates `website-ng/src/content/docs/content-types/main.md` for the `main` branch."""
-    rows: list[
-        tuple[str, str, str, str, Sequence[str], bool, bool, bool, bool, bool]
-    ] = []
-    for label, info in kb.items():
-        if not (info["in_heuristics"] or info["in_resolvers"] or info["in_ml_model"]):
-            continue
-        mime_type, group, description = _resolve_entry_metadata(label, info)
-        rows.append(
-            (
-                label,
-                mime_type,
-                group,
-                description,
-                info["extensions"],
-                info["is_text"],
-                info["in_heuristics"],
-                info["in_resolvers"],
-                info["in_ml_model"],
-                info["vetoed_by_resolvers"],
-            )
-        )
+    rows = [
+        (label, info)
+        for label, info in kb.items()
+        if info.in_heuristics or info.in_resolvers or info.in_ml_model
+    ]
 
     native_total = len(rows)
-    special_present = [r[0] for r in rows if r[0] in SPECIAL_FILE_TYPE_LABELS]
+    special_present = [label for label, _ in rows if label in SPECIAL_FILE_TYPE_LABELS]
     regular_total = native_total - len(special_present)
-    heuristics_labels = [r[0] for r in rows if r[6]]
-    resolvers_count = sum(1 for r in rows if r[7])
-    ml_count = sum(1 for r in rows if r[8])
-    vetoed_count = sum(1 for r in rows if r[9])
+    heuristics_labels = [label for label, info in rows if info.in_heuristics]
+    resolvers_count = sum(1 for _, info in rows if info.in_resolvers)
+    ml_count = sum(1 for _, info in rows if info.in_ml_model)
+    vetoed_count = sum(1 for _, info in rows if info.vetoed_by_resolvers)
     js_total = sum(
         1
         for label, info in kb.items()
-        if label in JS_HEURISTIC_CONTENT_TYPES or info["in_ml_model"]
+        if label in JS_HEURISTIC_CONTENT_TYPES or info.in_ml_model
     )
     heuristics_fmt = ", ".join(f"`{label}`" for label in heuristics_labels)
     special_fmt = ", ".join(f"`{label}`" for label in special_present)
@@ -2305,50 +2448,37 @@ def generate_main_content_types_doc(
 
 
 def generate_release_snapshot_doc(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     artifact: ReleaseArtifact,
     version: str,
     model_name: str,
 ) -> str:
     """Renders the frozen supported-content-types snapshot of `artifact` at `version`."""
-    rows: list[
-        tuple[str, str, str, str, Sequence[str], bool, bool, bool, bool, bool]
-    ] = []
+    rows: list[tuple[str, KbEntry]] = []
     for label, info in kb.items():
-        if artifact.js_pipeline:
-            in_heur = label in JS_HEURISTIC_CONTENT_TYPES
-            in_res = False
-            in_ml = bool(info["in_ml_model"])
-            vetoed = False
-        else:
-            in_heur = bool(info["in_heuristics"])
-            in_res = bool(info["in_resolvers"])
-            in_ml = bool(info["in_ml_model"])
-            vetoed = bool(info["vetoed_by_resolvers"])
-
-        if not (in_heur or in_res or in_ml):
-            continue
-        mime_type, group, description = _resolve_entry_metadata(label, info)
-        rows.append(
-            (
-                label,
-                mime_type,
-                group,
-                description,
-                info["extensions"],
-                info["is_text"],
-                in_heur,
-                in_res,
-                in_ml,
-                vetoed,
+        stage_info = (
+            replace(
+                info,
+                in_heuristics=label in JS_HEURISTIC_CONTENT_TYPES,
+                in_resolvers=False,
+                vetoed_by_resolvers=False,
             )
+            if artifact.js_pipeline
+            else info
         )
+        if not (
+            stage_info.in_heuristics
+            or stage_info.in_resolvers
+            or stage_info.in_ml_model
+        ):
+            continue
+        rows.append((label, stage_info))
 
     total = len(rows)
-    heuristics_labels = [r[0] for r in rows if r[6]]
-    resolvers_count = sum(1 for r in rows if r[7])
-    ml_count = sum(1 for r in rows if r[8])
-    vetoed_count = sum(1 for r in rows if r[9])
+    heuristics_labels = [label for label, info in rows if info.in_heuristics]
+    resolvers_count = sum(1 for _, info in rows if info.in_resolvers)
+    ml_count = sum(1 for _, info in rows if info.in_ml_model)
+    vetoed_count = sum(1 for _, info in rows if info.vetoed_by_resolvers)
     heuristics_fmt = ", ".join(f"`{label}`" for label in heuristics_labels)
 
     if artifact.js_pipeline:
@@ -2392,7 +2522,7 @@ _SNAPSHOT_RESOLVERS_RE = re.compile(
 
 
 def generate_content_types_index_doc(
-    kb: Mapping[str, Mapping[str, Any]],
+    kb: Mapping[str, KbEntry],
     model_name: str,
     snapshot_texts: Mapping[str, str],
 ) -> str:
@@ -2400,7 +2530,7 @@ def generate_content_types_index_doc(
     native_total = sum(
         1
         for info in kb.values()
-        if info["in_heuristics"] or info["in_resolvers"] or info["in_ml_model"]
+        if info.in_heuristics or info.in_resolvers or info.in_ml_model
     )
     entries: list[tuple[int, tuple[int, ...], str]] = []
     artifact_order = {artifact.key: i for i, artifact in enumerate(RELEASE_ARTIFACTS)}
@@ -2454,49 +2584,27 @@ def generate_content_types_index_doc(
 
 
 def _render_content_types_table(
-    rows: Sequence[
-        tuple[str, str, str, str, Sequence[str], bool, bool, bool, bool, bool]
-    ],
+    rows: Sequence[tuple[str, KbEntry]],
 ) -> list[str]:
     """Renders the unified 10-column supported-content-types Markdown table."""
     table_lines = [
         "| Label | Description | MIME Type | Group | Extensions | Text | Heuristics | Resolvers | ML Model | Vetoed |",
         "| --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |",
     ]
-    for (
-        label,
-        mime_type,
-        group,
-        description,
-        extensions,
-        is_text,
-        in_heuristics,
-        in_resolvers,
-        in_ml_model,
-        vetoed_by_resolvers,
-    ) in rows:
-        ext_cell = ", ".join(f"`{ext}`" for ext in extensions) if extensions else "—"
-        text_cell = "✓" if is_text else ""
-        heur_cell = "✓" if in_heuristics else ""
-        res_cell = "✓" if in_resolvers else ""
-        ml_cell = "✓" if in_ml_model else ""
-        veto_cell = "✓" if vetoed_by_resolvers else ""
+    for label, info in rows:
+        meta = info.resolve_metadata(label)
+        ext_cell = (
+            ", ".join(f"`{ext}`" for ext in info.extensions) if info.extensions else "—"
+        )
+        text_cell = "✓" if info.is_text else ""
+        heur_cell = "✓" if info.in_heuristics else ""
+        res_cell = "✓" if info.in_resolvers else ""
+        ml_cell = "✓" if info.in_ml_model else ""
+        veto_cell = "✓" if info.vetoed_by_resolvers else ""
         table_lines.append(
-            f"| `{label}` | {_md_escape(description)} | `{mime_type}` | `{group}` | {ext_cell} | {text_cell} | {heur_cell} | {res_cell} | {ml_cell} | {veto_cell} |"
+            f"| `{label}` | {_md_escape(meta.description)} | `{meta.mime_type}` | `{meta.group}` | {ext_cell} | {text_cell} | {heur_cell} | {res_cell} | {ml_cell} | {veto_cell} |"
         )
     return table_lines
-
-
-def _resolve_entry_metadata(
-    label: str, info: Mapping[str, Any]
-) -> tuple[str, str, str]:
-    """Resolves nullable KB metadata fields using the canonical `TypeInfo` fallbacks."""
-    mime_type = info["mime_type"]
-    if mime_type is None:
-        mime_type = "text/plain" if info["is_text"] else "application/octet-stream"
-    group = info["group"] if info["group"] is not None else "unknown"
-    description = info["description"] if info["description"] is not None else label
-    return mime_type, group, description
 
 
 def _is_int(value: Any) -> bool:
@@ -2694,8 +2802,28 @@ _SELF_TEST_INVALID_CASES = (
     ),
     (
         "unknown group",
-        _SELF_TEST_VALID_YAML.replace('group: "text"', 'group: "not_a_group"'),
-        "txt: group: unknown group 'not_a_group'",
+        _SELF_TEST_VALID_YAML.replace('group: "text"', 'group: "geometry"'),
+        "txt: group: unknown group 'geometry'",
+    ),
+    (
+        "text/* mime_type with is_text false",
+        _SELF_TEST_VALID_YAML.replace("is_text: true", "is_text: false"),
+        "txt: is_text: must be true when mime_type is 'text/plain'",
+    ),
+    (
+        "group 'text' with is_text false",
+        _SELF_TEST_VALID_YAML.replace(
+            '  mime_type: "text/plain"\n  group: "text"\n',
+            '  mime_type: "application/octet-stream"\n  group: "text"\n',
+        ).replace("is_text: true", "is_text: false"),
+        "txt: is_text: must be true when group is 'text'",
+    ),
+    (
+        "octet-stream mime_type with is_text true",
+        _SELF_TEST_VALID_YAML.replace(
+            'mime_type: "text/plain"', 'mime_type: "application/octet-stream"'
+        ),
+        "txt: mime_type: must not be 'application/octet-stream' when is_text is true",
     ),
     (
         "unsorted content types",
@@ -2886,6 +3014,11 @@ _SELF_TEST_INVALID_EXPOSED_CASES = (
         " txt\n",
         "invalid empty or whitespace-padded line ' txt'",
     ),
+    (
+        "exposed entry with null group and description",
+        "null\ntxt\n",
+        "exposed content type 'null' must have non-null group and description",
+    ),
 )
 
 # (description, model_config override, substring expected in error).
@@ -2965,14 +3098,14 @@ def run_self_test() -> int:
 
 "null":
   mime_type: null
-  group: null
-  description: null
+  group: "application"
+  description: "null"
   extensions: ["null"]
   is_text: false
 
 "randomtxt":
   mime_type: null
-  group: null
+  group: "text"
   description: "Random text"
   extensions: []
   is_text: true
@@ -2986,7 +3119,7 @@ def run_self_test() -> int:
 
 "unexposed_type":
   mime_type: "application/octet-stream"
-  group: "binary"
+  group: "application"
   description: "Cataloged but unexposed"
   extensions: ["unx"]
   is_text: false
@@ -3098,19 +3231,43 @@ def run_self_test() -> int:
         failures.append(f"complex resolver & codegen source: unexpected error: {e}")
     else:
         checks = (
-            complex_kb["3gp"]["in_resolvers"] is True,
-            complex_kb["3gp"]["vetoed_by_resolvers"] is True,
-            complex_kb["3gp"]["in_ml_model"] is True,
-            complex_kb["3gp"]["in_heuristics"] is False,
-            complex_kb["llvm_bitcode"]["in_resolvers"] is True,
-            complex_kb["llvm_bitcode"]["vetoed_by_resolvers"] is False,
-            complex_kb["llvm_bitcode"]["in_ml_model"] is False,
-            complex_kb["null"]["in_resolvers"] is False,
-            complex_kb["null"]["vetoed_by_resolvers"] is False,
-            complex_kb["null"]["in_ml_model"] is False,
-            complex_kb["txt"]["in_heuristics"] is True,
-            complex_kb["txt"]["in_resolvers"] is False,
-            complex_kb["txt"]["in_ml_model"] is True,
+            complex_kb["3gp"].in_resolvers is True,
+            complex_kb["3gp"].vetoed_by_resolvers is True,
+            complex_kb["3gp"].in_ml_model is True,
+            complex_kb["3gp"].in_heuristics is False,
+            complex_kb["llvm_bitcode"].in_resolvers is True,
+            complex_kb["llvm_bitcode"].vetoed_by_resolvers is False,
+            complex_kb["llvm_bitcode"].in_ml_model is False,
+            complex_kb["null"].in_resolvers is False,
+            complex_kb["null"].vetoed_by_resolvers is False,
+            complex_kb["null"].in_ml_model is False,
+            complex_kb["txt"].in_heuristics is True,
+            complex_kb["txt"].in_resolvers is False,
+            complex_kb["txt"].in_ml_model is True,
+            YamlEntry(
+                mime_type=None,
+                group=None,
+                description=None,
+                extensions=(),
+                is_text=False,
+            ).resolve_metadata("x")
+            == ResolvedMetadata(
+                mime_type="application/octet-stream",
+                group="application",
+                description="x",
+            ),
+            YamlEntry(
+                mime_type=None,
+                group=None,
+                description=None,
+                extensions=(),
+                is_text=True,
+            ).resolve_metadata("x")
+            == ResolvedMetadata(
+                mime_type="text/plain",
+                group="text",
+                description="x",
+            ),
             exposed_labels
             == ["3gp", "directory", "llvm_bitcode", "null", "randomtxt", "txt"],
             exposed_text == "3gp\ndirectory\nllvm_bitcode\nnull\nrandomtxt\ntxt\n",
@@ -3132,8 +3289,7 @@ def run_self_test() -> int:
             in js_infos,
             '  ["null", "", "", "", ["null"], 0],' in js_infos,
             '  ["randomtxt", "", "", "Random text", [], 1],' in js_infos,
-            '  ["txt", "", "text", "Generic text document", ["txt"], 11],'
-            in js_infos,
+            '  ["txt", "", "", "Generic text document", ["txt"], 11],' in js_infos,
             '"unexposed_type"' not in js_infos,
             "getInfo: (label: ContentTypeLabel | string): ContentTypeInfo | undefined =>"
             in js_infos,
@@ -3143,7 +3299,7 @@ def run_self_test() -> int:
             "List of possible outputs" not in model_readme,
             "llvm_bitcode" not in model_readme,
             "`directory`" not in model_readme,
-            "| `randomtxt` | Random text | `text/plain` | `unknown` | Remapped to `txt` |"
+            "| `randomtxt` | Random text | `text/plain` | `text` | Remapped to `txt` |"
             in model_readme,
             "| `txt` | Generic text document | `text/plain` | `text` | Threshold: `0.75` |"
             in model_readme,
@@ -3256,6 +3412,30 @@ def run_self_test() -> int:
         else:
             failures.append(f"{description}: expected an error, got none")
 
+    # Test newly promoted resolver entry with null group/description is rejected.
+    promoted_kb = build_kb(
+        _SELF_TEST_VALID_YAML,
+        {
+            "rust/lib/src/resolvers.rs": (
+                "pub(crate) const VETOS: &[ContentType] = &[];\n"
+                "fn emit() -> ContentType { ContentType::Null }\n"
+            ),
+        },
+        _SELF_TEST_VALID_MODEL_CONFIG,
+    )
+    try:
+        resolve_exposed_content_types(
+            "txt\n", promoted_kb, _SELF_TEST_VALID_MODEL_CONFIG
+        )
+    except KbError as e:
+        if (
+            "exposed content type 'null' must have non-null group and description"
+            not in str(e)
+        ):
+            failures.append(f"newly promoted incomplete entry: unexpected error: {e}")
+    else:
+        failures.append("newly promoted incomplete entry: expected an error, got none")
+
     for (
         description,
         bad_model_config,
@@ -3275,7 +3455,7 @@ def run_self_test() -> int:
     failures.extend(_self_test_frozen_snapshots())
 
     total = (
-        5
+        6
         + len(_SELF_TEST_INVALID_CASES)
         + len(_SELF_TEST_INVALID_DERIVED_CASES)
         + len(_SELF_TEST_INVALID_EXPOSED_CASES)

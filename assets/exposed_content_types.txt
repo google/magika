@@ -28,6 +28,7 @@ asp
 au
 autohotkey
 autoit
+autoit_compiled
 avi
 avif
 avro

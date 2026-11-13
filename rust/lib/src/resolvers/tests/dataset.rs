@@ -49,6 +49,8 @@ use std::time::{Duration, Instant};
 
 /// Dataset classes that refine a Magika label with no label of their own.
 const REFINES: &[(&str, &str)] = &[
+    // Compiled AutoIt bytecode / packed stubs refine the general AutoIt class.
+    ("autoit", "autoit_compiled"),
     // GeoParquet is Apache Parquet with geometry metadata.
     ("geoparquet", "parquet"),
 ];

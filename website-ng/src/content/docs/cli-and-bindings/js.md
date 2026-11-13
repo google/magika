@@ -57,7 +57,7 @@ const info: ContentTypeInfo = Magika.getContentTypeInfo(
 // {
 //   label: "parquet",
 //   mime_type: "application/vnd.apache.parquet",
-//   group: "unknown",
+//   group: "application",
 //   description: "Apache Parquet",
 //   extensions: ["pqt", "parquet"],
 //   is_text: false,

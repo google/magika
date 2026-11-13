@@ -37,9 +37,10 @@ What this script checks:
 1. Every YAML file under `.github/workflows/` and `.github/actions/` is parsed structurally with
    PyYAML (`SafeLoader`) so multi-line, flow-style, quoted, or duplicate `uses:` keys cannot bypass
    line-based scanning.
-2. Local references (`uses: ./...`) must resolve inside `.github/workflows/` (reusable workflow
-   file) or `.github/actions/` (composite action directory with `action.yml`/`action.yaml`) so
-   nested `uses:` inside local actions are always covered by the scan.
+2. Local references (`uses: ./...` or `uses: $/...`) must resolve inside `.github/workflows/`
+   (reusable workflow files via `./...`) or `.github/actions/` (composite action directories
+   containing `action.yml`/`action.yaml`) so nested `uses:` inside local actions are always covered
+   by the scan. Self-repository `$/...` actions are locked in `.github/workflows/actions.lock`.
 3. Every external action must belong to a vetted GitHub owner in `ALLOWED_OWNERS` and be pinned on
    a single line to a full 40-character commit SHA with a `# vX.Y.Z` SemVer tag comment
    (`uses: owner/repo[/subpath]@<40-char-sha> # vX.Y.Z`). Floating tag comments (such as `# v7`)
@@ -230,7 +231,8 @@ def collect_action_uses(
     Checks that:
     - Every YAML file parses cleanly with `yaml.SafeLoader`.
     - Every YAML `uses` key is written as an unquoted single-line `uses: <target>` entry.
-    - Local references (`uses: ./...`) resolve inside `.github/workflows/` or `.github/actions/`.
+    - Local references (`uses: ./...` or `uses: $/...`) resolve inside `.github/workflows/`
+      (via `./...`) or `.github/actions/`.
     - External references follow `uses: owner/repo[/subpath]@<40-char-sha> # vX.Y.Z` with
       `owner` in `allowed_owners`.
     """
@@ -267,7 +269,7 @@ def collect_action_uses(
             ):
                 errors.append(
                     f"{rel_path}:{line_number}: 'uses:' must be an unquoted single-line entry "
-                    f"('uses: owner/repo@<40-char-sha> # vX.Y.Z' or 'uses: ./...')"
+                    f"('uses: owner/repo@<40-char-sha> # vX.Y.Z', 'uses: ./...', or 'uses: $/...')"
                 )
                 continue
 
@@ -288,8 +290,8 @@ def collect_action_uses(
                 )
                 continue
 
-            # Local composite action or reusable workflow reference.
-            if raw_value.startswith("./"):
+            # Local composite action (`./...` or `$/...`) or reusable workflow (`./...`) reference.
+            if raw_value.startswith(("./", "$/")):
                 local_error = _validate_local_use(
                     uncommented_value, repo_root, workflows_dir, actions_dir
                 )
@@ -356,12 +358,23 @@ def _validate_local_use(
     workflows_dir: Path,
     actions_dir: Path,
 ) -> str | None:
-    """Validate that a `./...` local `uses:` reference exists inside `.github/{workflows,actions}`."""
-    resolved = (repo_root / local_target).resolve()
+    """Validate that a `./...` or `$/...` local `uses:` reference exists under `.github/`."""
+    is_self_repo_ref = local_target.startswith("$/")
+    if is_self_repo_ref:
+        rel_target = local_target[2:]
+        if "@" in rel_target:
+            return (
+                f"self-repository action reference {local_target!r} must not include "
+                f"an '@ref' suffix"
+            )
+        resolved = (repo_root / rel_target).resolve()
+    else:
+        resolved = (repo_root / local_target).resolve()
+
     if not resolved.exists():
         return f"local reference {local_target!r} does not exist"
 
-    if resolved.is_relative_to(workflows_dir):
+    if not is_self_repo_ref and resolved.is_relative_to(workflows_dir):
         if not resolved.is_file() or resolved.suffix not in (".yml", ".yaml"):
             return (
                 f"local workflow reference {local_target!r} must point to a .yml/.yaml file "
@@ -379,9 +392,14 @@ def _validate_local_use(
             )
         return None
 
+    allowed_dirs = (
+        ".github/actions/"
+        if is_self_repo_ref
+        else ".github/workflows/ or .github/actions/"
+    )
     return (
-        f"local reference {local_target!r} must reside under .github/workflows/ or "
-        f".github/actions/ so its contents are scanned"
+        f"local reference {local_target!r} must reside under {allowed_dirs} "
+        f"so its contents are scanned"
     )
 
 
@@ -542,6 +560,7 @@ def _run_self_tests() -> int:
             f"          uses: ignored-input\n"
             f"      - uses: github/codeql-action/init@{sha_b} # v4.39.1-rc.1\n"
             f"      - uses: ./.github/actions/my-cache\n"
+            f"      - uses: $/.github/actions/my-cache\n"
             f"      - name: Shell script mentioning uses\n"
             f"        run: |\n"
             f"          echo 'uses: unpinned/action@v1'\n"
@@ -605,6 +624,26 @@ def _run_self_tests() -> int:
                 "local action outside .github",
                 "jobs:\n  b:\n    steps:\n      - uses: ./outside-action\n",
                 "must reside under .github/workflows/ or .github/actions/",
+            ),
+            (
+                "missing self-repo action",
+                "jobs:\n  b:\n    steps:\n      - uses: $/.github/actions/missing\n",
+                "does not exist",
+            ),
+            (
+                "self-repo action with @ref",
+                "jobs:\n  b:\n    steps:\n      - uses: $/.github/actions/my-cache@v1\n",
+                "must not include an '@ref' suffix",
+            ),
+            (
+                "self-repo action outside .github/actions",
+                "jobs:\n  b:\n    steps:\n      - uses: $/outside-action\n",
+                "must reside under .github/actions/",
+            ),
+            (
+                "self-repo ref to workflow",
+                "jobs:\n  b:\n    uses: $/.github/workflows/reusable.yml\n",
+                "must reside under .github/actions/",
             ),
         ]
         (fake_root / "outside-action").mkdir()

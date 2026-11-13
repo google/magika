@@ -82,7 +82,7 @@ pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
     } else {
         None
     };
-    let ctx = magic::Ctx { prefix, size, tail };
+    let ctx = magic::Ctx { prefix, size, tail, path: file.path() };
     if let Some(content_type) = magic::identify(&ctx) {
         return Ok(vec![content_type]);
     }
@@ -263,7 +263,8 @@ mod tests {
                 if !path.is_file() {
                     continue;
                 }
-                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                let mut input =
+                    Input::from_file(std::fs::File::open(&path).unwrap()).unwrap().with_path(&path);
                 let got = identify(&mut input).unwrap();
                 if let [ct] = got[..] {
                     assert_eq!(ct.info().label, expected, "mismatch on {}", path.display());
@@ -296,10 +297,18 @@ mod tests {
                 }
                 let stem = path.file_stem().unwrap().to_str().unwrap();
                 let expected = stem.strip_prefix('!').unwrap_or(stem);
-                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                let mut input =
+                    Input::from_file(std::fs::File::open(&path).unwrap()).unwrap().with_path(&path);
                 let got = identify(&mut input).unwrap();
                 assert_eq!(got.len(), 1, "expected 1 match on {}, got {got:?}", path.display());
                 assert_eq!(got[0].info().label, expected, "mismatch on {}", path.display());
+                let mut pathless = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                assert_eq!(
+                    identify(&mut pathless).unwrap(),
+                    got,
+                    "pathless mismatch on {}",
+                    path.display()
+                );
                 matched += 1;
             }
         }
@@ -706,8 +715,9 @@ mod tests {
         let tail = &bytes[bytes.len() - magic::ZIP_TAIL_BYTES..];
         let start = magic::directory_start(tail, size).unwrap();
         assert!(start < size - tail.len() as u64);
-        let valid =
-            |tail| magic::identify(&magic::Ctx { prefix, size, tail: Some(tail) }).is_some();
+        let valid = |tail| {
+            magic::identify(&magic::Ctx { prefix, size, tail: Some(tail), path: None }).is_some()
+        };
         assert!(!valid(tail));
         assert!(valid(&bytes[start as usize..]));
     }
@@ -799,5 +809,35 @@ mod tests {
             magic::pythonpar(&pypar_prefix, 64, Some(&pypar_prefix)),
             Some(ContentType::Pythonpar)
         );
+    }
+
+    #[test]
+    fn extension_fast_path_and_masqueraded_extensions() {
+        use std::path::Path;
+
+        let resolve_with_path = |bytes: &[u8], path: &str| {
+            let mut input = Input::from_slice(bytes).with_path(Path::new(path));
+            identify(&mut input).unwrap()
+        };
+
+        let srt = b"1\n00:00:01,000 --> 00:00:02,000\nHello\n";
+        assert_eq!(resolve_with_path(srt, "subtitles.srt"), vec![ContentType::Srt]);
+        assert_eq!(resolve_with_path(srt, "wrong.json"), vec![ContentType::Srt]);
+        assert_eq!(resolve_with_path(srt, "wrong.dbf"), vec![ContentType::Srt]);
+
+        let json = br#"{"hello": "world"}"#;
+        assert_eq!(resolve_with_path(json, "data.json"), vec![ContentType::Json]);
+        assert_eq!(resolve_with_path(json, "wrong.xml"), vec![ContentType::Json]);
+        assert_eq!(resolve_with_path(json, "wrong.srt"), vec![ContentType::Json]);
+        assert_eq!(resolve_with_path(json, "unknown.unknown_ext"), vec![ContentType::Json]);
+
+        // Text heuristics still enforce prefix pre-guards even when the extension matches.
+        let nul_bat = b"@echo off\n\0echo hi\n";
+        assert_eq!(resolve_with_path(nul_bat, "nul.bat"), resolve_slice(nul_bat));
+
+        // Magic formats ignore misleading heuristic extensions.
+        let pe = build_pe32(0x0102, 0x1000);
+        assert_eq!(resolve_with_path(&pe, "masqueraded.xml"), vec![ContentType::Pebin]);
+        assert_eq!(resolve_with_path(&pe, "masqueraded.tga"), vec![ContentType::Pebin]);
     }
 }

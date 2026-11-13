@@ -27,41 +27,41 @@ fn heuristic_last(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 #[derive(Clone, Copy)]
 #[repr(u16)]
 enum Heuristic {
-    Xml,
-    Json,
-    Mpegts,
-    Safetensors,
-    Dbase,
-    Intelhex,
-    Pythonbytecode,
-    StlBinary,
-    Tga,
-    Mht,
-    Eml,
-    Batch,
-    Latex,
-    Srt,
-    M3u,
-    Vtt,
-    AutoitScript,
     Aout,
-    Bson,
-    Dosmbr,
-    ImgFat12,
-    Segy,
     Arcgrid,
+    AutoitScript,
+    Batch,
     BplSource,
+    Bson,
+    Dbase,
+    Dosmbr,
+    Eml,
+    ImgFat12,
+    Intelhex,
+    Json,
+    Latex,
     LlvmIr,
+    M3u,
     Mapinfo,
+    Mht,
+    Mpegts,
     Mtl,
     Obj,
     PcdAscii,
-    Wkt,
+    Pythonbytecode,
     Rdp,
+    Safetensors,
+    Segy,
+    Srt,
+    StlBinary,
+    Tga,
+    Vtt,
+    Wkt,
+    Xml,
 }
 
 impl Heuristic {
-    const COUNT: usize = Self::Rdp as usize + 1;
+    const COUNT: usize = Self::Xml as usize + 1;
 }
 
 /// Fixed-size stack bitset tracking heuristics already executed during a scan.
@@ -87,38 +87,37 @@ impl Tried {
 fn hints_for_ext(ext: &str) -> &'static [Heuristic] {
     use Heuristic::*;
     match ext {
-        "dae" | "gpx" | "kml" | "osm" | "gml" | "hta" | "jnlp" | "wsf" | "scriptwsf" | "svd"
-        | "xsd" | "plist" | "svg" | "rdf" | "mum" | "html" | "htm" | "xhtml" | "xht" | "xml" => {
-            &[Xml]
-        }
-        "gltf" | "cdb" | "geojson" | "ipynb" | "json" => &[Json],
-        "ts" | "m2ts" | "mts" | "m2t" | "tsa" | "tsv" => &[Mpegts],
-        "safetensors" => &[Safetensors],
-        "dbf" => &[Dbase],
-        "hex" | "ihex" | "ihx" => &[Intelhex],
-        "pyc" | "pyo" => &[Pythonbytecode],
-        "stl" | "stlb" => &[StlBinary],
-        "tga" | "icb" | "vda" | "vst" => &[Tga],
-        "mht" | "mhtml" | "eml" => &[Mht, Eml],
-        "bat" | "cmd" => &[Batch],
-        "tex" | "ltx" | "sty" | "cls" | "bib" => &[Latex],
-        "srt" => &[Srt],
-        "m3u" | "m3u8" => &[M3u],
-        "vtt" | "webvtt" => &[Vtt],
+        "agr" | "asc" | "grd" => &[Arcgrid],
+        "aout" | "out" => &[Aout],
         "au3" => &[AutoitScript],
-        "out" | "aout" => &[Aout],
-        "bson" => &[Bson],
-        "mbr" | "dosmbr" | "img" | "ima" | "flp" | "dsk" => &[Dosmbr, ImgFat12],
-        "segy" | "sgy" => &[Segy],
-        "asc" | "grd" | "agr" => &[Arcgrid],
+        "bat" | "cmd" => &[Batch],
+        "bib" | "cls" | "ltx" | "sty" | "tex" => &[Latex],
         "bpl" => &[BplSource],
+        "bson" => &[Bson],
+        "cdb" | "geojson" | "gltf" | "ipynb" | "json" => &[Json],
+        "dae" | "gml" | "gpx" | "hta" | "htm" | "html" | "jnlp" | "kml" | "mum" | "osm"
+        | "plist" | "rdf" | "scriptwsf" | "svd" | "svg" | "wsf" | "xht" | "xhtml" | "xml"
+        | "xsd" => &[Xml],
+        "dbf" => &[Dbase],
+        "dosmbr" | "dsk" | "flp" | "ima" | "img" | "mbr" => &[Dosmbr, ImgFat12],
+        "eml" | "mht" | "mhtml" => &[Mht, Eml],
+        "hex" | "ihex" | "ihx" => &[Intelhex],
+        "icb" | "tga" | "vda" | "vst" => &[Tga],
         "ll" => &[LlvmIr],
-        "tab" | "mif" | "mid" | "map" => &[Mapinfo],
+        "m2t" | "m2ts" | "mts" | "ts" | "tsa" | "tsv" => &[Mpegts],
+        "m3u" | "m3u8" => &[M3u],
+        "map" | "mid" | "mif" | "tab" => &[Mapinfo],
         "mtl" => &[Mtl],
         "obj" => &[Obj],
         "pcd" => &[PcdAscii],
-        "wkt" | "prj" => &[Wkt],
+        "prj" | "wkt" => &[Wkt],
+        "pyc" | "pyo" => &[Pythonbytecode],
         "rdp" => &[Rdp],
+        "safetensors" => &[Safetensors],
+        "segy" | "sgy" => &[Segy],
+        "srt" => &[Srt],
+        "stl" | "stlb" => &[StlBinary],
+        "vtt" | "webvtt" => &[Vtt],
         _ => &[],
     }
 }
@@ -145,76 +144,59 @@ fn no_nul_256(prefix: &[u8]) -> bool {
 fn run_heuristic(h: Heuristic, prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     let size = ctx.size;
     match h {
-        Heuristic::Xml => {
-            require!(matches!(prefix.first(), Some(b'<' | 0xEF | b' ' | b'\t' | b'\r' | b'\n')));
-            super::probe(|| xml_document(prefix, size))
+        Heuristic::Aout => super::probe(|| aout(prefix, size)),
+        Heuristic::Arcgrid => {
+            require!(no_nul_256(prefix));
+            super::probe(|| arcgrid(prefix, size))
         }
+        Heuristic::AutoitScript => {
+            require!(no_nul_256(prefix));
+            super::probe(|| autoit_script(prefix, size))
+        }
+        Heuristic::Batch => {
+            require!(no_nul_256(prefix));
+            super::probe(|| batch(prefix, size))
+        }
+        Heuristic::BplSource => {
+            require!(no_nul_256(prefix));
+            super::probe(|| bpl_source(prefix, size))
+        }
+        Heuristic::Bson => super::probe(|| bson(prefix, size)),
+        Heuristic::Dbase => super::probe(|| dbase(prefix, ctx)),
+        Heuristic::Dosmbr => super::probe(|| dosmbr(prefix, size)),
+        Heuristic::Eml => {
+            require!(no_nul_256(prefix));
+            super::probe(|| eml(prefix, size))
+        }
+        Heuristic::ImgFat12 => super::probe(|| img_fat12(prefix, size)),
+        Heuristic::Intelhex => super::probe(|| intelhex(prefix)),
         Heuristic::Json => {
             require!(matches!(first_non_ws(prefix), Some(b'{' | b'[')));
             super::probe(|| gltf_json(prefix))
                 .or_else(|| super::probe(|| json_subtypes(prefix, size)))
                 .or_else(|| super::probe(|| ipynb_or_json(prefix, size)))
         }
-        Heuristic::Mpegts => super::probe(|| mpegts(prefix)),
-        Heuristic::Safetensors => super::probe(|| safetensors(prefix)),
-        Heuristic::Dbase => super::probe(|| dbase(prefix, ctx)),
-        Heuristic::Intelhex => super::probe(|| intelhex(prefix)),
-        Heuristic::Pythonbytecode => super::probe(|| pythonbytecode(prefix)),
-        Heuristic::StlBinary => super::probe(|| stl_binary(prefix, size)),
-        Heuristic::Tga => super::probe(|| tga(prefix, size, ctx.tail)),
-        Heuristic::Mht => {
-            require!(no_nul_256(prefix));
-            super::probe(|| mht(prefix, size))
-        }
-        Heuristic::Eml => {
-            require!(no_nul_256(prefix));
-            super::probe(|| eml(prefix, size))
-        }
-        Heuristic::Batch => {
-            require!(no_nul_256(prefix));
-            super::probe(|| batch(prefix, size))
-        }
         Heuristic::Latex => {
             require!(no_nul_256(prefix));
             super::probe(|| latex(prefix, size))
-        }
-        Heuristic::Srt => {
-            require!(no_nul_256(prefix));
-            super::probe(|| srt(prefix, size))
-        }
-        Heuristic::M3u => {
-            require!(no_nul_256(prefix));
-            super::probe(|| m3u(prefix, size))
-        }
-        Heuristic::Vtt => {
-            require!(no_nul_256(prefix));
-            super::probe(|| vtt(prefix, size))
-        }
-        Heuristic::AutoitScript => {
-            require!(no_nul_256(prefix));
-            super::probe(|| autoit_script(prefix, size))
-        }
-        Heuristic::Aout => super::probe(|| aout(prefix, size)),
-        Heuristic::Bson => super::probe(|| bson(prefix, size)),
-        Heuristic::Dosmbr => super::probe(|| dosmbr(prefix, size)),
-        Heuristic::ImgFat12 => super::probe(|| img_fat12(prefix, size)),
-        Heuristic::Segy => super::probe(|| segy(prefix, size)),
-        Heuristic::Arcgrid => {
-            require!(no_nul_256(prefix));
-            super::probe(|| arcgrid(prefix, size))
-        }
-        Heuristic::BplSource => {
-            require!(no_nul_256(prefix));
-            super::probe(|| bpl_source(prefix, size))
         }
         Heuristic::LlvmIr => {
             require!(no_nul_256(prefix));
             super::probe(|| llvm_ir(prefix, size))
         }
+        Heuristic::M3u => {
+            require!(no_nul_256(prefix));
+            super::probe(|| m3u(prefix, size))
+        }
         Heuristic::Mapinfo => {
             require!(no_nul_256(prefix));
             super::probe(|| mapinfo(prefix, size))
         }
+        Heuristic::Mht => {
+            require!(no_nul_256(prefix));
+            super::probe(|| mht(prefix, size))
+        }
+        Heuristic::Mpegts => super::probe(|| mpegts(prefix)),
         Heuristic::Mtl => {
             require!(no_nul_256(prefix));
             super::probe(|| mtl(prefix, size))
@@ -227,11 +209,28 @@ fn run_heuristic(h: Heuristic, prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
             require!(no_nul_256(prefix));
             super::probe(|| pcd_ascii(prefix, size))
         }
+        Heuristic::Pythonbytecode => super::probe(|| pythonbytecode(prefix)),
+        Heuristic::Rdp => super::probe(|| rdp(prefix, size)),
+        Heuristic::Safetensors => super::probe(|| safetensors(prefix)),
+        Heuristic::Segy => super::probe(|| segy(prefix, size)),
+        Heuristic::Srt => {
+            require!(no_nul_256(prefix));
+            super::probe(|| srt(prefix, size))
+        }
+        Heuristic::StlBinary => super::probe(|| stl_binary(prefix, size)),
+        Heuristic::Tga => super::probe(|| tga(prefix, size, ctx.tail)),
+        Heuristic::Vtt => {
+            require!(no_nul_256(prefix));
+            super::probe(|| vtt(prefix, size))
+        }
         Heuristic::Wkt => {
             require!(no_nul_256(prefix));
             super::probe(|| wkt(prefix, size))
         }
-        Heuristic::Rdp => super::probe(|| rdp(prefix, size)),
+        Heuristic::Xml => {
+            require!(matches!(prefix.first(), Some(b'<' | 0xEF | b' ' | b'\t' | b'\r' | b'\n')));
+            super::probe(|| xml_document(prefix, size))
+        }
     }
 }
 
@@ -360,12 +359,12 @@ mod tests {
     #[test]
     fn tried_bitset_tracks_and_ext_hints_are_valid() {
         let mut tried = Tried::default();
+        assert!(!tried.contains(Heuristic::Aout));
         assert!(!tried.contains(Heuristic::Xml));
-        assert!(!tried.contains(Heuristic::Rdp));
+        tried.insert(Heuristic::Aout);
         tried.insert(Heuristic::Xml);
-        tried.insert(Heuristic::Rdp);
+        assert!(tried.contains(Heuristic::Aout));
         assert!(tried.contains(Heuristic::Xml));
-        assert!(tried.contains(Heuristic::Rdp));
         assert!(!tried.contains(Heuristic::Json));
 
         assert!(hints_for_ext("img").len() >= 2);

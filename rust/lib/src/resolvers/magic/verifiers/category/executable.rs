@@ -244,20 +244,20 @@ pub(crate) const AUTOIT_V3_MAGIC: &[u8] = &[
 /// AutoIt v3 EA05/EA06 archive marker (`"AU3!EA0"`).
 pub(crate) const AUTOIT_EA0_MAGIC: &[u8] = b"AU3!EA0";
 
-/// Checks for AutoIt v3 compiled executable signature (`\xA3\x48\x4B\xBE...` or `"AU3!EA0"`)
-/// before falling back to Windows PE/DOS MZ (`pebin`).
+/// Checks for AutoIt v3 compiled executable signature (`\xA3\x48\x4B\xBE...` or `"AU3!EA0"`,
+/// `autoit_compiled`) before falling back to Windows PE/DOS MZ (`pebin`).
 pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     const KKRUNCHY_TAG: &[u8] = b"KKRUNCHY";
     const DOS32_ADAM_MAGIC: &[u8; 4] = b"Adam";
     const TMT_STUB_TAG: &[u8; 3] = b"TMT";
 
     if contains(prefix, AUTOIT_V3_MAGIC) || contains(prefix, AUTOIT_EA0_MAGIC) {
-        return Some(Label::Autoit);
+        return Some(Label::AutoitCompiled);
     }
     if let Some(t) = ctx.tail
         && (contains(t, AUTOIT_V3_MAGIC) || contains(t, AUTOIT_EA0_MAGIC))
     {
-        return Some(Label::Autoit);
+        return Some(Label::AutoitCompiled);
     }
     if is_windows_pebin(prefix, ctx.size) {
         return Some(Label::Pebin);
@@ -391,10 +391,10 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
     None
 }
 
-/// Standalone AutoIt v3 compiled script (`\xA3\x48\x4B\xBE\x98\x6C\x4A\xA9...` at `@0`).
+/// Standalone AutoIt v3 compiled script (`autoit_compiled`, `\xA3\x48\x4B\xBE\x98\x6C\x4A\xA9...` at `@0`).
 pub(crate) fn autoit_compiled(prefix: &[u8], size: u64) -> Option<Label> {
     require!(size >= 24, prefix.len() >= 20, starts(prefix, AUTOIT_V3_MAGIC));
-    Some(Label::Autoit)
+    Some(Label::AutoitCompiled)
 }
 
 /// AutoIt v3 Script (`autoit`): `#cs`, `#include <`, `AutoItSetOption(`, or `Opt("` script markers.
@@ -513,7 +513,7 @@ pub(crate) fn aout(prefix: &[u8], size: u64) -> Option<Label> {
     Some(Label::Aout)
 }
 
-/// Disambiguates `MZ`/`ZM` executables between Windows PE (`pebin`), AutoIt v3 (`autoit`), and DOS MZ (`pebin`).
+/// Disambiguates `MZ`/`ZM` executables between Windows PE (`pebin`), AutoIt v3 (`autoit_compiled`), and DOS MZ (`pebin`).
 #[inline]
 pub(crate) fn pe_or_dos_mz(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     probe(|| pe(prefix, ctx)).or_else(|| probe(|| pe_or_autoit(prefix, ctx)))

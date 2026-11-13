@@ -281,7 +281,7 @@ mod tests {
                 matched += 1;
             }
         }
-        assert_eq!(matched, 310);
+        assert_eq!(matched, 311);
     }
 
     fn stored<'a>(name: &'a [u8], data: &'a [u8]) -> (&'a [u8], &'a [u8]) {
@@ -436,6 +436,18 @@ mod tests {
         let mut iso_ad = isohybrid.clone();
         iso_ad[..512].fill(0xAD);
         assert_eq!(resolve_slice(&iso_ad), vec![ContentType::Iso]);
+
+        // 7. AutoIt text scripts (`autoit`) vs compiled `.a3x` / MZ `AU3!EA0` (`autoit_compiled`)
+        let au3 = b"#include <MsgBoxConstants.au3>\nLocal $x = 1\n";
+        assert_eq!(resolve_slice(au3), vec![ContentType::Autoit]);
+        let mut a3x = vec![0u8; 32];
+        let a3x_sig = b"\xA3\x48\x4B\xBE\x98\x6C\x4A\xA9\x99\x4C\x53\x0A\x86\xD6\x48\x7D";
+        a3x[..16].copy_from_slice(a3x_sig);
+        assert_eq!(resolve_slice(&a3x), vec![ContentType::AutoitCompiled]);
+        let mut mz_au3 = vec![0u8; 64];
+        mz_au3[..2].copy_from_slice(b"MZ");
+        mz_au3[32..40].copy_from_slice(b"AU3!EA06");
+        assert_eq!(resolve_slice(&mz_au3), vec![ContentType::AutoitCompiled]);
     }
 
     #[test]

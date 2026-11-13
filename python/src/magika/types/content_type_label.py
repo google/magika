@@ -56,6 +56,7 @@ class ContentTypeLabel(StrEnum):
     AU = "au"
     AUTOHOTKEY = "autohotkey"
     AUTOIT = "autoit"
+    AUTOIT_COMPILED = "autoit_compiled"
     AVI = "avi"
     AVIF = "avif"
     AVRO = "avro"

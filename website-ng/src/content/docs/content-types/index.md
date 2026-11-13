@@ -8,7 +8,7 @@ Each reference page below lists every content type that a branch or released pac
 
 | Version / Artifact | Pipeline Stages | Default Model | Supported Content Types |
 | --- | --- | --- | --- |
-| `main` (unreleased development branch) | Heuristics + Format Resolvers + ML Model | [`standard_v3_3`](/magika/models/standard_v3_3) | [401 content types](/magika/content-types/main) |
+| `main` (unreleased development branch) | Heuristics + Format Resolvers + ML Model | [`standard_v3_3`](/magika/models/standard_v3_3) | [402 content types](/magika/content-types/main) |
 | `magika` CLI `1.1.0` | Heuristics + ML Model | [`standard_v3_3`](/magika/models/standard_v3_3) | [216 content types](/magika/content-types/cli-v1_1_0) |
 | Rust `magika` library `1.1.0` | Heuristics + ML Model | [`standard_v3_3`](/magika/models/standard_v3_3) | [216 content types](/magika/content-types/rust-v1_1_0) |
 | Python `magika` `1.0.3` | Heuristics + ML Model | [`standard_v3_3`](/magika/models/standard_v3_3) | [216 content types](/magika/content-types/python-v1_0_3) |

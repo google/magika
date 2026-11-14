@@ -53,8 +53,29 @@ struct Flags {
     #[clap(flatten)]
     format: Format,
 
+    /// Enables the custom rules (can be repeated).
+    #[arg(long, value_name = "PATH")]
+    custom_rules_file: Vec<PathBuf>,
+
+    /// Checks the rules of --custom-rules-file, prints the content types they identify, and exits.
+    #[arg(long, requires = "custom_rules_file")]
+    check_custom_rules: bool,
+
+    /// Disables the resolvers.
+    #[arg(long)]
+    no_resolvers: bool,
+
+    /// Disables model inference.
+    #[arg(long)]
+    no_model: bool,
+
     #[clap(flatten)]
     experimental: Experimental,
+}
+
+#[test]
+fn test_flags() {
+    <Flags as clap::CommandFactory>::command().debug_assert();
 }
 
 struct Version;
@@ -125,22 +146,6 @@ struct Format {
 
 #[derive(Args)]
 struct Experimental {
-    /// Enables the custom rules (can be repeated).
-    #[arg(hide = true, long, value_name = "PATH")]
-    custom_rules_file: Vec<PathBuf>,
-
-    /// Checks the rules of --custom-rules-file, prints the content types they identify, and exits.
-    #[arg(hide = true, long, requires = "rules_file")]
-    custom_rules_check: bool,
-
-    /// Disables the resolvers.
-    #[arg(hide = true, long)]
-    no_resolvers: bool,
-
-    /// Disables model inference.
-    #[arg(hide = true, long)]
-    no_model: bool,
-
     /// Selects the backend for inference.
     #[arg(hide = true, long, value_enum, default_value_t)]
     backend: BackendChoice,
@@ -198,16 +203,16 @@ fn main() -> Result<()> {
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
     builder.options.debug_mode = true;
-    if !flags.experimental.custom_rules_file.is_empty() {
-        let rules = Rules::from_files(&flags.experimental.custom_rules_file)?;
-        if flags.experimental.custom_rules_check {
+    if !flags.custom_rules_file.is_empty() {
+        let rules = Rules::from_files(&flags.custom_rules_file)?;
+        if flags.check_custom_rules {
             println!("{rules:?}");
             return Ok(());
         }
         builder.options.use_custom_rules = Some(rules);
     }
-    builder.options.use_resolvers = !flags.experimental.no_resolvers;
-    builder.options.use_model = !flags.experimental.no_model;
+    builder.options.use_resolvers = !flags.no_resolvers;
+    builder.options.use_model = !flags.no_model;
     builder.options.follow_symlink = !flags.no_dereference;
     builder = match flags.experimental.backend {
         BackendChoice::Auto => builder,

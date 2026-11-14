@@ -502,11 +502,12 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 
     let mut names_buf = Box::new([0u8; ZIP_NAMES_BYTES]);
     let mut first_entry_buf = Box::new([0u8; ZIP_FIRST_ENTRY_BYTES]);
-    let (names_len, first_entry_len, valid, dir_names) = if wants_tail(prefix) {
+    let (names_len, first_entry_len, valid, dir_names, mimetype) = if wants_tail(prefix) {
         let whole = ctx.size == prefix.len() as u64;
         let tail = ctx.tail.unwrap_or(if whole { prefix } else { &[] });
         let mut view = ZipViewWriter { out: &mut names_buf, len: 0 };
-        if let Some(mimetype) = stored_mimetype(prefix) {
+        let mimetype = stored_mimetype(prefix);
+        if let Some(mimetype) = mimetype {
             view.line(MIMETYPE_PREFIX, mimetype);
         }
         let (valid, dir_names) = match find_zip_eocd(tail) {
@@ -516,9 +517,9 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         let names_len = view.finish();
         let mut inflater = Box::<DecompressorOxide>::default();
         let first_len = zip_first_entry(prefix, &mut first_entry_buf, &mut inflater);
-        (names_len, first_len, valid, dir_names)
+        (names_len, first_len, valid, dir_names, mimetype)
     } else {
-        (0, 0, false, false)
+        (0, 0, false, false, None)
     };
     let names = &names_buf[..names_len];
     let first_entry = &first_entry_buf[..first_entry_len];
@@ -610,7 +611,48 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         }
     }
     let first_is_ct = starts(first_entry, FIRST_CONTENT_TYPES);
-    zip_subtypes_and_fallback(prefix, ctx.size, names, valid, dir_names, first_is_ct)
+    zip_subtypes_and_fallback(prefix, ctx.size, names, valid, dir_names, first_is_ct, mimetype)
+}
+
+/// Maps an already-extracted stored `"mimetype"` entry payload (uncompressed first entry) to a
+/// ZIP subformat descriptor without scanning or changing `Label::Zip`.
+fn zip_mimetype_subformat(mimetype: &[u8]) -> Option<&'static Subformat> {
+    static ODG: Subformat = Subformat::with_fdd("OpenDocument Graphics (.odg)", "fdd000247");
+    static ODF: Subformat = Subformat::with_fdd("OpenDocument Formula (.odf)", "fdd000247");
+    static ODB: Subformat = Subformat::with_fdd("OpenDocument Database (.odb)", "fdd000247");
+    static ODC: Subformat = Subformat::with_fdd("OpenDocument Chart (.odc)", "fdd000247");
+    static ODI: Subformat = Subformat::with_fdd("OpenDocument Image (.odi)", "fdd000247");
+    static OTT: Subformat = Subformat::with_fdd("OpenDocument Text Template (.ott)", "fdd000247");
+    static OTS: Subformat =
+        Subformat::with_fdd("OpenDocument Spreadsheet Template (.ots)", "fdd000247");
+    static OTP: Subformat =
+        Subformat::with_fdd("OpenDocument Presentation Template (.otp)", "fdd000247");
+    static OTG: Subformat =
+        Subformat::with_fdd("OpenDocument Graphics Template (.otg)", "fdd000247");
+    static ODM: Subformat = Subformat::with_fdd("OpenDocument Master Document (.odm)", "fdd000247");
+    static KRITA: Subformat = Subformat::with_ids("Krita document (.kra)", "fmt/999", None);
+    static OPENRASTER: Subformat = Subformat::with_ids("OpenRaster image (.ora)", "fmt/998", None);
+    static IDML: Subformat =
+        Subformat::with_ids("Adobe InDesign Markup Language (.idml)", "fmt/1184", None);
+
+    match mimetype {
+        b"application/vnd.oasis.opendocument.graphics" => Some(&ODG),
+        b"application/vnd.oasis.opendocument.formula" => Some(&ODF),
+        b"application/vnd.oasis.opendocument.base"
+        | b"application/vnd.oasis.opendocument.database"
+        | b"application/vnd.sun.xml.base" => Some(&ODB),
+        b"application/vnd.oasis.opendocument.chart" => Some(&ODC),
+        b"application/vnd.oasis.opendocument.image" => Some(&ODI),
+        b"application/vnd.oasis.opendocument.text-template" => Some(&OTT),
+        b"application/vnd.oasis.opendocument.spreadsheet-template" => Some(&OTS),
+        b"application/vnd.oasis.opendocument.presentation-template" => Some(&OTP),
+        b"application/vnd.oasis.opendocument.graphics-template" => Some(&OTG),
+        b"application/vnd.oasis.opendocument.text-master" => Some(&ODM),
+        b"application/x-krita" => Some(&KRITA),
+        b"image/openraster" => Some(&OPENRASTER),
+        b"application/vnd.adobe.indesign-idml-package" => Some(&IDML),
+        _ => None,
+    }
 }
 
 /// Classifies additional ZIP-backed formats in Magika's taxonomy (`npz`, `nupkg`,
@@ -618,12 +660,14 @@ pub(crate) fn zip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 /// returns `Label::Zip` for valid generic ZIP archives.
 pub(crate) fn zip_subtypes_and_fallback(
     prefix: &[u8], size: u64, names: &[u8], valid: bool, dir_names: bool, first_is_ct: bool,
+    mimetype: Option<&[u8]>,
 ) -> Option<Label> {
     static DOCX_OOXML: Subformat = Subformat::new("Word Open XML document");
     static SH3D_BINARY: Subformat = Subformat::new("Sweet Home 3D (binary)");
     static SH3D_XML: Subformat = Subformat::new("Sweet Home 3D (XML)");
     static TMDX_BINARY: Subformat = Subformat::new("TextMaker document (binary)");
     static TMDX_XML: Subformat = Subformat::new("TextMaker document (XML)");
+    static ZIP_EMPTY: Subformat = Subformat::new("Empty ZIP archive");
     const ZIP_EMPTY_ARCHIVE: &[u8; 22] = bytes!(ZIP_EOCD_SIGNATURE, &[0u8; 18]);
 
     const CD_WORD_DOC: &[u8] = b"\nword/document.xml\n";
@@ -670,6 +714,11 @@ pub(crate) fn zip_subtypes_and_fallback(
     const LFH_XPI_INSTALL_RDF: &[u8] = b"install.rdf";
     const LFH_XPI_CHROME_MANIFEST: &[u8] = b"chrome.manifest";
     const LFH_CONTENT_TYPES: &[u8] = b"[Content_Types].xml";
+
+    let zip_with_mimetype = || match mimetype.and_then(zip_mimetype_subformat) {
+        Some(sub) => with_subformat(Label::Zip, sub),
+        None => Some(Label::Zip),
+    };
 
     // Check Central Directory `names` view
     if !names.is_empty() {
@@ -799,7 +848,7 @@ pub(crate) fn zip_subtypes_and_fallback(
                 && contains(prefix, ZIP_ZIP64_LOCATOR_SIGNATURE)
                 && !contains(prefix, LFH_CONTENT_TYPES)
             {
-                return Some(Label::Zip);
+                return zip_with_mimetype();
             }
         }
         if (10..=63).contains(&(ver & 0xFF))
@@ -811,8 +860,11 @@ pub(crate) fn zip_subtypes_and_fallback(
         }
     }
 
-    if valid || (size >= 22 && prefix.len() >= 22 && starts(prefix, ZIP_EMPTY_ARCHIVE)) {
-        return Some(Label::Zip);
+    if size >= 22 && prefix.len() >= 22 && starts(prefix, ZIP_EMPTY_ARCHIVE) {
+        return with_subformat(Label::Zip, &ZIP_EMPTY);
+    }
+    if valid {
+        return zip_with_mimetype();
     }
     None
 }

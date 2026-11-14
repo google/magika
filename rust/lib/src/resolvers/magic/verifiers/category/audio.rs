@@ -109,21 +109,60 @@ pub(crate) fn flac(prefix: &[u8]) -> Option<Label> {
 }
 
 /// Ogg bitstream (`"OggS"`): version 0, BOS flag (`0x02`, optionally EOS `0x06`) at `@5`, initial
-/// page sequence number `0` at `@18`, and ≥ 1 segment at `@26`.
+/// page sequence number `0` at `@18`, and ≥ 1 segment at `@26`. Names the logical bitstream codec
+/// from the O(1) BOS identification packet header at `@(27 + page_segments)` when present.
 pub(crate) fn ogg(prefix: &[u8]) -> Option<Label> {
     const MAGIC: &[u8] = b"OggS\x00"; // @0..5: Ogg capture pattern + stream_structure_version 0
     const HEADER_TYPE: usize = 5; // @5: u8 — BOS (0x02) or BOS|EOS (0x06)
     const PAGE_SEQ_NO: usize = 18; // @18: u32 LE — initial page sequence number (0)
     const PAGE_SEGMENTS: usize = 26; // @26: u8 — number of segment table entries (≥ 1)
+    const HEADER_FIXED_LEN: usize = 27; // fixed Ogg page header preceding the segment table
     const MIN_LEN: usize = 28; // 27-byte Ogg page header + ≥ 1 segment table byte
+
+    static OGG_VORBIS: Subformat = Subformat::with_ids("Ogg Vorbis", "fmt/203", Some("fdd000117"));
+    static OGG_OPUS: Subformat = Subformat::with_ids("Ogg Opus", "fmt/946", None);
+    static OGG_THEORA: Subformat = Subformat::with_ids("Ogg Theora", "fmt/945", None);
+    static OGG_FLAC: Subformat = Subformat::with_ids("Ogg FLAC", "fmt/947", Some("fdd000227"));
+    static OGG_SPEEX: Subformat = Subformat::with_ids("Ogg Speex", "fmt/948", Some("fdd000260"));
+    static OGG_SKELETON: Subformat = Subformat::new("Ogg Skeleton");
+    static OGG_KATE: Subformat = Subformat::new("Ogg Kate");
+    static OGG_CELT: Subformat = Subformat::new("Ogg CELT");
+    static OGG_DIRAC: Subformat = Subformat::new("Ogg Dirac");
+    static OGG_DAALA: Subformat = Subformat::new("Ogg Daala");
+    static OGG_MIDI: Subformat = Subformat::new("Ogg MIDI");
+    static OGG_PCM: Subformat = Subformat::new("Ogg PCM");
+
+    fn bos_subformat(payload: &[u8]) -> Option<&'static Subformat> {
+        match payload.first().copied()? {
+            0x01 if starts(payload, b"\x01vorbis") => Some(&OGG_VORBIS),
+            b'O' if starts(payload, b"OpusHead") => Some(&OGG_OPUS),
+            b'O' if starts(payload, b"OggMIDI\0") => Some(&OGG_MIDI),
+            0x80 if starts(payload, b"\x80theora") => Some(&OGG_THEORA),
+            0x80 if starts(payload, b"\x80kate\0\0\0") => Some(&OGG_KATE),
+            0x80 if starts(payload, b"\x80daala") => Some(&OGG_DAALA),
+            0x7F if starts(payload, b"\x7fFLAC") => Some(&OGG_FLAC),
+            b'f' if starts(payload, b"fLaC") => Some(&OGG_FLAC),
+            b'f' if starts(payload, b"fishead\0") => Some(&OGG_SKELETON),
+            b'S' if starts(payload, b"Speex   ") => Some(&OGG_SPEEX),
+            b'C' if starts(payload, b"CELT    ") => Some(&OGG_CELT),
+            b'B' if starts(payload, b"BBCD") => Some(&OGG_DIRAC),
+            b'P' if starts(payload, b"PCM     ") => Some(&OGG_PCM),
+            _ => None,
+        }
+    }
 
     require!(
         prefix.len() >= MIN_LEN,
         starts(prefix, MAGIC),
         matches!(u8_at(prefix, HEADER_TYPE)?, 0x02 | 0x06),
         le32(prefix, PAGE_SEQ_NO)? == 0,
-        u8_at(prefix, PAGE_SEGMENTS)? >= 1,
     );
+    let page_segments = u8_at(prefix, PAGE_SEGMENTS)?;
+    require!(page_segments >= 1);
+    let payload_off = HEADER_FIXED_LEN + usize::from(page_segments);
+    if let Some(sub) = prefix.get(payload_off..).and_then(bos_subformat) {
+        return with_subformat(Label::Ogg, sub);
+    }
     Some(Label::Ogg)
 }
 

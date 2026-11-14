@@ -613,6 +613,30 @@ mod tests {
         type Expected =
             (&'static str, ContentType, &'static str, Option<&'static str>, Option<&'static str>);
         let cases: &[Expected] = &[
+            // Unix ar
+            (
+                "ar/!ar_bsd_symdef.a",
+                ContentType::Ar,
+                "Unix ar (BSD/macOS symbol table)",
+                None,
+                None,
+            ),
+            (
+                "ar/!ar_gnu_longnames.a",
+                ContentType::Ar,
+                "Unix ar (GNU long filename table)",
+                None,
+                None,
+            ),
+            (
+                "ar/!ar_gnu_sym64.a",
+                ContentType::Ar,
+                "Unix ar (GNU/SVR4 64-bit symbol table)",
+                None,
+                None,
+            ),
+            ("ar/ar_bsd_ext.a", ContentType::Ar, "Unix ar (BSD extended filename)", None, None),
+            ("ar/ar_gnu_symtab.a", ContentType::Ar, "Unix ar (GNU/SVR4 symbol table)", None, None),
             // ELF
             (
                 "elf/!elf32_be_rel.o",
@@ -801,6 +825,39 @@ mod tests {
                 Some("fmt/693"),
                 None,
             ),
+            // Ogg
+            (
+                "ogg/!ogg_dirac.ogv",
+                ContentType::Ogg,
+                "Ogg Dirac",
+                Some("fmt/944"),
+                Some("fdd000026"),
+            ),
+            ("ogg/!ogg_flac.oga", ContentType::Ogg, "Ogg FLAC", Some("fmt/947"), Some("fdd000227")),
+            ("ogg/!ogg_kate.ogx", ContentType::Ogg, "Ogg Kate", Some("fmt/944"), Some("fdd000026")),
+            ("ogg/!ogg_opus.opus", ContentType::Ogg, "Ogg Opus", Some("fmt/946"), None),
+            (
+                "ogg/!ogg_skeleton.ogx",
+                ContentType::Ogg,
+                "Ogg Skeleton",
+                Some("fmt/944"),
+                Some("fdd000026"),
+            ),
+            (
+                "ogg/!ogg_speex.spx",
+                ContentType::Ogg,
+                "Ogg Speex",
+                Some("fmt/948"),
+                Some("fdd000260"),
+            ),
+            ("ogg/!ogg_theora.ogv", ContentType::Ogg, "Ogg Theora", Some("fmt/945"), None),
+            (
+                "ogg/ogg_vorbis.ogg",
+                ContentType::Ogg,
+                "Ogg Vorbis",
+                Some("fmt/203"),
+                Some("fdd000117"),
+            ),
             // Windows PE
             ("pe/!pe32_native.sys", ContentType::Pebin, "PE32 native image", Some("fmt/899"), None),
             (
@@ -946,6 +1003,192 @@ mod tests {
                 "MBTiles (MPBX header)",
                 None,
                 None,
+            ),
+            // TIFF
+            (
+                "tiff/!canon_cr2.cr2",
+                ContentType::Tiff,
+                "Canon RAW 2 (.cr2)",
+                Some("fmt/592"),
+                Some("fdd000241"),
+            ),
+            // RIFF / RIFX WAVE
+            (
+                "wav/!wav_bwf_v1.wav",
+                ContentType::Wav,
+                "Broadcast WAVE (BWF v1)",
+                Some("fmt/2"),
+                Some("fdd000356"),
+            ),
+            (
+                "wav/!wav_bwf_v2.wav",
+                ContentType::Wav,
+                "Broadcast WAVE (BWF v2)",
+                Some("fmt/527"),
+                Some("fdd000357"),
+            ),
+            (
+                "wav/!wav_extensible.wav",
+                ContentType::Wav,
+                "RIFF WAVE (Extensible)",
+                Some("fmt/143"),
+                Some("fdd000001"),
+            ),
+            (
+                "wav/!wav_ima_adpcm.wav",
+                ContentType::Wav,
+                "RIFF WAVE (IMA ADPCM)",
+                Some("fmt/6"),
+                Some("fdd000001"),
+            ),
+            (
+                "wav/!wav_mp3.wav",
+                ContentType::Wav,
+                "RIFF WAVE (MP3)",
+                Some("fmt/6"),
+                Some("fdd000001"),
+            ),
+            (
+                "wav/!wav_ms_adpcm.wav",
+                ContentType::Wav,
+                "RIFF WAVE (Microsoft ADPCM)",
+                Some("fmt/6"),
+                Some("fdd000001"),
+            ),
+            ("wav/!wav_rifx_pcm.wav", ContentType::Wav, "RIFX WAVE (PCM, big-endian)", None, None),
+            (
+                "wav/wav_alaw.wav",
+                ContentType::Wav,
+                "RIFF WAVE (A-Law)",
+                Some("fmt/6"),
+                Some("fdd000001"),
+            ),
+            (
+                "wav/wav_bwf_v0.wav",
+                ContentType::Wav,
+                "Broadcast WAVE (BWF v0)",
+                Some("fmt/1"),
+                None,
+            ),
+            (
+                "wav/wav_ieee_float.wav",
+                ContentType::Wav,
+                "RIFF WAVE (IEEE float)",
+                Some("fmt/6"),
+                Some("fdd000001"),
+            ),
+            (
+                "wav/wav_mulaw.wav",
+                ContentType::Wav,
+                "RIFF WAVE (mu-Law)",
+                Some("fmt/6"),
+                Some("fdd000001"),
+            ),
+            (
+                "wav/wav_pcm.wav",
+                ContentType::Wav,
+                "RIFF WAVE (PCM)",
+                Some("fmt/141"),
+                Some("fdd000002"),
+            ),
+            // ZIP
+            (
+                "zip/!zip_empty.zip",
+                ContentType::Zip,
+                "Empty ZIP archive",
+                Some("x-fmt/263"),
+                Some("fdd000354"),
+            ),
+            (
+                "zip/!zip_idml.idml",
+                ContentType::Zip,
+                "Adobe InDesign Markup Language (.idml)",
+                Some("fmt/1184"),
+                None,
+            ),
+            (
+                "zip/!zip_krita.kra",
+                ContentType::Zip,
+                "Krita document (.kra)",
+                Some("fmt/999"),
+                None,
+            ),
+            (
+                "zip/!zip_odb.odb",
+                ContentType::Zip,
+                "OpenDocument Database (.odb)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_odc.odc",
+                ContentType::Zip,
+                "OpenDocument Chart (.odc)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_odf.odf",
+                ContentType::Zip,
+                "OpenDocument Formula (.odf)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_odg.odg",
+                ContentType::Zip,
+                "OpenDocument Graphics (.odg)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_odi.odi",
+                ContentType::Zip,
+                "OpenDocument Image (.odi)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_odm.odm",
+                ContentType::Zip,
+                "OpenDocument Master Document (.odm)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_openraster.ora",
+                ContentType::Zip,
+                "OpenRaster image (.ora)",
+                Some("fmt/998"),
+                None,
+            ),
+            (
+                "zip/!zip_otg.otg",
+                ContentType::Zip,
+                "OpenDocument Graphics Template (.otg)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_otp.otp",
+                ContentType::Zip,
+                "OpenDocument Presentation Template (.otp)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_ots.ots",
+                ContentType::Zip,
+                "OpenDocument Spreadsheet Template (.ots)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
+            ),
+            (
+                "zip/!zip_ott.ott",
+                ContentType::Zip,
+                "OpenDocument Text Template (.ott)",
+                Some("x-fmt/263"),
+                Some("fdd000247"),
             ),
         ];
 
@@ -1098,6 +1341,118 @@ mod tests {
         assert_eq!(meta.get("subformat"), None);
         assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/415"));
         assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000598"));
+    }
+
+    #[test]
+    fn resolvers_populate_o1_header_subformats() {
+        // Ogg: page_segments = 255 past prefix length falls back to bare Ogg
+        let mut ogg_short = vec![0u8; 40];
+        ogg_short[..6].copy_from_slice(b"OggS\x00\x02");
+        ogg_short[26] = 255;
+        let (cts, meta) = resolve_slice_with_metadata(&ogg_short);
+        assert_eq!(cts, vec![ContentType::Ogg]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/944"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000026"));
+
+        // Ogg: multi-segment BOS (page_segments = 2 -> payload at @29) & additional codecs
+        for (magic, expected_sub) in [
+            (b"fLaC".as_slice(), "Ogg FLAC"),
+            (b"CELT    ".as_slice(), "Ogg CELT"),
+            (b"\x80daala".as_slice(), "Ogg Daala"),
+            (b"OggMIDI\0".as_slice(), "Ogg MIDI"),
+            (b"PCM     ".as_slice(), "Ogg PCM"),
+        ] {
+            let mut ogg = vec![0u8; 64];
+            ogg[..6].copy_from_slice(b"OggS\x00\x02");
+            ogg[26] = 2;
+            ogg[29..29 + magic.len()].copy_from_slice(magic);
+            let (cts, meta) = resolve_slice_with_metadata(&ogg);
+            assert_eq!(cts, vec![ContentType::Ogg]);
+            assert_eq!(meta.get("subformat").map(String::as_str), Some(expected_sub));
+        }
+
+        // Unix ar: regular member falls back to bare Ar; __.SYMDEF SORTED matches BSD symtab
+        let mut ar_plain = vec![0u8; 68];
+        ar_plain[..24].copy_from_slice(b"!<arch>\nfoo.o           ");
+        ar_plain[66..68].copy_from_slice(b"`\n");
+        let (cts, meta) = resolve_slice_with_metadata(&ar_plain);
+        assert_eq!(cts, vec![ContentType::Ar]);
+        assert_eq!(meta.get("subformat"), None);
+
+        ar_plain[8..24].copy_from_slice(b"__.SYMDEF SORTED");
+        let (cts, meta) = resolve_slice_with_metadata(&ar_plain);
+        assert_eq!(cts, vec![ContentType::Ar]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Unix ar (BSD/macOS symbol table)")
+        );
+
+        // WAV: leading JUNK chunk, short fmt chunk, and unknown wFormatTag fall back to RIFF WAVE
+        let mut wav_junk = vec![0u8; 44];
+        wav_junk[..16].copy_from_slice(b"RIFF\x24\x00\x00\x00WAVEJUNK");
+        let (cts, meta) = resolve_slice_with_metadata(&wav_junk);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("RIFF WAVE"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/6"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000001"));
+
+        let mut wav_short_fmt = vec![0u8; 44];
+        wav_short_fmt[..16].copy_from_slice(b"RIFF\x24\x00\x00\x00WAVEfmt ");
+        wav_short_fmt[16..20].copy_from_slice(&12u32.to_le_bytes());
+        wav_short_fmt[20..22].copy_from_slice(&1u16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&wav_short_fmt);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("RIFF WAVE"));
+
+        // WAV: truncated bext (< 368B) falls back to generic Broadcast WAVE (BWF)
+        let mut wav_short_bwf = vec![0u8; 64];
+        wav_short_bwf[..16].copy_from_slice(b"RIFF\x38\x00\x00\x00WAVEbext");
+        wav_short_bwf[16..20].copy_from_slice(&602u32.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&wav_short_bwf);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("Broadcast WAVE (BWF)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/6"));
+
+        // WAV: big-endian RIFX unknown tag falls back to RIFX WAVE (big-endian)
+        let mut rifx = vec![0u8; 44];
+        rifx[..16].copy_from_slice(b"RIFX\x00\x00\x00\x24WAVEfmt ");
+        rifx[16..20].copy_from_slice(&16u32.to_be_bytes());
+        rifx[20..22].copy_from_slice(&0x1234u16.to_be_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&rifx);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("RIFX WAVE (big-endian)"));
+
+        // TIFF: IFD0 at offset 8 whose bytes spell "CR\x02\x00" must NOT be classified as CR2
+        let mut tiff_off8 = vec![0u8; 32];
+        tiff_off8[..12].copy_from_slice(b"II*\x00\x08\x00\x00\x00CR\x02\x00");
+        let (cts, meta) = resolve_slice_with_metadata(&tiff_off8);
+        assert_eq!(cts, vec![ContentType::Tiff]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("TIFF (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/353"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000022"));
+
+        // ZIP: unknown stored mimetype falls back to bare Zip; legacy ODB aliases resolve
+        let unknown_zip = archive(&[stored(b"mimetype", b"application/octet-stream")], b"");
+        let (cts, meta) = resolve_slice_with_metadata(&unknown_zip);
+        assert_eq!(cts, vec![ContentType::Zip]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/263"));
+
+        for odb_mime in [
+            b"application/vnd.oasis.opendocument.database".as_slice(),
+            b"application/vnd.sun.xml.base".as_slice(),
+        ] {
+            let odb = archive(&[stored(b"mimetype", odb_mime)], b"");
+            let (cts, meta) = resolve_slice_with_metadata(&odb);
+            assert_eq!(cts, vec![ContentType::Zip]);
+            assert_eq!(
+                meta.get("subformat").map(String::as_str),
+                Some("OpenDocument Database (.odb)")
+            );
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/263"));
+            assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000247"));
+        }
     }
 
     fn stored<'a>(name: &'a [u8], data: &'a [u8]) -> (&'a [u8], &'a [u8]) {

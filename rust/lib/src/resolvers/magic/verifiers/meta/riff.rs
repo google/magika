@@ -20,11 +20,103 @@ use crate::resolvers::magic::*;
 pub(crate) const RIFF_MAGIC: &[u8; 4] = b"RIFF"; // @0..4: little-endian RIFF container
 pub(crate) const RIFX_MAGIC: &[u8; 4] = b"RIFX"; // @0..4: big-endian RIFX container
 
+/// O(1) subformat classification for an already-matched little-endian `RIFF WAVE` container,
+/// inspecting only the first chunk at `@12` (`"bext"` for Broadcast WAVE or `"fmt "` +
+/// `wFormatTag` at `@20`). Never walks chunks or alters `Label::Wav`.
+fn riff_wav_subformat(prefix: &[u8]) -> &'static Subformat {
+    static WAV_RIFF: Subformat = Subformat::with_ids("RIFF WAVE", "fmt/6", Some("fdd000001"));
+    static WAV_PCM: Subformat =
+        Subformat::with_ids("RIFF WAVE (PCM)", "fmt/141", Some("fdd000002"));
+    static WAV_MS_ADPCM: Subformat =
+        Subformat::with_ids("RIFF WAVE (Microsoft ADPCM)", "fmt/6", Some("fdd000001"));
+    static WAV_IEEE_FLOAT: Subformat =
+        Subformat::with_ids("RIFF WAVE (IEEE float)", "fmt/6", Some("fdd000001"));
+    static WAV_ALAW: Subformat =
+        Subformat::with_ids("RIFF WAVE (A-Law)", "fmt/6", Some("fdd000001"));
+    static WAV_MULAW: Subformat =
+        Subformat::with_ids("RIFF WAVE (mu-Law)", "fmt/6", Some("fdd000001"));
+    static WAV_IMA_ADPCM: Subformat =
+        Subformat::with_ids("RIFF WAVE (IMA ADPCM)", "fmt/6", Some("fdd000001"));
+    static WAV_MP3: Subformat = Subformat::with_ids("RIFF WAVE (MP3)", "fmt/6", Some("fdd000001"));
+    static WAV_EXTENSIBLE: Subformat =
+        Subformat::with_ids("RIFF WAVE (Extensible)", "fmt/143", Some("fdd000001"));
+    static WAV_BWF: Subformat =
+        Subformat::with_ids("Broadcast WAVE (BWF)", "fmt/6", Some("fdd000001"));
+    static WAV_BWF_V0: Subformat = Subformat::with_ids("Broadcast WAVE (BWF v0)", "fmt/1", None);
+    static WAV_BWF_V1: Subformat =
+        Subformat::with_ids("Broadcast WAVE (BWF v1)", "fmt/2", Some("fdd000356"));
+    static WAV_BWF_V2: Subformat =
+        Subformat::with_ids("Broadcast WAVE (BWF v2)", "fmt/527", Some("fdd000357"));
+
+    const FIRST_CHUNK: usize = 12; // @12..16: first subchunk FourCC inside WAVE
+    const FIRST_CHUNK_SIZE: usize = 16; // @16: u32 LE — first subchunk byte size
+    const FMT_FORMAT_TAG: usize = 20; // @20: u16 LE — WAVEFORMAT.wFormatTag
+    const BEXT_VERSION: usize = 366; // @366: u16 LE — EBU Tech 3285 bext Version (12 + 8 + 346)
+    const BEXT_MIN_SIZE: u32 = 348; // covers up through the 2-byte Version field
+    const FMT_MIN_SIZE: u32 = 16; // minimum PCMWAVEFORMAT size
+
+    if eq_at(prefix, FIRST_CHUNK, b"fmt ")
+        && le32(prefix, FIRST_CHUNK_SIZE).is_some_and(|n| n >= FMT_MIN_SIZE)
+    {
+        return match le16(prefix, FMT_FORMAT_TAG) {
+            Some(0x0001) => &WAV_PCM,
+            Some(0x0002) => &WAV_MS_ADPCM,
+            Some(0x0003) => &WAV_IEEE_FLOAT,
+            Some(0x0006) => &WAV_ALAW,
+            Some(0x0007) => &WAV_MULAW,
+            Some(0x0011) => &WAV_IMA_ADPCM,
+            Some(0x0055) => &WAV_MP3,
+            Some(0xFFFE) => &WAV_EXTENSIBLE,
+            _ => &WAV_RIFF,
+        };
+    }
+    if eq_at(prefix, FIRST_CHUNK, b"bext") {
+        if le32(prefix, FIRST_CHUNK_SIZE).is_some_and(|n| n >= BEXT_MIN_SIZE) {
+            return match le16(prefix, BEXT_VERSION) {
+                Some(0) => &WAV_BWF_V0,
+                Some(1) => &WAV_BWF_V1,
+                Some(2) => &WAV_BWF_V2,
+                _ => &WAV_BWF,
+            };
+        }
+        return &WAV_BWF;
+    }
+    &WAV_RIFF
+}
+
+/// O(1) subformat classification for an already-matched big-endian `RIFX WAVE` container,
+/// inspecting only an initial `"fmt "` chunk at `@12` and its `wFormatTag` at `@20`.
+fn rifx_wav_subformat(prefix: &[u8]) -> &'static Subformat {
+    static WAV_RIFX: Subformat = Subformat::new("RIFX WAVE (big-endian)");
+    static WAV_RIFX_PCM: Subformat = Subformat::new("RIFX WAVE (PCM, big-endian)");
+    static WAV_RIFX_IEEE_FLOAT: Subformat = Subformat::new("RIFX WAVE (IEEE float, big-endian)");
+    static WAV_RIFX_ALAW: Subformat = Subformat::new("RIFX WAVE (A-Law, big-endian)");
+    static WAV_RIFX_MULAW: Subformat = Subformat::new("RIFX WAVE (mu-Law, big-endian)");
+    static WAV_RIFX_EXTENSIBLE: Subformat = Subformat::new("RIFX WAVE (Extensible, big-endian)");
+
+    const FIRST_CHUNK: usize = 12; // @12..16: first subchunk FourCC inside WAVE
+    const FIRST_CHUNK_SIZE: usize = 16; // @16: u32 BE — first subchunk byte size
+    const FMT_FORMAT_TAG: usize = 20; // @20: u16 BE — WAVEFORMAT.wFormatTag
+    const FMT_MIN_SIZE: u32 = 16;
+
+    if eq_at(prefix, FIRST_CHUNK, b"fmt ")
+        && be32(prefix, FIRST_CHUNK_SIZE).is_some_and(|n| n >= FMT_MIN_SIZE)
+    {
+        return match be16(prefix, FMT_FORMAT_TAG) {
+            Some(0x0001) => &WAV_RIFX_PCM,
+            Some(0x0003) => &WAV_RIFX_IEEE_FLOAT,
+            Some(0x0006) => &WAV_RIFX_ALAW,
+            Some(0x0007) => &WAV_RIFX_MULAW,
+            Some(0xFFFE) => &WAV_RIFX_EXTENSIBLE,
+            _ => &WAV_RIFX,
+        };
+    }
+    &WAV_RIFX
+}
+
 /// RIFF / RIFX / RF64 container overlap verifier: dispatches on the form type at offset 8
 /// between AVI (`"AVI "` + `"LIST"`/`"hdrl"`), WAV (`"WAVE"`), and ANI (`"ACON"`).
 pub(crate) fn riff(prefix: &[u8]) -> Option<Label> {
-    static WAV_RIFF: Subformat = Subformat::with_ids("RIFF WAVE", "fmt/6", Some("fdd000001"));
-    static WAV_RIFX: Subformat = Subformat::new("RIFX WAVE (big-endian)");
     static WAV_RF64: Subformat = Subformat::with_ids("RF64 WAVE", "fmt/712", None);
     const RF64_HDR: &[u8] = bytes!(b"RF64", &u32::MAX.to_le_bytes(), b"WAVEds64"); // @0..16: RF64 WAVE + ds64 chunk
     const CHUNK_SIZE: usize = 4; // @4: u32 — container chunk size
@@ -51,7 +143,7 @@ pub(crate) fn riff(prefix: &[u8]) -> Option<Label> {
         if eq_at(prefix, FORM_TYPE, WAVE_FORM)
             && (4..0x0800_0000).contains(&le32(prefix, CHUNK_SIZE)?)
         {
-            return with_subformat(Label::Wav, &WAV_RIFF);
+            return with_subformat(Label::Wav, riff_wav_subformat(prefix));
         }
         if eq_at(prefix, FORM_TYPE, ACON_FORM)
             && (4..0x0800_0000).contains(&le32(prefix, CHUNK_SIZE)?)
@@ -62,7 +154,7 @@ pub(crate) fn riff(prefix: &[u8]) -> Option<Label> {
         if eq_at(prefix, FORM_TYPE, WAVE_FORM)
             && (4..0x0800_0000).contains(&be32(prefix, CHUNK_SIZE)?)
         {
-            return with_subformat(Label::Wav, &WAV_RIFX);
+            return with_subformat(Label::Wav, rifx_wav_subformat(prefix));
         }
     } else if prefix.len() >= RF64_MIN_LEN
         && starts(prefix, RF64_HDR)

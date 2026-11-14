@@ -535,16 +535,26 @@ pub(crate) const BIGTIFF_BE_MAGIC: &[u8; 4] = &[b'M', b'M', 0, 43];
 pub(crate) fn tiff(prefix: &[u8], size: u64) -> Option<Label> {
     static TIFF_LE: Subformat = Subformat::new("TIFF (little-endian)");
     static TIFF_BE: Subformat = Subformat::new("TIFF (big-endian)");
+    static TIFF_CR2: Subformat =
+        Subformat::with_ids("Canon RAW 2 (.cr2)", "fmt/592", Some("fdd000241"));
     static BIGTIFF_LE: Subformat =
         Subformat::with_ids("BigTIFF (little-endian)", "fmt/1917", Some("fdd000328"));
     static BIGTIFF_BE: Subformat =
         Subformat::with_ids("BigTIFF (big-endian)", "fmt/1917", Some("fdd000328"));
+    const CR2_MAGIC: &[u8; 4] = b"CR\x02\x00"; // @8..12: Canon RAW 2 signature + version 2.0
+    const CR2_MIN_IFD_OFFSET: u32 = 16; // IFD0 follows the 16-byte CR2 header
     const MIN_TIFF_SIZE: u64 = 14; // 8B TIFF header + 2B entry count + 4B next IFD offset
 
     require!(size >= MIN_TIFF_SIZE, prefix.len() >= 8);
     let (valid, sub) = if starts(prefix, TIFF_LE_MAGIC) {
         let off = le32(prefix, 4)?;
-        (off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size, &TIFF_LE)
+        let valid = off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size;
+        let sub = if off >= CR2_MIN_IFD_OFFSET && eq_at(prefix, 8, CR2_MAGIC) {
+            &TIFF_CR2
+        } else {
+            &TIFF_LE
+        };
+        (valid, sub)
     } else if starts(prefix, TIFF_BE_MAGIC) {
         let off = be32(prefix, 4)?;
         (off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size, &TIFF_BE)

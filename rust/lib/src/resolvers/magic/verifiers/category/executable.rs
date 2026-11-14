@@ -28,38 +28,112 @@ pub(crate) fn macho(prefix: &[u8]) -> Option<Label> {
     const SIZEOFCMDS: usize = 20; // @20: u32 — total byte size of load commands
     const MIN_LEN_32: usize = 28;
     const MIN_LEN_64: usize = 32;
+    const MH_FILESET: u32 = 12;
+
+    static MACHO_SUBFORMATS: [[Subformat; 13]; 4] = [
+        [
+            Subformat::with_ids("Mach-O 32-bit (little-endian)", "fmt/692", None),
+            Subformat::with_ids(
+                "Mach-O 32-bit relocatable object (little-endian)",
+                "fmt/692",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 32-bit executable (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fixed VM library (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit core dump (little-endian)", "fmt/692", None),
+            Subformat::with_ids(
+                "Mach-O 32-bit preloaded executable (little-endian)",
+                "fmt/692",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 32-bit dynamic library (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic linker (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit bundle (little-endian)", "fmt/692", None),
+            Subformat::with_ids(
+                "Mach-O 32-bit dynamic library stub (little-endian)",
+                "fmt/692",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 32-bit dSYM (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit kernel extension (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fileset (little-endian)", "fmt/692", None),
+        ],
+        [
+            Subformat::with_ids("Mach-O 32-bit (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit relocatable object (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit executable (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fixed VM library (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit core dump (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit preloaded executable (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic library (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic linker (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit bundle (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic library stub (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dSYM (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit kernel extension (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fileset (big-endian)", "fmt/692", None),
+        ],
+        [
+            Subformat::with_ids("Mach-O 64-bit (little-endian)", "fmt/693", None),
+            Subformat::with_ids(
+                "Mach-O 64-bit relocatable object (little-endian)",
+                "fmt/693",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 64-bit executable (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fixed VM library (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit core dump (little-endian)", "fmt/693", None),
+            Subformat::with_ids(
+                "Mach-O 64-bit preloaded executable (little-endian)",
+                "fmt/693",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 64-bit dynamic library (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic linker (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit bundle (little-endian)", "fmt/693", None),
+            Subformat::with_ids(
+                "Mach-O 64-bit dynamic library stub (little-endian)",
+                "fmt/693",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 64-bit dSYM (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit kernel extension (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fileset (little-endian)", "fmt/693", None),
+        ],
+        [
+            Subformat::with_ids("Mach-O 64-bit (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit relocatable object (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit executable (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fixed VM library (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit core dump (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit preloaded executable (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic library (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic linker (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit bundle (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic library stub (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dSYM (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit kernel extension (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fileset (big-endian)", "fmt/693", None),
+        ],
+    ];
 
     require!(prefix.len() >= MIN_LEN_32);
-    let (read_u32, is_64): (ReadU32, bool) = match le32(prefix, 0)? {
-        MH_MAGIC => (le32, false),
-        MH_MAGIC_64 => (le32, true),
+    let (read_u32, is_64, is_le): (ReadU32, bool, bool) = match le32(prefix, 0)? {
+        MH_MAGIC => (le32, false, true),
+        MH_MAGIC_64 => (le32, true, true),
         _ => match be32(prefix, 0)? {
-            MH_MAGIC => (be32, false),
-            MH_MAGIC_64 => (be32, true),
+            MH_MAGIC => (be32, false, false),
+            MH_MAGIC_64 => (be32, true, false),
             _ => return None,
         },
     };
-    require!(!is_64 || prefix.len() >= MIN_LEN_64, read_u32(prefix, FILETYPE)? >= 1);
+    let filetype = read_u32(prefix, FILETYPE)?;
+    require!(!is_64 || prefix.len() >= MIN_LEN_64, filetype >= 1);
     let (ncmds, sizeofcmds) = (read_u32(prefix, NCMDS)?, read_u32(prefix, SIZEOFCMDS)?);
     require!((ncmds == 0 && sizeofcmds == 0) || (ncmds >= 1 && sizeofcmds >= 8));
-    static MACHO_32_LE: Subformat =
-        Subformat::with_ids("Mach-O 32-bit (little-endian)", "fmt/692", None);
-    static MACHO_32_BE: Subformat =
-        Subformat::with_ids("Mach-O 32-bit (big-endian)", "fmt/692", None);
-    static MACHO_64_LE: Subformat =
-        Subformat::with_ids("Mach-O 64-bit (little-endian)", "fmt/693", None);
-    static MACHO_64_BE: Subformat =
-        Subformat::with_ids("Mach-O 64-bit (big-endian)", "fmt/693", None);
-    let is_le = matches!(le32(prefix, 0)?, MH_MAGIC | MH_MAGIC_64);
-    with_subformat(
-        Label::Macho,
-        match (is_64, is_le) {
-            (false, true) => &MACHO_32_LE,
-            (false, false) => &MACHO_32_BE,
-            (true, true) => &MACHO_64_LE,
-            (true, false) => &MACHO_64_BE,
-        },
-    )
+    let variant = usize::from(is_64) * 2 + usize::from(!is_le);
+    let kind = if filetype <= MH_FILESET { filetype as usize } else { 0 };
+    with_subformat(Label::Macho, &MACHO_SUBFORMATS[variant][kind])
 }
 
 /// Microsoft Program Database (PDB): MSF 7.00 header (`"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0"`)
@@ -157,43 +231,84 @@ pub(crate) const ZM_MAGIC: &[u8; 2] = b"ZM";
 
 pub(crate) const PE_MAGIC: &[u8; 4] = b"PE\0\0";
 
-/// Checks whether `prefix` (of an input of `size` bytes) holds a valid Windows PE/COFF image
-/// header with `IMAGE_FILE_EXECUTABLE_IMAGE` set, not a resource-only DLL (`is_dll &&
-/// entry_point == 0`), Windows subsystem in `1..=16`, and a shipping Windows `Machine`
-/// architecture.
-pub(crate) fn is_windows_pebin(prefix: &[u8], size: u64) -> bool {
+/// Validates a Windows PE/COFF image header (`IMAGE_FILE_EXECUTABLE_IMAGE` set, not a
+/// resource-only DLL where `is_dll && entry_point == 0`, Windows subsystem in `1..=16`, and a
+/// shipping Windows `Machine` architecture) and returns its PE32 / PE32+ subformat descriptor.
+pub(crate) fn windows_pe_subformat(prefix: &[u8], size: u64) -> Option<&'static Subformat> {
+    const PE32_MAGIC: u16 = 0x010B;
+    const PE32_PLUS_MAGIC: u16 = 0x020B;
+    const IMAGE_FILE_EXECUTABLE_IMAGE: u16 = 0x0002;
+    const IMAGE_FILE_DLL: u16 = 0x2000;
+    const SUBSYSTEM_NATIVE: u16 = 1;
+    const SUBSYSTEM_WINDOWS_GUI: u16 = 2;
+    const SUBSYSTEM_WINDOWS_CUI: u16 = 3;
+    const SUBSYSTEM_WINDOWS_CE_GUI: u16 = 9;
+    const SUBSYSTEM_EFI_APPLICATION: u16 = 10;
+    const SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER: u16 = 11;
+    const SUBSYSTEM_EFI_RUNTIME_DRIVER: u16 = 12;
+    const SUBSYSTEM_EFI_ROM: u16 = 13;
+    const SUBSYSTEM_WINDOWS_BOOT_APPLICATION: u16 = 16;
+
+    // [0] = PE32 (fmt/899), [1] = PE32+ (fmt/900)
+    static PE_SUBFORMATS: [[Subformat; 11]; 2] = [
+        [
+            Subformat::with_ids("PE32 executable", "fmt/899", None),
+            Subformat::with_ids("PE32 GUI executable", "fmt/899", None),
+            Subformat::with_ids("PE32 console executable", "fmt/899", None),
+            Subformat::with_ids("PE32 DLL", "fmt/899", None),
+            Subformat::with_ids("PE32 native image", "fmt/899", None),
+            Subformat::with_ids("PE32 Windows CE executable", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI application", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI boot service driver", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI runtime driver", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI ROM image", "fmt/899", None),
+            Subformat::with_ids("PE32 Windows boot application", "fmt/899", None),
+        ],
+        [
+            Subformat::with_ids("PE32+ executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ GUI executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ console executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ DLL", "fmt/900", None),
+            Subformat::with_ids("PE32+ native image", "fmt/900", None),
+            Subformat::with_ids("PE32+ Windows CE executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI application", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI boot service driver", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI runtime driver", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI ROM image", "fmt/900", None),
+            Subformat::with_ids("PE32+ Windows boot application", "fmt/900", None),
+        ],
+    ];
+
     if !starts(prefix, MZ_MAGIC) {
-        return false;
+        return None;
     }
-    let Some(e_lfanew) = le32(prefix, 0x3C) else {
-        return false;
-    };
+    let e_lfanew = le32(prefix, 0x3C)?;
     let headers_end = u64::from(e_lfanew) + 24;
     if e_lfanew < 4 || headers_end > prefix.len() as u64 {
-        return false;
+        return None;
     }
     let sig = e_lfanew as usize;
     if !eq_at(prefix, sig, PE_MAGIC) {
-        return false;
+        return None;
     }
     let coff = sig + 4;
     let machine = le16(prefix, coff).unwrap_or(0);
     let sections = le16(prefix, coff + 2).unwrap_or(0);
     let soh = u64::from(le16(prefix, coff + 16).unwrap_or(0));
     let characteristics = le16(prefix, coff + 18).unwrap_or(0);
-    let is_dll = characteristics & 0x2000 != 0;
-    let is_executable_image = characteristics & 0x0002 != 0;
+    let is_dll = characteristics & IMAGE_FILE_DLL != 0;
+    let is_executable_image = characteristics & IMAGE_FILE_EXECUTABLE_IMAGE != 0;
     let opt = coff + 20;
     let magic = le16(prefix, opt).unwrap_or(0);
     let entry_point = le32(prefix, opt + 16).unwrap_or(0);
     let subsystem = le16(prefix, opt + 68).unwrap_or(0);
-    let fixed = match magic {
-        0x010B => 96u64,
-        0x020B => 112u64,
-        _ => return false,
+    let (fixed, is_plus) = match magic {
+        PE32_MAGIC => (96u64, 0usize),
+        PE32_PLUS_MAGIC => (112u64, 1usize),
+        _ => return None,
     };
     let table_end = (opt as u64) + soh + 40 * u64::from(sections);
-    soh >= fixed
+    let valid = soh >= fixed
         && (1..=96).contains(&sections)
         && table_end <= prefix.len() as u64
         && table_end <= size
@@ -219,23 +334,27 @@ pub(crate) fn is_windows_pebin(prefix: &[u8], size: u64) -> bool {
                 | 0xA642
                 | 0xA64E
                 | 0xAA64
-        )
-}
-
-static PE32: Subformat = Subformat::with_ids("PE32", "fmt/899", None);
-static PE32_PLUS: Subformat = Subformat::with_ids("PE32+", "fmt/900", None);
-
-/// Names the optional header magic (`0x010B` PE32 / `0x020B` PE32+) already validated by
-/// [`is_windows_pebin`].
-fn windows_pe_subformat(prefix: &[u8]) -> &'static Subformat {
-    let magic = le32(prefix, 0x3C).and_then(|e_lfanew| le16(prefix, e_lfanew as usize + 24));
-    if magic == Some(0x020B) { &PE32_PLUS } else { &PE32 }
+        );
+    require!(valid);
+    let kind = match subsystem {
+        SUBSYSTEM_EFI_APPLICATION => 6,
+        SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER => 7,
+        SUBSYSTEM_EFI_RUNTIME_DRIVER => 8,
+        SUBSYSTEM_EFI_ROM => 9,
+        SUBSYSTEM_NATIVE => 4,
+        SUBSYSTEM_WINDOWS_BOOT_APPLICATION => 10,
+        _ if is_dll => 3,
+        SUBSYSTEM_WINDOWS_GUI => 1,
+        SUBSYSTEM_WINDOWS_CUI => 2,
+        SUBSYSTEM_WINDOWS_CE_GUI => 5,
+        _ => 0,
+    };
+    Some(&PE_SUBFORMATS[is_plus][kind])
 }
 
 /// Windows PE/COFF executable (`taxonomy_pebin`).
 pub(crate) fn pe(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
-    require!(is_windows_pebin(prefix, ctx.size));
-    with_subformat(Label::Pebin, windows_pe_subformat(prefix))
+    with_subformat(Label::Pebin, windows_pe_subformat(prefix, ctx.size)?)
 }
 
 /// Standalone Microsoft / DJGPP COFF Object File (`coff`): `Machine` (`0x014C` i386,
@@ -320,8 +439,8 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     {
         return with_subformat(Label::Autoit, &AUTOIT_EXE);
     }
-    if is_windows_pebin(prefix, ctx.size) {
-        return with_subformat(Label::Pebin, windows_pe_subformat(prefix));
+    if let Some(sub) = windows_pe_subformat(prefix, ctx.size) {
+        return with_subformat(Label::Pebin, sub);
     }
     if prefix.len() >= 0x28
         && eq_at(prefix, 2, PE_MAGIC)

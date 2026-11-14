@@ -434,7 +434,7 @@ mod tests {
         // PE32 vs tiny collapsed MZPE
         let (cts, meta) = resolve_slice_with_metadata(&build_pe32(0x0102, 0x1000));
         assert_eq!(cts, vec![ContentType::Pebin]);
-        assert_eq!(meta.get("subformat").map(String::as_str), Some("PE32"));
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PE32 console executable"));
         assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/899"));
 
         let mut mzpe = vec![0u8; 97];
@@ -606,6 +606,498 @@ mod tests {
         assert_eq!(meta.get("subformat").map(String::as_str), Some("ASPRS LAS 1.4"));
         assert_eq!(meta.get("pronom_puid"), None);
         assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000418"));
+    }
+
+    #[test]
+    fn resolvers_identify_subformat_fixtures() {
+        type Expected =
+            (&'static str, ContentType, &'static str, Option<&'static str>, Option<&'static str>);
+        let cases: &[Expected] = &[
+            // ELF
+            (
+                "elf/!elf32_be_rel.o",
+                ContentType::Elf,
+                "ELF 32-bit relocatable object (big-endian)",
+                Some("fmt/689"),
+                None,
+            ),
+            (
+                "elf/!elf32_le_exec.elf",
+                ContentType::Elf,
+                "ELF 32-bit executable (little-endian)",
+                Some("fmt/688"),
+                None,
+            ),
+            (
+                "elf/!elf64_be_exec.elf",
+                ContentType::Elf,
+                "ELF 64-bit executable (big-endian)",
+                Some("fmt/691"),
+                None,
+            ),
+            (
+                "elf/!elf64_le_core.core",
+                ContentType::Elf,
+                "ELF 64-bit core dump (little-endian)",
+                Some("fmt/690"),
+                None,
+            ),
+            (
+                "elf/!elf64_le_exec.elf",
+                ContentType::Elf,
+                "ELF 64-bit executable (little-endian)",
+                Some("fmt/690"),
+                None,
+            ),
+            (
+                "elf/elf64_le_dyn.elf",
+                ContentType::Elf,
+                "ELF 64-bit shared object (little-endian)",
+                Some("fmt/690"),
+                None,
+            ),
+            (
+                "elf/elf64_le_rel.o",
+                ContentType::Elf,
+                "ELF 64-bit relocatable object (little-endian)",
+                Some("fmt/690"),
+                None,
+            ),
+            // ISOBMFF
+            ("isobmff/!3gp_r6.3gp", ContentType::_3gp, "3GPP Release 6", Some("fmt/357"), None),
+            (
+                "isobmff/!mp4_avc1.mp4",
+                ContentType::Mp4,
+                "MP4 AVC (avc1)",
+                Some("fmt/199"),
+                Some("fdd000137"),
+            ),
+            (
+                "isobmff/!mp4_dash.mp4",
+                ContentType::Mp4,
+                "MPEG-DASH media segment",
+                Some("fmt/199"),
+                Some("fdd000155"),
+            ),
+            (
+                "isobmff/!mp4_f4v.f4v",
+                ContentType::Mp4,
+                "Adobe Flash Video (.f4v)",
+                Some("fmt/199"),
+                Some("fdd000155"),
+            ),
+            (
+                "isobmff/!mp4_m4a.m4a",
+                ContentType::Mp4,
+                "Apple M4A audio (.m4a)",
+                Some("fmt/2094"),
+                None,
+            ),
+            (
+                "isobmff/!mp4_m4v.m4v",
+                ContentType::Mp4,
+                "Apple M4V video (.m4v)",
+                Some("fmt/199"),
+                Some("fdd000155"),
+            ),
+            (
+                "isobmff/!mp4_mp41.mp4",
+                ContentType::Mp4,
+                "MP4 v1 (mp41)",
+                Some("fmt/199"),
+                Some("fdd000037"),
+            ),
+            (
+                "isobmff/!mp4_mp42.mp4",
+                ContentType::Mp4,
+                "MP4 v2 (mp42)",
+                Some("fmt/199"),
+                Some("fdd000155"),
+            ),
+            ("isobmff/3gp_r4.3gp", ContentType::_3gp, "3GPP Release 4", Some("fmt/357"), None),
+            (
+                "isobmff/heif_heic.heic",
+                ContentType::Heif,
+                "HEIC image (heic)",
+                Some("fmt/1101"),
+                Some("fdd000526"),
+            ),
+            (
+                "isobmff/heif_hevc.heic",
+                ContentType::Heif,
+                "HEVC image sequence (hevc)",
+                Some("fmt/1101"),
+                Some("fdd000525"),
+            ),
+            // Java bytecode
+            (
+                "javabytecode/!java_17.class",
+                ContentType::Javabytecode,
+                "Java 17 class file",
+                Some("x-fmt/415"),
+                Some("fdd000598"),
+            ),
+            (
+                "javabytecode/!java_21.class",
+                ContentType::Javabytecode,
+                "Java 21 class file",
+                Some("x-fmt/415"),
+                Some("fdd000598"),
+            ),
+            (
+                "javabytecode/!java_25.class",
+                ContentType::Javabytecode,
+                "Java 25 class file",
+                Some("x-fmt/415"),
+                Some("fdd000598"),
+            ),
+            (
+                "javabytecode/!java_8.class",
+                ContentType::Javabytecode,
+                "Java 8 class file",
+                Some("x-fmt/415"),
+                Some("fdd000598"),
+            ),
+            // Mach-O
+            (
+                "macho/!macho32_be_exec.macho",
+                ContentType::Macho,
+                "Mach-O 32-bit executable (big-endian)",
+                Some("fmt/692"),
+                None,
+            ),
+            (
+                "macho/!macho64_le_dsym.dsym",
+                ContentType::Macho,
+                "Mach-O 64-bit dSYM (little-endian)",
+                Some("fmt/693"),
+                None,
+            ),
+            (
+                "macho/!macho64_le_object.o",
+                ContentType::Macho,
+                "Mach-O 64-bit relocatable object (little-endian)",
+                Some("fmt/693"),
+                None,
+            ),
+            (
+                "macho/macho64_le_bundle.bundle",
+                ContentType::Macho,
+                "Mach-O 64-bit bundle (little-endian)",
+                Some("fmt/693"),
+                None,
+            ),
+            (
+                "macho/macho64_le_dylib.dylib",
+                ContentType::Macho,
+                "Mach-O 64-bit dynamic library (little-endian)",
+                Some("fmt/693"),
+                None,
+            ),
+            (
+                "macho/macho64_le_exec.macho",
+                ContentType::Macho,
+                "Mach-O 64-bit executable (little-endian)",
+                Some("fmt/693"),
+                None,
+            ),
+            // Windows PE
+            ("pe/!pe32_native.sys", ContentType::Pebin, "PE32 native image", Some("fmt/899"), None),
+            (
+                "pe/!pe32_plus_console.exe",
+                ContentType::Pebin,
+                "PE32+ console executable",
+                Some("fmt/900"),
+                None,
+            ),
+            (
+                "pe/!pe32_plus_efi_app.efi",
+                ContentType::Pebin,
+                "PE32+ EFI application",
+                Some("fmt/900"),
+                None,
+            ),
+            (
+                "pe/!pe32_plus_efi_runtime.efi",
+                ContentType::Pebin,
+                "PE32+ EFI runtime driver",
+                Some("fmt/900"),
+                None,
+            ),
+            (
+                "pe/!pe32_plus_native.sys",
+                ContentType::Pebin,
+                "PE32+ native image",
+                Some("fmt/900"),
+                None,
+            ),
+            (
+                "pe/pe32_console.exe",
+                ContentType::Pebin,
+                "PE32 console executable",
+                Some("fmt/899"),
+                None,
+            ),
+            ("pe/pe32_dll.dll", ContentType::Pebin, "PE32 DLL", Some("fmt/899"), None),
+            ("pe/pe32_gui.exe", ContentType::Pebin, "PE32 GUI executable", Some("fmt/899"), None),
+            ("pe/pe32_plus_dll.dll", ContentType::Pebin, "PE32+ DLL", Some("fmt/900"), None),
+            (
+                "pe/pe32_plus_gui.exe",
+                ContentType::Pebin,
+                "PE32+ GUI executable",
+                Some("fmt/900"),
+                None,
+            ),
+            // SQLite 3
+            (
+                "sqlite/!mbtiles_schema.mbtiles",
+                ContentType::Mbtiles,
+                "MBTiles (schema)",
+                None,
+                None,
+            ),
+            (
+                "sqlite/!sqlar.sqlar",
+                ContentType::Sqlite,
+                "SQLite Archive (.sqlar)",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/amd_dxcache.dxcache",
+                ContentType::Sqlite,
+                "AMD DirectX shader cache (.dxcache)",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/audacity_aup3.aup3",
+                ContentType::Sqlite,
+                "Audacity 3 project (.aup3)",
+                Some("fmt/1826"),
+                None,
+            ),
+            (
+                "sqlite/bentley_besqlite.sqlite",
+                ContentType::Sqlite,
+                "Bentley BeSQLite database",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/bitcoin_wallet.sqlite",
+                ContentType::Sqlite,
+                "Bitcoin Core descriptor wallet",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/bndb.bndb",
+                ContentType::Sqlite,
+                "Binary Ninja analysis database (.bndb)",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/calibre.sqlite",
+                ContentType::Sqlite,
+                "Calibre library database",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/esri_st_geometry.sqlite",
+                ContentType::Sqlite,
+                "Esri ST_Geometry database",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/fossil_checkout.sqlite",
+                ContentType::Sqlite,
+                "Fossil SCM checkout",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/fossil_repo.fossil",
+                ContentType::Sqlite,
+                "Fossil SCM repository",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/gnome_tracker.sqlite",
+                ContentType::Sqlite,
+                "GNOME Tracker SPARQL store",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/maple.maple",
+                ContentType::Sqlite,
+                "Maple workbook (.maple)",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
+            (
+                "sqlite/mbtiles_mpbx.mbtiles",
+                ContentType::Mbtiles,
+                "MBTiles (MPBX header)",
+                None,
+                None,
+            ),
+        ];
+
+        let root = std::path::Path::new("../../tests_data/resolvers/subformats");
+        let mut disk_files = Vec::new();
+        for dir in std::fs::read_dir(root).unwrap() {
+            let dir = dir.unwrap().path();
+            if !dir.is_dir() {
+                continue;
+            }
+            for entry in std::fs::read_dir(&dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_file() {
+                    let rel = path.strip_prefix(root).unwrap().to_str().unwrap().replace('\\', "/");
+                    disk_files.push(rel);
+                }
+            }
+        }
+        disk_files.sort();
+        let expected_files: Vec<&str> = cases.iter().map(|c| c.0).collect();
+        assert_eq!(disk_files, expected_files, "fixture directory and test table out of sync");
+
+        for &(rel, expected_ct, expected_sub, expected_puid, expected_fdd) in cases {
+            let path = root.join(rel);
+            let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+            let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+            assert_eq!(cts, vec![expected_ct], "content type mismatch on {rel}");
+            assert_eq!(
+                meta.get("subformat").map(String::as_str),
+                Some(expected_sub),
+                "subformat mismatch on {rel}"
+            );
+            assert!(expected_sub.is_ascii(), "non-ASCII subformat on {rel}");
+            assert_eq!(
+                meta.get("pronom_puid").map(String::as_str),
+                expected_puid,
+                "pronom_puid mismatch on {rel}"
+            );
+            assert_eq!(
+                meta.get("loc_fdd").map(String::as_str),
+                expected_fdd,
+                "loc_fdd mismatch on {rel}"
+            );
+        }
+    }
+
+    #[test]
+    fn resolvers_populate_magic32_subformats() {
+        // ISOBMFF: every brand in MP4, HEIF, and 3GP allowlists produces a non-empty ASCII subformat
+        let mp4_brands: &[&[u8; 4]] = &[
+            b"isom", b"iso2", b"iso3", b"iso4", b"iso5", b"iso6", b"iso7", b"iso8", b"iso9",
+            b"mp41", b"mp42", b"mp71", b"avc1", b"M4A ", b"M4V ", b"M4B ", b"M4P ", b"M4VH",
+            b"M4VP", b"f4v ", b"f4p ", b"dash", b"msdh", b"msix", b"ndas", b"ndsc", b"ndsh",
+            b"ndsm", b"ndsp", b"ndss", b"ndxc", b"ndxh", b"ndxm", b"ndxp", b"ndxs",
+        ];
+        for brand in mp4_brands {
+            let mut buf = [0u8; 16];
+            buf[3] = 16;
+            buf[4..8].copy_from_slice(b"ftyp");
+            buf[8..12].copy_from_slice(*brand);
+            let (cts, meta) = resolve_slice_with_metadata(&buf);
+            assert_eq!(cts, vec![ContentType::Mp4], "brand {brand:?}");
+            assert!(meta.get("subformat").is_some_and(|s| !s.is_empty() && s.is_ascii()));
+        }
+        let heif_brands: &[&[u8; 4]] =
+            &[b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs"];
+        for brand in heif_brands {
+            let mut buf = [0u8; 16];
+            buf[3] = 16;
+            buf[4..8].copy_from_slice(b"ftyp");
+            buf[8..12].copy_from_slice(*brand);
+            let (cts, meta) = resolve_slice_with_metadata(&buf);
+            assert_eq!(cts, vec![ContentType::Heif], "brand {brand:?}");
+            assert!(meta.get("subformat").is_some_and(|s| !s.is_empty() && s.is_ascii()));
+        }
+        let threegp_brands: &[&[u8; 4]] = &[
+            b"3gp1", b"3gp2", b"3gp3", b"3gp4", b"3gp5", b"3gp6", b"3gp7", b"3gp8", b"3gp9",
+            b"3gr6", b"3gr9", b"3gg6", b"3gg9", b"3gs6", b"3gs7", b"3gs9", b"3ge6", b"3ge7",
+            b"3ge9", b"3gh9", b"3gm9", b"3gmA", b"3gt8", b"3gt9", b"3gtv",
+        ];
+        for brand in threegp_brands {
+            let mut buf = [0u8; 16];
+            buf[3] = 16;
+            buf[4..8].copy_from_slice(b"ftyp");
+            buf[8..12].copy_from_slice(*brand);
+            let (cts, meta) = resolve_slice_with_metadata(&buf);
+            assert_eq!(cts, vec![ContentType::_3gp], "brand {brand:?}");
+            assert!(meta.get("subformat").is_some_and(|s| !s.is_empty() && s.is_ascii()));
+        }
+
+        // SQLite: unknown non-zero application_id falls back to bare Sqlite
+        let mut sq = vec![0u8; 100];
+        sq[..16].copy_from_slice(b"SQLite format 3\0");
+        sq[16..18].copy_from_slice(&4096u16.to_be_bytes());
+        sq[18..20].copy_from_slice(&[1, 1]);
+        sq[21..24].copy_from_slice(&[64, 32, 32]);
+        sq[44..48].copy_from_slice(&4u32.to_be_bytes());
+        sq[56..60].copy_from_slice(&1u32.to_be_bytes());
+        sq[68..72].copy_from_slice(&0xDEAD_BEEFu32.to_be_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&sq);
+        assert_eq!(cts, vec![ContentType::Sqlite]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/729"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000461"));
+
+        // ELF: OS-specific e_type >= 0xFE00 falls back to generic class/endianness subformat
+        let mut elf = vec![0u8; 64];
+        elf[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
+        elf[16..18].copy_from_slice(&0xFE00u16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&elf);
+        assert_eq!(cts, vec![ContentType::Elf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ELF 64-bit (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/690"));
+
+        // Mach-O: unknown filetype > MH_FILESET falls back to generic width/endianness subformat
+        let mut macho = vec![0u8; 32];
+        macho[..4].copy_from_slice(&[0xCF, 0xFA, 0xED, 0xFE]);
+        macho[12..16].copy_from_slice(&99u32.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&macho);
+        assert_eq!(cts, vec![ContentType::Macho]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Mach-O 64-bit (little-endian)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/693"));
+
+        // PE: uncommon valid subsystem (7 = POSIX CUI) falls back to generic PE32 executable
+        let mut pe_posix = build_pe32(0x0102, 0x1000);
+        pe_posix[0x80 + 24 + 68..0x80 + 24 + 70].copy_from_slice(&7u16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&pe_posix);
+        assert_eq!(cts, vec![ContentType::Pebin]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PE32 executable"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/899"));
+
+        // Java .class: major 45..=71 named; major 75 falls back to bare Javabytecode
+        let mut cls = vec![0u8; 16];
+        cls[..4].copy_from_slice(&[0xCA, 0xFE, 0xBA, 0xBE]);
+        cls[8..10].copy_from_slice(&1u16.to_be_bytes());
+        for major in 45u16..=71 {
+            cls[6..8].copy_from_slice(&major.to_be_bytes());
+            let (cts, meta) = resolve_slice_with_metadata(&cls);
+            assert_eq!(cts, vec![ContentType::Javabytecode]);
+            assert!(meta.get("subformat").is_some_and(|s| s.starts_with("Java ")));
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/415"));
+            assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000598"));
+        }
+        cls[6..8].copy_from_slice(&75u16.to_be_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&cls);
+        assert_eq!(cts, vec![ContentType::Javabytecode]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/415"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000598"));
     }
 
     fn stored<'a>(name: &'a [u8], data: &'a [u8]) -> (&'a [u8], &'a [u8]) {

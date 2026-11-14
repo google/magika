@@ -1,0 +1,74 @@
+{
+  "scope": "Reviewed corrections to published classes. Format ids and ordinals never change; the replaced values are kept in each class's metadata.",
+  "classes": [
+    {
+      "format_id": "asf",
+      "extensions": [
+        "asf"
+      ],
+      "reason": "wma and wmv are classes of their own, and the ASF validator names them by stream codec; listing their extensions under asf made every .wma and .wmv path claim two classes."
+    },
+    {
+      "format_id": "pcap",
+      "extensions": [
+        "cap",
+        "pcap"
+      ],
+      "reason": "pcapng is a distinct format with its own class and validator."
+    },
+    {
+      "format_id": "mpegts",
+      "extensions": [
+        "m2t",
+        "ts",
+        "tsa"
+      ],
+      "reason": ".tsv names tab-separated values, which the tsv class owns."
+    },
+    {
+      "format_id": "empty",
+      "target": 1,
+      "reason": "Every empty file has the same SHA-256, so the class can hold exactly one distinct sample."
+    },
+    {
+      "format_id": "directory",
+      "target": 0,
+      "reason": "A directory is a filesystem object, not file content; a whole-file corpus cannot hold one."
+    },
+    {
+      "format_id": "symlink",
+      "target": 0,
+      "reason": "A symbolic link is a filesystem object, not file content; its stored-as-text form is the symlinktext class."
+    },
+    {
+      "format_id": "null",
+      "target": 0,
+      "reason": "Magika's label for having no content type; there are no bytes that are this class."
+    },
+    {
+      "format_id": "undefined",
+      "target": 0,
+      "reason": "Magika's label for an undetermined result, not a format any file has."
+    },
+    {
+      "format_id": "invalid",
+      "target": 0,
+      "reason": "Magika's label for malformed input it could not read; no file content is this class by itself."
+    },
+    {
+      "format_id": "mui",
+      "extensions": [
+        "mui",
+        "mun"
+      ],
+      "reason": "mun files are the same resource-only PE images with an MUI resource as mui files (file type 18 in both); merged."
+    },
+    {
+      "format_id": "mun",
+      "extensions": [],
+      "target": 0,
+      "merged_into": "mui",
+      "reason": "Identical in content to mui (resource-only PE with an MUI resource of file type 18); merged into mui."
+    }
+  ]
+}

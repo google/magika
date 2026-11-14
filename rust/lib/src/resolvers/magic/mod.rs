@@ -336,11 +336,13 @@ pub(crate) struct Ctx<'a> {
     pub(crate) tail: Option<&'a [u8]>,
 }
 
-/// A finer-grained variant of a content type that a verifier already tells apart.
+/// A finer-grained variant of a content type identified by a verifier.
 ///
-/// Subformats only name branches that the verifiers take anyway (which signature, container
-/// stream, version byte, or byte order matched); they never add parsing. When the subformat has
-/// a more specific PRONOM PUID or Library of Congress FDD than its content type, it overrides it.
+/// Subformats either name branches that a verifier already takes (which signature, container
+/// stream, version byte, or byte order matched) or inspect O(1) fixed-offset header fields
+/// within an already-matched container without scanning or altering its `ContentType`. When
+/// the subformat has a more specific PRONOM PUID or Library of Congress FDD than its content
+/// type, it overrides it.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Subformat {
     pub(crate) name: &'static str,

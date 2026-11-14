@@ -54,7 +54,38 @@ pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
 /// and Sun / Oracle JVM `.class` bytecode (`javabytecode`, 1995).
 pub(crate) fn cafebabe(prefix: &[u8], size: u64) -> Option<Label> {
     static MACHO_UNIVERSAL: Subformat = Subformat::new("Mach-O Universal (Fat)");
+    static JAVA_CLASS_VERSIONS: [Subformat; 27] = [
+        Subformat::new("Java 1.1 class file"),
+        Subformat::new("Java 1.2 class file"),
+        Subformat::new("Java 1.3 class file"),
+        Subformat::new("Java 1.4 class file"),
+        Subformat::new("Java 5 class file"),
+        Subformat::new("Java 6 class file"),
+        Subformat::new("Java 7 class file"),
+        Subformat::new("Java 8 class file"),
+        Subformat::new("Java 9 class file"),
+        Subformat::new("Java 10 class file"),
+        Subformat::new("Java 11 class file"),
+        Subformat::new("Java 12 class file"),
+        Subformat::new("Java 13 class file"),
+        Subformat::new("Java 14 class file"),
+        Subformat::new("Java 15 class file"),
+        Subformat::new("Java 16 class file"),
+        Subformat::new("Java 17 class file"),
+        Subformat::new("Java 18 class file"),
+        Subformat::new("Java 19 class file"),
+        Subformat::new("Java 20 class file"),
+        Subformat::new("Java 21 class file"),
+        Subformat::new("Java 22 class file"),
+        Subformat::new("Java 23 class file"),
+        Subformat::new("Java 24 class file"),
+        Subformat::new("Java 25 class file"),
+        Subformat::new("Java 26 class file"),
+        Subformat::new("Java 27 class file"),
+    ];
     const CAFEBABE_MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
+    const JAVA_MAJOR_MIN: u16 = 45; // @6: u16 BE — Java 1.1
+    const JAVA_MAJOR_MAX: u16 = 80;
     require!(size >= 10, prefix.len() >= 10, starts(prefix, CAFEBABE_MAGIC));
     let nfat_or_minor_major = be32(prefix, 4)?;
     // Mach-O Universal Fat binary: nfat_arch in 1..=32 and valid Mach-O cpu_type at @8
@@ -70,7 +101,10 @@ pub(crate) fn cafebabe(prefix: &[u8], size: u64) -> Option<Label> {
     // Java .class file: major_version in 45..=80 at @6, constant_pool_count >= 1 at @8
     let major = be16(prefix, 6)?;
     let cp_count = be16(prefix, 8)?;
-    require!((45..=80).contains(&major), cp_count >= 1);
+    require!((JAVA_MAJOR_MIN..=JAVA_MAJOR_MAX).contains(&major), cp_count >= 1);
+    if let Some(sub) = JAVA_CLASS_VERSIONS.get((major - JAVA_MAJOR_MIN) as usize) {
+        return with_subformat(Label::Javabytecode, sub);
+    }
     Some(Label::Javabytecode)
 }
 

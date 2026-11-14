@@ -58,6 +58,11 @@ pub(crate) fn vib(prefix: &[u8]) -> Option<Label> {
 /// Disambiguates Rust `.rlib` (`rust.metadata.bin` / `.rmeta` member) vs generic Unix `ar`
 /// (`!<arch>\n` with `` `\n `` member header terminator at `@66..68`) after `vib` and `deb`.
 pub(crate) fn rlib_or_ar(prefix: &[u8], size: u64) -> Option<Label> {
+    static AR_GNU_SYMTAB: Subformat = Subformat::new("Unix ar (GNU/SVR4 symbol table)");
+    static AR_GNU_SYMTAB64: Subformat = Subformat::new("Unix ar (GNU/SVR4 64-bit symbol table)");
+    static AR_GNU_LONGNAMES: Subformat = Subformat::new("Unix ar (GNU long filename table)");
+    static AR_BSD_SYMDEF: Subformat = Subformat::new("Unix ar (BSD/macOS symbol table)");
+    static AR_BSD_EXT: Subformat = Subformat::new("Unix ar (BSD extended filename)");
     const AR_FMAG: &[u8; 2] = b"`\n";
     const RLIB_METADATA_BIN: &[u8] = b"rust.metadata.bin";
     const RLIB_RMETA_EXT: &[u8] = b".rmeta";
@@ -68,7 +73,14 @@ pub(crate) fn rlib_or_ar(prefix: &[u8], size: u64) -> Option<Label> {
     if contains(prefix, RLIB_METADATA_BIN) || contains(prefix, RLIB_RMETA_EXT) {
         return Some(Label::Rlib);
     }
-    Some(Label::Ar)
+    match name_hdr {
+        b"/               " => with_subformat(Label::Ar, &AR_GNU_SYMTAB),
+        b"/SYM64/         " => with_subformat(Label::Ar, &AR_GNU_SYMTAB64),
+        b"//              " => with_subformat(Label::Ar, &AR_GNU_LONGNAMES),
+        n if n.starts_with(b"__.SYMDEF") => with_subformat(Label::Ar, &AR_BSD_SYMDEF),
+        n if n.starts_with(b"#1/") => with_subformat(Label::Ar, &AR_BSD_EXT),
+        _ => Some(Label::Ar),
+    }
 }
 
 /// Disambiguates Unix `!<arch>\n` archives between VMware VIB (`vib`), Debian `.deb` (`deb`),

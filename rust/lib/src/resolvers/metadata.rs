@@ -20,7 +20,7 @@ use crate::resolvers::magic::Subformat;
 /// Populates the metadata of a content type identified by the resolvers.
 ///
 /// Keys (no SemVer guarantees, see [`crate::RegularFileType::metadata`]):
-/// - `subformat`: finer-grained variant already told apart by the verifiers;
+/// - `subformat`: finer-grained variant identified by the verifiers;
 /// - `pronom_puid`: UK National Archives PRONOM persistent unique identifier;
 /// - `loc_fdd`: US Library of Congress format description document identifier.
 ///

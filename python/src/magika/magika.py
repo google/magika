@@ -194,7 +194,10 @@ class Magika:
         across worker threads in the native Rust pipeline, making this the
         high-throughput entry point when classifying multiple files.
         """
-        if not isinstance(paths, Sequence):
+        # Note: `str` and `bytes` are registered as `Sequence`, but iterating
+        # them yields their elements, not paths; accepting them here would
+        # silently return one result per character instead of raising.
+        if isinstance(paths, (str, bytes)) or not isinstance(paths, Sequence):
             raise TypeError("Input paths should be of type Sequence[Path]")
 
         paths_ = []

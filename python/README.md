@@ -213,6 +213,10 @@ When classifying multiple files on disk, pass them together to `identify_paths()
 ini
 ```
 
+`Magika` instances can be reused for concurrent identification calls. When
+using `identify_stream`, pass a distinct stream object to each concurrent call:
+Magika seeks and reads the provided stream, then restores its original position.
+
 
 ## Core Concepts
 

@@ -255,3 +255,24 @@ pub(crate) fn m3u(prefix: &[u8], size: u64) -> Option<Label> {
     );
     Some(Label::M3u)
 }
+
+/// 3GPP Adaptive Multi-Rate audio (`"#!AMR\n"`, `"#!AMR-WB\n"`, `"#!AMR_MC1.0\n"`, or
+/// `"#!AMR-WB_MC1.0\n"`) followed by binary frame data.
+pub(crate) fn amr(prefix: &[u8], size: u64) -> Option<Label> {
+    const AMR_NB: &[u8] = b"#!AMR\n"; // @0..6: AMR-NB single-channel header
+    const AMR_WB: &[u8] = b"#!AMR-WB\n"; // @0..9: AMR-WB single-channel header
+    const AMR_MC: &[u8] = b"#!AMR_MC1.0\n"; // @0..12: AMR-NB multi-channel header
+    const AMR_WB_MC: &[u8] = b"#!AMR-WB_MC1.0\n"; // @0..15: AMR-WB multi-channel header
+    const MIN_LEN: usize = 12;
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= MIN_LEN,
+        starts(prefix, AMR_NB)
+            || starts(prefix, AMR_WB)
+            || starts(prefix, AMR_MC)
+            || starts(prefix, AMR_WB_MC),
+        has_non_ascii_text_byte(&prefix[6..prefix.len().min(32)]),
+    );
+    Some(Label::Amr)
+}

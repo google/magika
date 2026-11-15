@@ -185,3 +185,52 @@ pub(crate) fn srt(prefix: &[u8], size: u64) -> Option<Label> {
     let _ = get_slice(prefix, 0, end_off.min(prefix.len()));
     Some(Label::Srt)
 }
+
+/// Blu-ray Disc Movie Index Table (`bluray_indx`, 2006): `"INDX0100"`, `"INDX0200"`, or
+/// `"INDX0300"` signature at `@0..8` and bounded `indexes_start_address` (`>= 40`, `<= size`)
+/// BE at `@8..12`.
+pub(crate) fn bluray_indx(prefix: &[u8], size: u64) -> Option<Label> {
+    const V100: &[u8; 8] = b"INDX0100";
+    const V200: &[u8; 8] = b"INDX0200";
+    const V300: &[u8; 8] = b"INDX0300";
+    const INDEXES_START: usize = 8; // @8: u32 BE — indexes_start_address (>= 40)
+    const MIN_SIZE: u64 = 40;
+    const MIN_PREFIX: usize = 20;
+
+    require!(
+        size >= MIN_SIZE,
+        prefix.len() >= MIN_PREFIX,
+        starts(prefix, V100) || starts(prefix, V200) || starts(prefix, V300),
+    );
+    let start_addr = u64::from(be32(prefix, INDEXES_START)?);
+    require!(start_addr >= MIN_SIZE && start_addr <= size, has_non_ascii_text_byte(&prefix[8..20]),);
+    Some(Label::BlurayIndx)
+}
+
+/// ISO/IEC 11172-1 / 13818-1 MPEG Program Stream (`mpeg_ps`, 1993) and PlayStation PSMF:
+/// pack/sequence start code `00 00 01 BA` or `00 00 01 B3` followed by another `00 00 01`
+/// start code, or `"PSMF"` with 4 ASCII version digits at `@4..8` and stream offset `>= 0x80`
+/// BE at `@8..12`.
+pub(crate) fn mpeg_ps(prefix: &[u8], size: u64) -> Option<Label> {
+    const PACK_START: &[u8; 4] = hex2bin!("00 00 01 BA");
+    const SEQ_START: &[u8; 4] = hex2bin!("00 00 01 B3");
+    const START_PREFIX: &[u8; 3] = hex2bin!("00 00 01");
+    const PSMF_MAGIC: &[u8; 4] = b"PSMF";
+    const MIN_SIZE: u64 = 32;
+    const MIN_PREFIX: usize = 16;
+
+    require!(size >= MIN_SIZE, prefix.len() >= MIN_PREFIX);
+    if starts(prefix, PSMF_MAGIC) {
+        require!(
+            get_slice(prefix, 4, 8)?.iter().all(u8::is_ascii_digit),
+            be32(prefix, 8)? >= 0x80,
+            has_non_ascii_text_byte(&prefix[8..16]),
+        );
+        return Some(Label::MpegPs);
+    }
+    require!(
+        starts(prefix, PACK_START) || starts(prefix, SEQ_START),
+        scan_range(prefix, 4, prefix.len(), START_PREFIX),
+    );
+    Some(Label::MpegPs)
+}

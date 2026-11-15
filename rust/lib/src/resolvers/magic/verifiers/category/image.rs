@@ -1285,3 +1285,21 @@ pub(crate) fn erdas(prefix: &[u8], size: u64) -> Option<Label> {
     );
     Some(Label::Erdas)
 }
+
+/// Microsoft DirectDraw Surface texture (`dds`, 1999): `"DDS "` magic at `@0..4`,
+/// `DDS_HEADER.dwSize == 124` LE at `@4..8`, and `DDS_PIXELFORMAT.dwSize == 32` LE at `@76..80`.
+pub(crate) fn dds(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 4] = b"DDS "; // @0..4: DirectDraw Surface magic
+    const HEADER_SIZE: usize = 4; // @4: u32 LE — DDS_HEADER.dwSize (124)
+    const PF_SIZE: usize = 76; // @76: u32 LE — DDS_PIXELFORMAT.dwSize (32)
+    const MIN_LEN: usize = 128; // 4-byte magic + 124-byte DDS_HEADER
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= MIN_LEN,
+        starts(prefix, MAGIC),
+        le32(prefix, HEADER_SIZE)? == 124,
+        le32(prefix, PF_SIZE)? == 32,
+    );
+    Some(Label::Dds)
+}

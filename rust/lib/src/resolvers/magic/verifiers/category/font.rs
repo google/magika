@@ -173,3 +173,16 @@ pub(crate) fn otf(prefix: &[u8], size: u64) -> Option<Label> {
     require!(tag.iter().all(|&b| (0x20..=0x7E).contains(&b)));
     Some(Label::Otf)
 }
+
+/// GNU GRUB 2 PFF2 bitmap font: `"FILE"` section of length 4 containing `"PFF2"` followed by a
+/// 4-byte uppercase ASCII section tag at `@12..16`.
+pub(crate) fn pff2(prefix: &[u8], size: u64) -> Option<Label> {
+    const FILE_SECTION: &[u8] = bytes!(b"FILE", &4u32.to_be_bytes(), b"PFF2"); // @0..12: FILE chunk
+    const NEXT_TAG_OFF: usize = 12; // @12..16: next 4-byte uppercase ASCII section tag
+    const MIN_LEN: usize = 20;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= 16, starts(prefix, FILE_SECTION));
+    let next_tag = get_slice(prefix, NEXT_TAG_OFF, NEXT_TAG_OFF + 4)?;
+    require!(next_tag.iter().all(|&b| b.is_ascii_uppercase()));
+    Some(Label::Pff2)
+}

@@ -66,6 +66,11 @@ pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
         && size > prefix_len as u64
     {
         file.ensure_suffix(size.min(magic::ZIP_TAIL_BYTES as u64) as usize)?
+    } else if (file.prefix(prefix_len).starts_with(b"PATCH")
+        || file.prefix(prefix_len).starts_with(b"IPS32"))
+        && size > prefix_len as u64
+    {
+        file.ensure_suffix(size.min(2048) as usize)?
     } else {
         0
     };
@@ -303,7 +308,7 @@ mod tests {
                 matched += 1;
             }
         }
-        assert_eq!(matched, 310);
+        assert_eq!(matched, 340);
     }
 
     #[test]
@@ -799,5 +804,198 @@ mod tests {
             magic::pythonpar(&pypar_prefix, 64, Some(&pypar_prefix)),
             Some(ContentType::Pythonpar)
         );
+    }
+
+    #[test]
+    fn high_cardinality_overlap_and_disambiguation_tests() {
+        // 1. 00 00 02 00 4-way overlap: Lotus 1-2-3 vs Quattro Pro vs TGA vs invalid
+        let mut wk1 = vec![0u8; 32];
+        wk1[..6].copy_from_slice(&[0x00, 0x00, 0x02, 0x00, 0x06, 0x04]);
+        assert_eq!(resolve_slice(&wk1), vec![ContentType::_123]);
+
+        let mut wk4 = vec![0u8; 40];
+        wk4[..8].copy_from_slice(&[0x00, 0x00, 0x1A, 0x00, 0x02, 0x10, 0x04, 0x00]);
+        assert_eq!(resolve_slice(&wk4), vec![ContentType::_123]);
+
+        let mut wq1 = vec![0u8; 32];
+        wq1[..6].copy_from_slice(&[0x00, 0x00, 0x02, 0x00, 0x20, 0x51]);
+        assert_eq!(resolve_slice(&wq1), vec![ContentType::Wb3]);
+
+        let mut tga_truecolor = vec![0u8; 18 + 4 * 4 * 3];
+        tga_truecolor[2] = 2; // uncompressed true-color -> 00 00 02 00
+        tga_truecolor[12..14].copy_from_slice(&4u16.to_le_bytes());
+        tga_truecolor[14..16].copy_from_slice(&4u16.to_le_bytes());
+        tga_truecolor[16] = 24;
+        assert_eq!(resolve_slice(&tga_truecolor), vec![ContentType::Tga]);
+
+        let mut bad_bof = vec![0u8; 32];
+        bad_bof[..6].copy_from_slice(&[0x00, 0x00, 0x02, 0x00, 0x99, 0x99]);
+        assert!(resolve_slice(&bad_bof).is_empty());
+
+        // 2. 04 00 00 00 overlap: Electron ASAR vs Chromium PAK v4 (and v5)
+        let json_hdr = br#"{"files":{}}"#;
+        let mut asar = Vec::new();
+        asar.extend_from_slice(&4u32.to_le_bytes());
+        asar.extend_from_slice(&20u32.to_le_bytes());
+        asar.extend_from_slice(&16u32.to_le_bytes());
+        asar.extend_from_slice(&(json_hdr.len() as u32).to_le_bytes());
+        asar.extend_from_slice(json_hdr);
+        asar.resize(32, 0);
+        assert_eq!(resolve_slice(&asar), vec![ContentType::Asar]);
+
+        let mut pak4 = vec![0u8; 64];
+        pak4[0..4].copy_from_slice(&4u32.to_le_bytes()); // version 4
+        pak4[4..8].copy_from_slice(&1u32.to_le_bytes()); // resource_count = 1
+        pak4[8] = 1; // encoding = UTF-8
+        pak4[9..11].copy_from_slice(&100u16.to_le_bytes()); // id
+        pak4[11..15].copy_from_slice(&21u32.to_le_bytes()); // offset = 9 + 2*6 = 21
+        pak4[15..17].copy_from_slice(&0u16.to_le_bytes()); // sentinel id
+        pak4[17..21].copy_from_slice(&64u32.to_le_bytes()); // end offset == size
+        assert_eq!(resolve_slice(&pak4), vec![ContentType::ChromiumPak]);
+
+        let mut pak5 = vec![0u8; 64];
+        pak5[0..4].copy_from_slice(&5u32.to_le_bytes()); // version 5
+        pak5[4] = 1; // encoding = UTF-8
+        pak5[8..10].copy_from_slice(&1u16.to_le_bytes()); // resource_count = 1
+        pak5[10..12].copy_from_slice(&0u16.to_le_bytes()); // alias_count = 0
+        pak5[12..14].copy_from_slice(&100u16.to_le_bytes());
+        pak5[14..18].copy_from_slice(&24u32.to_le_bytes()); // offset = 12 + 2*6 = 24
+        pak5[18..20].copy_from_slice(&0u16.to_le_bytes());
+        pak5[20..24].copy_from_slice(&64u32.to_le_bytes());
+        assert_eq!(resolve_slice(&pak5), vec![ContentType::ChromiumPak]);
+
+        // 3. DXBC vs DXIL container disambiguation
+        let make_dxbc = |tag: &[u8; 4]| {
+            let mut buf = vec![0u8; 64];
+            buf[0..4].copy_from_slice(b"DXBC");
+            buf[20..24].copy_from_slice(&1u32.to_le_bytes()); // version = 1
+            buf[24..28].copy_from_slice(&64u32.to_le_bytes()); // total_size = 64
+            buf[28..32].copy_from_slice(&1u32.to_le_bytes()); // chunk_count = 1
+            buf[32..36].copy_from_slice(&36u32.to_le_bytes()); // chunk[0] offset = 36
+            buf[36..40].copy_from_slice(tag);
+            buf
+        };
+        assert_eq!(resolve_slice(&make_dxbc(b"SHEX")), vec![ContentType::Dxbc]);
+        assert_eq!(resolve_slice(&make_dxbc(b"DXIL")), vec![ContentType::Dxil]);
+        assert_eq!(resolve_slice(&make_dxbc(b"ILDB")), vec![ContentType::Dxil]);
+        assert!(resolve_slice(&make_dxbc(b"XXXX")).is_empty());
+
+        // 4. "MIME" overlap: freedesktop_mime_magic vs MHTML/EML
+        let mime_magic = b"MIME-Magic\x00\n[50:application/pdf]\n>0=\x00\x04%PDF\n";
+        assert_eq!(resolve_slice(mime_magic), vec![ContentType::FreedesktopMimeMagic]);
+        let mht_doc =
+            b"MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=\"b\"\r\n\r\n--b\r\n";
+        assert_eq!(resolve_slice(mht_doc), vec![ContentType::Mht]);
+
+        // 5. FF 0A overlap: Delphi 1 16-bit DFM resource vs JXL
+        let mut dfm16 = Vec::new();
+        dfm16.extend_from_slice(&[0xFF, 0x0A, 0x00]);
+        dfm16.extend_from_slice(b"TMAINFORM\0");
+        dfm16.extend_from_slice(&[0x10, 0x30, 0x20, 0x00, 0x00, 0x00]);
+        dfm16.extend_from_slice(b"TPF0\x09TMainForm\x08MainForm");
+        assert_eq!(resolve_slice(&dfm16), vec![ContentType::Dfm]);
+
+        // 6. Android Boot Image: v0-v2, v3-v4, and VNDRBOOT
+        let mut boot_v2 = vec![0u8; 2048];
+        boot_v2[0..8].copy_from_slice(b"ANDROID!");
+        boot_v2[36..40].copy_from_slice(&2048u32.to_le_bytes());
+        boot_v2[40..44].copy_from_slice(&2u32.to_le_bytes());
+        assert_eq!(resolve_slice(&boot_v2), vec![ContentType::AndroidBoot]);
+
+        let mut boot_v4 = vec![0u8; 2048];
+        boot_v4[0..8].copy_from_slice(b"ANDROID!");
+        boot_v4[20..24].copy_from_slice(&1584u32.to_le_bytes());
+        boot_v4[24..28].copy_from_slice(&0u32.to_le_bytes());
+        boot_v4[40..44].copy_from_slice(&4u32.to_le_bytes());
+        assert_eq!(resolve_slice(&boot_v4), vec![ContentType::AndroidBoot]);
+
+        let mut vndr = vec![0u8; 2048];
+        vndr[0..8].copy_from_slice(b"VNDRBOOT");
+        vndr[8..12].copy_from_slice(&3u32.to_le_bytes());
+        vndr[12..16].copy_from_slice(&4096u32.to_le_bytes());
+        assert_eq!(resolve_slice(&vndr), vec![ContentType::AndroidBoot]);
+
+        // 7. StuffIt classic, v5 banner, and StuffIt X
+        let sit_classic = b"SIT!\x00\x01\x00\x00\x00\x16rLau\x01\x00";
+        assert_eq!(resolve_slice(sit_classic), vec![ContentType::Sit]);
+
+        let mut sit_v5 = vec![0u8; 100];
+        sit_v5[0..16].copy_from_slice(b"StuffIt (c)1997-");
+        sit_v5[80] = 0x1A;
+        sit_v5[82] = 5;
+        assert_eq!(resolve_slice(&sit_v5), vec![ContentType::Sit]);
+
+        let sitx = b"StuffIt!\x01\x00\x00\x00\x00\x00\x00\x00";
+        assert_eq!(resolve_slice(sitx), vec![ContentType::Sitx]);
+
+        // 8. IPS & IPS32 large-file tail validation (> PREFIX_LIMIT) and EBP JSON trailer
+        let mut big_ips = vec![0u8; 12_000];
+        big_ips[0..5].copy_from_slice(b"PATCH");
+        big_ips[5..8].copy_from_slice(&[0x00, 0x00, 0x10]); // hunk 1 offset
+        big_ips[8..10].copy_from_slice(&11_987u16.to_be_bytes()); // -> pos = 11_997 (> 4096 B)
+        let len = big_ips.len();
+        big_ips[len - 3..].copy_from_slice(b"EOF");
+        assert_eq!(resolve_slice(&big_ips), vec![ContentType::IpsPatch]);
+        // Without a tail window on a > PREFIX_LIMIT input, ips_patch must not accept.
+        assert_eq!(
+            magic::ips_patch(
+                &big_ips[..PREFIX_LIMIT],
+                &magic::Ctx { prefix: &big_ips[..PREFIX_LIMIT], size: len as u64, tail: None }
+            ),
+            None
+        );
+
+        big_ips[len - 3..].copy_from_slice(b"BAD");
+        assert!(resolve_slice(&big_ips).is_empty());
+
+        let mut ips32 = vec![0u8; 20];
+        ips32[0..5].copy_from_slice(b"IPS32");
+        ips32[5..9].copy_from_slice(&0x0000_0100u32.to_be_bytes());
+        ips32[9..11].copy_from_slice(&5u16.to_be_bytes());
+        ips32[16..20].copy_from_slice(b"EEOF");
+        assert_eq!(resolve_slice(&ips32), vec![ContentType::IpsPatch]);
+
+        let mut ebp = vec![0u8; 64];
+        ebp[0..5].copy_from_slice(b"PATCH");
+        ebp[5..8].copy_from_slice(&[0x00, 0x00, 0x01]);
+        ebp[8..10].copy_from_slice(&4u16.to_be_bytes());
+        let trailer = br#"EOF{"title":"demo"}"#;
+        ebp[14..14 + trailer.len()].copy_from_slice(trailer);
+        ebp.truncate(14 + trailer.len());
+        assert_eq!(resolve_slice(&ebp), vec![ContentType::IpsPatch]);
+
+        // 9. Java Pack200 UNSIGNED5 versions
+        let mut p200 = vec![0u8; 32];
+        p200[0..6].copy_from_slice(&[0xCA, 0xFE, 0xD0, 0x0D, 0x07, 0x96]);
+        assert_eq!(resolve_slice(&p200), vec![ContentType::JavaPack200]);
+        p200[5] = 100; // out of 150..=171
+        assert!(resolve_slice(&p200).is_empty());
+
+        // 10. Windows Prefetch (MAM compressed & SCCA uncompressed)
+        let mut pf_mam = vec![0u8; 32];
+        pf_mam[0..4].copy_from_slice(b"MAM\x04");
+        pf_mam[4..8].copy_from_slice(&4096u32.to_le_bytes());
+        assert_eq!(resolve_slice(&pf_mam), vec![ContentType::Prefetch]);
+
+        let mut pf_scca = vec![0u8; 32];
+        pf_scca[0..4].copy_from_slice(&26u32.to_le_bytes());
+        pf_scca[4..8].copy_from_slice(b"SCCA");
+        pf_scca[12..16].copy_from_slice(&4096u32.to_le_bytes());
+        assert_eq!(resolve_slice(&pf_scca), vec![ContentType::Prefetch]);
+
+        // 11. Registry metadata (PRONOM PUID / LoC FDD)
+        let dds = std::fs::File::open("../../tests_data/resolvers/fixtures/image/dds.dds").unwrap();
+        let mut input = Input::from_file(dds).unwrap();
+        let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+        assert_eq!(cts, vec![ContentType::Dds]);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1040"));
+
+        let mpg =
+            std::fs::File::open("../../tests_data/resolvers/fixtures/video/mpeg_ps.mpg").unwrap();
+        let mut input = Input::from_file(mpg).unwrap();
+        let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+        assert_eq!(cts, vec![ContentType::MpegPs]);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/385"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000035"));
     }
 }

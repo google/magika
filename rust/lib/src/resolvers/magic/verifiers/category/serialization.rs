@@ -629,3 +629,82 @@ pub(crate) fn osm_pbf(prefix: &[u8]) -> Option<Label> {
     );
     with_subformat(Label::Osm, &OSM_PBF)
 }
+
+/// Android Compiled Binary XML (`axml`, 2008): `RES_XML_TYPE` (`0x0003`) with 8-byte header
+/// (`0x0008`), bounded total chunk size at `@4..8`, and a valid first child chunk
+/// (`RES_STRING_POOL_TYPE` `0x0001`, `RES_XML_RESOURCE_MAP_TYPE` `0x0180`,
+/// `RES_XML_START_NAMESPACE_TYPE` `0x0100`, or `RES_XML_START_ELEMENT_TYPE` `0x0102`) at `@8..16`.
+pub(crate) fn axml(prefix: &[u8], size: u64) -> Option<Label> {
+    const HEADER: &[u8] = hex2bin!("03 00 08 00"); // @0..4: RES_XML_TYPE (0x0003) + headerSize (8)
+    const CHUNK_SIZE: usize = 4; // @4: u32 LE — total ResXMLTree byte size
+    const NEXT_TYPE: usize = 8; // @8: u16 LE — first child ResChunk_header.type
+    const NEXT_HDR_SIZE: usize = 10; // @10: u16 LE — first child headerSize (>= 8)
+    const NEXT_SIZE: usize = 12; // @12: u32 LE — first child chunk size
+    const MIN_LEN: usize = 16;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= MIN_LEN, starts(prefix, HEADER));
+    let chunk_size = u64::from(le32(prefix, CHUNK_SIZE)?);
+    let next_type = le16(prefix, NEXT_TYPE)?;
+    let next_hdr = u64::from(le16(prefix, NEXT_HDR_SIZE)?);
+    let next_size = u64::from(le32(prefix, NEXT_SIZE)?);
+    require!(
+        chunk_size >= MIN_LEN as u64 && chunk_size <= size,
+        matches!(next_type, 0x0001 | 0x0180 | 0x0100 | 0x0102),
+        next_hdr >= 8,
+        next_size >= next_hdr,
+        8 + next_size <= chunk_size,
+    );
+    Some(Label::Axml)
+}
+
+/// Borland / Embarcadero Delphi Binary Form (`dfm`, 1995): `"TPF0"` signature at `@0..4`,
+/// optional `TFilerFlags` byte (`0xF1..=0xF7`), Pascal-prefixed ASCII identifier class name
+/// (`1..=63` bytes), and binary framing within the header window.
+pub(crate) fn delphi_form(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 4] = b"TPF0"; // @0..4: Delphi VCL binary form signature
+    const MIN_LEN: usize = 16;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= MIN_LEN, starts(prefix, MAGIC));
+    let b4 = u8_at(prefix, 4)?;
+    let (cls_len_off, cls_len) = if (0xF1..=0xF7).contains(&b4) {
+        (5usize, usize::from(u8_at(prefix, 5)?))
+    } else {
+        (4usize, usize::from(b4))
+    };
+    require!((1..=63).contains(&cls_len));
+    let cls_start = cls_len_off + 1;
+    let cls_end = cls_start + cls_len;
+    require!(cls_end < prefix.len());
+    let cls_name = get_slice(prefix, cls_start, cls_end)?;
+    require!(
+        cls_name[0].is_ascii_alphabetic() || cls_name[0] == b'_',
+        cls_name.iter().all(|&b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.')),
+        has_non_ascii_text_byte(&prefix[4..prefix.len().min(128)]),
+    );
+    Some(Label::Dfm)
+}
+
+/// Borland Delphi 1 16-bit Binary Form Resource (`dfm`, 1995): 16-bit `RT_RCDATA` resource
+/// prologue `FF 0A 00`, NUL-terminated ASCII identifier (`1..=63` bytes), 6-byte resource
+/// header, and embedded `"TPF0"` signature.
+pub(crate) fn delphi_form_rsrc16(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 3] = hex2bin!("FF 0A 00"); // @0..3: 16-bit Windows RT_RCDATA resource prologue
+    const TPF0: &[u8; 4] = b"TPF0";
+    const MIN_LEN: usize = 20;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= MIN_LEN, starts(prefix, MAGIC));
+    let scan_end = prefix.len().min(68);
+    let mut nul_off = None;
+    for pos in 3..scan_end {
+        let b = u8_at(prefix, pos)?;
+        if b == 0 {
+            nul_off = Some(pos);
+            break;
+        }
+        require!(b.is_ascii_alphanumeric() || b == b'_');
+    }
+    let nul_pos = nul_off?;
+    let name_len = nul_pos - 3;
+    require!((1..=63).contains(&name_len), eq_at(prefix, nul_pos + 1 + 6, TPF0));
+    Some(Label::Dfm)
+}

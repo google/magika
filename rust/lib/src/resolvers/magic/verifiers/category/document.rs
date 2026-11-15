@@ -388,3 +388,54 @@ pub(crate) fn latex(prefix: &[u8], size: u64) -> Option<Label> {
     require!(has_marker, is_utf8_text_header(prefix, size as usize));
     Some(Label::Latex)
 }
+
+/// Lotus Word Pro document (`.lwp`): `"WordPro\r\xFB"` (96/97/Millennium) or 20-byte
+/// NUL-padded `"WordPro\0...\0LWP7"`.
+pub(crate) fn wordpro(prefix: &[u8], size: u64) -> Option<Label> {
+    const STD_MAGIC: &[u8; 9] = b"WordPro\r\xFB"; // @0..9: standard Word Pro header
+    const PADDED_MAGIC: &[u8; 20] = b"WordPro\0\0\0\0\0\0\0\0\0LWP7"; // @0..20: LWP7 header
+
+    require!(
+        size >= 9,
+        (prefix.len() >= 9 && starts(prefix, STD_MAGIC))
+            || (prefix.len() >= 20 && starts(prefix, PADDED_MAGIC)),
+    );
+    Some(Label::Wordpro)
+}
+
+/// Lotus 1-2-3 / Symphony binary worksheet (`.wks`, `.wrk`, `.wk1`, `.wk3`, `.wk4`, `.123`):
+/// 2D BOF record (`00 00 02 00` + version code) or 3D BOF record (`00 00 1A 00` + version/subcode).
+pub(crate) fn lotus_123(prefix: &[u8], size: u64) -> Option<Label> {
+    const BOF_2D: &[u8; 4] = hex2bin!("00 00 02 00"); // @0..4: 2D BOF opcode 0, length 2
+    const BOF_3D: &[u8; 4] = hex2bin!("00 00 1A 00"); // @0..4: 3D BOF opcode 0, length 26
+    const VER_OFF: usize = 4; // @4..6: u16 LE format version
+    const SUB_OFF: usize = 6; // @6..8: u16 LE 3D BOF subcode (0x0004)
+
+    require!(prefix.len() >= 8);
+    if starts(prefix, BOF_2D) && size >= 10 {
+        let ver = le16(prefix, VER_OFF)?;
+        if matches!(ver, 0x0404 | 0x0405 | 0x0406 | 0x0600 | 0x0602 | 0x8001 | 0x8006) {
+            return Some(Label::_123);
+        }
+    }
+    if starts(prefix, BOF_3D) && size >= 34 {
+        let ver = le16(prefix, VER_OFF)?;
+        let sub = le16(prefix, SUB_OFF)?;
+        if matches!((ver, sub), (0x1000 | 0x1002 | 0x1003 | 0x1005, 0x0004) | (0x8007, _)) {
+            return Some(Label::_123);
+        }
+    }
+    None
+}
+
+/// Borland / Corel Quattro Pro binary spreadsheet (`.wkq`, `.wq1`, `.wq2`, `.wb1`, `.wb2`,
+/// `.wb3`): BOF record (`00 00 02 00`) with Quattro Pro format version code at `@4..6`.
+pub(crate) fn quattro_pro(prefix: &[u8], size: u64) -> Option<Label> {
+    const BOF_MAGIC: &[u8; 4] = hex2bin!("00 00 02 00"); // @0..4: BOF opcode 0, length 2
+    const VER_OFF: usize = 4; // @4..6: u16 LE Quattro Pro version code
+
+    require!(size >= 10, prefix.len() >= 8, starts(prefix, BOF_MAGIC));
+    let ver = le16(prefix, VER_OFF)?;
+    require!(matches!(ver, 0x0A0B | 0x1000 | 0x1001 | 0x1002 | 0x1006 | 0x1007 | 0x5120 | 0x5121));
+    Some(Label::Wb3)
+}

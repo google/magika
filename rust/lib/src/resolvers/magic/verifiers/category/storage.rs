@@ -217,3 +217,35 @@ pub(crate) fn wim(prefix: &[u8], size: u64) -> Option<Label> {
     );
     with_subformat(Label::Wim, if starts(prefix, MSWIM_MAGIC) { &WIM } else { &WIM_PIPABLE })
 }
+
+/// Android Boot Image (`android_boot`, 2008): `"ANDROID!"` header (v0–v2 with power-of-two
+/// page size `2048..=16384` at `@36`, or v3–v4 with header size `1580 | 1584` at `@20` and
+/// reserved `0` at `@24`), or `"VNDRBOOT"` vendor boot header (v3–v4 with page size at `@12`).
+pub(crate) fn android_boot(prefix: &[u8], size: u64) -> Option<Label> {
+    const ANDROID_MAGIC: &[u8; 8] = b"ANDROID!"; // @0..8: boot_img_hdr magic
+    const VNDRBOOT_MAGIC: &[u8; 8] = b"VNDRBOOT"; // @0..8: vendor_boot_img_hdr magic
+    const MIN_SIZE: u64 = 1632; // minimum boot header block size
+    const MIN_PREFIX: usize = 48;
+
+    require!(size >= MIN_SIZE, prefix.len() >= MIN_PREFIX);
+    if starts(prefix, ANDROID_MAGIC) {
+        let header_version = le32(prefix, 40)?;
+        let valid = if matches!(header_version, 3 | 4) {
+            matches!(le32(prefix, 20)?, 1580 | 1584) && le32(prefix, 24)? == 0
+        } else if header_version <= 2 {
+            matches!(le32(prefix, 36)?, 2048 | 4096 | 8192 | 16384)
+        } else {
+            false
+        };
+        require!(valid);
+        return Some(Label::AndroidBoot);
+    }
+    if starts(prefix, VNDRBOOT_MAGIC) {
+        require!(
+            matches!(le32(prefix, 8)?, 3 | 4),
+            matches!(le32(prefix, 12)?, 2048 | 4096 | 8192 | 16384),
+        );
+        return Some(Label::AndroidBoot);
+    }
+    None
+}

@@ -509,3 +509,196 @@ pub(crate) fn arc(prefix: &[u8], size: u64) -> Option<Label> {
     require!(29 + comp_size <= size);
     Some(Label::Arc)
 }
+
+/// Unity AssetBundle (`"UnityFS\0"`, `"UnityWeb\0"`, `"UnityRaw\0"`, `"UnityArchive\0"`, or
+/// decoy-prefixed `"UnityRawUnityFS\0"` / `"UnityWebUnityFS\0"`): format version `1..=9` BE and
+/// a NUL-terminated ASCII engine version string.
+pub(crate) fn unityfs(prefix: &[u8], size: u64) -> Option<Label> {
+    const FS_MAGIC: &[u8; 8] = b"UnityFS\0"; // @0..8: UnityFS v6–v8 signature
+    const WEB_MAGIC: &[u8; 9] = b"UnityWeb\0"; // @0..9: UnityWeb LZMA v1–v5 signature
+    const RAW_MAGIC: &[u8; 9] = b"UnityRaw\0"; // @0..9: UnityRaw uncompressed v1–v5 signature
+    const ARCHIVE_MAGIC: &[u8; 13] = b"UnityArchive\0"; // @0..13: UnityArchive signature
+    const RAW_FS_MAGIC: &[u8; 16] = b"UnityRawUnityFS\0"; // @0..16: UnityRaw-prefixed UnityFS
+    const WEB_FS_MAGIC: &[u8; 16] = b"UnityWebUnityFS\0"; // @0..16: UnityWeb-prefixed UnityFS
+    const MIN_LEN: usize = 32;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= MIN_LEN);
+    let nul_pos = if starts(prefix, FS_MAGIC) {
+        7
+    } else if starts(prefix, WEB_MAGIC) || starts(prefix, RAW_MAGIC) {
+        8
+    } else if starts(prefix, ARCHIVE_MAGIC) {
+        12
+    } else if starts(prefix, RAW_FS_MAGIC) || starts(prefix, WEB_FS_MAGIC) {
+        15
+    } else {
+        return None;
+    };
+    let fmt_ver = be32(prefix, nul_pos + 1)?;
+    require!((1..=9).contains(&fmt_ver));
+    let ver_start = nul_pos + 5;
+    let scan_end = prefix.len().min(ver_start + 32);
+    let mut nul_found = false;
+    for pos in ver_start..scan_end {
+        let b = u8_at(prefix, pos)?;
+        if b == 0 {
+            nul_found = pos > ver_start;
+            break;
+        }
+        require!((0x20..=0x7E).contains(&b));
+    }
+    require!(nul_found);
+    Some(Label::Unityfs)
+}
+
+/// Electron ASAR archive: Chromium Pickle header (`u32 LE` size `4` at `@0..4`, nested JSON header
+/// pickle lengths at `@4..16`) followed by `{"files":` at `@16..25`.
+pub(crate) fn asar(prefix: &[u8], size: u64) -> Option<Label> {
+    const DATA_SIZE_MAGIC: &[u8] = &4u32.to_le_bytes(); // @0..4: outer pickle payload size (4)
+    const PICKLE_LEN_OFF: usize = 4; // @4..8: u32 LE header pickle byte length
+    const PAYLOAD_LEN_OFF: usize = 8; // @8..12: u32 LE inner header payload length
+    const JSON_LEN_OFF: usize = 12; // @12..16: u32 LE JSON string byte length
+    const JSON_OFF: usize = 16; // @16..25: {"files": JSON root object
+    const MIN_LEN: usize = 28;
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= MIN_LEN,
+        starts(prefix, DATA_SIZE_MAGIC),
+        eq_at(prefix, JSON_OFF, b"{\"files\":"),
+    );
+    let pickle_len = le32(prefix, PICKLE_LEN_OFF)? as u64;
+    let payload_len = le32(prefix, PAYLOAD_LEN_OFF)? as u64;
+    let json_len = le32(prefix, JSON_LEN_OFF)? as u64;
+    require!(
+        payload_len + 4 == pickle_len,
+        payload_len.is_multiple_of(4),
+        json_len >= 12,
+        json_len + 4 <= payload_len,
+        8 + pickle_len <= size,
+    );
+    Some(Label::Asar)
+}
+
+/// RFC 3284 VCDIFF binary delta patch (`D6 C3 C4 00` standard or `D6 C3 C4 53` SDCH): valid
+/// `Hdr_Indicator` flag bits at `@4` and secondary compressor ID at `@5` when `VCD_DECOMPRESS`
+/// is set.
+pub(crate) fn vcdiff(prefix: &[u8], size: u64) -> Option<Label> {
+    const STD_MAGIC: &[u8; 4] = hex2bin!("D6 C3 C4 00"); // @0..4: RFC 3284 VCDIFF magic
+    const SDCH_MAGIC: &[u8; 4] = b"\xD6\xC3\xC4S"; // @0..4: SDCH VCDIFF variant magic
+    const HDR_IND_OFF: usize = 4; // @4: u8 Hdr_Indicator (bits 0..2 only)
+    const COMP_ID_OFF: usize = 5; // @5: u8 secondary compressor ID when bit 0 is set
+    const MIN_LEN: usize = 12;
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= 8,
+        starts(prefix, STD_MAGIC) || starts(prefix, SDCH_MAGIC),
+    );
+    let hdr_ind = u8_at(prefix, HDR_IND_OFF)?;
+    require!((hdr_ind & 0xF8) == 0);
+    if (hdr_ind & 0x01) != 0 {
+        require!(matches!(u8_at(prefix, COMP_ID_OFF)?, 1 | 2 | 16 | 17));
+    }
+    Some(Label::Vcdiff)
+}
+
+/// JSR-200 Java Pack200 compressed JAR archive: `CA FE D0 0D` magic at `@0..4`, `UNSIGNED5`
+/// minor version `7` at `@4`, and major version `150..=171` at `@5`.
+pub(crate) fn java_pack200(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 4] = hex2bin!("CA FE D0 0D"); // @0..4: Pack200 archive magic
+    const MINOR_OFF: usize = 4; // @4: u8 UNSIGNED5 archive_minor_version (7)
+    const MAJOR_OFF: usize = 5; // @5: u8 UNSIGNED5 archive_major_version (150..=171)
+    const MIN_LEN: usize = 16;
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= 8,
+        starts(prefix, MAGIC),
+        u8_at(prefix, MINOR_OFF)? == 7,
+        (150..=171).contains(&u8_at(prefix, MAJOR_OFF)?),
+    );
+    Some(Label::JavaPack200)
+}
+
+/// StuffIt (`sit`, classic v1–v4 and v5) and StuffIt X (`sitx`) archives.
+pub(crate) fn stuffit(prefix: &[u8], size: u64) -> Option<Label> {
+    const RLAU_OFF: usize = 10; // @10..14: "rLau" secondary signature
+    const RLAU_MAGIC: &[u8; 4] = b"rLau";
+    const SIT5_MAGIC: &[u8; 4] = b"SIT5";
+    const V5_BANNER: &[u8; 16] = b"StuffIt (c)1997-"; // @0..16: StuffIt v5 banner prefix
+    const SITX_MAGIC: &[u8; 8] = b"StuffIt!"; // @0..8: StuffIt X signature
+    const SITX_ALT_MAGIC: &[u8; 8] = b"StuffIt?"; // @0..8: StuffIt X alternate signature
+    const CLASSIC_TAGS: &[&[u8; 4]] =
+        &[b"SIT!", b"SITD", b"ST46", b"ST50", b"ST60", b"ST65", b"STin", b"STi2", b"STi3", b"STi4"];
+    const MIN_LEN: usize = 14;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= MIN_LEN);
+    if CLASSIC_TAGS.iter().any(|&tag| starts(prefix, tag))
+        && eq_at(prefix, RLAU_OFF, RLAU_MAGIC)
+        && has_non_ascii_text_byte(&prefix[4..10])
+    {
+        return Some(Label::Sit);
+    }
+    if starts(prefix, SIT5_MAGIC) && prefix.len() >= 16 && u8_at(prefix, 4)? == 5 {
+        return Some(Label::Sit);
+    }
+    if (starts(prefix, SITX_MAGIC) || starts(prefix, SITX_ALT_MAGIC)) && prefix.len() >= 10 {
+        let major = u8_at(prefix, 8)?;
+        if (1..=10).contains(&major)
+            || major == 0xA1
+            || (prefix.len() >= 16 && has_non_ascii_text_byte(&prefix[8..16]))
+        {
+            return Some(Label::Sitx);
+        }
+    }
+    if starts(prefix, V5_BANNER)
+        && prefix.len() >= 84
+        && (u8_at(prefix, 79) == Some(0x1A) || u8_at(prefix, 80) == Some(0x1A))
+        && u8_at(prefix, 82) == Some(5)
+    {
+        return Some(Label::Sit);
+    }
+    None
+}
+
+/// Apple PBZX chunked payload archive (`"pbzx"`, `"pbze"`, `"pbz4"`, `"pbzb"`, `"pbzz"`): `u64 BE`
+/// chunk flags and compressed/uncompressed bounds at `@4..28` plus inner stream magic at `@28..34`.
+pub(crate) fn pbzx(prefix: &[u8], size: u64) -> Option<Label> {
+    const FLAGS_OFF: usize = 4; // @4..12: u64 BE chunk buffer flags
+    const UNCOMP_OFF: usize = 12; // @12..20: u64 BE uncompressed chunk length
+    const COMP_OFF: usize = 20; // @20..28: u64 BE compressed chunk length
+    const PAYLOAD_OFF: usize = 28; // @28..: compressed inner stream magic
+    const MIN_LEN: usize = 34;
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= MIN_LEN,
+        starts(prefix, b"pbzx")
+            || starts(prefix, b"pbze")
+            || starts(prefix, b"pbz4")
+            || starts(prefix, b"pbzb")
+            || starts(prefix, b"pbzz"),
+    );
+    let flags = be64(prefix, FLAGS_OFF)?;
+    let uncomp_sz = be64(prefix, UNCOMP_OFF)?;
+    let comp_sz = be64(prefix, COMP_OFF)?;
+    require!(
+        (1..=0x1000_0000).contains(&flags),
+        uncomp_sz > 0,
+        (1..=uncomp_sz).contains(&comp_sz),
+        28u64.saturating_add(comp_sz) <= size,
+    );
+    if comp_sz < uncomp_sz {
+        let valid_inner = match get_slice(prefix, 0, 4)? {
+            b"pbzx" => eq_at(prefix, PAYLOAD_OFF, b"\xFD7zXZ\x00"),
+            b"pbze" => eq_at(prefix, PAYLOAD_OFF, b"bvx"),
+            b"pbz4" => eq_at(prefix, PAYLOAD_OFF, b"bv41"),
+            b"pbzb" => eq_at(prefix, PAYLOAD_OFF, b"ZBM\x09"),
+            b"pbzz" => u8_at(prefix, PAYLOAD_OFF) == Some(0x78),
+            _ => false,
+        };
+        require!(valid_inner);
+    }
+    Some(Label::Pbzx)
+}

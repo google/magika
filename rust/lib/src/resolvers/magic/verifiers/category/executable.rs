@@ -619,3 +619,129 @@ pub(crate) fn aout(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn pe_or_dos_mz(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     probe(|| pe(prefix, ctx)).or_else(|| probe(|| pe_or_autoit(prefix, ctx)))
 }
+
+/// DirectX Shader Bytecode (`dxbc`, SM4/SM5) and DirectX Intermediate Language (`dxil`, SM6+)
+/// container: `"DXBC"` magic, version `1`, container size, part offset table at `@32..`, and at
+/// least one recognized shader chunk FourCC (`DXIL`/`ILDB` for DXIL; `SHEX`/`SHDR`/`RDEF`/etc.
+/// for DXBC).
+pub(crate) fn dxbc_or_dxil(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 4] = b"DXBC"; // @0..4: DirectX container signature
+    const VERSION_OFF: usize = 20; // @20..24: u32 LE version (major=1, minor=0)
+    const TOTAL_SIZE_OFF: usize = 24; // @24..28: u32 LE declared container byte size
+    const PART_COUNT_OFF: usize = 28; // @28..32: u32 LE chunk count
+    const TABLE_OFF: usize = 32; // @32..: array of u32 LE chunk offsets
+    const MIN_LEN: usize = 36;
+    const DXBC_TAGS: &[&[u8; 4]] = &[
+        b"RDEF", b"ISGN", b"OSGN", b"SHEX", b"SHDR", b"STAT", b"Aon9", b"SPDB", b"SDBG", b"SFI0",
+        b"PSV0", b"RDAT", b"HASH", b"RTS0", b"ISG1", b"OSG1", b"OSG5", b"PCSG", b"PSG1", b"IFCE",
+        b"PRIV", b"VERS", b"FX10", b"FXLC", b"LIBF", b"LIBH",
+    ];
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= MIN_LEN,
+        starts(prefix, MAGIC),
+        le16(prefix, VERSION_OFF) == Some(1),
+    );
+    let total_size = le32(prefix, TOTAL_SIZE_OFF)? as u64;
+    let part_count = le32(prefix, PART_COUNT_OFF)? as usize;
+    let min_part_off = TABLE_OFF + part_count.saturating_mul(4);
+    require!(total_size >= MIN_LEN as u64, total_size <= size, (1..=64).contains(&part_count),);
+    let mut seen_dxbc_tag = false;
+    for i in 0..part_count {
+        let entry_off = TABLE_OFF + i * 4;
+        if entry_off + 4 > prefix.len() {
+            break;
+        }
+        let part_off = le32(prefix, entry_off)? as usize;
+        require!(part_off >= min_part_off, (part_off as u64) + 8 <= total_size);
+        if part_off + 8 <= prefix.len()
+            && let Some(tag) = get_slice(prefix, part_off, part_off + 4)
+        {
+            if tag == b"DXIL" || tag == b"ILDB" {
+                return Some(Label::Dxil);
+            }
+            if DXBC_TAGS.iter().any(|t| *t == tag) {
+                seen_dxbc_tag = true;
+            }
+        }
+    }
+    require!(seen_dxbc_tag);
+    Some(Label::Dxbc)
+}
+
+/// AmigaOS Hunk load-file executable: `HUNK_HEADER` (`00 00 03 F3`), zero-length resident library
+/// list at `@4..8`, hunk count `1..=4096`, and `first <= last < num_hunks`.
+pub(crate) fn amiga_hunk(prefix: &[u8], size: u64) -> Option<Label> {
+    const HUNK_HEADER: &[u8; 4] = hex2bin!("00 00 03 F3"); // @0..4: HUNK_HEADER magic
+    const RESIDENT_LEN_OFF: usize = 4; // @4..8: u32 BE resident library name length (0)
+    const NUM_HUNKS_OFF: usize = 8; // @8..12: u32 BE total hunk table size
+    const FIRST_HUNK_OFF: usize = 12; // @12..16: u32 BE first hunk index
+    const LAST_HUNK_OFF: usize = 16; // @16..20: u32 BE last hunk index
+    const MIN_LEN: usize = 24;
+
+    require!(
+        size >= 32,
+        prefix.len() >= MIN_LEN,
+        starts(prefix, HUNK_HEADER),
+        be32(prefix, RESIDENT_LEN_OFF) == Some(0),
+    );
+    let num_hunks = be32(prefix, NUM_HUNKS_OFF)?;
+    let first = be32(prefix, FIRST_HUNK_OFF)?;
+    let last = be32(prefix, LAST_HUNK_OFF)?;
+    require!(
+        (1..=4096).contains(&num_hunks),
+        first <= last,
+        last < num_hunks,
+        20u64 + ((last - first + 1) as u64) * 4 <= size,
+    );
+    Some(Label::AmigaHunk)
+}
+
+/// Atari TOS / GEMDOS Motorola 68000 executable (`.prg`, `.tos`, `.ttp`, `.app`, `.acc`):
+/// `60 1A` (`BRA.S +26`) header with segment sizes, reserved/MiNT word, and relocation flag.
+pub(crate) fn atari_tos(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 2] = hex2bin!("60 1A"); // @0..2: GEMDOS BRA.S +26 signature
+    const TLEN_OFF: usize = 2; // @2..6: u32 BE TEXT segment size
+    const DLEN_OFF: usize = 6; // @6..10: u32 BE DATA segment size
+    const BLEN_OFF: usize = 10; // @10..14: u32 BE BSS segment size
+    const SLEN_OFF: usize = 14; // @14..18: u32 BE symbol table size
+    const RES1_OFF: usize = 18; // @18..22: reserved (0) or "MiNT"
+    const ABSFLAG_OFF: usize = 26; // @26..28: u16 BE relocation suppression flag
+    const HEADER_LEN: usize = 28;
+
+    require!(size >= 32, prefix.len() >= HEADER_LEN, starts(prefix, MAGIC));
+    let tlen = be32(prefix, TLEN_OFF)? as u64;
+    let dlen = be32(prefix, DLEN_OFF)? as u64;
+    let blen = be32(prefix, BLEN_OFF)? as u64;
+    let slen = be32(prefix, SLEN_OFF)? as u64;
+    let res1 = be32(prefix, RES1_OFF)?;
+    let absflag = be16(prefix, ABSFLAG_OFF)?;
+    let payload = 28u64.saturating_add(tlen).saturating_add(dlen).saturating_add(slen);
+    require!(
+        tlen > 0,
+        payload <= size,
+        blen <= 0x0400_0000,
+        res1 == 0 || eq_at(prefix, RES1_OFF, b"MiNT"),
+        matches!(absflag, 0 | 1 | 0xFFFF),
+    );
+    Some(Label::AtariTos)
+}
+
+/// Novell NetWare Loadable Module (`"NetWare Loadable Module"` + NUL/EOF) or Personal NetWare
+/// Packed File (`"Packed File "` + `0x1A` at `@24`).
+pub(crate) fn netware_nlm(prefix: &[u8], size: u64) -> Option<Label> {
+    const NLM_MAGIC: &[u8; 23] = b"NetWare Loadable Module"; // @0..23: NLM header signature
+    const PACKED_MAGIC: &[u8; 12] = b"Packed File "; // @0..12: Personal NetWare packed header
+    const PACKED_EOF_OFF: usize = 24; // @24: 0x1A DOS EOF marker
+
+    require!(size >= 25, prefix.len() >= 25);
+    if prefix.len() >= 28 && starts(prefix, NLM_MAGIC) && matches!(u8_at(prefix, 23)?, 0x00 | 0x1A)
+    {
+        return Some(Label::NetwareNlm);
+    }
+    if starts(prefix, PACKED_MAGIC) && u8_at(prefix, PACKED_EOF_OFF) == Some(0x1A) {
+        return Some(Label::NetwareNlm);
+    }
+    None
+}

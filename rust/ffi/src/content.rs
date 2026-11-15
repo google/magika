@@ -19,6 +19,15 @@ use std::ptr;
 
 use crate::MagikaTypeInfo;
 
+#[rustfmt::skip] pub(crate) static _123: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"123".as_ptr(),
+    mime_type: c"application/vnd.lotus-1-2-3".as_ptr(),
+    group: c"document".as_ptr(),
+    description: c"Lotus 1-2-3 worksheet".as_ptr(),
+    extensions: [c"123".as_ptr(), c"wk1".as_ptr(), c"wk3".as_ptr(), c"wk4".as_ptr(), c"wks".as_ptr(), c"wrk".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static _3DS: MagikaTypeInfo = MagikaTypeInfo {
     label: c"3ds".as_ptr(),
     mime_type: c"application/octet-stream".as_ptr(),
@@ -115,6 +124,33 @@ use crate::MagikaTypeInfo;
     group: c"image".as_ptr(),
     description: c"Alembic geometry cache".as_ptr(),
     extensions: [c"abc".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static AMIGA_HUNK: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"amiga_hunk".as_ptr(),
+    mime_type: c"application/x-amiga-executable".as_ptr(),
+    group: c"executable".as_ptr(),
+    description: c"AmigaOS Hunk executable".as_ptr(),
+    extensions: [c"hunk".as_ptr(), c"library".as_ptr(), c"device".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static AMR: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"amr".as_ptr(),
+    mime_type: c"audio/amr".as_ptr(),
+    group: c"audio".as_ptr(),
+    description: c"Adaptive Multi-Rate audio".as_ptr(),
+    extensions: [c"amr".as_ptr(), c"awb".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static ANDROID_BOOT: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"android_boot".as_ptr(),
+    mime_type: c"application/x-android-bootimg".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Android boot image".as_ptr(),
+    extensions: [c"img".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -226,6 +262,24 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static ARSC: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"arsc".as_ptr(),
+    mime_type: c"application/x-android-resource-table".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Android compiled resource table".as_ptr(),
+    extensions: [c"arsc".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static ASAR: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"asar".as_ptr(),
+    mime_type: c"application/x-asar".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"Electron ASAR archive".as_ptr(),
+    extensions: [c"asar".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static ASD: MagikaTypeInfo = MagikaTypeInfo {
     label: c"asd".as_ptr(),
     mime_type: c"application/octet-stream".as_ptr(),
@@ -260,6 +314,15 @@ use crate::MagikaTypeInfo;
     description: c"ASP source".as_ptr(),
     extensions: [c"aspx".as_ptr(), c"asp".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
+};
+
+#[rustfmt::skip] pub(crate) static ATARI_TOS: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"atari_tos".as_ptr(),
+    mime_type: c"application/x-atari-tos-executable".as_ptr(),
+    group: c"executable".as_ptr(),
+    description: c"Atari TOS executable".as_ptr(),
+    extensions: [c"prg".as_ptr(), c"tos".as_ptr(), c"ttp".as_ptr(), c"app".as_ptr(), c"acc".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
 };
 
 #[rustfmt::skip] pub(crate) static AU: MagikaTypeInfo = MagikaTypeInfo {
@@ -325,6 +388,15 @@ use crate::MagikaTypeInfo;
     is_text: true,
 };
 
+#[rustfmt::skip] pub(crate) static AXML: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"axml".as_ptr(),
+    mime_type: c"application/x-android-binary-xml".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Android binary XML".as_ptr(),
+    extensions: [c"xml".as_ptr(), c"axml".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static BAM: MagikaTypeInfo = MagikaTypeInfo {
     label: c"bam".as_ptr(),
     mime_type: c"application/octet-stream".as_ptr(),
@@ -385,6 +457,15 @@ use crate::MagikaTypeInfo;
     group: c"geometry".as_ptr(),
     description: c"Blender scene".as_ptr(),
     extensions: [c"blend".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static BLURAY_INDX: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"bluray_indx".as_ptr(),
+    mime_type: c"application/x-bluray-index".as_ptr(),
+    group: c"video".as_ptr(),
+    description: c"Blu-ray Disc index table".as_ptr(),
+    extensions: [c"bdmv".as_ptr(), c"bdm".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -511,6 +592,15 @@ use crate::MagikaTypeInfo;
     group: c"application".as_ptr(),
     description: c"MS Windows HtmlHelp Data".as_ptr(),
     extensions: [c"chm".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static CHROMIUM_PAK: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"chromium_pak".as_ptr(),
+    mime_type: c"application/x-chromium-pak".as_ptr(),
+    group: c"database".as_ptr(),
+    description: c"Chromium resource pack".as_ptr(),
+    extensions: [c"pak".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -658,6 +748,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static CUSTOM_DESTINATIONS: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"custom_destinations".as_ptr(),
+    mime_type: c"application/x-windows-jump-list".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Windows Jump List custom destinations".as_ptr(),
+    extensions: [c"customDestinations-ms".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static DART: MagikaTypeInfo = MagikaTypeInfo {
     label: c"dart".as_ptr(),
     mime_type: c"text/plain".as_ptr(),
@@ -685,6 +784,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static DDS: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"dds".as_ptr(),
+    mime_type: c"image/vnd.ms-dds".as_ptr(),
+    group: c"image".as_ptr(),
+    description: c"DirectDraw Surface texture".as_ptr(),
+    extensions: [c"dds".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static DEB: MagikaTypeInfo = MagikaTypeInfo {
     label: c"deb".as_ptr(),
     mime_type: c"application/vnd.debian.binary-package".as_ptr(),
@@ -709,6 +817,15 @@ use crate::MagikaTypeInfo;
     group: c"executable".as_ptr(),
     description: c"Dalvik dex file".as_ptr(),
     extensions: [c"dex".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static DFM: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"dfm".as_ptr(),
+    mime_type: c"application/x-delphi-form".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Delphi binary form resource".as_ptr(),
+    extensions: [c"dfm".as_ptr(), c"fmx".as_ptr(), c"xfm".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -829,6 +946,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static DXBC: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"dxbc".as_ptr(),
+    mime_type: c"application/x-dxbc".as_ptr(),
+    group: c"executable".as_ptr(),
+    description: c"DirectX bytecode shader container".as_ptr(),
+    extensions: [c"dxbc".as_ptr(), c"cso".as_ptr(), c"fxc".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static DXF: MagikaTypeInfo = MagikaTypeInfo {
     label: c"dxf".as_ptr(),
     mime_type: c"image/vnd.dxf".as_ptr(),
@@ -836,6 +962,15 @@ use crate::MagikaTypeInfo;
     description: c"Autocad Drawing Exchange Format".as_ptr(),
     extensions: [c"dxf".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
+};
+
+#[rustfmt::skip] pub(crate) static DXIL: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"dxil".as_ptr(),
+    mime_type: c"application/x-dxil".as_ptr(),
+    group: c"executable".as_ptr(),
+    description: c"DirectX Intermediate Language shader".as_ptr(),
+    extensions: [c"dxil".as_ptr(), c"cso".as_ptr(), c"dxbc".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
 };
 
 #[rustfmt::skip] pub(crate) static ELF: MagikaTypeInfo = MagikaTypeInfo {
@@ -1024,6 +1159,15 @@ use crate::MagikaTypeInfo;
     group: c"image".as_ptr(),
     description: c"Flashpix".as_ptr(),
     extensions: [c"fpx".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static FREEDESKTOP_MIME_MAGIC: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"freedesktop_mime_magic".as_ptr(),
+    mime_type: c"application/x-freedesktop-mime-magic".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Freedesktop shared MIME magic rules".as_ptr(),
+    extensions: [c"magic".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -1414,6 +1558,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static IPS_PATCH: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"ips_patch".as_ptr(),
+    mime_type: c"application/x-ips-patch".as_ptr(),
+    group: c"binary".as_ptr(),
+    description: c"International Patching System binary patch".as_ptr(),
+    extensions: [c"ips".as_ptr(), c"ebp".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static IPYNB: MagikaTypeInfo = MagikaTypeInfo {
     label: c"ipynb".as_ptr(),
     mime_type: c"application/json".as_ptr(),
@@ -1448,6 +1601,15 @@ use crate::MagikaTypeInfo;
     description: c"Java source".as_ptr(),
     extensions: [c"java".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
+};
+
+#[rustfmt::skip] pub(crate) static JAVA_PACK200: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"java_pack200".as_ptr(),
+    mime_type: c"application/x-java-pack200".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"Java Pack200 compressed JAR archive".as_ptr(),
+    extensions: [c"pack".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
 };
 
 #[rustfmt::skip] pub(crate) static JAVABYTECODE: MagikaTypeInfo = MagikaTypeInfo {
@@ -1909,6 +2071,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static MPEG_PS: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"mpeg_ps".as_ptr(),
+    mime_type: c"video/mpeg".as_ptr(),
+    group: c"video".as_ptr(),
+    description: c"MPEG Program Stream".as_ptr(),
+    extensions: [c"mpg".as_ptr(), c"mpeg".as_ptr(), c"vob".as_ptr(), c"ps".as_ptr(), c"m2p".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static MPEGTS: MagikaTypeInfo = MagikaTypeInfo {
     label: c"mpegts".as_ptr(),
     mime_type: c"video/MP2T".as_ptr(),
@@ -1996,6 +2167,15 @@ use crate::MagikaTypeInfo;
     group: c"scientific".as_ptr(),
     description: c"NetCDF".as_ptr(),
     extensions: [c"cdf".as_ptr(), c"nc".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static NETWARE_NLM: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"netware_nlm".as_ptr(),
+    mime_type: c"application/x-netware-nlm".as_ptr(),
+    group: c"executable".as_ptr(),
+    description: c"Novell NetWare Loadable Module".as_ptr(),
+    extensions: [c"nlm".as_ptr(), c"dsk".as_ptr(), c"lan".as_ptr(), c"nam".as_ptr(), c"ham".as_ptr(), c"cdm".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -2242,6 +2422,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static PBZX: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"pbzx".as_ptr(),
+    mime_type: c"application/x-pbzx".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"Apple PBZX payload archive".as_ptr(),
+    extensions: [c"pbzx".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static PCAP: MagikaTypeInfo = MagikaTypeInfo {
     label: c"pcap".as_ptr(),
     mime_type: c"application/vnd.tcpdump.pcap".as_ptr(),
@@ -2312,6 +2501,15 @@ use crate::MagikaTypeInfo;
     description: c"Perl source".as_ptr(),
     extensions: [c"pl".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
+};
+
+#[rustfmt::skip] pub(crate) static PFF2: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"pff2".as_ptr(),
+    mime_type: c"font/x-grub-pff2".as_ptr(),
+    group: c"font".as_ptr(),
+    description: c"GNU GRUB 2 PFF2 bitmap font".as_ptr(),
+    extensions: [c"pf2".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
 };
 
 #[rustfmt::skip] pub(crate) static PGP: MagikaTypeInfo = MagikaTypeInfo {
@@ -2419,6 +2617,15 @@ use crate::MagikaTypeInfo;
     group: c"document".as_ptr(),
     description: c"Microsoft PowerPoint 2007+ document".as_ptr(),
     extensions: [c"pptx".as_ptr(), c"pptm".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static PREFETCH: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"prefetch".as_ptr(),
+    mime_type: c"application/x-windows-prefetch".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Windows SuperFetch prefetch trace".as_ptr(),
+    extensions: [c"pf".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -2665,6 +2872,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static ROBLOX_RBXM: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"roblox_rbxm".as_ptr(),
+    mime_type: c"application/x-roblox-model".as_ptr(),
+    group: c"geometry".as_ptr(),
+    description: c"Roblox binary model".as_ptr(),
+    extensions: [c"rbxm".as_ptr(), c"rbxl".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static ROCKSDB: MagikaTypeInfo = MagikaTypeInfo {
     label: c"rocksdb".as_ptr(),
     mime_type: c"application/octet-stream".as_ptr(),
@@ -2825,6 +3041,24 @@ use crate::MagikaTypeInfo;
     description: c"Shell script".as_ptr(),
     extensions: [c"sh".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
+};
+
+#[rustfmt::skip] pub(crate) static SIT: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"sit".as_ptr(),
+    mime_type: c"application/x-stuffit".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"StuffIt archive".as_ptr(),
+    extensions: [c"sit".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static SITX: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"sitx".as_ptr(),
+    mime_type: c"application/x-stuffitx".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"StuffIt X archive".as_ptr(),
+    extensions: [c"sitx".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
 };
 
 #[rustfmt::skip] pub(crate) static SKETCHUP: MagikaTypeInfo = MagikaTypeInfo {
@@ -3214,6 +3448,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static UNITYFS: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"unityfs".as_ptr(),
+    mime_type: c"application/x-unity-assetbundle".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"Unity AssetBundle archive".as_ptr(),
+    extensions: [c"bundle".as_ptr(), c"unity3d".as_ptr(), c"assets".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static UNIXCOMPRESS: MagikaTypeInfo = MagikaTypeInfo {
     label: c"unixcompress".as_ptr(),
     mime_type: c"application/x-compress".as_ptr(),
@@ -3274,6 +3517,15 @@ use crate::MagikaTypeInfo;
     group: c"unknown".as_ptr(),
     description: c"vcard".as_ptr(),
     extensions: [c"vcard".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static VCDIFF: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"vcdiff".as_ptr(),
+    mime_type: c"application/x-vcdiff".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"VCDIFF binary delta patch".as_ptr(),
+    extensions: [c"vcdiff".as_ptr(), c"xdelta".as_ptr(), c"xdelta3".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -3403,6 +3655,15 @@ use crate::MagikaTypeInfo;
     is_text: false,
 };
 
+#[rustfmt::skip] pub(crate) static WB3: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"wb3".as_ptr(),
+    mime_type: c"application/x-quattro-pro".as_ptr(),
+    group: c"document".as_ptr(),
+    description: c"Quattro Pro spreadsheet".as_ptr(),
+    extensions: [c"wb1".as_ptr(), c"wb2".as_ptr(), c"wb3".as_ptr(), c"wq1".as_ptr(), c"wq2".as_ptr(), c"wkq".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static WEBM: MagikaTypeInfo = MagikaTypeInfo {
     label: c"webm".as_ptr(),
     mime_type: c"video/webm".as_ptr(),
@@ -3499,6 +3760,15 @@ use crate::MagikaTypeInfo;
     group: c"font".as_ptr(),
     description: c"Web Open Font Format v2".as_ptr(),
     extensions: [c"woff2".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
+#[rustfmt::skip] pub(crate) static WORDPRO: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"wordpro".as_ptr(),
+    mime_type: c"application/vnd.lotus-wordpro".as_ptr(),
+    group: c"document".as_ptr(),
+    description: c"Lotus Word Pro document".as_ptr(),
+    extensions: [c"lwp".as_ptr(), c"mwp".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
 
@@ -3657,6 +3927,7 @@ use crate::MagikaTypeInfo;
 
 pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static MagikaTypeInfo {
     match content_type {
+        magika::ContentType::_123 => &_123,
         magika::ContentType::_3ds => &_3DS,
         magika::ContentType::_3dsm => &_3DSM,
         magika::ContentType::_3dsx => &_3DSX,
@@ -3668,6 +3939,9 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Ai => &AI,
         magika::ContentType::Aidl => &AIDL,
         magika::ContentType::Alembic => &ALEMBIC,
+        magika::ContentType::AmigaHunk => &AMIGA_HUNK,
+        magika::ContentType::Amr => &AMR,
+        magika::ContentType::AndroidBoot => &ANDROID_BOOT,
         magika::ContentType::Ani => &ANI,
         magika::ContentType::Aout => &AOUT,
         magika::ContentType::Apk => &APK,
@@ -3680,10 +3954,13 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Arcgrid => &ARCGRID,
         magika::ContentType::Arj => &ARJ,
         magika::ContentType::Arrow => &ARROW,
+        magika::ContentType::Arsc => &ARSC,
+        magika::ContentType::Asar => &ASAR,
         magika::ContentType::Asd => &ASD,
         magika::ContentType::Asf => &ASF,
         magika::ContentType::Asm => &ASM,
         magika::ContentType::Asp => &ASP,
+        magika::ContentType::AtariTos => &ATARI_TOS,
         magika::ContentType::Au => &AU,
         magika::ContentType::Autohotkey => &AUTOHOTKEY,
         magika::ContentType::Autoit => &AUTOIT,
@@ -3691,6 +3968,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Avif => &AVIF,
         magika::ContentType::Avro => &AVRO,
         magika::ContentType::Awk => &AWK,
+        magika::ContentType::Axml => &AXML,
         magika::ContentType::Bam => &BAM,
         magika::ContentType::Batch => &BATCH,
         magika::ContentType::Bazel => &BAZEL,
@@ -3698,6 +3976,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Berkeleydb => &BERKELEYDB,
         magika::ContentType::Bib => &BIB,
         magika::ContentType::Blend => &BLEND,
+        magika::ContentType::BlurayIndx => &BLURAY_INDX,
         magika::ContentType::Bmp => &BMP,
         magika::ContentType::Bpg => &BPG,
         magika::ContentType::Bpl => &BPL,
@@ -3712,6 +3991,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Cbor => &CBOR,
         magika::ContentType::Cdf => &CDF,
         magika::ContentType::Chm => &CHM,
+        magika::ContentType::ChromiumPak => &CHROMIUM_PAK,
         magika::ContentType::Cinema4d => &CINEMA4D,
         magika::ContentType::Clojure => &CLOJURE,
         magika::ContentType::Cmake => &CMAKE,
@@ -3728,12 +4008,15 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Css => &CSS,
         magika::ContentType::Csv => &CSV,
         magika::ContentType::Cubin => &CUBIN,
+        magika::ContentType::CustomDestinations => &CUSTOM_DESTINATIONS,
         magika::ContentType::Dart => &DART,
         magika::ContentType::Db2 => &DB2,
         magika::ContentType::Dbase => &DBASE,
+        magika::ContentType::Dds => &DDS,
         magika::ContentType::Deb => &DEB,
         magika::ContentType::Degas => &DEGAS,
         magika::ContentType::Dex => &DEX,
+        magika::ContentType::Dfm => &DFM,
         magika::ContentType::Dicom => &DICOM,
         magika::ContentType::Diff => &DIFF,
         magika::ContentType::Dm => &DM,
@@ -3746,7 +4029,9 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Dsstore => &DSSTORE,
         magika::ContentType::Duckdb => &DUCKDB,
         magika::ContentType::Dwg => &DWG,
+        magika::ContentType::Dxbc => &DXBC,
         magika::ContentType::Dxf => &DXF,
+        magika::ContentType::Dxil => &DXIL,
         magika::ContentType::Elf => &ELF,
         magika::ContentType::Elixir => &ELIXIR,
         magika::ContentType::Emf => &EMF,
@@ -3768,6 +4053,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Flv => &FLV,
         magika::ContentType::Fortran => &FORTRAN,
         magika::ContentType::Fpx => &FPX,
+        magika::ContentType::FreedesktopMimeMagic => &FREEDESKTOP_MIME_MAGIC,
         magika::ContentType::Gemfile => &GEMFILE,
         magika::ContentType::Gemspec => &GEMSPEC,
         magika::ContentType::Geojson => &GEOJSON,
@@ -3811,10 +4097,12 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Intelhex => &INTELHEX,
         magika::ContentType::Internetshortcut => &INTERNETSHORTCUT,
         magika::ContentType::Iosapp => &IOSAPP,
+        magika::ContentType::IpsPatch => &IPS_PATCH,
         magika::ContentType::Ipynb => &IPYNB,
         magika::ContentType::Iso => &ISO,
         magika::ContentType::Jar => &JAR,
         magika::ContentType::Java => &JAVA,
+        magika::ContentType::JavaPack200 => &JAVA_PACK200,
         magika::ContentType::Javabytecode => &JAVABYTECODE,
         magika::ContentType::Javascript => &JAVASCRIPT,
         magika::ContentType::Jinja => &JINJA,
@@ -3866,6 +4154,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Mp2 => &MP2,
         magika::ContentType::Mp3 => &MP3,
         magika::ContentType::Mp4 => &MP4,
+        magika::ContentType::MpegPs => &MPEG_PS,
         magika::ContentType::Mpegts => &MPEGTS,
         magika::ContentType::Mscompress => &MSCOMPRESS,
         magika::ContentType::Msgpack => &MSGPACK,
@@ -3876,6 +4165,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Mum => &MUM,
         magika::ContentType::MysqlStorage => &MYSQL_STORAGE,
         magika::ContentType::Netcdf => &NETCDF,
+        magika::ContentType::NetwareNlm => &NETWARE_NLM,
         magika::ContentType::Nifti => &NIFTI,
         magika::ContentType::Npy => &NPY,
         magika::ContentType::Npz => &NPZ,
@@ -3903,6 +4193,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Parquet => &PARQUET,
         magika::ContentType::Pascal => &PASCAL,
         magika::ContentType::Pbm => &PBM,
+        magika::ContentType::Pbzx => &PBZX,
         magika::ContentType::Pcap => &PCAP,
         magika::ContentType::Pcapng => &PCAPNG,
         magika::ContentType::Pcd => &PCD,
@@ -3911,6 +4202,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Pebin => &PEBIN,
         magika::ContentType::Pem => &PEM,
         magika::ContentType::Perl => &PERL,
+        magika::ContentType::Pff2 => &PFF2,
         magika::ContentType::Pgp => &PGP,
         magika::ContentType::Php => &PHP,
         magika::ContentType::Pickle => &PICKLE,
@@ -3923,6 +4215,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Powershell => &POWERSHELL,
         magika::ContentType::Ppt => &PPT,
         magika::ContentType::Pptx => &PPTX,
+        magika::ContentType::Prefetch => &PREFETCH,
         magika::ContentType::Printfox => &PRINTFOX,
         magika::ContentType::Prolog => &PROLOG,
         magika::ContentType::Proteindb => &PROTEINDB,
@@ -3950,6 +4243,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::RedisRdb => &REDIS_RDB,
         magika::ContentType::Rhinoceros => &RHINOCEROS,
         magika::ContentType::Rlib => &RLIB,
+        magika::ContentType::RobloxRbxm => &ROBLOX_RBXM,
         magika::ContentType::Rocksdb => &ROCKSDB,
         magika::ContentType::Rpm => &RPM,
         magika::ContentType::Rst => &RST,
@@ -3968,6 +4262,8 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Sh3d => &SH3D,
         magika::ContentType::Shapefile => &SHAPEFILE,
         magika::ContentType::Shell => &SHELL,
+        magika::ContentType::Sit => &SIT,
+        magika::ContentType::Sitx => &SITX,
         magika::ContentType::Sketchup => &SKETCHUP,
         magika::ContentType::Skops => &SKOPS,
         magika::ContentType::Smali => &SMALI,
@@ -4010,12 +4306,14 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::UefiFv => &UEFI_FV,
         magika::ContentType::Uf2 => &UF2,
         magika::ContentType::Undefined => &UNDEFINED,
+        magika::ContentType::Unityfs => &UNITYFS,
         magika::ContentType::Unixcompress => &UNIXCOMPRESS,
         magika::ContentType::Unknown => &UNKNOWN,
         magika::ContentType::Usd => &USD,
         magika::ContentType::Vba => &VBA,
         magika::ContentType::Vbe => &VBE,
         magika::ContentType::Vcard => &VCARD,
+        magika::ContentType::Vcdiff => &VCDIFF,
         magika::ContentType::VcfGenomics => &VCF_GENOMICS,
         magika::ContentType::Vcs => &VCS,
         magika::ContentType::Vcxproj => &VCXPROJ,
@@ -4030,6 +4328,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Wad => &WAD,
         magika::ContentType::Wasm => &WASM,
         magika::ContentType::Wav => &WAV,
+        magika::ContentType::Wb3 => &WB3,
         magika::ContentType::Webm => &WEBM,
         magika::ContentType::Webp => &WEBP,
         magika::ContentType::Wim => &WIM,
@@ -4041,6 +4340,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Wmv => &WMV,
         magika::ContentType::Woff => &WOFF,
         magika::ContentType::Woff2 => &WOFF2,
+        magika::ContentType::Wordpro => &WORDPRO,
         magika::ContentType::Xar => &XAR,
         magika::ContentType::Xcf => &XCF,
         magika::ContentType::Xcoff => &XCOFF,

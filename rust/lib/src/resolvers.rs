@@ -53,6 +53,12 @@ pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
         if p.starts_with(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
             || (p.starts_with(b"{") && !p.starts_with(b"{\\rt"))
             || (size >= 0x8006 && p.starts_with(b"\0\0\0\0"))
+            || (p.len() >= 10
+                && p[2] <= 1
+                && p[3] == 0
+                && p[4..8] == [0x00, 0x80, 0x00, 0x00]
+                && p[8] == 0x78
+                && u16::from_be_bytes([p[8], p[9]]).is_multiple_of(31))
         {
             prefix_len = file.ensure_prefix(65536)?;
         }
@@ -303,7 +309,7 @@ mod tests {
                 matched += 1;
             }
         }
-        assert_eq!(matched, 310);
+        assert_eq!(matched, 2008);
     }
 
     #[test]

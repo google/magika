@@ -183,3 +183,119 @@ pub(crate) fn torrent(prefix: &[u8]) -> Option<Label> {
     let _ = get_slice(prefix, 0, prefix.len().min(96));
     Some(Label::Torrent)
 }
+
+// =============================================================================
+// Additional Standalone Format Verifiers
+// =============================================================================
+
+const MIN_METATRADER_SRV_SIZE: u64 = 64;
+const MIN_MS_NETMON_NPB_SIZE: u64 = 32;
+const MIN_SINGBOX_SRS_SIZE: u64 = 16;
+const MIN_SNIFFER_DOS_SIZE: u64 = 12;
+const MIN_TLS_SESSION_NET443_SIZE: u64 = 20;
+const MIN_UA_RESUME1_SIZE: u64 = 36;
+const MIN_VECTOR_BLF_SIZE: u64 = 144;
+
+/// MetaQuotes MetaTrader Broker Server Definition (.srv).
+pub(crate) fn verify_metatrader_srv(prefix: &[u8], size: u64) -> Option<Label> {
+    require!(
+        size >= MIN_METATRADER_SRV_SIZE,
+        prefix.len() >= 32,
+        get_slice(prefix, 0, 14)? == hex2bin!("41 6C 70 61 72 69 2D 50 72 6F 2E 45 43 4E"),
+        get_slice(prefix, 19, 32)? == hex2bin!("00 00 00 00 00 00 00 00 00 00 00 00 00")
+    );
+    require!(has_non_ascii_text_byte(prefix.get(..32)?));
+    Some(Label::MetatraderSrv)
+}
+
+/// NPB UTF-16LE Path Backup List (.npb).
+pub(crate) fn verify_ms_netmon_npb(prefix: &[u8], size: u64) -> Option<Label> {
+    require!(
+        size >= MIN_MS_NETMON_NPB_SIZE,
+        prefix.len() >= 22,
+        starts(prefix, b"N\0P\0B\0\0\0\x06\0\0\0\x01\0\0\0\xfd\x07\x1f\0\x01\0")
+    );
+    require!(has_non_ascii_text_byte(prefix.get(..22)?));
+    Some(Label::MsNetmonNpb)
+}
+
+/// sing-box Binary Rule-Set Container (`SRS` v1–v5 + zlib stream, `.srs`).
+pub(crate) fn verify_singbox_srs(prefix: &[u8], size: u64) -> Option<Label> {
+    require!(
+        size >= MIN_SINGBOX_SRS_SIZE,
+        prefix.len() >= 6,
+        starts(prefix, b"SRS"),
+        (1..=5).contains(&u8_at(prefix, 3)?),
+        is_valid_zlib_header(u8_at(prefix, 4)?, u8_at(prefix, 5)?)
+    );
+    Some(Label::SingboxSrs)
+}
+
+/// Network General Sniffer DOS capture (TRSNIFWR).
+pub(crate) fn verify_sniffer_dos(prefix: &[u8], size: u64) -> Option<Label> {
+    if size >= MIN_SNIFFER_DOS_SIZE
+        && prefix.len() >= 12
+        && (starts(prefix, b"TRSNIFF data    \x1A")
+            || ((starts(prefix, b"TRSNIFWR")
+                || starts(prefix, b"TRSNIFF ")
+                || starts(prefix, b"NETX"))
+                && has_non_ascii_text_byte(prefix.get(4..prefix.len().min(18))?)))
+    {
+        Some(Label::Enc)
+    } else {
+        None
+    }
+}
+
+/// Sun Microsystems Snoop packet capture (`.snoop`, RFC 1761).
+pub(crate) fn verify_snoop(prefix: &[u8], size: u64) -> Option<Label> {
+    require!(size >= 16, prefix.len() >= 16, starts(prefix, b"snoop\0\0\0"));
+    Some(Label::Snoop)
+}
+
+/// ASN.1 DER SSL/TLS Session Cache Entry (.net_443, OpenSSL SSL_SESSION).
+pub(crate) fn verify_tls_session_net443(prefix: &[u8], size: u64) -> Option<Label> {
+    require!(
+        size >= MIN_TLS_SESSION_NET443_SIZE,
+        prefix.len() >= 20,
+        u8_at(prefix, 0)? == 0x30,
+        u8_at(prefix, 1)? == 0x82,
+        get_slice(prefix, 4, 16)? == b"\x02\x01\x01\x02\x02\x03\x04\x04\x02\x13\x01\x04"
+    );
+    require!(has_non_ascii_text_byte(prefix.get(..20)?));
+    Some(Label::TlsSessionNet443)
+}
+
+/// UA Developments Patcher Download Resume State (UA-RESUME-1, .resume).
+pub(crate) fn verify_ua_resume1(prefix: &[u8], size: u64) -> Option<Label> {
+    require!(
+        size >= MIN_UA_RESUME1_SIZE,
+        prefix.len() >= 36,
+        starts(prefix, b"U\0A\0-\0R\0E\0S\0U\0M\0E\0-\x001\0\n\0h\0t\0t\0p\0")
+    );
+    require!(has_non_ascii_text_byte(prefix.get(..36)?));
+    Some(Label::UaResume1)
+}
+
+/// Vector Informatik Binary Logging Format (`.blf`) CAN/LIN/FlexRay/Ethernet bus capture.
+///
+/// Header layout (`VBLFileStatisticsEx`):
+/// - `@0..4`: `"LOGG"` (`0x47474F4C` LE file signature)
+/// - `@4..8`: `u32 LE mStatisticsSize` (`144..=512`, typically `144` = `0x90`)
+/// - `@8..12`: `u32 LE mApplicationId` / API version
+/// - `@mStatisticsSize..mStatisticsSize+4`: First `VBLObjectHeaderBase` starting with `"LOBJ"` (`0x4A424F4C` LE).
+pub(crate) fn verify_vector_blf(prefix: &[u8], size: u64) -> Option<Label> {
+    const BLF_MAGIC: &[u8; 4] = b"LOGG"; // @0..4: VBLFileStatisticsEx signature
+    const HDR_SIZE_OFFSET: usize = 4; // @4..8: u32 LE mStatisticsSize (>= 144)
+    const LOBJ_MAGIC: &[u8; 4] = b"LOBJ"; // @mStatisticsSize..+4: VBLObjectHeaderBase signature
+
+    require!(size >= MIN_VECTOR_BLF_SIZE, prefix.len() >= 144, starts(prefix, BLF_MAGIC));
+    let hdr_size = le32(prefix, HDR_SIZE_OFFSET)? as usize;
+    require!(
+        (144..=512).contains(&hdr_size),
+        (hdr_size as u64) <= size,
+        size == hdr_size as u64
+            || (prefix.len() >= hdr_size + 4 && eq_at(prefix, hdr_size, LOBJ_MAGIC))
+    );
+    Some(Label::VectorBlf)
+}

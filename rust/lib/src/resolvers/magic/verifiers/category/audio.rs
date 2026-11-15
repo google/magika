@@ -2938,26 +2938,72 @@ pub(crate) fn verify_kens_adlib_ksm(prefix: &[u8], size: u64) -> Option<Label> {
 }
 
 /// Ken Silverman Digital Music (`.kdm`, 1995 Ken Silverman).
-/// Layout: `version = le32(0) == 0`, `nnotes = le32(4)` (`1..=65536`), `ntracks = le32(8)` (`1..=32`),
-/// exact `size == 12 + 4 * ntracks + nnotes * (10 | 11)`, monotonic `u32 LE` timestamps.
+///
+/// Layout (`kdmeng.c`): `version = le32(0) == 0`, `nnotes = le32(4)` (`1..=8192`),
+/// `ntracks = le32(8)` (`1..=32`), 4 track arrays (`trinst`, `trquant`, `trvol1`, `trvol2`),
+/// exact `size == 12 + 4 * ntracks + nnotes * (10 | 11)` (10 B/note omits trailing `ntpaneff`),
+/// monotonic non-zero `u32 LE` `nttime` timestamps, and bounded `nttrack`/`ntfreq`/`nt*eff`.
 pub(crate) fn verify_kens_digital_kdm(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAX_KDM_NOTES: u64 = 8_192; // MAXNOTES in kdmeng.c
+    const MAX_KDM_TRACKS: u64 = 32;
+    const MAX_KDM_TICK: u32 = 0x0FFF_FFFF; // signed 32-bit 120 Hz tick (~25.8 days max)
+    const MAX_KDM_EFFECT: u8 = 16; // MAXEFFECTS in kdmeng.c
+
     require!(size >= MIN_KENS_DIGITAL_KDM_SIZE, prefix.len() >= 48);
     let version = le32(prefix, 0)?; // @0..4: KDM version (0)
     let nnotes = le32(prefix, 4)? as u64; // @4..8: total note events
     let ntracks = le32(prefix, 8)? as u64; // @8..12: track count
-    require!(version == 0, (1..=65_536).contains(&nnotes), (1..=32).contains(&ntracks));
+    require!(
+        version == 0,
+        (1..=MAX_KDM_NOTES).contains(&nnotes),
+        (1..=MAX_KDM_TRACKS).contains(&ntracks)
+    );
     let hdr_end = 12 + 4 * ntracks;
     require!(size == hdr_end + nnotes * 10 || size == hdr_end + nnotes * 11);
+
+    // Validate track header arrays: trinst, trquant (1..=64), trvol1, trvol2 (non-silent).
+    let nt = ntracks as usize;
     let t_off = hdr_end as usize;
-    let check_notes = (nnotes as usize).min(6);
-    if prefix.len() >= t_off + check_notes * 4 {
-        let mut prev = 0u32;
-        for i in 0..check_notes {
-            let t = le32(prefix, t_off + i * 4)?;
-            require!(t >= prev);
-            prev = t;
-        }
+    require!(prefix.len() >= t_off + 4);
+    let trquant = get_slice(prefix, 12 + nt, 12 + 2 * nt)?;
+    let trvol1 = get_slice(prefix, 12 + 2 * nt, 12 + 3 * nt)?;
+    let trvol2 = get_slice(prefix, 12 + 3 * nt, t_off)?;
+    require!(
+        trquant.iter().all(|&q| (1..=64).contains(&q)),
+        trvol1.iter().zip(trvol2.iter()).any(|(&v1, &v2)| (v1 | v2) != 0)
+    );
+
+    // Validate all nttime[i] (u32 LE) fitting in prefix: non-decreasing, non-zero, bounded.
+    let nn = nnotes as usize;
+    let avail_times = nn.min((prefix.len() - t_off) / 4);
+    require!(avail_times >= 1);
+    let first_t = le32(prefix, t_off)?;
+    require!(first_t <= MAX_KDM_TICK);
+    let mut prev = first_t;
+    for i in 1..avail_times {
+        let t = le32(prefix, t_off + i * 4)?;
+        require!(t >= prev, t <= MAX_KDM_TICK);
+        prev = t;
     }
+    require!(prev > 0, avail_times < 32 || prev > first_t);
+
+    // Validate per-note byte arrays that overlap prefix:
+    // nttrack (< ntracks), ntfreq (frqtable domain: 0..=75 or 242..=255), and nt*eff (<= 16).
+    let track_off = t_off + nn * 4;
+    if track_off < prefix.len() {
+        let track_end = (track_off + nn).min(prefix.len());
+        require!(get_slice(prefix, track_off, track_end)?.iter().all(|&tr| (tr as u64) < ntracks));
+    }
+    let freq_off = track_off + nn;
+    if freq_off < prefix.len() {
+        let freq_end = (freq_off + nn).min(prefix.len());
+        require!(get_slice(prefix, freq_off, freq_end)?.iter().all(|&f| f <= 75 || f >= 242));
+    }
+    let eff_off = freq_off + nn * 3; // after ntfreq, ntvol1, ntvol2: ntfrqeff/ntvoleff/ntpaneff
+    if eff_off < prefix.len() {
+        require!(get_slice(prefix, eff_off, prefix.len())?.iter().all(|&e| e <= MAX_KDM_EFFECT));
+    }
+
     Some(Label::KensDigitalKdm)
 }
 

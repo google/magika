@@ -938,7 +938,7 @@ const COMPACT_CONTENT_TYPES_INFOS: readonly CompactContentTypeInfo[] = [
   ["jks", "application/x-java-keystore", "application", "Java KeyStore (JKS/JCEKS)", [], 4],
   ["jng", "image/jng", "image", "JPEG network graphics", ["jng"], 20],
   ["jnlp", "application/x-java-jnlp-file", "code", "Java Network Launch Protocol", ["jnlp"], 5],
-  ["joda_tz", "application/x-joda-zoneinfo", "application", "Joda-Time Binary ZoneInfo Map (ZoneInfoMap)", [], 4],
+  ["joda_tz", "application/x-joda-zoneinfo", "application", "Joda-Time Compiled Time Zone (DateTimeZone)", [], 4],
   ["jp2", "image/jpeg2000", "image", "jpeg2000", ["jp2"], 12],
   ["jp2_pgx", "image/x-jp2-pgx", "image", "ISO/IEC 15444-4 JPEG 2000 PGX Verification Component Image (.pgx)", ["pgx"], 4],
   ["jpeg", "image/jpeg", "image", "JPEG image data", ["jpg", "jpeg"], 12],

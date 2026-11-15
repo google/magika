@@ -11779,7 +11779,7 @@ pub(crate) static JODA_TZ: TypeInfo = TypeInfo {
     label: "joda_tz",
     mime_type: "application/x-joda-zoneinfo",
     group: "application",
-    description: "Joda-Time Binary ZoneInfo Map (ZoneInfoMap)",
+    description: "Joda-Time Compiled Time Zone (DateTimeZone)",
     extensions: &[],
     is_text: false,
     in_heuristics: false,
@@ -31267,7 +31267,7 @@ pub enum ContentType {
     Jng,
     /// Java Network Launch Protocol
     Jnlp,
-    /// Joda-Time Binary ZoneInfo Map (ZoneInfoMap)
+    /// Joda-Time Compiled Time Zone (DateTimeZone)
     JodaTz,
     /// jpeg2000
     Jp2,

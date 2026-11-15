@@ -806,4 +806,99 @@ mod tests {
             Some(ContentType::Pythonpar)
         );
     }
+
+    #[test]
+    fn joda_tz_kdm_and_clarion_mem_verifiers() {
+        // Joda-Time PrecalculatedZone ('P') and CachedDateTimeZone ('C' with DSTZone tail).
+        let mut joda_p = Vec::new();
+        joda_p.extend_from_slice(&[b'P', 0x00, 0x02]); // tag 'P', pool_size = 2
+        joda_p.extend_from_slice(b"\x00\x03UTC\x00\x03LMT");
+        joda_p.extend_from_slice(&1u32.to_be_bytes()); // 1 transition
+        joda_p.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]); // millis, wall, std, nameIdx=0
+        joda_p.push(0x00); // has_tail = 0
+        assert_eq!(resolve_slice(&joda_p), vec![ContentType::JodaTz]);
+
+        let mut joda_c = joda_p.clone();
+        joda_c[0] = b'C';
+        *joda_c.last_mut().unwrap() = 0x01; // has_tail = 1 (DSTZone)
+        joda_c.push(0x00); // stdOffset = 0
+        // start Recurrence: mode='w', month=3, dom=-1, dow=7, advance=0, millis=1h, "CEST", save=1h
+        joda_c.extend_from_slice(&[b'w', 3, 0xFF, 7, 0, 0x02]);
+        joda_c.extend_from_slice(b"\x00\x04CEST");
+        joda_c.push(0x02);
+        // end Recurrence: mode='w', month=10, dom=-1, dow=7, advance=0, millis=1h, "CET", save=0
+        joda_c.extend_from_slice(&[b'w', 10, 0xFF, 7, 0, 0x02]);
+        joda_c.extend_from_slice(b"\x00\x03CET");
+        joda_c.push(0x00);
+        assert_eq!(resolve_slice(&joda_c), vec![ContentType::JodaTz]);
+
+        // Trailing garbage, truncation, or FixedDateTimeZone ('F') must not match.
+        let mut joda_extra = joda_p.clone();
+        joda_extra.push(0x00);
+        assert!(resolve_slice(&joda_extra).is_empty());
+        assert!(resolve_slice(&joda_c[..joda_c.len() - 1]).is_empty());
+        let mut joda_f = joda_p.clone();
+        joda_f[0] = b'F';
+        assert!(resolve_slice(&joda_f).is_empty());
+
+        // Ken's Digital Music (.kdm) structural invariants.
+        let kdm = std::fs::read("../../tests_data/resolvers/fixtures/audio/kens_digital_kdm.kdm")
+            .unwrap();
+        let nnotes = u32::from_le_bytes(kdm[4..8].try_into().unwrap()) as usize;
+        let ntracks = u32::from_le_bytes(kdm[8..12].try_into().unwrap()) as usize;
+        let hdr_end = 12 + 4 * ntracks;
+
+        let mut bad_quant = kdm.clone();
+        bad_quant[12 + ntracks] = 0; // trquant[0] == 0
+        assert!(resolve_slice(&bad_quant).is_empty());
+
+        let mut zero_times = kdm.clone();
+        zero_times[hdr_end..hdr_end + nnotes * 4].fill(0);
+        assert!(resolve_slice(&zero_times).is_empty());
+
+        let mut bad_track = kdm.clone();
+        bad_track[hdr_end + nnotes * 4] = ntracks as u8; // nttrack[0] >= ntracks
+        assert!(resolve_slice(&bad_track).is_empty());
+
+        // Clarion for DOS Memo File (.mem): 6 + 256*N layout, free-list integrity, text payload.
+        let mut mem_ok = vec![0u8; 262];
+        mem_ok[..2].copy_from_slice(b"M3");
+        mem_ok[10..15].copy_from_slice(b"hello");
+        assert_eq!(resolve_slice(&mem_ok), vec![ContentType::ClarionMem]);
+
+        // Multi-block file with firstdel > 255 (valid 1-based block index within num_blocks).
+        let mut mem_large = vec![0u8; 6 + 300 * 256];
+        mem_large[..2].copy_from_slice(b"M3");
+        mem_large[2..6].copy_from_slice(&300u32.to_le_bytes());
+        mem_large[10..15].copy_from_slice(b"hello");
+        assert_eq!(resolve_slice(&mem_large), vec![ContentType::ClarionMem]);
+
+        // Wrong size, all-zero payload, binary control byte, out-of-range firstdel, and cycles.
+        assert!(resolve_slice(&mem_ok[..48]).is_empty());
+
+        let mut mem_zero = vec![0u8; 262];
+        mem_zero[..2].copy_from_slice(b"M3");
+        assert!(resolve_slice(&mem_zero).is_empty());
+
+        let mut mem_ctrl = mem_ok.clone();
+        mem_ctrl[16] = 0x01;
+        assert!(resolve_slice(&mem_ctrl).is_empty());
+
+        let mut mem_oob = mem_ok.clone();
+        mem_oob[2..6].copy_from_slice(&2u32.to_le_bytes()); // firstdel=2 > num_blocks=1
+        assert!(resolve_slice(&mem_oob).is_empty());
+
+        let mut mem_self_loop = mem_ok.clone();
+        mem_self_loop[2..6].copy_from_slice(&1u32.to_le_bytes());
+        mem_self_loop[6..10].copy_from_slice(&1u32.to_le_bytes()); // block 1 -> 1
+        assert!(resolve_slice(&mem_self_loop).is_empty());
+
+        let mut mem_cycle = vec![0u8; 6 + 2 * 256];
+        mem_cycle[..2].copy_from_slice(b"M3");
+        mem_cycle[2..6].copy_from_slice(&1u32.to_le_bytes()); // firstdel = 1
+        mem_cycle[6..10].copy_from_slice(&2u32.to_le_bytes()); // block 1 -> 2
+        mem_cycle[10..15].copy_from_slice(b"hello");
+        mem_cycle[262..266].copy_from_slice(&1u32.to_le_bytes()); // block 2 -> 1
+        assert!(resolve_slice(&mem_cycle).is_empty());
+    }
 }

@@ -866,7 +866,7 @@ const MIN_CHROME_BDIC_SIZE: u64 = 32;
 const MIN_CHROME_V4STORE_SIZE: u64 = 16;
 const MIN_CHROME_VLNK_SIZE: u64 = 32;
 const MIN_CHROMIUM_CACHE_BLOCKFILE_SIZE: u64 = 368;
-const MIN_CLARION_DB_SIZE: u64 = 16;
+const MIN_CLARION_MEM_SIZE: u64 = 262;
 const MIN_CLIPPER_NTX_SIZE: u64 = 36;
 const MIN_CONSULTANTPLUS_DT5_SIZE: u64 = 42;
 const MIN_CONS_DICT_NX2_SIZE: u64 = 36;
@@ -1514,15 +1514,63 @@ pub(crate) fn verify_chromium_simple_cache(prefix: &[u8], size: u64) -> Option<L
     None
 }
 
-/// Clarion Memory Variable File (`.mem`, `"M3"`).
+/// Barrington Systems Clarion for DOS Memo File (`.mem`, `"M3"`).
+///
+/// Layout: 6-byte header (`"M3"` signature + `u32 LE firstdel` 1-based free-list head, `0` if
+/// none) followed by `N >= 1` fixed 256-byte blocks, each starting with `u32 LE nxtblk`
+/// (`0..=N`, no self-loop) and 252 bytes of DOS text memo payload (`size == 6 + 256 * N`).
 pub(crate) fn verify_clarion_mem(prefix: &[u8], size: u64) -> Option<Label> {
+    const HDR_LEN: u64 = 6;
+    const BLOCK_SIZE: u64 = 256;
+
     require!(
-        size >= MIN_CLARION_DB_SIZE,
-        prefix.len() >= 12,
-        starts(prefix, b"M3"),
-        u8_at(prefix, 3)? == 0,
-        le16(prefix, 4) == Some(0)
+        size >= MIN_CLARION_MEM_SIZE,
+        (size - HDR_LEN).is_multiple_of(BLOCK_SIZE),
+        prefix.len() >= MIN_CLARION_MEM_SIZE as usize,
+        starts(prefix, b"M3")
     );
+    let num_blocks = (size - HDR_LEN) / BLOCK_SIZE;
+    require!(num_blocks <= u32::MAX as u64);
+
+    let firstdel = le32(prefix, 2)? as u64; // @2..6: 1-based first deleted block (0 = none)
+    require!(firstdel <= num_blocks);
+
+    // Number of blocks whose 4-byte nxtblk header fits in prefix: 6 + 256*(k-1) + 4 <= prefix.len().
+    let vis_blocks =
+        ((prefix.len() - HDR_LEN as usize + 252) / BLOCK_SIZE as usize).min(num_blocks as usize);
+    require!(vis_blocks >= 1);
+    for i in 0..vis_blocks {
+        let blk_off = HDR_LEN as usize + i * BLOCK_SIZE as usize;
+        let nxtblk = le32(prefix, blk_off)? as u64;
+        let blk_id = (i + 1) as u64;
+        require!(nxtblk <= num_blocks, nxtblk != blk_id);
+    }
+
+    // Walk the visible prefix of the free list starting at firstdel to reject pointer cycles.
+    let mut cur = firstdel;
+    for _ in 0..vis_blocks {
+        if cur == 0 || cur > vis_blocks as u64 {
+            break;
+        }
+        let blk_off = HDR_LEN as usize + (cur as usize - 1) * BLOCK_SIZE as usize;
+        cur = le32(prefix, blk_off)? as u64;
+        require!(cur != firstdel);
+    }
+    require!(cur == 0 || cur > vis_blocks as u64);
+
+    // Block 1 payload (@10..262): Clarion DOS memos hold DOS text (printable ASCII, CP437 >= 0x80,
+    // NUL/tab/CR/LF); require at least one printable ASCII byte and no binary C0 control bytes.
+    let payload = get_slice(prefix, 10, 262)?;
+    let mut has_printable = false;
+    for &b in payload {
+        if (0x20..=0x7E).contains(&b) {
+            has_printable = true;
+        } else if (b < 0x20 && !matches!(b, 0x00 | b'\t' | b'\n' | b'\r')) || b == 0x7F {
+            return None;
+        }
+    }
+    require!(has_printable);
+
     Some(Label::ClarionMem)
 }
 

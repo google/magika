@@ -423,7 +423,7 @@ const MIN_ISWLOG_SWL_SIZE: u64 = 28;
 const MIN_IWLWIFI_UCODE_SIZE: u64 = 28;
 const MIN_JAVA_WEBSTART_IDX_SIZE: u64 = 32;
 const MIN_JBOOT_SCH2_SIZE: u64 = 40;
-const MIN_JODA_TZ_SIZE: u64 = 12;
+const MIN_JODA_TZ_SIZE: u64 = 16;
 const MIN_JUCE_PROP_SIZE: u64 = 24;
 const MIN_KEYENCE_LJX_LJHP_SIZE: u64 = 64;
 const MIN_KODAK_DC20_PRESET_PST_SIZE: u64 = 32;
@@ -2510,20 +2510,144 @@ pub(crate) fn verify_jboot_sch2(prefix: &[u8], size: u64) -> Option<Label> {
     Some(Label::JbootSch2)
 }
 
-/// Joda-Time Binary `ZoneInfoMap` file (`50 00`).
+/// Decodes a Joda-Time variable-length millisecond value (`DateTimeZoneBuilder.readMillis`).
+fn read_joda_millis(buf: &[u8], pos: &mut usize) -> Option<i64> {
+    const THIRTY_MIN_MS: i64 = 30 * 60 * 1_000;
+    const ONE_MIN_MS: i64 = 60 * 1_000;
+    let v = u8_at(buf, *pos)?;
+    *pos += 1;
+    match v >> 6 {
+        0 => {
+            // Form 00: signed 6-bit value in 30-minute units (±16h, 1 byte total).
+            let units = ((v as i8) << 2 >> 2) as i64;
+            Some(units * THIRTY_MIN_MS)
+        }
+        1 => {
+            // Form 01: signed 30-bit value in minute units (4 bytes total).
+            let b1 = u8_at(buf, *pos)? as u32;
+            let b2 = u8_at(buf, *pos + 1)? as u32;
+            let b3 = u8_at(buf, *pos + 2)? as u32;
+            *pos += 3;
+            let hi = (((v as i8) << 2 >> 2) as i32) << 24;
+            let mins = (hi | ((b1 << 16) | (b2 << 8) | b3) as i32) as i64;
+            Some(mins * ONE_MIN_MS)
+        }
+        2 => {
+            // Form 10: signed 38-bit value in second units (5 bytes total).
+            let lo = be32(buf, *pos)? as u64;
+            *pos += 4;
+            let hi = (((v as i8) << 2 >> 2) as i64) << 32;
+            let secs = hi | (lo as i64);
+            Some(secs * 1_000)
+        }
+        _ => {
+            // Form 11: full 64-bit signed milliseconds (9 bytes total).
+            // DateTimeZoneBuilder.writeMillis emits 0xFF (< 0) or 0xC0 (>= 0).
+            require!(v == 0xFF || v == 0xC0);
+            let ms = be64(buf, *pos)? as i64;
+            *pos += 8;
+            require!((v == 0xFF) == (ms < 0));
+            Some(ms)
+        }
+    }
+}
+
+/// Reads a Java `DataOutput.writeUTF` printable ASCII zone abbreviation from a Joda-Time zone file.
+fn read_joda_utf<'a>(buf: &'a [u8], pos: &mut usize) -> Option<&'a [u8]> {
+    let slen = be16(buf, *pos)? as usize;
+    *pos += 2;
+    require!((1..=64).contains(&slen));
+    let s = get_slice(buf, *pos, *pos + slen)?;
+    require!(s.iter().all(|&b| (0x20..=0x7E).contains(&b)));
+    *pos += slen;
+    Some(s)
+}
+
+/// Joda-Time Compiled Time Zone (`DateTimeZoneBuilder.PrecalculatedZone` / `CachedDateTimeZone`).
+///
+/// Layout (`DateTimeZoneBuilder.java`): `@0` type tag (`'C'` = `CachedDateTimeZone`, `'P'` =
+/// `PrecalculatedZone`), `@1..3` `u16 BE poolSize` (with `@1 == 0x00` for real tzdata pools
+/// `< 256`, which selects 1-byte `nameKey` indices), `poolSize` Java-UTF strings,
+/// `i32 BE numTransitions`, `numTransitions` `(millis, wallOffset, stdOffset, nameKeyIdx)`
+/// records, and a trailing `u8 hasTail` flag + optional `DSTZone` rule pair.
 pub(crate) fn verify_joda_timezone_info(prefix: &[u8], size: u64) -> Option<Label> {
-    require!(
-        size >= MIN_JODA_TZ_SIZE,
-        prefix.len() >= 12,
-        starts(prefix, hex2bin!("50 00")),
-        (1..=2048).contains(&be16(prefix, 1)?)
-    );
-    let slen = be16(prefix, 3)? as usize;
-    require!(
-        (1..=64).contains(&slen),
-        prefix.len() >= 5 + slen,
-        get_slice(prefix, 5, 5 + slen)?.iter().all(|&b| (0x20..=0x7E).contains(&b))
-    );
+    const MAX_TZ_OFFSET_MS: i64 = 24 * 60 * 60 * 1_000;
+    const MAX_TRANSITIONS: usize = 4_096;
+
+    require!(size >= MIN_JODA_TZ_SIZE, prefix.len() >= 16);
+    let tag = u8_at(prefix, 0)?;
+    require!(matches!(tag, b'C' | b'P'), u8_at(prefix, 1)? == 0);
+    // Byte @1 == 0x00 pins pool_size to 1..=255, which guarantees 1-byte nameKey indices below.
+    let pool_size = u8_at(prefix, 2)? as usize;
+    require!(pool_size >= 1);
+
+    let mut pos = 3;
+    for _ in 0..pool_size {
+        read_joda_utf(prefix, &mut pos)?;
+    }
+
+    let num_transitions = be32(prefix, pos)? as usize;
+    pos += 4;
+    require!((1..=MAX_TRANSITIONS).contains(&num_transitions));
+
+    let full_in_prefix = size <= prefix.len() as u64;
+    let mut prev_t: Option<i64> = None;
+    let mut checked_transitions = 0usize;
+    for _ in 0..num_transitions {
+        // For files larger than prefix (none in standard tzdata), stop before running off prefix.
+        if !full_in_prefix && pos + 32 > prefix.len() {
+            break;
+        }
+        let t = read_joda_millis(prefix, &mut pos)?;
+        let wall = read_joda_millis(prefix, &mut pos)?;
+        let std_off = read_joda_millis(prefix, &mut pos)?;
+        let name_idx = u8_at(prefix, pos)? as usize;
+        pos += 1;
+        require!(
+            prev_t.is_none_or(|p| t > p),
+            (-MAX_TZ_OFFSET_MS..=MAX_TZ_OFFSET_MS).contains(&wall),
+            (-MAX_TZ_OFFSET_MS..=MAX_TZ_OFFSET_MS).contains(&std_off),
+            name_idx < pool_size
+        );
+        prev_t = Some(t);
+        checked_transitions += 1;
+    }
+    require!(checked_transitions >= 1);
+
+    if full_in_prefix {
+        let has_tail = u8_at(prefix, pos)?;
+        pos += 1;
+        require!(has_tail <= 1);
+        if has_tail == 1 {
+            // DSTZone: stdOffset + start Recurrence + end Recurrence.
+            let std_off = read_joda_millis(prefix, &mut pos)?;
+            require!((-MAX_TZ_OFFSET_MS..=MAX_TZ_OFFSET_MS).contains(&std_off));
+            for _ in 0..2 {
+                // OfYear: mode ('u'|'w'|'s'), month (1..=12), dayOfMonth (-31..=31),
+                // dayOfWeek (0..=7), advanceDayOfWeek (0|1), millisOfDay (0..=24h).
+                let mode = u8_at(prefix, pos)?;
+                let month = u8_at(prefix, pos + 1)?;
+                let dom = u8_at(prefix, pos + 2)? as i8;
+                let dow = u8_at(prefix, pos + 3)?;
+                let advance = u8_at(prefix, pos + 4)?;
+                pos += 5;
+                require!(
+                    matches!(mode, b'u' | b'w' | b's'),
+                    (1..=12).contains(&month),
+                    (-31..=31).contains(&dom),
+                    dow <= 7,
+                    advance <= 1
+                );
+                let millis_of_day = read_joda_millis(prefix, &mut pos)?;
+                require!((0..=MAX_TZ_OFFSET_MS).contains(&millis_of_day));
+                read_joda_utf(prefix, &mut pos)?;
+                let save_ms = read_joda_millis(prefix, &mut pos)?;
+                require!((-MAX_TZ_OFFSET_MS..=MAX_TZ_OFFSET_MS).contains(&save_ms));
+            }
+        }
+        require!(pos as u64 == size);
+    }
+
     Some(Label::JodaTz)
 }
 

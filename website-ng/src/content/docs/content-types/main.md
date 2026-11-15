@@ -922,7 +922,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `jks` | Java KeyStore (JKS/JCEKS) | `application/x-java-keystore` | `application` | — |  |  | ✓ |  |  |
 | `jng` | JPEG network graphics | `image/jng` | `image` | `jng` |  |  | ✓ |  | ✓ |
 | `jnlp` | Java Network Launch Protocol | `application/x-java-jnlp-file` | `code` | `jnlp` | ✓ |  | ✓ |  |  |
-| `joda_tz` | Joda-Time Binary ZoneInfo Map (ZoneInfoMap) | `application/x-joda-zoneinfo` | `application` | — |  |  | ✓ |  |  |
+| `joda_tz` | Joda-Time Compiled Time Zone (DateTimeZone) | `application/x-joda-zoneinfo` | `application` | — |  |  | ✓ |  |  |
 | `jp2` | jpeg2000 | `image/jpeg2000` | `image` | `jp2` |  |  | ✓ | ✓ |  |
 | `jp2_pgx` | ISO/IEC 15444-4 JPEG 2000 PGX Verification Component Image (.pgx) | `image/x-jp2-pgx` | `image` | `pgx` |  |  | ✓ |  |  |
 | `jpeg` | JPEG image data | `image/jpeg` | `image` | `jpg`, `jpeg` |  |  | ✓ | ✓ |  |

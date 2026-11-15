@@ -8159,7 +8159,7 @@ use crate::MagikaTypeInfo;
     label: c"joda_tz".as_ptr(),
     mime_type: c"application/x-joda-zoneinfo".as_ptr(),
     group: c"application".as_ptr(),
-    description: c"Joda-Time Binary ZoneInfo Map (ZoneInfoMap)".as_ptr(),
+    description: c"Joda-Time Compiled Time Zone (DateTimeZone)".as_ptr(),
     extensions: [ptr::null()].as_ptr(),
     is_text: false,
 };

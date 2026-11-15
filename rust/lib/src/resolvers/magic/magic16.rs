@@ -113,7 +113,7 @@ pub(crate) fn probe(key: &[u8; 2], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         | &[0x1E, 0x01] => verify_berkeley_vfont(prefix, size), // Berkeley Unix / SunOS vfont Bitmap Font (.vfont, 1979) UC Berkeley CSRG / Sun Microsystems
         &[0x4C, 0xFC] => verify_broadcom_hcd(prefix, size), // Broadcom / Cypress Bluetooth HCI RAM Patch Download Image (.hcd, 2005) Broadcom (0xFC4C LE Write_RAM opcode)
         &[0xE0, 0x49] => verify_clarion_hlp(prefix, size), // Barrington Systems Clarion for DOS Help File (.hlp)
-        b"M3" => verify_clarion_mem(prefix, size), // Clarion Memory Variable File (.mem)
+        b"M3" => verify_clarion_mem(prefix, size), // Barrington Systems Clarion for DOS Memo File (.mem)
         &[0x06, 0x00] // Nantucket / CA-Clipper NTX Database Index (.ntx, 1987) Nantucket / Computer Associates
         | &[0x06, 0x01] // Nantucket / CA-Clipper NTX Database Index (.ntx, 1987) Nantucket / Computer Associates
         | &[0x26, 0x00] => verify_clipper_ntx(prefix, size), // Nantucket / CA-Clipper NTX Database Index (.ntx, 1987) Nantucket / Computer Associates
@@ -169,7 +169,8 @@ pub(crate) fn probe(key: &[u8; 2], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         | &[0x19, 0x85] // Red Hat JFFS2 Flash Filesystem Image (.jffs2)
         | &[0x84, 0x19] // Red Hat JFFS2 Flash Filesystem Image (.jffs2)
         | &[0x85, 0x19] => verify_jffs2(prefix, size), // Red Hat JFFS2 Flash Filesystem Image (.jffs2)
-        &[0x50, 0x00] => verify_joda_timezone_info(prefix, size), // Joda-Time Binary ZoneInfo Map (ZoneInfoMap)
+        &[0x43, 0x00] // Joda-Time Compiled Time Zone (DateTimeZone, CachedDateTimeZone)
+        | &[0x50, 0x00] => verify_joda_timezone_info(prefix, size), // Joda-Time Compiled Time Zone (DateTimeZone, PrecalculatedZone)
         &[0x76, 0x81] // Kerberos v5 KRB-CRED Credential Ticket (.kirbi)
         | &[0x76, 0x82] // Kerberos v5 KRB-CRED Credential Ticket (.kirbi)
         | &[0x76, 0x84] => verify_kerberos_kirbi(prefix, size), // Kerberos v5 KRB-CRED Credential Ticket (.kirbi)

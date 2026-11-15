@@ -190,6 +190,42 @@ impl Input<'_> {
         &content[content.len() - len..]
     }
 
+    /// Reads up to `buffer.len()` bytes starting at `offset`, returning the number of bytes read.
+    ///
+    /// Serves directly from already-cached memory when possible and falls back to positioned
+    /// file reads for uncached ranges of large files. Returns `0` when `offset >= self.length()`
+    /// or on I/O error.
+    pub(crate) fn read_chunk_at(&mut self, offset: u64, buffer: &mut [u8]) -> usize {
+        let total = self.length();
+        if buffer.is_empty() || offset >= total {
+            return 0;
+        }
+        let avail = (total - offset).min(buffer.len() as u64) as usize;
+        let dst = &mut buffer[..avail];
+        match &mut self.content {
+            Content::Full(content) => {
+                let start = offset as usize;
+                dst.copy_from_slice(&content[start..start + avail]);
+                avail
+            }
+            Content::Partial { file, length, prefix, suffix } => {
+                let end = offset + avail as u64;
+                if end <= prefix.len() as u64 {
+                    let start = offset as usize;
+                    dst.copy_from_slice(&prefix[start..start + avail]);
+                    return avail;
+                }
+                let suffix_start = *length - suffix.len() as u64;
+                if offset >= suffix_start {
+                    let start = (offset - suffix_start) as usize;
+                    dst.copy_from_slice(&suffix[start..start + avail]);
+                    return avail;
+                }
+                if read_at(file, dst, offset).is_ok() { avail } else { 0 }
+            }
+        }
+    }
+
     fn make_full(&mut self) -> Result<()> {
         let Content::Partial { file, length, prefix, suffix } = &mut self.content else {
             unreachable!()

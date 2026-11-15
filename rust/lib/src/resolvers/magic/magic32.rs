@@ -76,8 +76,8 @@ pub(crate) fn probe(key: &[u8; 4], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         b"soli" => stl_ascii(prefix, size), // ASCII Stereolithography 3D Mesh (1987) 3D Systems
         b"Auto" => dxf_or_stl(prefix, size), // AutoCAD Binary DXF Drawing / AutoCAD Exported Binary STL (1988) Autodesk
         b"<?ph" => php_tag(prefix, size), // PHP Source Code Tag (1995) PHP Group
-        b"MIME" // RFC 2557 MHTML / RFC 2045 MIME Mail (1996) IETF
-        | b"From" => mht_or_eml(prefix, size), // RFC 822 / MHTML From Header (1982) IETF
+        b"MIME" => mime_magic_or_mht(prefix, size), // freedesktop.org Shared MIME-info / RFC 2557 MHTML / RFC 2045 MIME Mail (1996) freedesktop.org / IETF
+        b"From" => mht_or_eml(prefix, size), // RFC 822 / MHTML From Header (1982) IETF
         b"HEAD" => proteindb(prefix, size), // Brookhaven Protein Data Bank (1976) Brookhaven / wwPDB
         b"# pr" // Protocol Buffers Text Format Comment (2008) Google
         | b"node" => textproto(prefix, size), // TensorFlow GraphDef Textproto (2015) Google
@@ -168,6 +168,39 @@ pub(crate) fn probe(key: &[u8; 4], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         | b"ZBru" => zbrush(prefix, size), // Pixologic ZBrush File Header (1999) Pixologic / Maxon
         b"scre" // Microsoft Remote Desktop Connection screen mode (2001) Microsoft
         | b"full" => rdp(prefix, size), // Microsoft Remote Desktop Connection full address (2001) Microsoft
+        b"DDS " => dds(prefix, size), // Microsoft DirectDraw Surface Texture (.dds) (1999) Microsoft
+        b"Unit" => unityfs(prefix, size), // Unity AssetBundle (UnityFS / UnityWeb / UnityRaw) (2005) Unity Technologies
+        b"PATC" // International Patching System Binary Patch (.ips) (1993) ZeroSoft
+        | b"IPS3" => ips_patch(prefix, ctx), // IPS32 32-bit Binary Patch (.ips) (1999) ZeroSoft
+        b"TPF0" => delphi_form(prefix, size), // Borland / Embarcadero Delphi Binary Form (.dfm) (1995) Borland / Embarcadero
+        b"DXBC" => dxbc_or_dxil(prefix, size), // DirectX Bytecode / Intermediate Language Shader Container (.dxbc/.dxil) (2006) Microsoft
+        b"ANDR" // Android Boot Image (boot.img) (2008) Google / AOSP
+        | b"VNDR" => android_boot(prefix, size), // Android Vendor Boot Image (vendor_boot.img) (2020) Google / AOSP
+        b"<rob" => roblox_rbxm(prefix, size), // Roblox Binary Model / Place (.rbxm/.rbxl) (2013) Roblox
+        b"Word" => wordpro(prefix, size), // Lotus Word Pro Document (.lwp) (1995) Lotus / IBM
+        b"NetW" // Novell NetWare Loadable Module (.nlm) (1989) Novell
+        | b"Pack" => netware_nlm(prefix, size), // Novell NetWare Packed Loadable Module (.nlm) (1993) Novell
+        b"INDX" => bluray_indx(prefix, size), // Blu-ray Disc Movie Index Table (index.bdmv) (2006) BDA
+        b"FILE" => pff2(prefix, size), // GNU GRUB 2 PFF2 Bitmap Font (.pf2) (2006) GNU
+        b"#!AM" => amr(prefix, size), // 3GPP Adaptive Multi-Rate Audio (.amr) (1999) 3GPP
+        b"PSMF" => mpeg_ps(prefix, size), // PlayStation Portable PSMF MPEG Program Stream (2004) Sony
+        b"SIT!" // StuffIt Classic Archive v1.5–v4.5 (.sit) (1987) Raymond Lau / Aladdin Systems
+        | b"SITD" // StuffIt Deluxe Classic Archive (.sit) (1990) Aladdin Systems
+        | b"SIT5" // StuffIt v5 Short Header Archive (.sit) (1998) Aladdin Systems
+        | b"ST46" // StuffIt v4.6 Archive (.sit) (1996) Aladdin Systems
+        | b"ST50" // StuffIt v5.0 Archive (.sit) (1998) Aladdin Systems
+        | b"ST60" // StuffIt v6.0 Archive (.sit) (2000) Aladdin Systems
+        | b"ST65" // StuffIt v6.5 Archive (.sit) (2001) Aladdin Systems
+        | b"STin" // StuffIt Installer Archive (.sit) (1994) Aladdin Systems
+        | b"STi2" // StuffIt Installer v2 Archive (.sit) (1995) Aladdin Systems
+        | b"STi3" // StuffIt Installer v3 Archive (.sit) (1996) Aladdin Systems
+        | b"STi4" // StuffIt Installer v4 Archive (.sit) (1997) Aladdin Systems
+        | b"Stuf" => stuffit(prefix, size), // StuffIt v5 Banner / StuffIt X Archive (.sit/.sitx) (1998) Aladdin Systems
+        b"pbzx" // Apple PBZX XZ-Compressed Payload Archive (2011) Apple
+        | b"pbze" // Apple PBZX LZFSE-Compressed Payload Archive (2015) Apple
+        | b"pbz4" // Apple PBZX LZ4-Compressed Payload Archive (2015) Apple
+        | b"pbzb" // Apple PBZX LZBITMAP-Compressed Payload Archive (2019) Apple
+        | b"pbzz" => pbzx(prefix, size), // Apple PBZX Zlib-Compressed Payload Archive (2011) Apple
 
         // =====================================================================
         // Section 2: Mixed Printable ASCII & Control / High Bytes
@@ -237,6 +270,8 @@ pub(crate) fn probe(key: &[u8; 4], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         | b"ORC\x82" => orc(prefix, size, ctx.tail), // Apache ORC Snappy/Zlib Stream (2013) Apache
         ZIP_LOCAL_SIGNATURE // PKZIP Local File Header (1989) Phil Katz / PKWARE
         | ZIP_EOCD_SIGNATURE => zip(prefix, ctx), // PKZIP End of Central Directory (1989) Phil Katz / PKWARE
+        b"MAM\x04" // Windows 10/11 MAM-Compressed Prefetch (.pf) (2015) Microsoft
+        | b"MAM\x84" => prefetch(prefix, size), // Windows 10/11 MAM-Compressed Prefetch with CRC (.pf) (2015) Microsoft
 
         // =====================================================================
         // Section 3: Pure Binary Signatures
@@ -272,7 +307,7 @@ pub(crate) fn probe(key: &[u8; 4], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         | &[0x28, 0xB5, 0x2F, 0xFD] => zst(prefix), // Zstandard Frame v0.8+ RFC 8878 (2016) Yann Collet / Meta
         &[0x0A, 0x0D, 0x0D, 0x0A] => pcapng(prefix), // IETF PCAPNG Section Header Block (2004) IETF
         &[0x00, 0x00, 0x01, 0x00] => ico(prefix), // Microsoft Windows Icon Resource (.ico) (1985) Microsoft
-        &[0x00, 0x00, 0x02, 0x00] => ico_or_tga(prefix, ctx), // Microsoft Windows Cursor (.cur) / Uncompressed True-Color TGA (1985) Microsoft / Truevision
+        &[0x00, 0x00, 0x02, 0x00] => lotus_quattro_ico_or_tga(prefix, ctx), // Lotus 1-2-3 / Quattro Pro / Windows Cursor / Truevision TGA (1983) Lotus / Borland / Microsoft / Truevision
         &[0x00, 0x00, 0x00, 0x0C] => jp2_or_jxl(prefix), // ISO/IEC 15444-1 JP2 / 18181-2 JXL Box (2000) ISO
         &[0xFF, 0x80, 0xC9, 0xC7] => koala(prefix), // Commodore 64 Koala Painter Image (1983) Koala Technologies
         &[0xCE, 0xFA, 0xED, 0xFE] // Apple Mach-O 32-bit Little-Endian (1988) NeXT / Apple
@@ -304,6 +339,22 @@ pub(crate) fn probe(key: &[u8; 4], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         | &[0x00, 0x00, 0x01, 0x07] // Research Unix / BSD OMAGIC BE a.out Executable (1971) Bell Labs / UCB
         | &[0x00, 0x00, 0x01, 0x08] // Research Unix / BSD NMAGIC BE a.out Executable (1975) Bell Labs / UCB
         | &[0x00, 0x00, 0x01, 0x0B] => aout(prefix, size), // BSD ZMAGIC Demand-Paged BE a.out Executable (1979) UCB
+        &[0x00, 0x00, 0x1A, 0x00] => lotus_123(prefix, size), // Lotus 1-2-3 Release 3–9 Spreadsheet (.wk3/.wk4/.123) (1989) Lotus / IBM
+        &[0x03, 0x00, 0x08, 0x00] => axml(prefix, size), // Android Compiled Binary XML (.xml) (2008) Google / AOSP
+        &[0x02, 0x00, 0x0C, 0x00] => arsc(prefix, size), // Android Compiled Resource Table (resources.arsc) (2008) Google / AOSP
+        &[0x04, 0x00, 0x00, 0x00] => asar_or_chromium_pak(prefix, size), // Electron ASAR Archive / Chromium Resource Pack v4 (2013) GitHub / Google
+        &[0x05, 0x00, 0x00, 0x00] => chromium_pak(prefix, size), // Chromium Resource Pack v5 (.pak) (2017) Google / Chromium
+        &[0x02, 0x00, 0x00, 0x00] => custom_destinations(prefix, size), // Windows Jump List Custom Destinations (.customDestinations-ms) (2009) Microsoft
+        &[0x11, 0x00, 0x00, 0x00] // Windows XP/2003 Uncompressed Prefetch v17 (.pf) (2001) Microsoft
+        | &[0x17, 0x00, 0x00, 0x00] // Windows Vista/7 Uncompressed Prefetch v23 (.pf) (2006) Microsoft
+        | &[0x1A, 0x00, 0x00, 0x00] // Windows 8.1 Uncompressed Prefetch v26 (.pf) (2012) Microsoft
+        | &[0x1E, 0x00, 0x00, 0x00] => prefetch(prefix, size), // Windows 10 Uncompressed Prefetch v30 (.pf) (2015) Microsoft
+        &[0x00, 0x00, 0x03, 0xF3] => amiga_hunk(prefix, size), // AmigaOS Hunk Executable / Library (1985) Commodore
+        &[0xD6, 0xC3, 0xC4, 0x00] // RFC 3284 VCDIFF Binary Delta Patch (.vcdiff/.xdelta) (2002) IETF
+        | &[0xD6, 0xC3, 0xC4, b'S'] => vcdiff(prefix, size), // SDCH VCDIFF Binary Delta Patch (2008) Google
+        &[0xCA, 0xFE, 0xD0, 0x0D] => java_pack200(prefix, size), // JSR-200 Java Pack200 Compressed JAR (.pack) (2004) Sun Microsystems
+        &[0x00, 0x00, 0x01, 0xBA] // ISO/IEC 11172-1 / 13818-1 MPEG Program Stream Pack Header (.mpg) (1993) ISO / MPEG
+        | &[0x00, 0x00, 0x01, 0xB3] => mpeg_ps(prefix, size), // ISO/IEC 11172-2 / 13818-2 MPEG Video Sequence Header (.mpg/.m2v) (1993) ISO / MPEG
 
         // =====================================================================
         // Section 4: Shortcuts (Offset Probes & Heuristics)
@@ -375,7 +426,7 @@ pub(crate) fn probe(key: &[u8; 4], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         // --- Truevision TGA Image Headers (id_len, color_map_type, image_type, first_entry_lo) ---
         // TGA has no magic signature; for images with `id_length == 0` (`@0 = 0x00`) and `first_entry_index == 0`
         // (`@3 = 0x00`), bytes @1..3 encode `(color_map_type, image_type)` (`(0, 2)` is shared with Windows
-        // `.cur` in `ico_or_tga` above):
+        // `.cur`, Lotus 1-2-3, and Quattro Pro in `lotus_quattro_ico_or_tga` above):
         &[0x00, 0x00, 0x0A, 0x00] // `id_len=0, cmap=0, image_type=10`: RLE True-Color TGA (1984) Truevision
         | &[0x00, 0x01, 0x01, 0x00] // `id_len=0, cmap=1, image_type=1`: Uncompressed Color-Mapped TGA (1984) Truevision
         | &[0x00, 0x01, 0x09, 0x00] // `id_len=0, cmap=1, image_type=9`: RLE Color-Mapped TGA (1984) Truevision

@@ -814,3 +814,45 @@ pub(crate) fn orc(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label
     }
     None
 }
+
+/// Chromium DataPack resource archive (`.pak`, v4 and v5): `u32 LE` version (`4` or `5`), valid
+/// text encoding (`0..=2`), resource/alias counts, and exact first-resource table-end offset.
+pub(crate) fn chromium_pak(prefix: &[u8], size: u64) -> Option<Label> {
+    const MIN_LEN: usize = 20;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= MIN_LEN);
+    match le32(prefix, 0)? {
+        5 => {
+            let encoding = u8_at(prefix, 4)?;
+            let res_count = le16(prefix, 8)? as u64;
+            let alias_count = le16(prefix, 10)? as u64;
+            let first_off = le32(prefix, 14)? as u64;
+            let expected_first = 12 + (res_count + 1) * 6 + alias_count * 4;
+            require!(
+                encoding <= 2,
+                u8_at(prefix, 5)? == 0,
+                u8_at(prefix, 6)? == 0,
+                u8_at(prefix, 7)? == 0,
+                (1..=32768).contains(&res_count),
+                first_off == expected_first,
+                first_off <= size,
+            );
+            Some(Label::ChromiumPak)
+        }
+        4 => {
+            let res_count = le32(prefix, 4)? as u64;
+            let encoding = u8_at(prefix, 8)?;
+            let first_off = le32(prefix, 11)? as u64;
+            let expected_with_sentinel = 9 + (res_count + 1) * 6;
+            let expected_inclusive = 9 + res_count * 6;
+            require!(
+                (1..=32768).contains(&res_count),
+                encoding <= 2,
+                first_off == expected_with_sentinel || first_off == expected_inclusive,
+                first_off <= size,
+            );
+            Some(Label::ChromiumPak)
+        }
+        _ => None,
+    }
+}

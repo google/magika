@@ -1,3 +1,4 @@
+123
 3ds
 3dsm
 3dsx
@@ -9,6 +10,9 @@ aff
 ai
 aidl
 alembic
+amiga_hunk
+amr
+android_boot
 ani
 aout
 apk
@@ -21,10 +25,13 @@ arc
 arcgrid
 arj
 arrow
+arsc
+asar
 asd
 asf
 asm
 asp
+atari_tos
 au
 autohotkey
 autoit
@@ -32,6 +39,7 @@ avi
 avif
 avro
 awk
+axml
 bam
 batch
 bazel
@@ -39,6 +47,7 @@ beam
 berkeleydb
 bib
 blend
+bluray_indx
 bmp
 bpg
 bpl
@@ -53,6 +62,7 @@ catboost
 cbor
 cdf
 chm
+chromium_pak
 cinema4d
 clojure
 cmake
@@ -69,12 +79,15 @@ csproj
 css
 csv
 cubin
+custom_destinations
 dart
 db2
 dbase
+dds
 deb
 degas
 dex
+dfm
 dicom
 diff
 directory
@@ -88,7 +101,9 @@ dotx
 dsstore
 duckdb
 dwg
+dxbc
 dxf
+dxil
 elf
 elixir
 emf
@@ -110,6 +125,7 @@ flatgeobuf
 flv
 fortran
 fpx
+freedesktop_mime_magic
 gemfile
 gemspec
 geojson
@@ -153,10 +169,12 @@ ini
 intelhex
 internetshortcut
 iosapp
+ips_patch
 ipynb
 iso
 jar
 java
+java_pack200
 javabytecode
 javascript
 jinja
@@ -208,6 +226,7 @@ mkv
 mp2
 mp3
 mp4
+mpeg_ps
 mpegts
 mscompress
 msgpack
@@ -218,6 +237,7 @@ mtl
 mum
 mysql_storage
 netcdf
+netware_nlm
 nifti
 npy
 npz
@@ -245,6 +265,7 @@ paradox
 parquet
 pascal
 pbm
+pbzx
 pcap
 pcapng
 pcd
@@ -253,6 +274,7 @@ pdf
 pebin
 pem
 perl
+pff2
 pgp
 php
 pickle
@@ -265,6 +287,7 @@ postscript
 powershell
 ppt
 pptx
+prefetch
 printfox
 prolog
 proteindb
@@ -292,6 +315,7 @@ redis_aof
 redis_rdb
 rhinoceros
 rlib
+roblox_rbxm
 rocksdb
 rpm
 rst
@@ -310,6 +334,8 @@ sgml
 sh3d
 shapefile
 shell
+sit
+sitx
 sketchup
 skops
 smali
@@ -353,6 +379,7 @@ udf
 uefi_fv
 uf2
 undefined
+unityfs
 unixcompress
 unknown
 unsupported
@@ -360,6 +387,7 @@ usd
 vba
 vbe
 vcard
+vcdiff
 vcf_genomics
 vcs
 vcxproj
@@ -374,6 +402,7 @@ vue
 wad
 wasm
 wav
+wb3
 webm
 webp
 wim
@@ -385,6 +414,7 @@ wmf
 wmv
 woff
 woff2
+wordpro
 xar
 xcf
 xcoff

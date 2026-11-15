@@ -8,9 +8,9 @@ This reference lists the supported output content types (`output.label`) and det
 
 ## Pipeline Coverage Summary
 
-- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **401** supported outputs (**398** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
+- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **431** supported outputs (**428** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
   - **Heuristics (`in_heuristics`)**: **6** content types (`directory`, `empty`, `symlink`, `txt`, `unknown`, `unsupported`) — path metadata checks, empty-file detection, and short-file / low-confidence fallbacks.
-  - **Format Resolvers (`in_resolvers`)**: **310** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
+  - **Format Resolvers (`in_resolvers`)**: **340** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
   - **ML Model (`in_ml_model`)**: **212** content types predicted by [`standard_v3_3`](/magika/models/standard_v3_3) (after `overwrite_map`).
 - **JavaScript / TypeScript TensorFlow.js pipeline (`magika` on `main`)**: **214** supported outputs — runs byte/stream heuristics (`empty`, `txt`, `unknown`) plus the [`standard_v3_3`](/magika/models/standard_v3_3) ML model (`in_ml_model`), without filesystem `stat` checks or native Rust format resolvers (`in_resolvers`).
 
@@ -18,6 +18,7 @@ This reference lists the supported output content types (`output.label`) and det
 
 | Label | Description | MIME Type | Group | Extensions | Text | Heuristics | Resolvers | ML Model | Vetoed |
 | --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
+| `123` | Lotus 1-2-3 worksheet | `application/vnd.lotus-1-2-3` | `document` | `123`, `wk1`, `wk3`, `wk4`, `wks`, `wrk` |  |  | ✓ |  |  |
 | `3ds` | Nintendo 3DS roms | `application/octet-stream` | `unknown` | `3ds` |  |  | ✓ |  |  |
 | `3dsm` | 3D studio Max | `application/x-3ds` | `image` | `3ds` |  |  | ✓ |  | ✓ |
 | `3dsx` | Nintendo 3DS homebrew | `application/octet-stream` | `unknown` | `3dsx` |  |  | ✓ |  | ✓ |
@@ -29,6 +30,9 @@ This reference lists the supported output content types (`output.label`) and det
 | `ai` | Adobe Illustrator Artwork | `application/pdf` | `document` | `ai` |  |  | ✓ | ✓ |  |
 | `aidl` | Android Interface Definition Language | `text/plain` | `unknown` | `aidl` | ✓ |  |  | ✓ |  |
 | `alembic` | Alembic geometry cache | `application/octet-stream` | `image` | `abc` |  |  | ✓ |  |  |
+| `amiga_hunk` | AmigaOS Hunk executable | `application/x-amiga-executable` | `executable` | `hunk`, `library`, `device` |  |  | ✓ |  |  |
+| `amr` | Adaptive Multi-Rate audio | `audio/amr` | `audio` | `amr`, `awb` |  |  | ✓ |  |  |
+| `android_boot` | Android boot image | `application/x-android-bootimg` | `application` | `img` |  |  | ✓ |  |  |
 | `ani` | Animated cursor | `application/x-navi-animation` | `unknown` | `ani` |  |  | ✓ |  | ✓ |
 | `aout` | a.out object / executable | `application/octet-stream` | `executable` | `out` |  |  | ✓ |  |  |
 | `apk` | Android package | `application/vnd.android.package-archive` | `executable` | `apk` |  |  | ✓ | ✓ |  |
@@ -41,10 +45,13 @@ This reference lists the supported output content types (`output.label`) and det
 | `arcgrid` | ESRI ASCII Grid | `text/plain` | `application` | `asc`, `grd` | ✓ |  | ✓ |  |  |
 | `arj` | Arj | `application/arj` | `archive` | — |  |  | ✓ |  |  |
 | `arrow` | arrow | `application/vnd.apache.arrow.file` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `arsc` | Android compiled resource table | `application/x-android-resource-table` | `application` | `arsc` |  |  | ✓ |  |  |
+| `asar` | Electron ASAR archive | `application/x-asar` | `archive` | `asar` |  |  | ✓ |  |  |
 | `asd` | asd | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `asf` | Microsoft Advanced Systems Format | `video/x-ms-asf` | `application` | `asf` |  |  | ✓ |  |  |
 | `asm` | Assembly | `text/x-asm` | `code` | `s`, `S`, `asm` | ✓ |  |  | ✓ |  |
 | `asp` | ASP source | `text/html` | `code` | `aspx`, `asp` | ✓ |  |  | ✓ |  |
+| `atari_tos` | Atari TOS executable | `application/x-atari-tos-executable` | `executable` | `prg`, `tos`, `ttp`, `app`, `acc` |  |  | ✓ |  |  |
 | `au` | NeXT/Sun AU | `audio/basic` | `audio` | `au` |  |  | ✓ |  | ✓ |
 | `autohotkey` | AutoHotKey script | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `autoit` | AutoIt script | `text/plain` | `code` | `au3` | ✓ |  | ✓ | ✓ |  |
@@ -52,6 +59,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `avif` | AV1 Image File Format | `image/avif` | `image` | `avif`, `avifs` |  |  | ✓ |  | ✓ |
 | `avro` | Apache Avro binary | `application/x-avro-binary` | `unknown` | `avro` |  |  | ✓ |  | ✓ |
 | `awk` | Awk | `text/plain` | `code` | `awk` | ✓ |  |  | ✓ |  |
+| `axml` | Android binary XML | `application/x-android-binary-xml` | `application` | `xml`, `axml` |  |  | ✓ |  |  |
 | `bam` | BAM alignment | `application/octet-stream` | `scientific` | `bam` |  |  | ✓ |  | ✓ |
 | `batch` | DOS batch file | `text/x-msdos-batch` | `code` | `bat` | ✓ |  | ✓ | ✓ |  |
 | `bazel` | Bazel build file | `text/plain` | `code` | `bzl` | ✓ |  |  | ✓ |  |
@@ -59,6 +67,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `berkeleydb` | Berkeley DB | `application/octet-stream` | `database` | `db` |  |  | ✓ |  |  |
 | `bib` | BibTeX | `text/x-bibtex` | `text` | `bib` | ✓ |  |  | ✓ |  |
 | `blend` | Blender scene | `application/octet-stream` | `geometry` | `blend` |  |  | ✓ |  | ✓ |
+| `bluray_indx` | Blu-ray Disc index table | `application/x-bluray-index` | `video` | `bdmv`, `bdm` |  |  | ✓ |  |  |
 | `bmp` | BMP image data | `image/bmp` | `image` | `bmp` |  |  | ✓ | ✓ |  |
 | `bpg` | BPG | `image/bpg` | `image` | `bpg` |  |  | ✓ |  | ✓ |
 | `bpl` | bpl | `application/octet-stream` | `unknown` | `bpl` |  |  | ✓ |  |  |
@@ -73,6 +82,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `cbor` | CBOR | `application/cbor` | `application` | `cbor` |  |  | ✓ |  |  |
 | `cdf` | cdf | `application/octet-stream` | `archive` | — |  |  | ✓ |  |  |
 | `chm` | MS Windows HtmlHelp Data | `application/chm` | `application` | `chm` |  |  | ✓ | ✓ |  |
+| `chromium_pak` | Chromium resource pack | `application/x-chromium-pak` | `database` | `pak` |  |  | ✓ |  |  |
 | `cinema4d` | Cinema 4D scene | `application/octet-stream` | `geometry` | `c4d` |  |  | ✓ |  |  |
 | `clojure` | Clojure | `text/x-clojure` | `code` | `clj`, `cljs`, `cljc`, `cljr` | ✓ |  |  | ✓ |  |
 | `cmake` | CMake build file | `text/x-cmake` | `code` | `cmake` | ✓ |  |  | ✓ |  |
@@ -89,12 +99,15 @@ This reference lists the supported output content types (`output.label`) and det
 | `css` | CSS source | `text/css` | `code` | `css` | ✓ |  |  | ✓ |  |
 | `csv` | CSV document | `text/csv` | `code` | `csv` | ✓ |  |  | ✓ |  |
 | `cubin` | NVIDIA CUDA binary | `application/octet-stream` | `executable` | `cubin` |  |  | ✓ |  | ✓ |
+| `custom_destinations` | Windows Jump List custom destinations | `application/x-windows-jump-list` | `application` | `customDestinations-ms` |  |  | ✓ |  |  |
 | `dart` | Dart source | `text/plain` | `code` | `dart` | ✓ |  |  | ✓ |  |
 | `db2` | IBM DB2 database / backup | `application/octet-stream` | `application` | `db2` |  |  | ✓ |  |  |
 | `dbase` | dBASE / FoxPro table | `application/octet-stream` | `database` | `dbf` |  |  | ✓ |  |  |
+| `dds` | DirectDraw Surface texture | `image/vnd.ms-dds` | `image` | `dds` |  |  | ✓ |  |  |
 | `deb` | Debian binary package | `application/vnd.debian.binary-package` | `archive` | `deb` |  |  | ✓ | ✓ |  |
 | `degas` | Atari ST DEGAS image | `application/octet-stream` | `image` | `pi1`, `pi2`, `pi3`, `pc1`, `pc2`, `pc3` |  |  | ✓ |  |  |
 | `dex` | Dalvik dex file | `application/x-android-dex` | `executable` | `dex` |  |  | ✓ | ✓ | ✓ |
+| `dfm` | Delphi binary form resource | `application/x-delphi-form` | `application` | `dfm`, `fmx`, `xfm` |  |  | ✓ |  |  |
 | `dicom` | DICOM | `application/dicom` | `image` | `dcm` |  |  | ✓ | ✓ | ✓ |
 | `diff` | Diff file | `text/plain` | `text` | `diff`, `patch` | ✓ |  |  | ✓ |  |
 | `directory` | A directory | `inode/directory` | `inode` | — |  | ✓ |  |  |  |
@@ -108,7 +121,9 @@ This reference lists the supported output content types (`output.label`) and det
 | `dsstore` | Application Desktop Services Store | `application/octet-stream` | `unknown` | — |  |  | ✓ | ✓ | ✓ |
 | `duckdb` | DuckDB database | `application/octet-stream` | `database` | `duckdb` |  |  | ✓ |  | ✓ |
 | `dwg` | Autocad Drawing | `image/x-dwg` | `image` | `dwg` |  |  | ✓ | ✓ | ✓ |
+| `dxbc` | DirectX bytecode shader container | `application/x-dxbc` | `executable` | `dxbc`, `cso`, `fxc` |  |  | ✓ |  |  |
 | `dxf` | Autocad Drawing Exchange Format | `image/vnd.dxf` | `image` | `dxf` | ✓ |  | ✓ | ✓ |  |
+| `dxil` | DirectX Intermediate Language shader | `application/x-dxil` | `executable` | `dxil`, `cso`, `dxbc` |  |  | ✓ |  |  |
 | `elf` | ELF executable | `application/x-executable-elf` | `executable` | `elf` |  |  | ✓ | ✓ |  |
 | `elixir` | Elixir script | `text/plain` | `code` | `exs` | ✓ |  |  | ✓ |  |
 | `emf` | Windows Enhanced Metafile image data | `application/octet-stream` | `application` | `emf` |  |  | ✓ | ✓ |  |
@@ -130,6 +145,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `flv` | Flash Video | `video/x-flv` | `video` | `flv` |  |  | ✓ | ✓ | ✓ |
 | `fortran` | Fortran | `text/x-fortran` | `code` | `f90`, `f95`, `f03`, `F90` | ✓ |  |  | ✓ |  |
 | `fpx` | Flashpix | `application/octet-stream` | `image` | `fpx` |  |  | ✓ |  |  |
+| `freedesktop_mime_magic` | Freedesktop shared MIME magic rules | `application/x-freedesktop-mime-magic` | `application` | `magic` |  |  | ✓ |  |  |
 | `gemfile` | Gemfile file | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `gemspec` | Gemspec file | `text/plain` | `code` | `gemspec` | ✓ |  |  | ✓ |  |
 | `geojson` | GeoJSON | `application/geo+json` | `gis` | `geojson` | ✓ |  | ✓ |  |  |
@@ -173,10 +189,12 @@ This reference lists the supported output content types (`output.label`) and det
 | `intelhex` | Intel HEX | `text/plain` | `executable` | `hex`, `ihex` | ✓ |  | ✓ |  |  |
 | `internetshortcut` | MS Windows Internet shortcut | `application/x-mswinurl` | `application` | `url` | ✓ |  | ✓ | ✓ |  |
 | `iosapp` | iosapp | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `ips_patch` | International Patching System binary patch | `application/x-ips-patch` | `binary` | `ips`, `ebp` |  |  | ✓ |  |  |
 | `ipynb` | Jupyter notebook | `application/json` | `code` | `ipynb` | ✓ |  | ✓ | ✓ |  |
 | `iso` | ISO 9660 CD-ROM filesystem data | `application/x-iso9660-image` | `archive` | `iso` |  |  | ✓ | ✓ |  |
 | `jar` | Java archive data (JAR) | `application/java-archive` | `archive` | `jar`, `klib` |  |  | ✓ | ✓ |  |
 | `java` | Java source | `text/x-java` | `code` | `java` | ✓ |  |  | ✓ |  |
+| `java_pack200` | Java Pack200 compressed JAR archive | `application/x-java-pack200` | `archive` | `pack` |  |  | ✓ |  |  |
 | `javabytecode` | Java compiled bytecode | `application/x-java-applet` | `executable` | `class` |  |  | ✓ | ✓ | ✓ |
 | `javascript` | JavaScript source | `application/javascript` | `code` | `js`, `mjs`, `cjs` | ✓ |  |  | ✓ |  |
 | `jinja` | Jinja template | `text/x-jinja2-template` | `code` | `jinja`, `jinja2`, `j2` | ✓ |  |  | ✓ |  |
@@ -228,6 +246,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `mp2` | MP2 stream | `application/octet-stream` | `unknown` | `mp2` |  |  | ✓ |  |  |
 | `mp3` | MP3 media file | `audio/mpeg` | `audio` | `mp3` |  |  | ✓ | ✓ |  |
 | `mp4` | MP4 media file | `video/mp4` | `video` | `mp4` |  |  | ✓ | ✓ |  |
+| `mpeg_ps` | MPEG Program Stream | `video/mpeg` | `video` | `mpg`, `mpeg`, `vob`, `ps`, `m2p` |  |  | ✓ |  |  |
 | `mpegts` | MPEG Transport stream | `video/MP2T` | `video` | `ts`, `tsv`, `tsa`, `m2t` |  |  | ✓ |  | ✓ |
 | `mscompress` | MS Compress archive data | `application/x-ms-compress-szdd` | `archive` | — |  |  | ✓ | ✓ |  |
 | `msgpack` | MessagePack | `application/octet-stream` | `application` | `mpk`, `msgpack` |  |  | ✓ |  |  |
@@ -238,6 +257,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `mum` | Windows Update Package file | `text/xml` | `application` | `mum` | ✓ |  | ✓ | ✓ |  |
 | `mysql_storage` | MySQL / MariaDB storage | `application/octet-stream` | `application` | `ibd`, `myd`, `myi` |  |  | ✓ |  |  |
 | `netcdf` | NetCDF | `application/octet-stream` | `scientific` | `cdf`, `nc` |  |  | ✓ |  |  |
+| `netware_nlm` | Novell NetWare Loadable Module | `application/x-netware-nlm` | `executable` | `nlm`, `dsk`, `lan`, `nam`, `ham`, `cdm` |  |  | ✓ |  |  |
 | `nifti` | NIfTI neuroimaging data | `application/octet-stream` | `scientific` | `nii` |  |  | ✓ |  |  |
 | `npy` | Numpy Array | `application/octet-stream` | `archive` | `npy` |  |  | ✓ | ✓ | ✓ |
 | `npz` | Numpy Arrays Archive | `application/octet-stream` | `archive` | `npz` |  |  | ✓ | ✓ |  |
@@ -265,6 +285,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `parquet` | Apache Parquet | `application/vnd.apache.parquet` | `unknown` | `pqt`, `parquet` |  |  | ✓ | ✓ | ✓ |
 | `pascal` | Pascal source | `text/x-pascal` | `code` | `pas`, `pp` | ✓ |  |  | ✓ |  |
 | `pbm` | pbm | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `pbzx` | Apple PBZX payload archive | `application/x-pbzx` | `archive` | `pbzx` |  |  | ✓ |  |  |
 | `pcap` | pcap capture file | `application/vnd.tcpdump.pcap` | `application` | `pcap`, `pcapng` |  |  | ✓ | ✓ |  |
 | `pcapng` | Packet capture PCAPNG | `application/octet-stream` | `binary` | `pcapng` |  |  | ✓ |  | ✓ |
 | `pcd` | Point Cloud Data | `application/octet-stream` | `image` | `pcd` |  |  | ✓ |  |  |
@@ -273,6 +294,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `pebin` | PE Windows executable | `application/x-dosexec` | `executable` | `exe`, `dll` |  |  | ✓ | ✓ |  |
 | `pem` | PEM certificate | `application/x-pem-file` | `application` | `pem`, `pub`, `gpg` | ✓ |  | ✓ | ✓ |  |
 | `perl` | Perl source | `text/x-perl` | `code` | `pl` | ✓ |  |  | ✓ |  |
+| `pff2` | GNU GRUB 2 PFF2 bitmap font | `font/x-grub-pff2` | `font` | `pf2` |  |  | ✓ |  |  |
 | `pgp` | PGP | `application/pgp-keys` | `unknown` | `gpg`, `pgp` |  |  | ✓ |  | ✓ |
 | `php` | PHP source | `text/x-php` | `code` | `php` | ✓ |  | ✓ | ✓ |  |
 | `pickle` | Python pickle | `application/octet-stream` | `application` | `pickle`, `pkl` |  |  | ✓ | ✓ |  |
@@ -285,6 +307,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `powershell` | Powershell source | `application/x-powershell` | `code` | `ps1` | ✓ |  |  | ✓ |  |
 | `ppt` | Microsoft PowerPoint CDF document | `application/vnd.ms-powerpoint` | `document` | `ppt` |  |  | ✓ | ✓ |  |
 | `pptx` | Microsoft PowerPoint 2007+ document | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | `document` | `pptx`, `pptm` |  |  | ✓ | ✓ |  |
+| `prefetch` | Windows SuperFetch prefetch trace | `application/x-windows-prefetch` | `application` | `pf` |  |  | ✓ |  |  |
 | `printfox` | c64 | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `prolog` | Prolog source | `text/x-prolog` | `code` | `pl`, `pro`, `P` | ✓ |  |  | ✓ |  |
 | `proteindb` | Protein DB | `application/octet-stream` | `application` | `pdb` | ✓ |  | ✓ | ✓ |  |
@@ -310,6 +333,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `redis_rdb` | Redis snapshot | `application/octet-stream` | `database` | `rdb` |  |  | ✓ |  | ✓ |
 | `rhinoceros` | Rhino 3DM | `application/octet-stream` | `geometry` | `3dm` |  |  | ✓ |  |  |
 | `rlib` | rust library | `application/x-archive` | `archive` | `rlib` |  |  | ✓ |  |  |
+| `roblox_rbxm` | Roblox binary model | `application/x-roblox-model` | `geometry` | `rbxm`, `rbxl` |  |  | ✓ |  |  |
 | `rocksdb` | RocksDB | `application/octet-stream` | `application` | `sst` |  |  | ✓ |  |  |
 | `rpm` | RedHat Package Manager archive (RPM) | `application/x-rpm` | `archive` | `rpm` |  |  | ✓ | ✓ |  |
 | `rst` | ReStructuredText document | `text/x-rst` | `text` | `rst` | ✓ |  |  | ✓ |  |
@@ -328,6 +352,8 @@ This reference lists the supported output content types (`output.label`) and det
 | `sh3d` | sh3d | `application/octet-stream` | `unknown` | `sh3d` |  |  | ✓ |  |  |
 | `shapefile` | ESRI Shapefile | `application/octet-stream` | `gis` | `dbf`, `prj`, `shp`, `shx` |  |  | ✓ |  | ✓ |
 | `shell` | Shell script | `text/x-shellscript` | `code` | `sh` | ✓ |  |  | ✓ |  |
+| `sit` | StuffIt archive | `application/x-stuffit` | `archive` | `sit` |  |  | ✓ |  |  |
+| `sitx` | StuffIt X archive | `application/x-stuffitx` | `archive` | `sitx` |  |  | ✓ |  |  |
 | `sketchup` | SketchUp model | `application/octet-stream` | `geometry` | `skp` |  |  | ✓ |  | ✓ |
 | `skops` | skops model | `application/octet-stream` | `application` | `skops` |  |  | ✓ |  |  |
 | `smali` | Smali source | `application/x-smali` | `code` | `smali` | ✓ |  |  | ✓ |  |
@@ -370,6 +396,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `udf` | Universal Disc Format | `application/x-udf-image` | `unknown` | — |  |  | ✓ |  |  |
 | `uefi_fv` | UEFI firmware volume | `application/octet-stream` | `executable` | `fd`, `fv` |  |  | ✓ |  |  |
 | `uf2` | UF2 firmware | `application/octet-stream` | `executable` | `uf2` |  |  | ✓ |  | ✓ |
+| `unityfs` | Unity AssetBundle archive | `application/x-unity-assetbundle` | `archive` | `bundle`, `unity3d`, `assets` |  |  | ✓ |  |  |
 | `unixcompress` | unixcompress | `application/x-compress` | `unknown` | `z` |  |  | ✓ |  |  |
 | `unknown` | Unknown binary data | `application/octet-stream` | `unknown` | — |  | ✓ |  |  |  |
 | `unsupported` | Unsupported file type | `inode/x-unsupported` | `inode` | — |  | ✓ |  |  |  |
@@ -377,6 +404,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `vba` | MS Visual Basic source (VBA) | `text/vbscript` | `code` | `vbs`, `vba`, `vb` | ✓ |  |  | ✓ |  |
 | `vbe` | EncryptedVBS | `application/octet-stream` | `code` | `vbe` |  |  | ✓ |  |  |
 | `vcard` | vcard | `text/vcard` | `unknown` | `vcard` |  |  | ✓ |  |  |
+| `vcdiff` | VCDIFF binary delta patch | `application/x-vcdiff` | `archive` | `vcdiff`, `xdelta`, `xdelta3` |  |  | ✓ |  |  |
 | `vcf_genomics` | Variant Call Format | `text/plain` | `application` | `vcf` | ✓ |  | ✓ |  |  |
 | `vcs` | vcs | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `vcxproj` | Visual Studio MSBuild project | `application/xml` | `code` | `vcxproj` | ✓ |  |  | ✓ |  |
@@ -391,6 +419,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `wad` | WAD | `application/wad` | `archive` | `wad` |  |  | ✓ |  | ✓ |
 | `wasm` | Web Assembly | `application/wasm` | `executable` | `wasm` |  |  | ✓ | ✓ | ✓ |
 | `wav` | Waveform Audio file (WAV) | `audio/x-wav` | `audio` | `wav` |  |  | ✓ | ✓ | ✓ |
+| `wb3` | Quattro Pro spreadsheet | `application/x-quattro-pro` | `document` | `wb1`, `wb2`, `wb3`, `wq1`, `wq2`, `wkq` |  |  | ✓ |  |  |
 | `webm` | WebM media file | `video/webm` | `video` | `webm` |  |  | ✓ | ✓ | ✓ |
 | `webp` | WebP media file | `image/webp` | `image` | `webp` |  |  | ✓ | ✓ |  |
 | `wim` | Windows Imaging Format | `application/x-ms-wim` | `unknown` | `wim`, `swm`, `esd` |  |  | ✓ |  |  |
@@ -402,6 +431,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `wmv` | Windows Media Video | `video/x-ms-wmv` | `video` | `wmv` |  |  | ✓ |  |  |
 | `woff` | Web Open Font Format | `font/woff` | `font` | `woff` |  |  | ✓ | ✓ | ✓ |
 | `woff2` | Web Open Font Format v2 | `font/woff2` | `font` | `woff2` |  |  | ✓ | ✓ | ✓ |
+| `wordpro` | Lotus Word Pro document | `application/vnd.lotus-wordpro` | `document` | `lwp`, `mwp` |  |  | ✓ |  |  |
 | `xar` | XAR archive compressed data | `application/x-xar` | `archive` | `pkg`, `xar` |  |  | ✓ | ✓ | ✓ |
 | `xcf` | Gimp image | `image/x-xcf` | `image` | `xcf` |  |  | ✓ |  | ✓ |
 | `xcoff` | XCOFF | `application/octet-stream` | `executable` | `o` |  |  | ✓ |  | ✓ |

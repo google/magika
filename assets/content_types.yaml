@@ -22,6 +22,13 @@
 # - Do not add any other field. `in_heuristics`, `in_resolvers`, `in_ml_model`,
 #   and `vetoed_by_resolvers` are derived automatically by `scripts/sync_kb.py`.
 
+"123":
+  mime_type: "application/vnd.lotus-1-2-3"
+  group: "document"
+  description: "Lotus 1-2-3 worksheet"
+  extensions: ["123", "wk1", "wk3", "wk4", "wks", "wrk"]
+  is_text: false
+
 "3ds":
   mime_type: "application/octet-stream"
   group: "unknown"
@@ -120,6 +127,27 @@
   extensions: ["a68"]
   is_text: false
 
+"amiga_hunk":
+  mime_type: "application/x-amiga-executable"
+  group: "executable"
+  description: "AmigaOS Hunk executable"
+  extensions: ["hunk", "library", "device"]
+  is_text: false
+
+"amr":
+  mime_type: "audio/amr"
+  group: "audio"
+  description: "Adaptive Multi-Rate audio"
+  extensions: ["amr", "awb"]
+  is_text: false
+
+"android_boot":
+  mime_type: "application/x-android-bootimg"
+  group: "application"
+  description: "Android boot image"
+  extensions: ["img"]
+  is_text: false
+
 "ani":
   mime_type: "application/x-navi-animation"
   group: null
@@ -204,6 +232,20 @@
   extensions: []
   is_text: false
 
+"arsc":
+  mime_type: "application/x-android-resource-table"
+  group: "application"
+  description: "Android compiled resource table"
+  extensions: ["arsc"]
+  is_text: false
+
+"asar":
+  mime_type: "application/x-asar"
+  group: "archive"
+  description: "Electron ASAR archive"
+  extensions: ["asar"]
+  is_text: false
+
 "asc":
   mime_type: "application/pgp-signature"
   group: "text"
@@ -245,6 +287,13 @@
   description: "ASP source"
   extensions: ["aspx", "asp"]
   is_text: true
+
+"atari_tos":
+  mime_type: "application/x-atari-tos-executable"
+  group: "executable"
+  description: "Atari TOS executable"
+  extensions: ["prg", "tos", "ttp", "app", "acc"]
+  is_text: false
 
 "au":
   mime_type: "audio/basic"
@@ -302,6 +351,13 @@
   extensions: ["ax"]
   is_text: false
 
+"axml":
+  mime_type: "application/x-android-binary-xml"
+  group: "application"
+  description: "Android binary XML"
+  extensions: ["xml", "axml"]
+  is_text: false
+
 "bam":
   mime_type: null
   group: "scientific"
@@ -356,6 +412,13 @@
   group: "geometry"
   description: "Blender scene"
   extensions: ["blend"]
+  is_text: false
+
+"bluray_indx":
+  mime_type: "application/x-bluray-index"
+  group: "video"
+  description: "Blu-ray Disc index table"
+  extensions: ["bdmv", "bdm"]
   is_text: false
 
 "bmp":
@@ -482,6 +545,13 @@
   group: "application"
   description: "MS Windows HtmlHelp Data"
   extensions: ["chm"]
+  is_text: false
+
+"chromium_pak":
+  mime_type: "application/x-chromium-pak"
+  group: "database"
+  description: "Chromium resource pack"
+  extensions: ["pak"]
   is_text: false
 
 "cinema4d":
@@ -631,6 +701,13 @@
   extensions: ["cubin"]
   is_text: false
 
+"custom_destinations":
+  mime_type: "application/x-windows-jump-list"
+  group: "application"
+  description: "Windows Jump List custom destinations"
+  extensions: ["customDestinations-ms"]
+  is_text: false
+
 "dart":
   mime_type: "text/plain"
   group: "code"
@@ -650,6 +727,13 @@
   group: "database"
   description: "dBASE / FoxPro table"
   extensions: ["dbf"]
+  is_text: false
+
+"dds":
+  mime_type: "image/vnd.ms-dds"
+  group: "image"
+  description: "DirectDraw Surface texture"
+  extensions: ["dds"]
   is_text: false
 
 "deb":
@@ -678,6 +762,13 @@
   group: "executable"
   description: "Dalvik dex file"
   extensions: []
+  is_text: false
+
+"dfm":
+  mime_type: "application/x-delphi-form"
+  group: "application"
+  description: "Delphi binary form resource"
+  extensions: ["dfm", "fmx", "xfm"]
   is_text: false
 
 "dicom":
@@ -799,12 +890,26 @@
   extensions: ["dwg"]
   is_text: false
 
+"dxbc":
+  mime_type: "application/x-dxbc"
+  group: "executable"
+  description: "DirectX bytecode shader container"
+  extensions: ["dxbc", "cso", "fxc"]
+  is_text: false
+
 "dxf":
   mime_type: "image/vnd.dxf"
   group: "image"
   description: "Autocad Drawing Exchange Format"
   extensions: ["dxf"]
   is_text: true
+
+"dxil":
+  mime_type: "application/x-dxil"
+  group: "executable"
+  description: "DirectX Intermediate Language shader"
+  extensions: ["dxil", "cso", "dxbc"]
+  is_text: false
 
 "dylib":
   mime_type: "application/x-mach-o"
@@ -986,6 +1091,13 @@
   group: "image"
   description: "Flashpix"
   extensions: ["fpx"]
+  is_text: false
+
+"freedesktop_mime_magic":
+  mime_type: "application/x-freedesktop-mime-magic"
+  group: "application"
+  description: "Freedesktop shared MIME magic rules"
+  extensions: ["magic"]
   is_text: false
 
 "gemfile":
@@ -1317,6 +1429,13 @@
   extensions: []
   is_text: false
 
+"ips_patch":
+  mime_type: "application/x-ips-patch"
+  group: "binary"
+  description: "International Patching System binary patch"
+  extensions: ["ips", "ebp"]
+  is_text: false
+
 "ipynb":
   mime_type: "application/json"
   group: "code"
@@ -1344,6 +1463,13 @@
   description: "Java source"
   extensions: ["java"]
   is_text: true
+
+"java_pack200":
+  mime_type: "application/x-java-pack200"
+  group: "archive"
+  description: "Java Pack200 compressed JAR archive"
+  extensions: ["pack"]
+  is_text: false
 
 "javabytecode":
   mime_type: "application/x-java-applet"
@@ -1786,6 +1912,13 @@
   extensions: ["mp4"]
   is_text: false
 
+"mpeg_ps":
+  mime_type: "video/mpeg"
+  group: "video"
+  description: "MPEG Program Stream"
+  extensions: ["mpg", "mpeg", "vob", "ps", "m2p"]
+  is_text: false
+
 "mpegts":
   mime_type: "video/MP2T"
   group: "video"
@@ -1889,6 +2022,13 @@
   group: "scientific"
   description: "NetCDF"
   extensions: ["cdf", "nc"]
+  is_text: false
+
+"netware_nlm":
+  mime_type: "application/x-netware-nlm"
+  group: "executable"
+  description: "Novell NetWare Loadable Module"
+  extensions: ["nlm", "dsk", "lan", "nam", "ham", "cdm"]
   is_text: false
 
 "nifti":
@@ -2143,6 +2283,13 @@
   extensions: []
   is_text: false
 
+"pbzx":
+  mime_type: "application/x-pbzx"
+  group: "archive"
+  description: "Apple PBZX payload archive"
+  extensions: ["pbzx"]
+  is_text: false
+
 "pcap":
   mime_type: "application/vnd.tcpdump.pcap"
   group: "application"
@@ -2198,6 +2345,13 @@
   description: "Perl source"
   extensions: ["pl"]
   is_text: true
+
+"pff2":
+  mime_type: "font/x-grub-pff2"
+  group: "font"
+  description: "GNU GRUB 2 PFF2 bitmap font"
+  extensions: ["pf2"]
+  is_text: false
 
 "pgp":
   mime_type: "application/pgp-keys"
@@ -2281,6 +2435,13 @@
   group: "document"
   description: "Microsoft PowerPoint 2007+ document"
   extensions: ["pptx", "pptm"]
+  is_text: false
+
+"prefetch":
+  mime_type: "application/x-windows-prefetch"
+  group: "application"
+  description: "Windows SuperFetch prefetch trace"
+  extensions: ["pf"]
   is_text: false
 
 "printfox":
@@ -2500,6 +2661,13 @@
   extensions: ["rll"]
   is_text: false
 
+"roblox_rbxm":
+  mime_type: "application/x-roblox-model"
+  group: "geometry"
+  description: "Roblox binary model"
+  extensions: ["rbxm", "rbxl"]
+  is_text: false
+
 "rocksdb":
   mime_type: null
   group: "application"
@@ -2639,6 +2807,20 @@
   description: "Shell script"
   extensions: ["sh"]
   is_text: true
+
+"sit":
+  mime_type: "application/x-stuffit"
+  group: "archive"
+  description: "StuffIt archive"
+  extensions: ["sit"]
+  is_text: false
+
+"sitx":
+  mime_type: "application/x-stuffitx"
+  group: "archive"
+  description: "StuffIt X archive"
+  extensions: ["sitx"]
+  is_text: false
 
 "sketchup":
   mime_type: null
@@ -3025,6 +3207,13 @@
   extensions: []
   is_text: false
 
+"unityfs":
+  mime_type: "application/x-unity-assetbundle"
+  group: "archive"
+  description: "Unity AssetBundle archive"
+  extensions: ["bundle", "unity3d", "assets"]
+  is_text: false
+
 "unixcompress":
   mime_type: "application/x-compress"
   group: null
@@ -3072,6 +3261,13 @@
   group: null
   description: null
   extensions: ["vcard"]
+  is_text: false
+
+"vcdiff":
+  mime_type: "application/x-vcdiff"
+  group: "archive"
+  description: "VCDIFF binary delta patch"
+  extensions: ["vcdiff", "xdelta", "xdelta3"]
   is_text: false
 
 "vcf_genomics":
@@ -3172,6 +3368,13 @@
   extensions: ["wav"]
   is_text: false
 
+"wb3":
+  mime_type: "application/x-quattro-pro"
+  group: "document"
+  description: "Quattro Pro spreadsheet"
+  extensions: ["wb1", "wb2", "wb3", "wq1", "wq2", "wkq"]
+  is_text: false
+
 "webm":
   mime_type: "video/webm"
   group: "video"
@@ -3254,6 +3457,13 @@
   group: "font"
   description: "Web Open Font Format v2"
   extensions: ["woff2"]
+  is_text: false
+
+"wordpro":
+  mime_type: "application/vnd.lotus-wordpro"
+  group: "document"
+  description: "Lotus Word Pro document"
+  extensions: ["lwp", "mwp"]
   is_text: false
 
 "xar":

@@ -298,3 +298,203 @@ pub(crate) fn wad(prefix: &[u8]) -> Option<Label> {
     static DOOM_PWAD: Subformat = Subformat::new("Doom PWAD");
     with_subformat(Label::Wad, if starts(prefix, IWAD) { &DOOM_IWAD } else { &DOOM_PWAD })
 }
+
+/// Android Compiled Resource Table (`arsc`, 2008): `RES_TABLE_TYPE` (`0x0002`) with 12-byte
+/// header (`0x000C`), exact total table size at `@4..8`, `1..=256` resource packages at `@8..12`,
+/// and a valid first child chunk (`RES_STRING_POOL_TYPE` `0x0001` or `RES_TABLE_PACKAGE_TYPE`
+/// `0x0200`) at `@12..20`.
+pub(crate) fn arsc(prefix: &[u8], size: u64) -> Option<Label> {
+    const HEADER: &[u8] = hex2bin!("02 00 0C 00"); // @0..4: RES_TABLE_TYPE (0x0002) + headerSize (12)
+    const TABLE_SIZE: usize = 4; // @4: u32 LE — total ResTable_header chunk size
+    const PKG_COUNT: usize = 8; // @8: u32 LE — packageCount (1..=256)
+    const NEXT_TYPE: usize = 12; // @12: u16 LE — first child chunk type
+    const NEXT_HDR_SIZE: usize = 14; // @14: u16 LE — first child headerSize (>= 16)
+    const NEXT_SIZE: usize = 16; // @16: u32 LE — first child chunk size
+    const MIN_SIZE: u64 = 24;
+    const MIN_PREFIX: usize = 20;
+
+    require!(size >= MIN_SIZE, prefix.len() >= MIN_PREFIX, starts(prefix, HEADER));
+    let table_size = u64::from(le32(prefix, TABLE_SIZE)?);
+    let pkg_count = le32(prefix, PKG_COUNT)?;
+    let next_type = le16(prefix, NEXT_TYPE)?;
+    let next_hdr = u64::from(le16(prefix, NEXT_HDR_SIZE)?);
+    let next_size = u64::from(le32(prefix, NEXT_SIZE)?);
+    require!(
+        table_size == size,
+        (1..=256).contains(&pkg_count),
+        matches!(next_type, 0x0001 | 0x0200),
+        next_hdr >= 16,
+        next_size >= next_hdr,
+        12 + next_size <= size,
+    );
+    Some(Label::Arsc)
+}
+
+/// IPS/IPS32 end-of-patch trailer matcher (`"EOF"` / `"EEOF"`, optional 3- or 4-byte truncation
+/// size, or an EBP JSON metadata block `"EOF{...}"`).
+fn has_valid_ips_tail(tail: &[u8], is_ips32: bool) -> bool {
+    let eof_tag: &[u8] = if is_ips32 { b"EEOF" } else { b"EOF" };
+    let eof_len = eof_tag.len();
+    let trunc_len = if is_ips32 { 4 } else { 3 };
+    if tail.len() >= eof_len && eq_at(tail, tail.len() - eof_len, eof_tag) {
+        return true;
+    }
+    if tail.len() >= eof_len + trunc_len && eq_at(tail, tail.len() - eof_len - trunc_len, eof_tag) {
+        return true;
+    }
+    if !is_ips32 && tail.last() == Some(&b'}') {
+        let win_start = tail.len().saturating_sub(2048);
+        if let Some(rel) = tail[win_start..].windows(4).rposition(|w| w == b"EOF{") {
+            return eq_at(tail, win_start + rel, b"EOF{")
+                && u8_at(tail, tail.len() - 1) == Some(b'}');
+        }
+    }
+    false
+}
+
+/// International Patching System binary patch (`ips_patch`, 1993): `"PATCH"` (24-bit offsets,
+/// `"EOF"` trailer) or `"IPS32"` (32-bit offsets, `"EEOF"` trailer), validated by walking up
+/// to 64 hunk headers in the prefix and confirming the trailer in-prefix or via `ctx.tail`.
+pub(crate) fn ips_patch(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
+    const IPS_MAGIC: &[u8; 5] = b"PATCH";
+    const IPS32_MAGIC: &[u8; 5] = b"IPS32";
+    const MAX_IPS_PREFIX_HUNKS: usize = 64;
+
+    let is_ips32 = if starts(prefix, IPS_MAGIC) {
+        false
+    } else if starts(prefix, IPS32_MAGIC) {
+        true
+    } else {
+        return None;
+    };
+    let off_len: usize = if is_ips32 { 4 } else { 3 };
+    let eof_tag: &[u8] = if is_ips32 { b"EEOF" } else { b"EOF" };
+    let min_len = 5 + off_len + 2 + 1 + off_len; // magic + >=1 hunk + EOF sentinel
+    require!(ctx.size >= min_len as u64, prefix.len() >= 11);
+
+    let mut pos = 5usize;
+    let mut hunks = 0usize;
+    let mut seen_non_ascii_hdr = false;
+    let mut reached_eof = false;
+
+    while hunks < MAX_IPS_PREFIX_HUNKS {
+        if pos + off_len > prefix.len() {
+            break;
+        }
+        if eq_at(prefix, pos, eof_tag) {
+            let after_eof = pos + off_len;
+            let rem = ctx.size.saturating_sub(after_eof as u64);
+            if rem == 0
+                || rem == off_len as u64
+                || (!is_ips32 && after_eof < prefix.len() && u8_at(prefix, after_eof) == Some(b'{'))
+            {
+                reached_eof = true;
+                break;
+            }
+            return None;
+        }
+        let hdr_len = off_len + 2;
+        if pos + hdr_len > prefix.len() {
+            break;
+        }
+        let hdr = get_slice(prefix, pos, pos + hdr_len)?;
+        if !seen_non_ascii_hdr && has_non_ascii_text_byte(hdr) {
+            seen_non_ascii_hdr = true;
+        }
+        let hunk_size = usize::from(be16(prefix, pos + off_len)?);
+        pos += hdr_len;
+        if hunk_size == 0 {
+            // RLE hunk: 2-byte BE repeat count (> 0) + 1-byte fill value
+            if pos + 3 > prefix.len() {
+                break;
+            }
+            let rle_count = be16(prefix, pos)?;
+            require!(rle_count >= 1);
+            if !seen_non_ascii_hdr && has_non_ascii_text_byte(&prefix[pos..pos + 2]) {
+                seen_non_ascii_hdr = true;
+            }
+            pos += 3;
+        } else {
+            let next = pos.checked_add(hunk_size)?;
+            if (next as u64) > ctx.size {
+                return None;
+            }
+            pos = next;
+        }
+        hunks += 1;
+    }
+
+    require!(hunks >= 1, seen_non_ascii_hdr);
+    if !reached_eof {
+        require!(hunks == MAX_IPS_PREFIX_HUNKS || ctx.size > prefix.len() as u64);
+        if let Some(t) = ctx.tail {
+            require!(has_valid_ips_tail(t, is_ips32));
+        } else if ctx.size == prefix.len() as u64 {
+            require!(has_valid_ips_tail(prefix, is_ips32));
+        } else {
+            return None;
+        }
+    }
+    Some(Label::IpsPatch)
+}
+
+/// Microsoft Windows Prefetch (`prefetch`, 2001): Windows 10/11 MAM-compressed header
+/// (`"MAM\x04"` or `"MAM\x84"` with bounded uncompressed size `84..=64 MiB` at `@4..8`),
+/// or uncompressed XP–Windows 8.1 header (version `17 | 23 | 26 | 30` LE at `@0..4`,
+/// `"SCCA"` signature at `@4..8`, and file size `>= 84` at `@12..16`).
+pub(crate) fn prefetch(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAM_MAGIC: &[u8; 3] = b"MAM"; // @0..3: Windows 10+ XPRESS Huffman container
+    const SCCA_MAGIC: &[u8; 4] = b"SCCA"; // @4..8: uncompressed Prefetch signature
+    const MIN_LEN: usize = 16;
+
+    require!(size >= MIN_LEN as u64, prefix.len() >= MIN_LEN);
+    if starts(prefix, MAM_MAGIC) {
+        require!(
+            matches!(u8_at(prefix, 3)?, 0x04 | 0x84),
+            (84..=0x0400_0000).contains(&le32(prefix, 4)?),
+        );
+        return Some(Label::Prefetch);
+    }
+    require!(
+        matches!(le32(prefix, 0)?, 17 | 23 | 26 | 30),
+        eq_at(prefix, 4, SCCA_MAGIC),
+        le32(prefix, 12)? >= 84,
+    );
+    Some(Label::Prefetch)
+}
+
+/// Microsoft Windows Jump List Custom Destinations (`custom_destinations`, 2009): header
+/// version `2` at `@0..4`, `1..=64` categories at `@4..8`, reserved `0` at `@8..12`,
+/// category type `<= 2` at `@12..16`, and an embedded Shell Link (`0x4C` + CLSID) or
+/// category footer sentinel (`AB FB BF BA`) within `@16..512`.
+pub(crate) fn custom_destinations(prefix: &[u8], size: u64) -> Option<Label> {
+    const HEADER_VER: usize = 0; // @0: u32 LE — format version (2)
+    const CAT_COUNT: usize = 4; // @4: u32 LE — category count (1..=64)
+    const RESERVED: usize = 8; // @8: u32 LE — reserved (0)
+    const CAT_TYPE: usize = 12; // @12: u32 LE — first category type (0..=2)
+    const LNK_SIG: &[u8] = hex2bin!("4C 00 00 00 01 14 02 00");
+    const FOOTER_SIG: &[u8] = hex2bin!("AB FB BF BA");
+    const MIN_SIZE: u64 = 64;
+    const MIN_PREFIX: usize = 36;
+
+    require!(
+        size >= MIN_SIZE,
+        prefix.len() >= MIN_PREFIX,
+        le32(prefix, HEADER_VER)? == 2,
+        (1..=64).contains(&le32(prefix, CAT_COUNT)?),
+        le32(prefix, RESERVED)? == 0,
+        le32(prefix, CAT_TYPE)? <= 2,
+        scan_range(prefix, 16, 512, LNK_SIG) || scan_range(prefix, 16, 512, FOOTER_SIG),
+    );
+    Some(Label::CustomDestinations)
+}
+
+/// freedesktop.org Shared MIME-info binary magic database (`freedesktop_mime_magic`, 2003):
+/// `"MIME-Magic\x00\n["` header opening the first priority section.
+pub(crate) fn freedesktop_mime_magic(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 13] = b"MIME-Magic\x00\n[";
+    const MIN_SIZE: u64 = 16;
+
+    require!(size >= MIN_SIZE, prefix.len() >= MAGIC.len(), starts(prefix, MAGIC));
+    Some(Label::FreedesktopMimeMagic)
+}

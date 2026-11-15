@@ -17,7 +17,7 @@
 use super::super::*;
 use crate::ContentType as Label;
 
-/// Evaluates `0xFF`-prefixed streams (`jpeg`, `jp2`, `jxl`, `mp3`).
+/// Evaluates `0xFF`-prefixed streams (`jpeg`, `jp2`, `dfm`, `jxl`, `mp2`, `mp3`).
 pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
     static J2K_CODESTREAM: Subformat =
         Subformat::with_ids("JPEG 2000 codestream", "fmt/1794", Some("fdd000138"));
@@ -39,7 +39,8 @@ pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
         return with_subformat(Label::Jp2, &J2K_CODESTREAM);
     }
     if b1 == JXL_SIG_LOW {
-        return verify_jxl_codestream(prefix, size);
+        return probe(|| delphi_form_rsrc16(prefix, size))
+            .or_else(|| probe(|| verify_jxl_codestream(prefix, size)));
     }
     if verify_mpeg_audio_layer2(prefix, 0) {
         return Some(Label::Mp2);
@@ -122,10 +123,27 @@ pub(crate) fn dsstore_or_isobmff(prefix: &[u8], size: u64) -> Option<Label> {
     probe(|| dsstore(prefix)).or_else(|| probe(|| isobmff(prefix, size)))
 }
 
-/// Disambiguates `00 00 02 00` at `@0` between Windows Cursor (`ico`) and uncompressed true-color TGA (`tga`).
+/// Disambiguates `00 00 02 00` at `@0` across Lotus 1-2-3 (`123`), Quattro Pro (`wb3`),
+/// Windows Cursor (`ico`), and uncompressed true-color TGA (`tga`).
 #[inline]
-pub(crate) fn ico_or_tga(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
-    probe(|| ico(prefix)).or_else(|| probe(|| tga(prefix, ctx.size, ctx.tail)))
+pub(crate) fn lotus_quattro_ico_or_tga(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
+    probe(|| lotus_123(prefix, ctx.size))
+        .or_else(|| probe(|| quattro_pro(prefix, ctx.size)))
+        .or_else(|| probe(|| ico(prefix)))
+        .or_else(|| probe(|| tga(prefix, ctx.size, ctx.tail)))
+}
+
+/// Disambiguates `04 00 00 00` at `@0` between Electron ASAR (`asar`) and Chromium PAK v4 (`chromium_pak`).
+#[inline]
+pub(crate) fn asar_or_chromium_pak(prefix: &[u8], size: u64) -> Option<Label> {
+    probe(|| asar(prefix, size)).or_else(|| probe(|| chromium_pak(prefix, size)))
+}
+
+/// Disambiguates `"MIME"` at `@0` between freedesktop.org Shared MIME-info (`freedesktop_mime_magic`)
+/// and RFC 2557 MHTML / RFC 2045 MIME mail (`mht` / `eml`).
+#[inline]
+pub(crate) fn mime_magic_or_mht(prefix: &[u8], size: u64) -> Option<Label> {
+    probe(|| freedesktop_mime_magic(prefix, size)).or_else(|| probe(|| mht_or_eml(prefix, size)))
 }
 
 /// Disambiguates `b"----"` at `@0` between PEM / OpenPGP ASCII armor and Shapr3D Binary STL.

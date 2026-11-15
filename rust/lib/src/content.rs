@@ -23,6 +23,19 @@ pub const MODEL_NAME: &str = "standard_v3_3";
 /// Model major version.
 pub const MODEL_MAJOR_VERSION: u32 = 3;
 
+pub(crate) static _123: TypeInfo = TypeInfo {
+    label: "123",
+    mime_type: "application/vnd.lotus-1-2-3",
+    group: "document",
+    description: "Lotus 1-2-3 worksheet",
+    extensions: &["123", "wk1", "wk3", "wk4", "wks", "wrk"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static _3DS: TypeInfo = TypeInfo {
     label: "3ds",
     mime_type: "application/octet-stream",
@@ -159,6 +172,45 @@ pub(crate) static ALEMBIC: TypeInfo = TypeInfo {
     group: "image",
     description: "Alembic geometry cache",
     extensions: &["abc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static AMIGA_HUNK: TypeInfo = TypeInfo {
+    label: "amiga_hunk",
+    mime_type: "application/x-amiga-executable",
+    group: "executable",
+    description: "AmigaOS Hunk executable",
+    extensions: &["hunk", "library", "device"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static AMR: TypeInfo = TypeInfo {
+    label: "amr",
+    mime_type: "audio/amr",
+    group: "audio",
+    description: "Adaptive Multi-Rate audio",
+    extensions: &["amr", "awb"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static ANDROID_BOOT: TypeInfo = TypeInfo {
+    label: "android_boot",
+    mime_type: "application/x-android-bootimg",
+    group: "application",
+    description: "Android boot image",
+    extensions: &["img"],
     is_text: false,
     in_heuristics: false,
     in_resolvers: true,
@@ -322,6 +374,32 @@ pub(crate) static ARROW: TypeInfo = TypeInfo {
     vetoed_by_resolvers: true,
 };
 
+pub(crate) static ARSC: TypeInfo = TypeInfo {
+    label: "arsc",
+    mime_type: "application/x-android-resource-table",
+    group: "application",
+    description: "Android compiled resource table",
+    extensions: &["arsc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static ASAR: TypeInfo = TypeInfo {
+    label: "asar",
+    mime_type: "application/x-asar",
+    group: "archive",
+    description: "Electron ASAR archive",
+    extensions: &["asar"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static ASD: TypeInfo = TypeInfo {
     label: "asd",
     mime_type: "application/octet-stream",
@@ -371,6 +449,19 @@ pub(crate) static ASP: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: false,
     in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static ATARI_TOS: TypeInfo = TypeInfo {
+    label: "atari_tos",
+    mime_type: "application/x-atari-tos-executable",
+    group: "executable",
+    description: "Atari TOS executable",
+    extensions: &["prg", "tos", "ttp", "app", "acc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -465,6 +556,19 @@ pub(crate) static AWK: TypeInfo = TypeInfo {
     vetoed_by_resolvers: false,
 };
 
+pub(crate) static AXML: TypeInfo = TypeInfo {
+    label: "axml",
+    mime_type: "application/x-android-binary-xml",
+    group: "application",
+    description: "Android binary XML",
+    extensions: &["xml", "axml"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static BAM: TypeInfo = TypeInfo {
     label: "bam",
     mime_type: "application/octet-stream",
@@ -554,6 +658,19 @@ pub(crate) static BLEND: TypeInfo = TypeInfo {
     in_resolvers: true,
     in_ml_model: false,
     vetoed_by_resolvers: true,
+};
+
+pub(crate) static BLURAY_INDX: TypeInfo = TypeInfo {
+    label: "bluray_indx",
+    mime_type: "application/x-bluray-index",
+    group: "video",
+    description: "Blu-ray Disc index table",
+    extensions: &["bdmv", "bdm"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static BMP: TypeInfo = TypeInfo {
@@ -735,6 +852,19 @@ pub(crate) static CHM: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static CHROMIUM_PAK: TypeInfo = TypeInfo {
+    label: "chromium_pak",
+    mime_type: "application/x-chromium-pak",
+    group: "database",
+    description: "Chromium resource pack",
+    extensions: &["pak"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -946,6 +1076,19 @@ pub(crate) static CUBIN: TypeInfo = TypeInfo {
     vetoed_by_resolvers: true,
 };
 
+pub(crate) static CUSTOM_DESTINATIONS: TypeInfo = TypeInfo {
+    label: "custom_destinations",
+    mime_type: "application/x-windows-jump-list",
+    group: "application",
+    description: "Windows Jump List custom destinations",
+    extensions: &["customDestinations-ms"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static DART: TypeInfo = TypeInfo {
     label: "dart",
     mime_type: "text/plain",
@@ -978,6 +1121,19 @@ pub(crate) static DBASE: TypeInfo = TypeInfo {
     group: "database",
     description: "dBASE / FoxPro table",
     extensions: &["dbf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static DDS: TypeInfo = TypeInfo {
+    label: "dds",
+    mime_type: "image/vnd.ms-dds",
+    group: "image",
+    description: "DirectDraw Surface texture",
+    extensions: &["dds"],
     is_text: false,
     in_heuristics: false,
     in_resolvers: true,
@@ -1022,6 +1178,19 @@ pub(crate) static DEX: TypeInfo = TypeInfo {
     in_resolvers: true,
     in_ml_model: true,
     vetoed_by_resolvers: true,
+};
+
+pub(crate) static DFM: TypeInfo = TypeInfo {
+    label: "dfm",
+    mime_type: "application/x-delphi-form",
+    group: "application",
+    description: "Delphi binary form resource",
+    extensions: &["dfm", "fmx", "xfm"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static DICOM: TypeInfo = TypeInfo {
@@ -1193,6 +1362,19 @@ pub(crate) static DWG: TypeInfo = TypeInfo {
     vetoed_by_resolvers: true,
 };
 
+pub(crate) static DXBC: TypeInfo = TypeInfo {
+    label: "dxbc",
+    mime_type: "application/x-dxbc",
+    group: "executable",
+    description: "DirectX bytecode shader container",
+    extensions: &["dxbc", "cso", "fxc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static DXF: TypeInfo = TypeInfo {
     label: "dxf",
     mime_type: "image/vnd.dxf",
@@ -1203,6 +1385,19 @@ pub(crate) static DXF: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static DXIL: TypeInfo = TypeInfo {
+    label: "dxil",
+    mime_type: "application/x-dxil",
+    group: "executable",
+    description: "DirectX Intermediate Language shader",
+    extensions: &["dxil", "cso", "dxbc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -1472,6 +1667,19 @@ pub(crate) static FPX: TypeInfo = TypeInfo {
     group: "image",
     description: "Flashpix",
     extensions: &["fpx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static FREEDESKTOP_MIME_MAGIC: TypeInfo = TypeInfo {
+    label: "freedesktop_mime_magic",
+    mime_type: "application/x-freedesktop-mime-magic",
+    group: "application",
+    description: "Freedesktop shared MIME magic rules",
+    extensions: &["magic"],
     is_text: false,
     in_heuristics: false,
     in_resolvers: true,
@@ -2038,6 +2246,19 @@ pub(crate) static IOSAPP: TypeInfo = TypeInfo {
     vetoed_by_resolvers: false,
 };
 
+pub(crate) static IPS_PATCH: TypeInfo = TypeInfo {
+    label: "ips_patch",
+    mime_type: "application/x-ips-patch",
+    group: "binary",
+    description: "International Patching System binary patch",
+    extensions: &["ips", "ebp"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static IPYNB: TypeInfo = TypeInfo {
     label: "ipynb",
     mime_type: "application/json",
@@ -2087,6 +2308,19 @@ pub(crate) static JAVA: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: false,
     in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static JAVA_PACK200: TypeInfo = TypeInfo {
+    label: "java_pack200",
+    mime_type: "application/x-java-pack200",
+    group: "archive",
+    description: "Java Pack200 compressed JAR archive",
+    extensions: &["pack"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -2753,6 +2987,19 @@ pub(crate) static MP4: TypeInfo = TypeInfo {
     vetoed_by_resolvers: false,
 };
 
+pub(crate) static MPEG_PS: TypeInfo = TypeInfo {
+    label: "mpeg_ps",
+    mime_type: "video/mpeg",
+    group: "video",
+    description: "MPEG Program Stream",
+    extensions: &["mpg", "mpeg", "vob", "ps", "m2p"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static MPEGTS: TypeInfo = TypeInfo {
     label: "mpegts",
     mime_type: "video/MP2T",
@@ -2876,6 +3123,19 @@ pub(crate) static NETCDF: TypeInfo = TypeInfo {
     group: "scientific",
     description: "NetCDF",
     extensions: &["cdf", "nc"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static NETWARE_NLM: TypeInfo = TypeInfo {
+    label: "netware_nlm",
+    mime_type: "application/x-netware-nlm",
+    group: "executable",
+    description: "Novell NetWare Loadable Module",
+    extensions: &["nlm", "dsk", "lan", "nam", "ham", "cdm"],
     is_text: false,
     in_heuristics: false,
     in_resolvers: true,
@@ -3234,6 +3494,19 @@ pub(crate) static PBM: TypeInfo = TypeInfo {
     vetoed_by_resolvers: true,
 };
 
+pub(crate) static PBZX: TypeInfo = TypeInfo {
+    label: "pbzx",
+    mime_type: "application/x-pbzx",
+    group: "archive",
+    description: "Apple PBZX payload archive",
+    extensions: &["pbzx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static PCAP: TypeInfo = TypeInfo {
     label: "pcap",
     mime_type: "application/vnd.tcpdump.pcap",
@@ -3335,6 +3608,19 @@ pub(crate) static PERL: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: false,
     in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static PFF2: TypeInfo = TypeInfo {
+    label: "pff2",
+    mime_type: "font/x-grub-pff2",
+    group: "font",
+    description: "GNU GRUB 2 PFF2 bitmap font",
+    extensions: &["pf2"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -3491,6 +3777,19 @@ pub(crate) static PPTX: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static PREFETCH: TypeInfo = TypeInfo {
+    label: "prefetch",
+    mime_type: "application/x-windows-prefetch",
+    group: "application",
+    description: "Windows SuperFetch prefetch trace",
+    extensions: &["pf"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -3845,6 +4144,19 @@ pub(crate) static RLIB: TypeInfo = TypeInfo {
     vetoed_by_resolvers: false,
 };
 
+pub(crate) static ROBLOX_RBXM: TypeInfo = TypeInfo {
+    label: "roblox_rbxm",
+    mime_type: "application/x-roblox-model",
+    group: "geometry",
+    description: "Roblox binary model",
+    extensions: &["rbxm", "rbxl"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static ROCKSDB: TypeInfo = TypeInfo {
     label: "rocksdb",
     mime_type: "application/octet-stream",
@@ -4076,6 +4388,32 @@ pub(crate) static SHELL: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: false,
     in_ml_model: true,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static SIT: TypeInfo = TypeInfo {
+    label: "sit",
+    mime_type: "application/x-stuffit",
+    group: "archive",
+    description: "StuffIt archive",
+    extensions: &["sit"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static SITX: TypeInfo = TypeInfo {
+    label: "sitx",
+    mime_type: "application/x-stuffitx",
+    group: "archive",
+    description: "StuffIt X archive",
+    extensions: &["sitx"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -4638,6 +4976,19 @@ pub(crate) static UNDEFINED: TypeInfo = TypeInfo {
     vetoed_by_resolvers: false,
 };
 
+pub(crate) static UNITYFS: TypeInfo = TypeInfo {
+    label: "unityfs",
+    mime_type: "application/x-unity-assetbundle",
+    group: "archive",
+    description: "Unity AssetBundle archive",
+    extensions: &["bundle", "unity3d", "assets"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static UNIXCOMPRESS: TypeInfo = TypeInfo {
     label: "unixcompress",
     mime_type: "application/x-compress",
@@ -4722,6 +5073,19 @@ pub(crate) static VCARD: TypeInfo = TypeInfo {
     group: "unknown",
     description: "vcard",
     extensions: &["vcard"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
+pub(crate) static VCDIFF: TypeInfo = TypeInfo {
+    label: "vcdiff",
+    mime_type: "application/x-vcdiff",
+    group: "archive",
+    description: "VCDIFF binary delta patch",
+    extensions: &["vcdiff", "xdelta", "xdelta3"],
     is_text: false,
     in_heuristics: false,
     in_resolvers: true,
@@ -4911,6 +5275,19 @@ pub(crate) static WAV: TypeInfo = TypeInfo {
     vetoed_by_resolvers: true,
 };
 
+pub(crate) static WB3: TypeInfo = TypeInfo {
+    label: "wb3",
+    mime_type: "application/x-quattro-pro",
+    group: "document",
+    description: "Quattro Pro spreadsheet",
+    extensions: &["wb1", "wb2", "wb3", "wq1", "wq2", "wkq"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static WEBM: TypeInfo = TypeInfo {
     label: "webm",
     mime_type: "video/webm",
@@ -5052,6 +5429,19 @@ pub(crate) static WOFF2: TypeInfo = TypeInfo {
     in_resolvers: true,
     in_ml_model: true,
     vetoed_by_resolvers: true,
+};
+
+pub(crate) static WORDPRO: TypeInfo = TypeInfo {
+    label: "wordpro",
+    mime_type: "application/vnd.lotus-wordpro",
+    group: "document",
+    description: "Lotus Word Pro document",
+    extensions: &["lwp", "mwp"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
 };
 
 pub(crate) static XAR: TypeInfo = TypeInfo {
@@ -5277,7 +5667,8 @@ pub(crate) static ZST: TypeInfo = TypeInfo {
 
 impl TypeInfo {
     /// All file type information ordered by label.
-    pub const ALL: [&'static Self; 404] = [
+    pub const ALL: [&'static Self; 434] = [
+        &_123,
         &_3DS,
         &_3DSM,
         &_3DSX,
@@ -5289,6 +5680,9 @@ impl TypeInfo {
         &AI,
         &AIDL,
         &ALEMBIC,
+        &AMIGA_HUNK,
+        &AMR,
+        &ANDROID_BOOT,
         &ANI,
         &AOUT,
         &APK,
@@ -5301,10 +5695,13 @@ impl TypeInfo {
         &ARCGRID,
         &ARJ,
         &ARROW,
+        &ARSC,
+        &ASAR,
         &ASD,
         &ASF,
         &ASM,
         &ASP,
+        &ATARI_TOS,
         &AU,
         &AUTOHOTKEY,
         &AUTOIT,
@@ -5312,6 +5709,7 @@ impl TypeInfo {
         &AVIF,
         &AVRO,
         &AWK,
+        &AXML,
         &BAM,
         &BATCH,
         &BAZEL,
@@ -5319,6 +5717,7 @@ impl TypeInfo {
         &BERKELEYDB,
         &BIB,
         &BLEND,
+        &BLURAY_INDX,
         &BMP,
         &BPG,
         &BPL,
@@ -5333,6 +5732,7 @@ impl TypeInfo {
         &CBOR,
         &CDF,
         &CHM,
+        &CHROMIUM_PAK,
         &CINEMA4D,
         &CLOJURE,
         &CMAKE,
@@ -5349,12 +5749,15 @@ impl TypeInfo {
         &CSS,
         &CSV,
         &CUBIN,
+        &CUSTOM_DESTINATIONS,
         &DART,
         &DB2,
         &DBASE,
+        &DDS,
         &DEB,
         &DEGAS,
         &DEX,
+        &DFM,
         &DICOM,
         &DIFF,
         &DIRECTORY,
@@ -5368,7 +5771,9 @@ impl TypeInfo {
         &DSSTORE,
         &DUCKDB,
         &DWG,
+        &DXBC,
         &DXF,
+        &DXIL,
         &ELF,
         &ELIXIR,
         &EMF,
@@ -5390,6 +5795,7 @@ impl TypeInfo {
         &FLV,
         &FORTRAN,
         &FPX,
+        &FREEDESKTOP_MIME_MAGIC,
         &GEMFILE,
         &GEMSPEC,
         &GEOJSON,
@@ -5433,10 +5839,12 @@ impl TypeInfo {
         &INTELHEX,
         &INTERNETSHORTCUT,
         &IOSAPP,
+        &IPS_PATCH,
         &IPYNB,
         &ISO,
         &JAR,
         &JAVA,
+        &JAVA_PACK200,
         &JAVABYTECODE,
         &JAVASCRIPT,
         &JINJA,
@@ -5488,6 +5896,7 @@ impl TypeInfo {
         &MP2,
         &MP3,
         &MP4,
+        &MPEG_PS,
         &MPEGTS,
         &MSCOMPRESS,
         &MSGPACK,
@@ -5498,6 +5907,7 @@ impl TypeInfo {
         &MUM,
         &MYSQL_STORAGE,
         &NETCDF,
+        &NETWARE_NLM,
         &NIFTI,
         &NPY,
         &NPZ,
@@ -5525,6 +5935,7 @@ impl TypeInfo {
         &PARQUET,
         &PASCAL,
         &PBM,
+        &PBZX,
         &PCAP,
         &PCAPNG,
         &PCD,
@@ -5533,6 +5944,7 @@ impl TypeInfo {
         &PEBIN,
         &PEM,
         &PERL,
+        &PFF2,
         &PGP,
         &PHP,
         &PICKLE,
@@ -5545,6 +5957,7 @@ impl TypeInfo {
         &POWERSHELL,
         &PPT,
         &PPTX,
+        &PREFETCH,
         &PRINTFOX,
         &PROLOG,
         &PROTEINDB,
@@ -5572,6 +5985,7 @@ impl TypeInfo {
         &REDIS_RDB,
         &RHINOCEROS,
         &RLIB,
+        &ROBLOX_RBXM,
         &ROCKSDB,
         &RPM,
         &RST,
@@ -5590,6 +6004,8 @@ impl TypeInfo {
         &SH3D,
         &SHAPEFILE,
         &SHELL,
+        &SIT,
+        &SITX,
         &SKETCHUP,
         &SKOPS,
         &SMALI,
@@ -5633,6 +6049,7 @@ impl TypeInfo {
         &UEFI_FV,
         &UF2,
         &UNDEFINED,
+        &UNITYFS,
         &UNIXCOMPRESS,
         &UNKNOWN,
         &UNSUPPORTED,
@@ -5640,6 +6057,7 @@ impl TypeInfo {
         &VBA,
         &VBE,
         &VCARD,
+        &VCDIFF,
         &VCF_GENOMICS,
         &VCS,
         &VCXPROJ,
@@ -5654,6 +6072,7 @@ impl TypeInfo {
         &WAD,
         &WASM,
         &WAV,
+        &WB3,
         &WEBM,
         &WEBP,
         &WIM,
@@ -5665,6 +6084,7 @@ impl TypeInfo {
         &WMV,
         &WOFF,
         &WOFF2,
+        &WORDPRO,
         &XAR,
         &XCF,
         &XCOFF,
@@ -5689,6 +6109,8 @@ impl TypeInfo {
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ContentType {
+    /// Lotus 1-2-3 worksheet
+    _123,
     /// Nintendo 3DS roms
     _3ds,
     /// 3D studio Max
@@ -5711,6 +6133,12 @@ pub enum ContentType {
     Aidl,
     /// Alembic geometry cache
     Alembic,
+    /// AmigaOS Hunk executable
+    AmigaHunk,
+    /// Adaptive Multi-Rate audio
+    Amr,
+    /// Android boot image
+    AndroidBoot,
     /// Animated cursor
     Ani,
     /// a.out object / executable
@@ -5735,6 +6163,10 @@ pub enum ContentType {
     Arj,
     /// arrow
     Arrow,
+    /// Android compiled resource table
+    Arsc,
+    /// Electron ASAR archive
+    Asar,
     /// asd
     Asd,
     /// Microsoft Advanced Systems Format
@@ -5743,6 +6175,8 @@ pub enum ContentType {
     Asm,
     /// ASP source
     Asp,
+    /// Atari TOS executable
+    AtariTos,
     /// NeXT/Sun AU
     Au,
     /// AutoHotKey script
@@ -5757,6 +6191,8 @@ pub enum ContentType {
     Avro,
     /// Awk
     Awk,
+    /// Android binary XML
+    Axml,
     /// BAM alignment
     Bam,
     /// DOS batch file
@@ -5771,6 +6207,8 @@ pub enum ContentType {
     Bib,
     /// Blender scene
     Blend,
+    /// Blu-ray Disc index table
+    BlurayIndx,
     /// BMP image data
     Bmp,
     /// BPG
@@ -5799,6 +6237,8 @@ pub enum ContentType {
     Cdf,
     /// MS Windows HtmlHelp Data
     Chm,
+    /// Chromium resource pack
+    ChromiumPak,
     /// Cinema 4D scene
     Cinema4d,
     /// Clojure
@@ -5831,18 +6271,24 @@ pub enum ContentType {
     Csv,
     /// NVIDIA CUDA binary
     Cubin,
+    /// Windows Jump List custom destinations
+    CustomDestinations,
     /// Dart source
     Dart,
     /// IBM DB2 database / backup
     Db2,
     /// dBASE / FoxPro table
     Dbase,
+    /// DirectDraw Surface texture
+    Dds,
     /// Debian binary package
     Deb,
     /// Atari ST DEGAS image
     Degas,
     /// Dalvik dex file
     Dex,
+    /// Delphi binary form resource
+    Dfm,
     /// DICOM
     Dicom,
     /// Diff file
@@ -5867,8 +6313,12 @@ pub enum ContentType {
     Duckdb,
     /// Autocad Drawing
     Dwg,
+    /// DirectX bytecode shader container
+    Dxbc,
     /// Autocad Drawing Exchange Format
     Dxf,
+    /// DirectX Intermediate Language shader
+    Dxil,
     /// ELF executable
     Elf,
     /// Elixir script
@@ -5911,6 +6361,8 @@ pub enum ContentType {
     Fortran,
     /// Flashpix
     Fpx,
+    /// Freedesktop shared MIME magic rules
+    FreedesktopMimeMagic,
     /// Gemfile file
     Gemfile,
     /// Gemspec file
@@ -5997,6 +6449,8 @@ pub enum ContentType {
     Internetshortcut,
     /// iosapp
     Iosapp,
+    /// International Patching System binary patch
+    IpsPatch,
     /// Jupyter notebook
     Ipynb,
     /// ISO 9660 CD-ROM filesystem data
@@ -6005,6 +6459,8 @@ pub enum ContentType {
     Jar,
     /// Java source
     Java,
+    /// Java Pack200 compressed JAR archive
+    JavaPack200,
     /// Java compiled bytecode
     Javabytecode,
     /// JavaScript source
@@ -6107,6 +6563,8 @@ pub enum ContentType {
     Mp3,
     /// MP4 media file
     Mp4,
+    /// MPEG Program Stream
+    MpegPs,
     /// MPEG Transport stream
     Mpegts,
     /// MS Compress archive data
@@ -6127,6 +6585,8 @@ pub enum ContentType {
     MysqlStorage,
     /// NetCDF
     Netcdf,
+    /// Novell NetWare Loadable Module
+    NetwareNlm,
     /// NIfTI neuroimaging data
     Nifti,
     /// Numpy Array
@@ -6181,6 +6641,8 @@ pub enum ContentType {
     Pascal,
     /// pbm
     Pbm,
+    /// Apple PBZX payload archive
+    Pbzx,
     /// pcap capture file
     Pcap,
     /// Packet capture PCAPNG
@@ -6197,6 +6659,8 @@ pub enum ContentType {
     Pem,
     /// Perl source
     Perl,
+    /// GNU GRUB 2 PFF2 bitmap font
+    Pff2,
     /// PGP
     Pgp,
     /// PHP source
@@ -6221,6 +6685,8 @@ pub enum ContentType {
     Ppt,
     /// Microsoft PowerPoint 2007+ document
     Pptx,
+    /// Windows SuperFetch prefetch trace
+    Prefetch,
     /// c64
     Printfox,
     /// Prolog source
@@ -6275,6 +6741,8 @@ pub enum ContentType {
     Rhinoceros,
     /// rust library
     Rlib,
+    /// Roblox binary model
+    RobloxRbxm,
     /// RocksDB
     Rocksdb,
     /// RedHat Package Manager archive (RPM)
@@ -6311,6 +6779,10 @@ pub enum ContentType {
     Shapefile,
     /// Shell script
     Shell,
+    /// StuffIt archive
+    Sit,
+    /// StuffIt X archive
+    Sitx,
     /// SketchUp model
     Sketchup,
     /// skops model
@@ -6395,6 +6867,8 @@ pub enum ContentType {
     Uf2,
     /// Undefined
     Undefined,
+    /// Unity AssetBundle archive
+    Unityfs,
     /// unixcompress
     Unixcompress,
     /// Unknown binary data
@@ -6407,6 +6881,8 @@ pub enum ContentType {
     Vbe,
     /// vcard
     Vcard,
+    /// VCDIFF binary delta patch
+    Vcdiff,
     /// Variant Call Format
     VcfGenomics,
     /// vcs
@@ -6435,6 +6911,8 @@ pub enum ContentType {
     Wasm,
     /// Waveform Audio file (WAV)
     Wav,
+    /// Quattro Pro spreadsheet
+    Wb3,
     /// WebM media file
     Webm,
     /// WebP media file
@@ -6457,6 +6935,8 @@ pub enum ContentType {
     Woff,
     /// Web Open Font Format v2
     Woff2,
+    /// Lotus Word Pro document
+    Wordpro,
     /// XAR archive compressed data
     Xar,
     /// Gimp image
@@ -6497,6 +6977,7 @@ impl ContentType {
     /// Returns a content type from its label.
     pub fn from_label(label: &str) -> Option<Self> {
         Some(match label {
+            "123" => Self::_123,
             "3ds" => Self::_3ds,
             "3dsm" => Self::_3dsm,
             "3dsx" => Self::_3dsx,
@@ -6508,6 +6989,9 @@ impl ContentType {
             "ai" => Self::Ai,
             "aidl" => Self::Aidl,
             "alembic" => Self::Alembic,
+            "amiga_hunk" => Self::AmigaHunk,
+            "amr" => Self::Amr,
+            "android_boot" => Self::AndroidBoot,
             "ani" => Self::Ani,
             "aout" => Self::Aout,
             "apk" => Self::Apk,
@@ -6520,10 +7004,13 @@ impl ContentType {
             "arcgrid" => Self::Arcgrid,
             "arj" => Self::Arj,
             "arrow" => Self::Arrow,
+            "arsc" => Self::Arsc,
+            "asar" => Self::Asar,
             "asd" => Self::Asd,
             "asf" => Self::Asf,
             "asm" => Self::Asm,
             "asp" => Self::Asp,
+            "atari_tos" => Self::AtariTos,
             "au" => Self::Au,
             "autohotkey" => Self::Autohotkey,
             "autoit" => Self::Autoit,
@@ -6531,6 +7018,7 @@ impl ContentType {
             "avif" => Self::Avif,
             "avro" => Self::Avro,
             "awk" => Self::Awk,
+            "axml" => Self::Axml,
             "bam" => Self::Bam,
             "batch" => Self::Batch,
             "bazel" => Self::Bazel,
@@ -6538,6 +7026,7 @@ impl ContentType {
             "berkeleydb" => Self::Berkeleydb,
             "bib" => Self::Bib,
             "blend" => Self::Blend,
+            "bluray_indx" => Self::BlurayIndx,
             "bmp" => Self::Bmp,
             "bpg" => Self::Bpg,
             "bpl" => Self::Bpl,
@@ -6552,6 +7041,7 @@ impl ContentType {
             "cbor" => Self::Cbor,
             "cdf" => Self::Cdf,
             "chm" => Self::Chm,
+            "chromium_pak" => Self::ChromiumPak,
             "cinema4d" => Self::Cinema4d,
             "clojure" => Self::Clojure,
             "cmake" => Self::Cmake,
@@ -6568,12 +7058,15 @@ impl ContentType {
             "css" => Self::Css,
             "csv" => Self::Csv,
             "cubin" => Self::Cubin,
+            "custom_destinations" => Self::CustomDestinations,
             "dart" => Self::Dart,
             "db2" => Self::Db2,
             "dbase" => Self::Dbase,
+            "dds" => Self::Dds,
             "deb" => Self::Deb,
             "degas" => Self::Degas,
             "dex" => Self::Dex,
+            "dfm" => Self::Dfm,
             "dicom" => Self::Dicom,
             "diff" => Self::Diff,
             "dm" => Self::Dm,
@@ -6586,7 +7079,9 @@ impl ContentType {
             "dsstore" => Self::Dsstore,
             "duckdb" => Self::Duckdb,
             "dwg" => Self::Dwg,
+            "dxbc" => Self::Dxbc,
             "dxf" => Self::Dxf,
+            "dxil" => Self::Dxil,
             "elf" => Self::Elf,
             "elixir" => Self::Elixir,
             "emf" => Self::Emf,
@@ -6608,6 +7103,7 @@ impl ContentType {
             "flv" => Self::Flv,
             "fortran" => Self::Fortran,
             "fpx" => Self::Fpx,
+            "freedesktop_mime_magic" => Self::FreedesktopMimeMagic,
             "gemfile" => Self::Gemfile,
             "gemspec" => Self::Gemspec,
             "geojson" => Self::Geojson,
@@ -6651,10 +7147,12 @@ impl ContentType {
             "intelhex" => Self::Intelhex,
             "internetshortcut" => Self::Internetshortcut,
             "iosapp" => Self::Iosapp,
+            "ips_patch" => Self::IpsPatch,
             "ipynb" => Self::Ipynb,
             "iso" => Self::Iso,
             "jar" => Self::Jar,
             "java" => Self::Java,
+            "java_pack200" => Self::JavaPack200,
             "javabytecode" => Self::Javabytecode,
             "javascript" => Self::Javascript,
             "jinja" => Self::Jinja,
@@ -6706,6 +7204,7 @@ impl ContentType {
             "mp2" => Self::Mp2,
             "mp3" => Self::Mp3,
             "mp4" => Self::Mp4,
+            "mpeg_ps" => Self::MpegPs,
             "mpegts" => Self::Mpegts,
             "mscompress" => Self::Mscompress,
             "msgpack" => Self::Msgpack,
@@ -6716,6 +7215,7 @@ impl ContentType {
             "mum" => Self::Mum,
             "mysql_storage" => Self::MysqlStorage,
             "netcdf" => Self::Netcdf,
+            "netware_nlm" => Self::NetwareNlm,
             "nifti" => Self::Nifti,
             "npy" => Self::Npy,
             "npz" => Self::Npz,
@@ -6743,6 +7243,7 @@ impl ContentType {
             "parquet" => Self::Parquet,
             "pascal" => Self::Pascal,
             "pbm" => Self::Pbm,
+            "pbzx" => Self::Pbzx,
             "pcap" => Self::Pcap,
             "pcapng" => Self::Pcapng,
             "pcd" => Self::Pcd,
@@ -6751,6 +7252,7 @@ impl ContentType {
             "pebin" => Self::Pebin,
             "pem" => Self::Pem,
             "perl" => Self::Perl,
+            "pff2" => Self::Pff2,
             "pgp" => Self::Pgp,
             "php" => Self::Php,
             "pickle" => Self::Pickle,
@@ -6763,6 +7265,7 @@ impl ContentType {
             "powershell" => Self::Powershell,
             "ppt" => Self::Ppt,
             "pptx" => Self::Pptx,
+            "prefetch" => Self::Prefetch,
             "printfox" => Self::Printfox,
             "prolog" => Self::Prolog,
             "proteindb" => Self::Proteindb,
@@ -6790,6 +7293,7 @@ impl ContentType {
             "redis_rdb" => Self::RedisRdb,
             "rhinoceros" => Self::Rhinoceros,
             "rlib" => Self::Rlib,
+            "roblox_rbxm" => Self::RobloxRbxm,
             "rocksdb" => Self::Rocksdb,
             "rpm" => Self::Rpm,
             "rst" => Self::Rst,
@@ -6808,6 +7312,8 @@ impl ContentType {
             "sh3d" => Self::Sh3d,
             "shapefile" => Self::Shapefile,
             "shell" => Self::Shell,
+            "sit" => Self::Sit,
+            "sitx" => Self::Sitx,
             "sketchup" => Self::Sketchup,
             "skops" => Self::Skops,
             "smali" => Self::Smali,
@@ -6850,12 +7356,14 @@ impl ContentType {
             "uefi_fv" => Self::UefiFv,
             "uf2" => Self::Uf2,
             "undefined" => Self::Undefined,
+            "unityfs" => Self::Unityfs,
             "unixcompress" => Self::Unixcompress,
             "unknown" => Self::Unknown,
             "usd" => Self::Usd,
             "vba" => Self::Vba,
             "vbe" => Self::Vbe,
             "vcard" => Self::Vcard,
+            "vcdiff" => Self::Vcdiff,
             "vcf_genomics" => Self::VcfGenomics,
             "vcs" => Self::Vcs,
             "vcxproj" => Self::Vcxproj,
@@ -6870,6 +7378,7 @@ impl ContentType {
             "wad" => Self::Wad,
             "wasm" => Self::Wasm,
             "wav" => Self::Wav,
+            "wb3" => Self::Wb3,
             "webm" => Self::Webm,
             "webp" => Self::Webp,
             "wim" => Self::Wim,
@@ -6881,6 +7390,7 @@ impl ContentType {
             "wmv" => Self::Wmv,
             "woff" => Self::Woff,
             "woff2" => Self::Woff2,
+            "wordpro" => Self::Wordpro,
             "xar" => Self::Xar,
             "xcf" => Self::Xcf,
             "xcoff" => Self::Xcoff,
@@ -6905,6 +7415,7 @@ impl ContentType {
     /// Returns the content type information.
     pub fn info(self) -> &'static TypeInfo {
         match self {
+            ContentType::_123 => &_123,
             ContentType::_3ds => &_3DS,
             ContentType::_3dsm => &_3DSM,
             ContentType::_3dsx => &_3DSX,
@@ -6916,6 +7427,9 @@ impl ContentType {
             ContentType::Ai => &AI,
             ContentType::Aidl => &AIDL,
             ContentType::Alembic => &ALEMBIC,
+            ContentType::AmigaHunk => &AMIGA_HUNK,
+            ContentType::Amr => &AMR,
+            ContentType::AndroidBoot => &ANDROID_BOOT,
             ContentType::Ani => &ANI,
             ContentType::Aout => &AOUT,
             ContentType::Apk => &APK,
@@ -6928,10 +7442,13 @@ impl ContentType {
             ContentType::Arcgrid => &ARCGRID,
             ContentType::Arj => &ARJ,
             ContentType::Arrow => &ARROW,
+            ContentType::Arsc => &ARSC,
+            ContentType::Asar => &ASAR,
             ContentType::Asd => &ASD,
             ContentType::Asf => &ASF,
             ContentType::Asm => &ASM,
             ContentType::Asp => &ASP,
+            ContentType::AtariTos => &ATARI_TOS,
             ContentType::Au => &AU,
             ContentType::Autohotkey => &AUTOHOTKEY,
             ContentType::Autoit => &AUTOIT,
@@ -6939,6 +7456,7 @@ impl ContentType {
             ContentType::Avif => &AVIF,
             ContentType::Avro => &AVRO,
             ContentType::Awk => &AWK,
+            ContentType::Axml => &AXML,
             ContentType::Bam => &BAM,
             ContentType::Batch => &BATCH,
             ContentType::Bazel => &BAZEL,
@@ -6946,6 +7464,7 @@ impl ContentType {
             ContentType::Berkeleydb => &BERKELEYDB,
             ContentType::Bib => &BIB,
             ContentType::Blend => &BLEND,
+            ContentType::BlurayIndx => &BLURAY_INDX,
             ContentType::Bmp => &BMP,
             ContentType::Bpg => &BPG,
             ContentType::Bpl => &BPL,
@@ -6960,6 +7479,7 @@ impl ContentType {
             ContentType::Cbor => &CBOR,
             ContentType::Cdf => &CDF,
             ContentType::Chm => &CHM,
+            ContentType::ChromiumPak => &CHROMIUM_PAK,
             ContentType::Cinema4d => &CINEMA4D,
             ContentType::Clojure => &CLOJURE,
             ContentType::Cmake => &CMAKE,
@@ -6976,12 +7496,15 @@ impl ContentType {
             ContentType::Css => &CSS,
             ContentType::Csv => &CSV,
             ContentType::Cubin => &CUBIN,
+            ContentType::CustomDestinations => &CUSTOM_DESTINATIONS,
             ContentType::Dart => &DART,
             ContentType::Db2 => &DB2,
             ContentType::Dbase => &DBASE,
+            ContentType::Dds => &DDS,
             ContentType::Deb => &DEB,
             ContentType::Degas => &DEGAS,
             ContentType::Dex => &DEX,
+            ContentType::Dfm => &DFM,
             ContentType::Dicom => &DICOM,
             ContentType::Diff => &DIFF,
             ContentType::Dm => &DM,
@@ -6994,7 +7517,9 @@ impl ContentType {
             ContentType::Dsstore => &DSSTORE,
             ContentType::Duckdb => &DUCKDB,
             ContentType::Dwg => &DWG,
+            ContentType::Dxbc => &DXBC,
             ContentType::Dxf => &DXF,
+            ContentType::Dxil => &DXIL,
             ContentType::Elf => &ELF,
             ContentType::Elixir => &ELIXIR,
             ContentType::Emf => &EMF,
@@ -7016,6 +7541,7 @@ impl ContentType {
             ContentType::Flv => &FLV,
             ContentType::Fortran => &FORTRAN,
             ContentType::Fpx => &FPX,
+            ContentType::FreedesktopMimeMagic => &FREEDESKTOP_MIME_MAGIC,
             ContentType::Gemfile => &GEMFILE,
             ContentType::Gemspec => &GEMSPEC,
             ContentType::Geojson => &GEOJSON,
@@ -7059,10 +7585,12 @@ impl ContentType {
             ContentType::Intelhex => &INTELHEX,
             ContentType::Internetshortcut => &INTERNETSHORTCUT,
             ContentType::Iosapp => &IOSAPP,
+            ContentType::IpsPatch => &IPS_PATCH,
             ContentType::Ipynb => &IPYNB,
             ContentType::Iso => &ISO,
             ContentType::Jar => &JAR,
             ContentType::Java => &JAVA,
+            ContentType::JavaPack200 => &JAVA_PACK200,
             ContentType::Javabytecode => &JAVABYTECODE,
             ContentType::Javascript => &JAVASCRIPT,
             ContentType::Jinja => &JINJA,
@@ -7114,6 +7642,7 @@ impl ContentType {
             ContentType::Mp2 => &MP2,
             ContentType::Mp3 => &MP3,
             ContentType::Mp4 => &MP4,
+            ContentType::MpegPs => &MPEG_PS,
             ContentType::Mpegts => &MPEGTS,
             ContentType::Mscompress => &MSCOMPRESS,
             ContentType::Msgpack => &MSGPACK,
@@ -7124,6 +7653,7 @@ impl ContentType {
             ContentType::Mum => &MUM,
             ContentType::MysqlStorage => &MYSQL_STORAGE,
             ContentType::Netcdf => &NETCDF,
+            ContentType::NetwareNlm => &NETWARE_NLM,
             ContentType::Nifti => &NIFTI,
             ContentType::Npy => &NPY,
             ContentType::Npz => &NPZ,
@@ -7151,6 +7681,7 @@ impl ContentType {
             ContentType::Parquet => &PARQUET,
             ContentType::Pascal => &PASCAL,
             ContentType::Pbm => &PBM,
+            ContentType::Pbzx => &PBZX,
             ContentType::Pcap => &PCAP,
             ContentType::Pcapng => &PCAPNG,
             ContentType::Pcd => &PCD,
@@ -7159,6 +7690,7 @@ impl ContentType {
             ContentType::Pebin => &PEBIN,
             ContentType::Pem => &PEM,
             ContentType::Perl => &PERL,
+            ContentType::Pff2 => &PFF2,
             ContentType::Pgp => &PGP,
             ContentType::Php => &PHP,
             ContentType::Pickle => &PICKLE,
@@ -7171,6 +7703,7 @@ impl ContentType {
             ContentType::Powershell => &POWERSHELL,
             ContentType::Ppt => &PPT,
             ContentType::Pptx => &PPTX,
+            ContentType::Prefetch => &PREFETCH,
             ContentType::Printfox => &PRINTFOX,
             ContentType::Prolog => &PROLOG,
             ContentType::Proteindb => &PROTEINDB,
@@ -7198,6 +7731,7 @@ impl ContentType {
             ContentType::RedisRdb => &REDIS_RDB,
             ContentType::Rhinoceros => &RHINOCEROS,
             ContentType::Rlib => &RLIB,
+            ContentType::RobloxRbxm => &ROBLOX_RBXM,
             ContentType::Rocksdb => &ROCKSDB,
             ContentType::Rpm => &RPM,
             ContentType::Rst => &RST,
@@ -7216,6 +7750,8 @@ impl ContentType {
             ContentType::Sh3d => &SH3D,
             ContentType::Shapefile => &SHAPEFILE,
             ContentType::Shell => &SHELL,
+            ContentType::Sit => &SIT,
+            ContentType::Sitx => &SITX,
             ContentType::Sketchup => &SKETCHUP,
             ContentType::Skops => &SKOPS,
             ContentType::Smali => &SMALI,
@@ -7258,12 +7794,14 @@ impl ContentType {
             ContentType::UefiFv => &UEFI_FV,
             ContentType::Uf2 => &UF2,
             ContentType::Undefined => &UNDEFINED,
+            ContentType::Unityfs => &UNITYFS,
             ContentType::Unixcompress => &UNIXCOMPRESS,
             ContentType::Unknown => &UNKNOWN,
             ContentType::Usd => &USD,
             ContentType::Vba => &VBA,
             ContentType::Vbe => &VBE,
             ContentType::Vcard => &VCARD,
+            ContentType::Vcdiff => &VCDIFF,
             ContentType::VcfGenomics => &VCF_GENOMICS,
             ContentType::Vcs => &VCS,
             ContentType::Vcxproj => &VCXPROJ,
@@ -7278,6 +7816,7 @@ impl ContentType {
             ContentType::Wad => &WAD,
             ContentType::Wasm => &WASM,
             ContentType::Wav => &WAV,
+            ContentType::Wb3 => &WB3,
             ContentType::Webm => &WEBM,
             ContentType::Webp => &WEBP,
             ContentType::Wim => &WIM,
@@ -7289,6 +7828,7 @@ impl ContentType {
             ContentType::Wmv => &WMV,
             ContentType::Woff => &WOFF,
             ContentType::Woff2 => &WOFF2,
+            ContentType::Wordpro => &WORDPRO,
             ContentType::Xar => &XAR,
             ContentType::Xcf => &XCF,
             ContentType::Xcoff => &XCOFF,

@@ -91,6 +91,7 @@ pub(crate) fn probe(key: &[u8; 2], prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label
         | &[0x30, 0x83] // ASN.1 DER 3-Byte Length SEQUENCE (1988) ITU-T
         | &[0x30, 0x84] => verify_asn1_der(prefix, size), // ASN.1 DER 4-Byte Length SEQUENCE (1988) ITU-T
         &[0x60, 0xEA] => arj(prefix, size), // Robert K. Jung ARJ Archive (1991) ARJ Software
+        &[0x60, 0x1A] => atari_tos(prefix, size), // Atari TOS / GEMDOS Motorola 68000 Executable (.prg/.tos) (1985) Atari / Digital Research
         &[0x01, 0x00] => firebird(prefix, size), // Firebird / InterBase ODS Database Page (1985) Borland / Firebird
         &[0xD9, 0xD9] // RFC 8949 Self-Described CBOR Tag 55799 (2013) IETF
         | &[0xD8, 0x37] => cbor(prefix, size), // CBOR Tag 55 Header (2013) IETF

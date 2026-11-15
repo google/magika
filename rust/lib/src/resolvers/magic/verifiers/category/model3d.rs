@@ -564,3 +564,24 @@ pub(crate) fn obj(prefix: &[u8], size: u64) -> Option<Label> {
     );
     Some(Label::Obj)
 }
+
+/// Roblox Binary Model / Place (`roblox_rbxm`, 2013): 16-byte header
+/// `"<roblox!\x89\xff\r\n\x1a\n\x00\x00"`, nonzero class and instance counts at `@16..24`,
+/// and 8 reserved zero bytes at `@24..32`.
+pub(crate) fn roblox_rbxm(prefix: &[u8], size: u64) -> Option<Label> {
+    const MAGIC: &[u8; 16] = b"<roblox!\x89\xff\r\n\x1a\n\x00\x00"; // @0..16: RBXM/RBXL signature + version 0
+    const CLASS_COUNT: usize = 16; // @16: u32 LE — unique class count (>= 1)
+    const INSTANCE_COUNT: usize = 20; // @20: u32 LE — instance count (>= 1)
+    const RESERVED: usize = 24; // @24: u64 LE — reserved zero bytes
+    const MIN_LEN: usize = 32;
+
+    require!(
+        size >= MIN_LEN as u64,
+        prefix.len() >= MIN_LEN,
+        starts(prefix, MAGIC),
+        le32(prefix, CLASS_COUNT)? >= 1,
+        le32(prefix, INSTANCE_COUNT)? >= 1,
+        le64(prefix, RESERVED)? == 0,
+    );
+    Some(Label::RobloxRbxm)
+}

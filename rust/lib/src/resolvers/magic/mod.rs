@@ -336,11 +336,13 @@ pub(crate) struct Ctx<'a> {
     pub(crate) tail: Option<&'a [u8]>,
 }
 
-/// A finer-grained variant of a content type that a verifier already tells apart.
+/// A finer-grained variant of a content type identified by the resolvers.
 ///
-/// Subformats only name branches that the verifiers take anyway (which signature, container
-/// stream, version byte, or byte order matched); they never add parsing. When the subformat has
-/// a more specific PRONOM PUID or Library of Congress FDD than its content type, it overrides it.
+/// Most subformats name branches that a verifier already takes (signature, container stream,
+/// version byte, or byte order); container-specific schema loading (such as SQLite `sqlite_schema`
+/// B-tree inspection) can also populate a subformat once the base content type is confirmed.
+/// When the subformat has a more specific PRONOM PUID or Library of Congress FDD than its
+/// content type, it overrides it.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Subformat {
     pub(crate) name: &'static str,

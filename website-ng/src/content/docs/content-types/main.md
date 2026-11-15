@@ -8,9 +8,9 @@ This reference lists the supported output content types (`output.label`) and det
 
 ## Pipeline Coverage Summary
 
-- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **401** supported outputs (**398** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
+- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **2099** supported outputs (**2096** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
   - **Heuristics (`in_heuristics`)**: **6** content types (`directory`, `empty`, `symlink`, `txt`, `unknown`, `unsupported`) — path metadata checks, empty-file detection, and short-file / low-confidence fallbacks.
-  - **Format Resolvers (`in_resolvers`)**: **310** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
+  - **Format Resolvers (`in_resolvers`)**: **2008** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
   - **ML Model (`in_ml_model`)**: **212** content types predicted by [`standard_v3_3`](/magika/models/standard_v3_3) (after `overwrite_map`).
 - **JavaScript / TypeScript TensorFlow.js pipeline (`magika` on `main`)**: **214** supported outputs — runs byte/stream heuristics (`empty`, `txt`, `unknown`) plus the [`standard_v3_3`](/magika/models/standard_v3_3) ML model (`in_ml_model`), without filesystem `stat` checks or native Rust format resolvers (`in_resolvers`).
 
@@ -18,404 +18,2102 @@ This reference lists the supported output content types (`output.label`) and det
 
 | Label | Description | MIME Type | Group | Extensions | Text | Heuristics | Resolvers | ML Model | Vetoed |
 | --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
+| `1c_enterprise_1cd` | 1C:Enterprise 8 Infobase Database (1Cv8.1CD) | `application/x-1c-enterprise-db` | `database` | `1cd` |  |  | ✓ |  |  |
+| `1c_enterprise_cf` | 1C:Enterprise 8 Configuration Container (.cf) | `application/x-1c-enterprise-cf` | `archive` | `cf` |  |  | ✓ |  |  |
+| `2dkgt2_demo` | 2D Fighter Maker 2nd (2DKGT2) Replay Demo (.demo, 2002) Enterbrain | `application/x-2dkgt2-demo` | `archive` | `demo` |  |  | ✓ |  |  |
 | `3ds` | Nintendo 3DS roms | `application/octet-stream` | `unknown` | `3ds` |  |  | ✓ |  |  |
 | `3dsm` | 3D studio Max | `application/x-3ds` | `image` | `3ds` |  |  | ✓ |  | ✓ |
 | `3dsx` | Nintendo 3DS homebrew | `application/octet-stream` | `unknown` | `3dsx` |  |  | ✓ |  | ✓ |
 | `3gp` | 3GPP multimedia file | `video/3gpp` | `video` | `3gp` |  |  | ✓ | ✓ | ✓ |
 | `3mf` | 3D Manufacturing Format | `application/vnd.ms-package.3dmanufacturing-3dmodel+xml` | `image` | `3mf` |  |  | ✓ |  |  |
+| `a2r` | Applesauce A2R floppy flux capture | `application/x-floppy-image` | `archive` | — |  |  | ✓ |  |  |
+| `a78_rom` | Atari 7800 ProSystem Cartridge ROM (.a78) | `application/x-atari-7800-rom` | `archive` | `a78` |  |  | ✓ |  |  |
+| `aapt2_flat` | Google Android AAPT2 Compiled Flat Resource Container (.flat) | `application/x-android-aapt2-flat` | `executable` | `flat` |  |  | ✓ |  |  |
+| `aaru_dicf` | Aaru Data Preservation Suite / DiscImageChef Media Image (.aaru / .dicf) | `application/x-aaru-image` | `archive` | `aaru`, `dicf` |  |  | ✓ |  |  |
+| `abcomp` | ABComp v2.x Compressed Data (.abp) | `application/x-abcomp` | `archive` | `abp` |  |  | ✓ |  |  |
+| `ableton_amxd` | Ableton Live / Cycling '74 Max for Live Device (.amxd, 2009) Ableton & Cycling '74 | `application/x-ableton-amxd` | `audio` | `amxd` |  |  | ✓ |  |  |
+| `ableton_asd` | Ableton Live Audio Analysis & Warp Sidecar (.asd) | `application/x-ableton-asd` | `audio` | `asd` |  |  | ✓ |  |  |
+| `absolute_db_qc` | ComponentAce Absolute Database File (.abs / .qc) | `application/x-absolute-db-qc` | `database` | `abs`, `qc` |  |  | ✓ |  |  |
+| `ac1d_packer` | Anarchy Amiga AC1D Packer Module (.ac1d) | `audio/x-mod` | `audio` | `ac1d` |  |  | ✓ |  |  |
 | `access` | Microsoft Access database | `application/octet-stream` | `database` | `accdb`, `mdb` |  |  | ✓ |  |  |
 | `ace` | ACE archive | `application/x-ace-compressed` | `archive` | `ace` |  |  | ✓ | ✓ | ✓ |
+| `acr5_icdb` | ACDSee ACR5 Image Catalog Database (.icdb, ACDSee) | `application/x-acr5-icdb` | `database` | `icdb` |  |  | ✓ |  |  |
+| `acronis_msg_catalog` | Acronis Bootable Media Builder UTF-16LE Message String Catalog (.msg) | `application/x-acronis-msg-catalog` | `application` | `msg` |  |  | ✓ |  |  |
+| `acronis_tib` | Acronis True Image backup container (.tib) | `application/x-acronis-tib` | `archive` | `tib` |  |  | ✓ |  |  |
+| `acta_outline` | Symmetry Acta / Acta Advantage Macintosh Outline Document (.acta) | `application/x-acta-outline` | `document` | `acta` |  |  | ✓ |  |  |
+| `actionamics_ast` | Actionamics Amiga Sound Tool Module (.ast) | `audio/x-ast` | `audio` | `ast` |  |  | ✓ |  |  |
+| `adexplorer_dat` | Sysinternals Active Directory Explorer Snapshot (.dat) | `application/x-adexplorer-dat` | `database` | `dat` |  |  | ✓ |  |  |
+| `adlib_a2m` | Subz3ro AdLib Tracker II Module (.a2m) | `audio/x-a2m` | `audio` | `a2m` |  |  | ✓ |  |  |
+| `adlib_bam` | Bob's AdLib Music Module (.bam) | `audio/x-adlib-bam` | `audio` | `bam` |  |  | ✓ |  |  |
+| `adlib_cmf` | Creative Labs AdLib / Sound Blaster Creative Music File (.cmf) | `audio/x-cmf` | `audio` | `cmf` |  |  | ✓ |  |  |
+| `adlib_dro` | DOSBox AdLib OPL2/OPL3 Raw Capture (.dro) | `audio/x-dosbox-dro` | `audio` | `dro` |  |  | ✓ |  |  |
+| `adlib_fernandez` | Martin Fernandez AdLib Music Module (.adlib) | `audio/x-adlib-fernandez` | `audio` | `adlib` |  |  | ✓ |  |  |
+| `adlib_rad` | Reality AdLib Tracker OPL2/OPL3 Module (.rad) | `audio/x-adlib-rad` | `audio` | `rad` |  |  | ✓ |  |  |
+| `adlib_raw` | RdosPlay AdLib OPL2 Raw Register Capture (.raw) | `audio/x-adlib-raw` | `audio` | `raw` |  |  | ✓ |  |  |
+| `adlib_rol` | AdLib Visual Composer FM Song (.rol) | `audio/x-rol` | `audio` | `rol` |  |  | ✓ |  |  |
+| `adlib_sbi` | Creative Labs Sound Blaster FM Instrument Patch (.sbi) | `audio/x-sbi` | `audio` | `sbi` |  |  | ✓ |  |  |
+| `adobe_asn_sif` | Adobe Developer Association (ASN) Search Index File (.sif, 1995) Adobe | `application/x-adobe-asn-sif` | `database` | `sif` |  |  | ✓ |  |  |
+| `adobe_rna` | Adobe Acrobat Reader RNA IPC Message (.13ec / .7a4) | `application/x-adobe-rna` | `application` | `13ec`, `7a4` |  |  | ✓ |  |  |
+| `adobe_swatch_exchange_ase` | Adobe Swatch Exchange (.ase, PRONOM fmt/1816) | `application/x-adobe-swatch-exchange-ase` | `document` | `ase` |  |  | ✓ |  |  |
+| `adobe_techpool_tutorial_tpp` | Adobe / TechPool Interactive Tutorial Presentation (.tpp, 1995) TechPool Studios / Adobe | `application/x-adobe-techpool-tutorial-tpp` | `document` | `tpp` |  |  | ✓ |  |  |
+| `adrift_taf` | ADRIFT Text Adventure File (.taf, PRONOM fmt/1584) | `application/x-adrift-taf` | `document` | `taf` |  |  | ✓ |  |  |
+| `advanced_forensic_format_aff` | Advanced Forensic Format (.aff, PRONOM fmt/844) | `application/x-advanced-forensic-format-aff` | `document` | `aff` |  |  | ✓ |  |  |
+| `advsys` | AdvSys Compiled Adventure (.dat) | `application/x-advsys` | `executable` | `dat` |  |  | ✓ |  |  |
+| `aerofly_tmt` | IPACS Aerofly Texture Map (.tmt) | `image/x-aerofly-tmt` | `image` | `tmt` |  |  | ✓ |  |  |
 | `aff` | Hunspell Affix | `text/plain` | `unknown` | `aff` | ✓ |  | ✓ |  |  |
+| `ags_tra` | Adventure Game Studio Compiled Translation (.tra, 2001) Chris Jones | `application/x-ags-tra` | `database` | `tra` |  |  | ✓ |  |  |
+| `agt_agx` | AGT Adventure Game Toolkit AGX Game (.agx) | `application/x-agt-agx` | `executable` | `agx` |  |  | ✓ |  |  |
 | `ai` | Adobe Illustrator Artwork | `application/pdf` | `document` | `ai` |  |  | ✓ | ✓ |  |
+| `aidaim_sfs` | AidAim Software SingleFileSystem (SFS) Container (AAMVHFSS, .edb / .plr / .loader) | `application/x-aidaim-sfs` | `archive` | `edb`, `plr`, `loader` |  |  | ✓ |  |  |
 | `aidl` | Android Interface Definition Language | `text/plain` | `unknown` | `aidl` | ✓ |  |  | ✓ |  |
+| `alan3_game` | Alan 3 Compiled Adventure (.a3c) | `application/x-alan-adventure` | `executable` | `a3c` |  |  | ✓ |  |  |
+| `alch_gal` | Alchemy Mindworks Image Gallery (.gal) | `image/x-alchemy-gallery` | `image` | `gal` |  |  | ✓ |  |  |
 | `alembic` | Alembic geometry cache | `application/octet-stream` | `image` | `abc` |  |  | ✓ |  |  |
+| `all_sound_tracker` | All Sound Tracker Module (.ast) | `audio/x-ast` | `audio` | `ast` |  |  | ✓ |  |  |
+| `allegro_fasl` | Franz Allegro Common Lisp Fast-Load Bytecode (.fasl, 1988) Franz | `application/x-allegro-fasl` | `executable` | `fasl` |  |  | ✓ |  |  |
+| `allwinner_egon` | Allwinner eGON.BT0 / eGON.BT1 Bootloader Image (.bin) | `application/x-allwinner-egon` | `application` | `bin` |  |  | ✓ |  |  |
+| `allwinner_imagewty` | Allwinner LiveSuit / PhoenixSuit IMAGEWTY Firmware Image (.img) | `application/x-allwinner-imagewty` | `application` | `img` |  |  | ✓ |  |  |
+| `alpha_bmp` | Alpha Microsystems AMOS Bitmap (.bmp) | `image/x-alpha-bmp` | `image` | `bmp` |  |  | ✓ |  |  |
+| `alpha_wrgg` | Alpha Networks WRGG03 / DKBS Router Firmware Image (.bin) | `application/x-alpha-wrgg` | `application` | `bin` |  |  | ✓ |  |  |
+| `alsa_soc_topology` | Linux ALSA SoC Audio DSP Topology Binary (.tplg, CoSA) | `application/x-alsa-topology` | `application` | `tplg` |  |  | ✓ |  |  |
+| `alto_al` | Xerox Alto Bitmap Font (.al, 1974) Xerox PARC | `application/x-alto-font` | `font` | `al` |  |  | ✓ |  |  |
+| `alto_dsk` | Xerox Alto Diablo 31 Disk Pack Image (.dsk, 1973) Xerox PARC | `application/x-xerox-alto-disk` | `archive` | `dsk` |  |  | ✓ |  |  |
+| `alto_run` | Xerox Alto BCPL Save Version Executable (.run, 1974) Xerox PARC | `application/x-xerox-alto-run` | `executable` | `run` |  |  | ✓ |  |  |
+| `alto_widths` | Xerox Alto Font Widths Table (FONTS.WIDTHS, 1975) Xerox PARC | `application/x-alto-widths` | `font` | `widths` |  |  | ✓ |  |  |
+| `alz` | ESTsoft ALZip compressed archive | `application/x-alzip` | `archive` | — |  |  | ✓ |  |  |
+| `am6_amp` | AM6 Wrapped Windows DIB Bitmap (.amp) | `application/x-am6-amp` | `image` | `amp` |  |  | ✓ |  |  |
+| `am_acetracker` | Amiga Ace Tracker Module (.am) | `audio/x-am` | `audio` | `am` |  |  | ✓ |  |  |
+| `am_composer` | Amiga A.M. Composer 1.2 Module (.amc) | `audio/x-am-composer` | `audio` | `amc` |  |  | ✓ |  |  |
+| `amd_microcode` | AMD x86-64 Processor Microcode Update Container (.bin, DMA\\\\0) | `application/x-amd-microcode` | `application` | `bin` |  |  | ✓ |  |  |
+| `amd_psp_firmware` | AMD Platform Security Processor / NPU / TEE Signed Firmware ($PS1) | `application/x-amd-psp-firmware` | `application` | `sbin` |  |  | ✓ |  |  |
+| `amdgpu_ucode` | AMD Radeon / AMDGPU Graphics & Compute Microcode Binary (.bin) | `application/x-amdgpu-microcode` | `application` | `bin` |  |  | ✓ |  |  |
+| `amf_dsmi` | Otto Chrons DSMI Advanced Module Format (.amf) | `audio/x-amf` | `audio` | `amf` |  |  | ✓ |  |  |
+| `amg_archive` | Milen Georgiev AMG Compressed Archive (.amg) | `application/x-amg-archive` | `archive` | `amg` |  |  | ✓ |  |  |
+| `amiga_ahx` | Amiga Abyss Highest Experience Chiptune Synthesizer Module (.ahx / .thx) | `audio/x-ahx` | `audio` | `ahx`, `thx` |  |  | ✓ |  |  |
+| `amiga_cdtv_resident_tm` | Commodore Amiga CDTV Resident Trademark / Device Module (CDTV.TM, 1991) Commodore-Amiga | `application/x-amiga-cdtv-resident-tm` | `executable` | `tm` |  |  | ✓ |  |  |
+| `amiga_dbm` | Amiga DigiBooster / DigiBooster Pro Tracker Module (.dbm / .digi) | `audio/x-dbm` | `audio` | `dbm`, `digi` |  |  | ✓ |  |  |
+| `amiga_fc` | Amiga Future Composer v1.0-v1.4 Synth Module (.fc / .fc13 / .fc14 / .smod) | `audio/x-future-composer` | `audio` | `fc`, `fc13`, `fc14`, `smod` |  |  | ✓ |  |  |
+| `amiga_okt` | Amiga Oktalyzer 8-Channel Tracker Module (.okt) | `audio/x-mod` | `audio` | `okt` |  |  | ✓ |  |  |
+| `amiga_packdev` | Amiga PackDev Device Archive (.pkd / .dsq) | `application/x-amiga-packdev` | `archive` | `pkd`, `dsq` |  |  | ✓ |  |  |
+| `amiga_squash` | Squash Amiga Data Compressor (.sqsh) | `application/x-amiga-squash` | `archive` | `sqsh` |  |  | ✓ |  |  |
+| `amiga_zoom` | Amiga Zoom Floppy Disk Archive (.zom) | `application/x-amiga-zoom` | `archive` | `zom` |  |  | ✓ |  |  |
+| `amlogic_mpt` | Amlogic SoC eMMC Partition Table (MPT\\0) | `application/x-amlogic-mpt` | `application` | — |  |  | ✓ |  |  |
+| `amlogic_upgrade` | Amlogic USB Burning Tool Upgrade Package (aml_upgrade_package.img) Amlogic | `application/x-amlogic-upgrade` | `application` | `img` |  |  | ✓ |  |  |
+| `amplesound_umsk` | Ample Sound Guitar/Bass Keyswitch Articulation Map (.umsk) Ample Sound | `application/x-amplesound-umsk` | `audio` | `umsk` |  |  | ✓ |  |  |
+| `ams_extreme` | Velvet Development Extreme's Tracker Module (.ams) | `audio/x-ams` | `audio` | `ams` |  |  | ✓ |  |  |
+| `amx_synth` | And X Synth Module (.amx) | `audio/x-amx` | `audio` | `amx` |  |  | ✓ |  |  |
+| `anc_cruncher` | ANC Cruncher Amiga Data Stream (.anc) | `application/x-anc-cruncher` | `archive` | `anc` |  |  | ✓ |  |  |
+| `anders_oland` | Anders 0land Amiga Music Module (.hot) | `audio/x-anders-oland` | `audio` | `hot` |  |  | ✓ |  |  |
+| `android_art_profile` | Android Runtime (ART) Baseline Profile (.prof / .profm) | `application/vnd.android.prof` | `executable` | `prof`, `profm` |  |  | ✓ |  |  |
+| `android_bootloader_img` | Android Bootloader Signed Image Wrapper (BOOTAND) | `application/x-android-bootloader` | `application` | `img` |  |  | ✓ |  |  |
+| `android_dtbo` | Android Device Tree Blob Overlay Partition Image (.dtbo, 0x1EABB7D7) | `application/x-android-dtbo` | `application` | `dtbo` |  |  | ✓ |  |  |
+| `android_hyb` | Android Minikin Compiled Hyphenation Dictionary (.hyb) | `application/x-android-hyb` | `application` | `hyb` |  |  | ✓ |  |  |
+| `android_ota` | Google ChromeOS / Android A/B OTA Update Payload (CrAU) | `application/x-android-ota-payload` | `archive` | `bin` |  |  | ✓ |  |  |
+| `android_sparse` | Android Sparse Ext4/EROFS System Partition Image (.simg) | `application/x-android-sparse` | `archive` | `simg` |  |  | ✓ |  |  |
+| `android_vbmeta` | Google Android Verified Boot 2.0 VBMeta Image (AVB0) | `application/x-android-vbmeta` | `application` | — |  |  | ✓ |  |  |
+| `android_winscope_trace` | Android AOSP Winscope WindowManager / SurfaceFlinger / ProtoLog Trace | `application/x-android-winscope-trace` | `application` | `winscope` |  |  | ✓ |  |  |
 | `ani` | Animated cursor | `application/x-navi-animation` | `unknown` | `ani` |  |  | ✓ |  | ✓ |
+| `ansi_csi_art` | ANSI X3.64 / ECMA-48 CSI Escape BBS Text Art (.ans / .imp) | `application/x-ansi-csi-art` | `image` | `ans`, `imp` |  |  | ✓ |  |  |
+| `ansi_tape` | ANSI X3.27 / ISO 1001 Labeled Magnetic Tape Volume (VOL1/HDR1 ASCII labels, 1969) ANSI | `application/x-ansi-tape` | `archive` | `ct` |  |  | ✓ |  |  |
+| `aoe_drs` | Ensemble Studios Age of Empires DRS Resource Archive (.drs, 1997) Ensemble Studios | `application/x-ensemble-drs` | `archive` | `drs` |  |  | ✓ |  |  |
+| `aol_art` | America Online Johnson-Grace ART Compressed Image (.art) | `image/x-jg` | `image` | `art` |  |  | ✓ |  |  |
+| `aon_fm` | Bastian Spiegel Art Of Noise FM Synth Instrument (.fm) | `audio/x-aon-fm` | `audio` | `fm` |  |  | ✓ |  |  |
+| `aor_dv10_fw` | AOR AR-DV10 SDR Receiver Encrypted Firmware Image (.d10) AOR | `application/x-aor-dv10-fw` | `application` | `d10` |  |  | ✓ |  |  |
 | `aout` | a.out object / executable | `application/octet-stream` | `executable` | `out` |  |  | ✓ |  |  |
+| `apis_iq_ice` | APIS IQ-Software (IQ-FMEA / IQ-RM) Fridge Container (.ice / .cfg) | `application/x-apis-iq-ice` | `archive` | `ice`, `cfg` |  |  | ✓ |  |  |
 | `apk` | Android package | `application/vnd.android.package-archive` | `executable` | `apk` |  |  | ✓ | ✓ |  |
+| `apollo_sysboot` | Apollo Domain/OS SYSBOOT Boot Tape Image (.ct / .img, 1985) Apollo Computer | `application/x-apollo-sysboot` | `executable` | `ct`, `img` |  |  | ✓ |  |  |
+| `apple_8900` | Apple S5L8900 Secure Boot Firmware Container (89001.0, .dfu / .img2) Apple | `application/x-apple-8900` | `application` | `dfu`, `img2` |  |  | ✓ |  |  |
+| `apple_aea` | Apple Encrypted Archive / Signed Shortcut (.aea / .shortcut, 2021) Apple | `application/x-apple-aea` | `archive` | `aea`, `shortcut` |  |  | ✓ |  |  |
+| `apple_archive` | Apple Archive (.aar / .yaa) | `application/x-apple-archive` | `archive` | `aar`, `yaa` |  |  | ✓ |  |  |
+| `apple_asl` | Apple System Log Binary Database (.asl) | `application/x-apple-asl` | `application` | `asl` |  |  | ✓ |  |  |
+| `apple_binary_ii` | Apple II Binary II Archive (.bny / .bqy) | `application/x-apple-binary-ii` | `archive` | `bny`, `bqy` |  |  | ✓ |  |  |
+| `apple_fairplay_supf` | Apple FairPlay DRM f-Class Key Container (.supf) | `application/x-apple-fairplay-supf` | `application` | `supf` |  |  | ✓ |  |  |
+| `apple_fairplay_supp` | Apple FairPlay DRM p-Class Key Container (.supp) | `application/x-apple-fairplay-supp` | `application` | `supp` |  |  | ✓ |  |  |
+| `apple_mkext` | Apple Darwin Multi-Kext Kernel Extension Archive (.mkext, 2000) Apple | `application/x-apple-mkext` | `archive` | `mkext` |  |  | ✓ |  |  |
+| `apple_nibarchive` | Apple Compiled Interface Builder NIBArchive (.nib) | `application/x-apple-nibarchive` | `executable` | `nib` |  |  | ✓ |  |  |
+| `apple_securityd_blob` | Apple SecurityServer CommonBlob Key/Database Store (.db, 2000) Apple | `application/x-apple-securityd-blob` | `application` | `db` |  |  | ✓ |  |  |
+| `apple_sparseimage` | Apple macOS Sparse Disk Image (.sparseimage, sprs) | `application/x-apple-sparseimage` | `archive` | `sparseimage` |  |  | ✓ |  |  |
+| `apple_spotlight_store` | Apple Spotlight Metadata Store Database (store.db) | `application/x-apple-spotlight-store` | `database` | `db` |  |  | ✓ |  |  |
+| `apple_vmp4` | Apple Maps Vector Map Tile Container (VMP4, .vf) Apple | `application/x-apple-vmp4` | `application` | `vf` |  |  | ✓ |  |  |
 | `applebplist` | Apple binary property list | `application/x-bplist` | `application` | `bplist`, `plist` |  |  | ✓ | ✓ | ✓ |
 | `appledouble` | AppleDouble | `multipart/appledouble` | `unknown` | — |  |  | ✓ |  | ✓ |
 | `appleplist` | Apple property list | `application/x-plist` | `application` | `plist` | ✓ |  | ✓ | ✓ |  |
 | `applesingle` | AppleSingle | `application/applefile` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `aprosys_aps` | Petter Urstad AProSys Amiga Synth Module (.aps) | `audio/x-aprosys` | `audio` | `aps` |  |  | ✓ |  |  |
+| `aps_n64_patch` | Nintendo 64 APS 1.0 ROM Patch (.aps, APS10) | `application/x-aps-patch` | `application` | `aps` |  |  | ✓ |  |  |
 | `ar` | AR Archive | `application/x-archive` | `archive` | — |  |  | ✓ |  |  |
 | `arc` | Arc | `application/x-arc` | `archive` | `arc` |  |  | ✓ |  |  |
+| `arc_castpart` | ARC CAST Airport Simulation Component (CT COBJ2, .CASTPart) | `application/x-arc-castpart` | `geometry` | `castpart` |  |  | ✓ |  |  |
+| `arcadyan_fw` | Arcadyan Obfuscated LZMA Router Firmware Image (.bin) | `application/x-arcadyan-firmware` | `application` | `bin` |  |  | ✓ |  |  |
 | `arcgrid` | ESRI ASCII Grid | `text/plain` | `application` | `asc`, `grd` | ✓ |  | ✓ |  |  |
+| `archive_hash_rtm` | ARCHIVE# v2 Resource Package (.rtm) | `application/x-archive-hash-rtm` | `archive` | `rtm` |  |  | ✓ |  |  |
+| `arcsoft_ui_aui` | ArcSoft PhotoStudio UI Layout Definition (.aui, 1998) ArcSoft | `application/x-arcsoft-ui-aui` | `application` | `aui` |  |  | ✓ |  |  |
+| `arcv` | Eschalon Setup ARCV Compressed Container (.arv) | `application/x-arcv` | `archive` | `arv` |  |  | ✓ |  |  |
+| `argonaut_asf` | Argonaut Games ASF ADPCM Audio Stream (.asf) | `audio/x-argonaut-asf` | `audio` | `asf` |  |  | ✓ |  |  |
+| `argonaut_brp` | Argonaut Games BRPP Full-Motion Video (.brp) | `video/x-argonaut-brp` | `video` | `brp` |  |  | ✓ |  |  |
 | `arj` | Arj | `application/arj` | `archive` | — |  |  | ✓ |  |  |
+| `arm_mali_csffw` | ARM Mali GPU Command Stream Frontend MCU Firmware (mali_csffw.bin) | `application/x-arm-mali-csffw` | `application` | `bin` |  |  | ✓ |  |  |
+| `arm_vector_rom` | ARM32 Exception Vector Firmware ROM Image (.rom) | `application/x-arm-vector-rom` | `executable` | `rom` |  |  | ✓ |  |  |
 | `arrow` | arrow | `application/vnd.apache.arrow.file` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `art` | Android Runtime Image (ART) | `application/vnd.android.art` | `executable` | — |  |  | ✓ |  |  |
+| `art_of_noise_aon` | Bastian Spiegel Art Of Noise 4/8-Channel Amiga Tracker (.aon, AON4/AON8) | `audio/x-aon` | `audio` | `aon` |  |  | ✓ |  |  |
 | `asd` | asd | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `asdf` | Advanced Scientific Data Format (ASDF, YAML + binary blocks) | `application/x-asdf` | `application` | — |  |  | ✓ |  |  |
 | `asf` | Microsoft Advanced Systems Format | `video/x-ms-asf` | `application` | `asf` |  |  | ✓ |  |  |
+| `ashampoo_ashlang` | Ashampoo URESFILE Localization Package (.ashlang) Ashampoo | `application/x-ashampoo-ashlang` | `archive` | `ashlang` |  |  | ✓ |  |  |
+| `asksam` | askSam Free-Form Database (.ask, PRONOM fmt/2019) | `application/x-asksam` | `database` | `ask` |  |  | ✓ |  |  |
 | `asm` | Assembly | `text/x-asm` | `code` | `s`, `S`, `asm` | ✓ |  |  | ✓ |  |
 | `asp` | ASP source | `text/html` | `code` | `aspx`, `asp` | ✓ |  |  | ✓ |  |
+| `assetto_corsa_kn5` | Kunos Simulazioni Assetto Corsa KN5 3D Model (.kn5) | `model/x-assetto-corsa-kn5` | `geometry` | `kn5` |  |  | ✓ |  |  |
+| `assettocorsa_acd` | Kunos Simulazioni Assetto Corsa Encrypted Car Data Archive (.acd, 2013) Kunos Simulazioni | `application/x-assettocorsa-acd` | `archive` | `acd` |  |  | ✓ |  |  |
+| `astc` | ARM Adaptive Scalable Texture Compression Image (.astc) | `image/astc` | `image` | `astc` |  |  | ✓ |  |  |
+| `astm_e57` | ASTM E57 3D Imaging Lidar Point Cloud (.e57, ASTM-E57) | `model/e57` | `geometry` | `e57` |  |  | ✓ |  |  |
+| `asylum_music_format_amf` | Asylum Music Format (.amf, PRONOM fmt/1622) | `application/x-asylum-music-format-amf` | `document` | `amf` |  |  | ✓ |  |  |
+| `asz_package` | ASzf Zlib-Compressed Resource Package (.asz) | `application/x-asz-package` | `archive` | `asz` |  |  | ✓ |  |  |
+| `atari_cad3d2` | Antic Software Atari ST Cyber Studio CAD-3D 2.0 3D Object (.3d2, 1987) Tom Hudson / Antic Publishing | `model/x-atari-cad3d2` | `geometry` | `3d2` |  |  | ✓ |  |  |
+| `atari_crackart` | Atari ST CrackArt Raster Image (.ca1 / .ca2 / .ca3) | `image/x-crackart` | `image` | `ca1`, `ca2`, `ca3` |  |  | ✓ |  |  |
+| `atari_gfa_basic` | GFA Systemtechnik Atari ST GFA-BASIC 3.x Program (.gfa, 1988) Frank Ostrowski / GFA Systemtechnik | `application/x-gfa-basic` | `executable` | `gfa` |  |  | ✓ |  |  |
+| `atari_mpp` | Atari ST Multi Palette Picture File (.mpp, PRONOM fmt/1471) | `image/x-atari-mpp` | `document` | `mpp` |  |  | ✓ |  |  |
+| `atari_msa` | Atari ST Magic Shadow Archiver Compressed Floppy Image (.msa) | `application/x-atari-msa` | `archive` | `msa` |  |  | ✓ |  |  |
+| `atari_sap` | Atari 8-Bit Slight Atari Player POKEY Chiptune (.sap) | `audio/x-sap` | `audio` | `sap` |  |  | ✓ |  |  |
+| `atari_st_guide_hyp` | Atari ST-Guide Compiled Hypertext (.hyp, HDOC) | `application/x-atari-st-guide` | `document` | `hyp` |  |  | ✓ |  |  |
+| `atari_stx` | Atari ST Pasti Copy-Protected Floppy Disk Image (.stx) | `application/x-atari-stx` | `archive` | `stx` |  |  | ✓ |  |  |
+| `atari_ym` | Atari ST / Amstrad CPC YM2149 Sound Chip Music (.ym) | `audio/x-ym` | `audio` | `ym` |  |  | ✓ |  |  |
+| `atlus_gfs` | Atlus GFS0 3D Model / Texture Container (.gmd / .gfs, 2016) Atlus / Sega | `model/x-atlus-gfs` | `geometry` | `gmd`, `gfs` |  |  | ✓ |  |  |
+| `atomik` | Atari ST Atomik Cruncher v3.5 Compressed File (ATM5) | `application/x-atomik` | `archive` | — |  |  | ✓ |  |  |
 | `au` | NeXT/Sun AU | `audio/basic` | `audio` | `au` |  |  | ✓ |  | ✓ |
+| `audfprint` | Audfprint Audio Landmark Fingerprint Database (.afpt / .afpk) | `application/x-audfprint` | `audio` | `afpt`, `afpk` |  |  | ✓ |  |  |
+| `audible_aa` | Audible Legacy DRM Audiobook Container (.aa) | `audio/x-pn-audibleaudio` | `audio` | `aa` |  |  | ✓ |  |  |
+| `audio_sculpture_as` | Sync Audio Sculpture Synth Instrument Bank (.as) | `audio/x-audio-sculpture` | `audio` | `as` |  |  | ✓ |  |  |
+| `aul_dsc` | Apple Unified Logging Shared-Cache Strings (.dsc) | `application/x-apple-aul-dsc` | `application` | `dsc` |  |  | ✓ |  |  |
+| `aul_timesync` | Apple Unified Logging Timesync Database (.timesync) | `application/x-apple-aul-timesync` | `application` | `timesync` |  |  | ✓ |  |  |
+| `aul_uuidtext` | Apple Unified Logging UUIDText String Catalog | `application/x-apple-aul-uuidtext` | `application` | `uuidtext` |  |  | ✓ |  |  |
+| `auroradsp_state` | Aurora DSP Audio Plugin State Preset (.afx / .lpa) Aurora DSP | `application/x-auroradsp-state` | `audio` | `afx`, `lpa` |  |  | ✓ |  |  |
+| `autel_ecc` | Autel Diagnostic Encrypted Firmware Container (.ecc) | `application/x-autel-ecc` | `application` | `ecc` |  |  | ✓ |  |  |
+| `autocad_vlx` | Autodesk AutoCAD Visual LISP Compiled Application Package (.vlx, 1999) Autodesk | `application/x-autocad-vlx` | `executable` | `vlx` |  |  | ✓ |  |  |
 | `autohotkey` | AutoHotKey script | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `autoit` | AutoIt script | `text/plain` | `code` | `au3` | ✓ |  | ✓ | ✓ |  |
+| `autolisp_fas` | Autodesk AutoCAD Visual LISP Compiled Fast-Load Bytecode (.fas, 1999) Autodesk | `application/x-autolisp-fas` | `executable` | `fas` |  |  | ✓ |  |  |
+| `autorun_maestro_menu_file_mnu` | Longtion AutoRun Pro / Autorun Maestro Menu (.mnu, PRONOM fmt/1461) | `application/x-autorun-maestro-menu-file-mnu` | `document` | `mnu` |  |  | ✓ |  |  |
+| `avast_vpu` | Avast Antivirus Setup & Definitions Package (.vpu / .vpx) | `application/x-avast-vpu` | `archive` | `vpu`, `vpx` |  |  | ✓ |  |  |
+| `avchd_thumbnail_index_file_tid` | AVCHD Thumbnail Index File (.tid, PRONOM fmt/1077) | `application/x-avchd-thumbnail-index-file-tid` | `document` | `tid` |  |  | ✓ |  |  |
 | `avi` | Audio Video Interleave | `video/x-msvideo` | `video` | `avi` |  |  | ✓ |  | ✓ |
 | `avif` | AV1 Image File Format | `image/avif` | `image` | `avif`, `avifs` |  |  | ✓ |  | ✓ |
+| `avr_audio` | Atari ST Audio Visual Research Sampled Sound (.avr, 2BIT) | `audio/x-avr` | `audio` | `avr` |  |  | ✓ |  |  |
 | `avro` | Apache Avro binary | `application/x-avro-binary` | `unknown` | `avro` |  |  | ✓ |  | ✓ |
+| `award_bios_stf` | Award Software BIOS Setup Language Module (_XX_CODE.BIN, .stf) | `application/x-award-bios-stf` | `executable` | `stf` |  |  | ✓ |  |  |
 | `awk` | Awk | `text/plain` | `code` | `awk` | ✓ |  |  | ✓ |  |
+| `bahn_nt3` | JB Software BAHN 3.2 Railway Simulation Network Layout (.nt3, 1995) Jan Bochmann | `application/x-bahn-nt3` | `document` | `nt3` |  |  | ✓ |  |  |
+| `bai` | SAMtools BAM Index (.bai) | `application/x-bai` | `database` | `bai` |  |  | ✓ |  |  |
 | `bam` | BAM alignment | `application/octet-stream` | `scientific` | `bam` |  |  | ✓ |  | ✓ |
+| `bandai_namco_nus3` | Bandai Namco NUS3 Audio Container (.nus3audio / .nus3bank) | `audio/x-bandai-namco-nus3` | `audio` | `nus3audio`, `nus3bank` |  |  | ✓ |  |  |
+| `bannermania_fnt` | Broderbund BannerMania Vector Font (.fnt) | `application/x-font` | `font` | `fnt` |  |  | ✓ |  |  |
+| `bartender_btw` | Seagull Scientific BarTender Barcode Label Document (.btw, 1992) Seagull Scientific | `application/x-bartender-btw` | `document` | `btw` |  |  | ✓ |  |  |
+| `basis` | Binomial Basis Universal Supercompressed GPU Texture (.basis) | `image/x-basis` | `image` | `basis` |  |  | ✓ |  |  |
 | `batch` | DOS batch file | `text/x-msdos-batch` | `code` | `bat` | ✓ |  | ✓ | ✓ |  |
 | `bazel` | Bazel build file | `text/plain` | `code` | `bzl` | ✓ |  |  | ✓ |  |
+| `bbsong` | ZX Spectrum Beepola Beeper Song (.bbsong) | `audio/x-bbsong` | `audio` | `bbsong` |  |  | ✓ |  |  |
+| `bcl_bfc` | Marcus Geelnard Basic Compression Library File (.bfc) | `application/x-bcl-bfc` | `archive` | `bfc` |  |  | ✓ |  |  |
+| `bcres` | Nintendo 3DS NW4C Binary CTR Resource Package (.bcres / .bcmdl / .bctex) | `application/x-nintendo-bcres` | `archive` | `bcres`, `bcmdl`, `bctex` |  |  | ✓ |  |  |
+| `beagleworks_doc` | Beagle Bros BeagleWorks / WordPerfect Works Integrated Document (.bw / .wpw, BWks) | `application/x-beagleworks` | `document` | `bw`, `wpw` |  |  | ✓ |  |  |
 | `beam` | Erlang BEAM | `application/octet-stream` | `executable` | `beam` |  |  | ✓ |  | ✓ |
+| `beaver_sweeper` | Beaver Sweeper Tracker Module (.gtk) | `audio/x-beaver-sweeper` | `audio` | `gtk` |  |  | ✓ |  |  |
+| `berkeley_vfont` | Berkeley Unix / SunOS vfont Bitmap Font (.vfont, 1979) UC Berkeley CSRG / Sun Microsystems | `font/x-berkeley-vfont` | `font` | `vfont` |  |  | ✓ |  |  |
 | `berkeleydb` | Berkeley DB | `application/octet-stream` | `database` | `db` |  |  | ✓ |  |  |
+| `berotracker_brt` | Benjamin Rosseaux BeRoTracker Module (.brt) | `audio/x-brt` | `audio` | `brt` |  |  | ✓ |  |  |
+| `bethesda_bgsm` | Bethesda Creation Engine Shader Material (.bgsm / .bgem) | `application/x-bethesda-bgsm` | `application` | `bgsm`, `bgem` |  |  | ✓ |  |  |
+| `bethesda_esp` | Bethesda Creation Engine Plugin / Master (.esp / .esm / .esl) | `application/x-bethesda-esp` | `database` | `esp`, `esm`, `esl` |  |  | ✓ |  |  |
+| `bethesda_fuz` | Bethesda Creation Engine Voice & Lip-Sync Audio (.fuz) | `audio/x-bethesda-fuz` | `audio` | `fuz` |  |  | ✓ |  |  |
+| `bethesda_pex` | Bethesda Creation Engine Compiled Papyrus Script Bytecode (.pex, 2011) Bethesda Game Studios | `application/x-bethesda-pex` | `executable` | `pex` |  |  | ✓ |  |  |
+| `bethesda_vid` | Bethesda Softworks XnGine VID Video (.vid) | `video/x-bethesda-vid` | `video` | `vid` |  |  | ✓ |  |  |
+| `beyondtrust_brdf_rdf` | BeyondTrust / Bomgar Remote Support Binary Resource Definition (BRDF, .rdf) | `application/x-beyondtrust-brdf` | `database` | `rdf` |  |  | ✓ |  |  |
+| `beyondtrust_scc_ui` | BeyondTrust Remote Support UI RPC Cache (.cache-scc-ui) | `application/x-beyondtrust-scc-ui` | `application` | `cache-scc-ui` |  |  | ✓ |  |  |
+| `bfi_video` | Blue Byte Brute Force & Ignorance Video (.bfi, BF&I) | `video/x-bfi` | `video` | `bfi` |  |  | ✓ |  |  |
+| `bfres` | Nintendo Wii U / Switch NW4F Binary Cafe Resource Package (.bfres) | `application/x-nintendo-bfres` | `archive` | `bfres` |  |  | ✓ |  |  |
+| `bgi_chr` | Borland Graphics Interface Stroked Vector Font (.chr) | `application/x-font` | `font` | `chr` |  |  | ✓ |  |  |
+| `bh` | ZipZag BlackHole Compressed Archive (.bh) | `application/x-blackhole-archive` | `archive` | `bh` |  |  | ✓ |  |  |
 | `bib` | BibTeX | `text/x-bibtex` | `text` | `bib` | ✓ |  |  | ✓ |  |
+| `bif` | BioWare Infinity / Aurora Engine Binary Inclusion File Archive (.bif / .bifv, 1998) BioWare | `application/x-bioware-biff` | `archive` | `bif`, `bifv` |  |  | ✓ |  |  |
+| `bigworld_packed_xml` | BigWorld Engine Packed Binary XML (.xml / .visual_processed, 2005) BigWorld / Wargaming | `application/x-bigworld-packed-xml` | `application` | `xml` |  |  | ✓ |  |  |
+| `bim_metadata_file` | Data Design System DDS-CAD Building Information Modeling (BIM) Metadata (.bim, PRONOM fmt/1722) | `application/x-bim-metadata-file` | `document` | `bim` |  |  | ✓ |  |  |
+| `binexport2` | Google BinExport v2 Binary Disassembly Protobuf (.binexport, 2011) zynamics / Google | `application/x-binexport2` | `application` | `binexport` |  |  | ✓ |  |  |
+| `bink` | RAD Game Tools Bink Video Container (.bik / .bk2) | `video/vnd.radgametools.bink` | `video` | `bik`, `bk2` |  |  | ✓ |  |  |
+| `biosemi_24_bit_bdf` | BioSemi 24-Bit BDF Electrophysiology (.bdf, PRONOM fmt/2102) | `application/x-biosemi-bdf` | `document` | `bdf` |  |  | ✓ |  |  |
+| `bioware_fxm` | BioWare Eclipse / OC3 FaceFX Facial Animation (.fxm, 2009) BioWare Edmonton | `application/x-bioware-fxm` | `geometry` | `fxm` |  |  | ✓ |  |  |
+| `bioware_gff` | BioWare Aurora / Odyssey / Eclipse Generic File Format (.gff / .uti / .utc / .dlg / .are, 2002) BioWare | `application/x-bioware-gff` | `application` | `gff`, `uti`, `utc`, `dlg`, `are` |  |  | ✓ |  |  |
+| `bioware_key` | BioWare Infinity / Aurora Engine Key Index (.key, 1998) BioWare | `application/x-bioware-key` | `database` | `key` |  |  | ✓ |  |  |
+| `bioware_ncs` | BioWare Aurora / Odyssey NWScript Compiled Bytecode (.ncs, 2002) BioWare | `application/x-bioware-ncs` | `executable` | `ncs` |  |  | ✓ |  |  |
+| `bioware_rim` | BioWare Odyssey / Eclipse Engine Resource Image Archive (.rim / .erf) | `application/x-bioware-rim` | `archive` | `rim`, `erf` |  |  | ✓ |  |  |
+| `bioware_tlk` | BioWare Aurora / Odyssey / Eclipse Talk Table (.tlk, 2002) BioWare | `application/x-bioware-tlk` | `database` | `tlk` |  |  | ✓ |  |  |
+| `bitdefender_avxs` | Bitdefender Antivirus Engine Threat Signature Segment (AVXS, .008 / .ivd) | `application/x-bitdefender-avxs` | `archive` | `ivd` |  |  | ✓ |  |  |
+| `bittorrent_btdb` | BitTorrent Speed / uTorrent Ledger Database (BTComm format 0, .btdb) | `application/x-bittorrent-btdb` | `database` | `btdb` |  |  | ✓ |  |  |
+| `bitwig_preset` | Bitwig Studio Preset / Device / Modulator (.bwpreset / .bwdevice / .bwmodulator) | `application/x-bitwig-preset` | `audio` | `bwpreset`, `bwdevice`, `bwmodulator` |  |  | ✓ |  |  |
+| `biztree_btd` | BizTree Business-in-a-Box Encrypted Document Template (.btd) | `application/x-biztree-btd` | `document` | `btd` |  |  | ✓ |  |  |
+| `blackdragon_zl` | BlackDragon v3 Archive (.zl) | `application/x-blackdragon-zl` | `archive` | `zl` |  |  | ✓ |  |  |
 | `blend` | Blender scene | `application/octet-stream` | `geometry` | `blend` |  |  | ✓ |  | ✓ |
+| `blitz3d_file_format_b3d` | Blitz3D File Format (.b3d, PRONOM fmt/1182) | `application/x-blitz3d-file-format-b3d` | `document` | `b3d` |  |  | ✓ |  |  |
+| `blizzard_m3` | Blizzard Entertainment StarCraft II M3 3D Model (.m3) | `model/x-blizzard-m3` | `geometry` | `m3` |  |  | ✓ |  |  |
+| `blizzard_woo_tbl` | Blizzard Entertainment Diablo II String Table (.tbl, 2000) Blizzard Entertainment | `application/x-blizzard-woo-tbl` | `archive` | `tbl` |  |  | ✓ |  |  |
+| `blizzard_wow_bls` | Blizzard World of Warcraft Compiled Shader Bundle (.bls) | `application/x-blizzard-wow-bls` | `executable` | `bls` |  |  | ✓ |  |  |
+| `blosc` | C-Blosc2 Contiguous / Sparse Compressed Frame (.b2frame) | `application/x-blosc2` | `archive` | `b2frame` |  |  | ✓ |  |  |
+| `bluebyte_tpwm` | Blue Byte Turbo Packer Wolfgang Mayerhofer (.tpwm) | `application/x-bluebyte-tpwm` | `archive` | `tpwm` |  |  | ✓ |  |  |
+| `bluestripe_hb` | BlueStripe FactFinder / Microsoft Monitoring BlackBox Capture (.hb) BlueStripe Software | `application/x-bluestripe-hb` | `application` | `hb` |  |  | ✓ |  |  |
+| `bluray_clpi` | Blu-ray Disc Clip Information (.clpi) | `application/x-bluray-clpi` | `video` | `clpi` |  |  | ✓ |  |  |
+| `bluray_mobj` | Blu-ray Disc MovieObject Navigation Commands (MovieObject.bdmv) | `application/x-bluray-mobj` | `video` | — |  |  | ✓ |  |  |
+| `bluray_mpls` | Blu-ray Disc Movie PlayList (.mpls) | `application/x-bluray-mpls` | `video` | `mpls` |  |  | ✓ |  |  |
+| `bmf_font` | Tomaž Kac / CRS ByteMap Font (.bmf, 1998) Tomaž Kac | `font/x-bmf` | `font` | `bmf` |  |  | ✓ |  |  |
 | `bmp` | BMP image data | `image/bmp` | `image` | `bmp` |  |  | ✓ | ✓ |  |
+| `bmx` | Oskari Tammelin Jeskola Buzz Modular Song (.bmx / .bmw) | `audio/x-bmx` | `audio` | `bmx`, `bmw` |  |  | ✓ |  |  |
+| `bng` | Better than PNG Lossless Image (.bng) | `image/x-bng` | `image` | `bng` |  |  | ✓ |  |  |
+| `bns_dialog_cbf` | Blade & Soul Dialog Screenshots Bundle (.cbf) | `application/x-bns-dialog-cbf` | `archive` | `cbf` |  |  | ✓ |  |  |
+| `bntl` | Vector 35 Binary Ninja Type Library (.bntl) | `application/x-binja-bntl` | `executable` | `bntl` |  |  | ✓ |  |  |
+| `bochs_disk` | Bochs x86 Emulator Growing Virtual HD Image (Bochs Virtual HD Image) | `application/x-bochs-disk` | `archive` | `bochs` |  |  | ✓ |  |  |
+| `bodyslide_osd` | BodySlide Outfit Studio Morph Diff Data (.osd) | `model/x-bodyslide-osd` | `geometry` | `osd` |  |  | ✓ |  |  |
+| `bohemia_p3d` | Bohemia Interactive Real Virtuality P3D 3D Model (.p3d, 2001) Bohemia Interactive | `model/x-bohemia-p3d` | `geometry` | `p3d` |  |  | ✓ |  |  |
+| `bohemia_paa` | Bohemia Interactive Real Virtuality PAA / PAC Texture (.paa / .pac, 2001) Bohemia Interactive | `image/x-bohemia-paa` | `image` | `paa`, `pac` |  |  | ✓ |  |  |
+| `bohemia_rtm` | Bohemia Interactive Real Virtuality Skeletal Animation (.rtm, 2001) Bohemia Interactive | `application/x-bohemia-rtm` | `geometry` | `rtm` |  |  | ✓ |  |  |
+| `bolt_db` | BoltDB / bbolt Go Key-Value Database (.bolt / .bdb) | `application/x-bolt-db` | `database` | `bolt`, `bdb` |  |  | ✓ |  |  |
+| `bom` | Apple / NeXTSTEP Bill of Materials (BOMStore) | `application/x-apple-bom` | `application` | — |  |  | ✓ |  |  |
+| `boomtracker_cff` | CUD BoomTracker 4.0 AdLib OPL2 Module (.cff) | `audio/x-boomtracker` | `audio` | `cff` |  |  | ✓ |  |  |
+| `borland_bde_locale_btl` | Borland Database Engine (BDE) Locale Driver (.btl, 1994) Borland | `application/x-borland-bde-locale-btl` | `database` | `btl` |  |  | ✓ |  |  |
+| `borland_bgi` | Borland Graphics Interface Video Driver (.bgi, 1987) Borland | `application/x-borland-bgi` | `executable` | `bgi` |  |  | ✓ |  |  |
+| `borland_dpmi_overlay_ovy` | Borland C++ / Pascal DPMI Protected-Mode Overlay (.ovy, 1991) Borland | `application/x-borland-dpmi-overlay-ovy` | `executable` | `ovy` |  |  | ✓ |  |  |
+| `borland_tpu` | Borland Turbo Pascal Compiled Unit (.tpu / .tpp / .tpw, 1987) Borland | `application/x-borland-tpu` | `executable` | `tpu`, `tpp`, `tpw` |  |  | ✓ |  |  |
+| `borland_turbo_debug_help_tdh` | Borland Turbo Debugger Help File (.tdh, 1988) Borland | `application/x-borland-turbo-debug-help-tdh` | `document` | `tdh` |  |  | ✓ |  |  |
+| `borland_turbo_help_tch` | Borland Turbo C / Turbo Assembler Help File (.tch / .tah, 1988) Borland | `application/x-borland-turbo-help-tch` | `document` | `tch`, `tah` |  |  | ✓ |  |  |
+| `box86_86f` | 86Box Emulator Surface Floppy Disk Image (.86f, 86BF) | `application/x-86box-86f` | `archive` | `86f` |  |  | ✓ |  |  |
+| `boyscout_bsf` | PID BoyScout Game Boy Chiptune Module (.bsf) | `audio/x-boyscout-bsf` | `audio` | `bsf` |  |  | ✓ |  |  |
 | `bpg` | BPG | `image/bpg` | `image` | `bpg` |  |  | ✓ |  | ✓ |
 | `bpl` | bpl | `application/octet-stream` | `unknown` | `bpl` |  |  | ✓ |  |  |
+| `br_as3trace` | B&R Industrial Automation Studio 3 Trace Capture (.as3trace) B&R Industrial Automation | `application/x-br-as3trace` | `application` | `as3trace` |  |  | ✓ |  |  |
+| `broadcom_cfe` | Broadcom CFE ImageTag Router Firmware Image (.bin) | `application/x-broadcom-cfe` | `application` | `bin` |  |  | ✓ |  |  |
+| `broadcom_hcd` | Broadcom / Cypress Bluetooth HCI RAM Patch Download Image (.hcd) | `application/x-broadcom-hcd` | `application` | `hcd` |  |  | ✓ |  |  |
+| `broadcom_stb_bootloader` | Broadcom Set-Top Box Bootloader Image (%BL!) | `application/x-broadcom-bootloader` | `application` | `img` |  |  | ✓ |  |  |
+| `broadcom_trx` | Broadcom TRX Router Firmware Image (HDR0) | `application/x-broadcom-trx` | `application` | `trx` |  |  | ✓ |  |  |
+| `brother_pes` | Brother / Babylock / Bernina PES Embroidery Design (.pes) | `application/x-brother-pes` | `geometry` | `pes` |  |  | ✓ |  |  |
+| `brsar` | Nintendo GameCube / Wii Sound Archive (.brsar) | `application/x-nintendo-rsar` | `audio` | `brsar` |  |  | ✓ |  |  |
+| `brstm` | Nintendo Wii Binary Revolution Stream Audio (.brstm) | `audio/x-brstm` | `audio` | `brstm` |  |  | ✓ |  |  |
+| `brunsli` | Google Brunsli Lossless Repacked JPEG (.brn) | `image/x-brunsli` | `image` | `brn` |  |  | ✓ |  |  |
+| `brwav` | Nintendo Wii Binary Revolution Wave Audio (.brwav) | `audio/x-brwav` | `audio` | `brwav` |  |  | ✓ |  |  |
+| `bsa_ba2` | Bethesda Game Studios Creation Engine Archive (.bsa / .ba2) | `application/x-bethesda-archive` | `archive` | `bsa`, `ba2` |  |  | ✓ |  |  |
+| `bsd_dump` | BSD / Unix UFS dump(8) Backup Archive (.dump, 1983) UC Berkeley CSRG | `application/x-bsd-dump` | `archive` | `dump` |  |  | ✓ |  |  |
+| `bsdiff` | Colin Percival bsdiff / Chromium Courgette Binary Patch | `application/x-bsdiff` | `archive` | — |  |  | ✓ |  |  |
 | `bson` | BSON | `application/octet-stream` | `application` | `bson` |  |  | ✓ |  |  |
+| `bsp` | Valve Source / Quake II / III Binary Space Partitioning Map (.bsp) | `model/x-bsp` | `geometry` | `bsp` |  |  | ✓ |  |  |
+| `btrfs_send_stream` | Linux Btrfs Incremental Subvolume Send Stream (btrfs-stream\\0) | `application/x-btrfs-stream` | `archive` | `stream` |  |  | ✓ |  |  |
+| `bun_pile` | Bun JavaScript Runtime Transpiler Cache (.pile) | `application/x-bun-pile` | `executable` | `pile` |  |  | ✓ |  |  |
+| `burnpipe_ba` | WiX Burn Elevation Pipe Manifest (.ba) | `application/x-burnpipe-ba` | `application` | `ba` |  |  | ✓ |  |  |
+| `buzzic2` | Rebels Buzzic 2 Synthesizer Module (.buz2) | `audio/x-buz2` | `audio` | `buz2` |  |  | ✓ |  |  |
+| `bwd1_doc` | BWD1 Structured Document (.bwd) | `application/x-bwd1-doc` | `document` | `bwd` |  |  | ✓ |  |  |
 | `bzip` | bzip2 compressed data | `application/x-bzip2` | `archive` | `bz2`, `tbz2`, `tar.bz2` |  |  | ✓ | ✓ | ✓ |
 | `bzip3` | bzip3 compressed data | `application/x-bzip3` | `archive` | `bz3` |  |  | ✓ |  |  |
 | `c` | C source | `text/x-c` | `code` | `c` | ✓ |  |  | ✓ |  |
+| `c1581_d81` | Commodore 1581 3.5-Inch 800 KB Floppy Disk Image (.d81) | `application/x-c64-d81` | `archive` | `d81` |  |  | ✓ |  |  |
+| `c3_maxfile` | TQ Digital C3 Engine 3D Physics Mesh (.c3, 2003) NetDragon / TQ Digital | `application/x-c3-maxfile` | `geometry` | `c3` |  |  | ✓ |  |  |
+| `c64_godot` | Commodore 64 GoDot Image / Clip (.4bt / .clp, GOD0/GOD1) | `image/x-c64-godot` | `image` | `4bt`, `clp` |  |  | ✓ |  |  |
+| `c64_tap` | Commodore 64 / C16 CCS64 Raw Datasette Tape Pulse Image (.tap) | `application/x-c64-tap` | `archive` | `tap` |  |  | ✓ |  |  |
 | `cab` | Microsoft Cabinet archive data | `application/vnd.ms-cab-compressed` | `archive` | `cab` |  |  | ✓ | ✓ |  |
+| `cadcorp_sis_nol` | Cadcorp SIS Named Object Library (.nol) | `application/x-cadcorp-sis-nol` | `database` | `nol` |  |  | ✓ |  |  |
+| `caf` | Apple Core Audio Format (.caf, PRONOM fmt/416, LoC fdd000591) | `audio/x-caf` | `audio` | `caf` |  |  | ✓ |  |  |
+| `caffeine_cscheme` | Caffeine.Scheme Database Schema (.cscheme) | `application/x-caffeine-cscheme` | `database` | `cscheme` |  |  | ✓ |  |  |
+| `cakewalk_wrk` | Twelve Tone Systems Cakewalk Project (.wrk) | `audio/x-cakewalk` | `audio` | `wrk` |  |  | ✓ |  |  |
+| `cal3d` | Cal3D 3D Character Skeleton / Mesh / Animation / Material (.csf / .cmf / .caf / .crf) | `model/x-cal3d` | `geometry` | `csf`, `cmf`, `caf`, `crf` |  |  | ✓ |  |  |
+| `cals_dcl` | CALS MIL-STD-1840 Raster Declaration File (.dcl) | `application/x-cals-dcl` | `document` | `dcl` |  |  | ✓ |  |  |
+| `canon_vrd` | Canon Digital Photo Professional Recipe Data (.vrd / .dr4) | `application/x-canon-vrd` | `image` | `vrd`, `dr4` |  |  | ✓ |  |  |
+| `capcom_mt_gmd` | Capcom MT Framework Localized Text Message Database (.gmd, 2009) Capcom | `application/x-capcom-mt-gmd` | `database` | `gmd` |  |  | ✓ |  |  |
+| `capcom_mt_mrl` | Capcom MT Framework Material Library (.mrl, 2006) Capcom | `model/x-capcom-mt-mrl` | `geometry` | `mrl` |  |  | ✓ |  |  |
+| `capcom_re_pak` | Capcom RE Engine KPKA Game Archive (.pak, 2017) Capcom | `application/x-capcom-re-pak` | `archive` | `pak` |  |  | ✓ |  |  |
+| `caps_ipf` | Software Preservation Society (SPS / CAPS) Interchangeable Preservation Format Flux Image (.ipf) | `application/x-caps-ipf` | `archive` | `ipf` |  |  | ✓ |  |  |
+| `carv_vrac` | CARV VRAC Metadata Container (.vrac) | `application/x-carv-vrac` | `archive` | `vrac` |  |  | ✓ |  |  |
+| `casio_container` | Casio Graphing Calculator Bitwise-Inverted USBPower Container (.g1a / .g1m / .g3a / .g1e / .c2m) | `application/x-casio-container` | `archive` | `g1a`, `g1m`, `g3a`, `g1e`, `c2m` |  |  | ✓ |  |  |
+| `caslog_dlog` | CASLOGv1 Binary Diagnostic / Usage Log (.dlog / .ulog) | `application/x-caslog-v1` | `application` | `dlog`, `ulog` |  |  | ✓ |  |  |
 | `castledb` | CastleDB | `text/plain` | `application` | `cdb` | ✓ |  | ✓ |  |  |
 | `cat` | Windows Catalog file | `application/octet-stream` | `application` | `cat` |  |  | ✓ | ✓ |  |
 | `catboost` | CatBoost model | `application/octet-stream` | `application` | `cbm` |  |  | ✓ |  |  |
+| `catia_drawing` | Dassault Systèmes CATIA V5 Drawing (.catdrawing, PRONOM fmt/1615) | `application/x-catia-drawing` | `document` | `catdrawing` |  |  | ✓ |  |  |
+| `caustic_pcmsynth_wk` | Single Cell Software Caustic PCMSynth Preset (.pcmsynth) | `audio/x-caustic-pcmsynth` | `audio` | `pcmsynth` |  |  | ✓ |  |  |
+| `cazip` | Computer Associates CAZIP Compressed File | `application/x-cazip` | `archive` | — |  |  | ✓ |  |  |
+| `cba_module` | Chuck Biscuits / Black Artist Tracker Module (.cba) | `audio/x-cba` | `audio` | `cba` |  |  | ✓ |  |  |
 | `cbor` | CBOR | `application/cbor` | `application` | `cbor` |  |  | ✓ |  |  |
+| `ccz` | Cocos2d / TexturePacker Compressed PVR Container (.ccz) | `application/x-cocos2d-ccz` | `archive` | `ccz` |  |  | ✓ |  |  |
+| `cdes_encrypted_enc` | CDES Encrypted File Container (.enc) | `application/x-cdes-encrypted-enc` | `application` | `enc` |  |  | ✓ |  |  |
 | `cdf` | cdf | `application/octet-stream` | `archive` | — |  |  | ✓ |  |  |
+| `cdfm_670` | Renaissance CDFM / Composer 670 Packed Module (.670) | `audio/x-cdfm-670` | `audio` | `670` |  |  | ✓ |  |  |
+| `cdtree_cd` | cdTree Offline Media Catalog Database (.cd) | `application/x-cdtree-cd` | `database` | `cd` |  |  | ✓ |  |  |
+| `cdx` | ChemDraw Chemical Draw Exchange (.cdx, PRONOM fmt/378, LoC fdd000582) | `chemical/x-cdx` | `document` | `cdx` |  |  | ✓ |  |  |
+| `cedict_unit_u8` | CC-CEDICT ASCII-0x1F Unit-Delimited Chinese Dictionary (.u8) | `application/x-cedict-unit-u8` | `database` | `u8` |  |  | ✓ |  |  |
+| `cedit_ucview_his` | Chinese DOS CEdit / UCVIEW Revision History (.his) | `application/x-cedit-ucview-his` | `document` | `his` |  |  | ✓ |  |  |
+| `cedit_ucview_hlp` | Chinese DOS CEdit / UCVIEW Help File (.hlp) | `application/x-cedit-ucview-hlp` | `document` | `hlp` |  |  | ✓ |  |  |
+| `cern_root` | CERN ROOT Binary Data File (.root) | `application/x-cern-root` | `application` | `root` |  |  | ✓ |  |  |
+| `cern_zebra_fz` | CERNLIB ZEBRA FZ Sequential Exchange File (.fz / .xsdst) | `application/x-cern-zebra-fz` | `application` | `fz`, `xsdst` |  |  | ✓ |  |  |
+| `cern_zebra_rz` | CERNLIB ZEBRA RZ Direct-Access File / HBOOK (.rz / .hbook / .dat) | `application/x-cern-zebra-rz` | `database` | `rz`, `hbook`, `dat` |  |  | ✓ |  |  |
+| `cesium_b3dm` | Cesium OGC 3D Tiles Batched 3D Model (.b3dm) | `model/gltf-binary` | `geometry` | `b3dm` |  |  | ✓ |  |  |
+| `cesium_geom` | Cesium 3D Tiles Geometry Tile (.geom) | `application/x-cesium-geom` | `geometry` | `geom` |  |  | ✓ |  |  |
+| `cfl3` | Jari Komppa Compressed File Library v3 (.cfl) | `application/x-cfl3-archive` | `archive` | `cfl` |  |  | ✓ |  |  |
+| `chaps_timetable_tt` | CHAPS TimeTable Version 004 Transit Schedule Database (.tt) | `application/x-chaps-timetable-tt` | `database` | `tt` |  |  | ✓ |  |  |
+| `chd` | MAME / MESS Compressed Hunks of Data (CHD) | `application/x-chd` | `archive` | — |  |  | ✓ |  |  |
+| `chemstation_gas_chromatography_mass_ms` | Agilent / HP ChemStation Gas Chromatography / Mass Spectrometry (GC/MS) Data (.ms, PRONOM fmt/2101) | `application/x-chemstation-gas-chromatography-mass-ms` | `document` | `ms` |  |  | ✓ |  |  |
+| `chessbase_tree_ctb` | ChessBase Opening Book Tree Table (.ctb) | `application/x-chessbase-tree-ctb` | `database` | `ctb` |  |  | ✓ |  |  |
+| `chiptracker_kris` | Kris Hatlelid Chiptracker Amiga Module (.mod / .kris) | `audio/x-chiptracker` | `audio` | `mod`, `kris` |  |  | ✓ |  |  |
 | `chm` | MS Windows HtmlHelp Data | `application/chm` | `application` | `chm` |  |  | ✓ | ✓ |  |
+| `chrome_bdic` | Google Chrome Compiled Hunspell Spellcheck Dictionary (.bdic) | `application/x-chrome-bdic` | `database` | `bdic` |  |  | ✓ |  |  |
+| `chrome_cache_blockfile` | Google Chromium Disk Cache v2 Blockfile (data_0..data_3) | `application/x-chromium-cache-blockfile` | `database` | `data_3` |  |  | ✓ |  |  |
+| `chrome_simple_cache` | Google Chromium Simple Cache Stream Entry (_0.._9) | `application/x-chromium-simple-cache` | `database` | — |  |  | ✓ |  |  |
+| `chrome_snss` | Google Chrome / Chromium Session & Tab Restore File (SNSS) | `application/x-chrome-snss` | `application` | — |  |  | ✓ |  |  |
+| `chrome_v4store` | Google Chrome Safe Browsing V4 Store (.store, 0x600D71FE) | `application/x-chrome-safebrowsing-store` | `database` | `store` |  |  | ✓ |  |  |
+| `chrome_vlnk` | Google Chrome / Chromium Visited Links History (VLnk) | `application/x-chrome-visited-links` | `database` | `vlnk` |  |  | ✓ |  |  |
+| `chromeos_fmap` | Google ChromeOS / Coreboot Flash Map (__FMAP__) | `application/x-chromeos-fmap` | `application` | `fmap` |  |  | ✓ |  |  |
+| `chromeos_vb21` | Google ChromeOS Verified Boot 2.1 Structure (Vb2B / Vb2F / Vb2I / Vb2K / Vb2P / Vb2S, 2014) ChromiumOS | `application/x-chromeos-vb21` | `application` | `vb2` |  |  | ✓ |  |  |
+| `chromeos_vboot` | Google ChromeOS Verified Boot Keyblock (CHROMEOS) | `application/x-chromeos-vboot` | `application` | `keyblock` |  |  | ✓ |  |  |
+| `chronomaster_dfa` | DreamForge Chronomaster DFIA Animation Video (.dfa) | `video/x-dfa` | `video` | `dfa` |  |  | ✓ |  |  |
+| `chx_font` | CHX Big Font (.chx) | `application/x-font` | `font` | `chx` |  |  | ✓ |  |  |
+| `cigames_dpk4` | CI Games DPK4 Package Archive (.dpk) | `application/x-cigames-dpk4` | `archive` | `dpk` |  |  | ✓ |  |  |
 | `cinema4d` | Cinema 4D scene | `application/octet-stream` | `geometry` | `c4d` |  |  | ✓ |  |  |
+| `cineon` | Kodak Cineon Digital Film Image (.cin) | `image/x-cineon` | `image` | `cin` |  |  | ✓ |  |  |
+| `civ3_bic` | Firaxis Games Civilization III Editor Scenario (.bic / .bix / .biq, 2001) Firaxis Games | `application/x-civ3-bic` | `application` | `bic`, `bix`, `biq` |  |  | ✓ |  |  |
+| `clang_offload_bundle` | Clang Offload Bundle (CCOB / __CLANG_OFFLOAD_BUNDLE__) | `application/x-clang-offload-bundle` | `executable` | `bundle` |  |  | ✓ |  |  |
+| `clarion_hlp` | Barrington Systems Clarion for DOS Help File (.hlp) | `application/x-clarion-hlp` | `document` | `hlp` |  |  | ✓ |  |  |
+| `clarion_mem` | Barrington Systems Clarion for DOS Memo File (.mem) | `application/x-clarion-mem` | `database` | `mem` |  |  | ✓ |  |  |
+| `claris_resolve` | Claris Resolve Macintosh Spreadsheet (.rsv, BAT_BTSS) | `application/x-claris-resolve` | `document` | `rsv` |  |  | ✓ |  |  |
+| `clickteam_ccn` | Clickteam Multimedia Fusion / Fusion 2.5 Sub-Application (.ccn / .cca, 2006) Clickteam | `application/x-clickteam-ccn` | `executable` | `ccn`, `cca` |  |  | ✓ |  |  |
+| `clickteam_mfa` | Clickteam Fusion / Multimedia Fusion 2 Unicode Project (.mfa, 2006) Clickteam | `application/x-clickteam-mfa` | `archive` | `mfa` |  |  | ✓ |  |  |
+| `clip_studio_paint` | Celsys Clip Studio Paint Illustration Document (.clip) | `application/x-clip-studio-paint` | `image` | `clip` |  |  | ✓ |  |  |
+| `clipper_ntx` | Nantucket / CA-Clipper NTX Database Index (.ntx, 1987) Nantucket / Computer Associates | `application/x-clipper-ntx` | `database` | `ntx` |  |  | ✓ |  |  |
 | `clojure` | Clojure | `text/x-clojure` | `code` | `clj`, `cljs`, `cljc`, `cljr` | ✓ |  |  | ✓ |  |
 | `cmake` | CMake build file | `text/x-cmake` | `code` | `cmake` | ✓ |  |  | ✓ |  |
+| `cmap_cmp` | CMAP Zlib-Compressed Collision Tile Map (.cmp) | `application/x-cmap-cmp` | `archive` | `cmp` |  |  | ✓ |  |  |
+| `cmx` | Corel Presentation Exchange Metafile (CMX) | `image/x-cmx` | `image` | — |  |  | ✓ |  |  |
 | `cobol` | Cobol | `text/x-cobol` | `code` | `cbl`, `cob`, `cpy`, `CBL`, `COB`, `CPY` | ✓ |  |  | ✓ |  |
+| `cod_fastfile` | Infinity Ward / Activision Call of Duty FastFile Archive (.ff / .fp, 2007) Infinity Ward | `application/x-cod-fastfile` | `archive` | `ff`, `fp` |  |  | ✓ |  |  |
+| `cod_gscc` | Activision Call of Duty Compiled GSC Script Bytecode (.gscc) | `application/x-cod-gscc` | `executable` | `gscc` |  |  | ✓ |  |  |
 | `coff` | Intel 80386 COFF | `application/x-coff` | `executable` | `obj`, `o` |  |  | ✓ | ✓ |  |
 | `coffeescript` | CoffeeScript | `text/coffeescript` | `code` | `coffee` | ✓ |  |  | ✓ |  |
+| `coktel_stk2` | Coktel Vision STK21 Archive (.stk / .itk) | `application/x-coktel-stk2` | `archive` | `stk`, `itk` |  |  | ✓ |  |  |
 | `collada` | COLLADA digital asset | `model/vnd.collada+xml` | `geometry` | `dae` | ✓ |  | ✓ |  | ✓ |
+| `combiloader_bcf` | SMS-Soft CombiLoader Binary Container File (.bcf) SMS-Soft | `application/x-combiloader-bcf` | `application` | `bcf` |  |  | ✓ |  |  |
+| `common_instrument_ci1` | Common Instrument File Format (.ci1 / .ci2, PRONOM fmt/1887) | `application/x-common-instrument-cif` | `document` | `ci1`, `ci2` |  |  | ✓ |  |  |
+| `common_loudspeaker_cf1` | Common Loudspeaker Format Binary (.cf1 / .cf2, PRONOM fmt/1944) | `application/x-common-loudspeaker-clf` | `document` | `cf1`, `cf2` |  |  | ✓ |  |  |
+| `composer_667` | Future Crew Composer 667 OPL2 Module (.667) | `audio/x-composer-667` | `audio` | `667` |  |  | ✓ |  |  |
+| `cons_dict_nx2` | CONS+ DICT(HUGE) Dictionary Database (.nx2) | `application/x-cons-dict-nx2` | `database` | `nx2` |  |  | ✓ |  |  |
+| `consultantplus_dt5` | ConsultantPlus Information Bank Database (.dt5) | `application/x-consultantplus-dt5` | `database` | `dt5` |  |  | ✓ |  |  |
+| `coreboot_cbfs` | coreboot CBFS ROM Component File (LARCHIVE) | `application/x-coreboot-cbfs` | `application` | — |  |  | ✓ |  |  |
+| `cosmigo_brc` | Cosmigo Pro Motion Brush Container (.brc, 2012) Cosmigo | `image/x-cosmigo-brc` | `image` | `brc` |  |  | ✓ |  |  |
+| `cosmigo_stm` | Cosmigo Pro Motion Simple Tile Map (.stm, 2017) Cosmigo | `image/x-cosmigo-stm` | `image` | `stm` |  |  | ✓ |  |  |
+| `cpio` | CPIO archive | `application/x-cpio` | `archive` | — |  |  | ✓ |  |  |
+| `cpk` | CRI Middleware CRIWARE FileMajik PRO Package (.cpk) | `application/x-criware-cpk` | `archive` | `cpk` |  |  | ✓ |  |  |
 | `cpp` | C++ source | `text/x-c` | `code` | `cc`, `cpp`, `cxx`, `c++`, `cppm`, `ixx` | ✓ |  |  | ✓ |  |
+| `cpx` | CorelDRAW Compressed Drawing (.cpx, PRONOM x-fmt/36) | `application/x-coreldraw-cpx` | `document` | `cpx` |  |  | ✓ |  |  |
 | `cram` | CRAM alignment | `application/octet-stream` | `scientific` | `cram` |  |  | ✓ |  | ✓ |
+| `cramfs` | Linux Compressed ROM File System Image (.cramfs) | `application/x-cramfs` | `archive` | `cramfs` |  |  | ✓ |  |  |
+| `crashpad_cpad` | Google Chrome Crashpad Database Settings (CPAD) | `application/x-crashpad-settings` | `application` | `dat` |  |  | ✓ |  |  |
+| `creative_xfi_fw` | Creative Sound Blaster X-Fi / CA0132 DSP Microcode Container (ctefx.bin) | `application/x-creative-xfi-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `cri_hca` | CRI Middleware High Compression Audio (.hca) | `audio/x-cri-hca` | `audio` | `hca` |  |  | ✓ |  |  |
+| `cri_usm` | CRI Middleware Sofdec2 USM Video Container (.usm) | `video/x-cri-usm` | `video` | `usm` |  |  | ✓ |  |  |
+| `criware_awb` | CRI Middleware CRIWARE AFS2 / ADX2 Wave Bank Archive (.awb, 2009) CRI Middleware | `audio/x-criware-awb` | `audio` | `awb` |  |  | ✓ |  |  |
 | `crt` | Certificates (binary format) | `application/x-x509-ca-cert` | `text` | `der`, `cer`, `crt` |  |  | ✓ | ✓ |  |
+| `crunch_mania` | Thomas Schwarz Crunch-Mania Amiga Data Archive (.crm) | `application/x-crunchmania` | `archive` | `crm` |  |  | ✓ |  |  |
+| `crush` | PocketWare CRUSH Archive / Index (.cru / .cri) | `application/x-crush` | `archive` | `cru`, `cri` |  |  | ✓ |  |  |
 | `crx` | Google Chrome extension | `application/x-chrome-extension` | `executable` | `crx` |  |  | ✓ | ✓ |  |
+| `cryengine_dds_mip6` | CryEngine Split DDS Mipmap Stream (.dds.6) | `application/x-cryengine-dds-mip6` | `image` | `dds` |  |  | ✓ |  |  |
+| `cryengine_soc` | Crytek CryEngine CrChF Object Container (.soc / .cgf, 2004) Crytek | `application/x-cryengine-soc` | `archive` | `soc`, `cgf` |  |  | ✓ |  |  |
+| `cryo_apc` | Cryo Interactive IMA ADPCM Audio (.apc, CRYO_APC) | `audio/x-cryo-apc` | `audio` | `apc` |  |  | ✓ |  |  |
+| `cryo_bigfile` | Cryo Interactive BigFile Game Archive (.big, 1998) Cryo Interactive | `application/x-cryo-bigfile` | `archive` | `big` |  |  | ✓ |  |  |
+| `cryo_clib_vox` | Adventure Game Studio CLIB Resource Archive (.ags / .vox, 1999) Chris Jones | `application/x-cryo-clib-vox` | `archive` | `ags`, `vox` |  |  | ✓ |  |  |
+| `cryo_hnm4` | Cryo Interactive HNM4 Multimedia Video (.hnm) | `video/x-hnm4` | `video` | `hnm` |  |  | ✓ |  |  |
+| `cryptoapi_keyblob` | Microsoft CryptoAPI RSA key BLOB (PUBLICKEYBLOB / PRIVATEKEYBLOB, .snk) | `application/x-cryptoapi-keyblob` | `application` | `snk` |  |  | ✓ |  |  |
+| `crystal_reports_v4_rpt` | Seagate Crystal Reports 4.x/5.x Report (.rpt) | `application/x-crystal-reports-v4-rpt` | `document` | `rpt` |  |  | ✓ |  |  |
 | `cs` | C# source | `text/plain` | `code` | `cs`, `csx` | ✓ |  |  | ✓ |  |
+| `csman_dat` | Amit / Edimax CSMan Router Configuration Data (.dat) | `application/x-csman-dat` | `application` | `dat` |  |  | ✓ |  |  |
+| `cso` | Compressed ISO (CSO/CISO) disc image | `application/x-cso` | `archive` | — |  |  | ✓ |  |  |
 | `csproj` | .NET project config | `text/plain` | `code` | `csproj` | ✓ |  |  | ✓ |  |
+| `csr_dfu2` | Cambridge Silicon Radio CSR-dfu2 Bluetooth Firmware Image (.dfu) | `application/x-csr-dfu2` | `application` | `dfu` |  |  | ✓ |  |  |
 | `css` | CSS source | `text/css` | `code` | `css` | ✓ |  |  | ✓ |  |
 | `csv` | CSV document | `text/csv` | `code` | `csv` | ✓ |  |  | ✓ |  |
+| `ctm2_map` | CTM v2 Tile Map (.ctm) | `application/x-ctm2-map` | `geometry` | `ctm` |  |  | ✓ |  |  |
+| `ctos_run` | Convergent CTOS / Burroughs BTOS Executable (.run / .sys, 1981) Convergent Technologies | `application/x-ctos-run` | `executable` | `run`, `sys` |  |  | ✓ |  |  |
+| `ctos_vol` | Convergent CTOS / Burroughs BTOS Disk Volume (.img / .ima, 1981) Convergent Technologies | `application/x-ctos-volume` | `archive` | `img`, `ima` |  |  | ✓ |  |  |
+| `ctrader_algo` | Spotware cTrader / cAlgo Compiled Trading Algorithm (.algo) | `application/x-ctrader-algo` | `archive` | `algo` |  |  | ✓ |  |  |
+| `cubic_mxm` | Cubic Team Tiny XM Module (.mxm) | `audio/x-mxm` | `audio` | `mxm` |  |  | ✓ |  |  |
 | `cubin` | NVIDIA CUDA binary | `application/octet-stream` | `executable` | `cubin` |  |  | ✓ |  | ✓ |
+| `cuda_fatbin` | NVIDIA CUDA Fatbinary GPU Code Container (.fatbin) | `application/x-cuda-fatbin` | `executable` | `fatbin` |  |  | ✓ |  |  |
+| `cups_ipp` | CUPS Internet Printing Protocol Control Job (c#####) | `application/ipp` | `application` | `ipp` |  |  | ✓ |  |  |
+| `cxl_help` | C eXtended Library (CXL) Compiled Help Database (.hlp, 1988) Mike Smedley / Innovative Data Concepts | `application/x-cxl-help` | `document` | `hlp` |  |  | ✓ |  |  |
+| `cyan_mohawk` | Cyan Worlds Mohawk Resource Archive (.mhk, 1996) Cyan Worlds | `application/x-cyan-mohawk` | `archive` | `mhk` |  |  | ✓ |  |  |
+| `cyberlink_kc` | CyberLink Compiled UI / Script Resource (.kc) | `application/x-cyberlink-kc` | `executable` | `kc` |  |  | ✓ |  |  |
+| `cyberpaint_seq` | Atari ST Antic Cyber Paint Sequence Animation (.seq) | `video/x-cyberpaint-seq` | `video` | `seq` |  |  | ✓ |  |  |
+| `cybertracker_c64` | Commodore 64 Noname Cybertracker SID Module (.ct) | `audio/x-cybertracker-c64` | `audio` | `ct` |  |  | ✓ |  |  |
+| `cypress_clm_blob` | Cypress / Broadcom Wi-Fi Country Locale Matrix Regulatory Blob (.clm_blob) | `application/x-cypress-clm-blob` | `application` | `clm_blob` |  |  | ✓ |  |  |
+| `cz_help` | CZ Help File (.hlp) | `application/x-cz-help` | `document` | `hlp` |  |  | ✓ |  |  |
+| `d3d_index_buffer_ib` | Direct3D 32-Bit Triangle Mesh Index Buffer (.ib) | `application/x-d3d-index-buffer-ib` | `geometry` | `ib` |  |  | ✓ |  |  |
+| `dagor_dxp` | Gaijin Dagor Engine Texture Pack Archive (.dxp.bin, 2012) Gaijin Entertainment | `application/x-dagor-dxp` | `archive` | `dxp` |  |  | ✓ |  |  |
+| `dagor_grp` | Gaijin Dagor Engine Game Resource Pack Archive (.grp, 2012) Gaijin Entertainment | `application/x-dagor-grp` | `archive` | `grp` |  |  | ✓ |  |  |
+| `dagor_vromfs` | Gaijin Dagor Engine Virtual ROM Filesystem Archive (.vromfs.bin, 2012) Gaijin Entertainment | `application/x-dagor-vromfs` | `archive` | `vromfs` |  |  | ✓ |  |  |
+| `daisydot_nlq` | Roy Shiels Daisy-Dot II / III Near Letter Quality Font (.nlq) | `application/x-font` | `font` | `nlq` |  |  | ✓ |  |  |
+| `dan1_archive` | DAN1 Character Animation Package (.dan) | `application/x-dan1-archive` | `archive` | `dan` |  |  | ✓ |  |  |
+| `darkwave_dwp` | ExperimentalScene DarkWave Studio Project (.dwp) | `audio/x-darkwave-dwp` | `audio` | `dwp` |  |  | ✓ |  |  |
+| `darpa_cgc` | DARPA Cyber Grand Challenge DECREE Executable (.cgc, 2014) DARPA | `application/x-darpa-cgc` | `executable` | `cgc` |  |  | ✓ |  |  |
 | `dart` | Dart source | `text/plain` | `code` | `dart` | ✓ |  |  | ✓ |  |
+| `dart_dsk` | Dart Desktop State File (.dsk) | `application/x-dart-dsk` | `application` | `dsk` |  |  | ✓ |  |  |
+| `databento_dbn` | Databento Binary Encoding Market Data Stream (.dbn) | `application/x-databento-dbn` | `database` | `dbn` |  |  | ✓ |  |  |
+| `dave_lowe_dln` | Dave Lowe New Uncle Art Amiga Module (.dln) | `audio/x-dave-lowe-new` | `audio` | `dln` |  |  | ✓ |  |  |
+| `david_hanney_dh` | David Hanney Amiga Chiptune Module (.dh) | `audio/x-dh` | `audio` | `dh` |  |  | ✓ |  |  |
+| `david_whittaker` | David Whittaker Amiga 68000 Music Module (.dw) | `audio/x-dw` | `audio` | `dw` |  |  | ✓ |  |  |
+| `dawesome_abyss2` | Tracktion / Dawesome Abyss 2 Synthesizer Preset (.abyss2) Peter V / Dawesome | `application/x-dawesome-abyss2` | `audio` | `abyss2` |  |  | ✓ |  |  |
+| `dawesome_kult` | Tracktion / Dawesome KULT Synthesizer Preset (.kult) Peter V / Dawesome | `application/x-dawesome-kult` | `audio` | `kult` |  |  | ✓ |  |  |
 | `db2` | IBM DB2 database / backup | `application/octet-stream` | `application` | `db2` |  |  | ✓ |  |  |
 | `dbase` | dBASE / FoxPro table | `application/octet-stream` | `database` | `dbf` |  |  | ✓ |  |  |
+| `dbase_lbl` | Ashton-Tate dBASE IV Label / Report Design File (.lbl) | `application/x-dbase-lbl` | `database` | `lbl` |  |  | ✓ |  |  |
+| `dbg` | Windows Separate Debug file (.dbg) | `application/x-debug-symbols` | `executable` | `dbg` |  |  | ✓ |  |  |
+| `dbpf` | Maxis / Electronic Arts Database Packed File (.package / .dat) | `application/x-maxis-dbpf` | `archive` | `package`, `dat` |  |  | ✓ |  |  |
+| `dca` | IBM DisplayWrite DCA RFT/FFT (.dca, PRONOM x-fmt/148) | `application/x-ibm-dca` | `document` | `dca` |  |  | ✓ |  |  |
+| `dcs_world_edm` | DCS World / Eagle Dynamics 3D Model (.edm) | `application/x-dcs-world-edm` | `geometry` | `edm` |  |  | ✓ |  |  |
+| `ddi1_bgra` | DDI1 Uncompressed 32-Bit BGRA Bitmap (.bgra) | `application/x-ddi1-bgra` | `image` | `bgra` |  |  | ✓ |  |  |
 | `deb` | Debian binary package | `application/vnd.debian.binary-package` | `archive` | `deb` |  |  | ✓ | ✓ |  |
+| `dec_rt11` | DEC PDP-11 RT-11 Disk Filesystem Image (.dsk) | `application/x-dec-rt11` | `archive` | `dsk` |  |  | ✓ |  |  |
+| `dec_xxdp` | DEC PDP-11 XXDP Diagnostic Filesystem Image (.dsk, 1973) Digital Equipment | `application/x-dec-xxdp` | `archive` | `dsk` |  |  | ✓ |  |  |
+| `definicon_dsi32_e32` | Definicon DSI-32 NS32032 Executable (.e32) | `application/x-definicon-dsi32-e32` | `executable` | `e32` |  |  | ✓ |  |  |
+| `defy_dt` | DeFy AdLib Tracker Module (.dfy, DeFy DT ) | `audio/x-defy-tracker` | `audio` | `dfy` |  |  | ✓ |  |  |
 | `degas` | Atari ST DEGAS image | `application/octet-stream` | `image` | `pi1`, `pi2`, `pi3`, `pc1`, `pc2`, `pc3` |  |  | ✓ |  |  |
+| `dell_diagnostics_mlm` | Dell Modular System Diagnostics Module (.mlm, 1994) Dell | `application/x-dell-diagnostics-mlm` | `executable` | `mlm` |  |  | ✓ |  |  |
+| `delphi_card_publisher_lcp` | Borland Delphi TCardDocument / Desktop Card Publisher (.pub, 1995) | `application/x-delphi-card-publisher-lcp` | `document` | `pub` |  |  | ✓ |  |  |
+| `delphi_cds` | Borland / Embarcadero Delphi ClientDataSet Binary Packet (.cds / .rds, MIDAS) | `application/x-delphi-cds` | `database` | `cds`, `rds` |  |  | ✓ |  |  |
+| `delphi_dcu` | Borland / Embarcadero Delphi Compiled Unit (.dcu, 1996) Borland | `application/x-delphi-dcu` | `executable` | `dcu` |  |  | ✓ |  |  |
+| `delta_rpm` | Red Hat / SUSE Delta RPM Package (.drpm, drpm / DLT3) | `application/x-deltarpm` | `archive` | `drpm` |  |  | ✓ |  |  |
+| `demomaker_flm` | Atari ST DemoMaker / Cyber Paint Film Animation (.flm / .seq) | `video/x-demomaker-flm` | `video` | `flm`, `seq` |  |  | ✓ |  |  |
+| `descent_hog` | Parallax Software Descent HOG Archive (.hog) | `application/x-descent-hog` | `archive` | `hog` |  |  | ✓ |  |  |
+| `desi_ddf` | DESI Telephone Label Definition File (.ddf) DESI Telephone Labels | `application/x-desi-ddf` | `document` | `ddf` |  |  | ✓ |  |  |
+| `desktop_tracker` | Equivalence Acorn Archimedes Desktop Tracker Module (.dtt) | `audio/x-dtt` | `audio` | `dtt` |  |  | ✓ |  |  |
+| `desqview_hlp` | Quarterdeck DESQview / DESQview/X Help File (.hlp) | `application/x-desqview-hlp` | `document` | `hlp` |  |  | ✓ |  |  |
+| `desy_fpack_bos` | DESY FPACK / BOS Particle Physics Event Stream (.fpack / .bos) | `application/x-desy-fpack-bos` | `application` | `fpack`, `bos` |  |  | ✓ |  |  |
 | `dex` | Dalvik dex file | `application/x-android-dex` | `executable` | `dex` |  |  | ✓ | ✓ | ✓ |
+| `dg_nova_rb` | Data General Nova Relocatable Binary (.rb, 1969) Data General | `application/x-dg-nova-rb` | `executable` | `rb` |  |  | ✓ |  |  |
+| `diablo2_d2s` | Blizzard North Diablo II Character Save (.d2s, 2000) Blizzard Entertainment | `application/x-diablo2-save` | `application` | `d2s` |  |  | ✓ |  |  |
 | `dicom` | DICOM | `application/dicom` | `image` | `dcm` |  |  | ✓ | ✓ | ✓ |
+| `diesel_gai` | Grin / Overkill Diesel Engine Skeletal Animation (.gai) | `application/x-diesel-gai` | `geometry` | `gai` |  |  | ✓ |  |  |
 | `diff` | Diff file | `text/plain` | `text` | `diff`, `patch` | ✓ |  |  | ✓ |  |
+| `diffracplus_raw_data` | Bruker AXS DIFFRAC.suite / DIFFRACplus X-Ray Diffraction Raw Data (.raw, PRONOM fmt/1120) | `application/x-diffracplus-raw-data` | `document` | `raw` |  |  | ✓ |  |  |
+| `difstream_svf` | DifStream Smart Version Patch (DFS File, .svf, Gentee / DifStream) | `application/x-difstream-svf` | `archive` | `svf` |  |  | ✓ |  |  |
+| `digital_fm` | Roel Vanhout Digital-FM AdLib Module (.dfm) | `audio/x-dfm` | `audio` | `dfm` |  |  | ✓ |  |  |
+| `digital_sonix_dsc` | Digital Sonix & Chrome Amiga Module (.dsc) | `audio/x-digital-sonix-dsc` | `audio` | `dsc` |  |  | ✓ |  |  |
+| `dimps_emb` | Dimps #EMB Texture/Resource Container (.emb, 2008) Dimps | `application/x-dimps-emb` | `image` | `emb` |  |  | ✓ |  |  |
 | `directory` | A directory | `inode/directory` | `inode` | — |  | ✓ |  |  |  |
+| `directwave_dwp` | Image-Line DirectWave Sampler Program (.dwp) | `audio/x-directwave-dwp` | `audio` | `dwp` |  |  | ✓ |  |  |
+| `dirk_bialluch_smp` | Dirk Bialluch Amiga Sample Bank (.smp) | `audio/x-dirk-bialluch-smp` | `audio` | `smp` |  |  | ✓ |  |  |
+| `dirk_bialluch_tpu` | Dirk Bialluch Amiga Music Module (.tpu) | `audio/x-dirk-bialluch` | `audio` | `tpu` |  |  | ✓ |  |  |
+| `diskdupe_ddi` | Micro System Designs DiskDupe Floppy Disk Image (.ddi) | `application/x-diskdupe-image` | `archive` | `ddi` |  |  | ✓ |  |  |
+| `diskovery_scan` | Diskovery Disk Inventory Snapshot (.diskovery) | `application/x-diskovery-scan` | `application` | `diskovery` |  |  | ✓ |  |  |
+| `dlink_aih0` | D-Link AIH0 Router Firmware Image (.bin) | `application/x-dlink-aih0` | `application` | `bin` |  |  | ✓ |  |  |
+| `dlink_deafbead` | D-Link DEAFBEAD Firmware Archive Container (.deafbead) | `application/x-dlink-deafbead` | `application` | `deafbead` |  |  | ✓ |  |  |
+| `dlink_fpkg` | D-Link FPKG / CPKG NetDefend Firewall Firmware Package (.pkg) | `application/x-dlink-fpkg` | `application` | `pkg` |  |  | ✓ |  |  |
+| `dlink_mh01` | D-Link MH01 Encrypted Router Firmware Image (.bin) | `application/x-dlink-mh01` | `application` | `bin` |  |  | ✓ |  |  |
+| `dlink_shrs` | D-Link SHRS Encrypted Router Firmware Image (.bin) | `application/x-dlink-shrs` | `application` | `bin` |  |  | ✓ |  |  |
+| `dlink_tlv` | D-Link TLV Board-Tagged Router Firmware Image (.bin) | `application/x-dlink-tlv` | `application` | `bin` |  |  | ✓ |  |  |
 | `dm` | Dream Maker | `text/plain` | `code` | `dm` | ✓ |  |  | ✓ |  |
+| `dmf_xtracker` | D-Lusion X-Tracker Delusion Digital Music File (.dmf) | `audio/x-dmf` | `audio` | `dmf` |  |  | ✓ |  |  |
 | `dmg` | Apple disk image | `application/x-apple-diskimage` | `archive` | `dmg` |  |  | ✓ | ✓ |  |
+| `dms` | Amiga Disk Masher System compressed disk (.dms) | `application/x-floppy-image` | `archive` | `dms` |  |  | ✓ |  |  |
+| `dmtf_pldm_firmware` | DMTF DSP0267 PLDM Firmware Update Package (.pldm, 2014) DMTF | `application/x-dmtf-pldm-firmware` | `application` | `pldm` |  |  | ✓ |  |  |
+| `dmu` | Softeyes / Thalamus Amiga Digital Mugician Module (.dmu / .mug) | `audio/x-dmu` | `audio` | `dmu`, `mug` |  |  | ✓ |  |  |
+| `dna_sequence_chromatogram_file_scf` | Staden Standard Chromatogram Format DNA Sequence (.scf, PRONOM fmt/1554) | `application/x-dna-sequence-chromatogram-file-scf` | `document` | `scf` |  |  | ✓ |  |  |
 | `doc` | Microsoft Word CDF document | `application/msword` | `document` | `doc` |  |  | ✓ | ✓ |  |
 | `dockerfile` | Dockerfile | `text/x-dockerfile` | `code` | — | ✓ |  |  | ✓ |  |
 | `docx` | Microsoft Word 2007+ document | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `document` | `docx`, `docm` |  |  | ✓ | ✓ |  |
+| `dos16m_bw` | Rational Systems / Tenberry DOS/16M Protected-Mode BW Executable (.exp / .exe) | `application/x-dos16m-bw` | `executable` | `exp`, `exe` |  |  | ✓ |  |  |
+| `dos_dim` | Ray Arachelian Disk IMage Floppy Archive (.dim) | `application/x-disk-image` | `archive` | `dim` |  |  | ✓ |  |  |
+| `dos_hayes_mdm` | DOS Hayes AT Command Modem Definition File (.mdm) | `application/x-dos-hayes-mdm` | `application` | `mdm` |  |  | ✓ |  |  |
 | `dosmbr` | Master boot record | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `dotnet_jit_profile` | .NET Runtime Multicore JIT Startup Profile (.profile) | `application/x-dotnet-jit-profile` | `executable` | `profile` |  |  | ✓ |  |  |
 | `dotx` | Office Word 2007 template | `application/vnd.openxmlformats-officedocument.wordprocessingml.template` | `document` | `dotx` |  |  | ✓ |  |  |
+| `dpx` | SMPTE 268M Digital Picture Exchange Image (.dpx) | `image/x-dpx` | `image` | `dpx` |  |  | ✓ |  |  |
+| `dragonbones_dbbin` | Egret Technology DragonBones Binary Skeleton (.dbbin) | `application/x-dragonbones-dbbin` | `application` | `dbbin` |  |  | ✓ |  |  |
+| `drumtraker_dtl` | AdLib DrumTraker Rhythm Module (.dtl) | `audio/x-dtl` | `audio` | `dtl` |  |  | ✓ |  |  |
+| `drumware_k1_bank` | Drumware Kawai K1 Synthesizer Sound Bank (.k1i, 1988) Drumware | `audio/x-drumware-k1` | `audio` | `k1i` |  |  | ✓ |  |  |
+| `dsdiff` | Philips / Sony Direct Stream Digital Interchange File Format (DSDIFF) | `audio/x-dff` | `audio` | `dff` |  |  | ✓ |  |  |
+| `dsf_audio` | Sony Direct Stream Digital Stream File (.dsf) | `audio/x-dsf` | `audio` | `dsf` |  |  | ✓ |  |  |
+| `dsg_atonce` | Vortex ATonce PC-AT hard disk image | `application/x-atonce-data` | `archive` | — |  |  | ✓ |  |  |
+| `dsk_act` | ACT Apricot disk image | `application/x-apricot-disk` | `archive` | — |  |  | ✓ |  |  |
+| `dsm_dsik` | Carlos Hasan Digital Sound Interface Kit Module (.dsm) | `audio/x-dsm` | `audio` | `dsm` |  |  | ✓ |  |  |
+| `dss_dreamstation` | Audio Simulation DreamStation Synthesizer Song (.dss) | `audio/x-dss` | `audio` | `dss` |  |  | ✓ |  |  |
 | `dsstore` | Application Desktop Services Store | `application/octet-stream` | `unknown` | — |  |  | ✓ | ✓ | ✓ |
+| `dsym` | Acorn Archimedes Digital Symphony Tracker Module (.dsym) | `audio/x-dsym` | `audio` | `dsym` |  |  | ✓ |  |  |
+| `dtb` | Flattened Device Tree Blob (.dtb) | `application/x-dtb` | `application` | `dtb` |  |  | ✓ |  |  |
+| `dtch_chart` | DTCH Song Chart Database (.dtc) | `application/x-dtch-chart` | `database` | `dtc` |  |  | ✓ |  |  |
+| `dtm` | Softjee Atari Falcon Digital Tracker Module (.dtm) | `audio/x-dtm` | `audio` | `dtm` |  |  | ✓ |  |  |
 | `duckdb` | DuckDB database | `application/octet-stream` | `database` | `duckdb` |  |  | ✓ |  | ✓ |
+| `durager_uv_real` | Durager UV Lamp Calibration Record (.real) | `application/x-durager-uv-real` | `application` | `real` |  |  | ✓ |  |  |
+| `dv_video` | IEC 61834 / SMPTE 314M Digital Video DIF Stream (.dv / .dif, 1995) | `video/x-dv` | `video` | `dv`, `dif` |  |  | ✓ |  |  |
+| `dvd_ifo` | DVD-Video VMGI / VTSI Navigation Information (.ifo / .bup) | `application/x-dvd-ifo` | `video` | `ifo`, `bup` |  |  | ✓ |  |  |
 | `dwg` | Autocad Drawing | `image/x-dwg` | `image` | `dwg` |  |  | ✓ | ✓ | ✓ |
+| `dwin_dgus3_icl` | DWIN Technology DGUS II/III T5L HMI Icon Library (.icl, 2017) DWIN Technology | `application/x-dwin-dgus3-icl` | `image` | `icl` |  |  | ✓ |  |  |
+| `dxa` | Adventure Soft / ScummVM DXA Compressed Video (.dxa) | `video/x-dxa` | `video` | `dxa` |  |  | ✓ |  |  |
 | `dxf` | Autocad Drawing Exchange Format | `image/vnd.dxf` | `image` | `dxf` | ✓ |  | ✓ | ✓ |  |
+| `dxtk_spritefont` | Microsoft DirectX Tool Kit SpriteFont (DXTKfont .spritefont) | `application/x-font` | `font` | `spritefont` |  |  | ✓ |  |  |
+| `dynamic_studio_dsm` | Dynamic Studio Professional Tracker Module (.dsm) | `audio/x-dsm` | `audio` | `dsm` |  |  | ✓ |  |  |
+| `ea_abk` | Electronic Arts Sports Audio Bank (.abk, 2004) EA Sports | `application/x-ea-abk` | `archive` | `abk` |  |  | ✓ |  |  |
+| `ea_bnk` | Electronic Arts Audio Sample Bank (.bnk, BNKl/BNKb) | `audio/x-ea-bnk` | `audio` | `bnk` |  |  | ✓ |  |  |
+| `ea_ebo` | Electronic Arts Sports EBO 3D Stadium/Player Mesh (.ebo, 2002) EA Sports | `application/x-ea-ebo` | `geometry` | `ebo` |  |  | ✓ |  |  |
+| `ea_ffn` | Electronic Arts FNTF / FNTS / FNTI Game Font (.ffn / .fnt) | `application/x-font` | `font` | `ffn`, `fnt` |  |  | ✓ |  |  |
+| `ea_fsh` | Electronic Arts FSH / SHPI Shape Image (.fsh / .ssh) | `image/x-ea-fsh` | `image` | `fsh`, `ssh` |  |  | ✓ |  |  |
+| `ea_schl` | Electronic Arts SCHl / SHEN Multimedia Audio/Video Stream (.asf / .exa) | `audio/x-ea-schl` | `audio` | `asf`, `exa` |  |  | ✓ |  |  |
+| `ea_viv4_bh` | Electronic Arts ViV4 BIG Archive Index Header (.bh, 2005) EA Sports | `application/x-ea-viv4-bh` | `archive` | `bh` |  |  | ✓ |  |  |
+| `earache_ea` | Casper Amiga EarAche Module (.ea) | `audio/x-ea` | `audio` | `ea` |  |  | ✓ |  |  |
+| `ease_gll` | AFMG EASE Generic Loudspeaker Library (.gll) | `application/x-ease-gll` | `audio` | `gll` |  |  | ✓ |  |  |
+| `eastwest_tchk_key` | EastWest Soundsonline TChk License Key File (.key) | `application/x-eastwest-tchk-key` | `application` | `key` |  |  | ✓ |  |  |
+| `ecm` | Error Code Modeler CD-ROM Sector Image (.ecm) | `application/x-ecm` | `archive` | `ecm` |  |  | ✓ |  |  |
+| `ecw` | Enhanced Compression Wavelet Geospatial (.ecw, PRONOM fmt/371, LoC fdd000648) | `image/x-ecw` | `image` | `ecw` |  |  | ✓ |  |  |
+| `edf_mesh` | PiBoSo Engine 3D Model (.edf) | `application/x-edf-mesh` | `geometry` | `edf` |  |  | ✓ |  |  |
+| `edilzss` | EDI Install / EDI LZSSLib LZSS Packed File | `application/x-edilzss` | `archive` | — |  |  | ✓ |  |  |
+| `edlib_d00` | Vibrants (Jens-Christian Huus) EdLib AdLib FM Audio (.d00) | `audio/x-d00` | `audio` | `d00` |  |  | ✓ |  |  |
+| `edlib_edl` | Jens-Christian Huus EdLib Packed OPL2 Module (.edl) | `audio/x-edlib-edl` | `audio` | `edl` |  |  | ✓ |  |  |
+| `egg` | ESTsoft EGG compressed archive | `application/x-egg` | `archive` | — |  |  | ✓ |  |  |
+| `elc` | GNU Emacs Byte-Compiled Lisp (.elc) | `application/x-elc` | `executable` | `elc` |  |  | ✓ |  |  |
 | `elf` | ELF executable | `application/x-executable-elf` | `executable` | `elf` |  |  | ✓ | ✓ |  |
 | `elixir` | Elixir script | `text/plain` | `code` | `exs` | ✓ |  |  | ✓ |  |
+| `emd` | ABT Extended MOD Module (.emd) | `audio/x-emd` | `audio` | `emd` |  |  | ✓ |  |  |
 | `emf` | Windows Enhanced Metafile image data | `application/octet-stream` | `application` | `emf` |  |  | ✓ | ✓ |  |
 | `eml` | RFC 822 mail | `message/rfc822` | `text` | `eml` | ✓ |  | ✓ | ✓ |  |
 | `empty` | Empty file | `inode/x-empty` | `inode` | — |  | ✓ |  |  |  |
+| `ems_v1` | Milanerny Electronic Music System v1 Amiga Module (.ems) | `audio/x-ems-v1` | `audio` | `ems` |  |  | ✓ |  |  |
+| `ems_v6` | Amiga Electronic Music System v6 Module (.ems) | `audio/x-ems-v6` | `audio` | `ems` |  |  | ✓ |  |  |
+| `emtex_dot_driver` | emTeX Dot-Matrix Printer Driver Table (.dot, 1990) Eberhard Mattes | `application/x-emtex-dot` | `application` | `dot` |  |  | ✓ |  |  |
+| `emtex_font_library` | emTeX Font Library (.fli, 1990) Eberhard Mattes | `application/x-emtex-fli` | `archive` | `fli` |  |  | ✓ |  |  |
+| `emtex_tcp_codepage` | emTeX TeX Codepage Translation Table (.tcp, 1991) Eberhard Mattes | `application/x-emtex-tcp` | `application` | `tcp` |  |  | ✓ |  |  |
+| `enc` | Network General Sniffer DOS capture (TRSNIFWR) | `application/octet-stream` | `application` | — |  |  | ✓ |  |  |
+| `encase_e01` | EnCase / Expert Witness Forensic Disk Image (.E01 / .Ex01) | `application/x-ewf` | `archive` | `e01`, `ex01` |  |  | ✓ |  |  |
+| `encore_enc` | Passport Designs Encore Musical Notation Score (.enc) | `application/x-encore` | `audio` | `enc` |  |  | ✓ |  |  |
+| `endnote_enf` | Clarivate / Thomson Reuters EndNote Connection/Filter File (.enf / .enz) ISI ResearchSoft | `application/x-endnote-enf` | `document` | `enf`, `enz` |  |  | ✓ |  |  |
+| `ensoniq_paf` | Ensoniq PARIS Digital Audio File (.paf / .fap) | `audio/x-paris` | `audio` | `paf`, `fap` |  |  | ✓ |  |  |
+| `entis_mio` | Entis MIO Music Interleaved and Orthogonal Transformed Audio (.mio, 2001) Entis / Leshade Entis | `audio/x-entis-mio` | `audio` | `mio` |  |  | ✓ |  |  |
+| `envision` | EnVision Publisher DTP Document | `application/x-envision-publisher` | `document` | — |  |  | ✓ |  |  |
+| `envision_svf` | Envision Publisher Scalable Vector Font (.svf) | `application/x-font` | `font` | `svf` |  |  | ✓ |  |  |
+| `eo_webengine` | Essential Objects EO.WebEngine IPC Cache (.0_1 / .0_1_x64) Essential Objects | `application/x-eo-webengine` | `application` | `0_1`, `0_1_x64` |  |  | ✓ |  |  |
+| `epd` | Power Up Express Publisher Document (.epd) | `application/x-express-publisher` | `document` | `epd` |  |  | ✓ |  |  |
+| `eplan_eox_db` | EPLAN Electric P8 / EEC Engineering Object Database (.eox) | `application/x-eplan-eox-db` | `database` | `eox` |  |  | ✓ |  |  |
+| `eplybnds_model` | EPLYBNDS 3D Polygon Bounding Model (EPLYBNDS) | `model/x-eplybnds` | `geometry` | — |  |  | ✓ |  |  |
+| `eps_dos` | MS-DOS Binary Encapsulated PostScript (.eps) | `application/postscript` | `document` | `eps` |  |  | ✓ |  |  |
 | `epub` | EPUB document | `application/epub+zip` | `document` | `epub` |  |  | ✓ | ✓ |  |
 | `erb` | Embedded Ruby source | `text/x-ruby` | `code` | `erb` | ✓ |  |  | ✓ |  |
 | `erdas` | ERDAS Imagine | `application/octet-stream` | `image` | `img` |  |  | ✓ |  |  |
 | `erlang` | Erlang source | `text/x-erlang` | `code` | `erl`, `hrl` | ✓ |  |  | ✓ |  |
 | `ese` | ESE Db | `application/x-ms-ese` | `unknown` | `dat` |  |  | ✓ |  | ✓ |
+| `esp_parttable` | Espressif ESP-IDF Flash Partition Table Binary | `application/x-espressif-partition-table` | `application` | `bin` |  |  | ✓ |  |  |
+| `ethereum_era1` | Ethereum Era1 / Era / E2Store Historical Block Archive (.era1 / .era / .e2s) | `application/x-ethereum-era1` | `database` | `era1`, `era`, `e2s` |  |  | ✓ |  |  |
+| `etx` | EasyTrax Module (.etx) | `audio/x-etx` | `audio` | `etx` |  |  | ✓ |  |  |
+| `euphony_eup` | Fujitsu FM Towns Euphony Song Module (.eup) | `audio/x-euphony` | `audio` | `eup` |  |  | ✓ |  |  |
+| `eurekalog_el` | Neos Eureka S.r.l. EurekaLog Delphi/C++Builder Exception Log (.el, 2011) EurekaLog | `application/x-eurekalog-el` | `application` | `el` |  |  | ✓ |  |  |
+| `evt` | Windows NT/2000/XP Legacy Event Log (.evt) | `application/x-ms-evt` | `application` | `evt` |  |  | ✓ |  |  |
+| `evtx` | Windows XML Event Log (.evtx) | `application/x-ms-evtx` | `application` | `evtx` |  |  | ✓ |  |  |
+| `evy` | Novell / Tumbleweed Envoy Document (.evy) | `application/x-envoy` | `document` | `evy` |  |  | ✓ |  |  |
+| `exbn_ebn` | EXBN Binary Resource Container (.ebn) | `application/x-exbn-ebn` | `archive` | `ebn` |  |  | ✓ |  |  |
+| `exiv2_exv` | Exiv2 Metadata Sidecar Container (.exv, 2004) Andreas Huggel | `image/x-exv` | `image` | `exv` |  |  | ✓ |  |  |
+| `exodus_seco` | Exodus Wallet SECO Encrypted Container (.seco) | `application/x-exodus-seco` | `application` | `seco` |  |  | ✓ |  |  |
+| `exotic_xad` | Riven the Mage eXotic AdLib Module (.xad) | `audio/x-xad` | `audio` | `xad` |  |  | ✓ |  |  |
+| `exr` | ILM OpenEXR high dynamic range image (.exr) | `image/x-exr` | `image` | `exr` |  |  | ✓ |  |  |
+| `ext4` | Linux Extended Filesystem (Ext2/Ext3/Ext4) | `application/x-raw-disk-image` | `archive` | — |  |  | ✓ |  |  |
+| `ezart` | EZ-Art Professional Graphic (.eza) | `image/x-ezart` | `image` | `eza` |  |  | ✓ |  |  |
+| `eznec_ez` | EZNEC Antenna Modeling Description (.ez, Roy Lewallen W7EL) | `application/x-eznec-ez` | `geometry` | `ez` |  |  | ✓ |  |  |
+| `fabylon` | Fabylon electronic book | `application/x-fabylon` | `document` | — |  |  | ✓ |  |  |
+| `facegen_tri` | Singular Inversions FaceGen / Creation Engine TRI Head Morph Mesh (.tri, 2003) Singular Inversions | `application/x-facegen-tri` | `geometry` | `tri` |  |  | ✓ |  |  |
+| `fairygui_fui` | FairyGUI Binary UI Asset Package (.fui) | `application/x-fairygui-fui` | `archive` | `fui` |  |  | ✓ |  |  |
+| `falcom_mi` | Nihon Falcom Trails / Kuro Engine Binary JSON Model Info (.mi) | `application/x-falcom-mi` | `geometry` | `mi` |  |  | ✓ |  |  |
+| `fanuc_pmc_patch` | Fanuc PMC CNC Machine Controller Patch (.bfd/.kcf) | `application/x-fanuc-pmc-patch` | `executable` | `bfd`, `kcf` |  |  | ✓ |  |  |
+| `farbrausch_v2m` | Farbrausch V2 Synthesizer Module (.v2m) | `audio/x-v2m` | `audio` | `v2m` |  |  | ✓ |  |  |
 | `fasta` | FASTA sequence data | `text/plain` | `application` | `fa`, `fasta` | ✓ |  | ✓ |  |  |
+| `fastgraph_fgi` | Fastgraph/Image Resource Library (.fgi, 1991) Ted Gruber Software | `application/x-fastgraph-fgi` | `archive` | `fgi` |  |  | ✓ |  |  |
+| `fastgraph_ppr` | Fastgraph Packed Pixel Run / Young Picasso Bitmap (.yp / .ppr, 1991) Ted Gruber Software / Blueview Software | `image/x-fastgraph-ppr` | `image` | `yp`, `ppr` |  |  | ✓ |  |  |
+| `fastgraph_spr` | Fastgraph Standard Pixel Run Bitmap (.prf / .spr, 1991) Ted Gruber Software | `image/x-fastgraph-spr` | `image` | `prf`, `spr` |  |  | ✓ |  |  |
 | `fastq` | FASTQ sequence data | `text/plain` | `application` | `fastq`, `fq` | ✓ |  | ✓ |  |  |
+| `fba_fs` | FinalBurn Alpha / FBNeo Emulator Savestate (.fs, 2002) Team FBAlpha | `application/x-fba-fs` | `application` | `fs` |  |  | ✓ |  |  |
+| `fbchunks_ngp` | FBCHUNKS Chunked Package (.ngp) | `application/x-fbchunks-ngp` | `archive` | `ngp` |  |  | ✓ |  |  |
+| `fbs_timetable_fpl` | iRFP FBS Railway Timetable (.fpl) | `application/x-fbs-timetable-fpl` | `database` | `fpl` |  |  | ✓ |  |  |
 | `fbx` | Autodesk FBX | `application/octet-stream` | `geometry` | `fbx` |  |  | ✓ |  | ✓ |
+| `fds` | Nintendo Famicom Disk System Disk Image (.fds) | `application/x-fds-rom` | `archive` | `fds` |  |  | ✓ |  |  |
+| `fieldlog_fl` | NetManila / Deventec FieldLog Binary Diagnostic Trace (.fl) | `application/x-fieldlog-fl` | `application` | `fl` |  |  | ✓ |  |  |
+| `fif` | Iterated Systems Fractal Image Format (.fif) | `image/x-fif` | `image` | `fif` |  |  | ✓ |  |  |
+| `fifa_fifamod` | FIFA Editor Tool Mod Package (.fifamod) | `application/x-fifa-fifamod` | `archive` | `fifamod` |  |  | ✓ |  |  |
+| `fighter_maker_kgt` | ASCII / Enterbrain 2D Fighter Maker 95 Game Data (.kgt / .bg, 1999) Enterbrain | `application/x-fighter-maker-kgt` | `archive` | `kgt`, `bg` |  |  | ✓ |  |  |
+| `figma_fig` | Figma Binary Kiwi Canvas Document (.fig) | `application/x-figma` | `image` | `fig` |  |  | ✓ |  |  |
+| `filament_filamat` | Google Filament Compiled Material Package (.filamat) | `application/x-filament-material` | `geometry` | `filamat` |  |  | ✓ |  |  |
 | `filemaker` | FileMaker database | `application/octet-stream` | `database` | `fmp12`, `fp7` |  |  | ✓ |  |  |
+| `fineprint_fp` | FinePrint Saved Output (.fp, PRONOM fmt/1396) | `application/x-fineprint-fp` | `document` | `fp` |  |  | ✓ |  |  |
+| `fio_verify_state` | fio (Flexible I/O Tester) Verify State (.state) | `application/x-fio-verify-state` | `application` | `state` |  |  | ✓ |  |  |
 | `firebird` | Firebird / InterBase database | `application/octet-stream` | `application` | `fdb`, `gdb` |  |  | ✓ |  |  |
+| `fit` | Garmin Flexible and Interoperable Data Transfer (.fit) | `application/vnd.garmin.fit` | `document` | `fit` |  |  | ✓ |  |  |
 | `fits` | FITS astronomy data | `application/octet-stream` | `scientific` | `fit`, `fits`, `fts` |  |  | ✓ |  | ✓ |
+| `fl_studio_flp` | Image-Line FruityLoops / FL Studio Project (.flp, FLhd) | `application/x-flp` | `audio` | `flp` |  |  | ✓ |  |  |
 | `flac` | FLAC audio bitstream data | `audio/flac` | `audio` | `flac` |  |  | ✓ | ✓ |  |
+| `flash_sol` | Adobe Flash Player Local Shared Object (.sol, 2002) Macromedia / Adobe | `application/x-flash-sol` | `application` | `sol` |  |  | ✓ |  |  |
 | `flatgeobuf` | FlatGeobuf | `application/octet-stream` | `gis` | `fgb` |  |  | ✓ |  |  |
+| `flatpak_bundle` | Flatpak Single-File Application Bundle (.flatpak) | `application/vnd.flatpak` | `executable` | `flatpak` |  |  | ✓ |  |  |
+| `flightsim_name_air` | Flight Simulator Tagged Aircraft Descriptor (.air) | `application/x-flightsim-name-air` | `geometry` | `air` |  |  | ✓ |  |  |
+| `flir_fpf` | Teledyne FLIR Public Image Format Thermal Radiometric Image (.fpf) | `image/x-flir-fpf` | `image` | `fpf` |  |  | ✓ |  |  |
+| `flmobile_flmrack` | Image-Line FL Studio Mobile Effect/Instrument Rack (.flmrack) Image-Line | `application/x-flmobile-flmrack` | `audio` | `flmrack` |  |  | ✓ |  |  |
+| `flog` | Flogiciels / Loriciels image (.cpt/.lcr) | `image/x-flogiciels` | `image` | `cpt`, `lcr` |  |  | ✓ |  |  |
+| `fluent_interp_ip` | ANSYS Fluent Interpolation Field Data (.ip) | `application/x-fluent-interp-ip` | `geometry` | `ip` |  |  | ✓ |  |  |
 | `flv` | Flash Video | `video/x-flv` | `video` | `flv` |  |  | ✓ | ✓ | ✓ |
+| `fm_fmf` | Sports Interactive Football Manager Data Archive (.fmf, Sports Interactive) | `application/x-fm-fmf` | `archive` | `fmf` |  |  | ✓ |  |  |
+| `fm_kingtracker` | FM-Kingtracker AdLib Module (.fmk) | `audio/x-fmk` | `audio` | `fmk` |  |  | ✓ |  |  |
+| `fm_tracker` | FM Tracker AdLib Module (.fmt) | `audio/x-fmt` | `audio` | `fmt` |  |  | ✓ |  |  |
+| `fmc` | Faust Music Creator AdLib Module (.sng) | `audio/x-fmc` | `audio` | `sng` |  |  | ✓ |  |  |
+| `fmod_fev` | Firelight Technologies FMOD Designer Compiled Event Project (.fev, 2006) Firelight Technologies | `audio/x-fmod-fev` | `audio` | `fev` |  |  | ✓ |  |  |
+| `fmp_m` | Guu PC-98 FMP Music Driver Module (.m) | `audio/x-fmp` | `audio` | `m` |  |  | ✓ |  |  |
+| `fmtowns_euphony_pmb` | Fujitsu FM Towns Euphony PCM Instrument Bank (.pmb) | `audio/x-fmtowns-euphony-pmb` | `audio` | `pmb` |  |  | ✓ |  |  |
+| `fog` | Altsys / Macromedia Fontographer Database (.fog) | `application/x-fontographer` | `font` | `fog` |  |  | ✓ |  |  |
+| `fontconfig_cache` | Freedesktop.org Fontconfig Binary Font Cache (.cache-*) | `application/x-fontconfig-cache` | `font` | `cache` |  |  | ✓ |  |  |
 | `fortran` | Fortran | `text/x-fortran` | `code` | `f90`, `f95`, `f03`, `F90` | ✓ |  |  | ✓ |  |
+| `fourdos_help` | JP Software 4DOS Compressed Help Database (.hlp, 1991) JP Software | `application/x-4dos-help` | `document` | `hlp` |  |  | ✓ |  |  |
+| `foxpro_form_sct` | Microsoft Visual FoxPro 3.0 Form/Class Memo (.sct / .vct) | `application/x-foxpro-form-sct` | `database` | `sct`, `vct` |  |  | ✓ |  |  |
 | `fpx` | Flashpix | `application/octet-stream` | `image` | `fpx` |  |  | ✓ |  |  |
+| `freearc` | FreeArc Compressed Archive (.arc) | `application/x-freearc` | `archive` | `arc` |  |  | ✓ |  |  |
+| `freebasic_hf` | Borland Turbo Vision / FreeVision Compiled Help File (.hlp / .hf, 1990) Borland | `application/x-freebasic-hf` | `document` | `hlp`, `hf` |  |  | ✓ |  |  |
+| `freedom_force_sav` | Irrational Games Freedom Force Save Game (.dat) | `application/x-freedom-force-save` | `application` | `dat` |  |  | ✓ |  |  |
+| `fromsoft_binder` | FromSoftware Binder Archive / Header (.bnd / .bhf / .tpf, 2009) FromSoftware | `application/x-fromsoft-binder` | `archive` | `bnd`, `bhf`, `tpf` |  |  | ✓ |  |  |
+| `fromsoft_dcx` | FromSoftware DCX Compressed Asset Container (.dcx, 2009) FromSoftware | `application/x-fromsoft-dcx` | `archive` | `dcx` |  |  | ✓ |  |  |
+| `fromsoft_flver` | FromSoftware FLVER 3D Model (.flver, 2009) FromSoftware | `model/x-fromsoft-flver` | `geometry` | `flver` |  |  | ✓ |  |  |
+| `fromsoft_tae` | FromSoftware TimeAct Animation Event Table (.tae, 2009) FromSoftware | `application/x-fromsoft-tae` | `geometry` | `tae` |  |  | ✓ |  |  |
+| `frosty_fbmod` | Frosty Toolsuite EA Frostbite Engine Mod Package (.fbmod) | `application/x-frosty-fbmod` | `archive` | `fbmod` |  |  | ✓ |  |  |
+| `fsecure_fs02_mf` | F-Secure Signed Update Manifest (FS02, .mf) | `application/x-fsecure-manifest` | `application` | `mf` |  |  | ✓ |  |  |
+| `ftk_ad1` | AccessData Forensic Toolkit (FTK) Logical Evidence Image (.ad1, ADSEGMENTEDFILE) | `application/x-ftk-ad1` | `archive` | `ad1` |  |  | ✓ |  |  |
+| `ftm` | NES FamiTracker Module (.ftm) | `audio/x-ftm` | `audio` | `ftm` |  |  | ✓ |  |  |
+| `ftmn` | Jörg Schmidt / Maxon Amiga Face The Music 8-Channel Module (.ftm) | `audio/x-ftm` | `audio` | `ftm` |  |  | ✓ |  |  |
+| `fullwrite_doc` | Ashton-Tate / Akimbo FullWrite Professional 1.x/2.x Macintosh Document (.fw / .fwp) | `application/x-fullwrite` | `document` | `fw`, `fwp` |  |  | ✓ |  |  |
+| `funktracker_fnk` | Jason Nunn Funktracker Module (.fnk) | `audio/x-fnk` | `audio` | `fnk` |  |  | ✓ |  |  |
+| `future_composer_bsi` | Superions Future Composer BSI Amiga Module (.bsi) | `audio/x-future-composer-bsi` | `audio` | `bsi` |  |  | ✓ |  |  |
+| `g9b_bitmap` | G9B MSX2+ V9990 Graphics Format Bitmap (.g9b, PRONOM fmt/1787) | `image/x-g9b` | `document` | `g9b` |  |  | ✓ |  |  |
+| `galaxy_music_muse` | Carlo Vogelsang Galaxy Music System Audio (MUSE) | `audio/x-galaxy-muse` | `audio` | — |  |  | ✓ |  |  |
+| `game_music_creator` | Andreas Tadic Game Music Creator Amiga Module (.gmc) | `audio/x-game-music-creator` | `audio` | `gmc` |  |  | ✓ |  |  |
+| `gameboy_gbr` | Game Boy Ripped Sound Format (.gbr) | `audio/x-gbr` | `audio` | `gbr` |  |  | ✓ |  |  |
+| `gameboy_gbs` | Nintendo Game Boy Sound System Chiptune Rip (.gbs) | `audio/x-gbs` | `audio` | `gbs` |  |  | ✓ |  |  |
+| `gamemaker_gmk` | Mark Overmars / YoYo Games GameMaker Legacy Project (.gm6 / .gmk / .gm81, 2004) YoYo Games | `application/x-gamemaker-gmk` | `archive` | `gm6`, `gmk`, `gm81` |  |  | ✓ |  |  |
+| `garmin_gmn` | Garmin Track Log File (.gmn, PRONOM fmt/1679) | `application/x-garmin-gmn` | `document` | `gmn` |  |  | ✓ |  |  |
+| `gba_gbfs` | Damian Yerrick Pineight Game Boy Advance ROM File System (.gbfs) | `application/x-gba-gbfs` | `archive` | `gbfs` |  |  | ✓ |  |  |
+| `gca` | GCA / DGCA compressed archive (.gca/.dgc) | `application/x-gca-compressed` | `archive` | `gca`, `dgc` |  |  | ✓ |  |  |
+| `gdm` | Bells, Whistles, and Sound Boards General Digital Music Module (.gdm) | `audio/x-gdm` | `audio` | `gdm` |  |  | ✓ |  |  |
+| `gea_archive` | GEA Installer Uninstall Package (.gea) | `application/x-gea-archive` | `archive` | `gea` |  |  | ✓ |  |  |
+| `gecko_startupcache` | Mozilla Firefox / Gecko Startup Cache (startupcache) | `application/x-gecko-startupcache` | `application` | `little` |  |  | ✓ |  |  |
+| `gem_vdi` | Digital Research GEM VDI Metafile (.gem) | `image/x-gem` | `image` | `gem` |  |  | ✓ |  |  |
 | `gemfile` | Gemfile file | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `gemspec` | Gemspec file | `text/plain` | `code` | `gemspec` | ✓ |  |  | ✓ |  |
+| `genesis_gym` | Sega Genesis YM2612 Audio Log (.gym) | `audio/x-gym` | `audio` | `gym` |  |  | ✓ |  |  |
+| `genh` | vgmstream Generic Headered Audio Stream (.genh) | `audio/x-genh` | `audio` | `genh` |  |  | ✓ |  |  |
+| `geo_gtx` | GEO 3D Voxel Chunk (.gtx) | `application/x-geo-gtx` | `geometry` | `gtx` |  |  | ✓ |  |  |
 | `geojson` | GeoJSON | `application/geo+json` | `gis` | `geojson` | ✓ |  | ✓ |  |  |
 | `geopackage` | OGC GeoPackage | `application/geopackage+sqlite3` | `gis` | `gpkg` |  |  | ✓ |  | ✓ |
+| `geosoft_gx` | Geosoft Oasis montaj Compiled GX Executable (.gx) | `application/x-geosoft-gx` | `executable` | `gx` |  |  | ✓ |  |  |
+| `geoworks_geos` | PC/GEOS Geoworks GeoFile Executable / Document (.geo / .vm) | `application/x-geoworks-geos` | `executable` | `geo`, `vm` |  |  | ✓ |  |  |
+| `gettext_mo` | GNU gettext Machine Object Compiled Translation Catalog (.mo) | `application/x-gettext-translation` | `application` | `mo` |  |  | ✓ |  |  |
 | `ggml` | Legacy GGML model | `application/octet-stream` | `application` | `ggml` |  |  | ✓ |  |  |
 | `gguf` | GGUF | `application/octet-stream` | `model` | `gguf` |  |  | ✓ |  | ✓ |
+| `ghc_hi` | GHC Team Glasgow Haskell Compiler Interface File (.hi / .dyn_hi / .p_hi) | `application/x-ghc-interface` | `executable` | `hi`, `dyn_hi`, `p_hi` |  |  | ✓ |  |  |
+| `ghidra_bf` | NSA Ghidra Unpacked Indexed BufferFile Database (.bf, /01*49,+) | `application/x-ghidra-bf` | `database` | `bf` |  |  | ✓ |  |  |
+| `giants_gdm` | GIANTS Engine Compressed Foliage Density Map (.gdm, 2014) GIANTS Software | `image/x-giants-gdm` | `image` | `gdm` |  |  | ✓ |  |  |
+| `giants_grle` | GIANTS Engine Run-Length Encoded Foliage / Terrain Map (.grle, 2008) GIANTS Software | `image/x-giants-grle` | `image` | `grle` |  |  | ✓ |  |  |
 | `gif` | GIF image data | `image/gif` | `image` | `gif` |  |  | ✓ | ✓ |  |
+| `git_index` | Git Working Tree Staging Index (.git/index, DIRC) | `application/x-git-index` | `application` | `git` |  |  | ✓ |  |  |
+| `git_pack_idx` | Git Packfile v2 Fanout Index (.idx, \\\\xFFtOc) | `application/x-git-pack-idx` | `application` | `idx` |  |  | ✓ |  |  |
+| `git_pack_rev` | Git Packfile Reverse Index (.rev, 2021) Git Project | `application/x-git-pack-rev` | `database` | `rev` |  |  | ✓ |  |  |
 | `gitattributes` | Gitattributes file | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
 | `gitmodules` | Gitmodules file | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
+| `glibc_ld_so_cache` | GNU C Library Dynamic Linker Cache (ld.so.cache, glibc-ld.so.cache1.1) | `application/x-glibc-ld-so-cache` | `application` | `cache` |  |  | ✓ |  |  |
+| `glide_3df` | 3dfx Glide Texture File (.3df) | `image/x-3dfx-3df` | `image` | `3df` |  |  | ✓ |  |  |
 | `gltf` | glTF | `application/octet-stream` | `geometry` | `glb`, `gltf` |  |  | ✓ |  | ✓ |
+| `gluemon` | GlueMon Amiga Chiptune Module (.glue) | `audio/x-gluemon` | `audio` | `glue` |  |  | ✓ |  |  |
+| `glulx` | Glulx Virtual Machine Story File (.ulx) | `application/x-glulx` | `executable` | `ulx` |  |  | ✓ |  |  |
+| `gma` | Facepunch Garry's Mod Addon Archive (.gma) | `application/x-garrysmod-gma` | `archive` | `gma` |  |  | ✓ |  |  |
 | `gml` | Geography Markup Language | `application/gml+xml` | `gis` | `gml` | ✓ |  | ✓ |  |  |
+| `gnome_keyring` | GNOME Keyring Locked Credential Store (.keyring) | `application/x-gnome-keyring` | `application` | `keyring` |  |  | ✓ |  |  |
+| `gnu_locate_db` | GNU findutils locate File Name Database (LOCATE02) | `application/x-locate-db` | `application` | `locatedb` |  |  | ✓ |  |  |
+| `gnunet_gnd` | GNUnet Directory Listing (.gnd, \\\\x89GND\\\\r\\\\n\\\\x1A\\\\n) | `application/x-gnunet-directory` | `application` | `gnd` |  |  | ✓ |  |  |
 | `go` | Golang source | `text/x-golang` | `code` | `go` | ✓ |  |  | ✓ |  |
+| `go_telemetry_count` | Go Runtime Telemetry Counter File (.count, 2023) Go Authors | `application/x-go-telemetry-count` | `application` | `count` |  |  | ✓ |  |  |
+| `goattracker` | Commodore 64 GoatTracker Chiptune Song / Instrument (.sng / .ins) | `audio/x-goattracker` | `audio` | `sng`, `ins` |  |  | ✓ |  |  |
+| `gobject_typelib` | GNOME GObject Introspection Compiled Type Library (.typelib) | `application/x-gobject-typelib` | `application` | `typelib` |  |  | ✓ |  |  |
+| `godot_gdec` | Godot Engine Encrypted File (GDEC, FileAccessEncrypted) | `application/x-godot-gdec` | `archive` | `ntr` |  |  | ✓ |  |  |
+| `godot_pck` | Godot Engine Resource Pack (.pck) | `application/x-godot-pck` | `archive` | `pck` |  |  | ✓ |  |  |
+| `godot_rsrc` | Godot Engine Binary Resource / Scene (.res / .scn, 2014) Godot Engine | `application/x-godot-rsrc` | `application` | `res`, `scn` |  |  | ✓ |  |  |
+| `goff` | IBM z/OS Generalized Object File Format (GOFF) | `application/x-ibm-goff` | `executable` | — |  |  | ✓ |  |  |
+| `goldsrc_wad3` | Valve GoldSrc / Half-Life Texture WAD3 Archive (.wad, 1998) Valve | `application/x-goldsrc-wad3` | `archive` | `wad` |  |  | ✓ |  |  |
+| `gpg_trustdb` | GNU Privacy Guard Key Trust Database (trustdb.gpg) | `application/x-gnupg-trustdb` | `database` | `gpg` |  |  | ✓ |  |  |
+| `gpo_registry_pol` | Windows Group Policy Administrative Template Policy (registry.pol, PReg) | `application/x-ms-registry-pol` | `application` | — |  |  | ✓ |  |  |
 | `gpx` | XML document | `application/octet-stream` | `unknown` | `gpx` |  |  | ✓ |  | ✓ |
 | `gradle` | Gradle source | `text/x-groovy` | `code` | `gradle` | ✓ |  |  | ✓ |  |
+| `grafx2_pkm` | Sunset Design GrafX2 PKM Paletted Bitmap (.pkm) | `image/x-grafx2-pkm` | `image` | `pkm` |  |  | ✓ |  |  |
+| `graoumf_gt2` | Laurent de Soras Graoumf Tracker 1/2 Module (.gtk / .gt2) | `audio/x-gt2` | `audio` | `gtk`, `gt2` |  |  | ✓ |  |  |
 | `grib` | GRIB meteorological data | `application/octet-stream` | `scientific` | `grb`, `grb2`, `grib`, `grib2` |  |  | ✓ |  | ✓ |
 | `groovy` | Groovy source | `text/x-groovy` | `code` | `groovy` | ✓ |  |  | ✓ |  |
+| `gsdd_gdd` | GSDD Display Descriptor Database (.gdd) | `application/x-gsdd-gdd` | `database` | `gdd` |  |  | ✓ |  |  |
+| `gssi_dzt` | GSSI SIR-10 RADAN Ground Penetrating Radar Data (.dzt, PRONOM fmt/362) | `application/x-gssi-dzt` | `document` | `dzt` |  |  | ✓ |  |  |
+| `gsym` | LLVM GSYM Debug Symbol File | `application/x-llvm-gsym` | `executable` | — |  |  | ✓ |  |  |
+| `gt_game_systems_dux` | GT Game Systems Amiga Music Module (.dux) | `audio/x-gt-game-systems-dux` | `audio` | `dux` |  |  | ✓ |  |  |
+| `gta_ifp` | Rockstar Games GTA RenderWare Animation Package (.ifp, 2001) Rockstar Games | `application/x-gta-ifp` | `geometry` | `ifp` |  |  | ✓ |  |  |
+| `guemap` | GUEmap Interactive Fiction Map (.gmp) | `application/x-guemap` | `document` | `gmp` |  |  | ✓ |  |  |
+| `guitar_pro_gpx` | Arobas Music Guitar Pro 6 Tablature Container (.gpx) | `application/x-guitar-pro-gpx` | `audio` | `gpx` |  |  | ✓ |  |  |
+| `gus_pat` | Gravis Ultrasound GF1 Instrument Patch (.pat) | `audio/x-gus-patch` | `audio` | `pat` |  |  | ✓ |  |  |
+| `gx1` | Brightbill-Roberts Show Partner GX1 Graphics Image (.gx1) | `image/x-gx1` | `image` | `gx1` |  |  | ✓ |  |  |
+| `gx2_bitmap` | Show Partner GX2 Graphics File (.gx2, PRONOM fmt/1789) | `image/x-gx2` | `document` | `gx2` |  |  | ✓ |  |  |
 | `gzip` | gzip compressed data | `application/gzip` | `archive` | `gz`, `gzip`, `tgz`, `tar.gz` |  |  | ✓ | ✓ | ✓ |
 | `h2` | H2 database | `application/octet-stream` | `application` | `h2.db`, `mv.db` |  |  | ✓ |  |  |
 | `h5` | Hierarchical Data Format v5 | `application/x-hdf5` | `archive` | `h5`, `hdf5` |  |  | ✓ | ✓ |  |
+| `ha_archive` | Harri Hirvola HA Compressed Archive (.ha) | `application/x-ha-archive` | `archive` | `ha` |  |  | ✓ |  |  |
+| `haiku_vector_icon_format_hvif` | Haiku Vector Icon Format (.hvif, PRONOM fmt/1791) | `application/x-haiku-vector-icon-format-hvif` | `document` | `hvif` |  |  | ✓ |  |  |
+| `halo_blf` | Bungie Halo BLF Container / Forge Variant (.blf / .map, 2007) Bungie | `application/x-halo-blf` | `archive` | `blf`, `map` |  |  | ✓ |  |  |
+| `halpst` | HAL Laboratory GameCube HALPST Audio Stream (.hps) | `audio/x-halpst` | `audio` | `hps` |  |  | ✓ |  |  |
 | `handlebars` | Handlebars source | `text/x-handlebars-template` | `code` | `hbs`, `handlebars` | ✓ |  |  | ✓ |  |
+| `hanmac_word` | HanMac Word-J / Word-K Macintosh Japanese/Korean Document (.hj / .hk, YLYS / HYLS) | `application/x-hanmac-word` | `document` | `hj`, `hk` |  |  | ✓ |  |  |
+| `harvard` | Software Publishing Harvard Graphics Presentation / Chart (.ch3 / .sh3) | `application/x-harvard-graphics` | `document` | `ch3`, `sh3` |  |  | ✓ |  |  |
 | `haskell` | Haskell source | `text/plain` | `code` | `hs`, `lhs` | ✓ |  |  | ✓ |  |
+| `havok_hkx` | Havok Physics / Animation Binary Tagfile & Packfile (.hkx / .hkt, 2004) Havok | `application/x-havok-hkx` | `geometry` | `hkx`, `hkt` |  |  | ✓ |  |  |
 | `hcl` | HashiCorp configuration language | `text/x-hcl` | `code` | `hcl` | ✓ |  |  | ✓ |  |
 | `hdf4` | HDF4 | `application/octet-stream` | `scientific` | `h4`, `hdf` |  |  | ✓ |  | ✓ |
+| `hdiffpatch` | HouSisong HDiffPatch Binary Differential Patch | `application/x-hdiffpatch` | `archive` | `hdiff` |  |  | ✓ |  |  |
+| `hdr_rgbe` | Radiance RGBE HDR image (.hdr/.pic) | `image/vnd.radiance` | `image` | `hdr`, `pic` |  |  | ✓ |  |  |
 | `heif` | High Efficiency Image File | `image/heic` | `image` | `heif`, `heifs`, `heic`, `heics` |  |  | ✓ |  | ✓ |
+| `helios_save` | HELIOS Save State Container (.save) | `application/x-helios-save` | `application` | `save` |  |  | ✓ |  |  |
+| `helppc_index` | David Jurgens HelpPC Quick Reference Index (.ndx, 1991) | `application/x-helppc-index` | `database` | `ndx` |  |  | ✓ |  |  |
+| `hemera_hta` | Hemera Photo-Objects Thumbnails Archive (.hta) | `image/x-hemera-hta` | `image` | `hta` |  |  | ✓ |  |  |
+| `herad_adlib` | Herad / Cryo Interactive AdLib Music (.agd / .sdb / .sqx) | `audio/x-herad-adlib` | `audio` | `agd`, `sdb`, `sqx` |  |  | ✓ |  |  |
+| `hercules_dasd` | Hercules IBM System/370 & z/Architecture CKD / FBA DASD Image (CKD_P370 / CKD_C370) | `application/x-hercules-dasd` | `archive` | — |  |  | ✓ |  |  |
+| `hermes` | React Native Hermes JS bytecode (.hbc) | `application/x-hermes-bytecode` | `executable` | `hbc` |  |  | ✓ |  |  |
+| `hes` | PC Engine / TurboGrafx-16 Hudson Entertainment System Sound Format (.hes) | `audio/x-hes` | `audio` | `hes` |  |  | ✓ |  |  |
+| `hfe` | HxC Floppy Emulator disk image (.hfe) | `application/x-floppy-image` | `archive` | `hfe` |  |  | ✓ |  |  |
 | `hfs` | hfs | `application/x-hfs` | `unknown` | `hfs` |  |  | ✓ |  |  |
+| `hfst_ol_transducer` | Helsinki Finite-State Transducer Optimized Lookup (.hfstol) | `application/x-hfst-ol-transducer` | `database` | `hfstol` |  |  | ✓ |  |  |
+| `hhd_lpack` | HHD Software Localization Pack (.lpack) | `application/x-hhd-lpack` | `archive` | `lpack` |  |  | ✓ |  |  |
+| `hiew_ext` | SEN Hiew External Information / Names / Save File | `application/x-hiew-ext` | `application` | — |  |  | ✓ |  |  |
+| `highlogic_fcp` | High-Logic FontCreator Font Project (.fcp, 2013) High-Logic | `application/x-highlogic-fcp` | `font` | `fcp` |  |  | ✓ |  |  |
+| `hikvision_firmware` | Hikvision DVR/NVR/IPC Firmware Package (.dav, 2012) Hikvision | `application/x-hikvision-firmware` | `application` | `dav` |  |  | ✓ |  |  |
+| `hipc` | Jochen Hippel Amiga/Atari ST COSO Compressed Module (.hipc / .soc) | `audio/x-mod` | `audio` | `hipc`, `soc` |  |  | ✓ |  |  |
+| `hippel_hip` | Jochen Hippel Amiga 68000 / 7-Voice Module (.hip / .hip7) | `audio/x-mod` | `audio` | `hip`, `hip7` |  |  | ✓ |  |  |
+| `his_masters_noise` | Mahoney & Kaktus His Master's Noise Amiga Module (.mod) | `audio/x-his-masters-noise` | `audio` | `mod` |  |  | ✓ |  |  |
+| `hitachi_hrf` | Hitachi CADCore / Tracer Raster Format (.hrf) | `image/x-hitachi-hrf` | `image` | `hrf` |  |  | ✓ |  |  |
+| `hively_tracker` | Amiga / Cross-Platform HivelyTracker Chiptune Module (.hvl) | `audio/x-hvl` | `audio` | `hvl` |  |  | ✓ |  |  |
 | `hlp` | MS Windows help | `application/winhlp` | `application` | `hlp` |  |  | ✓ | ✓ |  |
+| `holy_noise` | The Holy Noise Amiga Audio Module (.thn) | `audio/x-thn` | `audio` | `thn` |  |  | ✓ |  |  |
+| `homeworld_lif` | Relic Entertainment Homeworld Library Image Format Texture (.lif) | `image/x-homeworld-lif` | `image` | `lif` |  |  | ✓ |  |  |
+| `homeworld_mex` | Relic Entertainment Homeworld Mesh Extension Data (.mex) | `model/x-homeworld-mex` | `geometry` | `mex` |  |  | ✓ |  |  |
+| `hoops_hsf` | Tech Soft 3D HOOPS Stream File / SolidWorks eDrawings (.hsf / .easm) | `model/x-hoops-hsf` | `geometry` | `hsf`, `easm` |  |  | ✓ |  |  |
+| `hp2100_abs` | Hewlett-Packard HP 2100 / HP 1000 Absolute Binary Paper Tape (.hpb / .abs, 1968) Hewlett-Packard | `application/x-hp2100-abs` | `executable` | `hpb`, `abs` |  |  | ✓ |  |  |
+| `hp2100_rel` | Hewlett-Packard HP 2100 / HP 1000 Relocatable Binary Paper Tape (.hpr / .rel, 1968) Hewlett-Packard | `application/x-hp2100-rel` | `executable` | `hpr`, `rel` |  |  | ✓ |  |  |
+| `hp48_bin` | HP 48 / HP 49 Calculator Binary Object (.hp / .grb) | `application/x-hp48` | `executable` | `hp`, `grb` |  |  | ✓ |  |  |
+| `hp_bdl` | HP FutureSmart Printer Firmware Bundle (.bdl) | `application/x-hp-bdl` | `application` | `bdl` |  |  | ✓ |  |  |
+| `hp_ipkg` | HP LaserJet IPKG Firmware Package (.ipkg) | `application/x-hp-ipkg` | `application` | `ipkg` |  |  | ✓ |  |  |
+| `hp_palmtop_exm` | HP 95LX / 100LX / 200LX System Manager Executable (.exm) | `application/x-hp-exm` | `executable` | `exm` |  |  | ✓ |  |  |
+| `hp_pcl_softfont` | HP PCL / PaintJet Downloadable Soft Font (.sfp / .sfl / .pjf, 1985) Hewlett-Packard | `font/x-hp-pcl` | `font` | `sfp`, `sfl`, `pjf` |  |  | ✓ |  |  |
+| `hpdt` | Adam Dawson Highway Pursuit Game Data Archive (.h*d, 2003) Retrospec | `application/x-highway-pursuit-hpdt` | `archive` | `h` |  |  | ✓ |  |  |
+| `hpux_som` | HP-UX PA-RISC / M68k System Object Model (SOM) Executable & Object (.sl / .o, 1985) Hewlett-Packard | `application/x-hpux-som` | `executable` | `sl`, `o` |  |  | ✓ |  |  |
+| `hsc_tracker` | Hannes Seifert HSC-Tracker OPL2 Module (.hsc) | `audio/x-hsc-tracker` | `audio` | `hsc` |  |  | ✓ |  |  |
+| `hsi_jpeg` | Handmade Software Image Alchemy HSI JPEG (.jpg / .hsi) | `image/x-hsi-jpeg` | `image` | `jpg`, `hsi` |  |  | ✓ |  |  |
+| `hsi_raw` | Handmade Software Image Alchemy HSI Raw Bitmap (.raw) | `image/x-hsi-raw` | `image` | `raw` |  |  | ✓ |  |  |
 | `hta` | HTML Application | `application/hta` | `code` | `hta` |  |  | ✓ |  |  |
 | `htaccess` | Apache access configuration | `text/x-apache-conf` | `code` | — | ✓ |  |  | ✓ |  |
 | `html` | HTML document | `text/html` | `code` | `html`, `htm`, `xhtml`, `xht` | ✓ |  | ✓ | ✓ |  |
+| `huawei_update_app` | Huawei / HiSilicon Firmware Update Package (UPDATE.APP) Huawei | `application/x-huawei-update-app` | `application` | `app` |  |  | ✓ |  |  |
 | `hve` | hve | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
 | `hwp` | Hangul Word Processor | `application/x-hwp` | `document` | `hwp` |  |  | ✓ |  |  |
+| `hxnf_troubleshoot` | HXNF Troubleshoot Diagnostic Dump (.troubleshoot) | `application/x-hxnf-troubleshoot` | `application` | `troubleshoot` |  |  | ✓ |  |  |
+| `hyper_archive` | Hyper Compressed Archive (.hyp) | `application/x-hyper-archive` | `archive` | `hyp` |  |  | ✓ |  |  |
+| `hyperplanning_hyp` | Index Education HYPERPLANNING Schedule Database (.hyp) | `application/x-hyperplanning-hyp` | `database` | `hyp` |  |  | ✓ |  |  |
+| `hyperwriter` | Ntergaid HyperWriter! Hypertext Document (.hw3 / .hw4) | `application/x-hyperwriter` | `document` | `hw3`, `hw4` |  |  | ✓ |  |  |
+| `hytera_fudx` | Hytera DMR Radio Firmware Upgrade Package (.fudx) Hytera Communications | `application/x-hytera-fudx` | `application` | `fudx` |  |  | ✓ |  |  |
+| `ibm_3740` | IBM 3740 / ECMA-58 Basic Exchange 8-Inch Floppy Image (.img / .dsk, 1973) IBM | `application/x-ibm-3740` | `archive` | `img`, `dsk` |  |  | ✓ |  |  |
+| `ibm_displaywrite` | IBM DisplayWrite 2/3/4/5 Document (.doc/.dw4, PRONOM x-fmt/288) | `application/x-ibm-displaywrite` | `document` | `doc`, `dw4` |  |  | ✓ |  |  |
+| `ibm_mrnz` | IBM PC-DOS MRNZ Obfuscated Installer File (.co_ / .ex_ / .sy_) | `application/x-ibm-mrnz` | `archive` | `co_`, `ex_`, `sy_` |  |  | ✓ |  |  |
+| `ibm_os2_extended_attr_ea` | IBM OS/2 Extended Attributes Data File (EA DATA. SF, 1989) IBM | `application/x-ibm-os2-extended-attr-ea` | `application` | `sf` |  |  | ✓ |  |  |
+| `ibm_os2_mkmsgf_msg` | IBM OS/2 & PC DOS MKMSGF Compiled Message Catalog (.msg, 1987) IBM | `application/x-ibm-os2-mkmsgf-msg` | `document` | `msg` |  |  | ✓ |  |  |
+| `ibm_savedskf` | IBM OS/2 SaveDskF / LoadDskF Floppy Disk Image (.dsk / .1dk / .2dk) | `application/x-ibm-savedskf` | `archive` | `dsk`, `1dk`, `2dk` |  |  | ✓ |  |  |
+| `ibm_savf` | IBM i / OS/400 Save File (SAVF) | `application/x-ibm-savf` | `archive` | `savf` |  |  | ✓ |  |  |
+| `ibm_stap_ctl` | IBM Guardium Windows S-TAP Circular Trace Log (.ctl) | `application/x-ibm-stap-ctl` | `application` | `ctl` |  |  | ✓ |  |  |
+| `ibm_terse` | IBM z/OS AMATERSE / TRSMAIN Tersed Data Set (PACK/SPACK) | `application/x-ibm-terse` | `archive` | `terse` |  |  | ✓ |  |  |
+| `ibmpc_ovl` | IBM PC Compiler Runtime Overlay (.ovl) | `application/x-ibmpc-ovl` | `executable` | `ovl` |  |  | ✓ |  |  |
+| `ibus_dict` | Red Hat IBus GVariant Emoji Dictionary (.dict) | `application/x-ibus-dict` | `database` | `dict` |  |  | ✓ |  |  |
 | `icc` | ICC profile | `application/vnd.iccprofile` | `unknown` | `icc` |  |  | ✓ |  | ✓ |
 | `icns` | Mac OS X icon | `image/x-icns` | `image` | `icns` |  |  | ✓ | ✓ | ✓ |
 | `ico` | MS Windows icon resource | `image/vnd.microsoft.icon` | `image` | `ico` |  |  | ✓ | ✓ |  |
 | `ics` | Internet Calendaring and Scheduling | `text/calendar` | `application` | `ics` | ✓ |  | ✓ | ✓ |  |
+| `icy_tower_itr` | Free Lunch Design Icy Tower Replay Recording (ITR140, .itr) | `application/x-icy-tower-itr` | `archive` | `itr` |  |  | ✓ |  |  |
+| `id_roq` | id Software Quake III / Doom 3 RoQ Video (.roq) | `video/x-roq` | `video` | `roq` |  |  | ✓ |  |  |
+| `id_ted5` | id Software TED5 Tile Editor Game Maps Header (.wl1 / .wl6 / .map) | `application/x-id-ted5` | `archive` | `wl1`, `wl6`, `map` |  |  | ✓ |  |  |
+| `idatil` | Hex-Rays IDA Pro Type Information Library (.til) | `application/x-ida-til` | `database` | `til` |  |  | ✓ |  |  |
+| `idb` | Hex-Rays IDA Pro Disassembly Database (.idb / .i64) | `application/x-ida-database` | `database` | `idb`, `i64` |  |  | ✓ |  |  |
+| `idr_kb` | Interactive Delphi Reconstructor Knowledge Base (.kb, 2009) crypto2011 | `application/x-idr-kb` | `database` | `kb` |  |  | ✓ |  |  |
+| `idsp_spr` | id Software Quake / Valve Half-Life IDSP 2D/3D Sprite (.spr, 1996) id Software / Valve | `application/x-idsp-spr` | `geometry` | `spr` |  |  | ✓ |  |  |
+| `iebcopy_pds` | IBM z/OS IEBCOPY Unloaded Partitioned Data Set (COPYR1/COPYR2) | `application/x-ibm-iebcopy` | `archive` | — |  |  | ✓ |  |  |
+| `ifd` | Intel SPI Flash Descriptor (IFD) | `application/x-intel-ifd` | `application` | — |  |  | ✓ |  |  |
 | `iges` | IGES CAD exchange | `model/iges` | `image` | `iges`, `igs` | ✓ |  | ✓ |  |  |
 | `ignorefile` | Ignorefile | `text/plain` | `code` | — | ✓ |  |  | ✓ |  |
+| `igo_poi_kns` | NNG iGO Navigation KML POI Search Index (.kns) | `application/x-igo-poi-kns` | `database` | `kns` |  |  | ✓ |  |  |
+| `il2cpp_metadata` | Unity Engine IL2CPP Global Metadata Binary (global-metadata.dat) | `application/x-il2cpp-metadata` | `executable` | `dat` |  |  | ✓ |  |  |
 | `ilbm` | Amiga IFF ILBM image | `image/x-ilbm` | `image` | `iff`, `ilbm`, `lbm` |  |  | ✓ |  |  |
+| `illusion_i3d` | Illusion Softworks LS3D Engine 3D Model (.i3d, 2002) Illusion Softworks | `model/x-illusion-i3d` | `geometry` | `i3d` |  |  | ✓ |  |  |
+| `images_music_system` | Images Design Images Music System / Unicorn Tracker Amiga Module (.ims) | `audio/x-images-music-system` | `audio` | `ims` |  |  | ✓ |  |  |
+| `imago_imf` | Lutz Roeder Imago Orpheus Tracker Module (.imf) | `audio/x-imf` | `audio` | `imf` |  |  | ✓ |  |  |
+| `imd` | Dave Dunfield ImageDisk image (.imd) | `application/x-floppy-image` | `archive` | `imd` |  |  | ✓ |  |  |
 | `img` | img | `application/octet-stream` | `unknown` | `img` |  |  | ✓ |  |  |
+| `imp_archive` | Technelysium IMP Compressed Archive (.imp) | `application/x-imp-archive` | `archive` | `imp` |  |  | ✓ |  |  |
+| `imploder` | Amiga File Imploder Compressed File (IMP!) | `application/x-imploder` | `archive` | — |  |  | ✓ |  |  |
+| `imuse_mcmp` | LucasArts iMUSE MCMP Compressed Audio (.imc) | `audio/x-imuse-mcmp` | `audio` | `imc` |  |  | ✓ |  |  |
+| `imx_sdma_fw` | NXP i.MX Smart Direct Memory Access Controller Firmware (SDMA) | `application/x-imx-sdma-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `in_stereo_is` | Hans Wessels In Stereo! 1.0/2.0 Amiga Synthesizer Module (ISM!V1.2 / IS20DF10) | `audio/x-in-stereo` | `audio` | — |  |  | ✓ |  |  |
+| `indd` | Adobe InDesign Document / Book / Library (.indd / .indb / .indl) | `application/x-indesign` | `document` | `indd`, `indb`, `indl` |  |  | ✓ |  |  |
+| `infocrypt_icsl` | Infocrypt ICS Encrypted Audit Log (.icsl) | `application/x-infocrypt-icsl` | `application` | `icsl` |  |  | ✓ |  |  |
+| `infofile_flr` | InfoFile FLR Database (.flr, PRONOM fmt/1785) | `application/x-infofile-flr` | `document` | `flr` |  |  | ✓ |  |  |
+| `infogrames_ins` | Infogrames / Rob Hubbard II Amiga Sample Bank (.ins) | `audio/x-infogrames-ins` | `audio` | `ins` |  |  | ✓ |  |  |
+| `infotrieve_tpx` | INFOTrieve Technologies TPX Record (.tpx, INFOTrieve Technologies) | `application/x-infotrieve-tpx` | `database` | `tpx` |  |  | ✓ |  |  |
 | `ini` | INI configuration file | `text/plain` | `text` | `ini` | ✓ |  |  | ✓ |  |
+| `inmagic_dbtext` | Inmagic DB/TextWorks Database File (.dbs / .btx / .tba / .ixl) | `application/x-inmagic-dbtextworks` | `database` | `dbs`, `btx`, `tba`, `ixl` |  |  | ✓ |  |  |
+| `inno_setup` | Jordan Russell Inno Setup Installer Data / Log / Messages (.dat / .msg / .bin) | `application/x-innosetup` | `archive` | `dat`, `msg`, `bin` |  |  | ✓ |  |  |
+| `innodb_tablespace` | MySQL / MariaDB InnoDB Tablespace (.ibd / ibdata1) | `application/x-innodb-tablespace` | `database` | `ibd` |  |  | ✓ |  |  |
+| `installer_vise_xyz` | MindVision Installer VISE Metadata Container (ESIVCSIM, miscdata.xyz) | `application/x-installer-vise-xyz` | `archive` | `xyz` |  |  | ✓ |  |  |
+| `installshield_ins` | InstallShield Compiled Script (.ins) | `application/x-installshield-ins` | `executable` | `ins` |  |  | ✓ |  |  |
+| `installshield_inx` | InstallShield Compiled Rules Script (.inx / .ins) | `application/x-installshield-inx` | `executable` | `inx`, `ins` |  |  | ✓ |  |  |
+| `installshield_isu` | InstallShield Uninstall Script / Log (.isu) | `application/x-installshield-isu` | `executable` | `isu` |  |  | ✓ |  |  |
+| `installshield_pkg` | InstallShield Package Directory (setup.pkg) | `application/x-installshield-pkg` | `archive` | `pkg` |  |  | ✓ |  |  |
+| `instar_bneg` | INSTAR IP Camera BNEG Firmware Container (.pkg) | `application/x-instar-bneg` | `application` | `pkg` |  |  | ✓ |  |  |
+| `intel_cpd_firmware` | Intel Code Partition Directory Firmware Container ($CPD) | `application/x-intel-cpd-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `intel_dvi` | Intel / IBM DVI ActionMedia AVSS Multimedia File (.dvi / .avs) | `video/x-intel-dvi` | `video` | `dvi`, `avs` |  |  | ✓ |  |  |
+| `intel_esif_dv` | Intel Dynamic Tuning Technology (DPTF) ESIF DataVault (.dv) | `application/x-intel-esif-dv` | `application` | `dv` |  |  | ✓ |  |  |
+| `intel_iscu_firmware` | Intel C600 Storage Controller Unit Cable Management OEM Firmware (ISCUOEMB) | `application/x-intel-iscu-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `intel_ivsc_firmware` | Intel Vision Sensing Controller Firmware (SCVF / SFWI) | `application/x-intel-ivsc-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `intel_me_fpt` | Intel Management Engine Flash Partition Table ($FPT, .bin) Intel | `application/x-intel-me-fpt` | `application` | `bin` |  |  | ✓ |  |  |
 | `intelhex` | Intel HEX | `text/plain` | `executable` | `hex`, `ihex` | ✓ |  | ✓ |  |  |
+| `intellifont` | Agfa Compugraphic Intellifont Scalable Font (.lib / .type) | `application/x-font-intellifont` | `font` | `lib`, `type` |  |  | ✓ |  |  |
+| `interleaved_adx_audio_aix` | CRI Middleware Interleaved ADX Audio (AIX) (.aix, PRONOM fmt/841) | `application/x-interleaved-adx-audio-aix` | `document` | `aix` |  |  | ✓ |  |  |
 | `internetshortcut` | MS Windows Internet shortcut | `application/x-mswinurl` | `application` | `url` | ✓ |  | ✓ | ✓ |  |
+| `interplay_acm` | Interplay Entertainment ACM Compressed Audio (.acm) | `audio/x-interplay-acm` | `audio` | `acm` |  |  | ✓ |  |  |
+| `ion_pml_dgm` | Power Measurement / Schneider Electric ION Enterprise PML User Diagram (.dgm) Power Measurement | `application/x-ion-pml-dgm` | `document` | `dgm` |  |  | ✓ |  |  |
 | `iosapp` | iosapp | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `ipynb` | Jupyter notebook | `application/json` | `code` | `ipynb` | ✓ |  | ✓ | ✓ |  |
+| `irlog1_log` | IRLOG1 ECDSA-Signed Incident Response Log (.irlog) | `application/x-irlog1-log` | `application` | `irlog` |  |  | ✓ |  |  |
+| `is3_archive` | InstallShield v3 Compressed Installer Archive (_INST32I.EX_ / .EX_) | `application/x-installshield` | `archive` | `ex_` |  |  | ✓ |  |  |
+| `is_ibt` | InstallShield IBT Multi-Member SZDD Archive (setup.ibt) | `application/x-installshield-compress-szdd` | `archive` | — |  |  | ✓ |  |  |
+| `iscab` | InstallShield Cabinet archive | `application/x-installshield` | `archive` | — |  |  | ✓ |  |  |
+| `isi_frac_car` | Image Space Incorporated FRAC Encrypted Vehicle Archive (.car, 2005) ISI | `application/x-isi-frac-car` | `archive` | `car` |  |  | ✓ |  |  |
+| `isi_gmotor2_mas` | ISI gMotor 2 MAS Game Archive (.mas) | `application/x-isi-gmotor2-mas` | `archive` | `mas` |  |  | ✓ |  |  |
 | `iso` | ISO 9660 CD-ROM filesystem data | `application/x-iso9660-image` | `archive` | `iso` |  |  | ✓ | ✓ |  |
+| `iswlog_swl` | ISWLOG Encrypted Diagnostic Trace (.swl) | `application/x-iswlog-swl` | `application` | `swl` |  |  | ✓ |  |  |
+| `isz` | InstallShield Z / TSComp compressed archive | `application/x-installshield` | `archive` | — |  |  | ✓ |  |  |
+| `it` | Impulse Tracker Music Module (.it) | `audio/x-mod` | `audio` | `it` |  |  | ✓ |  |  |
+| `ivf` | Duck TrueMotion / On2 / AOMedia IVF Video Container (.ivf) | `video/x-ivf` | `video` | `ivf` |  |  | ✓ |  |  |
+| `iw4x_heat` | IW4x Call of Duty: Modern Warfare 2 Multiplayer Heatmap (.iw4heat) | `application/x-iw4x-heat` | `archive` | `iw4heat` |  |  | ✓ |  |  |
+| `iwlwifi_ucode` | Intel PRO/Wireless & Wi-Fi 6/7 Microcode Image (.ucode, IWL\\\\n) | `application/x-intel-iwlwifi-ucode` | `application` | `ucode` |  |  | ✓ |  |  |
+| `ix_index` | IX Binary Database Index (.ix) | `application/x-ix-index` | `database` | `ix` |  |  | ✓ |  |  |
+| `ixalance_ixs` | Shortcut Ixalance Impulse Tracker Synth Module (.ixs) | `audio/x-ixs` | `audio` | `ixs` |  |  | ✓ |  |  |
+| `j3d` | Nintendo GameCube / Wii JSystem 3D Model / Animation (.bmd / .bdl / .bck / .btk / .brk) | `model/x-nintendo-j3d` | `geometry` | `bmd`, `bdl`, `bck`, `btk`, `brk` |  |  | ✓ |  |  |
+| `jackhammer_jmf` | J.A.C.K. / Jackhammer Binary Map (.jmf, 2006) Jackhammer team / Chain Studios | `application/x-jackhammer-jmf` | `geometry` | `jmf` |  |  | ✓ |  |  |
+| `jam_packer` | Atari ST JAM Packer Compressed Data (LSD! / LZH! / LZW!) | `application/x-atari-jam-packer` | `archive` | — |  |  | ✓ |  |  |
+| `jamcracker_jam` | M. Gemmel JamCracker Pro Amiga Tracker Module (.jam, BeEp) | `audio/x-jamcracker` | `audio` | `jam` |  |  | ✓ |  |  |
 | `jar` | Java archive data (JAR) | `application/java-archive` | `archive` | `jar`, `klib` |  |  | ✓ | ✓ |  |
+| `jason_page_old` | Jason Page Old Amiga Music Module (.jpo) | `audio/x-jason-page-old` | `audio` | `jpo` |  |  | ✓ |  |  |
 | `java` | Java source | `text/x-java` | `code` | `java` | ✓ |  |  | ✓ |  |
+| `java_webstart_idx` | Oracle Java Web Start Deployment Cache Index (.idx) | `application/x-java-webstart-idx` | `application` | `idx` |  |  | ✓ |  |  |
 | `javabytecode` | Java compiled bytecode | `application/x-java-applet` | `executable` | `class` |  |  | ✓ | ✓ | ✓ |
 | `javascript` | JavaScript source | `application/javascript` | `code` | `js`, `mjs`, `cjs` | ✓ |  |  | ✓ |  |
+| `jaytrax_jxs` | Johannes Bjerregaard JayTrax Synth Module (.jxs) | `audio/x-jaytrax` | `audio` | `jxs` |  |  | ✓ |  |  |
+| `jbig2` | ITU-T T.88 / ISO/IEC 14492 JBIG2 Bi-Level Image (.jb2 / .jbig2) | `image/x-jbig2` | `image` | `jb2`, `jbig2` |  |  | ✓ |  |  |
+| `jboot_sch2` | JBOOT SCH2 Second-Stage Kernel Header Image (.bin) | `application/x-jboot-sch2` | `application` | `bin` |  |  | ✓ |  |  |
+| `jeroen_tel_jt` | Jeroen Tel / Maniacs of Noise Amiga Module (.jt) | `audio/x-jeroen-tel-jt` | `audio` | `jt` |  |  | ✓ |  |  |
+| `jetbrains_phm_at` | JetBrains IntelliJ / Kotlin PersistentHashMap Value Storage (.values.at) | `application/x-jetbrains-phm` | `database` | `values` |  |  | ✓ |  |  |
+| `jffs2` | Red Hat JFFS2 Flash Filesystem Image (.jffs2) | `application/x-jffs2` | `archive` | `jffs2` |  |  | ✓ |  |  |
+| `jfx1` | GMM Entertainment JFX1 / JPK1 Compressed Archive (.jpk) | `application/x-jfx1` | `archive` | `jpk` |  |  | ✓ |  |  |
+| `jgxp_package` | JGXP Game Resource Package (.gxp) | `application/x-jgxp-package` | `archive` | `gxp` |  |  | ✓ |  |  |
+| `jif99a` | Jeff's Image Format (.jif, JIF99a) | `image/x-jif` | `image` | `jif` |  |  | ✓ |  |  |
 | `jinja` | Jinja template | `text/x-jinja2-template` | `code` | `jinja`, `jinja2`, `j2` | ✓ |  |  | ✓ |  |
+| `jks` | Java KeyStore (JKS/JCEKS) | `application/x-java-keystore` | `application` | — |  |  | ✓ |  |  |
 | `jng` | JPEG network graphics | `image/jng` | `image` | `jng` |  |  | ✓ |  | ✓ |
 | `jnlp` | Java Network Launch Protocol | `application/x-java-jnlp-file` | `code` | `jnlp` | ✓ |  | ✓ |  |  |
+| `joda_tz` | Joda-Time Binary ZoneInfo Map (ZoneInfoMap) | `application/x-joda-zoneinfo` | `application` | — |  |  | ✓ |  |  |
 | `jp2` | jpeg2000 | `image/jpeg2000` | `image` | `jp2` |  |  | ✓ | ✓ |  |
+| `jp2_pgx` | ISO/IEC 15444-4 JPEG 2000 PGX Verification Component Image (.pgx) | `image/x-jp2-pgx` | `image` | `pgx` |  |  | ✓ |  |  |
 | `jpeg` | JPEG image data | `image/jpeg` | `image` | `jpg`, `jpeg` |  |  | ✓ | ✓ |  |
+| `jphp_module` | JPHP (DevelNext) Compiled PHP-on-JVM Module (.phb) | `application/x-jphp-module` | `executable` | `phb` |  |  | ✓ |  |  |
 | `json` | JSON document | `application/json` | `code` | `json` | ✓ |  | ✓ | ✓ |  |
 | `jsonl` | JSONL document | `application/json` | `code` | `jsonl`, `jsonld` | ✓ |  |  | ✓ |  |
+| `jsos_md8` | JSOS SOS Standard Filesystem 1.x (.md8, MatchWare) | `application/x-jsos-md8` | `archive` | `md8` |  |  | ✓ |  |  |
+| `juce_prop` | JUCE PropertySet Binary Configuration (.settings, 2004) Raw Material Software | `application/x-juce-prop` | `application` | `settings` |  |  | ✓ |  |  |
+| `juce_vc2_preset` | JUCE AudioProcessorValueTreeState Binary XML Preset (VC2!, 2015) Raw Material Software / ROLI | `application/x-juce-vc2-preset` | `audio` | `p21preset` |  |  | ✓ |  |  |
 | `julia` | Julia source | `text/x-julia` | `code` | `jl` | ✓ |  |  | ✓ |  |
+| `julia_ji` | Julia Project Precompiled Module Image (.ji) | `application/x-julia-ji` | `executable` | `ji` |  |  | ✓ |  |  |
+| `jumbf_c2pa` | ISO/IEC 19566-5 JUMBF / C2PA Content Credentials Manifest (.jumbf / .c2pa, 2019) JPEG / C2PA | `application/x-c2pa-manifest-store` | `application` | `jumbf`, `c2pa` |  |  | ✓ |  |  |
+| `jvc_everio_moi` | JVC Everio Camcorder Media Object Information Sidecar (.moi) | `application/x-jvc-moi` | `video` | `moi` |  |  | ✓ |  |  |
+| `jwlaunch_p2` | Java Web Start Standalone Launcher Bundle (.p2) | `application/x-jwlaunch-p2` | `archive` | `p2` |  |  | ✓ |  |  |
 | `jxl` | JPEG XL | `image/jxl` | `image` | `jxl` |  |  | ✓ |  |  |
+| `jxs` | JPEG XS image | `image/jxs` | `image` | — |  |  | ✓ |  |  |
+| `kapel_mdf` | Lumex Kapel Capillary Electrophoresis Measurement (.mdf) | `application/x-kapel-mdf` | `document` | `mdf` |  |  | ✓ |  |  |
+| `kaspersky_upds` | Kaspersky Anti-Virus UPDS Gzip Signature Database (.kdc, 2006) Kaspersky Lab | `application/x-kaspersky-upds` | `archive` | `kdc` |  |  | ✓ |  |  |
+| `kd_red` | Knowledge Dynamics RED Compressed Installer File (.001 / .red) | `application/x-kd-red` | `archive` | `red` |  |  | ✓ |  |  |
+| `kde_kwallet` | KDE KWallet Credential Store (.kwl) | `application/x-kwallet` | `application` | `kwl` |  |  | ✓ |  |  |
+| `keepass` | KeePass Password Safe Encrypted Database (.kdb / .kdbx) | `application/x-keepass2` | `database` | `kdb`, `kdbx` |  |  | ✓ |  |  |
+| `kens_adlib_ksm` | Ken Silverman AdLib Music (.ksm) | `audio/x-kens-ksm` | `audio` | `ksm` |  |  | ✓ |  |  |
+| `kens_digital_kdm` | Ken Silverman Digital Music (.kdm) | `audio/x-kens-kdm` | `audio` | `kdm` |  |  | ✓ |  |  |
 | `keras` | Keras model archive | `application/octet-stream` | `model` | `keras` |  |  | ✓ |  | ✓ |
+| `kerberos_kirbi` | Kerberos v5 KRB-CRED Credential Ticket (.kirbi) | `application/x-kerberos-kirbi` | `application` | `kirbi` |  |  | ✓ |  |  |
+| `keychain` | Apple macOS Keychain Encrypted Credential Store (.keychain) | `application/x-apple-keychain` | `application` | `keychain` |  |  | ✓ |  |  |
+| `keyence_lj_ljhp` | Keyence LJ-X8000 / LJ-V7000 Series Laser Profiler Settings (.ljhp) | `application/x-keyence-ljhp` | `application` | `ljhp` |  |  | ✓ |  |  |
+| `kgb` | KGB Archiver Compressed Archive (.kgb) | `application/x-kgb-archive` | `archive` | `kgb` |  |  | ✓ |  |  |
+| `kill_la_kill_dgkp` | APLUS / Arc System Works Kill la Kill: IF DGKP Asset Archive (.pac / .lyt) | `application/x-kill-la-kill-dgkp` | `archive` | `pac`, `lyt` |  |  | ✓ |  |  |
+| `kindle_drmion` | Amazon Kindle KFX DRM-Protected Ion Voucher (.kfx / .azw8, \\\\xEADRMION\\\\xEE) | `application/vnd.amazon.kfx-drm` | `database` | `kfx`, `azw8` |  |  | ✓ |  |  |
+| `kindle_kfx` | Amazon Kindle Format 10 Container (.kfx, CONT) | `application/vnd.amazon.kfx` | `database` | `kfx` |  |  | ✓ |  |  |
+| `klei_ktex` | Klei Entertainment KTEX Game Texture (.tex, 2013) Klei Entertainment | `image/x-klei-ktex` | `image` | `tex` |  |  | ✓ |  |  |
 | `kml` | Keyhole Markup Language | `application/vnd.google-earth.kml+xml` | `gis` | `kml` | ✓ |  | ✓ |  | ✓ |
 | `kmz` | Keyhole Markup Language archive | `application/vnd.google-earth.kmz` | `gis` | `kmz` |  |  | ✓ |  |  |
 | `koala` | Commodore 64 Koala Painter image | `application/octet-stream` | `image` | `koa` |  |  | ✓ |  |  |
+| `kodak_dc20_preset_pst` | Eastman Kodak DC20 Digital Camera Preset (.pst, 1996) Kodak | `application/x-kodak-dc20-preset-pst` | `application` | `pst` |  |  | ✓ |  |  |
+| `kodak_photo_cd_info_pcd` | Eastman Kodak Photo CD Disc Information (INFO.PCD, 1992) Kodak | `application/x-kodak-photo-cd-info-pcd` | `image` | `pcd` |  |  | ✓ |  |  |
+| `kodi_xbt` | XBMC / Kodi XBTF Texture Bundle (.xbt) | `application/x-kodi-xbt` | `image` | `xbt` |  |  | ✓ |  |  |
+| `koei_ls11_s11` | KOEI Romance of the Three Kingdoms XI LS11 Data Archive (.s11) | `application/x-koei-ls11` | `archive` | `s11` |  |  | ✓ |  |  |
+| `koei_tecmo_g1t` | Koei Tecmo G1T Texture Archive (.g1t) | `image/x-koei-tecmo-g1t` | `image` | `g1t` |  |  | ✓ |  |  |
+| `koei_tecmo_xws` | Koei Tecmo XWS Wave Stream Audio (.xws) | `audio/x-koei-tecmo-xws` | `audio` | `xws` |  |  | ✓ |  |  |
+| `kohan_snd` | TimeGate Studios Kohan KA Sound Archive (.snd, 2001) TimeGate Studios | `application/x-kohan-snd` | `archive` | `snd` |  |  | ✓ |  |  |
+| `kompas_3d` | ASCON KOMPAS-3D CAD Drawing / Fragment / Model (.cdw / .frw / .m3d) | `application/x-kompas-3d` | `geometry` | `cdw`, `frw`, `m3d` |  |  | ✓ |  |  |
+| `kontakt_hsin_nki` | Native Instruments Kontakt Monolith Instrument (.nki) | `application/x-kontakt-hsin-nki` | `audio` | `nki` |  |  | ✓ |  |  |
+| `kontakt_ncw` | Native Instruments Kontakt Lossless Compressed Wave (.ncw) | `audio/x-kontakt-ncw` | `audio` | `ncw` |  |  | ✓ |  |  |
+| `kontext_lat` | KONTEXT DOS Word Processor Printer/Keyboard Driver (.lat) | `application/x-kontext-lat` | `application` | `lat` |  |  | ✓ |  |  |
 | `kotlin` | Kotlin source | `text/plain` | `code` | `kt`, `kts` | ✓ |  |  | ✓ |  |
+| `krita_tile_data` | Krita Layer Tile Data (.kra layer, 2009) KDE / Krita Foundation | `application/x-krita-tile-data` | `image` | `kra` |  |  | ✓ |  |  |
+| `krom_mork_res` | KROM / MORK 64-Bit Resource Table (.1 / .10d0) | `application/x-krom-mork-res` | `archive` | `10d0` |  |  | ✓ |  |  |
+| `kryoflux_raw` | Software Preservation Society KryoFlux Raw Flux Stream (.raw) | `application/x-kryoflux-raw` | `archive` | `raw` |  |  | ✓ |  |  |
+| `ksp_mu` | Squad Kerbal Space Program Part 3D Model (.mu) | `model/x-ksp-mu` | `geometry` | `mu` |  |  | ✓ |  |  |
+| `kss` | MSX / Sega Master System KSS Chiptune Audio (KSCC / KSSX) | `audio/x-kss` | `audio` | — |  |  | ✓ |  |  |
+| `kt` | kometbomb Klystrack Chiptune Song (.kt) | `audio/x-kt` | `audio` | `kt` |  |  | ✓ |  |  |
+| `kudo_catalog_db` | Imspace Kudo Image Browser Catalog Database (.kdb, 1992) Imspace Systems | `application/x-kudo-kdb` | `database` | `kdb` |  |  | ✓ |  |  |
+| `kudo_hash_index` | Imspace Kudo Image Browser Hash Index (.hsh, 1992) Imspace Systems | `application/x-kudo-hsh` | `database` | `hsh` |  |  | ✓ |  |  |
+| `kugou_music_kgm` | KuGou Music Encrypted Audio Container (.kgm / .vpr) | `application/x-kugou-music-kgm` | `audio` | `kgm`, `vpr` |  |  | ✓ |  |  |
+| `kvag_audio` | Simon & Schuster Interactive KVAG ADPCM Audio (.vag) | `audio/x-kvag` | `audio` | `vag` |  |  | ✓ |  |  |
+| `kwaj` | Microsoft KWAJ compressed member | `application/x-ms-compress` | `archive` | — |  |  | ✓ |  |  |
+| `kwikdraw` | KwikDraw Object-Oriented Drawing (.kwk) | `image/x-kwikdraw` | `image` | `kwk` |  |  | ✓ |  |  |
+| `kyocera_raw` | Kyocera Contax N Digital RAW Image (.raw, 2002) Kyocera | `image/x-kyocera-raw` | `image` | `raw` |  |  | ✓ |  |  |
+| `la_audio` | Michael Bevin La Lossless Audio Compressed Wave (.la) | `audio/x-la` | `audio` | `la` |  |  | ✓ |  |  |
+| `labgruppen_ipxpreset` | Lab.gruppen IPX Series Amplifier DSP Preset (.ipxpreset) Lab.gruppen | `application/x-labgruppen-ipxpreset` | `audio` | `ipxpreset` |  |  | ✓ |  |  |
+| `larian_lsof` | Larian Studios LSOF Binary Resource (.lsf, 2014) Larian Studios | `application/x-larian-lsof` | `application` | `lsf` |  |  | ✓ |  |  |
+| `larian_lspk` | Larian Studios Divinity / Baldur's Gate 3 LSPK Package (.pak / .lsv, 2014) Larian Studios | `application/x-larian-lspk` | `archive` | `pak`, `lsv` |  |  | ✓ |  |  |
 | `las` | LAS point cloud | `application/octet-stream` | `gis` | `las` |  |  | ✓ |  |  |
 | `latex` | LaTeX document | `text/x-tex` | `text` | `tex`, `sty` | ✓ |  | ✓ | ✓ |  |
+| `lattice_bitstream` | Lattice iCE40 / ECP5 / MachXO / Nexus FPGA Bitstream (.bit / .bin) Lattice Semiconductor | `application/x-lattice-bitstream` | `application` | `bit`, `bin` |  |  | ✓ |  |  |
+| `laxity_pt` | Laxity Amiga Powertracker Module (.pt) | `audio/x-laxity-pt` | `audio` | `pt` |  |  | ✓ |  |  |
+| `layaair_mesh_lm` | LayaAir 3D Engine Binary Mesh (.lm) | `model/x-layaair-lm` | `geometry` | `lm` |  |  | ✓ |  |  |
+| `lbr` | CP/M LU / LBR Library Archive (.lbr) | `application/x-cpm-lbr` | `archive` | `lbr` |  |  | ✓ |  |  |
+| `lcio_sio` | Linear Collider I/O SIO Event Stream (.slcio) | `application/x-lcio-sio` | `application` | `slcio` |  |  | ✓ |  |  |
+| `ldb` | ASCII / Enterbrain RPG Maker 2000 / 2003 LCF Database / Map / Save (.ldb / .lmt / .lmu / .lsd) | `application/x-lcf-database` | `database` | `ldb`, `lmt`, `lmu`, `lsd` |  |  | ✓ |  |  |
+| `leadtools_cmp` | LEADTOOLS Compressed Image (.cmp, PRONOM fmt/1337) | `image/x-leadtools-cmp` | `document` | `cmp` |  |  | ✓ |  |  |
+| `leggless_lme` | Leggless / Silents UK Amiga Music Editor Module (.lme) | `audio/x-lme` | `audio` | `lme` |  |  | ✓ |  |  |
+| `lego_alp_tun` | High Voltage Software / LEGO Racers ALP Audio (.tun) | `audio/x-lego-alp` | `audio` | `tun` |  |  | ✓ |  |  |
+| `leica_apsc_firmware` | Leica Camera APS-C ASCII-Headered Firmware Update (.upd / .tuf / .lfu, 2009) Leica Camera | `application/x-leica-apsc-firmware` | `application` | `upd`, `tuf`, `lfu` |  |  | ✓ |  |  |
+| `leica_dmr_firmware` | Leica Digital Modul-R XOR-0x35 Firmware Image (.cim, 2005) Leica / Imacon | `application/x-leica-dmr-firmware` | `application` | `cim` |  |  | ✓ |  |  |
+| `leica_firmware` | Leica Camera Maestro / Fujitsu Firmware Container (.fw / .s2, 2009) Leica Camera | `application/x-leica-firmware` | `application` | `fw`, `s2` |  |  | ✓ |  |  |
+| `leica_lens_db` | Leica Camera Lens Correction & Calibration Database (2010) Leica Camera | `application/x-leica-lens-db` | `application` | `bin` |  |  | ✓ |  |  |
+| `lenovo_logdat` | Lenovo Smart Engine XOR-Obfuscated Installer Log (.logdat) | `application/x-lenovo-logdat` | `application` | `logdat` |  |  | ✓ |  |  |
+| `leonardo_image_format_leo` | Leonardo Image Format (.leo, PRONOM fmt/1217) | `application/x-leonardo-image-format-leo` | `document` | `leo` |  |  | ✓ |  |  |
 | `leveldb` | LevelDB | `application/octet-stream` | `application` | `ldb`, `log` |  |  | ✓ |  |  |
+| `lfm2_lfmat` | LFM2 3D Material Definition (.lfmat) | `application/x-lfm2-lfmat` | `geometry` | `lfmat` |  |  | ✓ |  |  |
 | `lha` | LHarc archive | `application/x-lha` | `archive` | `lha`, `lzh` |  |  | ✓ | ✓ | ✓ |
+| `libgdx_g3db` | libGDX UBJSON Binary 3D Model (.g3db) | `model/x-libgdx-g3db` | `geometry` | `g3db` |  |  | ✓ |  |  |
+| `liblzg` | Marcus Geelnard liblzg Compressed Stream (.lzg) | `application/x-lzg` | `archive` | `lzg` |  |  | ✓ |  |  |
 | `lightwave` | LightWave object / scene | `application/octet-stream` | `geometry` | `lwo`, `lws` |  |  | ✓ |  |  |
+| `lineage2_unreal_pkg` | NCSoft Lineage II Encrypted Unreal Engine Package (Lineage2Ver, .usx / .ukx / .utx) | `application/x-lineage2-unreal-pkg` | `geometry` | `usx`, `ukx`, `utx` |  |  | ✓ |  |  |
+| `lingea_lld` | Lingea Lexicon Bilingual Dictionary Database (.lld, 2002) Lingea s.r.o. | `application/x-lingea-lld` | `database` | `lld` |  |  | ✓ |  |  |
+| `linux_kmod_index` | Linux kmod / module-init-tools Binary Module Index (.bin, 2009) Alan Jenkins | `application/x-linux-kmod-index` | `application` | `bin` |  |  | ✓ |  |  |
+| `linux_perf` | Linux Kernel perf.data Performance Profile (PERFILE2) | `application/x-linux-perf-data` | `application` | — |  |  | ✓ |  |  |
+| `linux_psf` | Linux Console PC Screen Font (PSF1 / PSF2) | `application/x-font-linux-psf` | `font` | — |  |  | ✓ |  |  |
+| `lionheart_lion` | Thalion Lionheart Amiga Music Module (.lion) | `audio/x-lionheart` | `audio` | `lion` |  |  | ✓ |  |  |
+| `liq` | Nir Oren Liquid Tracker Module (.liq) | `audio/x-liq` | `audio` | `liq` |  |  | ✓ |  |  |
 | `lisp` | Lisp source | `text/x-lisp` | `code` | `lisp`, `lsp`, `l`, `cl` | ✓ |  |  | ✓ |  |
+| `lithtech_rez` | Monolith LithTech Engine RezMgr Resource Archive (.rez, 1998) Monolith Productions | `application/x-lithtech-rez` | `archive` | `rez` |  |  | ✓ |  |  |
+| `littlefs` | ARM Mbed littlefs Microcontroller Flash Filesystem | `application/x-littlefs-image` | `archive` | — |  |  | ✓ |  |  |
+| `live2d_cmo3` | Live2D Cubism 3+ Editor Model Project (.cmo3 / .can3, 2017) Live2D | `application/x-live2d-cmo3` | `geometry` | `cmo3`, `can3` |  |  | ✓ |  |  |
+| `livecode` | Runtime Revolution / LiveCode Stack (.rev / .livecode) | `application/x-livecode-stack` | `document` | `rev`, `livecode` |  |  | ✓ |  |  |
 | `llvm_bitcode` | LLVM bitcode | `application/octet-stream` | `executable` | `bc` |  |  | ✓ |  | ✓ |
 | `llvm_ir` | LLVM textual IR | `text/plain` | `code` | `ll` | ✓ |  | ✓ |  |  |
+| `llvm_profdata` | LLVM InstrProf Indexed / Raw Coverage Profile Data (.profdata / .profraw) | `application/x-llvm-profdata` | `executable` | `profdata`, `profraw` |  |  | ✓ |  |  |
 | `lmdb` | LMDB | `application/octet-stream` | `database` | `mdb` |  |  | ✓ |  |  |
 | `lnk` | MS Windows shortcut | `application/x-ms-shortcut` | `application` | `lnk` |  |  | ✓ | ✓ | ✓ |
+| `lob_multipak` | LOB's File Compressor / Multipak Amiga Data Stream (.lob) | `application/x-lob-multipak` | `archive` | `lob` |  |  | ✓ |  |  |
+| `locale_strndx` | Sequential Offset/Length Localization String Index (.strndx) | `application/x-locale-strndx` | `database` | `strndx` |  |  | ✓ |  |  |
+| `locoscript` | Locomotive Software LocoScript Document (.loc) | `application/x-locoscript` | `document` | `loc` |  |  | ✓ |  |  |
+| `logitech_compress` | Logitech LGEXPAND Compressed Installer File (.ex_ / .dl_ / .cu_) | `application/x-logitech-compress` | `archive` | `ex_`, `dl_`, `cu_` |  |  | ✓ |  |  |
+| `loriciel_bnks` | Loriciel Amiga Sample Bank (.bnk) | `audio/x-loriciel-bnks` | `audio` | `bnk` |  |  | ✓ |  |  |
+| `lotus_123_install_dat` | Lotus 1-2-3 Release 3 Installation Driver Database (LOTUS.DAT, 1989) Lotus | `application/x-lotus-123-install-dat` | `document` | `dat` |  |  | ✓ |  |  |
+| `lotus_cmz` | Lotus Ami Pro CMZ Compressed Archive (.cmz) | `application/x-lotus-cmz` | `archive` | `cmz` |  |  | ✓ |  |  |
+| `lpac` | Tilman Liebchen LPAC Lossless Predictive Audio Compressor (.pac, 1999) TU Berlin | `audio/x-lpac` | `audio` | `pac` |  |  | ✓ |  |  |
 | `lrz` | LRZip | `application/x-lrzip` | `unknown` | `lrz` |  |  | ✓ |  | ✓ |
+| `lsstat_stat` | LSSTAT License/System Status Record (.stat) | `application/x-lsstat-stat` | `application` | `stat` |  |  | ✓ |  |  |
 | `lua` | Lua | `text/plain` | `code` | `lua` | ✓ |  |  | ✓ |  |
 | `luabytecode` | Lua bytecode | `application/octet-stream` | `executable` | `luac` |  |  | ✓ |  | ✓ |
+| `lucasarts_gob` | LucasArts Dark Forces GOB Archive (.gob) | `application/x-lucasarts-gob` | `archive` | `gob` |  |  | ✓ |  |  |
+| `lucasarts_laa` | LucasArts AdLib Audio Music (.laa) | `audio/x-lucasarts-laa` | `audio` | `laa` |  |  | ✓ |  |  |
+| `lucasarts_sou` | LucasArts iMUSE / Monster.SOU VCTL Voice Audio (.sou) | `audio/x-lucasarts-sou` | `audio` | `sou` |  |  | ✓ |  |  |
+| `lucene_si` | Apache Lucene Codec Segment Index File (.si / .cfe / .cfs) | `application/x-lucene-codec` | `database` | `si`, `cfe`, `cfs` |  |  | ✓ |  |  |
+| `lurawave_lwf` | LuraTech LuraWave Wavelet Bitmap (.lwf) | `image/x-lurawave` | `image` | `lwf` |  |  | ✓ |  |  |
+| `luxonix_purity_pth` | Luxonix / Sonic Cat Purity Rompler Synthesizer Patch (.pth, 2005) Luxonix | `application/x-luxonix-purity-pth` | `audio` | `pth` |  |  | ✓ |  |  |
+| `lytro_lfp` | Lytro Light Field Picture Container (.lfp / .lfr) | `application/x-lytro-lfp` | `image` | `lfp`, `lfr` |  |  | ✓ |  |  |
 | `lz` | LZip | `application/x-lzip` | `archive` | `lz` |  |  | ✓ |  | ✓ |
 | `lz4` | LZ4 | `application/x-lz4` | `archive` | `lz4` |  |  | ✓ |  | ✓ |
+| `lzf` | LZF compressed stream | `application/x-lzf` | `archive` | — |  |  | ✓ |  |  |
+| `lzfse` | Apple LZFSE / LZVN compressed stream | `application/x-lzfse` | `archive` | — |  |  | ✓ |  |  |
+| `lzm_compressed` | LZM1 Chunked Compressed Stream (.lzm) | `application/x-lzm` | `archive` | `lzm` |  |  | ✓ |  |  |
+| `lzop` | lzop LZO compressed file (.lzo) | `application/x-lzop` | `archive` | `lzo` |  |  | ✓ |  |  |
+| `lzp1` | Charles Bloom LZP1 Compressed Stream (.lzp) | `application/x-lzp1` | `archive` | `lzp` |  |  | ✓ |  |  |
+| `lzsa` | Emmanuel Marty LZSA Compressed Stream (.lzsa) | `application/x-lzsa` | `archive` | `lzsa` |  |  | ✓ |  |  |
 | `lzx` | lzx | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `m3u` | M3U playlist | `text/plain` | `application` | `m3u8`, `m3u` | ✓ |  | ✓ | ✓ |  |
 | `m4` | GNU Macro | `text/plain` | `code` | `m4` | ✓ |  |  | ✓ |  |
+| `mac_word` | Microsoft Word for Macintosh Classic Document (.mcw, v1-v5) | `application/msword` | `document` | `mcw` |  |  | ✓ |  |  |
 | `macho` | Mach-O executable | `application/x-mach-o` | `executable` | — |  |  | ✓ | ✓ |  |
+| `macos_fsevents` | Apple macOS FSEvents File System Event Log (1SLD / 2SLD / 3SLD) | `application/x-apple-fsevents` | `application` | `fseventsd` |  |  | ✓ |  |  |
+| `macos_utmpx` | Apple macOS User Accounting Log (utmpx) | `application/x-apple-utmpx` | `application` | `utmpx` |  |  | ✓ |  |  |
+| `macro_express_mex` | Insight Software Solutions Macro Express Macro File (.mex) | `application/x-macro-express-mex` | `application` | `mex` |  |  | ✓ |  |  |
+| `macwrite2` | Claris MacWrite II Document (.mw2) | `application/x-macwrite-ii` | `document` | `mw2` |  |  | ✓ |  |  |
 | `maff` | maff | `application/x-maff` | `unknown` | `maff` |  |  | ✓ |  |  |
+| `magicavoxel_vox` | ephtracy MagicaVoxel 3D Voxel Model (.vox, VOX ) | `model/x-magicavoxel` | `geometry` | `vox` |  |  | ✓ |  |  |
+| `magnetic_scrolls_gfx` | Magnetic Scrolls Picture Container (.gfx) | `application/x-magnetic-scrolls-gfx` | `image` | `gfx` |  |  | ✓ |  |  |
+| `magnetic_scrolls_mag` | Magnetic Scrolls Game Data (.mag) | `application/x-magnetic-scrolls` | `executable` | `mag` |  |  | ✓ |  |  |
 | `makefile` | Makefile source | `text/x-makefile` | `code` | — | ✓ |  |  | ✓ |  |
+| `malcat_csig` | Malcat Constant & Kesakode Signature Database (.csig) | `application/x-malcat-csig` | `database` | `csig` |  |  | ✓ |  |  |
+| `mandelbulb3d_m3p` | Mandelbulb 3D Fractal Parameter Preset (.m3p) | `application/x-mandelbulb3d-m3p` | `geometry` | `m3p` |  |  | ✓ |  |  |
+| `manuscript` | Lotus Manuscript Technical Document (.doc) | `application/x-lotus-manuscript` | `document` | `doc` |  |  | ✓ |  |  |
 | `mapinfo` | MapInfo dataset | `application/octet-stream` | `application` | `map`, `mid`, `mif`, `tab` |  |  | ✓ |  |  |
+| `mapsforge_binary_vector_map` | Mapsforge Binary Vector Map (.map, PRONOM fmt/915) | `application/x-mapsforge-map` | `document` | `map` |  |  | ✓ |  |  |
+| `mar_archive_mac` | ListingPro / MAR Archive (.mac, PRONOM fmt/1483) | `application/x-mar-archive-mac` | `document` | `mac` |  |  | ✓ |  |  |
+| `mariner_write` | Mariner Write Classic Mac Document (.mwd) | `application/x-mariner-write` | `document` | `mwd` |  |  | ✓ |  |  |
+| `mark2_mk2` | Cachet Software Amiga Mark II Music System Module (.mk2) | `audio/x-mk2` | `audio` | `mk2` |  |  | ✓ |  |  |
+| `mark_cooksey` | Mark Cooksey Amiga Music Module (.mc) | `audio/x-mark-cooksey` | `audio` | `mc` |  |  | ✓ |  |  |
 | `markdown` | Markdown document | `text/markdown` | `text` | `md`, `markdown` | ✓ |  |  | ✓ |  |
+| `marmalade_dz` | Ideaworks3D Marmalade SDK Derbh Compressed Archive (.dz) | `application/x-marmalade-dz` | `archive` | `dz` |  |  | ✓ |  |  |
+| `marvell_cpt_ucode` | Marvell OCTEON TX2 / CN10K Cryptographic Acceleration Engine Microcode (CPT01) | `application/x-marvell-cpt-microcode` | `application` | `out` |  |  | ✓ |  |  |
+| `mas` | ISI gMotor / rFactor MAS Game Data Archive (.mas / .gtl, GMOTORMAS10) | `application/x-gmotor-mas` | `archive` | `mas`, `gtl` |  |  | ✓ |  |  |
+| `master_tracks_mts` | Passport Designs Master Tracks Pro Sequence (.mts) | `audio/x-mts` | `audio` | `mts` |  |  | ✓ |  |  |
+| `mastercam_v9_mc9` | CNC Software Mastercam v9 CAD/CAM Part (.mc9) | `application/x-mastercam-v9-mc9` | `geometry` | `mc9` |  |  | ✓ |  |  |
+| `mastertracker_mtr` | Kane Wood / Arkha Master Tracker Module (.mtr) | `audio/x-mtr` | `audio` | `mtr` |  |  | ✓ |  |  |
 | `mat` | MATLAB MAT data | `application/octet-stream` | `scientific` | `mat` |  |  | ✓ |  | ✓ |
 | `matlab` | Matlab Source | `text/x-matlab` | `code` | `m`, `matlab` | ✓ |  |  | ✓ |  |
+| `matter_ota` | Connectivity Standards Alliance Matter OTA Software Update Image (.ota) | `application/x-matter-ota` | `application` | `ota` |  |  | ✓ |  |  |
 | `max` | 3ds Max scene | `application/octet-stream` | `image` | `max` |  |  | ✓ |  |  |
 | `maya` | Maya scene | `application/octet-stream` | `image` | `ma`, `mb` |  |  | ✓ |  |  |
+| `mbms` | MSX MoonBlaster for MoonSound OPL4 Music (.mbm) | `audio/x-msx-mbms` | `audio` | `mbm` |  |  | ✓ |  |  |
 | `mbtiles` | MBTiles tile set | `application/octet-stream` | `gis` | `mbtiles` |  |  | ✓ |  |  |
+| `mcap` | Foxglove Robotics MCAP Container (.mcap) | `application/vnd.mcap` | `application` | `mcap` |  |  | ✓ |  |  |
+| `mcft_cft` | MCFT Bitmap/Vector Font Resource (.cft) | `application/x-mcft-cft` | `font` | `cft` |  |  | ✓ |  |  |
+| `mcmd` | Amiga MCMD Chiptune Module (.mcmd) | `audio/x-mcmd` | `audio` | `mcmd` |  |  | ✓ |  |  |
+| `mcs_stimulus_stm` | Multi Channel Systems MC_Stimulus II Waveform Definition (.stm) Multi Channel Systems | `application/x-mcs-stimulus-stm` | `document` | `stm` |  |  | ✓ |  |  |
+| `mcuboot_img` | MCUboot / Apache Mynewt Secure Bootloader Firmware Image (.bin) | `application/x-mcuboot-image` | `application` | `bin` |  |  | ✓ |  |  |
+| `md2` | id Software Quake II 3D Model (.md2) | `model/x-md2` | `geometry` | `md2` |  |  | ✓ |  |  |
+| `mdcd` | Dietrich / MDCD Compressed Archive (.mdcd) | `application/x-mdcd-archive` | `archive` | `mdcd` |  |  | ✓ |  |  |
+| `mdl_digitrakker` | Prodatron Digitrakker Module (.mdl) | `audio/x-mdl` | `audio` | `mdl` |  |  | ✓ |  |  |
+| `mds` | Alcohol 120% / DAEMON Tools Media Descriptor (.mds / .mdx) | `application/x-mds` | `archive` | `mds`, `mdx` |  |  | ✓ |  |  |
+| `mdxelm_g2p` | MDXELM DTPS 3D Part Element (.g2p) | `application/x-mdxelm-g2p` | `geometry` | `g2p` |  |  | ✓ |  |  |
+| `mediatek_brlyt` | MediaTek BootROM Layout Descriptor Header (.bin) | `application/x-mediatek-brlyt` | `application` | `bin` |  |  | ✓ |  |  |
+| `mediatek_bt_fw` | MediaTek / ALPS Bluetooth Combo Controller Firmware Header (ALPS) | `application/x-mediatek-bt-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `mediatek_image` | MediaTek Partition Image (0x58881688, .img / .bin) MediaTek | `application/x-mediatek-image` | `application` | `img`, `bin` |  |  | ✓ |  |  |
+| `mediatek_preloader` | MediaTek EMMC_BOOT / SF_BOOT Preloader Image (.bin) MediaTek | `application/x-mediatek-preloader` | `application` | `bin` |  |  | ✓ |  |  |
+| `mediatek_signed_img` | MediaTek Signed Partition Image (BFBF / SSSS) | `application/x-mediatek-signed-image` | `application` | `img` |  |  | ✓ |  |  |
+| `medley_mso` | Medley Sound Amiga Module (.mso) | `audio/x-mso` | `audio` | `mso` |  |  | ✓ |  |  |
+| `megastation_msm` | MegaStation Compressed MIDI Module (.msm) | `audio/x-megastation-midi` | `audio` | `msm` |  |  | ✓ |  |  |
+| `megatracker_mgt` | Simplet / Fatal Design Atari Falcon MegaTracker Module (.mgt) | `audio/x-mgt` | `audio` | `mgt` |  |  | ✓ |  |  |
+| `megazeux_world` | MegaZeux Game Creation System World (.mzx, 1994) Alexis Janson / DigitalMZX | `application/x-megazeux-world` | `application` | `mzx` |  |  | ✓ |  |  |
+| `melee_slippi` | Project Slippi Super Smash Bros. Melee Replay (.slp, 2018) Project Slippi | `application/x-melee-slippi` | `application` | `slp` |  |  | ✓ |  |  |
+| `mercedes_cff` | Mercedes-Benz Caesar CFF ECU Flash Firmware (.cff) Mercedes-Benz | `application/x-mercedes-cff` | `application` | `cff` |  |  | ✓ |  |  |
+| `metakit` | Metakit v4 Database / Tcl Starkit (.mk4 / .kit, JL/LJ) | `application/x-metakit` | `database` | `mk4`, `kit` |  |  | ✓ |  |  |
+| `metallib` | Apple Metal Shader Library (.metallib) | `application/x-apple-metallib` | `executable` | `metallib` |  |  | ✓ |  |  |
+| `metatrader_ex4` | MetaQuotes MetaTrader 4 Compiled MQL4 Expert Advisor Bytecode (.ex4, 2005) MetaQuotes | `application/x-metatrader-ex4` | `executable` | `ex4` |  |  | ✓ |  |  |
+| `metatrader_ex5` | MetaQuotes MetaTrader 5 Compiled MQL5 Expert Advisor Bytecode (.ex5, 2010) MetaQuotes | `application/x-metatrader-ex5` | `executable` | `ex5` |  |  | ✓ |  |  |
+| `metatrader_hc` | MetaQuotes MetaTrader 5 History Cache (.hc) | `application/x-metatrader-hc` | `database` | `hc` |  |  | ✓ |  |  |
+| `metatrader_srv` | MetaQuotes MetaTrader Broker Server Definition (.srv) | `application/x-metatrader-srv` | `application` | `srv` |  |  | ✓ |  |  |
+| `mgsdrv` | MSX MGSDRV Chiptune Music Data (.mgs) | `audio/x-msx-mgs` | `audio` | `mgs` |  |  | ✓ |  |  |
 | `mht` | MHTML document | `application/x-mimearchive` | `code` | `mht` | ✓ |  | ✓ | ✓ |  |
+| `microchip_mpfs` | Microchip MPFS2 Embedded HTTP Read-Only Filesystem (.mpfs) | `application/x-microchip-mpfs` | `archive` | `mpfs` |  |  | ✓ |  |  |
+| `microfocus_gnt` | Micro Focus COBOL Generated Native Code (.gnt, Micro Focus) | `application/x-microfocus-gnt` | `executable` | `gnt` |  |  | ✓ |  |  |
+| `microhouse_prosec_bin` | Micro House Technical Library Pro-Sec Hardware Database (.bin, 1994) Micro House | `application/x-microhouse-prosec-bin` | `application` | `bin` |  |  | ✓ |  |  |
+| `micromeritics_subset` | Micromeritics Instrument Subset Database (.smp / .mth / .anc) Micromeritics | `application/x-micromeritics-subset` | `database` | `smp`, `mth`, `anc` |  |  | ✓ |  |  |
 | `midi` | Midi | `audio/midi` | `audio` | `mid` |  |  | ✓ | ✓ | ✓ |
+| `miff` | ImageMagick Machine Independent File Format (.miff) | `image/x-miff` | `image` | `miff` |  |  | ✓ |  |  |
+| `mikrotik_npk` | MikroTik RouterOS NPK Firmware Package (.npk) | `application/x-mikrotik-npk` | `application` | `npk` |  |  | ✓ |  |  |
+| `milestones_mlb` | KIDASA Software Milestones Professional Schedule (.mlb / .mlq) KIDASA Software | `application/x-milestones-mlb` | `document` | `mlb`, `mlq` |  |  | ✓ |  |  |
+| `mindware_mfs` | Mindware Studios Meng Engine Archive (.mfs) | `application/x-mindware-mfs` | `archive` | `mfs` |  |  | ✓ |  |  |
 | `minidump` | Windows minidump | `application/octet-stream` | `application` | `dmp`, `mdmp` |  |  | ✓ |  | ✓ |
+| `minitaur_log_proto` | Minitaur Robotics Latency Telemetry Protobuf Log (.proto) | `application/x-minitaur-log-proto` | `application` | `proto` |  |  | ✓ |  |  |
+| `mir_map` | WeMade Entertainment The Legend of Mir 2 Tile Map (.map, 2001) WeMade | `application/x-mir-map` | `archive` | `map` |  |  | ✓ |  |  |
+| `mkjamz_mkj` | MKJamz AdLib FM Module (.mkj) | `audio/x-mkj` | `audio` | `mkj` |  |  | ✓ |  |  |
 | `mkv` | Matroska | `video/x-matroska` | `video` | `mkv` |  |  | ✓ | ✓ | ✓ |
+| `mlat_mad` | Søren Lund MLAT AdLib Tracker Module (.mad) | `audio/x-mad` | `audio` | `mad` |  |  | ✓ |  |  |
+| `mlocate_db` | Linux mlocate File System Index Database (mlocate.db) | `application/x-mlocate-db` | `database` | `db` |  |  | ✓ |  |  |
+| `mm_geov1_r565` | Magneti Marelli RT6/SMEG Automotive Navigation GEOV1 RGB565 Image (.r565) Magneti Marelli | `application/x-mm-geov1-r565` | `image` | `r565` |  |  | ✓ |  |  |
+| `mmcmp` | Emmanuel Giasson Music Module Compressor (.mmcmp / .zig) | `application/x-mmcmp` | `archive` | `mmcmp`, `zig` |  |  | ✓ |  |  |
+| `mmd_pmd` | MikuMikuDance Polygon Model Data (.pmd, 2008) Yu Higuchi | `model/x-mmd-pmd` | `geometry` | `pmd` |  |  | ✓ |  |  |
+| `mmd_pmx` | MikuMikuDance Polygon Model eXtended (.pmx, 2011) Yu Higuchi | `model/x-mmd-pmx` | `geometry` | `pmx` |  |  | ✓ |  |  |
+| `mmd_vmd` | MikuMikuDance Vocaloid Motion Data (.vmd, 2008) Yu Higuchi | `application/x-mmd-vmd` | `geometry` | `vmd` |  |  | ✓ |  |  |
+| `mo3` | Un4seen Developments MO3 Compressed Tracker Module (.mo3) | `audio/x-mo3` | `audio` | `mo3` |  |  | ✓ |  |  |
+| `mobicore_mclf` | Trustonic Kinibi / G&D MobiCore TEE Loadable Binary (MCLF) | `application/x-mobicore-mclf` | `executable` | `mclf` |  |  | ✓ |  |  |
+| `mom_grf` | Simtex Master of Magic Graphics Resource (.grf, 1994) Simtex / MicroProse | `application/x-mom-grf` | `image` | `grf` |  |  | ✓ |  |  |
+| `monotone_mon` | Trixter MONOTONE PC Speaker / OPL Tracker Module (.mon) | `audio/x-monotone` | `audio` | `mon` |  |  | ✓ |  |  |
+| `moof` | Applesauce Macintosh MOOF Flux / Bitstream Floppy Image (.moof) | `application/x-moof` | `archive` | `moof` |  |  | ✓ |  |  |
+| `moonblaster_mbm` | Remco Schrijvers MSX MoonBlaster FM/Audio Module (.mbm) | `audio/x-mbm` | `audio` | `mbm` |  |  | ✓ |  |  |
+| `more_outline` | Living Videotext / Symantec MORE 2.0/3.0 Macintosh Outline (.more, MOR2 / MOR3 / MORE) | `application/x-more-outline` | `document` | `more` |  |  | ✓ |  |  |
+| `moshidraw_yz` | MoshiDraw / WINYZ Laser Engraving Design v6.0 (.yz) | `application/x-moshidraw-yz` | `document` | `yz` |  |  | ✓ |  |  |
+| `motorola_motologo` | Motorola MotoLogo Boot Logo Container (.bin) | `application/x-motorola-motologo` | `application` | `bin` |  |  | ✓ |  |  |
+| `motorola_piv_img` | Motorola PIV Signed Partition Image (MOT_PIV_FULL256) | `application/x-motorola-piv-image` | `application` | `img` |  |  | ✓ |  |  |
+| `mousewrite_doc` | Roger Wagner MouseWrite Apple IIe/IIc/IIGS Word Processor Document (.mw) | `application/x-mousewrite` | `document` | `mw` |  |  | ✓ |  |  |
+| `moxa_frm` | Moxa Industrial Device Firmware Image (.frm) | `application/x-moxa-frm` | `application` | `frm` |  |  | ✓ |  |  |
+| `mozlz4` | Mozilla Firefox LZ4-Compressed JSON Container (.jsonlz4 / .mozlz4) | `application/x-mozlz4` | `archive` | `jsonlz4`, `mozlz4` |  |  | ✓ |  |  |
 | `mp2` | MP2 stream | `application/octet-stream` | `unknown` | `mp2` |  |  | ✓ |  |  |
 | `mp3` | MP3 media file | `audio/mpeg` | `audio` | `mp3` |  |  | ✓ | ✓ |  |
 | `mp4` | MP4 media file | `video/mp4` | `video` | `mp4` |  |  | ✓ | ✓ |  |
 | `mpegts` | MPEG Transport stream | `video/MP2T` | `video` | `ts`, `tsv`, `tsa`, `m2t` |  |  | ✓ |  | ✓ |
+| `mpq` | Blizzard MoPaQ Archive (.mpq) | `application/x-blizzard-mpq` | `archive` | `mpq` |  |  | ✓ |  |  |
+| `mpu401_mtk` | MPU-401 Tracker Compressed Module (.mtk) | `audio/x-mtk` | `audio` | `mtk` |  |  | ✓ |  |  |
+| `mrc_map` | MRC / CCP4 3D Electron Microscopy & Crystallography Density Map (.mrc / .map, 1982) MRC LMB / CCP4 | `image/x-mrc` | `image` | `mrc`, `map` |  |  | ✓ |  |  |
+| `mruby_rite_mrb` | mruby RiteVM Compiled Bytecode (.mrb) | `application/x-mruby-bytecode` | `executable` | `mrb` |  |  | ✓ |  |  |
+| `ms_advisor_hlp` | Microsoft QuickHelp / Advisor Database (.hlp, 1988) Microsoft | `application/x-ms-advisor-help` | `document` | `hlp` |  |  | ✓ |  |  |
+| `ms_answer_wizard_aw` | Microsoft Office Answer Wizard Database (.aw) | `application/x-ms-answer-wizard-aw` | `database` | `aw` |  |  | ✓ |  |  |
+| `ms_cert_store_sst` | Microsoft Serialized Certificate Store (.sst, x00x00x00x00CERT) | `application/x-ms-cert-store-sst` | `application` | `sst` |  |  | ✓ |  |  |
+| `ms_netmon_npb` | Microsoft Network Monitor 3 Compiled Parser (.npb) | `application/x-ms-netmon-npb` | `application` | `npb` |  |  | ✓ |  |  |
+| `ms_prague` | Microsoft Fluid Framework / Loop Prague Binary Serialization (.loop / .fluid) | `application/x-ms-prague` | `application` | `loop`, `fluid` |  |  | ✓ |  |  |
+| `ms_publisher_borderart_bdr` | Microsoft Publisher BorderArt File (.bdr, 1993) Microsoft | `application/x-ms-publisher-borderart-bdr` | `document` | `bdr` |  |  | ✓ |  |  |
+| `ms_publisher_pagewizard_poc` | Microsoft Publisher PageWizard Design Assistant (.poc, 1995) Microsoft | `application/x-ms-publisher-pagewizard-poc` | `document` | `poc` |  |  | ✓ |  |  |
+| `ms_publisher_preview_prv` | Microsoft Publisher Template Preview (.prv, 1995) Microsoft | `application/x-ms-publisher-preview-prv` | `document` | `prv` |  |  | ✓ |  |  |
+| `ms_setup_tdf` | Microsoft Setup Font/Typeface Definition (SETUP.TDF, 1991) Microsoft | `application/x-ms-setup-tdf` | `application` | `tdf` |  |  | ✓ |  |  |
+| `ms_windows_boot_logo_lgo` | Microsoft Windows 3.x EGA/VGA Startup Logo Code Stub (.lgo, 1990) Microsoft | `application/x-ms-windows-boot-logo-lgo` | `image` | `lgo` |  |  | ✓ |  |  |
+| `ms_windows_postscript_wpd` | Microsoft Windows 3.1 PostScript Printer Description (.wpd, 1992) Microsoft | `application/x-ms-windows-postscript-wpd` | `application` | `wpd` |  |  | ✓ |  |  |
 | `mscompress` | MS Compress archive data | `application/x-ms-compress-szdd` | `archive` | — |  |  | ✓ | ✓ |  |
+| `msdelta` | Microsoft Windows Update Delta Compression Patch (PA30 / PA19) | `application/x-ms-delta` | `archive` | — |  |  | ✓ |  |  |
+| `msdos_country_sys` | MS-DOS / PC DOS Country Information Table (COUNTRY.SYS, 1987) Microsoft / IBM | `application/x-msdos-country-sys` | `application` | `sys` |  |  | ✓ |  |  |
+| `msdos_keyboard_sys` | MS-DOS / PC DOS Keyboard Layout Table (KEYBOARD.SYS, 1987) Microsoft / IBM | `application/x-msdos-keyboard-sys` | `application` | `sys` |  |  | ✓ |  |  |
+| `msfs_bgl` | Microsoft Flight Simulator BGL Scenery Database (.bgl, 2003) Microsoft | `application/x-msfs-bgl` | `database` | `bgl` |  |  | ✓ |  |  |
+| `msfs_spb` | Microsoft Flight Simulator SimProp Binary XML (.spb, 2006) Microsoft | `application/x-msfs-spb` | `application` | `spb` |  |  | ✓ |  |  |
 | `msgpack` | MessagePack | `application/octet-stream` | `application` | `mpk`, `msgpack` |  |  | ✓ |  |  |
 | `msi` | Microsoft Installer file | `application/x-msi` | `archive` | `msi` |  |  | ✓ | ✓ |  |
+| `msie_index_dat` | Microsoft Internet Explorer WinINet URL Cache (index.dat) | `application/x-msie-cache` | `application` | — |  |  | ✓ |  |  |
 | `msix` | Windows app package | `application/msix` | `application` | `msix` |  |  | ✓ |  |  |
+| `msp_paint` | Microsoft Paint v1/v2 bitmap (.msp) | `image/x-msp` | `image` | `msp` |  |  | ✓ |  |  |
+| `mssscard_ax_log` | Microsoft SmartCard Provider Trace Record (.ax) | `application/x-mssscard-ax-log` | `application` | `ax` |  |  | ✓ |  |  |
 | `mst` | mst | `application/octet-stream` | `unknown` | `mst` |  |  | ✓ |  |  |
+| `mstor_ibx` | mstor Indexed Mailbox Archive (.ibx) | `application/x-mstor-ibx` | `archive` | `ibx` |  |  | ✓ |  |  |
+| `msts_simis` | Microsoft Train Simulator Kuju SIMIS Binary Data (.s / .ace, SIMISA@F) | `application/x-msts-simis` | `database` | `s`, `ace` |  |  | ✓ |  |  |
+| `msvc_ifc` | Microsoft Visual C++ C++20 Built Module Interface (.ifc) | `application/x-msvc-ifc` | `executable` | `ifc` |  |  | ✓ |  |  |
+| `msvc_ipdb` | Microsoft Visual C++ Incremental Linker Program Database (.ipdb) | `application/x-msvc-ipdb` | `database` | `ipdb` |  |  | ✓ |  |  |
+| `msworks_wdb` | Microsoft Works Database v1-2 (.wdb / .bdb) | `application/vnd.ms-works` | `database` | `wdb`, `bdb` |  |  | ✓ |  |  |
+| `msx_cas` | MSX Emulator Cassette Tape Image (.cas) | `application/x-msx-cas` | `archive` | `cas` |  |  | ✓ |  |  |
+| `msx_fac_mus` | MSX FAC SoundTracker Music Module (.mus / .sm1 / .sm2) | `audio/x-msx-fac` | `audio` | `mus`, `sm1`, `sm2` |  |  | ✓ |  |  |
+| `msx_mpk` | MSX K-kaz MPK Chiptune Music Data (.mpk) | `audio/x-msx-mpk` | `audio` | `mpk` |  |  | ✓ |  |  |
+| `mt2` | Yannick Delwiche MadTracker 2 Module (.mt2) | `audio/x-mt2` | `audio` | `mt2` |  |  | ✓ |  |  |
+| `mtc_chiptune` | MTC Chiptune Module (.mtc) | `audio/x-mtc` | `audio` | `mtc` |  |  | ✓ |  |  |
 | `mtl` | Wavefront material library | `model/mtl` | `image` | `mtl` | ✓ |  | ✓ |  |  |
+| `multimate` | MultiMate Text Document (.dox, PRONOM x-fmt/347) | `application/x-multimate` | `document` | `dox` |  |  | ✓ |  |  |
+| `multiplan` | Microsoft Multiplan Spreadsheet (.mp / .mod) | `application/x-multiplan` | `document` | `mp`, `mod` |  |  | ✓ |  |  |
 | `mum` | Windows Update Package file | `text/xml` | `application` | `mum` | ✓ |  | ✓ | ✓ |  |
+| `music_studio_sng` | Activision The Music Studio Song (.sng) | `audio/x-sng` | `audio` | `sng` |  |  | ✓ |  |  |
+| `musical_enlightenment_tme` | N. J. Luuring Jr. The Musical Enlightenment Amiga Module (.tme) | `audio/x-musical-enlightenment` | `audio` | `tme` |  |  | ✓ |  |  |
+| `musicline_ml` | Conny & Christian Cyrus Musicline Editor Amiga Module (.ml, MLEDMODL) | `audio/x-musicline` | `audio` | `ml` |  |  | ✓ |  |  |
+| `mvs_obj` | IBM System/370 & z/OS MVS Object Deck (ESD/TXT/RLD/END) | `application/x-ibm-mvs-obj` | `executable` | — |  |  | ✓ |  |  |
+| `mvs_tracker` | MVS Tracker Module (.mus) | `audio/x-mus` | `audio` | `mus` |  |  | ✓ |  |  |
+| `mvx_mvm` | MVX Tracker Module (.mvm) | `audio/x-mvm` | `audio` | `mvm` |  |  | ✓ |  |  |
+| `mxmf` | Mobile eXtensible Music Format (.mxmf, PRONOM fmt/961, LoC fdd000121) | `audio/mobile-xmf` | `audio` | `mxmf` |  |  | ✓ |  |  |
+| `mxtx` | Taliesin Amiga MaxTrax Module (.mxtx) | `audio/x-mxtx` | `audio` | `mxtx` |  |  | ✓ |  |  |
 | `mysql_storage` | MySQL / MariaDB storage | `application/octet-stream` | `application` | `ibd`, `myd`, `myi` |  |  | ✓ |  |  |
+| `n64_rom` | Nintendo 64 ROM Image (.z64 / .n64 / .v64) | `application/x-n64-rom` | `archive` | `z64`, `n64`, `v64` |  |  | ✓ |  |  |
+| `naf_bio` | Nucleotide Archival Format (.naf) | `application/x-naf` | `application` | `naf` |  |  | ✓ |  |  |
+| `namco_hbss` | Bandai Namco Smash Bros. Ultimate NuLibrary Binary Resource (.nuanmb / .numatb / .numshb / .numdlb) | `application/x-namco-hbss` | `geometry` | `nuanmb`, `numatb`, `numshb`, `numdlb` |  |  | ✓ |  |  |
+| `namx_profile` | NAMX Neural Amp Modeler Extended Profile (.namx) | `application/x-namx-profile` | `audio` | `namx` |  |  | ✓ |  |  |
+| `nasm_rdoff` | NASM Relocatable Dynamic Object File Format (.rdf, RDOFF2) | `application/x-rdoff` | `executable` | `rdf` |  |  | ✓ |  |  |
+| `nba2k_cmg` | NBA 2K Career Game Save / Mod Archive (.cmg) | `application/x-nba2k-cmg` | `archive` | `cmg` |  |  | ✓ |  |  |
+| `nbi` | NBI Legacy Word Processing Document (.leg) | `application/x-nbi-legacy` | `document` | `leg` |  |  | ✓ |  |  |
+| `nc_msg` | Peter Norton Computing Norton Commander Message File (.msg) | `application/x-norton-msg` | `application` | `msg` |  |  | ✓ |  |  |
+| `ncstudio_dyn` | Weihong NcStudio CNC Dynamic State File (.dyn) | `application/x-ncstudio-dyn` | `application` | `dyn` |  |  | ✓ |  |  |
+| `ndif` | Apple DiskCopy 6.0 New Disk Image Format (.dmg / .img) | `application/x-apple-diskimage` | `archive` | `dmg`, `img` |  |  | ✓ |  |  |
+| `nds_nsbtx` | Nintendo DS Nitro SDK 3D Binary Texture (.nsbtx, 2004) Nintendo | `image/x-nds-nsbtx` | `image` | `nsbtx` |  |  | ✓ |  |  |
+| `ned` | Bananmos NES NerdTracker II Module (.ned) | `audio/x-ned` | `audio` | `ned` |  |  | ✓ |  |  |
+| `neogeo_abkcpur_srm` | Neo Geo / FBNeo ABKCPUR MAO Battery Save RAM (.srm) | `application/x-neogeo-abkcpur-srm` | `application` | `srm` |  |  | ✓ |  |  |
+| `nes_rom` | Nintendo Entertainment System / Famicom ROM (.nes / iNES / NES 2.0) | `application/x-nes-rom` | `archive` | `nes` |  |  | ✓ |  |  |
 | `netcdf` | NetCDF | `application/octet-stream` | `scientific` | `cdf`, `nc` |  |  | ✓ |  |  |
+| `netgear_chk` | NETGEAR CHK Router Firmware Image (.chk) | `application/x-netgear-chk` | `application` | `chk` |  |  | ✓ |  |  |
+| `netron_nfw` | Obsidian Control Systems Netron DMX Node Firmware Image (.nfw) Obsidian Control Systems | `application/x-netron-nfw` | `application` | `nfw` |  |  | ✓ |  |  |
+| `newword_ovr` | NewStar NewWord 2 Messages Overlay (.ovr) | `application/x-newword-ovr` | `application` | `ovr` |  |  | ✓ |  |  |
+| `nexon_kartrider_1s` | Nexon Crazyracing KartRider 3D Model (.1s) | `application/x-nexon-kartrider-1s` | `geometry` | `1s` |  |  | ✓ |  |  |
+| `nextstep_wmd` | NeXTSTEP Workspace Manager Window Attributes (.wmd, binary, 1989 NeXT) | `application/x-nextstep-wmd` | `application` | `wmd` |  |  | ✓ |  |  |
+| `nexus_imgdata` | Google Nexus IMGDATA! Boot Splash Container (.img) | `application/x-nexus-imgdata` | `application` | `img` |  |  | ✓ |  |  |
+| `nfdump_flow` | nfdump NetFlow / IPFIX Binary Capture (nfcapd, 0xA50C) | `application/x-nfdump` | `application` | `nf` |  |  | ✓ |  |  |
+| `ngp_rom` | SNK Neo Geo Pocket / Pocket Color Cartridge ROM (.ngp / .ngc) | `application/x-neo-geo-pocket-rom` | `archive` | `ngp`, `ngc` |  |  | ✓ |  |  |
+| `nibtools_nib` | Commodore 1541 Nibtools Raw/Compressed GCR Disk Image (.nib / .nbz) | `application/x-c64-nib` | `archive` | `nib`, `nbz` |  |  | ✓ |  |  |
+| `nif` | NetImmerse / Gamebryo 3D Model (.nif) | `model/x-nif` | `geometry` | `nif` |  |  | ✓ |  |  |
 | `nifti` | NIfTI neuroimaging data | `application/octet-stream` | `scientific` | `nii` |  |  | ✓ |  |  |
+| `nintendo_aamp` | Nintendo EPD Binary Parameter Archive (.bxml / .baatarc / .aamp, 2015) Nintendo | `application/x-nintendo-aamp` | `application` | `bxml`, `baatarc`, `aamp` |  |  | ✓ |  |  |
+| `nintendo_ainb` | Nintendo AI Node Binary Graph (.ainb, 2022) Nintendo | `application/x-nintendo-ainb` | `executable` | `ainb` |  |  | ✓ |  |  |
+| `nintendo_ast` | Nintendo GameCube / Wii AST Audio Stream (.ast) | `audio/x-nintendo-ast` | `audio` | `ast` |  |  | ✓ |  |  |
+| `nintendo_bmg` | Nintendo JSystem Binary Message Group (.bmg, 2001) Nintendo | `application/x-nintendo-bmg` | `database` | `bmg` |  |  | ✓ |  |  |
+| `nintendo_bntx` | Nintendo Switch Binary Texture Container (.bntx) | `image/x-nintendo-bntx` | `image` | `bntx` |  |  | ✓ |  |  |
+| `nintendo_bwav` | Nintendo Switch / Wii U Binary Wave Audio (.bwav) | `audio/x-nintendo-bwav` | `audio` | `bwav` |  |  | ✓ |  |  |
+| `nintendo_byml` | Nintendo Binary YAML (.byml / .byaml / .bgyml, 2015) Nintendo | `application/x-nintendo-byml` | `application` | `byml`, `byaml`, `bgyml` |  |  | ✓ |  |  |
+| `nintendo_font` | Nintendo NW4R / NW4C Binary Font Resource (RFNT / CFNT / FFNT) | `application/x-font` | `font` | — |  |  | ✓ |  |  |
+| `nintendo_msbt` | Nintendo LMS Binary Message Table / Flow / Project (.msbt / .msbf / .msbp, 2010) Nintendo | `application/x-nintendo-msbt` | `database` | `msbt`, `msbf`, `msbp` |  |  | ✓ |  |  |
+| `nintendo_narc` | Nintendo DS Nitro Archive (.narc / .carc, NARC) | `application/x-nintendo-narc` | `archive` | `narc`, `carc` |  |  | ✓ |  |  |
+| `nintendo_u8` | Nintendo Wii / Wii U U8 Content Archive (.arc / .szs, U\\\\xAA8-) | `application/x-nintendo-u8` | `archive` | `arc`, `szs` |  |  | ✓ |  |  |
+| `nintendo_wii_bnr` | Nintendo Wii IMET Opening Banner (.bnr) | `application/x-nintendo-wii-bnr` | `application` | `bnr` |  |  | ✓ |  |  |
+| `nintendo_wiiu_gtx` | Nintendo Wii U GX2 Texture Container (.gtx) | `image/x-nintendo-wiiu-gtx` | `image` | `gtx` |  |  | ✓ |  |  |
+| `nist_sphere` | NIST SPHERE Speech Header Resources Audio (.sph / .wav) | `audio/x-nist-sphere` | `audio` | `sph`, `wav` |  |  | ✓ |  |  |
+| `nitroplus_npa` | Nitroplus Visual Novel Engine NPA Archive (.npa, 2004) Nitroplus | `application/x-nitroplus-npa` | `archive` | `npa` |  |  | ✓ |  |  |
+| `nms_mbin` | Hello Games No Man's Sky Compiled EXML Binary (.mbin) | `application/x-nms-mbin` | `application` | `mbin` |  |  | ✓ |  |  |
+| `nokia_bb5_ppm` | Nokia BB5 PPM Language Pack Firmware (.ppm) | `application/x-nokia-bb5-ppm` | `executable` | `ppm` |  |  | ✓ |  |  |
+| `nokia_ngg` | Nokia Group Graphics Bitmap (.ngg) | `image/x-nokia-ngg` | `image` | `ngg` |  |  | ✓ |  |  |
+| `nokia_nlm` | Nokia Logo Manager Bitmap (.nlm) | `image/x-nokia-nlm` | `image` | `nlm` |  |  | ✓ |  |  |
+| `nokia_npm` | Nokia Picture Message Bitmap (.npm) | `image/x-nokia-npm` | `image` | `npm` |  |  | ✓ |  |  |
+| `norton_guides_hlp` | Peter Norton Computing Norton Guides Help Database (.ng / .hlp, 1987) Peter Norton Computing | `application/x-norton-guides-hlp` | `document` | `ng`, `hlp` |  |  | ✓ |  |  |
+| `nos_installer_data` | Netopsystems FEAD Optimizer (NOS_PO) Archive | `application/x-nos-installer-data` | `archive` | `nos` |  |  | ✓ |  |  |
+| `notator_song` | C-Lab Notator / Creator MIDI song arrangement | `audio/x-notator-song` | `audio` | — |  |  | ✓ |  |  |
+| `novell_netware_message_msg` | Novell NetWare / Message Librarian Message Catalog (.msg, 1989) Novell | `application/x-novell-netware-message-msg` | `document` | `msg` |  |  | ✓ |  |  |
+| `novell_netware_rpl_rom` | Novell NetWare Remote Program Load (RPL) Boot ROM (.rom / .rpl, 1989) Novell | `application/x-novell-netware-rpl-rom` | `executable` | `rom`, `rpl` |  |  | ✓ |  |  |
+| `novell_sys_help_hep` | Novell NetWare SYS$HELP Help File (.hep, 1989) Novell | `application/x-novell-sys-help-hep` | `document` | `hep` |  |  | ✓ |  |  |
 | `npy` | Numpy Array | `application/octet-stream` | `archive` | `npy` |  |  | ✓ | ✓ | ✓ |
 | `npz` | Numpy Arrays Archive | `application/octet-stream` | `archive` | `npz` |  |  | ✓ | ✓ |  |
 | `nrrd` | Nearly Raw Raster Data | `application/octet-stream` | `scientific` | `nhdr`, `nrrd` |  |  | ✓ |  | ✓ |
+| `nsf` | Nintendo Entertainment System Sound Format (.nsf / .nsfe) | `audio/x-nsf` | `audio` | `nsf`, `nsfe` |  |  | ✓ |  |  |
+| `nsis` | Nullsoft Scriptable Install System (NSIS) data | `application/x-nsis` | `archive` | — |  |  | ✓ |  |  |
+| `ntfsclone_img` | Linux-NTFS ntfsclone Sparse Partition Backup Image (\\0ntfsclone-image) | `application/x-ntfsclone` | `archive` | `ntfsclone` |  |  | ✓ |  |  |
+| `ntsp_system` | Amiga NTSP-system Audio Module (.ntsp) | `audio/x-ntsp` | `audio` | `ntsp` |  |  | ✓ |  |  |
 | `nupkg` | NuGet Package | `application/octet-stream` | `unknown` | `nupkg` |  |  | ✓ | ✓ |  |
+| `nuppelvideo` | NuppelVideo / MythTV RTjpeg+LZO Television Capture (.nuv) | `video/x-nuv` | `video` | `nuv` |  |  | ✓ |  |  |
+| `nut_video` | FFmpeg / MPlayer NUT Open Multimedia Container (.nut) | `video/x-nut` | `video` | `nut` |  |  | ✓ |  |  |
+| `obarski_osp` | Karsten Obarski Synth Pack Bank (.osp) | `audio/x-obarski-osp` | `audio` | `osp` |  |  | ✓ |  |  |
+| `oberon_odc` | BlackBox Component Builder / Oberon-2 Compound Document (.odc, 1997) Oberon microsystems | `application/x-oberon-odc` | `document` | `odc` |  |  | ✓ |  |  |
 | `obj` | Wavefront OBJ | `model/obj` | `image` | `obj` | ✓ |  | ✓ |  |  |
 | `objectivec` | ObjectiveC source | `text/x-objcsrc` | `code` | `m`, `mm` | ✓ |  |  | ✓ |  |
 | `ocaml` | OCaml | `text/ocaml` | `code` | `ml`, `mli` | ✓ |  |  | ✓ |  |
+| `ocaml_cmi` | OCaml Compiled Interface & Bytecode Object (.cmi / .cmo / .cma / .cmx / .cmt) | `application/x-ocaml-object` | `executable` | `cmi`, `cmo`, `cma`, `cmx`, `cmt` |  |  | ✓ |  |  |
+| `ocdbt` | Google TensorStore OCDBT B+Tree Node / Manifest (.ocdbt) | `application/x-tensorstore-ocdbt` | `database` | `ocdbt` |  |  | ✓ |  |  |
 | `odex` | ODEX ELF executable | `application/x-executable-elf` | `executable` | `odex` |  |  | ✓ |  |  |
 | `odp` | OpenDocument Presentation | `application/vnd.oasis.opendocument.presentation` | `document` | `odp` |  |  | ✓ | ✓ |  |
 | `ods` | OpenDocument Spreadsheet | `application/vnd.oasis.opendocument.spreadsheet` | `document` | `ods` |  |  | ✓ | ✓ |  |
 | `odt` | OpenDocument Text | `application/vnd.oasis.opendocument.text` | `document` | `odt` |  |  | ✓ | ✓ |  |
+| `office_owner_lock` | Microsoft Word / Office Owner Lock File (~$*.doc / ~$*.docx) | `application/x-office-owner-lock` | `application` | `doc`, `docx` |  |  | ✓ |  |  |
+| `ofr` | OptimFROG Lossless Audio (.ofr / .ofs) | `audio/x-optimfrog` | `audio` | `ofr`, `ofs` |  |  | ✓ |  |  |
 | `ogg` | Ogg data | `audio/ogg` | `audio` | `ogg` |  |  | ✓ | ✓ |  |
+| `ogl` | ObjectGraphics OGL Drawing (.ogl) | `image/x-ogl` | `image` | `ogl` |  |  | ✓ |  |  |
+| `ogre_mesh` | OGRE 3D Engine Binary Mesh (.mesh) | `model/x-ogre-mesh` | `geometry` | `mesh` |  |  | ✓ |  |  |
+| `omega_logic_cork` | Omega Logic CORK Compressed Installer File (.dl$ / .ex$) | `application/x-omega-logic-cork` | `archive` | `dl`, `ex` |  |  | ✓ |  |  |
 | `omf` | OMF object | `application/octet-stream` | `executable` | `obj` |  |  | ✓ |  |  |
+| `omf_onyx` | Onyx Music File (.omf) | `audio/x-omf` | `audio` | `omf` |  |  | ✓ |  |  |
 | `one` | OneNote | `application/msonenote` | `document` | `one` |  |  | ✓ | ✓ | ✓ |
+| `onedrive_odl` | Microsoft OneDrive Obfuscated Diagnostic Log (.odl) | `application/x-onedrive-odl` | `application` | `odl` |  |  | ✓ |  |  |
+| `onetoc2` | Microsoft OneNote Table of Contents v2 (.onetoc2) | `application/onenote` | `document` | `onetoc2` |  |  | ✓ |  |  |
 | `onnx` | Open Neural Network Exchange | `application/octet-stream` | `archive` | `onnx` |  |  | ✓ | ✓ |  |
+| `openfst` | OpenFst Weighted Finite-State Transducer / Archive (.fst / .far) | `application/x-openfst` | `database` | `fst`, `far` |  |  | ✓ |  |  |
+| `openrct2_park` | OpenRCT2 Park Save / Scenario Container (.park, 2021) OpenRCT2 | `application/x-openrct2-park` | `application` | `park` |  |  | ✓ |  |  |
+| `openssh_krl` | OpenSSH Key Revocation List (.krl, SSHKRL\\\\n\\\\x00) | `application/x-openssh-krl` | `application` | `krl` |  |  | ✓ |  |  |
 | `openvino_ir` | OpenVINO IR | `text/plain` | `application` | `xml` | ✓ |  | ✓ |  |  |
+| `openzim_zim` | openZIM Offline Wiki Content Archive (.zim, ZIM\\\\x04) | `application/x-zim` | `archive` | `zim` |  |  | ✓ |  |  |
+| `opx` | MSX / DOS OPLLDRV FM Chiptune (.opx) | `audio/x-opx` | `audio` | `opx` |  |  | ✓ |  |  |
 | `oracle_db` | Oracle database / export | `application/octet-stream` | `application` | `dbf`, `dmp` |  |  | ✓ |  |  |
 | `orc` | Apache ORC | `application/octet-stream` | `scientific` | `orc` |  |  | ✓ |  |  |
+| `org` | Studio Pixel Cave Story Organya Music (.org) | `audio/x-org` | `audio` | — |  |  | ✓ |  |  |
+| `oric_dsk` | Oric Atmos / Telestrat MFM Disk Image (.dsk) | `application/x-oric-dsk` | `archive` | `dsk` |  |  | ✓ |  |  |
+| `os2_font` | OS/2 Presentation Manager Bitmap Font (.fnt / .fmf) | `application/x-font-os2` | `font` | `fnt`, `fmf` |  |  | ✓ |  |  |
+| `os2_ftcomp` | IBM OS/2 PACK2 FTCOMP Compressed Installation Archive (.ba_ / .ex_ / .dl_) | `application/x-os2-pack2` | `archive` | `ba_`, `ex_`, `dl_` |  |  | ✓ |  |  |
+| `os2_inf` | IBM OS/2 Presentation Manager IPF Hypertext Help / Book (.hlp / .inf) | `application/x-os2-inf` | `document` | `hlp`, `inf` |  |  | ✓ |  |  |
+| `os2_pack` | IBM OS/2 PACK Compressed Installation File (.ex$ / .dl$ / .sy$) | `application/x-os2-pack` | `archive` | `ex`, `dl`, `sy` |  |  | ✓ |  |  |
+| `osask_hrb_exec` | OSASK / Haribote OS Compressed Application Binary (.hrb, OSASKCMP) | `application/x-osask-hrb-exec` | `executable` | `hrb` |  |  | ✓ |  |  |
+| `osgi_framework_info4` | Eclipse OSGi Framework Bundle Info Cache (framework.info.*) | `application/x-osgi-framework-info4` | `application` | `4` |  |  | ✓ |  |  |
+| `osl_oso_binary` | Compiled Binary OSO Shader (.oso) | `application/x-osl-oso-binary` | `executable` | `oso` |  |  | ✓ |  |  |
 | `osm` | OpenStreetMap data | `application/octet-stream` | `gis` | `osm`, `pbf` |  |  | ✓ |  | ✓ |
 | `otf` | OpenType font | `font/otf` | `font` | `otf` |  |  | ✓ | ✓ |  |
 | `outlook` | MS Outlook Message | `application/vnd.ms-outlook` | `application` | — |  |  | ✓ | ✓ |  |
+| `outlook_nk2` | Microsoft Outlook Nickname AutoComplete Cache (.nk2) | `application/x-ms-outlook-nk2` | `database` | `nk2` |  |  | ✓ |  |  |
+| `pablopaint` | Atari ST PabloPaint Packed Picture (.pa3 / .ppp) | `image/x-pablopaint` | `image` | `pa3`, `ppp` |  |  | ✓ |  |  |
+| `pack_ice` | Atari ST Pack-Ice Compressed File (ICE! / Ice!) | `application/x-pack-ice` | `archive` | — |  |  | ✓ |  |  |
+| `pads_pcb` | Mentor Graphics PADS Layout Binary PCB Design (.pcb) | `application/x-pads-pcb` | `geometry` | `pcb` |  |  | ✓ |  |  |
+| `paint4d` | 4D Paint 3D Texture Painting Project (.4dp) | `model/x-4dpaint` | `geometry` | `4dp` |  |  | ✓ |  |  |
+| `palladix_pcs` | Palladix Amiga Audio Module (.pcs) | `audio/x-pcs` | `audio` | `pcs` |  |  | ✓ |  |  |
 | `palmos` | palmos | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `panasonic_s3d` | Panasonic ISL_PANA_3DMAP 3D Calibration Map (.s3d) Panasonic | `application/x-panasonic-s3d` | `geometry` | `s3d` |  |  | ✓ |  |  |
+| `panasonic_upd_firmware` | Panasonic / Leica Camera UPD Firmware Update Container (.bin / .quf / .lfu, 2008) Panasonic / Leica | `application/x-panasonic-upd-firmware` | `application` | `bin`, `quf`, `lfu` |  |  | ✓ |  |  |
+| `pangolin_prr` | Pangolin Laser Systems Request Package (.prr) Pangolin Laser Systems | `application/x-pangolin-prr` | `archive` | `prr` |  |  | ✓ |  |  |
+| `paq_archive` | Matt Mahoney PAQ Context-Mixing Archive (.paq6 / .paq7 / .paq8 / .paq9a) | `application/x-paq` | `archive` | `paq6`, `paq7`, `paq8`, `paq9a` |  |  | ✓ |  |  |
 | `paradox` | Paradox database | `application/octet-stream` | `database` | `db` |  |  | ✓ |  |  |
+| `paradox_mesh` | Paradox Clausewitz / Jomini Engine Binary 3D Mesh (.mesh / .anim, 2013) Paradox Interactive | `model/x-paradox-mesh` | `geometry` | `mesh`, `anim` |  |  | ✓ |  |  |
+| `parallels_hdd` | Parallels Desktop Virtual Hard Disk Image (.hdd, WithoutFreeSpace) | `application/x-parallels-hdd` | `archive` | `hdd` |  |  | ✓ |  |  |
+| `parchive` | Parchive Parity Volume Set (.par / .par2 / .par3) | `application/x-par2` | `archive` | `par`, `par2`, `par3` |  |  | ✓ |  |  |
 | `parquet` | Apache Parquet | `application/vnd.apache.parquet` | `unknown` | `pqt`, `parquet` |  |  | ✓ | ✓ | ✓ |
+| `parsons_wrk` | Parsons Technology Resource Data (.wrk) | `application/x-parsons-wrk` | `archive` | `wrk` |  |  | ✓ |  |  |
 | `pascal` | Pascal source | `text/x-pascal` | `code` | `pas`, `pp` | ✓ |  |  | ✓ |  |
+| `passmark_pt` | PassMark PerformanceTest Baseline Results (PTRESFILE, .pt) | `application/x-passmark-pt` | `application` | `pt` |  |  | ✓ |  |  |
+| `passwordsafe` | Password Safe V3 database | `application/x-passwordsafe` | `database` | — |  |  | ✓ |  |  |
+| `paul_robotham_dat` | Paul Robotham Amiga Music Module (.dat) | `audio/x-paul-robotham-dat` | `audio` | `dat` |  |  | ✓ |  |  |
+| `pazligsaw_pzl` | Pazligsaw Jigsaw Puzzle Package (BOX1, .pzl) | `application/x-pazligsaw-pzl` | `archive` | `pzl` |  |  | ✓ |  |  |
 | `pbm` | pbm | `application/octet-stream` | `unknown` | — |  |  | ✓ |  | ✓ |
+| `pbp` | Sony PlayStation Portable Executable Package (.pbp / EBOOT.PBP) | `application/x-psp-pbp` | `executable` | `pbp` |  |  | ✓ |  |  |
+| `pc88_t88` | NEC PC-8801 T88 Cassette Tape Image (.t88, 1999) | `application/x-pc88-t88` | `archive` | `t88` |  |  | ✓ |  |  |
 | `pcap` | pcap capture file | `application/vnd.tcpdump.pcap` | `application` | `pcap`, `pcapng` |  |  | ✓ | ✓ |  |
 | `pcapng` | Packet capture PCAPNG | `application/octet-stream` | `binary` | `pcapng` |  |  | ✓ |  | ✓ |
+| `pcboard_ppe` | Clark Development PCBoard PPL Executable (.ppe, 1993) | `application/x-pcboard-ppe` | `executable` | `ppe` |  |  | ✓ |  |  |
 | `pcd` | Point Cloud Data | `application/octet-stream` | `image` | `pcd` |  |  | ✓ |  |  |
+| `pcf` | X11 / Linux Portable Compiled Format Bitmap Font (.pcf / .pmf) | `application/x-font-pcf` | `font` | `pcf`, `pmf` |  |  | ✓ |  |  |
+| `pcr_font` | Keith P. Graham OPTIKS / PC-Rocks Font (.pcr) | `application/x-font` | `font` | `pcr` |  |  | ✓ |  |  |
+| `pctools_msg` | Central Point PC Tools Desktop Help / Message File (.msg / .hlp) | `application/x-pctools-msg` | `document` | `msg`, `hlp` |  |  | ✓ |  |  |
+| `pcx_library` | Genus Microprogramming PCX Programmer's Toolkit Image Library (.pcl) | `application/x-pcx-library` | `archive` | `pcl` |  |  | ✓ |  |  |
 | `pdb` | Windows Program Database | `application/octet-stream` | `application` | `pdb` |  |  | ✓ | ✓ |  |
 | `pdf` | PDF document | `application/pdf` | `document` | `pdf` |  |  | ✓ | ✓ |  |
+| `pdfannotator_sil` | GRAHL Software Design PDF Annotator Stamp/Item Library (.sil) GRAHL Software Design | `application/x-pdfannotator-sil` | `application` | `sil` |  |  | ✓ |  |  |
+| `pdi2_dictionary` | PDI2 Bilingual Dictionary Database (.pdi) | `application/x-pdi2-dictionary` | `database` | `pdi` |  |  | ✓ |  |  |
+| `pdn` | Paint.NET Layered Raster Image (.pdn) | `image/x-paintnet` | `image` | `pdn` |  |  | ✓ |  |  |
+| `pdp10_failsafe` | DEC PDP-10 TOPS-10 FAILSAFE Tape Stream (1970) Digital Equipment | `application/x-pdp10-failsafe` | `archive` | `fs` |  |  | ✓ |  |  |
+| `pdp11_lda` | DEC PDP-11 Absolute Loader Paper Tape Binary (.lda / .bin, 1970) Digital Equipment | `application/x-pdp11-lda` | `executable` | `lda`, `bin` |  |  | ✓ |  |  |
+| `pdp8_sv` | DEC PDP-8 OS/8 Save Core Image Executable (.sv, 1971) Digital Equipment | `application/x-pdp8-sv` | `executable` | `sv` |  |  | ✓ |  |  |
+| `pdse_prog` | IBM z/OS PDSE Program Object (IEWPLMH) | `application/x-ibm-pdse-program` | `executable` | — |  |  | ✓ |  |  |
+| `pea` | PeaZip PEA archive (.pea) | `application/x-pea` | `archive` | `pea` |  |  | ✓ |  |  |
 | `pebin` | PE Windows executable | `application/x-dosexec` | `executable` | `exe`, `dll` |  |  | ✓ | ✓ |  |
 | `pem` | PEM certificate | `application/x-pem-file` | `application` | `pem`, `pub`, `gpg` | ✓ |  | ✓ | ✓ |  |
+| `pepakura_pdi1` | Tama Software Pepakura Designer Legacy v1 3D Papercraft Model (.pdo, 2002) Tama Software | `application/x-pepakura-pdi1` | `geometry` | `pdo` |  |  | ✓ |  |  |
+| `perf_jitdump` | Linux Kernel perf JIT Dump Binary Log (.dump) | `application/x-perf-jitdump` | `executable` | `dump` |  |  | ✓ |  |  |
 | `perl` | Perl source | `text/x-perl` | `code` | `pl` | ✓ |  |  | ✓ |  |
+| `perq_seg` | Three Rivers PERQ POS / CMU Accent Q-Code Segment (.seg, 1980) Three Rivers Computer | `application/x-perq-seg` | `executable` | `seg` |  |  | ✓ |  |  |
+| `pfm` | Portable FloatMap HDR Raster Image (.pfm) | `image/x-portable-floatmap` | `image` | `pfm` |  |  | ✓ |  |  |
+| `pfpart3` | PFPART3 Partial Download Container (.pfpart) | `application/x-pfpart3` | `archive` | `pfpart` |  |  | ✓ |  |  |
+| `pfr` | Bitstream TrueDoc Portable Font Resource (.pfr) | `application/font-tdpfr` | `font` | `pfr` |  |  | ✓ |  |  |
+| `pgf` | libPGF Progressive Graphics File Wavelet Image (.pgf) | `image/x-pgf` | `image` | `pgf` |  |  | ✓ |  |  |
 | `pgp` | PGP | `application/pgp-keys` | `unknown` | `gpg`, `pgp` |  |  | ✓ |  | ✓ |
+| `pgp_locstr` | PGP Desktop Compiled Localization String Table (.str, 2005) PGP | `application/x-pgp-locstr` | `database` | `str` |  |  | ✓ |  |  |
+| `pharo_fuel` | Pharo Smalltalk FUEL Object Serializer Stream (.fuel, 2011) RMoD INRIA | `application/x-pharo-fuel` | `application` | `fuel` |  |  | ✓ |  |  |
+| `phm` | Portable HalfMap 16-Bit Float HDR Image (.phm) | `image/x-portable-halfmap` | `image` | `phm` |  |  | ✓ |  |  |
+| `photoshop_abr` | Adobe Photoshop Brush Preset (.abr) | `application/x-photoshop-abr` | `image` | `abr` |  |  | ✓ |  |  |
 | `php` | PHP source | `text/x-php` | `code` | `php` | ✓ |  | ✓ | ✓ |  |
+| `piapro_ntdb` | Crypton Future Media Piapro Studio NT Voice Database (.ntdb, 2020) Crypton Future Media | `application/x-piapro-ntdb` | `audio` | `ntdb` |  |  | ✓ |  |  |
+| `picasa_ytf` | Google Picasa Rasterized Font Metrics & Glyph Atlas (.ytf) | `application/x-picasa-ytf` | `font` | `ytf` |  |  | ✓ |  |  |
 | `pickle` | Python pickle | `application/octet-stream` | `application` | `pickle`, `pkl` |  |  | ✓ | ✓ |  |
+| `pierre_adane_pap` | Pierre Adane Packer Amiga Module (.pap) | `audio/x-pierre-adane-pap` | `audio` | `pap` |  |  | ✓ |  |  |
+| `pismo_ciso` | Pismo File Mount Compact ISO Archive (.cfs / .ciso) | `application/x-pismo-ciso` | `archive` | `cfs`, `ciso` |  |  | ✓ |  |  |
+| `pixel_painters_fmf` | Pixel Painters AdLib Music (.fmf) | `audio/x-pixel-painters-fmf` | `audio` | `fmf` |  |  | ✓ |  |  |
+| `pixel_painters_ftf` | Pixel Painters Xatax FM Module (.ftf) | `audio/x-pixel-painters-ftf` | `audio` | `ftf` |  |  | ✓ |  |  |
+| `pixinsight_xisf` | Pleiades Astrophoto PixInsight Extensible Image Serialization Format (.xisf) | `application/x-xisf` | `image` | `xisf` |  |  | ✓ |  |  |
+| `pkcs15_ky` | PKCS #15 Cryptographic Token Info (OID 1.2.840.113549.1.15.3.1, .ky) | `application/x-pkcs15-ky` | `application` | `ky` |  |  | ✓ |  |  |
+| `pkm` | Ericsson Texture Compression ETC1/ETC2 PKM Container (.pkm) | `image/x-pkm` | `image` | `pkm` |  |  | ✓ |  |  |
+| `plato_lesson` | PLATO / NovaNET TUTOR Lesson Source Block (.1t / .1b) | `application/x-plato-lesson` | `document` | `1t`, `1b` |  |  | ✓ |  |  |
+| `playerpro_madg` | Antoine Rosset Macintosh PlayerPRO Module (.madg / .madk) | `audio/x-mad` | `audio` | `madg`, `madk` |  |  | ✓ |  |  |
+| `plextalk_project_file_imdn` | Shinano Kenshi PLEXTALK Recording Project (.imdn, PRONOM fmt/2036) | `application/x-plextalk-project-file-imdn` | `document` | `imdn` |  |  | ✓ |  |  |
+| `plm` | Cubic Team / Statix DisorderTracker 2 Module (.plm) | `audio/x-plm` | `audio` | `plm` |  |  | ✓ |  |  |
 | `ply` | Polygon File Format | `application/octet-stream` | `geometry` | `ply` |  |  | ✓ |  | ✓ |
+| `pm_picture` | PM Picture (VIEW, .pm) | `image/x-pm` | `image` | `pm` |  |  | ✓ |  |  |
+| `pmc_cruncher` | Stephan Fuhrmann PowerPlayer Music Cruncher (.pmc) | `application/x-powerplayer-pmc` | `archive` | `pmc` |  |  | ✓ |  |  |
+| `pmd_m` | Masahiro Kajihara (KAJA) NEC PC-98 PMD FM Module (.m) | `audio/x-pmd` | `audio` | `m` |  |  | ✓ |  |  |
 | `pmtiles` | PMTiles | `application/octet-stream` | `application` | `pmtiles` |  |  | ✓ |  |  |
 | `png` | PNG image | `image/png` | `image` | `png` |  |  | ✓ | ✓ | ✓ |
 | `po` | Portable Object (PO) for i18n | `text/gettext-translation` | `application` | `po` | ✓ |  |  | ✓ |  |
+| `pod5` | Oxford Nanopore POD5 Raw Signal Container (.pod5) | `application/x-pod5` | `application` | `pod5` |  |  | ✓ |  |  |
+| `podbot_pwf` | Counter-Strike POD-Bot Waypoint File (.pwf, 2001) Count Floyd | `application/x-podbot-pwf` | `archive` | `pwf` |  |  | ✓ |  |  |
+| `pokemon_garc` | Game Freak Nintendo 3DS GARC Archive (.garc, 2013) Game Freak | `application/x-pokemon-garc` | `archive` | `garc` |  |  | ✓ |  |  |
+| `pokemon_gfpak` | Game Freak Nintendo Switch GFPAK Archive (.gfpak, 2018) Game Freak | `application/x-pokemon-gfpak` | `archive` | `gfpak` |  |  | ✓ |  |  |
+| `pop_plv` | Princed Prince of Persia Level (.plv, 2003) Enrique Calot / Princed Development Team | `application/x-princed-plv` | `application` | `plv` |  |  | ✓ |  |  |
+| `popcap_pam` | PopCap Games PAM Sprite Animation (.pam) PopCap Games | `application/x-popcap-pam` | `image` | `pam` |  |  | ✓ |  |  |
+| `popstarter_vcd` | Sony PlayStation POPStarter Virtual CD-ROM Image (.vcd) | `application/x-popstarter-vcd` | `archive` | `vcd` |  |  | ✓ |  |  |
+| `portable_database_pdb` | QuickVerse / Parsons Technology Palm OS Portable Database (.pdb, PRONOM fmt/1064) | `application/x-portable-database-pdb` | `document` | `pdb` |  |  | ✓ |  |  |
+| `portable_form_file_pff` | Portable Form File (.pff, PRONOM fmt/322) | `application/x-portable-form-file-pff` | `document` | `pff` |  |  | ✓ |  |  |
 | `postgres_dump` | PostgreSQL dump | `application/octet-stream` | `database` | `backup`, `dump`, `sql` |  |  | ✓ |  | ✓ |
 | `postscript` | PostScript document | `application/postscript` | `document` | `ps` |  |  | ✓ | ✓ |  |
+| `powerbuilder_pbd` | Sybase / Appeon PowerBuilder Dynamic Library (.pbd / .pbl, 1991) Powersoft / Sybase | `application/x-powerbuilder-pbd` | `archive` | `pbd`, `pbl` |  |  | ✓ |  |  |
+| `powerbuilder_psr` | Sybase / Appeon PowerBuilder Standalone DataWindow Report (.psr / .dw) | `application/x-powerbuilder-psr` | `document` | `psr`, `dw` |  |  | ✓ |  |  |
+| `poweriso_daa` | PowerISO Direct-Access-Archive Disc Image (.daa) | `application/x-daa` | `archive` | `daa` |  |  | ✓ |  |  |
+| `powerpacker` | Amiga PowerPacker Compressed File (PP20) | `application/x-powerpacker` | `archive` | — |  |  | ✓ |  |  |
 | `powershell` | Powershell source | `application/x-powershell` | `code` | `ps1` | ✓ |  |  | ✓ |  |
+| `powervr_object_data_pod` | Imagination Technologies PowerVR GeoPOD 3D Scene (.pod, PRONOM fmt/782) | `application/x-powervr-object-data-pod` | `document` | `pod` |  |  | ✓ |  |  |
+| `ppf_patch` | Icarus / Paradox PlayStation Patch File (.ppf) | `application/x-ppf` | `archive` | `ppf` |  |  | ✓ |  |  |
+| `ppm_mpd` | Bauer+Kirch PPM-Optimierung Data (.mpd, Bauer+Kirch Monschau) | `application/x-ppm-mpd` | `application` | `mpd` |  |  | ✓ |  |  |
 | `ppt` | Microsoft PowerPoint CDF document | `application/vnd.ms-powerpoint` | `document` | `ppt` |  |  | ✓ | ✓ |  |
 | `pptx` | Microsoft PowerPoint 2007+ document | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | `document` | `pptx`, `pptm` |  |  | ✓ | ✓ |  |
+| `premiere_prmi` | Adobe Premiere Pro Media Intelligence Sidecar Index (.prmi) | `application/x-premiere-prmi` | `database` | `prmi` |  |  | ✓ |  |  |
+| `preset_sap` | Sound Particles / Audio Plugin Preset Data Tree (.sap / .afx) | `application/x-sound-particles-sap` | `audio` | `sap`, `afx` |  |  | ✓ |  |  |
+| `pretracker_prt` | Pink / Abyss preTracker Amiga Chiptune Module (.prt) | `audio/x-pretracker` | `audio` | `prt` |  |  | ✓ |  |  |
 | `printfox` | c64 | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `priston_tale_smd` | Triglow Pictures Priston Tale 3D Model / Motion (.smd / .smb) | `model/x-priston-tale-smd` | `geometry` | `smd`, `smb` |  |  | ✓ |  |  |
+| `procmon_pmc` | Microsoft Sysinternals Process Monitor Configuration (.pmc) | `application/x-procmon-pmc` | `application` | `pmc` |  |  | ✓ |  |  |
+| `project64_pj` | Project64 Nintendo 64 Emulator Save State (.pj) | `application/x-project64-state` | `application` | `pj` |  |  | ✓ |  |  |
 | `prolog` | Prolog source | `text/x-prolog` | `code` | `pl`, `pro`, `P` | ✓ |  |  | ✓ |  |
+| `proshape` | ProShape CAD Drawing (.psp) | `image/x-proshape` | `image` | `psp` |  |  | ✓ |  |  |
 | `proteindb` | Protein DB | `application/octet-stream` | `application` | `pdb` | ✓ |  | ✓ | ✓ |  |
+| `proteus_isis_dsn` | Labcenter Proteus ISIS Circuit Schematic (.dsn, 1990) Labcenter Electronics | `application/x-proteus-isis-dsn` | `geometry` | `dsn` |  |  | ✓ |  |  |
+| `proteus_pdspart` | Labcenter Proteus CAD Part Descriptor (.pdspart) Labcenter Electronics | `application/x-proteus-pdspart` | `geometry` | `pdspart` |  |  | ✓ |  |  |
 | `proto` | Protocol buffer definition | `text/x-proto` | `code` | `proto` | ✓ |  |  | ✓ |  |
 | `protobuf` | Protocol buffers | `application/protobuf` | `unknown` | `protobuf`, `pb` |  |  | ✓ |  |  |
+| `protrekkr_ptk` | Franck Charlet ProTrekkr / NoiseTrekkr Module (.ptk, PROTREKK / TWNN) | `audio/x-protrekkr` | `audio` | `ptk` |  |  | ✓ |  |  |
+| `prox_usb_xha` | Pro-face PROX_USB_XS HMI Project Archive (.xha) Pro-face / Schneider Electric | `application/x-prox-usb-xha` | `archive` | `xha` |  |  | ✓ |  |  |
+| `proxmox_pbs` | Proxmox Backup Server Indexed Archive / Blob (.pxar / .fidx / .didx / .blob) | `application/x-proxmox-backup` | `archive` | `pxar`, `fidx`, `didx`, `blob` |  |  | ✓ |  |  |
+| `prvw_prw` | PRVW Preview Image Container (.prw) | `application/x-prvw-prw` | `image` | `prw` |  |  | ✓ |  |  |
+| `ps1_mcr` | Sony PlayStation 1 Memory Card Image (.mcr / .mcd) | `application/x-ps1-memorycard` | `application` | `mcr`, `mcd` |  |  | ✓ |  |  |
+| `ps2_hd` | Sony PlayStation 2 SCEI SoundBank Header (.hd) | `audio/x-ps2-hd` | `audio` | `hd` |  |  | ✓ |  |  |
+| `ps2_ipu` | Sony PlayStation 2 IPU MPEG-2 Intra-Frame Video Stream (.ipu, ipum) | `video/x-ps2-ipu` | `video` | `ipu` |  |  | ✓ |  |  |
+| `ps2_vmc` | Sony PlayStation 2 Memory Card Image (.ps2 / .vmc) | `application/x-ps2-memorycard` | `application` | `ps2`, `vmc` |  |  | ✓ |  |  |
+| `ps3_pkg` | Sony PlayStation 3 / PSP Package (.pkg) | `application/x-ps3-pkg` | `archive` | `pkg` |  |  | ✓ |  |  |
+| `ps4_pkg` | Sony PlayStation 4 / PS Vita Content Package (.pkg) | `application/x-ps4-pkg` | `archive` | `pkg` |  |  | ✓ |  |  |
+| `ps_sfo` | Sony PlayStation System File Object (PARAM.SFO / .sfo) | `application/x-sony-sfo` | `application` | `sfo` |  |  | ✓ |  |  |
+| `psa_module` | Professional Sound Artists Amiga Module (.psa) | `audio/x-psa` | `audio` | `psa` |  |  | ✓ |  |  |
+| `psc` | ZX Spectrum Pro Sound Creator Module (.psc) | `audio/x-psc` | `audio` | `psc` |  |  | ✓ |  |  |
 | `psd` | Adobe Photoshop | `image/vnd.adobe.photoshop` | `image` | `psd` |  |  | ✓ | ✓ | ✓ |
+| `psf` | ArcSoft PhotoStudio Image (.psf, PRONOM fmt/1832) | `image/x-arcsoft-psf` | `image` | `psf` |  |  | ✓ |  |  |
+| `psg_sleep` | Polysomnography (PSG) Sleep Study Recording (.psg) | `application/x-psg-sleep` | `application` | `psg` |  |  | ✓ |  |  |
+| `psion3_word` | Psion Series 3 Word Document (.wrd) | `application/x-psion3-word` | `document` | `wrd` |  |  | ✓ |  |  |
+| `psion_opl` | Psion Organiser II / Series 3 OPL Translated Bytecode (.opo / .opa) | `application/x-psion-opl` | `executable` | `opo`, `opa` |  |  | ✓ |  |  |
+| `psion_sibo_app` | Psion Series 3 SIBO IMG / APP / DYL Executable (.img / .app / .dyl) | `application/x-psion-sibo-app` | `executable` | `img`, `app`, `dyl` |  |  | ✓ |  |  |
+| `psm_masi` | Epic MegaGames MASI ProTracker Studio Module (.psm) | `audio/x-psm` | `audio` | `psm` |  |  | ✓ |  |  |
+| `psp_dax` | Dark_AleX PlayStation Portable DAX Compressed ISO (.dax) | `application/x-psp-dax` | `archive` | `dax` |  |  | ✓ |  |  |
+| `psx_exe` | Sony PlayStation 1 PS-X EXE Executable | `application/x-psx-executable` | `executable` | — |  |  | ✓ |  |  |
+| `psy` | Psycle Modular Music Creation Studio Song (.psy) | `audio/x-psy` | `audio` | `psy` |  |  | ✓ |  |  |
+| `ptex` | Walt Disney Animation Studios Ptex Per-Face Texture (.ptx) | `image/x-ptex` | `image` | `ptx` |  |  | ✓ |  |  |
+| `ptf` | Digidesign / Avid Pro Tools Session (.ptf / .pts) | `application/x-protools-session` | `audio` | `ptf`, `pts` |  |  | ✓ |  |  |
+| `ptm` | Lone Ranger / Acme PolyTracker Module (.ptm) | `audio/x-ptm` | `audio` | `ptm` |  |  | ✓ |  |  |
 | `pub` | pub | `application/x-mspublisher` | `unknown` | `pub` |  |  | ✓ |  |  |
+| `puffin_patch` | Google ChromeOS / Android Puffin Deterministic Deflate Patch (PUF1) | `application/x-puffin-patch` | `archive` | — |  |  | ✓ |  |  |
+| `pumatracker` | Agile Pumatracker Amiga Module (.puma) | `audio/x-pumatracker` | `audio` | `puma` |  |  | ✓ |  |  |
+| `pvi` | NEC PC-98 FMP ADPCM Sample Bank (.pvi) | `audio/x-pvi` | `audio` | `pvi` |  |  | ✓ |  |  |
+| `pvm` | Sega Dreamcast PVM Texture Archive (PVMH) | `application/x-sega-pvm` | `archive` | — |  |  | ✓ |  |  |
+| `pvr` | Imagination Technologies PowerVR Texture (.pvr) | `image/x-pvr` | `image` | `pvr` |  |  | ✓ |  |  |
+| `pxhg_package` | PXHG Multilingual String Package (.hg) | `application/x-pxhg-package` | `archive` | `hg` |  |  | ✓ |  |  |
+| `pxtone` | Studio Pixel PxTone / Piston Collage Noise or Voice (.ptnoise / .ptvoice) | `audio/x-pxtone` | `audio` | `ptnoise`, `ptvoice` |  |  | ✓ |  |  |
 | `python` | Python source | `text/x-python` | `code` | `py`, `pyi` | ✓ |  |  | ✓ |  |
 | `pythonbytecode` | Python compiled bytecode | `application/x-bytecode.python` | `executable` | `pyc`, `pyo` |  |  | ✓ | ✓ |  |
 | `pythonpar` | pythonpar | `application/octet-stream` | `unknown` | `par` |  |  | ✓ |  |  |
 | `pytorch` | Pytorch storage file | `application/octet-stream` | `application` | `pt`, `pth` |  |  | ✓ | ✓ |  |
 | `pytorch_export` | PyTorch exported program | `application/octet-stream` | `application` | `pt2` |  |  | ✓ |  |  |
+| `q_a_word_processor` | Symantec Q&A Word Processor Document (.jw, PRONOM fmt/1045) | `application/x-q-a-word-processor` | `document` | `jw` |  |  | ✓ |  |  |
+| `qca_ath_firmware` | Qualcomm Atheros WLAN / WiGig Firmware & Board Data (QCA-ATH10K/11K/12K/6KL) | `application/x-qca-ath-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `qca_bt_tlv` | Qualcomm Atheros Bluetooth Rampatch & NVM TLV Firmware (.bin / .tlv) | `application/x-qca-bluetooth-tlv` | `application` | `bin`, `tlv` |  |  | ✓ |  |  |
+| `qcdt` | Qualcomm Bootloader Device Tree Table Image (QCDT) | `application/x-qualcomm-qcdt` | `executable` | — |  |  | ✓ |  |  |
+| `qcow2` | QEMU Copy-On-Write Virtual Disk Image (.qcow2) | `application/x-raw-disk-image` | `archive` | `qcow2` |  |  | ✓ |  |  |
+| `qemu_qed` | QEMU Enhanced Disk Image (.qed, QED\\0) | `application/x-qemu-qed` | `archive` | `qed` |  |  | ✓ |  |  |
 | `qgis` | QGIS project archive | `application/octet-stream` | `gis` | `qgz` |  |  | ✓ |  | ✓ |
+| `qnx_deflate` | BlackBerry QNX deflate Block-Compressed Filesystem Stream (.deflated) | `application/x-qnx-deflate` | `archive` | `deflated` |  |  | ✓ |  |  |
+| `qnx_ifs` | BlackBerry QNX Neutrino Image Filesystem Boot Image (.ifs) | `application/x-qnx-ifs` | `application` | `ifs` |  |  | ✓ |  |  |
 | `qoi` | Quite Ok Image | `image/x-qoi` | `image` | `qoi` |  |  | ✓ |  | ✓ |
 | `qt` | QuickTime | `video/quicktime` | `video` | `mov` |  |  | ✓ | ✓ |  |
+| `quake3_qvm` | id Tech 3 Quake III Arena Virtual Machine Bytecode (.qvm, 1999) id Software | `application/x-quake3-qvm` | `executable` | `qvm` |  |  | ✓ |  |  |
+| `quake_mdl` | id Software Quake 1 3D Model (.mdl) | `model/x-quake-mdl` | `geometry` | `mdl` |  |  | ✓ |  |  |
+| `qualcomm_acdb` | Qualcomm Audio Calibration Database (.acdb) | `application/x-qualcomm-acdb` | `application` | `acdb` |  |  | ✓ |  |  |
+| `qualcomm_fbpk` | Qualcomm Fastboot Firmware Pack (FBPK) | `application/x-qualcomm-fbpk` | `application` | `img` |  |  | ✓ |  |  |
+| `qualcomm_meta_image` | Qualcomm Android Bootloader Meta Image (meta_image) | `application/x-qualcomm-meta-image` | `application` | `img` |  |  | ✓ |  |  |
+| `qualcomm_mibib` | Qualcomm MSM MIBIB Flash Partition Table (.bin) | `application/x-qualcomm-mibib` | `application` | `bin` |  |  | ✓ |  |  |
+| `qualcomm_sbl1` | Qualcomm Secondary Bootloader SBL1 / NorCodeWord Image (.mbn) | `application/x-qualcomm-sbl1` | `application` | `mbn` |  |  | ✓ |  |  |
+| `qualcomm_splash` | Qualcomm Snapdragon Boot Splash Screen Image (.img) | `application/x-qualcomm-splash` | `application` | `img` |  |  | ✓ |  |  |
+| `quartet_set` | MicroDeal Atari ST Quartet Sample Set (.set) | `audio/x-quartet-set` | `audio` | `set` |  |  | ✓ |  |  |
+| `quartet_st` | MicroDeal Atari ST Quartet 4-Voice Module (.4v / .qpa) | `audio/x-quartet` | `audio` | `4v`, `qpa` |  |  | ✓ |  |  |
+| `quartus_pof` | Altera / Intel Quartus Programmer Object File (.pof, POF\\\\0) | `application/x-altera-pof` | `application` | `pof` |  |  | ✓ |  |  |
+| `quattro_pro_wb1` | Borland Quattro Pro for Windows Encrypted/Packed Notebook (.wb1) Borland | `application/x-quattro-pro-wb1` | `document` | `wb1` |  |  | ✓ |  |  |
+| `quest_cas` | Quest 3/4 Compiled Game (.cas) | `application/x-quest-cas` | `executable` | `cas` |  |  | ✓ |  |  |
+| `quicken_3_database_file_qst` | Intuit Quicken 3 Database File (.qst, PRONOM fmt/1861) | `application/x-quicken-3-database-file-qst` | `document` | `qst` |  |  | ✓ |  |  |
+| `quicklink_qfx` | Smith Micro QuickLink II Fax Image (.qfx) | `image/x-quicklink-fax` | `image` | `qfx` |  |  | ✓ |  |  |
 | `r` | R (language) | `text/x-R` | `code` | `R` | ✓ |  |  | ✓ |  |
+| `racer_dof1` | Racer Simulation Dynamic Object Format 3D Model (.dof, 2001) Ruud van Gaal | `application/x-racer-dof1` | `geometry` | `dof` |  |  | ✓ |  |  |
+| `rad_bink_audio` | RAD Game Tools Bink Audio Stream (.binka) | `audio/x-rad-bink-audio` | `audio` | `binka` |  |  | ✓ |  |  |
+| `raddbg_rdi` | RAD Debugger Debug Information (.rdi) | `application/x-raddbg-rdi` | `executable` | `rdi` |  |  | ✓ |  |  |
+| `radical_rcf` | Radical Entertainment Cement Library Archive (.rcf) | `application/x-radical-cement-library` | `archive` | `rcf` |  |  | ✓ |  |  |
+| `radical_rsd` | Radical Entertainment RSD Audio Stream (.rsd) | `audio/x-radical-rsd` | `audio` | `rsd` |  |  | ✓ |  |  |
+| `radiocef_rcf` | Radiocef Studio Dental X-Ray Cephalometry (.rcf) | `application/x-radiocef-rcf` | `image` | `rcf` |  |  | ✓ |  |  |
+| `rage_awc` | Rockstar Games RAGE Audio Wave Container (.awc) | `audio/x-rage-awc` | `audio` | `awc` |  |  | ✓ |  |  |
+| `rage_rsc7` | Rockstar Games RAGE Engine Resource Container v7 (.ydr / .ytd / .yft / .ydd / .ymap / .ytyp / .ybn / .ycd) | `application/x-rage-rsc7` | `archive` | `ydr`, `ytd`, `yft`, `ydd`, `ymap`, `ytyp` |  |  | ✓ |  |  |
+| `ragtime` | RagTime Business Publishing Document (.rag / .rtd) | `application/x-ragtime` | `document` | `rag`, `rtd` |  |  | ✓ |  |  |
+| `railworks_dav` | RailWorks / Train Simulator XOR-Obfuscated WAV Audio (.dav) | `audio/x-railworks-dav` | `audio` | `dav` |  |  | ✓ |  |  |
+| `railworks_serz` | Kuju Entertainment RailWorks / Train Simulator SERZ Binary XML (.tgpcdx / .geopcdx / .bin) | `application/x-railworks-serz` | `application` | `tgpcdx`, `geopcdx`, `bin` |  |  | ✓ |  |  |
+| `ramtracker_trk` | RamTracker Module (.trk) | `audio/x-trk` | `audio` | `trk` |  |  | ✓ |  |  |
+| `ran_online_ims` | Min Communications Ran Online GLITEM_MIX Item Crafting Table (.ims) | `application/x-ran-online-ims` | `database` | `ims` |  |  | ✓ |  |  |
+| `rapiscan_rcf` | Rapiscan Dual-Energy X-Ray Scan Archive (.rcf, 0xFFFF1111) | `application/x-rapiscan-rcf` | `image` | `rcf` |  |  | ✓ |  |  |
 | `rar` | RAR archive data | `application/vnd.rar` | `archive` | `rar` |  |  | ✓ | ✓ | ✓ |
+| `rarc` | Nintendo GameCube / Wii JKR Archive (.rarc / .arc) | `application/x-nintendo-rarc` | `archive` | `rarc`, `arc` |  |  | ✓ |  |  |
+| `raven_xbnf_bnx` | Raven Software Engine XBNF Binary Font / Text Resource (.bnx) | `application/x-raven-xbnf` | `font` | `bnx` |  |  | ✓ |  |  |
+| `rcbot_rcw` | Half-Life RCBot Waypoint File (.rcw, 2004) Cheeseh | `application/x-rcbot-rcw` | `archive` | `rcw` |  |  | ✓ |  |  |
 | `rdata` | R serialized data | `application/octet-stream` | `scientific` | `rda`, `rdata`, `rds` |  |  | ✓ |  |  |
 | `rdf` | Resource Description Framework document (RDF) | `application/rdf+xml` | `text` | `rdf` | ✓ |  | ✓ | ✓ |  |
 | `rdp` | rdp | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `re4_mdt` | Capcom Resident Evil 4 Event Message Table (.mdt) | `application/x-re4-mdt` | `database` | `mdt` |  |  | ✓ |  |  |
+| `re_engine_chain` | Capcom RE Engine Physics Chain Descriptor (.chain.*) | `application/x-re-engine-chain` | `geometry` | `chain` |  |  | ✓ |  |  |
+| `re_engine_mcamlist` | Capcom RE Engine Motion Camera List (clst, .mcamlist.*) | `application/x-re-engine-mcamlist` | `geometry` | `mcamlist` |  |  | ✓ |  |  |
+| `re_engine_mdf2` | Capcom RE Engine Material Definition v2 (.mdf2) | `application/x-re-engine-mdf2` | `application` | `mdf2` |  |  | ✓ |  |  |
+| `realbasic_rbbf` | REALbasic / Xojo Binary Project or Object (RbBF, .rbp / .rbo) | `application/x-realbasic-rbbf` | `executable` | `rbp`, `rbo` |  |  | ✓ |  |  |
 | `realm` | Realm database | `application/octet-stream` | `application` | `realm` |  |  | ✓ |  |  |
+| `realmedia` | RealNetworks RealMedia / RealAudio Stream (.rm / .rmvb / .ra) | `application/vnd.rn-realmedia` | `video` | `rm`, `rmvb`, `ra` |  |  | ✓ |  |  |
+| `realtek_bt_fw` | Realtek Bluetooth Controller Firmware Patch & Config (Realtech) | `application/x-realtek-bt-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `realtek_csys` | Realtek AP / Router CSYS Firmware Image (.bin) | `application/x-realtek-csys` | `application` | `bin` |  |  | ✓ |  |  |
+| `realtek_rtk0` | Realtek RTK0 Bluetooth / Wi-Fi SoC Firmware Patch (.bin) | `application/x-realtek-rtk0` | `application` | `bin` |  |  | ✓ |  |  |
+| `realtek_wifi_fw` | Realtek IEEE 802.11 Wireless MAC/BB/RF Firmware (rtlwifi / rtw88 / rtw89) | `application/x-realtek-wifi-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `rebellion_asura` | Rebellion Developments Asura Engine Resource Archive (.asr / .pc, 2005) Rebellion Developments | `application/x-rebellion-asura` | `archive` | `asr`, `pc` |  |  | ✓ |  |  |
+| `recomposer_rcp` | Come On Music Recomposer PC-98 / X68000 MIDI Sequencer (.rcp / .r36) | `audio/x-recomposer` | `audio` | `rcp`, `r36` |  |  | ✓ |  |  |
+| `redb` | Christopher Berner redb Embedded Rust Key-Value Database (.redb / .vectre) | `application/x-redb` | `database` | `redb`, `vectre` |  |  | ✓ |  |  |
+| `redcode_r3d` | RED Digital Cinema REDCODE RAW Video (.r3d) | `video/x-red-r3d` | `video` | `r3d` |  |  | ✓ |  |  |
+| `redengine_rdar` | CD Projekt RED REDengine 4 Archive (.archive, 2020) CD Projekt RED | `application/x-redengine-rdar` | `archive` | `archive` |  |  | ✓ |  |  |
 | `redis_aof` | Redis append-only log | `application/octet-stream` | `application` | `aof` |  |  | ✓ |  |  |
 | `redis_rdb` | Redis snapshot | `application/octet-stream` | `database` | `rdb` |  |  | ✓ |  | ✓ |
+| `redthumb` | RED Digital Cinema Thumbnail (.rtn, PRONOM fmt/1664) | `image/x-red-thumbnail` | `image` | `rtn` |  |  | ✓ |  |  |
+| `refpack_big` | Electronic Arts RefPack-Compressed BIGF Archive (.big, Electronic Arts) | `application/x-refpack-big` | `archive` | `big` |  |  | ✓ |  |  |
+| `reko_cardset` | Amiga / PC REKO Klondike Cardset (.reko) | `image/x-reko-cardset` | `image` | `reko` |  |  | ✓ |  |  |
+| `relic_archive` | Relic Entertainment SGA / Big Archive (.sga / .big, 2003) Relic Entertainment | `application/x-relic-archive` | `archive` | `sga`, `big` |  |  | ✓ |  |  |
+| `relic_rbh` | Relic Entertainment PIFF RBHF RigidBody Header (.rbh, 2004) Relic Entertainment | `application/x-relic-rbh` | `archive` | `rbh` |  |  | ✓ |  |  |
+| `rescseg_cmf` | RESCSEG Segmented Resource Package (.cmf) | `application/x-rescseg-cmf` | `archive` | `cmf` |  |  | ✓ |  |  |
+| `resfile_rsc` | ResFile Zlib-Compressed Resource Container (.rsc) | `application/x-resfile-rsc` | `archive` | `rsc` |  |  | ✓ |  |  |
+| `rfzpack_rfz` | RFZPACK Resource Archive (.rfz) | `application/x-rfzpack-rfz` | `archive` | `rfz` |  |  | ✓ |  |  |
+| `rgmh_save` | Microsoft Windows Game Explorer Rich Saved Game (.sav / .pcsav) | `application/x-windows-rgmh-save` | `application` | `sav`, `pcsav` |  |  | ✓ |  |  |
+| `rgssad` | Enterbrain RPG Maker XP / VX / VX Ace RGSS Archive (.rgssad / .rgss2a / .rgss3a) | `application/x-rgss-archive` | `archive` | `rgssad`, `rgss2a`, `rgss3a` |  |  | ✓ |  |  |
+| `rhide_gdt` | Robert Hoehne RHIDE DJGPP IDE Project / Desktop File (.gpr / .gdt, 1996) Robert Hoehne | `application/x-rhide-gdt` | `application` | `gpr`, `gdt` |  |  | ✓ |  |  |
 | `rhinoceros` | Rhino 3DM | `application/octet-stream` | `geometry` | `3dm` |  |  | ✓ |  |  |
+| `riegeli` | Google Riegeli Records Structured Container (.riegeli) | `application/x-riegeli` | `application` | `riegeli` |  |  | ✓ |  |  |
+| `rillsoft_rpj` | Rillsoft Project Management Schedule (.rpj / .mbk) Rillsoft | `application/x-rillsoft-rpj` | `document` | `rpj`, `mbk` |  |  | ✓ |  |  |
+| `riscos_font` | Acorn RISC OS Outline / IntMetrics Font (Outlines / IntMetrics) | `application/x-font` | `font` | — |  |  | ✓ |  |  |
+| `rive_riv` | Rive Interactive Vector Animation (.riv) | `application/x-rive` | `image` | `riv` |  |  | ✓ |  |  |
+| `rjp` | Richard Joseph / Vectordean Amiga Audio (.rjp / .sng / .ins) | `audio/x-rjp` | `audio` | `rjp`, `sng`, `ins` |  |  | ✓ |  |  |
+| `rka_audio` | Malcolm Taylor RK Audio Lossless Compressor (.rka, RKA7) | `audio/x-rka` | `audio` | `rka` |  |  | ✓ |  |  |
+| `rli` | RealWorld Paint Layered Image (.rli) | `image/x-rli` | `image` | `rli` |  |  | ✓ |  |  |
 | `rlib` | rust library | `application/x-archive` | `archive` | `rlib` |  |  | ✓ |  |  |
+| `rnc` | Rob Northen Computing ProPack Compressed File (RNC) | `application/x-rnc` | `archive` | — |  |  | ✓ |  |  |
+| `rns` | Renoise Legacy Binary Song (.rns) | `audio/x-rns` | `audio` | `rns` |  |  | ✓ |  |  |
+| `rob_hubbard_rho` | Rob Hubbard Atari ST Music Module (.rho) | `audio/x-rob-hubbard-st` | `audio` | `rho` |  |  | ✓ |  |  |
+| `roboplay_ply` | ROBOPLAY AdLib OPL2 Chiptune Module (.ply) | `application/x-roboplay-ply` | `audio` | `ply` |  |  | ✓ |  |  |
+| `rockchip_rkaf` | Rockchip RKAF Update Archive Image (.img) | `application/x-rockchip-rkaf` | `application` | `img` |  |  | ✓ |  |  |
+| `rockchip_rkfw` | Rockchip RKFW Bootable Firmware Package (.img) | `application/x-rockchip-rkfw` | `application` | `img` |  |  | ✓ |  |  |
+| `rockchip_rsce` | Rockchip RSCE Android Resource Image (.img) | `application/x-rockchip-rsce` | `application` | `img` |  |  | ✓ |  |  |
 | `rocksdb` | RocksDB | `application/octet-stream` | `application` | `sst` |  |  | ✓ |  |  |
+| `rockstar_rpf` | Rockstar Games RAGE Package File Archive (.rpf, 2008) Rockstar Games | `application/x-rockstar-rpf` | `archive` | `rpf` |  |  | ✓ |  |  |
+| `rocky_rip` | Atari 8-bit Rocky Interlace Picture (.rip) | `image/x-atari-rip` | `image` | `rip` |  |  | ✓ |  |  |
+| `roland_svq` | Roland XP/JV MRC-Pro Sequencer Song (.svq) | `audio/x-svq` | `audio` | `svq` |  |  | ✓ |  |  |
+| `romfs` | Linux ROMFS Read-Only Filesystem Image (.romfs) | `application/x-romfs` | `archive` | `romfs` |  |  | ✓ |  |  |
+| `ros_bag_format` | Robot Operating System (ROS) 1.x Message Log Bag (.bag, PRONOM fmt/2093) | `application/x-ros-bag-format` | `document` | `bag` |  |  | ✓ |  |  |
+| `router_wlk_config` | TP-Link / Realtek WLK Encrypted Router Configuration (.bin) TP-Link / Realtek | `application/x-router-wlk-config` | `application` | `bin` |  |  | ✓ |  |  |
+| `rpa` | Ren'Py Visual Novel Archive (.rpa) | `application/x-renpy-archive` | `archive` | `rpa` |  |  | ✓ |  |  |
+| `rpg_wolf` | WOLF RPG Editor DXLib Encrypted Archive (.wolf, 2008) SmokingWOLF | `application/x-rpg-wolf` | `archive` | `wolf` |  |  | ✓ |  |  |
+| `rpgmaker_xyz` | ASCII / Enterbrain RPG Maker 2000 / 2003 XYZ Compressed Raster Image (.xyz) | `image/x-rpgmaker-xyz` | `image` | `xyz` |  |  | ✓ |  |  |
+| `rpgmv` | Kadokawa RPG Maker MV / MZ Encrypted Asset (.rpgmvp / .rpgmvo / .rpgmvm / .png_ / .ogg_) | `application/x-rpgmaker-encrypted` | `archive` | `rpgmvp`, `rpgmvo`, `rpgmvm`, `png_`, `ogg_` |  |  | ✓ |  |  |
 | `rpm` | RedHat Package Manager archive (RPM) | `application/x-rpm` | `archive` | `rpm` |  |  | ✓ | ✓ |  |
+| `rpyc` | Ren'Py Compiled Script AST Bytecode (.rpyc) | `application/x-renpy-bytecode` | `executable` | `rpyc` |  |  | ✓ |  |  |
 | `rst` | ReStructuredText document | `text/x-rst` | `text` | `rst` | ✓ |  |  | ✓ |  |
 | `rtf` | Rich Text Format document | `text/rtf` | `text` | `rtf` | ✓ |  | ✓ | ✓ |  |
+| `rtm` | RealTech Real Tracker Module (.rtm) | `audio/x-rtm` | `audio` | `rtm` |  |  | ✓ |  |  |
+| `rtstrike_font` | RTSTRK01 Zlib-Compressed Font Strike (.rtstrike) | `application/x-rtstrike-font` | `font` | `rtstrike` |  |  | ✓ |  |  |
 | `ruby` | Ruby source | `application/x-ruby` | `code` | `rb` | ✓ |  |  | ✓ |  |
+| `ruby_rdoc_ri` | Ruby RDoc RI Marshal Documentation Entry (.ri, 2003) | `application/x-ruby-rdoc-ri` | `executable` | `ri` |  |  | ✓ |  |  |
+| `ruby_yarb` | CRuby YARV Compiled Instruction Sequence Bytecode (YARB) | `application/x-ruby-yarb` | `executable` | `yarb` |  |  | ✓ |  |  |
+| `rup_ninja2_patch` | errick NINJA 2.0 Raw Ultima ROM Patch (.rup, NINJA2) | `application/x-rup-patch` | `application` | `rup` |  |  | ✓ |  |  |
 | `rust` | Rust source | `application/x-rust` | `code` | `rs` | ✓ |  |  | ✓ |  |
 | `rzip` | Rzip | `application/octet-stream` | `unknown` | `rz` |  |  | ✓ |  | ✓ |
+| `s3m` | Scream Tracker 3 Module Audio (.s3m) | `audio/x-mod` | `audio` | `s3m` |  |  | ✓ |  |  |
+| `s98` | NEC PC-88 / PC-98 S98 FM Sound Chip Register Log (.s98) | `audio/x-s98` | `audio` | `s98` |  |  | ✓ |  |  |
+| `sabdu` | SAB Diskette Utility Floppy Image (.sdu) | `application/x-sabdu` | `archive` | `sdu` |  |  | ✓ |  |  |
+| `safari_binarycookies` | Apple Safari Binary Cookies Store (.binarycookies) | `application/x-apple-binarycookies` | `database` | — |  |  | ✓ |  |  |
 | `safetensors` | Safetensors | `application/octet-stream` | `model` | `safetensors` |  |  | ✓ |  | ✓ |
+| `sakura_wars_sbx` | SEGA / Overworks Sakura Wars 3 Compiled Script (ASCR, .sbx) | `application/x-sakura-wars-sbx` | `executable` | `sbx` |  |  | ✓ |  |  |
+| `sam_coupe_cop` | SAM Coupé E-Tracker Compiled SAA1099 Module (.cop / .etc) | `audio/x-cop` | `audio` | `cop`, `etc` |  |  | ✓ |  |  |
+| `samsung_pit` | Samsung Odin Partition Information Table (.pit) | `application/x-samsung-pit` | `application` | `pit` |  |  | ✓ |  |  |
+| `sankom_ozd` | Sankom Audytor OZC/CO Heating & HVAC Engineering Project (.ozd) Sankom | `application/x-sankom-ozd` | `document` | `ozd` |  |  | ✓ |  |  |
+| `sar_car` | SAR / CAR v2.0x Compressed Archive (.sar) | `application/x-sar` | `archive` | `sar` |  |  | ✓ |  |  |
+| `sarc` | Nintendo Wii U / 3DS / Switch SARC Resource Archive (.sarc) | `application/x-nintendo-sarc` | `archive` | `sarc` |  |  | ✓ |  |  |
 | `sas` | SAS dataset / transport | `application/octet-stream` | `scientific` | `sas7bdat`, `xpt` |  |  | ✓ |  | ✓ |
+| `sawgrass_dm` | Sawgrass SG400/SG800 RPCS-R Printer Profile (.dm, Sawgrass Technologies) | `application/x-sawgrass-dm` | `application` | `dm` |  |  | ✓ |  |  |
+| `sblight_box` | Stormshield / Arkoon Security BOX Encrypted Container (.box) | `application/x-sbox-file` | `application` | `box` |  |  | ✓ |  |  |
+| `sbstudio_pac` | Henning Sauer SBStudio PAC Module (.pac) | `audio/x-pac` | `audio` | `pac` |  |  | ✓ |  |  |
+| `sc68_music` | Benjamin Gerard sc68 Atari ST / Amiga YM2149 & Paula Music (.sc68) | `audio/x-sc68` | `audio` | `sc68` |  |  | ✓ |  |  |
+| `sc_rep` | Blizzard StarCraft / StarCraft: Remastered Replay (.rep, 1998) Blizzard Entertainment | `application/x-sc-rep` | `archive` | `rep` |  |  | ✓ |  |  |
 | `scala` | Scala source | `application/x-scala` | `code` | `scala` | ✓ |  |  | ✓ |  |
+| `scaleform_gfx` | Autodesk Scaleform GFx Movie (.gfx) | `application/x-scaleform-gfx` | `video` | `gfx` |  |  | ✓ |  |  |
+| `scc_musixx` | MSX Konami SCC-Musixx Song (.sng) | `audio/x-sng` | `audio` | `sng` |  |  | ✓ |  |  |
+| `schindler_szip` | Michael Schindler SZIP Block-Sorted Stream (.sz) | `application/x-szip` | `archive` | `sz` |  |  | ✓ |  |  |
+| `scp` | SuperCard Pro magnetic flux capture (.scp) | `application/x-floppy-image` | `archive` | `scp` |  |  | ✓ |  |  |
+| `scpt` | Apple Compiled AppleScript Bytecode (.scpt) | `application/x-applescript` | `executable` | `scpt` |  |  | ✓ |  |  |
+| `scratch_sb` | MIT Scratch 1.x Squeak Binary Project (.sb, 2007) MIT Media Lab | `application/x-scratch-sb` | `archive` | `sb` |  |  | ✓ |  |  |
+| `screencam` | Lotus ScreenCam Movie File (.scm, PRONOM fmt/1938) | `application/vnd.lotus-screencam` | `video` | `scm` |  |  | ✓ |  |  |
 | `scriptwsf` | scriptwsf | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `scs_hashfs` | SCS Software HashFS Game Archive (.scs, 2012) SCS Software | `application/x-scs-hashfs` | `archive` | `scs` |  |  | ✓ |  |  |
+| `scs_pmd` | SCS Software Prism3D 3D Model Descriptor (.pmd) | `application/x-scs-pmd` | `geometry` | `pmd` |  |  | ✓ |  |  |
+| `scs_pmg` | SCS Software Prism3D Engine 3D Model Geometry (.pmg, 2012) SCS Software | `application/x-scs-pmg` | `geometry` | `pmg` |  |  | ✓ |  |  |
+| `scs_sii_enc` | SCS Software Prism3D Encrypted SII Configuration / Save (.sii, 2012) SCS Software | `application/x-scs-sii-encrypted` | `application` | `sii` |  |  | ✓ |  |  |
+| `scs_tobj` | SCS Software Prism3D Engine Texture Object Descriptor (.tobj, 2012) SCS Software | `application/x-scs-tobj` | `geometry` | `tobj` |  |  | ✓ |  |  |
 | `scss` | SCSS source | `text/x-scss` | `code` | `scss` | ✓ |  |  | ✓ |  |
+| `scumm_amiga` | Lucasfilm Games SCUMM Amiga Music Module (.scumm) | `audio/x-scumm-amiga` | `audio` | `scumm` |  |  | ✓ |  |  |
+| `scumm_cutscene_cut` | LucasArts SCUMM Cutscene Resource (.cut) | `application/x-scumm-cutscene-cut` | `video` | `cut` |  |  | ✓ |  |  |
+| `scumm_room_lfl` | LucasArts SCUMM v3 Room Resource File (.lfl, RO/HD/BX) | `application/x-scumm-room-lfl` | `archive` | `lfl` |  |  | ✓ |  |  |
+| `scw` | Movie Magic Screenwriter Screenplay (.scw / .mms) | `application/x-screenwriter` | `document` | `scw`, `mms` |  |  | ✓ |  |  |
+| `sdc_gdb` | Esri Smart Data Compression (SDC FORMAT 1.00) Geospatial Database (.gdb, Esri) | `application/x-sdc-gdb` | `database` | `gdb` |  |  | ✓ |  |  |
+| `sds` | Applied Biosystems / Life Technologies SDS Real-Time PCR Data (.sds, PRONOM fmt/586) | `application/x-lifetech-sds` | `database` | `sds` |  |  | ✓ |  |  |
+| `sdw2_snp` | SDW v2 System Snapshot (.snp) | `application/x-sdw2-snp` | `application` | `snp` |  |  | ✓ |  |  |
+| `seama_fw` | Alpha Networks SEAMA Firmware Container (.seama) | `application/x-seama-firmware` | `application` | `seama` |  |  | ✓ |  |  |
+| `sean_conran_scr` | Sean Conran Amiga Music Module (.scr) | `audio/x-sean-conran-scr` | `audio` | `scr` |  |  | ✓ |  |  |
+| `security_cfg_cch` | .NET Code Access Security Config Cache (.config.cch) | `application/x-security-cfg-cch` | `application` | `config` |  |  | ✓ |  |  |
+| `sega_afs` | Sega Dreamcast / PS2 AFS File System Archive (.afs) | `application/x-sega-afs` | `archive` | `afs` |  |  | ✓ |  |  |
+| `sega_film` | Sega Saturn FILM / Cinepak CPK Multimedia Container (.cpk / .cak) | `video/x-sega-film` | `video` | `cpk`, `cak` |  |  | ✓ |  |  |
+| `sega_gsgm` | Sega Ryu Ga Gotoku Dragon Engine 3D Model (.gmd, 2016) Sega | `model/x-sega-gsgm` | `geometry` | `gmd` |  |  | ✓ |  |  |
 | `segy` | SEG-Y seismic data | `application/octet-stream` | `application` | `segy`, `sgy` |  |  | ✓ |  |  |
+| `selinux_policy` | NSA / Linux Kernel SELinux Binary Security Policy | `application/x-selinux-policy` | `application` | — |  |  | ✓ |  |  |
+| `selinux_pp` | NSA SELinux Compiled Policy Module Package (.pp, 0x8FFF7CF9) | `application/x-selinux-policy-package` | `application` | `pp` |  |  | ✓ |  |  |
+| `semi_oasis` | SEMI P39 OASIS Open Artwork System Interchange Standard IC Layout (.oas) | `application/x-semi-oasis` | `geometry` | `oas` |  |  | ✓ |  |  |
+| `senjutsu_s7` | Senjutsu Tactical Campaign Map Data (SENJUTSUMAPDATA, .s7) | `application/x-senjutsu-s7` | `archive` | `s7` |  |  | ✓ |  |  |
+| `sercomm_fw` | Sercomm sErCoMm Router Firmware Image (.bin) | `application/x-sercomm-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `serif_pageplus_publication_ppp` | Serif PagePlus Publication (.ppp, PRONOM fmt/1537) | `application/x-serif-pageplus-publication-ppp` | `document` | `ppp` |  |  | ✓ |  |  |
+| `serpent_stone` | Serpent OS / AerynOS Stone Binary Software Package (.stone, \\\\x00mos) | `application/x-stone-package` | `archive` | `stone` |  |  | ✓ |  |  |
+| `ses` | Syntrillium Cool Edit / Adobe Audition Session (.ses) | `application/x-cooledit-session` | `audio` | `ses` |  |  | ✓ |  |  |
 | `sevenzip` | 7-zip archive data | `application/x-7z-compressed` | `archive` | `7z` |  |  | ✓ | ✓ | ✓ |
+| `sff` | Roche 454 Standard Flowgram Format (.sff, PRONOM fmt/504) | `application/x-sff` | `application` | `sff` |  |  | ✓ |  |  |
+| `sgc` | Sega Master System / Game Gear / ColecoVision SGC Audio (.sgc) | `audio/x-sgc` | `audio` | `sgc` |  |  | ✓ |  |  |
+| `sgi_movie` | Silicon Graphics Movie Format (.mv/.movie, PRONOM fmt/1901) | `video/x-sgi-movie` | `video` | `mv`, `movie` |  |  | ✓ |  |  |
+| `sgi_rgb` | Silicon Graphics IRIS RGB Image (.sgi / .rgb / .bw) | `image/x-sgi` | `image` | `sgi`, `rgb`, `bw` |  |  | ✓ |  |  |
 | `sgml` | sgml | `application/sgml` | `text` | `sgml` | ✓ |  |  | ✓ |  |
+| `sh3_smart` | SH3 R02.04 Smart Configuration Profile (.smart) | `application/x-sh3-smart` | `application` | `smart` |  |  | ✓ |  |  |
 | `sh3d` | sh3d | `application/octet-stream` | `unknown` | `sh3d` |  |  | ✓ |  |  |
 | `shapefile` | ESRI Shapefile | `application/octet-stream` | `gis` | `dbf`, `prj`, `shp`, `shx` |  |  | ✓ |  | ✓ |
 | `shell` | Shell script | `text/x-shellscript` | `code` | `sh` | ✓ |  |  | ✓ |  |
+| `shinmera_sf3` | Shinmera Simple File Format 3 Container (.sf3, \\\\x81SF3\\\\x00\\\\xE0\\\\xD0\\\\r\\\\n\\\\n) | `application/x-sf3` | `database` | `sf3` |  |  | ✓ |  |  |
+| `shk` | NuFX / ShrinkIt compressed archive | `application/x-shk` | `archive` | — |  |  | ✓ |  |  |
+| `shn` | Shorten Lossless Audio (.shn) | `audio/x-shorten` | `audio` | `shn` |  |  | ✓ |  |  |
+| `sho` | Shroom Player Module (.sho) | `audio/x-sho` | `audio` | `sho` |  |  | ✓ |  |  |
+| `shockwave_w3d` | Intel / Macromedia Shockwave 3D Scene (IFX, .w3d, 2001) Macromedia / Adobe | `model/x-shockwave-w3d` | `geometry` | `w3d` |  |  | ✓ |  |  |
+| `showpartner_hlp` | Brightbill-Roberts Show Partner Animator Help File (.hlp) | `application/x-showpartner-hlp` | `document` | `hlp` |  |  | ✓ |  |  |
+| `sid` | LizardTech MrSID Multiresolution Seamless Image (.sid) | `image/x-mrsid` | `image` | `sid` |  |  | ✓ |  |  |
+| `sidmon2` | Reinier van Vliet Amiga SidMon II Module (.sid2) | `audio/x-sidmon2` | `audio` | `sid2` |  |  | ✓ |  |  |
+| `sierra_agi_vol` | Sierra On-Line AGI Adventure Game Volume Archive (VOL.0, 1984) Sierra On-Line | `application/x-sierra-agi-vol` | `archive` | `vol` |  |  | ✓ |  |  |
+| `sierra_rbt` | Sierra On-Line SCI Robot Video Animation (.rbt) | `video/x-sierra-rbt` | `video` | `rbt` |  |  | ✓ |  |  |
+| `sierra_sci32_pic` | Sierra On-Line SCI1.1 / SCI32 Background Picture Resource (.p56, 1992) Sierra On-Line | `image/x-sierra-sci32-pic` | `image` | `p56` |  |  | ✓ |  |  |
+| `sierra_sci32_view` | Sierra On-Line SCI32 Sprite View Resource (.v56, 1993) Sierra On-Line | `image/x-sierra-sci32-view` | `image` | `v56` |  |  | ✓ |  |  |
+| `sierra_sci_patch` | Sierra On-Line SCI0 AdLib Patch Bank (.003) | `audio/x-sierra-sci-patch` | `audio` | `003` |  |  | ✓ |  |  |
+| `sierra_sol` | Sierra On-Line SOL Audio (.aud / .sfx) | `audio/x-sierra-sol` | `audio` | `aud`, `sfx` |  |  | ✓ |  |  |
+| `sigma_x3f` | Sigma Foveon X3 Camera RAW Image (.x3f, FOVb) | `image/x-sigma-x3f` | `image` | `x3f` |  |  | ✓ |  |  |
+| `signum_font` | Application Systems Heidelberg Signum! Atari ST Font (.e24 / .l30 / .p24 / .p9) | `application/x-font` | `font` | `e24`, `l30`, `p24`, `p9` |  |  | ✓ |  |  |
+| `signum_sdo` | Application Systems Heidelberg Signum! 1/2 Atari ST Document (.sdo) | `application/x-signum` | `document` | `sdo` |  |  | ✓ |  |  |
+| `silabs_gbl` | Silicon Labs Gecko Bootloader Upgrade Image (.gbl) Silicon Labs | `application/x-silabs-gbl` | `application` | `gbl` |  |  | ✓ |  |  |
+| `simh_tap` | SIMH / Ersatz-11 Magnetic Tape Image (.tap, 1993) Bob Supnik / John Wilson | `application/x-simh-tape` | `archive` | `tap` |  |  | ✓ |  |  |
+| `sims1_iff` | Maxis The Sims 1 IFF 2.5 Resource Container (.iff / .spf / .flr / .wll, 2000) Maxis / Electronic Arts | `application/x-sims1-iff` | `archive` | `iff`, `spf`, `flr`, `wll` |  |  | ✓ |  |  |
+| `sims4_thumbnail` | Maxis / Electronic Arts The Sims 4 Tray Thumbnail (.hhi / .bpi / .sgi, 2014) Electronic Arts | `image/x-sims4-thumbnail` | `image` | `hhi`, `bpi`, `sgi` |  |  | ✓ |  |  |
+| `sinclair_qdos` | Sinclair QL QDOS Filesystem Disk Image (QL5A / QL5B) | `application/x-sinclair-qdos` | `archive` | `img` |  |  | ✓ |  |  |
+| `sinclair_ql_f3` | Sinclair QL QLBAS Bitmap Font Resource (.f3) | `application/x-sinclair-ql-f3` | `font` | `f3` |  |  | ✓ |  |  |
+| `singbox_srs` | sing-box Binary Rule-Set Container (SRS v1–v5, .srs) | `application/x-singbox-srs` | `application` | `srs` |  |  | ✓ |  |  |
+| `sisx` | Symbian OS v9 SISX Installation Package (.sis / .sisx) | `application/vnd.symbian.install` | `archive` | `sis`, `sisx` |  |  | ✓ |  |  |
 | `sketchup` | SketchUp model | `application/octet-stream` | `geometry` | `skp` |  |  | ✓ |  | ✓ |
 | `skops` | skops model | `application/octet-stream` | `application` | `skops` |  |  | ✓ |  |  |
+| `sks` | Targhan / Arkos Amstrad CPC Starkos Song (.sks) | `audio/x-sks` | `audio` | `sks` |  |  | ✓ |  |  |
+| `slim_archive` | MS-DOS Dominic Herity SLIM Compressed File (.slm) | `application/x-slim-compressed` | `archive` | `slm` |  |  | ✓ |  |  |
+| `smacker` | RAD Game Tools Smacker Video Container (.smk) | `video/vnd.radgametools.smacker` | `video` | `smk` |  |  | ✓ |  |  |
 | `smali` | Smali source | `application/x-smali` | `code` | `smali` | ✓ |  |  | ✓ |  |
+| `smoothmove_pan` | Infinite Pictures SmoothMove Pan Viewer Panorama (.pan) | `image/x-smoothmove-pan` | `image` | `pan` |  |  | ✓ |  |  |
+| `sms_rom` | Sega Master System / Game Gear Cartridge ROM (.sms / .gg) | `application/x-sms-rom` | `archive` | `sms`, `gg` |  |  | ✓ |  |  |
+| `sn2` | Bluemoon Sound Club Module (.sn / .sn2) | `audio/x-sn2` | `audio` | `sn`, `sn2` |  |  | ✓ |  |  |
 | `snap` | Snap archive | `application/octet-stream` | `archive` | `snap` |  |  | ✓ | ✓ |  |
+| `sneventracker_snm` | HertzDevil SnevenTracker Chiptune Module (.snm) | `audio/x-sneventracker` | `audio` | `snm` |  |  | ✓ |  |  |
+| `sngplay_obsm` | ObsM SNGPlay AdLib Chiptune (.sng) | `audio/x-obsm` | `audio` | `sng` |  |  | ✓ |  |  |
+| `snoop` | Sun Microsystems Snoop packet capture (RFC 1761) | `application/octet-stream` | `application` | — |  |  | ✓ |  |  |
+| `sof_firmware` | Sound Open Firmware Audio DSP Image & Extended Manifest (.ri / .ldc) | `application/x-sof-firmware` | `application` | `ri`, `ldc` |  |  | ✓ |  |  |
+| `softlib_slb` | SoftLib Compressed Library Archive (.slb) | `application/x-softlib-slb` | `archive` | `slb` |  |  | ✓ |  |  |
+| `softmaker_dwr` | SoftMaker Office UI & Dialog Resource Archive (.dwr) | `application/x-softmaker-dwr` | `archive` | `dwr` |  |  | ✓ |  |  |
+| `softplan_spv` | SoftPlan Architectural Design reView Project (.spv) SoftPlan Systems | `application/x-softplan-spv` | `document` | `spv` |  |  | ✓ |  |  |
+| `solaris_pkg` | Sun Solaris / SVR4 Package Datastream (.pkg) | `application/x-solaris-pkg` | `archive` | `pkg` |  |  | ✓ |  |  |
 | `solidity` | Solidity source | `text/plain` | `code` | `sol` | ✓ |  |  | ✓ |  |
+| `sonarc` | Sonarc Lossless Compressed Creative Voice Audio (.wv / .vc) | `audio/x-sonarc` | `audio` | `wv`, `vc` |  |  | ✓ |  |  |
+| `sonix_instr` | Aegis Sonix Instrument Descriptor (.instr) | `audio/x-sonix-instr` | `audio` | `instr` |  |  | ✓ |  |  |
+| `sony_oma` | Sony OpenMG ATRAC3 Audio (.oma / .aa3, PRONOM fmt/2018) | `audio/x-sony-oma` | `audio` | `oma`, `aa3` |  |  | ✓ |  |  |
+| `sony_picturegear_pts` | Sony PictureGear / VAIO Theme Package (PTM fnIA, .pts) | `application/x-sony-picturegear-pts` | `archive` | `pts` |  |  | ✓ |  |  |
+| `sony_pmp` | Sony Cyber-shot DSC-F1 PMP Still Image (.pmp, 1996) Sony | `image/x-sony-pmp` | `image` | `pmp` |  |  | ✓ |  |  |
+| `sony_psp_gim` | Sony PlayStation Portable GIM Graphics Image (.gim, MIG.00.1PSP) | `image/x-psp-gim` | `image` | `gim` |  |  | ✓ |  |  |
+| `sony_psp_gmo` | Sony PlayStation Portable GMO 3D Model (.gmo) | `model/x-sony-psp-gmo` | `geometry` | `gmo` |  |  | ✓ |  |  |
+| `sony_sgxd` | Sony SCEI SGXD Sound Group Audio Container (.sgd / .sgb, 2006) Sony Computer Entertainment | `application/x-sony-sgxd` | `audio` | `sgd`, `sgb` |  |  | ✓ |  |  |
+| `sophos_ide` | Sophos Anti-Virus Virus Identity Definition (.ide, 1999) Sophos | `application/x-sophos-ide` | `application` | `ide` |  |  | ✓ |  |  |
+| `soprol_spl` | Ione Sound Programming Language Amiga Module (.spl) | `audio/x-soprol` | `audio` | `spl` |  |  | ✓ |  |  |
+| `sound_control_sc` | Holger Gehrmann Sound Control Amiga Module (.sc) | `audio/x-sound-control-sc` | `audio` | `sc` |  |  | ✓ |  |  |
+| `sound_images_sig` | Tony Williams Sound Images Generation 2 AdLib Module (.sig) | `audio/x-sound-images-sig` | `audio` | `sig` |  |  | ✓ |  |  |
+| `soundfactory_psf` | Advantec SoundFactory Amiga Synth Module (.psf) | `audio/x-soundfactory-psf` | `audio` | `psf` |  |  | ✓ |  |  |
+| `soundplayer_sjs` | Scott Johnston SoundPlayer Amiga Module (sjs.*) | `audio/x-soundplayer-sjs` | `audio` | `sjs` |  |  | ✓ |  |  |
+| `soundsmith` | Apple IIgs Huibert Aalbers SoundSmith Module (.sng) | `audio/x-soundsmith` | `audio` | `sng` |  |  | ✓ |  |  |
+| `soundtracker_26` | MnemoTroN Soundtracker 2.6 / Ice Tracker Amiga Module (.mod / .mtn) | `audio/x-soundtracker-26` | `audio` | `mod`, `mtn` |  |  | ✓ |  |  |
+| `sox_audio` | Sound eXchange (SoX) Native Audio Format (.sox) | `audio/x-sox` | `audio` | `sox` |  |  | ✓ |  |  |
+| `space_rangers_gi` | Elemental Games Space Rangers Graphics Image (.gi) | `application/x-space-rangers-gi` | `image` | `gi` |  |  | ✓ |  |  |
+| `spc700` | Super Nintendo SPC700 Sound Chip State (.spc) | `audio/x-spc` | `audio` | `spc` |  |  | ✓ |  |  |
+| `spd` | Bitstream Speedo Scalable Outline Font (.spd) | `application/x-font-speedo` | `font` | `spd` |  |  | ✓ |  |  |
 | `spirv` | SPIR-V | `application/octet-stream` | `executable` | `spv` |  |  | ✓ |  | ✓ |
+| `spis_lh5` | SPIS LH5-Compressed Container (Delphi TCompress, .lng) | `application/x-spis-lh5` | `archive` | `lng` |  |  | ✓ |  |  |
+| `spm` | Stone Amiga Stonetracker Module (.spm) | `audio/x-spm` | `audio` | `spm` |  |  | ✓ |  |  |
+| `spreadtrum_dhtb_img` | Spreadtrum / Unisoc DHTB Signed Partition Image (DHTB) | `application/x-spreadtrum-dhtb` | `application` | `img` |  |  | ✓ |  |  |
+| `spreadtrum_pac` | Spreadtrum / Unisoc PAC Firmware Package (.pac) | `application/x-spreadtrum-pac` | `application` | `pac` |  |  | ✓ |  |  |
+| `spritepad_spd` | SpritePad C64 Sprite Image (.spd, PRONOM fmt/1561) | `image/x-spritepad-spd` | `document` | `spd` |  |  | ✓ |  |  |
 | `spss` | SPSS dataset | `application/octet-stream` | `scientific` | `por`, `sav`, `zsav` |  |  | ✓ |  | ✓ |
+| `spu` | Sony PlayStation SPU Register Dump (.spu) | `audio/x-spu` | `audio` | `spu` |  |  | ✓ |  |  |
+| `sqex_akb` | Square Enix AKB Audio Bank Container (.akb, 2010) Square Enix | `application/x-sqex-akb` | `audio` | `akb` |  |  | ✓ |  |  |
 | `sql` | SQL source | `application/x-sql` | `code` | `sql` | ✓ |  |  | ✓ |  |
 | `sqlite` | SQLITE database | `application/octet-stream` | `application` | `sqlite`, `sqlite3` |  |  | ✓ | ✓ |  |
+| `sqlite2` | SQLite 2.1 database | `application/vnd.sqlite3` | `database` | — |  |  | ✓ |  |  |
+| `sqlite_journal` | SQLite rollback journal | `application/x-sqlite-journal` | `database` | — |  |  | ✓ |  |  |
+| `sqlite_wal` | SQLite 3 Write-Ahead Log | `application/x-sqlite-journal` | `database` | — |  |  | ✓ |  |  |
+| `square_enix_scd` | Square Enix Sound Container Data (.scd) | `audio/x-square-enix-scd` | `audio` | `scd` |  |  | ✓ |  |  |
+| `square_enix_spw` | Square Enix SeWave Audio Stream (.spw) | `audio/x-square-enix-spw` | `audio` | `spw` |  |  | ✓ |  |  |
 | `squashfs` | Squash filesystem | `application/octet-stream` | `archive` | — |  |  | ✓ | ✓ | ✓ |
+| `squirrel_cnut` | Squirrel VM Compiled Closure Bytecode (.cnut / .nut) | `application/x-squirrel-bytecode` | `executable` | `cnut`, `nut` |  |  | ✓ |  |  |
+| `sqz_archive` | Jonas I. Hammarberg Squeeze It (SQZ) Archive (.sqz, 1990) | `application/x-sqz` | `archive` | `sqz` |  |  | ✓ |  |  |
+| `sra` | NCBI Sequence Read Archive (.sra) | `application/x-ncbi-sra` | `archive` | `sra` |  |  | ✓ |  |  |
 | `srecord` | Motorola S-record firmware | `text/plain` | `executable` | `s19`, `srec` | ✓ |  | ✓ |  |  |
 | `srt` | SubRip Text Format | `text/srt` | `application` | `srt` | ✓ |  | ✓ | ✓ |  |
+| `ssbu_paracobn_prc` | Nintendo Super Smash Bros. Ultimate Binary Parameter (paracobn, .prc) | `application/x-ssbu-prc` | `archive` | `prc` |  |  | ✓ |  |  |
+| `ssi_gff` | Strategic Simulations General File Format Archive (.gff) | `application/x-ssi-gff` | `archive` | `gff` |  |  | ✓ |  |  |
+| `st_dfuse` | STMicroelectronics DfuSe USB Device Firmware Upgrade Image (.dfu) | `application/x-st-dfuse` | `application` | `dfu` |  |  | ✓ |  |  |
+| `stacker` | Stac Electronics Stacker Compressed Disk Volume (.dsk) | `application/x-stacker` | `archive` | `dsk` |  |  | ✓ |  |  |
+| `stad_pac` | Atari ST STAD High-Resolution Compressed Graphic (.pac) | `image/x-stad-pac` | `image` | `pac` |  |  | ✓ |  |  |
+| `stalker_xray_ogf` | GSC Game World X-Ray Engine Compiled 3D Mesh (.ogf, v4) | `application/x-stalker-xray-ogf` | `geometry` | `ogf` |  |  | ✓ |  |  |
+| `stalker_xray_thm` | GSC Game World X-Ray Engine Texture Descriptor (.thm, 0x0810) | `application/x-stalker-xray-thm` | `image` | `thm` |  |  | ✓ |  |  |
+| `starbound_pak` | Chucklefish Starbound SBAsset6 Game Archive (.pak, 2013) Chucklefish | `application/x-starbound-pak` | `archive` | `pak` |  |  | ✓ |  |  |
+| `startrekker_nt` | Fairlight Startrekker AM Synth Instrument Bank (.nt) | `audio/x-startrekker-nt` | `audio` | `nt` |  |  | ✓ |  |  |
+| `starwriter_legacy_vor` | Star Division StarWriter DOS Legacy Document Template (.vor, 1991) Star Division | `application/x-starwriter-legacy-vor` | `document` | `vor` |  |  | ✓ |  |  |
 | `stata` | Stata dataset | `application/octet-stream` | `scientific` | `dta` |  |  | ✓ |  |  |
+| `statistica_scr` | StatSoft Statistica Scrollsheet (.scr) | `application/x-statistica-scr` | `database` | `scr` |  |  | ✓ |  |  |
+| `statistica_sta` | StatSoft Statistica Spreadsheet (.sta) | `application/x-statistica-sta` | `database` | `sta` |  |  | ✓ |  |  |
+| `statistica_stg` | StatSoft Statistica Graph (.stg) | `application/x-statistica-stg` | `image` | `stg` |  |  | ✓ |  |  |
+| `stc` | ZX Spectrum Sound Tracker Compiled Module (.stc) | `audio/x-stc` | `audio` | `stc` |  |  | ✓ |  |  |
+| `steelmc_stlr_srg` | SteelMC Rust Minecraft Server Region Container (STLR, .srg) | `application/x-steelmc-srg` | `archive` | `srg` |  |  | ✓ |  |  |
 | `step` | ISO 10303 STEP CAD model | `model/step` | `geometry` | `step`, `stp` | ✓ |  | ✓ |  | ✓ |
 | `stlbinary` | Stereolithography CAD (binary) | `application/sla` | `image` | `stl` |  |  | ✓ | ✓ |  |
 | `stltext` | Stereolithography CAD (text) | `application/sla` | `image` | `stl` | ✓ |  | ✓ | ✓ |  |
+| `stockfish_nnue` | Stockfish Developers NNUE Chess Neural Network (.nnue) | `application/x-stockfish-nnue` | `application` | `nnue` |  |  | ✓ |  |  |
+| `stonetracker_sps` | Amiga Stonetracker Sample Bank (.sps) | `audio/x-stonetracker-sps` | `audio` | `sps` |  |  | ✓ |  |  |
+| `storm_engine_tx` | Akella Storm Engine Texture (.tx) | `image/x-storm-engine-tx` | `image` | `tx` |  |  | ✓ |  |  |
+| `storm_gm` | Akella Storm Engine 2.x 3D Geometry Model (.gm, 2003) Akella | `application/x-storm-gm` | `geometry` | `gm` |  |  | ✓ |  |  |
+| `stos_amos` | Atari ST STOS / Amiga AMOS BASIC Memory Bank (.mbk / .abk) | `application/x-amos-bank` | `archive` | `mbk`, `abk` |  |  | ✓ |  |  |
+| `student_writing_center` | The Learning Company Student Writing Center Document (\\\\x1ATLC\\\\x01FF\\\\x00) | `application/x-student-writing-center` | `document` | — |  |  | ✓ |  |  |
 | `sum` | Checksum file | `text/plain` | `application` | `sum` | ✓ |  |  | ✓ |  |
+| `sun_xrs` | Sun Microsystems XRS Resource Archive (.xrs) Sun Microsystems | `application/x-sun-xrs` | `archive` | `xrs` |  |  | ✓ |  |  |
+| `sunos_toc` | SunOS 4.x XDR Distribution Tape Table of Contents (.toc, 1988) Sun Microsystems | `application/x-sunos-toc` | `application` | `toc` |  |  | ✓ |  |  |
+| `sunras` | Sun Raster image | `image/x-sun-raster` | `image` | — |  |  | ✓ |  |  |
+| `sunvox` | WarmPlace SunVox Modular Synthesizer Project (.sunvox) | `audio/x-sunvox` | `audio` | `sunvox` |  |  | ✓ |  |  |
+| `sunxi_package` | Allwinner sunxi-package Boot Firmware Container (.fex, 2012) Allwinner Technology | `application/x-sunxi-package` | `application` | `fex` |  |  | ✓ |  |  |
+| `superscape_virtual_reality_format_svr` | Superscape Virtual Reality Format (.svr, PRONOM fmt/734) | `application/x-superscape-virtual-reality-format-svr` | `document` | `svr` |  |  | ✓ |  |  |
 | `svd` | svd | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
 | `svg` | SVG Scalable Vector Graphics image data | `image/svg+xml` | `image` | `svg` | ✓ |  | ✓ | ✓ |  |
+| `svm` | Borland VCL Metafile / StarView SVM (.svm / .vcl) | `image/x-svm` | `image` | `svm`, `vcl` |  |  | ✓ |  |  |
 | `swf` | Small Web Format | `application/x-shockwave-flash` | `executable` | `swf` |  |  | ✓ | ✓ | ✓ |
 | `swift` | Swift | `text/x-swift` | `code` | `swift` | ✓ |  |  | ✓ |  |
+| `switch_pfs0` | Nintendo Switch Partition FS0 / NSP Package (PFS0) | `application/x-nintendo-pfs0` | `archive` | — |  |  | ✓ |  |  |
+| `symbolics_carry` | Symbolics Lisp Machine Carry / Distribution Tape (.carry, 1982) Symbolics | `application/x-symbolics-carry` | `archive` | `carry` |  |  | ✓ |  |  |
 | `symlink` | Symbolic link | `inode/symlink` | `inode` | — |  | ✓ |  |  |  |
+| `symmod` | Patrick Meng Amiga Symphonie Pro Module (.symmod) | `audio/x-symmod` | `audio` | `symmod` |  |  | ✓ |  |  |
+| `synder_sng` | Synder SNG-Player Chiptune (.sng) | `audio/x-sng` | `audio` | `sng` |  |  | ✓ |  |  |
+| `synopse_synlz` | Synopse mORMot SynLZ Compressed Stream (.synlz, Arnaud Bouchez / Synopse) | `application/x-synopse-synlz` | `archive` | `synlz` |  |  | ✓ |  |  |
+| `synth_dream_sdr` | Synth Dream Amiga Music Module (sdr.*) | `audio/x-synth-dream-sdr` | `audio` | `sdr` |  |  | ✓ |  |  |
+| `systemd_catalog` | Linux systemd Binary Journal Message Catalog (.catalog, 2012) Lennart Poettering | `application/x-systemd-catalog` | `database` | `catalog` |  |  | ✓ |  |  |
+| `systemd_journal` | Linux systemd Structured Binary Journal Log (.journal) | `application/x-systemd-journal` | `application` | `journal` |  |  | ✓ |  |  |
+| `t98next_nfd` | NEC PC-9801 T98-Next Floppy Disk Image (.nfd, T98FDDIMAGE.R0/R1) | `application/x-pc98-nfd` | `archive` | `nfd` |  |  | ✓ |  |  |
+| `tads3_image` | TADS 3 T3 VM Image (.t3) | `application/x-t3vm-image` | `executable` | `t3` |  |  | ✓ |  |  |
+| `tag_adventure` | T.A.G. Text-Adventure-Generator Compiled Game (.tag) | `application/x-tag-adventure` | `executable` | `tag` |  |  | ✓ |  |  |
+| `tally_tcp` | Tally.ERP 9 Compiled Tally Definition Language (.tcp) | `application/x-tally-tcp` | `executable` | `tcp` |  |  | ✓ |  |  |
+| `tangopro_lib` | ACCEL EDA / TangoPRO Component Library V2.0 (.lib) | `application/x-tangopro-lib` | `geometry` | `lib` |  |  | ✓ |  |  |
 | `tar` | POSIX tar archive | `application/x-tar` | `archive` | `tar` |  |  | ✓ | ✓ |  |
+| `taxprep_tfd` | Wolters Kluwer Taxprep / Canadian CRA Tax Form Definition (.tfd) | `application/x-taxprep-tfd` | `document` | `tfd` |  |  | ✓ |  |  |
+| `tb_tbc` | Borland Turbo Basic Chain Module (.tbc) | `application/x-turbo-basic-tbc` | `executable` | `tbc` |  |  | ✓ |  |  |
+| `tb_tbh` | Borland Turbo Basic Help File (.tbh) | `application/x-turbo-basic-tbh` | `document` | `tbh` |  |  | ✓ |  |  |
 | `tcl` | Tcl | `application/x-tcl` | `code` | `tcl` | ✓ |  |  | ✓ |  |
+| `td0` | Sydex TeleDisk floppy image (.td0) | `application/x-floppy-image` | `archive` | `td0` |  |  | ✓ |  |  |
+| `tdbd_database` | TDBD Binary Database (.tdbd) | `application/x-tdbd-database` | `database` | `tdbd` |  |  | ✓ |  |  |
+| `tds` | Borland Turbo Debugger Symbols (.tds) | `application/x-debug-symbols` | `executable` | `tds` |  |  | ✓ |  |  |
+| `tek_wfm` | Tektronix Oscilloscope Reference Waveform (.wfm, :WFM#001/002/003) | `application/x-tektronix-wfm` | `application` | `wfm` |  |  | ✓ |  |  |
+| `telegram_tdf` | Telegram Desktop Encrypted Data File (TDF$) | `application/x-telegram-tdf` | `application` | `tdf` |  |  | ✓ |  |  |
+| `telix_salt_slc` | Telix SALT Compiled Script (.slc, 1988, Exis / deltaComm) | `application/x-telix-salt-slc` | `application` | `slc` |  |  | ✓ |  |  |
+| `tencent_tap` | Tencent TAP Animated Image Container (.tap) | `image/x-tencent-tap` | `image` | `tap` |  |  | ✓ |  |  |
 | `tensorflowjs` | TensorFlow.js model | `text/plain` | `application` | `json` | ✓ |  | ✓ |  |  |
+| `terraria_relogic` | Re-Logic Terraria Binary World / Player / Map File (.wld / .plr / .map, 2011) Re-Logic | `application/x-terraria-relogic` | `application` | `wld`, `plr`, `map` |  |  | ✓ |  |  |
+| `terraria_tmod` | tModLoader Terraria Compiled Mod Archive (.tmod, 2015) tModLoader | `application/x-terraria-tmod` | `archive` | `tmod` |  |  | ✓ |  |  |
 | `textproto` | Text protocol buffer | `text/plain` | `code` | `textproto`, `textpb`, `pbtxt` | ✓ |  | ✓ | ✓ |  |
+| `tfe` | Shiru TFM Music Maker YM2203/YM2612 Module (.tfe) | `audio/x-tfe` | `audio` | `tfe` |  |  | ✓ |  |  |
 | `tflite` | TensorFlow Lite / LiteRT | `application/octet-stream` | `application` | `tflite` |  |  | ✓ |  |  |
+| `tfm` | TeX Font Metrics (.tfm) | `application/x-tex-tfm` | `font` | `tfm` |  |  | ✓ |  |  |
+| `tfmx_mod` | Chris Huelsbeck TFMX (The Final Musicsystem eXtended) Amiga Module (.mdat) | `audio/x-tfmx` | `audio` | `mdat` |  |  | ✓ |  |  |
+| `tfrecord` | TensorFlow TFRecord | `application/octet-stream` | `application` | `tfrecord`, `tfrecords` |  |  | ✓ |  |  |
 | `tga` | Targa image data | `image/x-tga` | `image` | `tga` |  |  | ✓ | ✓ |  |
+| `tgcf` | TG-Soft Setup Specialist Multi-Part Archive Volume (.2 / .3, 1999) Bernd Steinhauser | `application/x-setup-specialist-tgcf` | `archive` | `2` |  |  | ✓ |  |  |
+| `thebat_srb` | Ritlabs The Bat! Sorting Office Filter Rules (ACCOUNT.SRB) | `application/x-thebat-srb` | `application` | `srb` |  |  | ✓ |  |  |
+| `thedraw_tdf` | TheSoft TheDraw ANSI Block / Outline Font (.tdf) | `application/x-font` | `font` | `tdf` |  |  | ✓ |  |  |
+| `thilmera7_zpac_t7p` | thilmera7 System Monitor ZPAC Resource Package (.t7p) | `application/x-thilmera7-zpac-t7p` | `archive` | `t7p` |  |  | ✓ |  |  |
 | `thumbsdb` | Windows thumbnail cache | `image/vnd.ms-thumb` | `application` | — |  |  | ✓ | ✓ |  |
+| `ti_ais` | Texas Instruments Application Image Script Boot Image (.ais) Texas Instruments | `application/x-ti-ais` | `application` | `ais` |  |  | ✓ |  |  |
+| `ti_bts_script` | Texas Instruments WiLink Bluetooth Init Script (.bts, BTSB) | `application/x-ti-bts-script` | `application` | `bts` |  |  | ✓ |  |  |
+| `ti_multicore` | Texas Instruments Multicore Meta Header Application Image (.appimage) Texas Instruments | `application/x-ti-multicore` | `application` | `appimage` |  |  | ✓ |  |  |
+| `ti_oad` | Texas Instruments SimpleLink Over-the-Air Download Firmware Image (.bin) Texas Instruments | `application/x-ti-oad` | `application` | `bin` |  |  | ✓ |  |  |
+| `ti_rprc` | Texas Instruments Remote Processor Resource Core Firmware Image (.rprc) Texas Instruments | `application/x-ti-rprc` | `application` | `rprc` |  |  | ✓ |  |  |
+| `ti_smartamp_fw` | Texas Instruments TAS2781 / TAS2563 Smart Amplifier DSP Firmware (.bin) | `application/x-ti-smartamp-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `ti_tps_upg` | Dell / TI TPS65987 USB-C Monitor Firmware Upgrade (.upg, Texas Instruments) | `application/x-ti-tps-upg` | `application` | `upg` |  |  | ✓ |  |  |
 | `tiff` | TIFF image data | `image/tiff` | `image` | `tiff`, `tif` |  |  | ✓ | ✓ |  |
+| `time_of_war_d3e` | The Time of War Engine Data File v4.00 (.d3e) | `application/x-time-of-war-d3e` | `archive` | `d3e` |  |  | ✓ |  |  |
+| `tls_session_net443` | ASN.1 DER SSL/TLS Session Cache Entry (.net_443, OpenSSL SSL_SESSION) | `application/x-tls-session-net443` | `application` | `net_443` |  |  | ✓ |  |  |
 | `tmdx` | tmdx | `application/octet-stream` | `unknown` | `tmdx`, `tmvx` |  |  | ✓ |  |  |
+| `tnef` | Microsoft Transport Neutral Encapsulation Format (winmail.dat / .tnef) | `application/vnd.ms-tnef` | `document` | `tnef` |  |  | ✓ |  |  |
 | `toml` | Tom's obvious, minimal language | `application/toml` | `text` | `toml` | ✓ |  |  | ✓ |  |
+| `tomofon_tomodel` | Klevgränd Tomofon Audio Model (.tomodel) | `audio/x-tomofon-tomodel` | `audio` | `tomodel` |  |  | ✓ |  |  |
+| `tomofon_topatch` | Klevgränd Tomofon Audio Patch (velKqdiP, .topatch) | `audio/x-tomofon-topatch` | `audio` | `topatch` |  |  | ✓ |  |  |
+| `tomy_tracker_sg` | Tomy Tracker Amiga Music Module (.sg) | `audio/x-tomy-tracker-sg` | `audio` | `sg` |  |  | ✓ |  |  |
+| `tops10_backup` | DEC TOPS-10 BACKUP / Interchange Tape Stream (.bck, 1975) Digital Equipment | `application/x-tops10-backup` | `archive` | `bck` |  |  | ✓ |  |  |
+| `tops20_dumper` | DEC TOPS-20 DUMPER 36-Bit Tape Saveset (.dumper / .tap, 1976) Digital Equipment | `application/x-tops20-dumper` | `archive` | `dumper`, `tap` |  |  | ✓ |  |  |
+| `topsolid_rcf` | Missler TopSolid MFC CArchive Resource Configuration (.rcf) | `application/x-topsolid-rcf` | `application` | `rcf` |  |  | ✓ |  |  |
+| `topspeed_tps` | SoftVelocity Clarion TopSpeed Database (.tps) | `application/x-topspeed-tps` | `database` | `tps` |  |  | ✓ |  |  |
 | `torchscript` | TorchScript archive | `application/octet-stream` | `application` | `pt` |  |  | ✓ |  |  |
+| `torquescript_dso` | GarageGames Torque Game Engine Compiled TorqueScript (.dso, 2001) GarageGames | `application/x-torquescript-dso` | `executable` | `dso` |  |  | ✓ |  |  |
 | `torrent` | BitTorrent file | `application/x-bittorrent` | `application` | `torrent` |  |  | ✓ | ✓ |  |
+| `total_war_pfh` | Creative Assembly Total War PackFile Archive (.pack, PFH0..PFH5) | `application/x-totalwar-pack` | `archive` | `pack`, `pfh5` |  |  | ✓ |  |  |
+| `toyota_cuw` | Toyota / Lexus Techstream Calibration Update Wizard Package (.cuw) Toyota | `application/x-toyota-cuw` | `application` | `cuw` |  |  | ✓ |  |  |
+| `tp_ovr` | Borland Turbo Pascal Overlay File (.ovr) | `application/x-turbo-pascal-ovr` | `executable` | `ovr` |  |  | ✓ |  |  |
+| `tplink_fw` | TP-LINK Router Firmware Image (.bin) | `application/x-tplink-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `tplink_minifs` | TP-LINK MiniFS Embedded Read-Only Filesystem (.minifs) | `application/x-tplink-minifs` | `archive` | `minifs` |  |  | ✓ |  |  |
+| `trackerpacker_mexx` | Crazy Crack TrackerPacker Compressed Amiga Module (MEXX_TP / CPLX_TP3) | `audio/x-mod` | `audio` | — |  |  | ✓ |  |  |
+| `trackmania_gbx` | Nadeo GameBox Binary Asset & TrackMania Map (.gbx, 2003) Nadeo / Ubisoft | `application/x-nadeo-gbx` | `application` | `gbx` |  |  | ✓ |  |  |
+| `trainz_cdp` | Auran / N3V Games Trainz Content Dispatcher Pack (.cdp, 2001) N3V Games | `application/x-trainz-cdp` | `archive` | `cdp` |  |  | ✓ |  |  |
+| `trainz_im` | Auran Trainz Jet Indexed Mesh (.im) | `model/x-trainz-im` | `geometry` | `im` |  |  | ✓ |  |  |
+| `tresorit_profile_backup` | Tresorit Encrypted Storage Profile Backup (.backup) | `application/x-tresorit-profile-backup` | `application` | `backup` |  |  | ✓ |  |  |
+| `troc_fs` | Toshiba TROC Read-Only Embedded Filesystem (.troc) | `application/x-troc-fs` | `archive` | `troc` |  |  | ✓ |  |  |
+| `trph_xpd` | TRPH Mobile Printer Configuration (.xpd) | `application/x-trph-xpd` | `application` | `xpd` |  |  | ✓ |  |  |
+| `true_colour_picture_spooky_trp` | Atari Falcon Spooky Sprites True Colour Picture (.trp, PRONOM fmt/1607) | `application/x-true-colour-picture-spooky-trp` | `document` | `trp` |  |  | ✓ |  |  |
+| `tsoundsystem` | T'SoundSystem Tracker Module (.tsd) | `audio/x-tsoundsystem` | `audio` | `tsd` |  |  | ✓ |  |  |
 | `tsv` | TSV document | `text/tab-separated-values` | `code` | `tsv` | ✓ |  |  | ✓ |  |
+| `ttc_xcfg` | TCW40 Controller Configuration (.xcfg) | `application/x-ttc-xcfg` | `application` | `xcfg` |  |  | ✓ |  |  |
 | `ttf` | TrueType Font data | `font/sfnt` | `font` | `ttf`, `ttc` |  |  | ✓ | ✓ |  |
+| `tundra_tnd` | TundraDraw ANSI/ASCII Text Art (.tnd, PRONOM fmt/1603) | `application/x-tundra-tnd` | `document` | `tnd` |  |  | ✓ |  |  |
+| `tunefish2_tf2m` | Brain Control Tunefish 2 Synth Module (.tf2m) | `audio/x-tunefish2` | `audio` | `tf2m` |  |  | ✓ |  |  |
+| `tuneup_tun` | TuneUp Utilities Installation/Undo Log (.tun, 2004) TuneUp Software | `application/x-tuneup-tun` | `application` | `tun` |  |  | ✓ |  |  |
+| `turbopower_pophelp` | TurboPower PopHelp / Object Professional Help Database (.hlp, 1990) | `application/x-turbopower-pophelp` | `document` | `hlp` |  |  | ✓ |  |  |
+| `turbopower_tphelp` | TurboPower Turbo Professional Reference Manual / TPHelp Database (.hlp, 1989) | `application/x-turbopower-tphelp` | `document` | `hlp` |  |  | ✓ |  |  |
+| `turbopower_tphelp2` | TurboPower Object Professional Compiled Help (.hlp, 1991) TurboPower Software | `application/x-turbopower-tph2` | `document` | `hlp` |  |  | ✓ |  |  |
+| `turvision_rwp` | Turbo Vision Resource Workshop Project (.rwp, 1993) BitSoft / Borland | `application/x-tvrw-resource` | `application` | `rwp` |  |  | ✓ |  |  |
+| `twfb_tsf` | Disney / Walt Disney Imagineering Ultimate Ride Text Strings (.tsf) | `application/x-ultimate-ride-tsf` | `application` | `tsf` |  |  | ✓ |  |  |
 | `twig` | Twig template | `text/x-twig` | `code` | `twig` | ✓ |  |  | ✓ |  |
+| `twin_track_dmo` | TwinTeam Twin TrackPlayer Compressed OPL2 Module (.dmo) | `audio/x-twin-track-dmo` | `audio` | `dmo` |  |  | ✓ |  |  |
+| `twinvq_vqf` | NTT Human Interface Labs TwinVQ Transform-Domain Audio (.vqf) | `audio/x-twinvq` | `audio` | `vqf` |  |  | ✓ |  |  |
+| `txf` | PLIB / Mark Kilgard OpenGL Textured Font (.txf) | `application/x-font` | `font` | `txf` |  |  | ✓ |  |  |
 | `txt` | Generic text document | `text/plain` | `text` | `txt` | ✓ | ✓ |  | ✓ |  |
 | `typescript` | TypeScript source | `application/typescript` | `code` | `ts`, `mts`, `cts` | ✓ |  |  | ✓ |  |
+| `tzif` | IANA Time Zone Information Binary Format (TZif) | `application/tzif` | `application` | — |  |  | ✓ |  |  |
+| `tzip` | TZIP Compressed Stream (.tz) | `application/x-tzip` | `archive` | `tz` |  |  | ✓ |  |  |
+| `ua_resume1` | UA Developments Patcher Download Resume State (UA-RESUME-1, .resume) | `application/x-ua-resume1` | `application` | `resume` |  |  | ✓ |  |  |
+| `ubf_font` | Symantec Time Line Universal BitMap Font (UBF92A .fnt) | `application/x-font` | `font` | `fnt` |  |  | ✓ |  |  |
+| `ubicom_fw` | Ubicom IP3K / IP5K / IP7K Network Processor Firmware Image (.bin) | `application/x-ubicom-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `ubifs` | Linux Unsorted Block Image / UBIFS Flash Filesystem (.ubi / .ubifs) | `application/x-ubifs` | `archive` | `ubi`, `ubifs` |  |  | ✓ |  |  |
+| `ubiquiti_ubnt` | Ubiquiti airOS / EdgeOS Firmware Image (.bin) | `application/x-ubiquiti-firmware` | `application` | `bin` |  |  | ✓ |  |  |
+| `ubisoft_anvil_acv` | Ubisoft Anvil Engine Save Game Container (.acv) | `application/x-ubisoft-anvil-acv` | `archive` | `acv` |  |  | ✓ |  |  |
+| `ubisoft_jade_bf` | Ubisoft Jade Engine Bigfile Archive (.bf, 2003) Ubisoft Montpellier | `application/x-ubisoft-jade-bf` | `archive` | `bf` |  |  | ✓ |  |  |
+| `ubisoft_xbt` | Ubisoft Dunia Engine XBT Texture (.xbt, 2008) Ubisoft Montreal | `application/x-ubisoft-xbt` | `image` | `xbt` |  |  | ✓ |  |  |
+| `uboot` | Das U-Boot legacy uImage firmware | `application/x-uboot-image` | `executable` | — |  |  | ✓ |  |  |
+| `uclinux_bflt` | uClinux Binary Flat Format Executable (bFLT) | `application/x-bflt` | `executable` | — |  |  | ✓ |  |  |
+| `ucsd_code` | UCSD Pascal p-Machine Compiled Codefile (.code, 1977) UC San Diego / SofTech Microsystems | `application/x-ucsd-code` | `executable` | `code` |  |  | ✓ |  |  |
+| `ucsd_vol` | UCSD Pascal p-System Disk Volume (.vol / .dsk, 1977) UC San Diego / SofTech Microsystems | `application/x-ucsd-volume` | `archive` | `vol`, `dsk` |  |  | ✓ |  |  |
 | `udf` | Universal Disc Format | `application/x-udf-image` | `unknown` | — |  |  | ✓ |  |  |
+| `uefi_capsule` | UEFI Update Capsule / AMI Aptio Signed Firmware Capsule (.cap / .bin) UEFI Forum | `application/x-uefi-capsule` | `application` | `cap`, `bin` |  |  | ✓ |  |  |
 | `uefi_fv` | UEFI firmware volume | `application/octet-stream` | `executable` | `fd`, `fv` |  |  | ✓ |  |  |
+| `uefi_te` | UEFI Terse Executable (TE) firmware image | `application/x-uefi-te` | `executable` | — |  |  | ✓ |  |  |
 | `uf2` | UF2 firmware | `application/octet-stream` | `executable` | `uf2` |  |  | ✓ |  | ✓ |
+| `uharc` | UHARC high-compression archive (.uha) | `application/x-uharc` | `archive` | `uha` |  |  | ✓ |  |  |
+| `ujam_beatmaker_blob` | UJAM Beatmaker Instrument Sample Bank (.blob) | `audio/x-ujam-beatmaker-blob` | `audio` | `blob` |  |  | ✓ |  |  |
+| `ult` | MAS UltraTracker Module (.ult) | `audio/x-ult` | `audio` | `ult` |  |  | ✓ |  |  |
+| `ultima6_m` | Origin Systems Ultima VI AdLib Music (.m) | `audio/x-ultima6-m` | `audio` | `m` |  |  | ✓ |  |  |
+| `uni_mikmod` | Jean-Paul Mikkers MikMod UniMod Module (.uni) | `audio/x-uni` | `audio` | `uni` |  |  | ✓ |  |  |
+| `uniflex_img` | Tektronix 4404 / TSC UniFLEX Disk Image (.img, 1984) Tektronix / Technical Systems Consultants | `application/x-uniflex-image` | `archive` | `img` |  |  | ✓ |  |  |
+| `unique_dev_uds` | Unique Development Amiga Music Module (.uds) | `audio/x-unique-dev-uds` | `audio` | `uds` |  |  | ✓ |  |  |
+| `unity_addressables_catalog` | Unity Engine Addressables Binary Content Catalog (catalog.bin) | `application/x-unity-addressables-catalog` | `application` | `bin` |  |  | ✓ |  |  |
+| `unity_assets` | Unity Engine Serialized Asset File (.assets / globalgamemanagers / level0) | `application/x-unity-assets` | `archive` | `assets` |  |  | ✓ |  |  |
+| `unity_enlighten_caw` | Unity Engine Enlighten Precomputed GI Cluster/Albedo Workspace (.caw / .sse) | `application/x-unity-enlighten-caw` | `geometry` | `caw`, `sse` |  |  | ✓ |  |  |
+| `unity_enlighten_vis` | Unity Engine Enlighten Precomputed Scene Visibility Data (GEVS, .vis) | `application/x-unity-enlighten-vis` | `geometry` | `vis` |  |  | ✓ |  |  |
+| `unity_preview_info` | Unity Editor Library Asset Preview Descriptor (PreviewAssetData, .info) | `application/x-unity-preview-info` | `application` | `info` |  |  | ✓ |  |  |
+| `unity_webdata` | Unity Engine WebGL Data Package (.data / .unityweb, UnityWebData1.0 / TuanjieWebData1.0) | `application/x-unity-webdata` | `archive` | `data`, `unityweb` |  |  | ✓ |  |  |
 | `unixcompress` | unixcompress | `application/x-compress` | `unknown` | `z` |  |  | ✓ |  |  |
+| `unixware_bfs` | SCO UnixWare Boot File System Image (.bfs) | `application/x-unixware-bfs` | `archive` | `bfs` |  |  | ✓ |  |  |
 | `unknown` | Unknown binary data | `application/octet-stream` | `unknown` | — |  | ✓ |  |  |  |
+| `unreal_gvas` | Epic Games Unreal Engine GVAS SaveGame (.sav) | `application/x-unreal-gvas` | `application` | `sav` |  |  | ✓ |  |  |
+| `unreal_locmeta` | Epic Games Unreal Engine Localization Metadata (.locmeta) | `application/x-unreal-locmeta` | `application` | `locmeta` |  |  | ✓ |  |  |
+| `unreal_locres` | Epic Games Unreal Engine Localization Resource (.locres) | `application/x-unreal-locres` | `application` | `locres` |  |  | ✓ |  |  |
+| `unreal_manifest` | Epic Games Unreal Engine BuildPatch Binary Manifest | `application/x-unreal-manifest` | `application` | `buildpatch` |  |  | ✓ |  |  |
+| `unreal_pkg` | Epic Games Unreal Engine Package / Asset (.uasset / .umap / .upk / .u) | `application/x-unreal-package` | `archive` | `uasset`, `umap`, `upk`, `u` |  |  | ✓ |  |  |
+| `unreal_pso_cache` | Epic Games Unreal Engine Pipeline State Object Cache (.upipelinecache) | `application/x-unreal-pipelinecache` | `application` | — |  |  | ✓ |  |  |
+| `unreal_usmap` | Unreal Engine 4/5 Unversioned Property Schema Mapping (.usmap, 2020) Epic Games / CUE4Parse | `application/x-unreal-usmap` | `application` | `usmap` |  |  | ✓ |  |  |
+| `unreal_utoc` | Epic Games Unreal Engine 4.26 / 5 IoStore Table of Contents (.utoc) | `application/x-unreal-utoc` | `archive` | `utoc` |  |  | ✓ |  |  |
+| `unreal_utrace` | Epic Games Unreal Insights Trace Capture (.utrace) | `application/x-unreal-utrace` | `application` | `utrace` |  |  | ✓ |  |  |
+| `unreal_uz2` | Unreal Engine 2 Redirect Compressed Package (.uz2, 2002) Epic Games | `application/x-unreal-uz2` | `archive` | `uz2` |  |  | ✓ |  |  |
 | `unsupported` | Unsupported file type | `inode/x-unsupported` | `inode` | — |  | ✓ |  |  |  |
 | `usd` | Universal Scene Description | `application/octet-stream` | `image` | `usd`, `usda`, `usdc`, `usdz` |  |  | ✓ |  |  |
+| `utau_frq` | UTAU Singing Synthesizer Fundamental Frequency Table (.frq, 2008) Ameya/Ayame | `application/x-utau-frq` | `audio` | `frq` |  |  | ✓ |  |  |
+| `v129_rdt` | DMR Radio Codeplug Data (V129 / V100, .rdt) | `application/x-v129-rdt` | `application` | `rdt` |  |  | ✓ |  |  |
+| `v8_bytecode` | Google V8 JavaScript Engine Cached Bytecode (.jsc / .bin) | `application/x-v8-bytecode` | `executable` | `jsc`, `bin` |  |  | ✓ |  |  |
+| `vag` | Sony PlayStation SPU VAG Audio (.vag) | `audio/x-vag` | `audio` | `vag` |  |  | ✓ |  |  |
+| `valve_ani` | Valve Source Engine StudioMDL External Animation Data (.ani, 2004) Valve | `model/x-valve-ani` | `geometry` | `ani` |  |  | ✓ |  |  |
+| `valve_hammer_rmf` | Valve Hammer Editor / Worldcraft Rich Map Format (.rmf, 1996) Valve | `application/x-valve-rmf` | `geometry` | `rmf` |  |  | ✓ |  |  |
+| `valve_mdl` | Valve GoldSrc / Source Studio 3D Model (.mdl) | `model/x-goldsrc-mdl` | `geometry` | `mdl` |  |  | ✓ |  |  |
+| `valve_shader_vcs` | Valve Source Engine LZMA-Compiled Shader (.vcs, v6) | `application/x-valve-shader-vcs` | `executable` | `vcs` |  |  | ✓ |  |  |
+| `valve_tools_asset_info` | Valve Source 2 Tools Asset Info Index (tools_asset_info.bin) | `application/x-valve-tools-asset-info` | `database` | `bin` |  |  | ✓ |  |  |
+| `vam_vab` | Virt-A-Mate DynamicStore Binary Mesh (.vab, 2018) MeshedVR | `application/x-vam-vab` | `geometry` | `vab` |  |  | ✓ |  |  |
 | `vba` | MS Visual Basic source (VBA) | `text/vbscript` | `code` | `vbs`, `vba`, `vb` | ✓ |  |  | ✓ |  |
 | `vbe` | EncryptedVBS | `application/octet-stream` | `code` | `vbe` |  |  | ✓ |  |  |
 | `vcard` | vcard | `text/vcard` | `unknown` | `vcard` |  |  | ✓ |  |  |
 | `vcf_genomics` | Variant Call Format | `text/plain` | `application` | `vcf` | ✓ |  | ✓ |  |  |
 | `vcs` | vcs | `application/octet-stream` | `unknown` | — |  |  | ✓ |  |  |
+| `vctr_vector` | vctr Binary-Framed JSON Vector (.vctr) | `application/x-vctr-vector` | `geometry` | `vctr` |  |  | ✓ |  |  |
 | `vcxproj` | Visual Studio MSBuild project | `application/xml` | `code` | `vcxproj` | ✓ |  |  | ✓ |  |
+| `vdex` | Android Verifier DEX (VDEX) | `application/vnd.android.vdex` | `executable` | — |  |  | ✓ |  |  |
+| `vector_blf` | Vector Informatik Binary Logging Format CAN/LIN/FlexRay Bus Log (.blf) | `application/x-vector-blf` | `application` | `blf` |  |  | ✓ |  |  |
+| `vector_fwk` | VecTor Panel PV19 Finite Element Workspace (.fwk) | `application/x-vector-fwk` | `geometry` | `fwk` |  |  | ✓ |  |  |
 | `verilog` | Verilog source | `text/x-verilog` | `code` | `v`, `verilog`, `vlg`, `vh` | ✓ |  |  | ✓ |  |
+| `vfb` | FontLab Studio Vector Font Binary (.vfb) | `application/x-fontlab-vfb` | `font` | `vfb` |  |  | ✓ |  |  |
+| `vfd_fdd` | NEC PC-98 Virtual98 Floppy Disk Image (.fdd) | `application/x-pc98-fdd` | `archive` | `fdd` |  |  | ✓ |  |  |
+| `vgm` | Video Game Music Sound Chip Log (.vgm) | `audio/x-vgm` | `audio` | `vgm` |  |  | ✓ |  |  |
 | `vhd` | Virtual Hard Disk | `application/x-vhd` | `unknown` | — |  |  | ✓ |  | ✓ |
 | `vhdl` | VHDL source | `text/x-vhdl` | `code` | `vhd` | ✓ |  |  | ✓ |  |
+| `vhdx` | Microsoft Hyper-V Virtual Hard Disk v2 (.vhdx) | `application/x-vhdx` | `archive` | `vhdx` |  |  | ✓ |  |  |
 | `vib` | VMware Installation Bundle | `application/octet-stream` | `archive` | `vib` |  |  | ✓ |  | ✓ |
+| `vic20_rom` | Commodore VIC-20 Cartridge ROM / PCVIC Snapshot (.prg / .crt / .20 / .a0) | `application/x-vic20-rom` | `executable` | `prg`, `crt`, `a0` |  |  | ✓ |  |  |
+| `vic2_huffman` | Atari ST Vic2 Huffman Compressed Data (Vic2) | `application/x-atari-vic2` | `archive` | — |  |  | ✓ |  |  |
+| `vim_spell_spl` | Vim Compiled Spell Checking Dictionary (.spl, 2006) Bram Moolenaar | `application/x-vim-spell-spl` | `database` | `spl` |  |  | ✓ |  |  |
+| `vim_swap` | Vim Swap File (.swp) | `application/x-vim-swap` | `application` | `swp` |  |  | ✓ |  |  |
+| `vio2_score` | VIO v2 Music Score (.vio) | `application/x-vio2-score` | `audio` | `vio` |  |  | ✓ |  |  |
+| `vips_image_v` | libvips / VIPS Native Image (.v / .vips, PRONOM fmt/1811) | `application/x-vips-image-v` | `document` | `v`, `vips` |  |  | ✓ |  |  |
+| `virtualdj_vdjsample` | Atomix VirtualDJ Audio/Video Sampler Clip (.vdjsample, 2014) Atomix Productions | `application/x-virtualdj-vdjsample` | `audio` | `vdjsample` |  |  | ✓ |  |  |
 | `visio` | Microsoft Visio | `application/vnd.ms-visio.drawing.main+xml` | `document` | `vsd`, `vsdm`, `vsdx`, `vdw` |  |  | ✓ |  | ✓ |
+| `vmdk` | VMware Virtual Disk Image (.vmdk) | `application/x-raw-disk-image` | `archive` | `vmdk` |  |  | ✓ |  |  |
+| `vms_exe` | DEC VAX/VMS Executable / Shareable Image (.exe, 1977) Digital Equipment | `application/x-vms-executable` | `executable` | `exe` |  |  | ✓ |  |  |
+| `vms_lib` | DEC VAX/VMS Librarian Archive (.olb / .mlb / .hlb / .nlb / .tlb, 1978) Digital Equipment | `application/x-vms-library` | `archive` | `olb`, `mlb`, `hlb`, `nlb`, `tlb` |  |  | ✓ |  |  |
+| `vmware_nvram` | VMware virtual machine NVRAM | `application/x-vmware-nvram` | `application` | — |  |  | ✓ |  |  |
+| `voodoo_vss` | Thomas Winischhofer Voodoo Supreme Synthesizer Module (.vss) | `audio/x-voodoo-vss` | `audio` | `vss` |  |  | ✓ |  |  |
+| `voxlap_kv6` | Ken Silverman Voxlap Engine KV6 Voxel Sprite (.kv6, 2000) Ken Silverman | `application/x-voxlap-kv6` | `geometry` | `kv6` |  |  | ✓ |  |  |
+| `voyetra_patch_bank` | Voyetra PatchMaster / Sideman MIDI Synthesizer Bank (.b*, .c*, 1987) Voyetra Technologies | `audio/x-voyetra-bank` | `audio` | `b`, `c` |  |  | ✓ |  |  |
+| `vpk` | Valve Pak Source Engine Archive (.vpk) | `application/x-vpk` | `archive` | `vpk` |  |  | ✓ |  |  |
+| `vst2_fxp` | Steinberg VST 2 Plug-In Preset / Bank (.fxp / .fxb) | `application/x-vst2-preset` | `audio` | `fxp`, `fxb` |  |  | ✓ |  |  |
+| `vst3_vstpreset` | Steinberg VST 3 Plug-In Preset (.vstpreset) | `application/x-vst3-preset` | `audio` | `vstpreset` |  |  | ✓ |  |  |
+| `vtech_vrp_log` | VTech Multi-Section Install Log Container (.vrp) | `application/x-vtech-vrp-log` | `application` | `vrp` |  |  | ✓ |  |  |
+| `vtf` | Valve Source Engine Texture Format (.vtf) | `image/x-vtf` | `image` | `vtf` |  |  | ✓ |  |  |
 | `vtk` | VTK dataset | `application/octet-stream` | `image` | `vtk`, `vtp`, `vtu` |  |  | ✓ |  |  |
 | `vtt` | Web Video Text Tracks | `text/vtt` | `text` | `vtt`, `webvtt` | ✓ |  | ✓ | ✓ |  |
 | `vue` | Vue source | `application/javascript` | `code` | `vue` | ✓ |  |  | ✓ |  |
+| `vvd` | Valve Source Engine StudioMDL Vertex Data (.vvd) | `model/x-valve-vvd` | `geometry` | `vvd` |  |  | ✓ |  |  |
+| `vw_sgo` | Volkswagen / Audi ODIS / VAS-PC SGML Object ECU Flash Container (.sgo) Volkswagen | `application/x-vw-sgo` | `application` | `sgo` |  |  | ✓ |  |  |
+| `w64` | Sony Wave64 64-bit audio container (.w64) | `audio/x-w64` | `audio` | `w64` |  |  | ✓ |  |  |
 | `wad` | WAD | `application/wad` | `archive` | `wad` |  |  | ✓ |  | ✓ |
+| `wamr_aot` | Bytecode Alliance WebAssembly Micro Runtime AOT Module (.aot) | `application/x-wamr-aot` | `executable` | `aot` |  |  | ✓ |  |  |
+| `warcraft3_map` | Blizzard Entertainment Warcraft III World Editor Map (.w3m / .w3x, 2002) Blizzard Entertainment | `application/x-warcraft3-map` | `archive` | `w3m`, `w3x` |  |  | ✓ |  |  |
+| `warcraft3_mdx` | Blizzard Entertainment Warcraft III Binary 3D Model (.mdx, 2002) Blizzard Entertainment | `model/x-warcraft3-mdx` | `geometry` | `mdx` |  |  | ✓ |  |  |
+| `warcraft3_replay` | Blizzard Entertainment Warcraft III Recorded Game Replay (.w3g, 2002) Blizzard Entertainment | `application/x-warcraft3-replay` | `application` | `w3g` |  |  | ✓ |  |  |
+| `warframe_toc` | Digital Extremes Evolution Engine (Warframe) Cache TOC Index (.toc) | `application/x-warframe-toc` | `database` | `toc` |  |  | ✓ |  |  |
 | `wasm` | Web Assembly | `application/wasm` | `executable` | `wasm` |  |  | ✓ | ✓ | ✓ |
+| `watcom_wpk` | Watcom Installer WPK Archive (.wpk) | `application/x-watcom-wpk` | `archive` | `wpk` |  |  | ✓ |  |  |
 | `wav` | Waveform Audio file (WAV) | `audio/x-wav` | `audio` | `wav` |  |  | ✓ | ✓ | ✓ |
+| `wbn` | W3C / Google Chrome WebBundle & Isolated Web App (.wbn / .swbn) | `application/webbundle` | `archive` | `wbn`, `swbn` |  |  | ✓ |  |  |
+| `wcx` | Mustang Wildcat! WCX BBS screen (.wcx) | `text/x-wildcat-wcx` | `document` | `wcx` |  |  | ✓ |  |  |
 | `webm` | WebM media file | `video/webm` | `video` | `webm` |  |  | ✓ | ✓ | ✓ |
 | `webp` | WebP media file | `image/webp` | `image` | `webp` |  |  | ✓ | ✓ |  |
+| `weltenbauer_wbp` | Weltenbauer / Astragon Construction Simulator Persistence Save (.wbp) | `application/x-weltenbauer-wbp` | `archive` | `wbp` |  |  | ✓ |  |  |
+| `westwood_csf` | Westwood Studios / EA SAGE Engine Compiled String Table (.csf, 2000) Westwood Studios | `application/x-westwood-csf` | `archive` | `csf` |  |  | ✓ |  |  |
+| `westwood_vxl` | Westwood Studios Command & Conquer Voxel Animation (.vxl, 1999) Westwood Studios | `model/x-westwood-vxl` | `geometry` | `vxl` |  |  | ✓ |  |  |
+| `wgt_font` | WordUp Graphics Toolkit Bitmap Font (.wfn) | `application/x-wgt-font` | `font` | `wfn` |  |  | ✓ |  |  |
+| `whatsapp_crypt14` | WhatsApp Encrypted Msgstore Database Backup (.crypt14, 2021) WhatsApp | `application/x-whatsapp-crypt14` | `application` | `crypt14` |  |  | ✓ |  |  |
+| `whitewater_actor_ima` | Whitewater Group Actor Object-Oriented Image (.ima, 1987) Whitewater Group | `application/x-whitewater-actor-image` | `executable` | `ima` |  |  | ✓ |  |  |
+| `wii_gecko_gct` | Nintendo Wii Gecko / Ocarina Cheat Code Table (.gct) | `application/x-wii-gecko-gct` | `application` | `gct` |  |  | ✓ |  |  |
 | `wim` | Windows Imaging Format | `application/x-ms-wim` | `unknown` | `wim`, `swm`, `esd` |  |  | ✓ |  |  |
+| `win31_reg_dat` | Microsoft Windows 3.1 Registration Info Database (REG.DAT, SHCC3.10) | `application/x-win31-registry` | `application` | — |  |  | ✓ |  |  |
+| `win_cal` | Microsoft Windows 1.x-3.1 Calendar (.cal) | `application/x-ms-calendar` | `document` | `cal` |  |  | ✓ |  |  |
+| `win_grp` | Microsoft Windows 3.x Program Manager Group (.grp) | `application/x-ms-grp` | `application` | `grp` |  |  | ✓ |  |  |
+| `win_kdump` | Windows Kernel Memory Crash Dump (PAGEDUMP / PAGEDU64) | `application/x-windows-dmp` | `application` | — |  |  | ✓ |  |  |
+| `win_restore_rp_log` | Microsoft Windows System Restore Point Log (rp.log) | `application/x-ms-restore-point-log` | `application` | `log` |  |  | ✓ |  |  |
+| `win_superfetch` | Microsoft Windows SuperFetch / ReadyBoot Trace Database (AgGl*.db) | `application/x-ms-superfetch` | `application` | `db` |  |  | ✓ |  |  |
+| `win_task_job` | Microsoft Windows Task Scheduler Job Object (.job, 1997) Microsoft | `application/x-win-task-job` | `application` | `job` |  |  | ✓ |  |  |
+| `winbox_cdb` | MikroTik WinBox Address Book & RouterOS Configuration Database (.cdb, 2002) MikroTik | `application/x-mikrotik-winbox-cdb` | `database` | `cdb` |  |  | ✓ |  |  |
+| `wince_b000ff` | Microsoft Windows CE ROM Binary Image Data Format (.nb0 / .bin) | `application/x-wince-rom-image` | `application` | `nb0`, `bin` |  |  | ✓ |  |  |
+| `wince_msce` | Microsoft Windows CE Installation Cabinet Header (MSCE) | `application/x-wince-cab` | `archive` | — |  |  | ✓ |  |  |
+| `windows_address_book_wab` | Microsoft Windows Address Book (.wab, PRONOM fmt/1255) | `application/x-windows-address-book-wab` | `document` | `wab` |  |  | ✓ |  |  |
+| `windows_caches_db` | Microsoft Windows Property / App Cache Database (.db) | `application/x-windows-caches-db` | `database` | `db` |  |  | ✓ |  |  |
+| `windows_cdf_ms` | Microsoft Windows Component-Based Servicing Compiled Form (.cdf-ms) | `application/x-windows-cdf-ms` | `application` | `cdf-ms` |  |  | ✓ |  |  |
+| `windows_codepage_nls` | Microsoft Windows National Language Support Codepage Table (C_*.NLS, 1993) Microsoft | `application/x-windows-codepage-nls` | `application` | `nls` |  |  | ✓ |  |  |
+| `windows_ime_mb` | Microsoft Windows Input Method Editor Compiled Dictionary Table (.mb) | `application/x-windows-ime-mb` | `application` | `mb` |  |  | ✓ |  |  |
+| `windows_installer_script` | Microsoft Windows Installer Binary Execution / Rollback Script (.ibs / .rbs) | `application/x-msi-script` | `application` | `ibs`, `rbs` |  |  | ✓ |  |  |
+| `windows_pnf` | Microsoft Windows Precompiled Setup Information (.pnf, 2001) Microsoft | `application/x-windows-pnf` | `application` | `pnf` |  |  | ✓ |  |  |
+| `windows_pri` | Microsoft Windows Package Resource Index (.pri) | `application/x-ms-pri` | `application` | `pri` |  |  | ✓ |  |  |
+| `windows_sdi` | Microsoft Windows System Deployment Image (.sdi, $SDI0001) | `application/x-ms-sdi` | `application` | `sdi` |  |  | ✓ |  |  |
+| `wink_wnk` | DebugMode Wink Screen Capture Presentation (.wnk) | `application/x-wink` | `video` | `wnk` |  |  | ✓ |  |  |
+| `wink_wtp` | DebugMode Wink Presentation Template (.wtp) | `application/x-wink-template` | `video` | `wtp` |  |  | ✓ |  |  |
+| `winols_kp` | EVC Electronic WinOLS ECU Map Pack (.kp) EVC electronic | `application/x-winols-kp` | `document` | `kp` |  |  | ✓ |  |  |
 | `winregistry` | Windows Registry text | `text/x-ms-regedit` | `application` | `reg` | ✓ |  | ✓ | ✓ |  |
 | `wiredtiger` | WiredTiger storage | `application/octet-stream` | `application` | `wt` |  |  | ✓ |  |  |
+| `wireless_regdb` | Linux CRDA / cfg80211 Wireless Regulatory Database (regulatory.db, RGDB) | `application/x-wireless-regdb` | `application` | `db` |  |  | ✓ |  |  |
+| `wiresync_momv2_omo` | WireSyncEngine Obfuscated Model (.omo) | `application/x-wiresync-momv2-omo` | `application` | `omo` |  |  | ✓ |  |  |
+| `witcher2_dzip` | CD Projekt RED REDengine 2 / The Witcher 2 DZIP Archive (.dzip, 2011) CD Projekt RED | `application/x-witcher2-dzip` | `archive` | `dzip` |  |  | ✓ |  |  |
+| `witcher3_bundle` | CD Projekt RED REDengine 3 / The Witcher 3 Asset Bundle (.bundle, 2015) CD Projekt RED | `application/x-witcher3-bundle` | `archive` | `bundle` |  |  | ✓ |  |  |
+| `witcher3_sav` | CD Projekt RED The Witcher 3 Saved Game (.sav, 2015) CD Projekt RED | `application/x-witcher3-sav` | `application` | `sav` |  |  | ✓ |  |  |
+| `witcher3_w3speech` | CD Projekt RED REDengine 3 / The Witcher 3 Speech Container (.w3speech / .meta, 2015) CD Projekt RED | `application/x-witcher3-w3speech` | `audio` | `w3speech`, `meta` |  |  | ✓ |  |  |
+| `witcher3_w3strings` | CD Projekt RED REDengine 3 / The Witcher 3 Localization Strings (.w3strings, 2015) CD Projekt RED | `application/x-witcher3-w3strings` | `database` | `w3strings` |  |  | ✓ |  |  |
+| `witcher_cr2w` | CD Projekt RED REDengine CR2W Resource (.w2ent / .w2mesh / .w2scene / .xbm, 2011) CD Projekt RED | `application/x-redengine-cr2w` | `application` | `w2ent`, `w2mesh`, `w2scene`, `xbm` |  |  | ✓ |  |  |
 | `wkt` | Well-Known Text geometry | `text/plain` | `application` | `wkt` | ✓ |  | ✓ |  |  |
 | `wma` | Windows Media Audio | `audio/x-ms-wma` | `audio` | `wma` |  |  | ✓ |  |  |
 | `wmf` | Windows metafile | `image/wmf` | `image` | `wmf` |  |  | ✓ | ✓ |  |
 | `wmv` | Windows Media Video | `video/x-ms-wmv` | `video` | `wmv` |  |  | ✓ |  |  |
 | `woff` | Web Open Font Format | `font/woff` | `font` | `woff` |  |  | ✓ | ✓ | ✓ |
 | `woff2` | Web Open Font Format v2 | `font/woff2` | `font` | `woff2` |  |  | ✓ | ✓ | ✓ |
+| `wolfrpg_map_mps` | WOLF RPG Editor Map File (.mps) | `application/x-wolfrpg-map-mps` | `archive` | `mps` |  |  | ✓ |  |  |
+| `woodworks_cwb` | WoodWorks Sizer / Connections Project (.cwb) Canadian Wood Council | `application/x-woodworks-cwb` | `document` | `cwb` |  |  | ✓ |  |  |
+| `wordstar_2000` | MicroPro WordStar 2000 Document (.ws2) | `application/x-wordstar2000` | `document` | `ws2` |  |  | ✓ |  |  |
+| `worldcraft_cmdseq` | Valve Hammer / Worldcraft Compile Command Sequences (CmdSeq.wc, 1997) Valve | `application/x-worldcraft-cmdseq` | `application` | `wc` |  |  | ✓ |  |  |
+| `wow_dbc` | Blizzard World of Warcraft Client Database (.dbc / .db2, 2004) Blizzard Entertainment | `application/x-wow-dbc` | `database` | `dbc`, `db2` |  |  | ✓ |  |  |
+| `wow_m2` | Blizzard World of Warcraft M2 3D Model (.m2, 2004) Blizzard Entertainment | `model/x-wow-m2` | `geometry` | `m2` |  |  | ✓ |  |  |
+| `woz` | Applesauce WOZ floppy bitstream image | `application/x-floppy-image` | `archive` | — |  |  | ✓ |  |  |
+| `wps_dos` | Microsoft Works for MS-DOS Word Processor Document (.wps) | `application/vnd.ms-works` | `document` | `wps` |  |  | ✓ |  |  |
+| `wpsplus` | DEC WPS-Plus Word Processing Document (.wps / .wpl / .dx) | `application/x-dec-wpsplus` | `document` | `wps`, `wpl`, `dx` |  |  | ✓ |  |  |
+| `writeon_wof` | Hercules Write On! RamFont Bitmap Font (.wof, 1987) Hercules Computer Technology | `font/x-hercules-wof` | `font` | `wof` |  |  | ✓ |  |  |
+| `wsq` | FBI Wavelet Scalar Quantization Grayscale Fingerprint Image (.wsq) | `image/x-wsq` | `image` | `wsq` |  |  | ✓ |  |  |
+| `wtv` | Windows Media Center Recorded TV Show (.wtv) | `video/x-ms-wtv` | `video` | `wtv` |  |  | ✓ |  |  |
+| `wwise_bnk` | Audiokinetic Wwise SoundBank / File Package (.bnk / .pck) | `audio/x-wwise-bnk` | `audio` | `bnk`, `pck` |  |  | ✓ |  |  |
+| `x64dbg_trace` | x64dbg Binary Execution Trace (.trace32 / .trace64) | `application/x-x64dbg-trace` | `application` | `trace32`, `trace64` |  |  | ✓ |  |  |
+| `x68000_mdx` | Sharp X68000 MXDRV Music Module (.mdx) | `audio/x-mdx` | `audio` | `mdx` |  |  | ✓ |  |  |
+| `xact_xgs` | Microsoft XACT Global Settings (.xgs) | `application/x-ms-xact-xgs` | `audio` | `xgs` |  |  | ✓ |  |  |
+| `xact_xsb` | Microsoft XACT Sound Bank (.xsb) | `audio/x-ms-xact-xsb` | `audio` | `xsb` |  |  | ✓ |  |  |
+| `xact_xwb` | Microsoft DirectX XACT Wave Bank (.xwb) | `audio/x-ms-xwb` | `audio` | `xwb` |  |  | ✓ |  |  |
+| `xalz` | Xamarin.Android / .NET for Android LZ4-Compressed Assembly (XALZ) | `application/x-xamarin-xalz` | `executable` | — |  |  | ✓ |  |  |
 | `xar` | XAR archive compressed data | `application/x-xar` | `archive` | `pkg`, `xar` |  |  | ✓ | ✓ | ✓ |
+| `xar_image_format` | Xara X / Xara Extreme Vector Drawing (.xar, PRONOM fmt/922) | `application/x-xar-image-format` | `document` | `xar` |  |  | ✓ |  |  |
+| `xbin` | XBIN Extended Binary Text-Mode Image (.xb) | `image/x-xbin` | `image` | `xb` |  |  | ✓ |  |  |
+| `xbox_bdes_xzp` | BDES Encrypted Package (.xzp) | `application/x-xbox-bdes-xzp` | `archive` | `xzp` |  |  | ✓ |  |  |
+| `xbox_sdns` | Xbox SDNS ADPCM Audio Stream (.sdns) | `audio/x-xbox-sdns` | `audio` | `sdns` |  |  | ✓ |  |  |
+| `xbox_xbe` | Microsoft Original Xbox Executable (.xbe) | `application/x-xbox-executable` | `executable` | `xbe` |  |  | ✓ |  |  |
+| `xcar_fnt` | Bethesda Softworks XCar Bitmap Font (FNHD .fnt) | `application/x-font` | `font` | `fnt` |  |  | ✓ |  |  |
 | `xcf` | Gimp image | `image/x-xcf` | `image` | `xcf` |  |  | ✓ |  | ✓ |
 | `xcoff` | XCOFF | `application/octet-stream` | `executable` | `o` |  |  | ✓ |  | ✓ |
+| `xcr_archive` | XCR Archive (.xcr) | `application/x-xcr-archive` | `archive` | `xcr` |  |  | ✓ |  |  |
+| `xfs` | Silicon Graphics XFS High-Performance Filesystem | `application/x-raw-disk-image` | `archive` | — |  |  | ✓ |  |  |
+| `xiaomi_hdr` | Xiaomi MiWiFi HDR1 / HDR2 Router Firmware Image (.bin) | `application/x-xiaomi-hdr` | `application` | `bin` |  |  | ✓ |  |  |
+| `xilam_derf` | Xilam / Stupid Invaders DERF DPCM Audio (.adp) | `audio/x-derf` | `audio` | `adp` |  |  | ✓ |  |  |
+| `xilinx_bit` | Xilinx FPGA Configuration Bitstream (.bit) | `application/x-xilinx-bitstream` | `application` | `bit` |  |  | ✓ |  |  |
+| `xilinx_xclbin` | AMD / Xilinx XRT FPGA Accelerator Binary Container (.xclbin, xclbin2\\0) | `application/x-xilinx-xclbin` | `application` | `xclbin` |  |  | ✓ |  |  |
+| `xl_paint_max` | Atari 8-Bit XL-Paint MAX Interlaced Image (.max, PRONOM fmt/1658) | `application/x-xl-paint-max` | `document` | `max` |  |  | ✓ |  |  |
+| `xl_paint_raw` | Atari 8-Bit XL-Paint Raw Image (.raw, PRONOM fmt/1659) | `application/x-xl-paint-raw` | `document` | `raw` |  |  | ✓ |  |  |
 | `xls` | Microsoft Excel CDF document | `application/vnd.ms-excel` | `document` | `xls` |  |  | ✓ | ✓ |  |
 | `xlsb` | Microsoft Excel 2007+ document (binary format) | `application/vnd.ms-excel.sheet.binary.macroEnabled.12` | `document` | `xlsb` |  |  | ✓ | ✓ |  |
 | `xlsx` | Microsoft Excel 2007+ document | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `document` | `xlsx`, `xlsm` |  |  | ✓ | ✓ |  |
+| `xm` | FastTracker II Extended Module Audio (.xm) | `audio/x-mod` | `audio` | `xm` |  |  | ✓ |  |  |
 | `xml` | XML document | `text/xml` | `code` | `xml` | ✓ |  | ✓ | ✓ |  |
+| `xna_course_crs` | Windows Phone XNA 711x7.0 Course Package (.crs_) | `application/x-xna-course-crs` | `archive` | `crs_` |  |  | ✓ |  |  |
+| `xnb` | Microsoft XNA Game Studio / MonoGame Compiled Binary Asset (.xnb) | `application/x-xna-xnb` | `archive` | `xnb` |  |  | ✓ |  |  |
+| `xp3` | KiriKiri2 / KiriKiriZ Visual Novel Archive (.xp3) | `application/x-kirikiri-xp3` | `archive` | `xp3` |  |  | ✓ |  |  |
 | `xpi` | Compressed installation archive (XPI) | `application/zip` | `archive` | `xpi` |  |  | ✓ | ✓ |  |
+| `xpk` | Amiga eXternal Package (XPK) Compressed File | `application/x-xpk` | `archive` | — |  |  | ✓ |  |  |
+| `xplane_acf` | Laminar Research X-Plane Binary Aircraft Model (.acf, v7) | `application/x-xplane-acf` | `geometry` | `acf` |  |  | ✓ |  |  |
+| `xplane_dsf` | Laminar Research X-Plane Distribution Scenery Format (.dsf) | `model/x-xplane-dsf` | `geometry` | `dsf` |  |  | ✓ |  |  |
+| `xplapp_package` | XPLAPP Application Package (.xplapp) | `application/x-xplapp-package` | `archive` | `xplapp` |  |  | ✓ |  |  |
 | `xsd` | xsd | `application/octet-stream` | `unknown` | `xsd` |  |  | ✓ |  |  |
+| `xsm_music` | Davey Taylor eXtra Simple Music AdLib Module (.xsm, ofTAZ!) | `audio/x-xsm` | `audio` | `xsm` |  |  | ✓ |  |  |
+| `xv_thumbnail_p7` | John Bradley XV Visual Schnauzer Thumbnail (.p7, PRONOM fmt/1497) | `application/x-xv-thumbnail-p7` | `document` | `p7` |  |  | ✓ |  |  |
+| `xvag` | Sony PlayStation 3 / PS Vita / PS4 XVAG Audio Stream (.xvag) | `audio/x-xvag` | `audio` | `xvag` |  |  | ✓ |  |  |
 | `xz` | XZ compressed data | `application/x-xz` | `archive` | `xz` |  |  | ✓ | ✓ |  |
 | `yaml` | YAML source | `application/x-yaml` | `code` | `yml`, `yaml` | ✓ |  |  | ✓ |  |
 | `yara` | YARA rule | `text/x-yara` | `code` | `yar`, `yara` | ✓ |  |  | ✓ |  |
+| `yay0` | Nintendo Yay0 SZP Compressed Stream (.yay0 / .szp) | `application/x-yay0` | `archive` | `yay0`, `szp` |  |  | ✓ |  |  |
+| `yaz0` | Nintendo Yaz0 Run-Length Compressed Stream (.szs / .yaz0) | `application/x-yaz0` | `archive` | `szs`, `yaz0` |  |  | ✓ |  |  |
+| `yglf_file` | yGLF Graphics/Glyph Format (.glf) | `application/x-yglf-file` | `image` | `glf` |  |  | ✓ |  |  |
+| `ymst` | Atari ST YMST YM2149 Chiptune (.ymst) | `audio/x-ymst` | `audio` | `ymst` |  |  | ✓ |  |  |
+| `yuris_ypf` | YU-RIS Visual Novel Engine YPF Archive (.ypf, 2005) Firstia / YU-RIS | `application/x-yuris-ypf` | `archive` | `ypf` |  |  | ✓ |  |  |
+| `yz1` | DeepFreezer YZ1 archive (.yz1) | `application/x-yz1` | `archive` | `yz1` |  |  | ✓ |  |  |
+| `zbr1bgjb_prn` | Zebra ZBR1BGJB XML-Headered Card Print Job (.prn) | `application/x-zbr1bgjb-prn` | `document` | `prn` |  |  | ✓ |  |  |
 | `zbrush` | ZBrush project / tool | `application/octet-stream` | `image` | `zpr`, `ztl` |  |  | ✓ |  |  |
+| `zchunk_zck` | Fedora / RPM zchunk Delta-Compressed File (.zck, \\0ZCK1) | `application/zstd` | `archive` | `zck` |  |  | ✓ |  |  |
+| `zebra_tpd` | Zebra Technologies Printer Driver Profile (.tpd) Zebra Technologies | `application/x-zebra-tpd` | `application` | `tpd` |  |  | ✓ |  |  |
+| `zedal_library_lv` | ZEDAL Library Timestamped Binary Export (.lv) | `application/x-zedal-library-lv` | `archive` | `lv` |  |  | ✓ |  |  |
+| `zeroplus_als` | Zeroplus Logic Analyzer (LAP-C) Project (.als) | `application/x-zeroplus-als` | `application` | `als` |  |  | ✓ |  |  |
 | `zig` | Zig source | `text/zig` | `code` | `zig` | ✓ |  |  | ✓ |  |
+| `zigbee_ota` | Zigbee Alliance Cluster Library Over-the-Air Upgrade Image (.ota / .zigbee) Connectivity Standards Alliance | `application/x-zigbee-ota` | `application` | `ota`, `zigbee` |  |  | ✓ |  |  |
 | `zip` | Zip archive data | `application/zip` | `archive` | `zip` |  |  | ✓ | ✓ |  |
+| `zisofs_file` | H. Peter Anvin zisofs Compressed File (.zf) | `application/x-zisofs` | `archive` | `zf` |  |  | ✓ |  |  |
 | `zlibstream` | zlib compressed data | `application/zlib` | `application` | — |  |  | ✓ | ✓ |  |
+| `zmf` | Zoner Callisto / Zoner Draw Vector Metafile (.zmf) | `image/x-zmf` | `image` | `zmf` |  |  | ✓ |  |  |
+| `zoo` | ZOO compressed archive | `application/x-zoo` | `archive` | — |  |  | ✓ |  |  |
+| `zoombrowser_ex_thumbnail_cache_info` | Canon ZoomBrowser EX Thumbnail Cache (.info, PRONOM fmt/1496) | `application/x-zoombrowser-ex-thumbnail-cache-info` | `document` | `info` |  |  | ✓ |  |  |
+| `zos_ar` | IBM z/OS USS EBCDIC Archiver Library | `application/x-ibm-zos-ar` | `archive` | — |  |  | ✓ |  |  |
+| `zp1_archive` | zp1 Compressed Data Package (.zp) | `application/x-zp1-archive` | `archive` | `zp` |  |  | ✓ |  |  |
+| `zpaq` | ZPAQ journaling archive (.zpaq) | `application/x-zpaq` | `archive` | `zpaq` |  |  | ✓ |  |  |
 | `zst` | Zstandard | `application/zstd` | `archive` | `zst` |  |  | ✓ |  | ✓ |
+| `zucchini_patch` | Google Chrome Zucchini Executable Differential Patch (Zuc\\\\0) | `application/x-zucchini-patch` | `archive` | — |  |  | ✓ |  |  |
+| `zx_chi` | ZX Spectrum Exolon Chip Tracker Module (.chi) | `audio/x-zx-chi` | `audio` | `chi` |  |  | ✓ |  |  |
+| `zx_ftc` | ZX Spectrum Digital Reality Fast Tracker Module (.ftc) | `audio/x-zx-ftc` | `audio` | `ftc` |  |  | ✓ |  |  |
+| `zx_fxm` | ZX Spectrum Fuxoft AY Music Module (.fxm) | `audio/x-fxm` | `audio` | `fxm` |  |  | ✓ |  |  |
+| `zx_gtr` | ZX Spectrum Polaris Global Tracker Module (.gtr) | `audio/x-zx-gtr` | `audio` | `gtr` |  |  | ✓ |  |  |
+| `zx_sqt` | ZX Spectrum SQ-Tracker AY Module (.sqt) | `audio/x-zx-sqt` | `audio` | `sqt` |  |  | ✓ |  |  |
+| `zx_st13` | ZX Spectrum Sound Tracker 1.3 AY Module (.st13) | `audio/x-zx-st13` | `audio` | `st13` |  |  | ✓ |  |  |
+| `zx_stp` | ZX Spectrum KSA Sound Tracker Pro Module (.stp / .stp2) | `audio/x-zx-stp` | `audio` | `stp`, `stp2` |  |  | ✓ |  |  |
+| `zx_tzx` | ZX Spectrum / Amstrad CPC Digital Tape Image (.tzx / .cdt) | `application/x-spectrum-tzx` | `archive` | `tzx`, `cdt` |  |  | ✓ |  |  |
+| `zx_vtx` | ZX Spectrum Vortex Project AY/YM Chiptune (.vtx) | `audio/x-vtx` | `audio` | `vtx` |  |  | ✓ |  |  |
+| `zyxel_bix` | ZyXEL BIX Router Firmware Image (.bix) | `application/x-zyxel-bix` | `application` | `bix` |  |  | ✓ |  |  |

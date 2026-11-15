@@ -1013,6 +1013,13 @@ mod tests {
                 None,
                 None,
             ),
+            (
+                "sqlite/reflet.reflet",
+                ContentType::Sqlite,
+                "Reflet database (.reflet)",
+                Some("fmt/729"),
+                Some("fdd000461"),
+            ),
             // TIFF
             (
                 "tiff/!canon_cr2.cr2",

@@ -77,6 +77,7 @@ fn sqlite_app_subformat(app_id: u32) -> Option<&'static Subformat> {
     const APP_BEEREF: u32 = 0x7ACC_CCCE;
     const APP_KSTARS: u32 = tag_u32(b"MQQX");
     const APP_TEXNICARD: u32 = 0x6A03_5744;
+    const APP_REFLET: u32 = tag_u32(b"RFLT");
 
     static FOSSIL_REPO: Subformat = Subformat::new("Fossil SCM repository");
     static FOSSIL_CHECKOUT: Subformat = Subformat::new("Fossil SCM checkout");
@@ -101,6 +102,7 @@ fn sqlite_app_subformat(app_id: u32) -> Option<&'static Subformat> {
     static BEEREF: Subformat = Subformat::new("BeeRef scene (.bee)");
     static KSTARS: Subformat = Subformat::new("KDE KStars catalog (.kscat)");
     static TEXNICARD: Subformat = Subformat::new("TeXnicard card database");
+    static REFLET: Subformat = Subformat::new("Reflet database (.reflet)");
 
     match app_id {
         APP_FOSSIL_REPO | APP_FOSSIL_LEGACY => Some(&FOSSIL_REPO),
@@ -125,6 +127,7 @@ fn sqlite_app_subformat(app_id: u32) -> Option<&'static Subformat> {
         APP_BEEREF => Some(&BEEREF),
         APP_KSTARS => Some(&KSTARS),
         APP_TEXNICARD => Some(&TEXNICARD),
+        APP_REFLET => Some(&REFLET),
         _ => None,
     }
 }

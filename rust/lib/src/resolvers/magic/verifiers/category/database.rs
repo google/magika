@@ -579,25 +579,329 @@ pub(crate) fn flatgeobuf(prefix: &[u8], size: u64) -> Option<Label> {
     with_subformat(Label::Flatgeobuf, sub)
 }
 
-/// Society of Exploration Geophysicists SEG-Y seismic data (`segy`, 1975): 3200-byte EBCDIC/ASCII
-/// textual reel header + 400-byte binary header with non-zero sample interval (`@3216`), sample
-/// count (`@3220`), and data sample format code `1..=8` (`@3224`).
+const SEGY_TEXT_HEADER_LEN: usize = 3200; // @0..3200: 40 x 80-byte textual file header
+const SEGY_BINARY_HEADER_END: usize = 3600; // @3200..3600: 400-byte binary file header
+const SEGY_TRACE0_HEADER_END: usize = 3840; // @3600..3840: 240-byte first trace header
+const SEGY_TRACE_HEADER_LEN: u64 = 240;
+
+const SEGY_BIN_INTERVAL: usize = 3216; // @3216: i16/u16 — sample interval in microseconds
+const SEGY_BIN_SAMPLES: usize = 3220; // @3220: u16 — samples per data trace
+const SEGY_BIN_FORMAT: usize = 3224; // @3224: u16 — data sample format code
+const SEGY_BIN_SORTING_CODE: usize = 3228; // @3228: i16 — trace sorting code (-1..=9)
+const SEGY_BIN_MEASUREMENT_SYSTEM: usize = 3254; // @3254: u16 — measurement system (0..=2)
+const SEGY_BIN_EXT_SAMPLES: usize = 3268; // @3268: i32 — Rev 2 extended sample count
+const SEGY_BIN_EXT_INTERVAL: usize = 3272; // @3272: f64 — Rev 2 extended sample interval
+const SEGY_BIN_ENDIAN_MAGIC: usize = 3296; // @3296..3300: Rev 2 byte-order constant
+const SEGY_BIN_UNASSIGNED1_START: usize = 3300; // @3300..3500: 200 unassigned bytes
+const SEGY_BIN_UNASSIGNED1_END: usize = 3500;
+const SEGY_BIN_FIXED_LENGTH_FLAG: usize = 3502; // @3502: u16 — fixed-length trace flag (0..=1)
+const SEGY_BIN_EXT_HEADERS: usize = 3504; // @3504: i16 — extended textual file header count
+const SEGY_BIN_MAX_ADD_TR_HEADERS: usize = 3506; // @3506: u16 — Rev 2 max additional trace headers
+const SEGY_BIN_FIRST_TRACE_OFFSET: usize = 3520; // @3520..3528: u64 — Rev 2 first trace byte offset
+const SEGY_BIN_UNASSIGNED2_START: usize = 3532; // @3532..3600: 68 unassigned bytes
+const SEGY_BIN_UNASSIGNED2_END: usize = 3600;
+const SEGY_TRACE0_SAMPLES: usize = 3714; // @3714: u16 — samples in first trace (@3600 + 114)
+const SEGY_TRACE0_INTERVAL: usize = 3716; // @3716: u16 — sample interval in first trace (@3600 + 116)
+
+const SEGY_ENDIAN_UNSET: &[u8; 4] = &[0x00, 0x00, 0x00, 0x00];
+const SEGY_ENDIAN_BE: &[u8; 4] = &[0x01, 0x02, 0x03, 0x04];
+const SEGY_ENDIAN_LE: &[u8; 4] = &[0x04, 0x03, 0x02, 0x01];
+const SEGY_MAX_BAD_TEXT_BYTES: usize = 16;
+const SEGY_MIN_TEXT_CHARS: usize = 16;
+const SEGY_MAX_NUL_TRANSITIONS: usize = 64;
+const SEGY_TEXT_CHUNK_LEN: usize = 64; // divides SEGY_TEXT_HEADER_LEN (3200 = 50 * 64)
+const SEGY_SWAR_LANE_MASK: u64 = 0x1FF; // 9 bits per lane (max 64 per 64-byte chunk)
+const SEGY_SWAR_HIGH_BITS: u64 = 0x8080_8080_8080_8080;
+const SEGY_SWAR_LOW7_BITS: u64 = 0x7F7F_7F7F_7F7F_7F7F;
+const SEGY_SWAR_PREV_NUL_BIT: u64 = 0x80; // bit 7 carry matching `zero >> 56`
+const _: () = assert!(SEGY_TEXT_HEADER_LEN.is_multiple_of(SEGY_TEXT_CHUNK_LEN));
+
+/// Sample width in bytes for SEG-Y Rev 0/1/2.0/2.1 data sample format codes (`1..=12, 15, 16`).
+#[inline]
+const fn segy_sample_bytes(fmt: u16) -> Option<u64> {
+    match fmt {
+        1 | 2 | 4 | 5 | 10 => Some(4),
+        3 | 11 => Some(2),
+        6 | 9 | 12 => Some(8),
+        7 | 15 => Some(3),
+        8 | 16 => Some(1),
+        _ => None,
+    }
+}
+
+/// EBCDIC (CP037 / CP500) letter or digit byte.
+#[inline]
+const fn is_ebcdic_alnum(b: u8) -> bool {
+    matches!(
+        b,
+        0x81..=0x89
+            | 0x91..=0x99
+            | 0xA2..=0xA9
+            | 0xC1..=0xC9
+            | 0xD1..=0xD9
+            | 0xE2..=0xE9
+            | 0xF0..=0xF9
+    )
+}
+
+/// Printable EBCDIC (CP037 / CP500) character or card-image control/padding byte.
+#[inline]
+const fn is_ebcdic_text_byte(b: u8) -> bool {
+    is_ebcdic_alnum(b)
+        || matches!(
+            b,
+            0x00 | 0x05
+                | 0x0D
+                | 0x15
+                | 0x25
+                | 0x40
+                | 0x4A..=0x50
+                | 0x5A..=0x61
+                | 0x6A..=0x6F
+                | 0x79..=0x7F
+                | 0xA1
+                | 0xAD
+                | 0xB0
+                | 0xBA
+                | 0xBB
+                | 0xBD
+                | 0xC0
+                | 0xD0
+                | 0xE0
+        )
+}
+
+/// Seven 9-bit byte-class counters packed into a `u64` for 64-byte chunked textual-header scanning:
+/// - bits `0..9`: non-EBCDIC text byte (`ebcdic_bad`)
+/// - bits `9..18`: EBCDIC space `0x40` (`ebcdic_space`)
+/// - bits `18..27`: EBCDIC alphanumeric (`ebcdic_alnum`)
+/// - bits `27..36`: printable ASCII excluding `0x40` (`ascii_print_non_at`)
+/// - bits `36..45`: ASCII alphanumeric (`ascii_alnum`)
+/// - bits `45..54`: non-ASCII text byte (`ascii_bad`)
+/// - bits `54..63`: NUL byte `0x00` (`chunk_nuls`)
+const SEGY_TEXT_SWAR_LUT: [u64; 256] = {
+    let mut table = [0u64; 256];
+    let mut i = 0usize;
+    while i < 256 {
+        let b = i as u8;
+        let mut entry = 0u64;
+        if !is_ebcdic_text_byte(b) {
+            entry |= 1u64;
+        } else if b == 0x40 {
+            entry |= 1u64 << 9;
+        } else if is_ebcdic_alnum(b) {
+            entry |= 1u64 << 18;
+        }
+
+        if matches!(b, 0x20..=0x7E) {
+            if b != 0x40 {
+                entry |= 1u64 << 27;
+            }
+            if b.is_ascii_alphanumeric() {
+                entry |= 1u64 << 36;
+            }
+        } else if !matches!(b, 0x00 | b'\t' | b'\n' | b'\r') {
+            entry |= 1u64 << 45;
+        }
+
+        if b == 0x00 {
+            entry |= 1u64 << 54;
+        }
+
+        table[i] = entry;
+        i += 1;
+    }
+    table
+};
+
+struct SegyBinMatch {
+    geom_ok: bool,
+    trace0_match: bool,
+}
+
+fn check_segy_bin_header(prefix: &[u8], size: u64, big_endian: bool) -> Option<SegyBinMatch> {
+    let rd16 = |off| if big_endian { be16(prefix, off) } else { le16(prefix, off) };
+    let rd32 = |off| if big_endian { be32(prefix, off) } else { le32(prefix, off) };
+    let rd64 = |off| if big_endian { be64(prefix, off) } else { le64(prefix, off) };
+
+    let fmt = rd16(SEGY_BIN_FORMAT)?;
+    let bps = segy_sample_bytes(fmt)?;
+
+    let dt16 = rd16(SEGY_BIN_INTERVAL)?;
+    let dt_ext_bits = rd64(SEGY_BIN_EXT_INTERVAL)?;
+    if dt_ext_bits != 0 {
+        let dt_ext = f64::from_bits(dt_ext_bits);
+        require!(dt_ext.is_finite(), dt_ext > 0.0, dt_ext < 1e9);
+    } else {
+        require!(dt16 != 0);
+    }
+
+    let ns16 = rd16(SEGY_BIN_SAMPLES)?;
+    let ext_ns = rd32(SEGY_BIN_EXT_SAMPLES)? as i32;
+    let ns = if ext_ns != 0 {
+        require!(ext_ns > 0);
+        ext_ns as u64
+    } else {
+        require!(ns16 > 0);
+        u64::from(ns16)
+    };
+
+    let sorting_code = rd16(SEGY_BIN_SORTING_CODE)? as i16;
+    let meas = rd16(SEGY_BIN_MEASUREMENT_SYSTEM)?;
+    let fixed = rd16(SEGY_BIN_FIXED_LENGTH_FLAG)?;
+    let ext_headers = rd16(SEGY_BIN_EXT_HEADERS)? as i16;
+    require!((-1..=9).contains(&sorting_code), meas <= 2, fixed <= 1, ext_headers >= -1);
+
+    let header_end = if ext_headers > 0 {
+        let ext_bytes = (ext_headers as u64).checked_mul(SEGY_TEXT_HEADER_LEN as u64)?;
+        let end = (SEGY_BINARY_HEADER_END as u64).checked_add(ext_bytes)?;
+        require!(end <= size);
+        Some(end)
+    } else if ext_headers == 0 {
+        Some(SEGY_BINARY_HEADER_END as u64)
+    } else {
+        let first_trace = rd64(SEGY_BIN_FIRST_TRACE_OFFSET)?;
+        if (SEGY_BINARY_HEADER_END as u64..=size).contains(&first_trace) {
+            Some(first_trace)
+        } else {
+            None
+        }
+    };
+
+    let mut geom_ok = false;
+    if let Some(start) = header_end {
+        let max_add_tr = u64::from(rd16(SEGY_BIN_MAX_ADD_TR_HEADERS)?);
+        let trace_size = max_add_tr
+            .checked_add(1)
+            .and_then(|n| n.checked_mul(SEGY_TRACE_HEADER_LEN))
+            .and_then(|hdr| ns.checked_mul(bps).and_then(|s| hdr.checked_add(s)));
+        if let Some(trace_size) = trace_size {
+            let rem = size - start;
+            if rem >= trace_size && rem.is_multiple_of(trace_size) {
+                geom_ok = true;
+            }
+        }
+    }
+
+    let mut trace0_match = false;
+    if header_end == Some(SEGY_BINARY_HEADER_END as u64)
+        && size >= SEGY_TRACE0_HEADER_END as u64
+        && prefix.len() >= SEGY_TRACE0_HEADER_END
+    {
+        let tr_ns = rd16(SEGY_TRACE0_SAMPLES)?;
+        let tr_dt = rd16(SEGY_TRACE0_INTERVAL)?;
+        trace0_match = (ns16 > 0 && tr_ns == ns16) || (dt16 != 0 && tr_dt == dt16);
+    }
+
+    Some(SegyBinMatch { geom_ok, trace0_match })
+}
+
+/// Society of Exploration Geophysicists SEG-Y seismic data (`segy`, 1975, Rev 0 / 1 / 2.0 / 2.1):
+/// 3200-byte EBCDIC, ASCII, or zero textual file header followed by a 400-byte binary file header
+/// (`@3200..3600`) with consistent byte order, valid sample format code (`1..=12 | 15 | 16`),
+/// non-zero sample interval and sample count, valid control enums, and zeroed unassigned ranges
+/// (`@3300..3500` and `@3532..3600`).
 pub(crate) fn segy(prefix: &[u8], size: u64) -> Option<Label> {
     static SEGY_EBCDIC: Subformat = Subformat::new("SEG-Y (EBCDIC textual header)");
     static SEGY_ASCII: Subformat = Subformat::new("SEG-Y (ASCII textual header)");
-    require!(size >= 3600, prefix.len() >= 3600);
-    let interval = u16::from_be_bytes([prefix[3216], prefix[3217]]);
-    let samples = u16::from_be_bytes([prefix[3220], prefix[3221]]);
-    let fmt = u16::from_be_bytes([prefix[3224], prefix[3225]]);
+    static SEGY_EMPTY: Subformat = Subformat::new("SEG-Y (empty textual header)");
+    require!(size >= SEGY_BINARY_HEADER_END as u64, prefix.len() >= SEGY_BINARY_HEADER_END);
+
+    // 1. Rev 2 byte-order constant @3296..3300
+    let em = get_slice(prefix, SEGY_BIN_ENDIAN_MAGIC, SEGY_BIN_ENDIAN_MAGIC + 4)?;
+    let (probe_be, probe_le, has_endian_magic) = if em == SEGY_ENDIAN_UNSET {
+        (true, true, false)
+    } else if em == SEGY_ENDIAN_BE {
+        (true, false, true)
+    } else if em == SEGY_ENDIAN_LE {
+        (false, true, true)
+    } else {
+        return None;
+    };
+
+    // 2. Binary file header validation under a single consistent endianness
+    let bin_match = if probe_be { check_segy_bin_header(prefix, size, true) } else { None }
+        .or_else(|| if probe_le { check_segy_bin_header(prefix, size, false) } else { None })?;
+
+    // 3. Unassigned binary header padding (@3300..3500 and @3532..3600)
     require!(
-        interval > 0,
-        samples > 0,
-        matches!(fmt, 1..=8),
-        prefix[0] == 0xC3 || prefix[0].is_ascii_graphic() || prefix[0] == b' ',
+        is_all_zeros(get_slice(prefix, SEGY_BIN_UNASSIGNED1_START, SEGY_BIN_UNASSIGNED1_END)?),
+        is_all_zeros(get_slice(prefix, SEGY_BIN_UNASSIGNED2_START, SEGY_BIN_UNASSIGNED2_END)?),
     );
-    let _ = get_slice(prefix, 0, 4);
-    let _ = get_slice(prefix, 3216, 3226);
-    with_subformat(Label::Segy, if prefix[0] == 0xC3 { &SEGY_EBCDIC } else { &SEGY_ASCII })
+
+    // 4. Textual file header (@0..3200): EBCDIC, corroborated ASCII, or corroborated all-zero
+    let hdr = get_slice(prefix, 0, SEGY_TEXT_HEADER_LEN)?;
+    if is_all_zeros(hdr) {
+        require!(has_endian_magic || (bin_match.geom_ok && bin_match.trace0_match));
+        return with_subformat(Label::Segy, &SEGY_EMPTY);
+    }
+
+    let mut ebcdic_bad = 0usize;
+    let mut ebcdic_space = 0usize;
+    let mut ebcdic_alnum = 0usize;
+    let mut ascii_print_non_at = 0usize;
+    let mut ascii_alnum = 0usize;
+    let mut ascii_bad = 0usize;
+    let mut nul_transitions = 0usize;
+    let mut prev_nul_bit = 0u64;
+
+    for chunk in hdr.as_chunks::<SEGY_TEXT_CHUNK_LEN>().0 {
+        let mut acc0 = 0u64;
+        let mut acc1 = 0u64;
+        let mut acc2 = 0u64;
+        let mut acc3 = 0u64;
+        for &[b0, b1, b2, b3] in chunk.as_chunks::<4>().0 {
+            acc0 += SEGY_TEXT_SWAR_LUT[usize::from(b0)];
+            acc1 += SEGY_TEXT_SWAR_LUT[usize::from(b1)];
+            acc2 += SEGY_TEXT_SWAR_LUT[usize::from(b2)];
+            acc3 += SEGY_TEXT_SWAR_LUT[usize::from(b3)];
+        }
+        let acc = acc0 + acc1 + acc2 + acc3;
+        ebcdic_bad += (acc & SEGY_SWAR_LANE_MASK) as usize;
+        ebcdic_space += ((acc >> 9) & SEGY_SWAR_LANE_MASK) as usize;
+        ebcdic_alnum += ((acc >> 18) & SEGY_SWAR_LANE_MASK) as usize;
+        ascii_print_non_at += ((acc >> 27) & SEGY_SWAR_LANE_MASK) as usize;
+        ascii_alnum += ((acc >> 36) & SEGY_SWAR_LANE_MASK) as usize;
+        ascii_bad += ((acc >> 45) & SEGY_SWAR_LANE_MASK) as usize;
+        let chunk_nuls = ((acc >> 54) & SEGY_SWAR_LANE_MASK) as usize;
+        if ebcdic_bad > SEGY_MAX_BAD_TEXT_BYTES && ascii_bad > SEGY_MAX_BAD_TEXT_BYTES {
+            return None;
+        }
+
+        if chunk_nuls == 0 {
+            nul_transitions += usize::from(prev_nul_bit != 0);
+            prev_nul_bit = 0;
+        } else if chunk_nuls == SEGY_TEXT_CHUNK_LEN {
+            prev_nul_bit = SEGY_SWAR_PREV_NUL_BIT;
+        } else {
+            for &word in chunk.as_chunks::<8>().0 {
+                let w = u64::from_le_bytes(word);
+                let non_zero =
+                    (((w & !SEGY_SWAR_HIGH_BITS) + SEGY_SWAR_LOW7_BITS) | w) & SEGY_SWAR_HIGH_BITS;
+                let zero = non_zero ^ SEGY_SWAR_HIGH_BITS;
+                let prev_is_nul = (zero << 8) | prev_nul_bit;
+                nul_transitions += (prev_is_nul & non_zero).count_ones() as usize;
+                prev_nul_bit = zero >> 56;
+            }
+        }
+        if nul_transitions > SEGY_MAX_NUL_TRANSITIONS {
+            return None;
+        }
+    }
+
+    let corroborated = has_endian_magic || bin_match.geom_ok || bin_match.trace0_match;
+    let is_ebcdic = ebcdic_bad <= SEGY_MAX_BAD_TEXT_BYTES
+        && ebcdic_alnum >= SEGY_MIN_TEXT_CHARS
+        && (ebcdic_space + ebcdic_alnum) > ascii_print_non_at
+        && (ebcdic_space >= SEGY_MIN_TEXT_CHARS || corroborated);
+    if is_ebcdic {
+        return with_subformat(Label::Segy, &SEGY_EBCDIC);
+    }
+
+    let is_ascii =
+        ascii_bad <= SEGY_MAX_BAD_TEXT_BYTES && ascii_alnum >= SEGY_MIN_TEXT_CHARS && corroborated;
+    require!(is_ascii);
+    with_subformat(Label::Segy, &SEGY_ASCII)
 }
 
 /// Esri ARC/INFO ASCII Grid (`arcgrid`, 1991): `"ncols "` header followed by `nrows`,

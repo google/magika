@@ -1764,6 +1764,13 @@ def resolve_exposed_content_types(
     return exposed_labels, exposed_text
 
 
+def _rust_match_arm(indent: str, pattern: str, expr: str) -> str:
+    single = f"{indent}{pattern} => {expr},"
+    if len(single) <= 100:
+        return single
+    return f"{indent}{pattern} => {{\n{indent}    {expr}\n{indent}}}"
+
+
 def generate_rust_lib_content(
     kb: Mapping[str, Mapping[str, Any]],
     exposed_labels: Sequence[str],
@@ -1851,7 +1858,11 @@ def generate_rust_lib_content(
             "    pub fn info(self) -> &'static TypeInfo {",
             "        match self {",
             *(
-                f"            ContentType::{label_to_rust_variant(label)} => &{label_to_screaming_snake(label)},"
+                _rust_match_arm(
+                    "            ",
+                    f"ContentType::{label_to_rust_variant(label)}",
+                    f"&{label_to_screaming_snake(label)}",
+                )
                 for label, _ in variants
             ),
             "        }",
@@ -1959,7 +1970,11 @@ def generate_rust_ffi_content(
             "pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static MagikaTypeInfo {",
             "    match content_type {",
             *(
-                f"        magika::ContentType::{label_to_rust_variant(label)} => &{label_to_screaming_snake(label)},"
+                _rust_match_arm(
+                    "        ",
+                    f"magika::ContentType::{label_to_rust_variant(label)}",
+                    f"&{label_to_screaming_snake(label)}",
+                )
                 for label in variants
             ),
             "        _ => unreachable!(),",
@@ -2043,7 +2058,7 @@ def generate_js_content_types_infos(
         "// Flags bitmask: 1 = is_text, 2 = in_heuristics, 4 = in_resolvers,",
         "// 8 = in_ml_model, 16 = vetoed_by_resolvers.",
         "type CompactContentTypeInfo = readonly [",
-        "  `${ContentTypeLabel}`,",
+        "  string,",
         "  string,",
         "  string,",
         "  string,",

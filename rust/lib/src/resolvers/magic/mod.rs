@@ -113,6 +113,151 @@ macro_rules! guid {
     }};
 }
 
+/// Counts the number of decoded bytes in a hex string literal (ignoring spaces and underscores).
+pub(crate) const fn hex_byte_len(s: &str) -> usize {
+    let b = s.as_bytes();
+    let mut digits = 0usize;
+    let mut i = 0usize;
+    while i < b.len() {
+        let c = b[i];
+        if c != b' ' && c != b'_' {
+            digits += 1;
+        }
+        i += 1;
+    }
+    assert!(digits.is_multiple_of(2), "hex2bin string must have an even number of hex digits");
+    digits / 2
+}
+
+/// Parses a hex string literal (allowing optional spaces or underscores) into `[u8; N]` at compile
+/// time.
+pub(crate) const fn parse_hex<const N: usize>(s: &str) -> [u8; N] {
+    const fn nibble(c: u8) -> u8 {
+        match c {
+            b'0'..=b'9' => c - b'0',
+            b'a'..=b'f' => c - b'a' + 10,
+            b'A'..=b'F' => c - b'A' + 10,
+            _ => panic!("invalid hex digit in hex2bin!"),
+        }
+    }
+    let b = s.as_bytes();
+    let mut out = [0u8; N];
+    let mut idx = 0usize;
+    let mut i = 0usize;
+    while i < b.len() {
+        while i < b.len() && (b[i] == b' ' || b[i] == b'_') {
+            i += 1;
+        }
+        if i >= b.len() {
+            break;
+        }
+        let hi = nibble(b[i]);
+        i += 1;
+        while i < b.len() && (b[i] == b' ' || b[i] == b'_') {
+            i += 1;
+        }
+        assert!(i < b.len(), "incomplete hex byte in hex2bin!");
+        let lo = nibble(b[i]);
+        i += 1;
+        out[idx] = (hi << 4) | lo;
+        idx += 1;
+    }
+    assert!(idx == N, "hex2bin decoded length mismatch");
+    out
+}
+
+/// Decodes a hex string literal (allowing optional spaces or underscores) into a compile-time byte
+/// array reference (`&[u8; N]`).
+macro_rules! hex2bin {
+    ($s:literal) => {{
+        const LEN: usize = $crate::resolvers::magic::hex_byte_len($s);
+        const ARR: [u8; LEN] = $crate::resolvers::magic::parse_hex::<LEN>($s);
+        &ARR
+    }};
+}
+
+/// Compile-time 2-byte big-endian byte array reference (`&[u8; 2]`) from a `u16` value.
+macro_rules! be16_bytes {
+    ($val:expr) => {{
+        const ARR: [u8; 2] = ($val as u16).to_be_bytes();
+        &ARR
+    }};
+}
+
+/// Compile-time 2-byte little-endian byte array reference (`&[u8; 2]`) from a `u16` value.
+macro_rules! le16_bytes {
+    ($val:expr) => {{
+        const ARR: [u8; 2] = ($val as u16).to_le_bytes();
+        &ARR
+    }};
+}
+
+/// Compile-time 4-byte big-endian byte array reference (`&[u8; 4]`) from a `u32` value.
+macro_rules! be32_bytes {
+    ($val:expr) => {{
+        const ARR: [u8; 4] = ($val as u32).to_be_bytes();
+        &ARR
+    }};
+}
+
+/// Compile-time 4-byte little-endian byte array reference (`&[u8; 4]`) from a `u32` value.
+macro_rules! le32_bytes {
+    ($val:expr) => {{
+        const ARR: [u8; 4] = ($val as u32).to_le_bytes();
+        &ARR
+    }};
+}
+
+/// Compile-time 8-byte big-endian byte array reference (`&[u8; 8]`) from a `u64` value.
+macro_rules! be64_bytes {
+    ($val:expr) => {{
+        const ARR: [u8; 8] = ($val as u64).to_be_bytes();
+        &ARR
+    }};
+}
+
+/// Compile-time 8-byte little-endian byte array reference (`&[u8; 8]`) from a `u64` value.
+macro_rules! le64_bytes {
+    ($val:expr) => {{
+        const ARR: [u8; 8] = ($val as u64).to_le_bytes();
+        &ARR
+    }};
+}
+
+/// Converts a single ASCII byte into its IBM EBCDIC CP037 equivalent at compile time.
+pub(crate) const fn ascii_to_ebcdic_byte(b: u8) -> u8 {
+    match b {
+        b' ' => 0x40,
+        b'A'..=b'I' => 0xC1 + (b - b'A'),
+        b'J'..=b'R' => 0xD1 + (b - b'J'),
+        b'S'..=b'Z' => 0xE2 + (b - b'S'),
+        b'a'..=b'i' => 0x81 + (b - b'a'),
+        b'j'..=b'r' => 0x91 + (b - b'j'),
+        b's'..=b'z' => 0xA2 + (b - b's'),
+        b'0'..=b'9' => 0xF0 + (b - b'0'),
+        _ => panic!("unsupported ASCII byte in ebcdic_bytes!"),
+    }
+}
+
+/// Converts an ASCII string literal into an N-byte IBM EBCDIC CP037 byte array reference
+/// (`&[u8; LEN]`) at compile time.
+macro_rules! ebcdic_bytes {
+    ($s:expr) => {{
+        const SRC: &[u8] = $s.as_bytes();
+        const LEN: usize = SRC.len();
+        const ARR: [u8; LEN] = {
+            let mut out = [0u8; LEN];
+            let mut i = 0usize;
+            while i < LEN {
+                out[i] = $crate::resolvers::magic::ascii_to_ebcdic_byte(SRC[i]);
+                i += 1;
+            }
+            out
+        };
+        &ARR
+    }};
+}
+
 /// Early-return `None` on the first false precondition.
 macro_rules! require {
     ($($cond:expr),+ $(,)?) => {
@@ -122,8 +267,16 @@ macro_rules! require {
     };
 }
 
+pub(crate) use be16_bytes;
+pub(crate) use be32_bytes;
+pub(crate) use be64_bytes;
 pub(crate) use bytes;
+pub(crate) use ebcdic_bytes;
 pub(crate) use guid;
+pub(crate) use hex2bin;
+pub(crate) use le16_bytes;
+pub(crate) use le32_bytes;
+pub(crate) use le64_bytes;
 pub(crate) use require;
 
 /// Big-endian `u32` representation of a 4-byte ASCII tag.

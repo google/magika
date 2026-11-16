@@ -33,7 +33,7 @@ pub(crate) fn ftyp(prefix: &[u8]) -> Option<Label> {
         b"3gs7", b"3gs9", b"3gt8", b"3gt9", b"3gtv",
     ];
     const BRANDS_HEIF: &[&[u8; 4]] =
-        &[b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"hevm", b"hevs"];
+        &[b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"hevm", b"hevs", b"mif1"];
 
     require!(prefix.len() >= MIN_LEN, eq_at(prefix, 4, FTYP_BOX));
     let box_len = be32(prefix, BOX_LEN)?;

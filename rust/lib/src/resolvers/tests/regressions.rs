@@ -43,6 +43,9 @@ const SUPERSEDED: &[(&str, usize, &[&str])] = &[
     ("test_epub_directory_names_decide_when_the_local_header_is_not_canonical", 2, &["zip"]),
     ("test_epub_directory_names_decide_when_the_local_header_is_not_canonical", 3, &["zip"]),
     ("test_ftyp_sibling_and_incomplete_brands_abstain", 4, &["mp4"]),
+    // Major brand `mif1` is the HEIF still-image structural brand. The old rule abstained,
+    // which is why the model reported `mp4`.
+    ("test_ftyp_sibling_and_incomplete_brands_abstain", 5, &["heif"]),
     ("test_images_outside_the_pe_contract_abstain", 6, &["pebin"]),
     (
         "test_manifest_first_package_needs_code_or_resources_in_the_prefix_or_the_directory",

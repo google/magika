@@ -8,9 +8,9 @@ This reference lists the supported output content types (`output.label`) and det
 
 ## Pipeline Coverage Summary
 
-- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **402** supported outputs (**399** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
+- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **401** supported outputs (**398** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
   - **Heuristics (`in_heuristics`)**: **6** content types (`directory`, `empty`, `symlink`, `txt`, `unknown`, `unsupported`) — path metadata checks, empty-file detection, and short-file / low-confidence fallbacks.
-  - **Format Resolvers (`in_resolvers`)**: **311** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
+  - **Format Resolvers (`in_resolvers`)**: **310** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
   - **ML Model (`in_ml_model`)**: **212** content types predicted by [`standard_v3_3`](/magika/models/standard_v3_3) (after `overwrite_map`).
 - **JavaScript / TypeScript TensorFlow.js pipeline (`magika` on `main`)**: **214** supported outputs — runs byte/stream heuristics (`empty`, `txt`, `unknown`) plus the [`standard_v3_3`](/magika/models/standard_v3_3) ML model (`in_ml_model`), without filesystem `stat` checks or native Rust format resolvers (`in_resolvers`).
 
@@ -41,14 +41,13 @@ This reference lists the supported output content types (`output.label`) and det
 | `arcgrid` | ESRI ASCII Grid | `text/plain` | `application` | `asc`, `grd` | ✓ |  | ✓ |  |  |
 | `arj` | ARJ archive | `application/arj` | `archive` | `arj` |  |  | ✓ |  |  |
 | `arrow` | Apache Arrow | `application/vnd.apache.arrow.file` | `application` | `arrow`, `feather` |  |  | ✓ |  | ✓ |
-| `asd` | Ashton-Tate Framework document | `application/octet-stream` | `document` | `asd` |  |  | ✓ |  |  |
+| `asd` | ASD archive | `application/octet-stream` | `archive` | `asd` |  |  | ✓ |  |  |
 | `asf` | Microsoft Advanced Systems Format | `video/x-ms-asf` | `application` | `asf` |  |  | ✓ |  |  |
 | `asm` | Assembly | `text/x-asm` | `code` | `s`, `S`, `asm` | ✓ |  |  | ✓ |  |
 | `asp` | ASP source | `text/html` | `code` | `aspx`, `asp` | ✓ |  |  | ✓ |  |
 | `au` | NeXT/Sun AU | `audio/basic` | `audio` | `au` |  |  | ✓ |  | ✓ |
 | `autohotkey` | AutoHotKey script | `text/plain` | `code` | `ahk` | ✓ |  |  | ✓ |  |
 | `autoit` | AutoIt script | `text/plain` | `code` | `au3` | ✓ |  | ✓ | ✓ |  |
-| `autoit_compiled` | AutoIt compiled script | `application/octet-stream` | `executable` | `a3x`, `exe` |  |  | ✓ |  |  |
 | `avi` | Audio Video Interleave | `video/x-msvideo` | `video` | `avi` |  |  | ✓ |  | ✓ |
 | `avif` | AV1 Image File Format | `image/avif` | `image` | `avif`, `avifs` |  |  | ✓ |  | ✓ |
 | `avro` | Apache Avro binary | `application/x-avro-binary` | `application` | `avro` |  |  | ✓ |  | ✓ |

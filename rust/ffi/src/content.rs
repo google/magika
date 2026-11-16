@@ -229,8 +229,8 @@ use crate::MagikaTypeInfo;
 #[rustfmt::skip] pub(crate) static ASD: MagikaTypeInfo = MagikaTypeInfo {
     label: c"asd".as_ptr(),
     mime_type: c"application/octet-stream".as_ptr(),
-    group: c"document".as_ptr(),
-    description: c"Ashton-Tate Framework document".as_ptr(),
+    group: c"archive".as_ptr(),
+    description: c"ASD archive".as_ptr(),
     extensions: [c"asd".as_ptr(), ptr::null()].as_ptr(),
     is_text: false,
 };
@@ -287,15 +287,6 @@ use crate::MagikaTypeInfo;
     description: c"AutoIt script".as_ptr(),
     extensions: [c"au3".as_ptr(), ptr::null()].as_ptr(),
     is_text: true,
-};
-
-#[rustfmt::skip] pub(crate) static AUTOIT_COMPILED: MagikaTypeInfo = MagikaTypeInfo {
-    label: c"autoit_compiled".as_ptr(),
-    mime_type: c"application/octet-stream".as_ptr(),
-    group: c"executable".as_ptr(),
-    description: c"AutoIt compiled script".as_ptr(),
-    extensions: [c"a3x".as_ptr(), c"exe".as_ptr(), ptr::null()].as_ptr(),
-    is_text: false,
 };
 
 #[rustfmt::skip] pub(crate) static AVI: MagikaTypeInfo = MagikaTypeInfo {
@@ -3696,7 +3687,6 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Au => &AU,
         magika::ContentType::Autohotkey => &AUTOHOTKEY,
         magika::ContentType::Autoit => &AUTOIT,
-        magika::ContentType::AutoitCompiled => &AUTOIT_COMPILED,
         magika::ContentType::Avi => &AVI,
         magika::ContentType::Avif => &AVIF,
         magika::ContentType::Avro => &AVRO,

@@ -221,8 +221,8 @@
 
 "asd":
   mime_type: null
-  group: "document"
-  description: "Ashton-Tate Framework document"
+  group: "archive"
+  description: "ASD archive"
   extensions: ["asd"]
   is_text: false
 
@@ -267,13 +267,6 @@
   description: "AutoIt script"
   extensions: ["au3"]
   is_text: true
-
-"autoit_compiled":
-  mime_type: null
-  group: "executable"
-  description: "AutoIt compiled script"
-  extensions: ["a3x", "exe"]
-  is_text: false
 
 "avi":
   mime_type: "video/x-msvideo"

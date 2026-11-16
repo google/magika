@@ -47,7 +47,6 @@ export enum ContentTypeLabel {
   AU = "au",
   AUTOHOTKEY = "autohotkey",
   AUTOIT = "autoit",
-  AUTOIT_COMPILED = "autoit_compiled",
   AVI = "avi",
   AVIF = "avif",
   AVRO = "avro",

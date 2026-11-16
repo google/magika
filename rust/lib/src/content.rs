@@ -325,8 +325,8 @@ pub(crate) static ARROW: TypeInfo = TypeInfo {
 pub(crate) static ASD: TypeInfo = TypeInfo {
     label: "asd",
     mime_type: "application/octet-stream",
-    group: "document",
-    description: "Ashton-Tate Framework document",
+    group: "archive",
+    description: "ASD archive",
     extensions: &["asd"],
     is_text: false,
     in_heuristics: false,
@@ -410,19 +410,6 @@ pub(crate) static AUTOIT: TypeInfo = TypeInfo {
     in_heuristics: false,
     in_resolvers: true,
     in_ml_model: true,
-    vetoed_by_resolvers: false,
-};
-
-pub(crate) static AUTOIT_COMPILED: TypeInfo = TypeInfo {
-    label: "autoit_compiled",
-    mime_type: "application/octet-stream",
-    group: "executable",
-    description: "AutoIt compiled script",
-    extensions: &["a3x", "exe"],
-    is_text: false,
-    in_heuristics: false,
-    in_resolvers: true,
-    in_ml_model: false,
     vetoed_by_resolvers: false,
 };
 
@@ -5290,7 +5277,7 @@ pub(crate) static ZST: TypeInfo = TypeInfo {
 
 impl TypeInfo {
     /// All file type information ordered by label.
-    pub const ALL: [&'static Self; 405] = [
+    pub const ALL: [&'static Self; 404] = [
         &_3DS,
         &_3DSM,
         &_3DSX,
@@ -5321,7 +5308,6 @@ impl TypeInfo {
         &AU,
         &AUTOHOTKEY,
         &AUTOIT,
-        &AUTOIT_COMPILED,
         &AVI,
         &AVIF,
         &AVRO,
@@ -5749,7 +5735,7 @@ pub enum ContentType {
     Arj,
     /// Apache Arrow
     Arrow,
-    /// Ashton-Tate Framework document
+    /// ASD archive
     Asd,
     /// Microsoft Advanced Systems Format
     Asf,
@@ -5763,8 +5749,6 @@ pub enum ContentType {
     Autohotkey,
     /// AutoIt script
     Autoit,
-    /// AutoIt compiled script
-    AutoitCompiled,
     /// Audio Video Interleave
     Avi,
     /// AV1 Image File Format
@@ -6543,7 +6527,6 @@ impl ContentType {
             "au" => Self::Au,
             "autohotkey" => Self::Autohotkey,
             "autoit" => Self::Autoit,
-            "autoit_compiled" => Self::AutoitCompiled,
             "avi" => Self::Avi,
             "avif" => Self::Avif,
             "avro" => Self::Avro,
@@ -6952,7 +6935,6 @@ impl ContentType {
             ContentType::Au => &AU,
             ContentType::Autohotkey => &AUTOHOTKEY,
             ContentType::Autoit => &AUTOIT,
-            ContentType::AutoitCompiled => &AUTOIT_COMPILED,
             ContentType::Avi => &AVI,
             ContentType::Avif => &AVIF,
             ContentType::Avro => &AVRO,

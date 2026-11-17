@@ -292,8 +292,8 @@ pub(crate) const AUTOIT_V3_MAGIC: &[u8] = &[
 /// AutoIt v3 EA05/EA06 archive marker (`"AU3!EA0"`).
 pub(crate) const AUTOIT_EA0_MAGIC: &[u8] = b"AU3!EA0";
 
-/// Checks for AutoIt v3 compiled executable signature (`\xA3\x48\x4B\xBE...` or `"AU3!EA0"`)
-/// before falling back to Windows PE/DOS MZ (`pebin`).
+/// Windows PE / DOS MZ executable (`pebin`) that [`pe`] did not accept. An AutoIt v3 compiled
+/// executable signature (`\xA3\x48\x4B\xBE...` or `"AU3!EA0"`) is reported as a subformat.
 pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     const KKRUNCHY_TAG: &[u8] = b"KKRUNCHY";
     const DOS32_ADAM_MAGIC: &[u8; 4] = b"Adam";
@@ -313,12 +313,12 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     static DOS_ZM: Subformat = Subformat::with_ids("MS-DOS ZM executable", "x-fmt/409", None);
 
     if contains(prefix, AUTOIT_V3_MAGIC) || contains(prefix, AUTOIT_EA0_MAGIC) {
-        return with_subformat(Label::Autoit, &AUTOIT_EXE);
+        return with_subformat(Label::Pebin, &AUTOIT_EXE);
     }
     if let Some(t) = ctx.tail
         && (contains(t, AUTOIT_V3_MAGIC) || contains(t, AUTOIT_EA0_MAGIC))
     {
-        return with_subformat(Label::Autoit, &AUTOIT_EXE);
+        return with_subformat(Label::Pebin, &AUTOIT_EXE);
     }
     if is_windows_pebin(prefix, ctx.size) {
         return with_subformat(Label::Pebin, windows_pe_subformat(prefix));
@@ -614,7 +614,7 @@ pub(crate) fn aout(prefix: &[u8], size: u64) -> Option<Label> {
     with_subformat(Label::Aout, sub)
 }
 
-/// Disambiguates `MZ`/`ZM` executables between Windows PE (`pebin`), AutoIt v3 (`autoit`), and DOS MZ (`pebin`).
+/// Identifies `MZ`/`ZM` executables (`pebin`): Windows PE, AutoIt v3 compiled executables, and DOS MZ.
 #[inline]
 pub(crate) fn pe_or_dos_mz(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     probe(|| pe(prefix, ctx)).or_else(|| probe(|| pe_or_autoit(prefix, ctx)))

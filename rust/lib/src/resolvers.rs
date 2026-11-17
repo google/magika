@@ -770,6 +770,12 @@ mod tests {
         let mut iso_ad = isohybrid.clone();
         iso_ad[..512].fill(0xAD);
         assert_eq!(resolve_slice(&iso_ad), vec![ContentType::Iso]);
+
+        // 7. `MZ` stub that is not a valid PE but carries the AutoIt v3 `AU3!EA0` marker
+        let mut mz_au3 = vec![0u8; 64];
+        mz_au3[..2].copy_from_slice(b"MZ");
+        mz_au3[32..40].copy_from_slice(b"AU3!EA06");
+        assert_eq!(resolve_slice(&mz_au3), vec![ContentType::Pebin]);
     }
 
     #[test]

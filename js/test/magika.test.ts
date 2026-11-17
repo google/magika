@@ -300,10 +300,12 @@ describe("Magika class", () => {
       const expectedMime =
         entry.mime_type ??
         (entry.is_text ? "text/plain" : "application/octet-stream");
+      const expectedGroup =
+        entry.group ?? (entry.is_text ? "text" : "application");
       expect(info).toStrictEqual({
         label: ct,
         mime_type: expectedMime,
-        group: entry.group ?? "unknown",
+        group: expectedGroup,
         description: entry.description ?? ct,
         extensions: entry.extensions,
         is_text: entry.is_text,

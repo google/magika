@@ -41,6 +41,16 @@ pub(crate) const AI_CREATOR_NAME: &[u8] = b"Adobe Illustrator";
 /// Adobe PDF (`pdf`, 1993) and PDF-backed Adobe Illustrator Artwork (`ai`) starting at `offset`:
 /// validates `%PDF-x.y` (or minimal `%PDF`) header and disambiguates Illustrator private data tags.
 pub(crate) fn pdf_or_ai_at(prefix: &[u8], size: u64, offset: usize) -> Option<Label> {
+    static PDF_1_0: Subformat = Subformat::with_ids("PDF 1.0", "fmt/14", Some("fdd000316"));
+    static PDF_1_1: Subformat = Subformat::with_ids("PDF 1.1", "fmt/15", Some("fdd000316"));
+    static PDF_1_2: Subformat = Subformat::with_ids("PDF 1.2", "fmt/16", Some("fdd000316"));
+    static PDF_1_3: Subformat = Subformat::with_ids("PDF 1.3", "fmt/17", Some("fdd000316"));
+    static PDF_1_4: Subformat = Subformat::with_ids("PDF 1.4", "fmt/18", Some("fdd000122"));
+    static PDF_1_5: Subformat = Subformat::with_ids("PDF 1.5", "fmt/19", Some("fdd000123"));
+    static PDF_1_6: Subformat = Subformat::with_ids("PDF 1.6", "fmt/20", Some("fdd000276"));
+    static PDF_1_7: Subformat = Subformat::with_ids("PDF 1.7", "fmt/276", Some("fdd000277"));
+    static PDF_2_0: Subformat = Subformat::with_ids("PDF 2.0", "fmt/1129", Some("fdd000474"));
+    static PDF_MINIMAL: Subformat = Subformat::new("PDF (non-standard header)");
     const MIN_PDF_SIZE: u64 = 8; // "%PDF-1." + delimiter or "%PDF-\0..."
     const PDF_DICT_OPEN: &[u8] = b"<<";
     const PDF_OBJ_TAG: &[u8] = b"obj";
@@ -62,9 +72,28 @@ pub(crate) fn pdf_or_ai_at(prefix: &[u8], size: u64, offset: usize) -> Option<La
             || contains(rest, PDF_TRAILER_TAG)
             || contains(rest, PDF_PAGES_TAG)
             || contains(rest, PDF_ROOT_TAG));
+    let mut sub: &'static Subformat = &PDF_MINIMAL;
     let valid_ver =
         if starts(rest, PDF_V1_MAGIC) || starts(rest, PDF_V2_MAGIC) || starts(rest, PDF_V0_MAGIC) {
             if rest.len() >= 8 && u8_at(rest, 7)?.is_ascii_digit() {
+                let minor = u8_at(rest, 7)?;
+                sub = if starts(rest, PDF_V1_MAGIC) {
+                    match minor {
+                        b'0' => &PDF_1_0,
+                        b'1' => &PDF_1_1,
+                        b'2' => &PDF_1_2,
+                        b'3' => &PDF_1_3,
+                        b'4' => &PDF_1_4,
+                        b'5' => &PDF_1_5,
+                        b'6' => &PDF_1_6,
+                        b'7' => &PDF_1_7,
+                        _ => &PDF_MINIMAL,
+                    }
+                } else if starts(rest, PDF_V2_MAGIC) && minor == b'0' {
+                    &PDF_2_0
+                } else {
+                    &PDF_MINIMAL
+                };
                 rest.len() == 8
                     || matches!(
                         u8_at(rest, 8)?,
@@ -98,7 +127,7 @@ pub(crate) fn pdf_or_ai_at(prefix: &[u8], size: u64, offset: usize) -> Option<La
     {
         return Some(Label::Ai);
     }
-    Some(Label::Pdf)
+    with_subformat(Label::Pdf, sub)
 }
 
 /// Adobe PDF (`pdf`) and PDF-backed Adobe Illustrator Artwork (`ai`) at `@0`

@@ -29,17 +29,26 @@ pub(crate) fn bam(prefix: &[u8]) -> Option<Label> {
 /// CRAM compressed sequence alignment: `"CRAM"` magic, major/minor version `(1, 0)`, `(2, 0|1)`,
 /// or `(3, 0|1)`, and complete 26-byte file definition header.
 pub(crate) fn cram(prefix: &[u8]) -> Option<Label> {
+    static CRAM_1_0: Subformat = Subformat::with_ids("CRAM 1.0", "fmt/909", None);
+    static CRAM_2_0: Subformat = Subformat::with_ids("CRAM 2.0", "fmt/910", None);
+    static CRAM_2_1: Subformat = Subformat::with_ids("CRAM 2.1", "fmt/910", None);
+    static CRAM_3_0: Subformat = Subformat::with_ids("CRAM 3.0", "fmt/911", None);
+    static CRAM_3_1: Subformat = Subformat::with_ids("CRAM 3.1", "fmt/911", None);
     const MAGIC: &[u8] = b"CRAM"; // @0..4: CRAM format magic
     const MAJOR: usize = 4; // @4: u8 — major version (1..=3)
     const MINOR: usize = 5; // @5: u8 — minor version (0..=1)
     const MIN_LEN: usize = 26; // 26-byte CRAM file definition
 
-    require!(
-        prefix.len() >= MIN_LEN,
-        starts(prefix, MAGIC),
-        matches!((u8_at(prefix, MAJOR)?, u8_at(prefix, MINOR)?), (1, 0) | (2 | 3, 0 | 1)),
-    );
-    Some(Label::Cram)
+    require!(prefix.len() >= MIN_LEN, starts(prefix, MAGIC));
+    let sub = match (u8_at(prefix, MAJOR)?, u8_at(prefix, MINOR)?) {
+        (1, 0) => &CRAM_1_0,
+        (2, 0) => &CRAM_2_0,
+        (2, 1) => &CRAM_2_1,
+        (3, 0) => &CRAM_3_0,
+        (3, 1) => &CRAM_3_1,
+        _ => return None,
+    };
+    with_subformat(Label::Cram, sub)
 }
 
 /// Brookhaven Protein Data Bank (`proteindb`, 1976): `"HEADER    "` at `@0` followed by

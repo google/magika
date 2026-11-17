@@ -75,6 +75,9 @@ fn read_tlv(buf: &[u8], pos: usize) -> Option<(u8, usize, usize, usize)> {
 /// Verifies an ASN.1 BER/DER Universal `SEQUENCE` (`0x30`) for Magika's `cat` (Microsoft
 /// Security Catalog) and `crt` (X.509 Certificate or PKCS#7 `.p7b` certificate bundle).
 pub(crate) fn verify_asn1_der(prefix: &[u8], size: u64) -> Option<Label> {
+    static CRT_PKCS7: Subformat =
+        Subformat::with_ids("PKCS #7 certificate bundle", "fmt/670", None);
+    static CRT_X509: Subformat = Subformat::new("X.509 certificate");
     require!(
         size >= MIN_X509_CERT_SIZE,
         prefix.len() >= 32,
@@ -98,7 +101,7 @@ pub(crate) fn verify_asn1_der(prefix: &[u8], size: u64) -> Option<Label> {
                 return Some(Label::Cat);
             }
             if contains(prefix, OID_PKCS7_DATA) {
-                return Some(Label::Crt);
+                return with_subformat(Label::Crt, &CRT_PKCS7);
             }
         }
         return None;
@@ -129,5 +132,5 @@ pub(crate) fn verify_asn1_der(prefix: &[u8], size: u64) -> Option<Label> {
         require!(c1_tag == ASN1_TAG_SEQUENCE, u8_at(prefix, c1_start) == Some(ASN1_TAG_OID),);
     }
 
-    Some(Label::Crt)
+    with_subformat(Label::Crt, &CRT_X509)
 }

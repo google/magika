@@ -258,9 +258,22 @@ pub(crate) fn xml_subtypes(prefix: &[u8], size: u64) -> Option<Label> {
     None
 }
 
+/// OpenStreetMap XML subformat, shared between Tier 1 (`xml_document`) and Tier 5 (`heuristics`).
+pub(crate) static OSM_XML: Subformat = Subformat::new("OpenStreetMap XML");
+
 /// Stata `.dta` XML dataset: `"<stata_dta><header><release>"` + 3 ASCII digits +
 /// `"</release><byteorder>"` + `"LSF</byteorder>"` or `"MSF</byteorder>"`.
 pub(crate) fn stata(prefix: &[u8]) -> Option<Label> {
+    static STATA_117_LE: Subformat =
+        Subformat::with_ids("Stata DTA 117 (little-endian)", "fmt/1036", None);
+    static STATA_117_BE: Subformat =
+        Subformat::with_ids("Stata DTA 117 (big-endian)", "fmt/1036", None);
+    static STATA_118_LE: Subformat =
+        Subformat::with_ids("Stata DTA 118 (little-endian)", "fmt/1037", Some("fdd000471"));
+    static STATA_118_BE: Subformat =
+        Subformat::with_ids("Stata DTA 118 (big-endian)", "fmt/1037", Some("fdd000471"));
+    static STATA_LE: Subformat = Subformat::new("Stata DTA (little-endian)");
+    static STATA_BE: Subformat = Subformat::new("Stata DTA (big-endian)");
     const PREFIX: &[u8] = b"<stata_dta><header><release>"; // @0..28: opening tags
     const RELEASE_DIGITS: usize = 28; // @28..31: 3-digit release code
     const MID: &[u8] = b"</release><byteorder>"; // @31..52: closing release + opening byteorder
@@ -269,14 +282,25 @@ pub(crate) fn stata(prefix: &[u8]) -> Option<Label> {
     const MSF_TAG: &[u8] = b"MSF</byteorder>";
     const MIN_LEN: usize = 67;
 
-    require!(
-        prefix.len() >= MIN_LEN,
-        starts(prefix, PREFIX),
-        get_slice(prefix, RELEASE_DIGITS, 31)?.iter().all(u8::is_ascii_digit),
-        eq_at(prefix, 31, MID),
-        eq_at(prefix, BYTEORDER, LSF_TAG) || eq_at(prefix, BYTEORDER, MSF_TAG),
-    );
-    Some(Label::Stata)
+    require!(prefix.len() >= MIN_LEN, starts(prefix, PREFIX));
+    let release = get_slice(prefix, RELEASE_DIGITS, 31)?;
+    require!(release.iter().all(u8::is_ascii_digit), eq_at(prefix, 31, MID));
+    let is_le = if eq_at(prefix, BYTEORDER, LSF_TAG) {
+        true
+    } else if eq_at(prefix, BYTEORDER, MSF_TAG) {
+        false
+    } else {
+        return None;
+    };
+    let sub = match (release, is_le) {
+        (b"117", true) => &STATA_117_LE,
+        (b"117", false) => &STATA_117_BE,
+        (b"118", true) => &STATA_118_LE,
+        (b"118", false) => &STATA_118_BE,
+        (_, true) => &STATA_LE,
+        (_, false) => &STATA_BE,
+    };
+    with_subformat(Label::Stata, sub)
 }
 
 /// Fast-path Tier 1 (`magic32`) XML / HTML document and subformat dispatcher.
@@ -292,7 +316,7 @@ pub(crate) fn xml_document(prefix: &[u8], size: u64) -> Option<Label> {
         return Some(Label::Kml);
     }
     if xml.osm {
-        return Some(Label::Osm);
+        return with_subformat(Label::Osm, &OSM_XML);
     }
     probe(|| xml_subtypes(prefix, size)).or_else(|| probe(|| xml_or_html(prefix, size)))
 }

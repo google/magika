@@ -21,6 +21,18 @@ pub(crate) const SQLITE3_MAGIC: &[u8; 16] = b"SQLite format 3\0"; // @0..16: SQL
 const APP_GPKG: u32 = tag_u32(b"GPKG");
 const APP_GP10: u32 = tag_u32(b"GP10");
 const APP_GP11: u32 = tag_u32(b"GP11");
+static GEOPACKAGE_1_0: Subformat = Subformat::with_fdd("GeoPackage 1.0", "fdd000419");
+static GEOPACKAGE_1_1: Subformat = Subformat::new("GeoPackage 1.1");
+static GEOPACKAGE_1_2: Subformat = Subformat::new("GeoPackage 1.2+");
+
+/// GeoPackage version named by an already-validated `application_id`.
+fn geopackage_subformat(app_id: u32) -> &'static Subformat {
+    match app_id {
+        APP_GP10 => &GEOPACKAGE_1_0,
+        APP_GP11 => &GEOPACKAGE_1_1,
+        _ => &GEOPACKAGE_1_2,
+    }
+}
 
 /// OGC GeoPackage: SQLite 3 database header (`"SQLite format 3\0"`) whose `application_id` at
 /// offset 68 is `"GPKG"`, `"GP10"`, or `"GP11"`.
@@ -33,7 +45,7 @@ pub(crate) fn geopackage(prefix: &[u8]) -> Option<Label> {
         starts(prefix, SQLITE3_MAGIC),
         matches!(be32(prefix, APPLICATION_ID)?, APP_GPKG | APP_GP10 | APP_GP11),
     );
-    Some(Label::Geopackage)
+    with_subformat(Label::Geopackage, geopackage_subformat(be32(prefix, APPLICATION_ID)?))
 }
 
 /// Validates a SQLite 3 database header (`"SQLite format 3\0"` at `@0..16`, valid power-of-two
@@ -41,6 +53,7 @@ pub(crate) fn geopackage(prefix: &[u8]) -> Option<Label> {
 /// `64, 32, 32` at `@21..24`, schema format `0..=4` at `@44`, and text encoding `0..=3` at `@56`)
 /// and dispatches on `application_id` at `@68` between `geopackage`, `qgis`, and `sqlite`.
 pub(crate) fn sqlite_family(prefix: &[u8], size: u64) -> Option<Label> {
+    static QGIS_SQLITE: Subformat = Subformat::new("QGIS SQLite database");
     const APP_ID: usize = 68;
     const QGIS: u32 = tag_u32(b"QGIS");
     const MPBX: u32 = tag_u32(b"MPBX");
@@ -52,10 +65,10 @@ pub(crate) fn sqlite_family(prefix: &[u8], size: u64) -> Option<Label> {
     require!(size >= 100, prefix.len() >= 100, starts(prefix, SQLITE3_MAGIC),);
     let app_id = be32(prefix, APP_ID)?;
     if matches!(app_id, APP_GPKG | APP_GP10) {
-        return Some(Label::Geopackage);
+        return with_subformat(Label::Geopackage, geopackage_subformat(app_id));
     }
     if app_id == QGIS {
-        return Some(Label::Qgis);
+        return with_subformat(Label::Qgis, &QGIS_SQLITE);
     }
     if app_id == MPBX
         || ((contains(prefix, MBTILES_TABLE_TILES) || contains(prefix, MBTILES_VIEW_TILES))

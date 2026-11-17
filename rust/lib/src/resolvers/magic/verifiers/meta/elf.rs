@@ -53,7 +53,17 @@ pub(crate) fn elf(prefix: &[u8], size: u64) -> Option<Label> {
     let is_le = u8_at(prefix, 5)? == 1;
     let e_type = if is_le { le16(prefix, 16)? } else { be16(prefix, 16)? };
     require!((1..=4).contains(&e_type) || e_type >= 0xFE00);
-    Some(Label::Elf)
+    static ELF32_LE: Subformat = Subformat::with_ids("ELF 32-bit (little-endian)", "fmt/688", None);
+    static ELF32_BE: Subformat = Subformat::with_ids("ELF 32-bit (big-endian)", "fmt/689", None);
+    static ELF64_LE: Subformat = Subformat::with_ids("ELF 64-bit (little-endian)", "fmt/690", None);
+    static ELF64_BE: Subformat = Subformat::with_ids("ELF 64-bit (big-endian)", "fmt/691", None);
+    let sub = match (u8_at(prefix, 4)?, is_le) {
+        (1, true) => &ELF32_LE,
+        (1, false) => &ELF32_BE,
+        (_, true) => &ELF64_LE,
+        (_, false) => &ELF64_BE,
+    };
+    with_subformat(Label::Elf, sub)
 }
 
 /// Disambiguates System V ELF binaries between NVIDIA CUDA `cubin` and generic `elf`.

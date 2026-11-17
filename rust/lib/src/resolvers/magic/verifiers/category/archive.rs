@@ -36,6 +36,8 @@ pub(crate) fn lrz(prefix: &[u8]) -> Option<Label> {
 /// Lzip compressed file: `"LZIP"` magic, version 0 (≥ 18 bytes total) or 1 (≥ 26 bytes total),
 /// and dictionary size exponent `12..=29` in the low 5 bits of byte 5.
 pub(crate) fn lzip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
+    static LZIP_V0: Subformat = Subformat::new("lzip version 0");
+    static LZIP_V1: Subformat = Subformat::new("lzip version 1");
     const MAGIC: &[u8] = b"LZIP"; // @0..4: lzip magic
     const VERSION: usize = 4; // @4: u8 — version 0 or 1
     const DICT_SIZE: usize = 5; // @5: u8 — low 5 bits are log2(dict_size) in 12..=29
@@ -46,18 +48,21 @@ pub(crate) fn lzip(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         starts(prefix, MAGIC),
         (12..=29).contains(&(u8_at(prefix, DICT_SIZE)? & 0x1F)),
     );
-    let valid_ver = match u8_at(prefix, VERSION)? {
+    let version = u8_at(prefix, VERSION)?;
+    let valid_ver = match version {
         0 => ctx.size >= 18,
         1 => ctx.size >= 26,
         _ => false,
     };
     require!(valid_ver);
-    Some(Label::Lz)
+    with_subformat(Label::Lz, if version == 0 { &LZIP_V0 } else { &LZIP_V1 })
 }
 
 /// LZ4 frame: legacy (`0x184C2102` / `0x184C2103` LE) or v1 (`0x184D2204` LE) with valid FLG/BD
 /// descriptors and minimum frame size for the declared optional header fields.
 pub(crate) fn lz4(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
+    static LZ4_LEGACY: Subformat = Subformat::new("LZ4 legacy frame");
+    static LZ4_FRAME: Subformat = Subformat::new("LZ4 frame");
     const LEGACY_V02: &[u8] = &0x184C_2102u32.to_le_bytes(); // @0..4: legacy LZ4 magic (02 21 4C 18)
     const LEGACY_V03: &[u8] = &0x184C_2103u32.to_le_bytes(); // @0..4: LZ4 v1.3 magic (03 21 4C 18)
     const MODERN_MAGIC: &[u8] = &0x184D_2204u32.to_le_bytes(); // @0..4: LZ4 v1.4+ frame magic (04 22 4D 18)
@@ -67,7 +72,7 @@ pub(crate) fn lz4(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 
     require!(prefix.len() >= MIN_LEN);
     if starts(prefix, LEGACY_V02) || starts(prefix, LEGACY_V03) {
-        return Some(Label::Lz4);
+        return with_subformat(Label::Lz4, &LZ4_LEGACY);
     }
     require!(starts(prefix, MODERN_MAGIC));
     let (flg, bd) = (u8_at(prefix, FLG)?, u8_at(prefix, BD)?);
@@ -81,12 +86,15 @@ pub(crate) fn lz4(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         _ => return None,
     };
     require!(prefix.len() >= min_prefix, ctx.size >= min_size);
-    Some(Label::Lz4)
+    with_subformat(Label::Lz4, &LZ4_FRAME)
 }
 
 /// RAR archive: RAR 1.5..4.x (`"Rar!\x1a\x07\x00"`), RAR 5.0 (`"Rar!\x1a\x07\x01\x00"`), or
 /// pre-1.5 legacy (`"RE~^"`).
 pub(crate) fn rar(prefix: &[u8]) -> Option<Label> {
+    static RAR_5: Subformat = Subformat::with_ids("RAR 5.0", "fmt/613", Some("fdd000460"));
+    static RAR_15_4X: Subformat = Subformat::new("RAR 1.5-4.x");
+    static RAR_14: Subformat = Subformat::new("RAR 1.4");
     const RAR4: &[u8] = b"Rar!\x1a\x07\x00"; // @0..7: RAR v1.5–4.x signature
     const RAR5: &[u8] = b"Rar!\x1a\x07\x01\x00"; // @0..8: RAR v5.0 signature
     const LEGACY: &[u8] = b"RE~^"; // @0..4: RAR pre-1.5 signature
@@ -96,7 +104,14 @@ pub(crate) fn rar(prefix: &[u8]) -> Option<Label> {
         prefix.len() >= MIN_LEN,
         starts(prefix, RAR4) || starts(prefix, RAR5) || starts(prefix, LEGACY),
     );
-    Some(Label::Rar)
+    let sub = if starts(prefix, RAR5) {
+        &RAR_5
+    } else if starts(prefix, RAR4) {
+        &RAR_15_4X
+    } else {
+        &RAR_14
+    };
+    with_subformat(Label::Rar, sub)
 }
 
 /// rzip compressed file: `"RZIP"` magic, major version 2, minor version `0..=1`, two 32-bit size
@@ -148,18 +163,21 @@ pub(crate) fn xar(prefix: &[u8]) -> Option<Label> {
 /// Zstandard compressed frame: legacy magics `0xFD2FB522..=0xFD2FB527` LE (≥ 8 bytes) or modern
 /// `0xFD2FB528` LE (≥ 9 bytes) with reserved bit 3 of `Frame_Header_Descriptor` clear.
 pub(crate) fn zst(prefix: &[u8]) -> Option<Label> {
+    static ZSTD_FRAME: Subformat = Subformat::new("Zstandard frame");
+    static ZSTD_LEGACY: Subformat = Subformat::new("Zstandard legacy (v0.x)");
     const MAGIC_TAIL: &[u8] = &[0xB5, 0x2F, 0xFD]; // @1..4: upper 3 bytes of Zstandard magic
     const FHD: usize = 4; // @4: u8 — Frame_Header_Descriptor (bit 3 reserved = 0)
     const MIN_LEN: usize = 8;
 
     require!(prefix.len() >= MIN_LEN, eq_at(prefix, 1, MAGIC_TAIL));
-    let valid = match u8_at(prefix, 0)? {
+    let magic_lo = u8_at(prefix, 0)?;
+    let valid = match magic_lo {
         0x22..=0x27 => true,
         0x28 => prefix.len() >= 9 && (u8_at(prefix, FHD)? & 0x08) == 0,
         _ => false,
     };
     require!(valid);
-    Some(Label::Zst)
+    with_subformat(Label::Zst, if magic_lo == 0x28 { &ZSTD_FRAME } else { &ZSTD_LEGACY })
 }
 
 /// Microsoft Cabinet archive (`CFHEADER`): `"MSCF\0\0\0\0"`, `cbCabinet` ≥ 36 at `@8`, reserved2
@@ -193,6 +211,8 @@ pub(crate) fn cab(prefix: &[u8]) -> Option<Label> {
 /// Google Chrome extension (`Cr24`): version 3 with nonzero header length at `@8`, or version 2
 /// with public-key and signature lengths in `1..=65536` at `@8` and `@12`.
 pub(crate) fn crx(prefix: &[u8]) -> Option<Label> {
+    static CRX_2: Subformat = Subformat::new("CRX2");
+    static CRX_3: Subformat = Subformat::new("CRX3");
     const MAGIC: &[u8] = b"Cr24"; // @0..4: CRX magic
     const VERSION: usize = 4; // @4: u32 LE — CRX format version (2 or 3)
     const LEN_A: usize = 8; // @8: u32 LE — CRX3 header length or CRX2 public key length
@@ -200,7 +220,8 @@ pub(crate) fn crx(prefix: &[u8]) -> Option<Label> {
     const MIN_LEN: usize = 12;
 
     require!(prefix.len() >= MIN_LEN, starts(prefix, MAGIC));
-    let valid = match le32(prefix, VERSION)? {
+    let version = le32(prefix, VERSION)?;
+    let valid = match version {
         3 => le32(prefix, LEN_A)? >= 1,
         2 => {
             prefix.len() >= 16
@@ -210,7 +231,7 @@ pub(crate) fn crx(prefix: &[u8]) -> Option<Label> {
         _ => false,
     };
     require!(valid);
-    Some(Label::Crx)
+    with_subformat(Label::Crx, if version == 3 { &CRX_3 } else { &CRX_2 })
 }
 
 /// Microsoft `compress.exe` SZDD archive: `"SZDD\x88\xf0\x27\x33"` magic, compression mode `'A'`
@@ -231,6 +252,10 @@ pub(crate) fn mscompress(prefix: &[u8]) -> Option<Label> {
 /// RPM package: 96-byte lead (`ED AB EE DB`, major version `3 | 4`, minor `0`, type `0 | 1` at `@6`)
 /// followed at `@96` by the 16-byte signature header magic (`8E AD E8 01 00 00 00 00`).
 pub(crate) fn rpm(prefix: &[u8]) -> Option<Label> {
+    static RPM_V3_BINARY: Subformat = Subformat::with_ids("RPM v3 binary package", "fmt/795", None);
+    static RPM_V3_SOURCE: Subformat = Subformat::with_ids("RPM v3 source package", "fmt/795", None);
+    static RPM_V4_BINARY: Subformat = Subformat::new("RPM v4 binary package");
+    static RPM_V4_SOURCE: Subformat = Subformat::new("RPM v4 source package");
     const LEAD_MAGIC: &[u8] = &[0xED, 0xAB, 0xEE, 0xDB]; // @0..4: RPM lead magic
     const MAJOR: usize = 4; // @4: u8 — major version (3 or 4)
     const MINOR: usize = 5; // @5: u8 — minor version (0)
@@ -247,7 +272,15 @@ pub(crate) fn rpm(prefix: &[u8]) -> Option<Label> {
         be16(prefix, PACKAGE_TYPE)? <= 1,
         eq_at(prefix, SIG_OFFSET, SIG_HEADER),
     );
-    Some(Label::Rpm)
+    let major = u8_at(prefix, MAJOR)?;
+    let is_source = be16(prefix, PACKAGE_TYPE)? == 1;
+    let sub = match (major, is_source) {
+        (3, false) => &RPM_V3_BINARY,
+        (3, true) => &RPM_V3_SOURCE,
+        (_, false) => &RPM_V4_BINARY,
+        (_, true) => &RPM_V4_SOURCE,
+    };
+    with_subformat(Label::Rpm, sub)
 }
 
 /// bzip2 compressed stream: `"BZh"` + block-size digit `'1'..='9'`, followed at `@4` by either the

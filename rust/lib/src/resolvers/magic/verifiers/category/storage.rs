@@ -43,6 +43,10 @@ pub(crate) fn vhd(prefix: &[u8]) -> Option<Label> {
 /// `"sqsh"` (BE), `"shsq"`, or `"qshs"` at `@0`, nonzero `inode_count` at `@4`,
 /// power-of-two `block_size` (`4096..=1048576`) at `@12`, and `s_major` `1..=4` at `@28`.
 pub(crate) fn squashfs(prefix: &[u8], size: u64) -> Option<Label> {
+    static SQUASHFS_LE: Subformat = Subformat::new("SquashFS (little-endian)");
+    static SQUASHFS_BE: Subformat = Subformat::new("SquashFS (big-endian)");
+    static SQUASHFS_LZMA_LE: Subformat = Subformat::new("SquashFS LZMA (little-endian)");
+    static SQUASHFS_LZMA_BE: Subformat = Subformat::new("SquashFS LZMA (big-endian)");
     const MIN_SQUASHFS_SIZE: u64 = 96; // 96B squashfs_super_block
     const SQUASHFS_LE_MAGIC: &[u8; 4] = b"hsqs";
     const SQUASHFS_LZMA_LE_MAGIC: &[u8; 4] = b"shsq";
@@ -72,8 +76,21 @@ pub(crate) fn squashfs(prefix: &[u8], size: u64) -> Option<Label> {
     {
         return Some(Label::Snap);
     }
-    Some(Label::Squashfs)
+    let sub = if starts(prefix, SQUASHFS_LE_MAGIC) {
+        &SQUASHFS_LE
+    } else if starts(prefix, SQUASHFS_BE_MAGIC) {
+        &SQUASHFS_BE
+    } else if starts(prefix, SQUASHFS_LZMA_LE_MAGIC) {
+        &SQUASHFS_LZMA_LE
+    } else {
+        &SQUASHFS_LZMA_BE
+    };
+    with_subformat(Label::Squashfs, sub)
 }
+
+static DMG_2IMG: Subformat = Subformat::new("Apple II 2IMG disk image");
+static DMG_DDM: Subformat = Subformat::new("Apple Driver Descriptor Map");
+static DMG_UDIF: Subformat = Subformat::with_ids("Apple UDIF disk image", "fmt/1071", None);
 
 /// Apple Disk Image header variants (`dmg`): Apple Driver Descriptor Map (`"ER"` +
 /// block size `512` or `2048` BE at `@0..4`) or Apple II `"2IMG"` universal disk image.
@@ -87,14 +104,14 @@ pub(crate) fn dmg_header(prefix: &[u8], size: u64) -> Option<Label> {
         let hdr_len = le16(prefix, 8)?;
         let version = le16(prefix, 10)?;
         require!(matches!(hdr_len, 52 | 64), version <= 1);
-        return Some(Label::Dmg);
+        return with_subformat(Label::Dmg, &DMG_2IMG);
     }
     require!(
         size >= 512,
         starts(prefix, DMG_DDM_2048_MAGIC) || starts(prefix, DMG_DDM_512_MAGIC),
         be32(prefix, 4)? >= 1,
     );
-    Some(Label::Dmg)
+    with_subformat(Label::Dmg, &DMG_DDM)
 }
 
 /// Apple UDIF Disk Image `koly` trailer (`dmg`, 2001): 512-byte trailer at `size - 512`
@@ -103,12 +120,15 @@ pub(crate) fn dmg_koly(size: u64, tail: Option<&[u8]>) -> Option<Label> {
     const DMG_KOLY_MAGIC: &[u8] = bytes!(b"koly", &4u32.to_be_bytes(), &512u32.to_be_bytes());
     let t = tail?;
     require!(size >= 512, t.len() >= 512, eq_at(t, t.len() - 512, DMG_KOLY_MAGIC),);
-    Some(Label::Dmg)
+    with_subformat(Label::Dmg, &DMG_UDIF)
 }
 
 /// Apple Hierarchical File System (`"BD"` classic HFS, `"H+"` HFS Plus, or `"HX"` HFSX) volume
 /// image (`hfs`, 1985): volume header signature at `@1024..1026` with valid version or allocation block size.
 pub(crate) fn hfs(prefix: &[u8], size: u64) -> Option<Label> {
+    static HFS_PLUS: Subformat = Subformat::with_ids("HFS Plus", "fmt/1742", None);
+    static HFSX: Subformat = Subformat::new("HFSX");
+    static HFS_CLASSIC: Subformat = Subformat::with_ids("HFS", "fmt/1105", None);
     const HFS_PLUS_SIG: &[u8; 2] = b"H+";
     const HFSX_SIG: &[u8; 2] = b"HX";
     const HFS_CLASSIC_SIG: &[u8; 2] = b"BD";
@@ -125,7 +145,14 @@ pub(crate) fn hfs(prefix: &[u8], size: u64) -> Option<Label> {
                 && (512..0x0800_0000).contains(&be32(prefix, 1044)?)
                 && be32(prefix, 1044)? % 512 == 0),
     );
-    Some(Label::Hfs)
+    let sub = if eq_at(prefix, 1024, HFS_PLUS_SIG) {
+        &HFS_PLUS
+    } else if eq_at(prefix, 1024, HFSX_SIG) {
+        &HFSX
+    } else {
+        &HFS_CLASSIC
+    };
+    with_subformat(Label::Hfs, sub)
 }
 
 /// IBM PC / MS-DOS Master Boot Record sector (`dosmbr`, 1983): exact 512-byte sector starting with
@@ -176,6 +203,8 @@ pub(crate) fn img_fat12(prefix: &[u8], size: u64) -> Option<Label> {
 /// Microsoft Windows Imaging Format (`wim`, 2006): `"MSWIM\0\0\0"` or `"WLPWM\0\0\0"` signature at
 /// `@0..8`, header size `0xD0` (`208`) LE at `@8..12`, and non-zero version at `@12..16`.
 pub(crate) fn wim(prefix: &[u8], size: u64) -> Option<Label> {
+    static WIM: Subformat = Subformat::with_ids("WIM", "fmt/614", None);
+    static WIM_PIPABLE: Subformat = Subformat::new("Pipable WIM");
     const MSWIM_MAGIC: &[u8; 8] = b"MSWIM\0\0\0";
     const WLPWM_MAGIC: &[u8; 8] = b"WLPWM\0\0\0";
 
@@ -186,5 +215,5 @@ pub(crate) fn wim(prefix: &[u8], size: u64) -> Option<Label> {
         le32(prefix, 8)? == 0xD0,
         le32(prefix, 12)? >= 1,
     );
-    Some(Label::Wim)
+    with_subformat(Label::Wim, if starts(prefix, MSWIM_MAGIC) { &WIM } else { &WIM_PIPABLE })
 }

@@ -130,6 +130,9 @@ pub(crate) fn jng(prefix: &[u8]) -> Option<Label> {
 /// Adobe Photoshop PSD (v1) / PSB (v2): `"8BPS"` signature, version 1 or 2, 6 reserved zero bytes,
 /// `1..=56` channels, bounded dimensions, bit depth `1 | 8 | 16 | 32`, and color mode `0..=9`.
 pub(crate) fn psd(prefix: &[u8]) -> Option<Label> {
+    static PSD: Subformat = Subformat::new("Adobe Photoshop (PSD)");
+    static PSB: Subformat =
+        Subformat::with_ids("Adobe Photoshop Large Document (PSB)", "fmt/996", Some("fdd000523"));
     const MAGIC: &[u8] = b"8BPS"; // @0..4: Photoshop signature
     const VERSION: usize = 4; // @4: u16 BE — 1 = PSD, 2 = PSB
     const RESERVED: usize = 6; // @6..12: 6 reserved zero bytes
@@ -155,7 +158,7 @@ pub(crate) fn psd(prefix: &[u8]) -> Option<Label> {
         _ => return None,
     };
     require!((1..=max_dim).contains(&h), (1..=max_dim).contains(&w));
-    Some(Label::Psd)
+    with_subformat(Label::Psd, if ver == 1 { &PSD } else { &PSB })
 }
 
 /// Quite OK Image (QOI): `"qoif"` magic, nonzero width and height, 3 or 4 channels, and colorspace
@@ -182,6 +185,8 @@ pub(crate) fn qoi(prefix: &[u8]) -> Option<Label> {
 /// GIMP XCF image: `"gimp xcf "` followed by `"file\0"` or `"v[0-9]{3}\0"`, width/height words,
 /// and base image type `0..=2` (RGB, grayscale, indexed) at `@22`.
 pub(crate) fn xcf(prefix: &[u8]) -> Option<Label> {
+    static XCF_V0: Subformat = Subformat::new("GIMP XCF v0");
+    static XCF_VNNN: Subformat = Subformat::new("GIMP XCF vNNN");
     const MAGIC: &[u8] = b"gimp xcf "; // @0..9: XCF magic prefix
     const VERSION: usize = 9; // @9..14: "file\0" or "vNNN\0"
     const VERSION_V0: &[u8] = b"file\0";
@@ -189,18 +194,21 @@ pub(crate) fn xcf(prefix: &[u8]) -> Option<Label> {
     const MIN_LEN: usize = 26;
 
     require!(prefix.len() >= MIN_LEN, starts(prefix, MAGIC), be32(prefix, IMAGE_TYPE)? <= 2);
-    let ver_ok = eq_at(prefix, VERSION, VERSION_V0)
+    let is_v0 = eq_at(prefix, VERSION, VERSION_V0);
+    let ver_ok = is_v0
         || (u8_at(prefix, VERSION)? == b'v'
             && get_slice(prefix, 10, 13).is_some_and(|s| s.iter().all(u8::is_ascii_digit))
             && u8_at(prefix, 13)? == 0);
     require!(ver_ok);
-    Some(Label::Xcf)
+    with_subformat(Label::Xcf, if is_v0 { &XCF_V0 } else { &XCF_VNNN })
 }
 
 /// CompuServe GIF (`"GIF87a"` or `"GIF89a"`): nonzero width and height at `@6` and `@8`, and a
 /// valid block introducer (`0x21` extension, `0x2C` image descriptor, or `0x3B` trailer) right
 /// after the optional Global Color Table.
 pub(crate) fn gif(prefix: &[u8]) -> Option<Label> {
+    static GIF_87A: Subformat = Subformat::with_ids("GIF 87a", "fmt/3", None);
+    static GIF_89A: Subformat = Subformat::with_ids("GIF 89a", "fmt/4", Some("fdd000133"));
     const GIF87A: &[u8] = b"GIF87a"; // @0..6: GIF87a header
     const GIF89A: &[u8] = b"GIF89a"; // @0..6: GIF89a header
     const WIDTH: usize = 6; // @6: u16 LE — logical screen width (> 0)
@@ -220,7 +228,7 @@ pub(crate) fn gif(prefix: &[u8]) -> Option<Label> {
     let first_block =
         if packed < 0x80 { END_OF_LSD } else { END_OF_LSD + 3 * (1usize << ((packed & 0x07) + 1)) };
     require!(matches!(u8_at(prefix, first_block)?, 0x21 | 0x2C | 0x3B));
-    Some(Label::Gif)
+    with_subformat(Label::Gif, if starts(prefix, GIF87A) { &GIF_87A } else { &GIF_89A })
 }
 
 /// Windows Icon (`ICONDIR` + first `ICONDIRENTRY`): reserved `0`, type `1` (`00 00 01 00`),
@@ -247,16 +255,18 @@ pub(crate) fn ico(prefix: &[u8]) -> Option<Label> {
 
 /// Commodore 64 compressed Koala Painter image: fixed 4-byte header `FF 80 C9 C7` and ≥ 16 bytes.
 pub(crate) fn koala(prefix: &[u8]) -> Option<Label> {
+    static KOALA_COMPRESSED: Subformat = Subformat::new("Koala Painter (compressed)");
     const MAGIC: &[u8] = &[0xFF, 0x80, 0xC9, 0xC7]; // @0..4: Koala compressed load header
     const MIN_LEN: usize = 16;
 
     require!(prefix.len() >= MIN_LEN, starts(prefix, MAGIC));
-    Some(Label::Koala)
+    with_subformat(Label::Koala, &KOALA_COMPRESSED)
 }
 
 /// Commodore 64 uncompressed Koala Painter image (`.koa` / `.kla` / `.pic`): 2-byte load address
 /// `00 60` (`$6000`) at `@0..2`, exact 10,003-byte file size, and background color nibble `<= 0x0F` at `@10002`.
 pub(crate) fn koala_uncompressed(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
+    static KOALA_UNCOMPRESSED: Subformat = Subformat::new("Koala Painter (uncompressed)");
     const LOAD_ADDR_6000: &[u8] = &[0x00, 0x60];
     require!(
         ctx.size == 10_003,
@@ -265,13 +275,19 @@ pub(crate) fn koala_uncompressed(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> 
         u8_at(prefix, 10_002)? <= 0x0F,
     );
     let _ = get_slice(prefix, 0, 16);
-    Some(Label::Koala)
+    with_subformat(Label::Koala, &KOALA_UNCOMPRESSED)
 }
 
 /// Netpbm image (`"P1"`..`"P6"`): 1..=8 whitespace bytes, up to 2 `#...\n` comment lines (each ≤
 /// 128 comment bytes followed by `\n` and 0..=4 whitespace bytes), width (1..=6 ASCII digits),
 /// 1..=4 whitespace bytes, height (1..=6 ASCII digits), and a trailing whitespace byte.
 pub(crate) fn pbm(prefix: &[u8]) -> Option<Label> {
+    static PBM_ASCII: Subformat = Subformat::with_ids("PBM (ASCII)", "x-fmt/164", None);
+    static PGM_ASCII: Subformat = Subformat::with_ids("PGM (ASCII)", "fmt/407", None);
+    static PPM_ASCII: Subformat = Subformat::with_ids("PPM (ASCII)", "x-fmt/178", None);
+    static PBM_BINARY: Subformat = Subformat::with_ids("PBM (binary)", "fmt/409", None);
+    static PGM_BINARY: Subformat = Subformat::with_ids("PGM (binary)", "fmt/406", None);
+    static PPM_BINARY: Subformat = Subformat::with_ids("PPM (binary)", "fmt/408", None);
     #[inline]
     fn is_ws(b: u8) -> bool {
         matches!(b, b' ' | b'\t' | b'\r' | b'\n')
@@ -314,13 +330,29 @@ pub(crate) fn pbm(prefix: &[u8]) -> Option<Label> {
     let height_digits = take_run(prefix, &mut i, |b| b.is_ascii_digit());
     require!((1..=6).contains(&height_digits), is_ws(u8_at(prefix, i)?),);
     let _ = get_slice(prefix, 0, i + 1);
-    Some(Label::Pbm)
+    let sub = match prefix[1] {
+        b'1' => &PBM_ASCII,
+        b'2' => &PGM_ASCII,
+        b'3' => &PPM_ASCII,
+        b'4' => &PBM_BINARY,
+        b'5' => &PGM_BINARY,
+        _ => &PPM_BINARY,
+    };
+    with_subformat(Label::Pbm, sub)
 }
 
 /// Windows or OS/2 BMP image (`"BM"`): zero reserved words at `@6..10`, file size and pixel
 /// offset at `@2` and `@10`, followed at `@14` by either a 12-byte OS/2 `BITMAPCOREHEADER` or an
 /// uncompressed Windows DIB header (40, 52, 56, 108, or 124 bytes).
 pub(crate) fn bmp(prefix: &[u8]) -> Option<Label> {
+    static BMP_CORE: Subformat =
+        Subformat::with_ids("BMP (OS/2 1.x / Windows 2.x)", "fmt/115", None);
+    static BMP_V3: Subformat = Subformat::with_ids("BMP v3 (BITMAPINFOHEADER)", "fmt/116", None);
+    static BMP_V3_V2: Subformat = Subformat::new("BMP v3 (BITMAPV2INFOHEADER)");
+    static BMP_V3_V3: Subformat = Subformat::new("BMP v3 (BITMAPV3INFOHEADER)");
+    static BMP_V4: Subformat = Subformat::with_ids("BMP v4 (BITMAPV4HEADER)", "fmt/118", None);
+    static BMP_V5: Subformat =
+        Subformat::with_ids("BMP v5 (BITMAPV5HEADER)", "fmt/119", Some("fdd000189"));
     const MAGIC: &[u8] = b"BM"; // @0..2: BITMAPFILEHEADER magic
     const FILE_SIZE: usize = 2; // @2: u32 LE — bfSize (≥ 26)
     const RESERVED: usize = 6; // @6: u32 LE — bfReserved1 + bfReserved2 (0)
@@ -356,7 +388,15 @@ pub(crate) fn bmp(prefix: &[u8]) -> Option<Label> {
             && le32(prefix, 30)? == 0
     };
     require!(valid);
-    Some(Label::Bmp)
+    let sub = match dib_size {
+        12 => &BMP_CORE,
+        40 => &BMP_V3,
+        52 => &BMP_V3_V2,
+        56 => &BMP_V3_V3,
+        108 => &BMP_V4,
+        _ => &BMP_V5,
+    };
+    with_subformat(Label::Bmp, sub)
 }
 
 /// DICOM medical image (PS3.10): 128-byte preamble followed by `"DICM"` at `@128`.
@@ -419,6 +459,8 @@ pub(crate) fn emf(prefix: &[u8]) -> Option<Label> {
 /// Atari ST DEGAS / DEGAS Elite uncompressed screen dump (`.pi1`/`.pi2`/`.pi3`): resolution word
 /// `0..=2` BE at `@0` and exact file size `32034` (raw) or `32066` (with animation footer).
 pub(crate) fn degas(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
+    static DEGAS: Subformat = Subformat::new("DEGAS");
+    static DEGAS_ELITE: Subformat = Subformat::new("DEGAS Elite");
     const RESOLUTION: usize = 0; // @0: u16 BE — 0 (low), 1 (medium), 2 (high)
     const MIN_LEN: usize = 34; // 2-byte resolution + 32-byte palette
     const RAW_SIZE: u64 = 32034;
@@ -430,7 +472,7 @@ pub(crate) fn degas(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         be16(prefix, RESOLUTION)? <= 2,
     );
     let _ = get_slice(prefix, 0, MIN_LEN);
-    Some(Label::Degas)
+    with_subformat(Label::Degas, if ctx.size == RAW_SIZE { &DEGAS } else { &DEGAS_ELITE })
 }
 
 /// W3C Portable Network Graphics (`png`, 1996, RFC 2083): 8-byte PNG signature at `@0`,
@@ -438,6 +480,8 @@ pub(crate) fn degas(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
 /// (`1|2|4|8|16`) at `@24`, valid color type (`0|2|3|4|6`) at `@25`, and zero
 /// compression/filter methods at `@26..28`.
 pub(crate) fn png(prefix: &[u8], size: u64) -> Option<Label> {
+    static PNG: Subformat = Subformat::new("PNG");
+    static PNG_CGBI: Subformat = Subformat::new("Apple CgBI PNG");
     const MIN_PNG_SIZE: u64 = 57; // 8B sig + 25B IHDR + 12B IDAT + 12B IEND
     const PNG_SIG: &[u8] = b"\x89PNG\r\n\x1A\n";
     const CGBI_TAG: &[u8; 4] = b"CgBI";
@@ -458,7 +502,7 @@ pub(crate) fn png(prefix: &[u8], size: u64) -> Option<Label> {
         u8_at(prefix, ihdr + 19)? == 0,
         u8_at(prefix, ihdr + 20)? <= 1,
     );
-    Some(Label::Png)
+    with_subformat(Label::Png, if ihdr == 24 { &PNG_CGBI } else { &PNG })
 }
 
 /// ITU-T T.81 / ISO/IEC 10918-1 JPEG (`jpeg`, 1992): SOI marker `FF D8` followed by a
@@ -489,36 +533,45 @@ pub(crate) const BIGTIFF_BE_MAGIC: &[u8; 4] = &[b'M', b'M', 0, 43];
 /// `"II"` (little-endian) or `"MM"` (big-endian) at `@0`, version `42` (classic TIFF with
 /// IFD offset `>= 8` at `@4`) or `43` (BigTIFF with offset byte size `8` at `@4` and `0` at `@6`).
 pub(crate) fn tiff(prefix: &[u8], size: u64) -> Option<Label> {
+    static TIFF_LE: Subformat = Subformat::new("TIFF (little-endian)");
+    static TIFF_BE: Subformat = Subformat::new("TIFF (big-endian)");
+    static BIGTIFF_LE: Subformat =
+        Subformat::with_ids("BigTIFF (little-endian)", "fmt/1917", Some("fdd000328"));
+    static BIGTIFF_BE: Subformat =
+        Subformat::with_ids("BigTIFF (big-endian)", "fmt/1917", Some("fdd000328"));
     const MIN_TIFF_SIZE: u64 = 14; // 8B TIFF header + 2B entry count + 4B next IFD offset
 
     require!(size >= MIN_TIFF_SIZE, prefix.len() >= 8);
-    let valid = if starts(prefix, TIFF_LE_MAGIC) {
+    let (valid, sub) = if starts(prefix, TIFF_LE_MAGIC) {
         let off = le32(prefix, 4)?;
-        off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size
+        (off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size, &TIFF_LE)
     } else if starts(prefix, TIFF_BE_MAGIC) {
         let off = be32(prefix, 4)?;
-        off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size
+        (off >= 8 && off % 2 == 0 && (off as u64) + 14 <= size, &TIFF_BE)
     } else if starts(prefix, BIGTIFF_LE_MAGIC) {
-        prefix.len() >= 16
+        let valid = prefix.len() >= 16
             && le16(prefix, 4)? == 8
             && le16(prefix, 6)? == 0
-            && le64(prefix, 8)? >= 16
+            && le64(prefix, 8)? >= 16;
+        (valid, &BIGTIFF_LE)
     } else if starts(prefix, BIGTIFF_BE_MAGIC) {
-        prefix.len() >= 16
+        let valid = prefix.len() >= 16
             && be16(prefix, 4)? == 8
             && be16(prefix, 6)? == 0
-            && be64(prefix, 8)? >= 16
+            && be64(prefix, 8)? >= 16;
+        (valid, &BIGTIFF_BE)
     } else {
-        false
+        (false, &TIFF_LE)
     };
     require!(valid);
-    Some(Label::Tiff)
+    with_subformat(Label::Tiff, sub)
 }
 
 /// Aldus Placeable Windows Metafile (`wmf`, 1988): magic `D7 CD C6 9A` at `@0`, `hmf == 0`
 /// at `@4`, XOR-16 checksum over the first 10 words at `@20`, followed by standard WMF header
 /// (`mtType` `1|2`, `mtHeaderSize == 9`, `mtVersion` `0x0100|0x0300`) at `@22`.
 pub(crate) fn wmf_placeable(prefix: &[u8], size: u64) -> Option<Label> {
+    static WMF_PLACEABLE: Subformat = Subformat::new("Aldus Placeable Metafile");
     const MIN_WMF_PLACEABLE_SIZE: u64 = 46; // 22B Aldus header + 18B WMF header + 6B META_EOF
     const WMF_ALDUS_MAGIC: &[u8] = &[0xD7, 0xCD, 0xC6, 0x9A];
 
@@ -539,7 +592,7 @@ pub(crate) fn wmf_placeable(prefix: &[u8], size: u64) -> Option<Label> {
         matches!(le16(prefix, 26)?, 0x0100 | 0x0300),
         le32(prefix, 28)? >= 9,
     );
-    Some(Label::Wmf)
+    with_subformat(Label::Wmf, &WMF_PLACEABLE)
 }
 
 /// Standard Windows GDI Metafile (`wmf`, 1988): `mtType` `1` or `2` LE at `@0`,
@@ -547,6 +600,7 @@ pub(crate) fn wmf_placeable(prefix: &[u8], size: u64) -> Option<Label> {
 /// `mtSize >= 9` words at `@6`, `mtMaxRecord >= 3` words at `@12`, `mtNoParameters == 0`
 /// at `@16`, and first record size `>= 3` at `@18`.
 pub(crate) fn wmf_standard(prefix: &[u8], size: u64) -> Option<Label> {
+    static WMF_STANDARD: Subformat = Subformat::new("Windows Metafile (standard)");
     const MIN_WMF_STD_SIZE: u64 = 24; // 18B METAHEADER + 6B META_EOF record
 
     require!(
@@ -560,13 +614,16 @@ pub(crate) fn wmf_standard(prefix: &[u8], size: u64) -> Option<Label> {
         le16(prefix, 16)? == 0,
         le32(prefix, 18)? >= 3,
     );
-    Some(Label::Wmf)
+    with_subformat(Label::Wmf, &WMF_STANDARD)
 }
 
 /// Truevision TGA (`tga`, 1984 / v2.0 1989): either carries the 26-byte v2.0 footer ending
 /// with `"TRUEVISION-XFILE.\0"` in `tail`, or satisfies strict 18-byte TGA v1.0 header
 /// + exact file size geometry.
 pub(crate) fn tga(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label> {
+    static TGA_2: Subformat = Subformat::with_ids("TGA 2.0", "fmt/402", Some("fdd000180"));
+    static TGA_1: Subformat = Subformat::with_ids("TGA 1.0", "x-fmt/367", Some("fdd000179"));
+    static TGA_UNSIGNED_FOOTER: Subformat = Subformat::new("TGA (unsigned 26-byte footer)");
     const MIN_TGA_SIZE: u64 = 19; // 18B header + >= 1B pixel data
     const TGA_V2_FOOTER_MAGIC: &[u8; 18] = b"TRUEVISION-XFILE.\0";
 
@@ -599,7 +656,7 @@ pub(crate) fn tga(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label
         && t.len() >= 26
         && eq_at(t, t.len() - 18, TGA_V2_FOOTER_MAGIC)
     {
-        return Some(Label::Tga);
+        return with_subformat(Label::Tga, &TGA_2);
     }
 
     // Uncompressed TGA v1.0 exact size match (18B header + ID + colormap + width*height*(bpp/8))
@@ -609,7 +666,8 @@ pub(crate) fn tga(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option<Label
         let pixel_bytes = width * height * ((bpp as u64).div_ceil(8));
         let expected = 18 + id_len + cmap_bytes + pixel_bytes;
         if size == expected || size == expected + 26 {
-            return Some(Label::Tga);
+            let sub = if size == expected { &TGA_1 } else { &TGA_UNSIGNED_FOOTER };
+            return with_subformat(Label::Tga, sub);
         }
     }
     None
@@ -642,6 +700,8 @@ pub(crate) fn is_borland_delphi1_dfm_or_qrp(b: &[u8]) -> bool {
 /// Validates a raw JPEG XL codestream (`FF 0A`) `SizeHeader` + `ImageMetadata` + `CustomTransformData`
 /// + `ZeroPadToByte` + `FrameHeader` / `Toc` bitstream (ISO/IEC 18181-1 Annex A & B).
 pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
+    static JXL_CODESTREAM: Subformat =
+        Subformat::with_ids("JPEG XL codestream", "fmt/1484", Some("fdd000536"));
     const JXL_CODESTREAM_MAGIC: &[u8] = &[0xFF, 0x0A];
     if size < 8
         || b.len() < 8
@@ -926,7 +986,7 @@ pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
         let icc_len = u64_var!();
         if (32..=(1 << 20)).contains(&icc_len) {
             let _ = get_slice(b, 0, b.len().min(18));
-            return Some(Label::Jxl);
+            return with_subformat(Label::Jxl, &JXL_CODESTREAM);
         }
         return None;
     }
@@ -957,7 +1017,7 @@ pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
             }
         }
         let _ = get_slice(b, 0, b.len().min(18));
-        return Some(Label::Jxl);
+        return with_subformat(Label::Jxl, &JXL_CODESTREAM);
     }
 
     let frame_type = u!(2);
@@ -1085,7 +1145,7 @@ pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
     }
     if u64_var!() == 0 {
         let _ = get_slice(b, 0, b.len().min(18));
-        Some(Label::Jxl)
+        with_subformat(Label::Jxl, &JXL_CODESTREAM)
     } else {
         None
     }
@@ -1094,6 +1154,8 @@ pub(crate) fn verify_jxl_codestream(b: &[u8], size: u64) -> Option<Label> {
 /// Scanntronik Printfox / Pagefox C64 bitmap (`printfox`, 1986): `'B'` (`320x200`, `8000`B) or `'G'`
 /// (`640x400`, `32000`B) type byte at `@0` followed by `0x9B` 16-bit LE RLE stream decoding to exact canvas size.
 pub(crate) fn printfox(prefix: &[u8], size: u64) -> Option<Label> {
+    static PRINTFOX_B: Subformat = Subformat::new("Printfox bitmap (320x200)");
+    static PRINTFOX_G: Subformat = Subformat::new("Printfox/Pagefox bitmap (640x400)");
     require!((64..=40208).contains(&size), prefix.len() >= size as usize);
     let slice = &prefix[..size as usize];
     let rle16 = |start: usize, bounds: &[usize], totals: &[usize]| -> bool {
@@ -1136,12 +1198,14 @@ pub(crate) fn printfox(prefix: &[u8], size: u64) -> Option<Label> {
     };
     require!(ok);
     let _ = get_slice(prefix, 0, 1);
-    Some(Label::Printfox)
+    with_subformat(Label::Printfox, if slice[0] == b'B' { &PRINTFOX_B } else { &PRINTFOX_G })
 }
 
 /// Neuroimaging Informatics Technology Initiative NIfTI-1 volume (`nifti`, 2004): `sizeof_hdr == 348`
 /// (LE or BE) at `@0..4` paired with `"n+1\0"` or `"ni1\0"` magic at `@344..348`.
 pub(crate) fn nifti(prefix: &[u8], size: u64) -> Option<Label> {
+    static NIFTI1_SINGLE: Subformat = Subformat::new("NIfTI-1 single file (.nii)");
+    static NIFTI1_PAIR: Subformat = Subformat::new("NIfTI-1 header/image pair (.hdr)");
     const NIFTI1_SINGLE_MAGIC: &[u8; 4] = b"n+1\0";
     const NIFTI1_PAIR_MAGIC: &[u8; 4] = b"ni1\0";
 
@@ -1151,12 +1215,14 @@ pub(crate) fn nifti(prefix: &[u8], size: u64) -> Option<Label> {
         (eq_at(prefix, 344, NIFTI1_SINGLE_MAGIC) || eq_at(prefix, 344, NIFTI1_PAIR_MAGIC))
             && (le32(prefix, 0)? == 348 || be32(prefix, 0)? == 348),
     );
-    Some(Label::Nifti)
+    let sub = if eq_at(prefix, 344, NIFTI1_SINGLE_MAGIC) { &NIFTI1_SINGLE } else { &NIFTI1_PAIR };
+    with_subformat(Label::Nifti, sub)
 }
 
 /// Eastman Kodak Photo CD image (`pcd`, 1992): 2048-byte preamble followed by `"PCD_IPI"` or
 /// `"PCD_OPA"` signature at `@2048..2055`.
 pub(crate) fn pcd_kodak(prefix: &[u8], size: u64) -> Option<Label> {
+    static KODAK_PHOTO_CD: Subformat = Subformat::with_ids("Kodak Photo CD", "fmt/211", None);
     const KODAK_PCD_IPI_MAGIC: &[u8; 7] = b"PCD_IPI";
     const KODAK_PCD_OPA_MAGIC: &[u8; 7] = b"PCD_OPA";
 
@@ -1166,12 +1232,13 @@ pub(crate) fn pcd_kodak(prefix: &[u8], size: u64) -> Option<Label> {
         has_non_ascii_text_byte(&prefix[..4]),
         eq_at(prefix, 2048, KODAK_PCD_IPI_MAGIC) || eq_at(prefix, 2048, KODAK_PCD_OPA_MAGIC),
     );
-    Some(Label::Pcd)
+    with_subformat(Label::Pcd, &KODAK_PHOTO_CD)
 }
 
 /// Point Cloud Library (PCL) Point Cloud Data file (`pcd`, 2010): `"# .PCD v"` or `"VERSION 0.7"`
 /// header followed by `\nFIELDS `, `\nPOINTS `, and `\nDATA ` directives.
 pub(crate) fn pcd_ascii(prefix: &[u8], size: u64) -> Option<Label> {
+    static PCL_POINT_CLOUD: Subformat = Subformat::new("PCL Point Cloud Data");
     const PCD_COMMENT_MAGIC: &[u8] = b"# .PCD v";
     const PCD_VER_DOT7: &[u8] = b"VERSION .7";
     const PCD_VER_0DOT7: &[u8] = b"VERSION 0.7";
@@ -1190,7 +1257,7 @@ pub(crate) fn pcd_ascii(prefix: &[u8], size: u64) -> Option<Label> {
             && contains(prefix, PCD_DATA_LF),
         is_utf8_text_header(prefix, size as usize),
     );
-    Some(Label::Pcd)
+    with_subformat(Label::Pcd, &PCL_POINT_CLOUD)
 }
 
 /// Disambiguates Aldus Placeable and Standard Windows Metafiles (`wmf`).

@@ -40,6 +40,10 @@ const SFNT_TTCF: u32 = tag_u32(TTCF_MAGIC);
 /// W3C Web Open Font Format 1.0 (WOFF): `"wOFF"` magic, known sfnt flavor at `@4`, length ≥ 64 at
 /// `@8`, `1..=4095` tables at `@12`, reserved `0` at `@14`, and totalSfntSize ≥ 28 at `@16`.
 pub(crate) fn woff(prefix: &[u8]) -> Option<Label> {
+    static WOFF_TRUETYPE: Subformat = Subformat::new("WOFF 1.0 (TrueType)");
+    static WOFF_CFF: Subformat = Subformat::new("WOFF 1.0 (OpenType CFF)");
+    static WOFF_APPLE_TT: Subformat = Subformat::new("WOFF 1.0 (Apple TrueType)");
+    static WOFF_TYP1: Subformat = Subformat::new("WOFF 1.0 (PostScript Type 1)");
     const MAGIC: &[u8] = b"wOFF"; // @0..4: WOFF 1.0 signature
     const FLAVOR: usize = 4; // @4: u32 BE — sfnt flavor
     const LENGTH: usize = 8; // @8: u32 BE — total WOFF file size (≥ 64)
@@ -55,15 +59,26 @@ pub(crate) fn woff(prefix: &[u8]) -> Option<Label> {
         (1..=4095).contains(&be16(prefix, NUM_TABLES)?),
         be16(prefix, RESERVED)? == 0,
         be32(prefix, TOTAL_SFNT_SIZE)? >= 28,
-        matches!(be32(prefix, FLAVOR)?, SFNT_1_0 | SFNT_OTTO | SFNT_TRUE | SFNT_TYP1),
     );
-    Some(Label::Woff)
+    let sub = match be32(prefix, FLAVOR)? {
+        SFNT_1_0 => &WOFF_TRUETYPE,
+        SFNT_OTTO => &WOFF_CFF,
+        SFNT_TRUE => &WOFF_APPLE_TT,
+        SFNT_TYP1 => &WOFF_TYP1,
+        _ => return None,
+    };
+    with_subformat(Label::Woff, sub)
 }
 
 /// W3C Web Open Font Format 2.0 (WOFF2): `"wOF2"` magic, known sfnt/collection flavor at `@4`,
 /// length ≥ 51 at `@8`, `1..=4095` tables at `@12`, reserved `0` at `@14`, totalSfntSize ≥ 28 at
 /// `@16`, and nonzero totalCompressedSize at `@20`.
 pub(crate) fn woff2(prefix: &[u8]) -> Option<Label> {
+    static WOFF2_TRUETYPE: Subformat = Subformat::new("WOFF 2.0 (TrueType)");
+    static WOFF2_CFF: Subformat = Subformat::new("WOFF 2.0 (OpenType CFF)");
+    static WOFF2_APPLE_TT: Subformat = Subformat::new("WOFF 2.0 (Apple TrueType)");
+    static WOFF2_TYP1: Subformat = Subformat::new("WOFF 2.0 (PostScript Type 1)");
+    static WOFF2_TTC: Subformat = Subformat::new("WOFF 2.0 (TrueType Collection)");
     const MAGIC: &[u8] = b"wOF2"; // @0..4: WOFF 2.0 signature
     const FLAVOR: usize = 4; // @4: u32 BE — sfnt flavor
     const LENGTH: usize = 8; // @8: u32 BE — total WOFF2 file size (≥ 51)
@@ -81,9 +96,16 @@ pub(crate) fn woff2(prefix: &[u8]) -> Option<Label> {
         be16(prefix, RESERVED)? == 0,
         be32(prefix, TOTAL_SFNT_SIZE)? >= 28,
         be32(prefix, TOTAL_COMP_SIZE)? >= 1,
-        matches!(be32(prefix, FLAVOR)?, SFNT_1_0 | SFNT_OTTO | SFNT_TRUE | SFNT_TYP1 | SFNT_TTCF),
     );
-    Some(Label::Woff2)
+    let sub = match be32(prefix, FLAVOR)? {
+        SFNT_1_0 => &WOFF2_TRUETYPE,
+        SFNT_OTTO => &WOFF2_CFF,
+        SFNT_TRUE => &WOFF2_APPLE_TT,
+        SFNT_TYP1 => &WOFF2_TYP1,
+        SFNT_TTCF => &WOFF2_TTC,
+        _ => return None,
+    };
+    with_subformat(Label::Woff2, sub)
 }
 
 /// Apple / Microsoft TrueType Font (`ttf`, 1991) & TrueType Collection (`ttcf`):
@@ -91,6 +113,11 @@ pub(crate) fn woff2(prefix: &[u8]) -> Option<Label> {
 /// `searchRange`, and printable 4-byte table tags; or `"ttcf"` header with version `1|2`
 /// and font count `1..=1024`.
 pub(crate) fn ttf(prefix: &[u8], size: u64) -> Option<Label> {
+    static TTC_V1: Subformat = Subformat::new("TrueType Collection (v1.0)");
+    static TTC_V2: Subformat = Subformat::new("TrueType Collection (v2.0)");
+    static TTF_SFNT: Subformat = Subformat::with_ids("TrueType Font (sfnt)", "x-fmt/453", None);
+    static TTF_APPLE: Subformat = Subformat::with_ids("Apple TrueType Font", "x-fmt/453", None);
+    static TTF_TYPE1: Subformat = Subformat::new("PostScript Type 1 sfnt Font");
     const MIN_TTF_SIZE: u64 = 28; // 12B offset table + >=1 16B table directory record
 
     require!(size >= MIN_TTF_SIZE, prefix.len() >= 28);
@@ -99,18 +126,23 @@ pub(crate) fn ttf(prefix: &[u8], size: u64) -> Option<Label> {
         let ver_min = be16(prefix, 6)?;
         let num_fonts = be32(prefix, 8)?;
         let first_off = be32(prefix, 12)?;
-        require!(
-            matches!((ver_maj, ver_min), (1, 0) | (2, 0)),
-            (1..=1024).contains(&num_fonts),
-            first_off >= 12 + num_fonts * 4,
-        );
-        return Some(Label::Ttf);
+        let sub = match (ver_maj, ver_min) {
+            (1, 0) => &TTC_V1,
+            (2, 0) => &TTC_V2,
+            _ => return None,
+        };
+        require!((1..=1024).contains(&num_fonts), first_off >= 12 + num_fonts * 4);
+        return with_subformat(Label::Ttf, sub);
     }
-    require!(
-        starts(prefix, TTF_SFNT_V1_MAGIC)
-            || starts(prefix, TTF_TRUE_MAGIC)
-            || starts(prefix, TTF_TYP1_MAGIC),
-    );
+    let sub = if starts(prefix, TTF_SFNT_V1_MAGIC) {
+        &TTF_SFNT
+    } else if starts(prefix, TTF_TRUE_MAGIC) {
+        &TTF_APPLE
+    } else if starts(prefix, TTF_TYP1_MAGIC) {
+        &TTF_TYPE1
+    } else {
+        return None;
+    };
     let num_tables = be16(prefix, 4)?;
     let search_range = be16(prefix, 6)?;
     require!(
@@ -120,7 +152,7 @@ pub(crate) fn ttf(prefix: &[u8], size: u64) -> Option<Label> {
     );
     let tag = get_slice(prefix, 12, 16)?;
     require!(tag.iter().all(|&b| (0x20..=0x7E).contains(&b)));
-    Some(Label::Ttf)
+    with_subformat(Label::Ttf, sub)
 }
 
 /// Adobe / Microsoft OpenType Font (`otf`, 1996) with PostScript CFF outlines:

@@ -22,45 +22,88 @@ const WAVEFRONT_COMMENT: &[u8] = b"# ";
 /// Blender 3D scene file (`blend`, 1994): `"BLENDER"` magic, pointer size (`_` or `-`),
 /// endianness indicator (`v` or `V`), and three-digit version `100`..`499`.
 pub(crate) fn blend(prefix: &[u8]) -> Option<Label> {
+    static BLEND_32_LE: Subformat =
+        Subformat::with_ids("Blender 3D (32-bit, little-endian)", "fmt/902", Some("fdd000559"));
+    static BLEND_32_BE: Subformat =
+        Subformat::with_ids("Blender 3D (32-bit, big-endian)", "fmt/902", Some("fdd000559"));
+    static BLEND_64_LE: Subformat =
+        Subformat::with_ids("Blender 3D (64-bit, little-endian)", "fmt/903", Some("fdd000559"));
+    static BLEND_64_BE: Subformat =
+        Subformat::with_ids("Blender 3D (64-bit, big-endian)", "fmt/903", Some("fdd000559"));
     const MAGIC: &[u8] = b"BLENDER"; // @0..7: Blender file magic
     const PTR_SIZE: usize = 7; // @7: '_' (32-bit) or '-' (64-bit)
     const ENDIAN: usize = 8; // @8: 'v' (little-endian) or 'V' (big-endian)
     const VER_MAJOR: usize = 9; // @9: '1'..='4'
     const MIN_LEN: usize = 32; // 12-byte file header + first BHead
 
+    require!(prefix.len() >= MIN_LEN, starts(prefix, MAGIC));
+    let ptr_size = u8_at(prefix, PTR_SIZE)?;
+    let endian = u8_at(prefix, ENDIAN)?;
     require!(
-        prefix.len() >= MIN_LEN,
-        starts(prefix, MAGIC),
-        matches!(u8_at(prefix, PTR_SIZE)?, b'_' | b'-'),
-        matches!(u8_at(prefix, ENDIAN)?, b'v' | b'V'),
+        matches!(ptr_size, b'_' | b'-'),
+        matches!(endian, b'v' | b'V'),
         matches!(u8_at(prefix, VER_MAJOR)?, b'1'..=b'4'),
         u8_at(prefix, 10)?.is_ascii_digit(),
         u8_at(prefix, 11)?.is_ascii_digit(),
-        u8_at(prefix, if u8_at(prefix, ENDIAN)? == b'v' { 19 } else { 16 })? == 0,
+        u8_at(prefix, if endian == b'v' { 19 } else { 16 })? == 0,
     );
-    Some(Label::Blend)
+    let sub = match (ptr_size, endian) {
+        (b'_', b'v') => &BLEND_32_LE,
+        (b'_', b'V') => &BLEND_32_BE,
+        (b'-', b'v') => &BLEND_64_LE,
+        (b'-', b'V') => &BLEND_64_BE,
+        _ => unreachable!(),
+    };
+    with_subformat(Label::Blend, sub)
 }
 
 /// AutoCAD DWG drawing: `"AC10"` version prefix with known release code (`09`, `12`, `14`, `15`,
 /// `18`, `21`, `24`, `27`, `32`), five zero bytes at `@6..11`, and ≥ 128-byte header.
 pub(crate) fn dwg(prefix: &[u8]) -> Option<Label> {
+    static DWG_R11_12: Subformat =
+        Subformat::with_ids("AutoCAD DWG R11/12 (AC1009)", "fmt/32", Some("fdd000445"));
+    static DWG_R13: Subformat =
+        Subformat::with_ids("AutoCAD DWG R13 (AC1012)", "fmt/33", Some("fdd000445"));
+    static DWG_R14: Subformat =
+        Subformat::with_ids("AutoCAD DWG R14 (AC1014)", "fmt/34", Some("fdd000445"));
+    static DWG_2000: Subformat =
+        Subformat::with_ids("AutoCAD DWG 2000-2002 (AC1015)", "fmt/35", Some("fdd000445"));
+    static DWG_2004: Subformat =
+        Subformat::with_ids("AutoCAD DWG 2004-2005 (AC1018)", "fmt/36", Some("fdd000445"));
+    static DWG_2007: Subformat =
+        Subformat::with_ids("AutoCAD DWG 2007-2008 (AC1021)", "x-fmt/455", Some("fdd000445"));
+    static DWG_2010: Subformat =
+        Subformat::with_ids("AutoCAD DWG 2010-2012 (AC1024)", "fmt/434", Some("fdd000445"));
+    static DWG_2013: Subformat =
+        Subformat::with_ids("AutoCAD DWG 2013-2017 (AC1027)", "fmt/531", Some("fdd000445"));
+    static DWG_2018: Subformat =
+        Subformat::with_ids("AutoCAD DWG 2018+ (AC1032)", "fmt/1395", Some("fdd000445"));
     const MAGIC: &[u8] = b"AC10"; // @0..4: AutoCAD DWG version prefix
-    const VERSIONS: &[&[u8]] = &[b"09", b"12", b"14", b"15", b"18", b"21", b"24", b"27", b"32"];
     const ZERO_PAD: usize = 6; // @6..11: 5 reserved zero bytes
     const MIN_LEN: usize = 128;
 
-    require!(
-        prefix.len() >= MIN_LEN,
-        starts(prefix, MAGIC),
-        VERSIONS.contains(&get_slice(prefix, 4, 6)?),
-        eq_at(prefix, ZERO_PAD, &[0; 5]),
-    );
-    Some(Label::Dwg)
+    require!(prefix.len() >= MIN_LEN, starts(prefix, MAGIC));
+    let sub = match get_slice(prefix, 4, 6)? {
+        b"09" => &DWG_R11_12,
+        b"12" => &DWG_R13,
+        b"14" => &DWG_R14,
+        b"15" => &DWG_2000,
+        b"18" => &DWG_2004,
+        b"21" => &DWG_2007,
+        b"24" => &DWG_2010,
+        b"27" => &DWG_2013,
+        b"32" => &DWG_2018,
+        _ => return None,
+    };
+    require!(eq_at(prefix, ZERO_PAD, &[0; 5]));
+    with_subformat(Label::Dwg, sub)
 }
 
 /// Autodesk FBX: binary `"Kaydara FBX Binary  \x00\x1a\x00"` with version `3000..=7700` at `@23`,
 /// or ASCII export header comment `"; FBX X.Y.Z project file"`.
 pub(crate) fn fbx(prefix: &[u8]) -> Option<Label> {
+    static FBX_BINARY: Subformat = Subformat::with_ids("FBX binary", "fmt/1009", Some("fdd000558"));
+    static FBX_ASCII: Subformat = Subformat::with_ids("FBX ASCII", "fmt/1010", Some("fdd000558"));
     const BIN_MAGIC: &[u8] = b"Kaydara FBX Binary  \x00\x1a\x00"; // @0..23: binary FBX signature
     const BIN_VERSION: usize = 23; // @23: u32 LE — FBX version (3000..=7700)
     const BIN_MIN_LEN: usize = 27;
@@ -72,7 +115,7 @@ pub(crate) fn fbx(prefix: &[u8]) -> Option<Label> {
         && starts(prefix, BIN_MAGIC)
         && (3000..=7700).contains(&le32(prefix, BIN_VERSION)?)
     {
-        return Some(Label::Fbx);
+        return with_subformat(Label::Fbx, &FBX_BINARY);
     }
     require!(
         prefix.len() >= ASCII_MIN_LEN,
@@ -84,12 +127,14 @@ pub(crate) fn fbx(prefix: &[u8]) -> Option<Label> {
         u8_at(prefix, 10)?.is_ascii_digit(),
         eq_at(prefix, 11, ASCII_SUFFIX),
     );
-    Some(Label::Fbx)
+    with_subformat(Label::Fbx, &FBX_ASCII)
 }
 
 /// Khronos binary glTF 2.0 (GLB): `"glTF"` + version 2, 4-byte-aligned total and chunk lengths,
 /// `"JSON"` first chunk type at `@16`, and JSON object opening `{` after optional whitespace at `@20`.
 pub(crate) fn glb(prefix: &[u8]) -> Option<Label> {
+    static GLTF_BINARY: Subformat =
+        Subformat::with_ids("glTF 2.0 binary (.glb)", "fmt/1316", Some("fdd000500"));
     const HEADER: &[u8] = bytes!(b"glTF", &2u32.to_le_bytes()); // @0..8: glTF magic + version 2
     const TOTAL_LEN: usize = 8; // @8: u32 LE — total byte length (≥ 24, % 4 == 0)
     const CHUNK_LEN: usize = 12; // @12: u32 LE — JSON chunk length (≥ 4, % 4 == 0)
@@ -113,22 +158,28 @@ pub(crate) fn glb(prefix: &[u8]) -> Option<Label> {
         .take_while(|&&b| matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
         .count();
     require!(ws <= 64, u8_at(prefix, JSON_DATA + ws)? == b'{');
-    Some(Label::Gltf)
+    with_subformat(Label::Gltf, &GLTF_BINARY)
 }
 
 /// Polygon File Format (PLY): `"ply"` line followed by `"format <encoding> 1.0"` and whitespace.
 pub(crate) fn ply(prefix: &[u8]) -> Option<Label> {
+    static PLY_ASCII: Subformat = Subformat::new("PLY ASCII");
+    static PLY_BINARY_LE: Subformat = Subformat::new("PLY binary (little-endian)");
+    static PLY_BINARY_BE: Subformat = Subformat::new("PLY binary (big-endian)");
     const HEADER_LF: &[u8] = b"ply\nformat ";
     const HEADER_CRLF: &[u8] = b"ply\r\nformat ";
-    const ENCODINGS: &[&[u8]] =
-        &[b"ascii 1.0", b"binary_little_endian 1.0", b"binary_big_endian 1.0"];
+    static ENCODINGS: [(&[u8], &Subformat); 3] = [
+        (b"ascii 1.0", &PLY_ASCII),
+        (b"binary_little_endian 1.0", &PLY_BINARY_LE),
+        (b"binary_big_endian 1.0", &PLY_BINARY_BE),
+    ];
 
     let rest = prefix.strip_prefix(HEADER_LF).or_else(|| prefix.strip_prefix(HEADER_CRLF))?;
-    for &enc in ENCODINGS {
+    for &(enc, sub) in &ENCODINGS {
         if let Some(tail) = rest.strip_prefix(enc)
             && matches!(tail.first(), Some(b' ' | b'\t' | b'\r' | b'\n'))
         {
-            return Some(Label::Ply);
+            return with_subformat(Label::Ply, sub);
         }
     }
     None
@@ -137,6 +188,8 @@ pub(crate) fn ply(prefix: &[u8]) -> Option<Label> {
 /// SketchUp model (`.skp`): UTF-16LE BOM + `"SketchUp Model"` (32 bytes) or legacy length-prefixed
 /// ASCII `"\x0eSketchUp Model\x08"` (16 bytes).
 pub(crate) fn sketchup(prefix: &[u8]) -> Option<Label> {
+    static SKP_LEGACY: Subformat = Subformat::new("SketchUp (ASCII header)");
+    static SKP_UNICODE: Subformat = Subformat::new("SketchUp (UTF-16 header)");
     const LEGACY: &[u8] = b"\x0eSketchUp Model\x08"; // @0..16: legacy ASCII SketchUp header
     const UNICODE: &[u8] = &[
         0xFF, 0xFE, 0xFF, 0x0E, b'S', 0, b'k', 0, b'e', 0, b't', 0, b'c', 0, b'h', 0, b'U', 0,
@@ -145,7 +198,7 @@ pub(crate) fn sketchup(prefix: &[u8]) -> Option<Label> {
 
     let matched = starts(prefix, LEGACY) || starts(prefix, UNICODE);
     require!(matched);
-    Some(Label::Sketchup)
+    with_subformat(Label::Sketchup, if starts(prefix, LEGACY) { &SKP_LEGACY } else { &SKP_UNICODE })
 }
 
 /// ISO 10303-21 STEP product data exchange file: opens with `"ISO-10303-21;"`.
@@ -160,6 +213,7 @@ pub(crate) fn step(prefix: &[u8]) -> Option<Label> {
 /// at `@2`, followed at `@6` by either `M3D_VERSION` (`0x0002`, length 10, version 3..=4 at `@12`)
 /// or `MDATA` (`0x3D3D` = `"=="`, length ≥ 6 at `@8`).
 pub(crate) fn three_dsm(prefix: &[u8]) -> Option<Label> {
+    static THREE_DS_MESH: Subformat = Subformat::new("3D Studio mesh (M3DMAGIC)");
     const ROOT_MAGIC: &[u8] = b"MM"; // @0..2: u16 LE — M3DMAGIC (0x4D4D)
     const ROOT_LEN: usize = 2; // @2: u32 LE — root chunk byte length (≥ 16)
     const CHILD_OFFSET: usize = 6; // @6: first child chunk header
@@ -178,11 +232,12 @@ pub(crate) fn three_dsm(prefix: &[u8]) -> Option<Label> {
             || (eq_at(prefix, CHILD_OFFSET, EDITOR_MAGIC)
                 && (6..0x0800_0000).contains(&le32(prefix, EDITOR_LEN)?)),
     );
-    Some(Label::_3dsm)
+    with_subformat(Label::_3dsm, &THREE_DS_MESH)
 }
 
 /// Legacy 1990 Autodesk 3D Studio DOS `.3ds` header (`"3DS\0"` at `@0..4`, `u32 LE` chunk length ≥ 16 at `@4..8`).
 pub(crate) fn three_dsm_legacy(prefix: &[u8], size: u64) -> Option<Label> {
+    static THREE_DS_DOS: Subformat = Subformat::new("3D Studio DOS (3DS header)");
     const LEGACY_3DS_MAGIC: &[u8; 4] = b"3DS\0";
     const MIN_LEN: usize = 16;
 
@@ -193,7 +248,7 @@ pub(crate) fn three_dsm_legacy(prefix: &[u8], size: u64) -> Option<Label> {
         le32(prefix, 4)? >= MIN_LEN as u32,
         get_slice(prefix, 8, MIN_LEN)?.contains(&0),
     );
-    Some(Label::_3dsm)
+    with_subformat(Label::_3dsm, &THREE_DS_DOS)
 }
 
 pub(crate) const STL_SOLID_PREFIX: &[u8; 6] = b"solid ";
@@ -243,15 +298,17 @@ pub(crate) fn stl_ascii(prefix: &[u8], size: u64) -> Option<Label> {
 
 /// AutoCAD Binary Drawing Exchange Format (`dxf`, 1988): `"AutoCAD Binary DXF\r\n\x1A\x00"`.
 pub(crate) fn dxf_binary(prefix: &[u8], size: u64) -> Option<Label> {
+    static DXF_BINARY: Subformat = Subformat::with_ids("DXF binary", "fmt/1394", None);
     const DXF_BINARY_MAGIC: &[u8; 22] = b"AutoCAD Binary DXF\r\n\x1A\x00";
 
     require!(size >= 22, prefix.len() >= 22, starts(prefix, DXF_BINARY_MAGIC),);
-    Some(Label::Dxf)
+    with_subformat(Label::Dxf, &DXF_BINARY)
 }
 
 /// AutoCAD ASCII Drawing Exchange Format (`dxf`, 1982): group code `0` + `SECTION` +
 /// group code `2` + `HEADER` / `ENTITIES` / `TABLES` / `BLOCKS`.
 pub(crate) fn dxf_ascii(prefix: &[u8], size: u64) -> Option<Label> {
+    static DXF_ASCII: Subformat = Subformat::with_ids("DXF ASCII", "fmt/63", Some("fdd000446"));
     const DXF_SEC_PADDED_LF: &[u8] = b"  0\nSECTION\n";
     const DXF_SEC_PADDED_CRLF: &[u8] = b"  0\r\nSECTION\r\n";
     const DXF_SEC_UNPADDED_LF: &[u8] = b"0\nSECTION\n";
@@ -273,7 +330,7 @@ pub(crate) fn dxf_ascii(prefix: &[u8], size: u64) -> Option<Label> {
             || contains(prefix, DXF_TABLES_TAG)
             || contains(prefix, DXF_BLOCKS_TAG),
     );
-    Some(Label::Dxf)
+    with_subformat(Label::Dxf, &DXF_ASCII)
 }
 
 /// Sony Imageworks & ILM Alembic 3D scene cache (`alembic`, 2011): `"Ogawa\xFF\x00\x01"`,
@@ -297,20 +354,28 @@ pub(crate) fn alembic(prefix: &[u8], size: u64) -> Option<Label> {
 /// ASPRS LAS LiDAR point cloud (`las`, 2003): `"LASF"` signature at `@0..4`, version major `1` and
 /// minor `0..=4` at `@24..26`, and ≥ 227-byte public header block.
 pub(crate) fn las(prefix: &[u8], size: u64) -> Option<Label> {
+    static LAS_1_0: Subformat = Subformat::with_ids("ASPRS LAS 1.0", "fmt/368", None);
+    static LAS_1_1: Subformat = Subformat::with_ids("ASPRS LAS 1.1", "fmt/369", None);
+    static LAS_1_2: Subformat = Subformat::with_ids("ASPRS LAS 1.2", "fmt/370", None);
+    static LAS_1_3: Subformat = Subformat::new("ASPRS LAS 1.3");
+    static LAS_1_4: Subformat = Subformat::with_fdd("ASPRS LAS 1.4", "fdd000418");
     const LASF_MAGIC: &[u8; 4] = b"LASF";
 
-    require!(
-        size >= 227,
-        prefix.len() >= 32,
-        starts(prefix, LASF_MAGIC),
-        u8_at(prefix, 24)? == 1,
-        u8_at(prefix, 25)? <= 4,
-    );
-    Some(Label::Las)
+    require!(size >= 227, prefix.len() >= 32, starts(prefix, LASF_MAGIC), u8_at(prefix, 24)? == 1);
+    let sub = match u8_at(prefix, 25)? {
+        0 => &LAS_1_0,
+        1 => &LAS_1_1,
+        2 => &LAS_1_2,
+        3 => &LAS_1_3,
+        4 => &LAS_1_4,
+        _ => return None,
+    };
+    with_subformat(Label::Las, sub)
 }
 
 /// NewTek LightWave 3D ASCII scene (`lightwave`, 1990): `"LWSC\n"`, `"LWSC\r\n"`, or `"LWS\n"` header.
 pub(crate) fn lightwave_scene(prefix: &[u8], size: u64) -> Option<Label> {
+    static LIGHTWAVE_SCENE: Subformat = Subformat::new("LightWave scene (ASCII)");
     const LWSC_LF_MAGIC: &[u8] = b"LWSC\n";
     const LWSC_CRLF_MAGIC: &[u8] = b"LWSC\r\n";
     const LWS_LF_MAGIC: &[u8] = b"LWS\n";
@@ -323,12 +388,16 @@ pub(crate) fn lightwave_scene(prefix: &[u8], size: u64) -> Option<Label> {
             || starts(prefix, LWS_LF_MAGIC),
         is_utf8_text_header(prefix, size as usize),
     );
-    Some(Label::Lightwave)
+    with_subformat(Label::Lightwave, &LIGHTWAVE_SCENE)
 }
 
 /// Alias|Wavefront / Autodesk Maya Binary scene (`.mb`, `maya`, 1998): 32-bit `"FOR4"` or 64-bit
 /// `"FOR8"` IFF container with `"MAYA"` or `"Maya"` form type at `@8` or `@12`.
 pub(crate) fn maya_binary(prefix: &[u8], size: u64) -> Option<Label> {
+    static MAYA_BINARY_32: Subformat =
+        Subformat::with_ids("Maya Binary (32-bit)", "fmt/861", Some("fdd000605"));
+    static MAYA_BINARY_64: Subformat =
+        Subformat::with_ids("Maya Binary (64-bit)", "fmt/862", Some("fdd000605"));
     const MAYA_UPPER_FORM: &[u8; 4] = b"MAYA";
     const MAYA_MIXED_FORM: &[u8; 4] = b"Maya";
 
@@ -341,11 +410,13 @@ pub(crate) fn maya_binary(prefix: &[u8], size: u64) -> Option<Label> {
             || (starts(prefix, IFF_FOR8_MAGIC)
                 && (eq_at(prefix, 12, MAYA_UPPER_FORM) || eq_at(prefix, 12, MAYA_MIXED_FORM))),
     );
-    Some(Label::Maya)
+    let sub = if starts(prefix, IFF_FOR4_MAGIC) { &MAYA_BINARY_32 } else { &MAYA_BINARY_64 };
+    with_subformat(Label::Maya, sub)
 }
 
 /// Alias|Wavefront / Autodesk Maya ASCII scene (`.ma`, `maya`, 1998): `"//Maya ASCII"` header comment.
 pub(crate) fn maya_ascii(prefix: &[u8], size: u64) -> Option<Label> {
+    static MAYA_ASCII: Subformat = Subformat::with_ids("Maya ASCII", "fmt/863", Some("fdd000604"));
     const MAYA_ASCII_MAGIC: &[u8] = b"//Maya ASCII";
 
     require!(
@@ -354,7 +425,7 @@ pub(crate) fn maya_ascii(prefix: &[u8], size: u64) -> Option<Label> {
         starts(prefix, MAYA_ASCII_MAGIC),
         is_utf8_text_header(prefix, size as usize),
     );
-    Some(Label::Maya)
+    with_subformat(Label::Maya, &MAYA_ASCII)
 }
 
 /// Robert McNeel & Associates Rhinoceros openNURBS 3D model (`.3dm`, `rhinoceros`, 1998):
@@ -374,37 +445,45 @@ pub(crate) fn rhinoceros(prefix: &[u8], size: u64) -> Option<Label> {
 /// Pixar Universal Scene Description (`usd`, 2016): `"PXR-USDC"` binary crate (with major version
 /// `<= 2` at `@8`) or `"#usda 1.0"` ASCII scene header.
 pub(crate) fn usd(prefix: &[u8], size: u64) -> Option<Label> {
+    static USDC: Subformat = Subformat::new("USD crate (binary)");
+    static USDA: Subformat = Subformat::with_ids("USD ASCII", "fmt/1905", Some("fdd000561"));
     const USDC_CRATE_MAGIC: &[u8; 8] = b"PXR-USDC";
     const USDA_ASCII_MAGIC: &[u8; 9] = b"#usda 1.0";
 
     require!(size >= 16, prefix.len() >= 14);
     if starts(prefix, USDC_CRATE_MAGIC) {
         require!(u8_at(prefix, 8)? <= 2);
-        return Some(Label::Usd);
+        return with_subformat(Label::Usd, &USDC);
     }
     require!(starts(prefix, USDA_ASCII_MAGIC), is_utf8_text_header(prefix, size as usize),);
-    Some(Label::Usd)
+    with_subformat(Label::Usd, &USDA)
 }
 
 /// Kitware Visualization Toolkit legacy datafile (`.vtk`, `vtk`, 1993): `"# vtk DataFile Version "`
 /// banner accompanied by `"ASCII"` or `"BINARY"` encoding keyword.
 pub(crate) fn vtk(prefix: &[u8], size: u64) -> Option<Label> {
+    static VTK_ASCII: Subformat = Subformat::new("VTK legacy (ASCII)");
+    static VTK_BINARY: Subformat = Subformat::new("VTK legacy (binary)");
     const VTK_LEGACY_MAGIC: &[u8] = b"# vtk DataFile Version ";
     const VTK_ASCII_MODE: &[u8] = b"ASCII";
     const VTK_BINARY_MODE: &[u8] = b"BINARY";
 
-    require!(
-        size >= 32,
-        prefix.len() >= 26,
-        starts(prefix, VTK_LEGACY_MAGIC),
-        contains(prefix, VTK_ASCII_MODE) || contains(prefix, VTK_BINARY_MODE),
-    );
-    Some(Label::Vtk)
+    require!(size >= 32, prefix.len() >= 26, starts(prefix, VTK_LEGACY_MAGIC));
+    let sub = if contains(prefix, VTK_ASCII_MODE) {
+        &VTK_ASCII
+    } else if contains(prefix, VTK_BINARY_MODE) {
+        &VTK_BINARY
+    } else {
+        return None;
+    };
+    with_subformat(Label::Vtk, sub)
 }
 
 /// Pixologic / Maxon ZBrush document, tool, or project (`zbrush`, 1999): `"ZBr4"` or
 /// `"ZBrush File.Copyright "` binary header, or `A8 00 00 00` `.zpr` header containing `"ZBrush"`.
 pub(crate) fn zbrush(prefix: &[u8], size: u64) -> Option<Label> {
+    static ZBRUSH_DOCUMENT: Subformat = Subformat::new("ZBrush document or tool");
+    static ZBRUSH_PROJECT: Subformat = Subformat::new("ZBrush project (ZPR)");
     const ZBR4_MAGIC: &[u8; 4] = b"ZBr4";
     const ZBRUSH_COPYRIGHT_HDR: &[u8] = b"ZBrush File.Copyright ";
     const ZPR_HDR_LEN_MAGIC: &[u8] = &[0xA8, 0x00, 0x00, 0x00];
@@ -417,7 +496,8 @@ pub(crate) fn zbrush(prefix: &[u8], size: u64) -> Option<Label> {
             && has_non_ascii_text_byte(&prefix[4..24]))
             || (starts(prefix, ZPR_HDR_LEN_MAGIC) && contains(prefix, ZBRUSH_NAME_TAG)),
     );
-    Some(Label::Zbrush)
+    let is_project = starts(prefix, ZPR_HDR_LEN_MAGIC);
+    with_subformat(Label::Zbrush, if is_project { &ZBRUSH_PROJECT } else { &ZBRUSH_DOCUMENT })
 }
 
 /// ASME Y14.26M Initial Graphics Exchange Specification (`iges`, 1980): 80-column fixed card record

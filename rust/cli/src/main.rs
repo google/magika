@@ -18,7 +18,7 @@ use std::io::{ErrorKind, Write as _};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{Result, ensure};
+use anyhow::{Context as _, Result, ensure};
 use clap::{Args, Parser, ValueEnum};
 use colored::ColoredString;
 use magika::pipeline::{DIRECTORY_CYCLE, Engine, Identified, Pipeline, PipelineOptions};
@@ -53,12 +53,14 @@ struct Flags {
     #[clap(flatten)]
     format: Format,
 
-    /// Enables the custom rules (can be repeated).
+    /// Enables custom rules from a file or directory (can be repeated).
+    ///
+    /// When a directory is given, all .yar and .yara files directly inside it are used.
     #[arg(long, value_name = "PATH")]
-    custom_rules_file: Vec<PathBuf>,
+    custom_rules: Vec<PathBuf>,
 
-    /// Checks the rules of --custom-rules-file, prints the content types they identify, and exits.
-    #[arg(long, requires = "custom_rules_file")]
+    /// Checks the rules of --custom-rules, prints the content types they identify, and exits.
+    #[arg(long, requires = "custom_rules")]
     check_custom_rules: bool,
 
     /// Disables the resolvers.
@@ -203,8 +205,9 @@ fn main() -> Result<()> {
     let mut builder = Runtime::builder();
     builder = builder.with_max_batch(batch_size);
     builder.options.debug_mode = true;
-    if !flags.custom_rules_file.is_empty() {
-        let rules = Rules::from_files(&flags.custom_rules_file)?;
+    if !flags.custom_rules.is_empty() {
+        let files = resolve_custom_rules(&flags.custom_rules)?;
+        let rules = Rules::from_files(&files)?;
         if flags.check_custom_rules {
             println!("{rules:?}");
             return Ok(());
@@ -478,6 +481,33 @@ impl Response {
             },
         }
     }
+}
+
+fn resolve_custom_rules(paths: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for path in paths {
+        if path.is_dir() {
+            let mut dir_files = Vec::new();
+            for entry in std::fs::read_dir(path)
+                .with_context(|| format!("reading rules from {}", path.display()))?
+            {
+                let entry =
+                    entry.with_context(|| format!("reading rules from {}", path.display()))?;
+                let entry_path = entry.path();
+                if matches!(entry_path.extension().and_then(|x| x.to_str()), Some("yar" | "yara"))
+                    && entry_path.is_file()
+                {
+                    dir_files.push(entry_path);
+                }
+            }
+            ensure!(!dir_files.is_empty(), "no .yar or .yara files found in {}", path.display());
+            dir_files.sort();
+            files.extend(dir_files);
+        } else {
+            files.push(path.clone());
+        }
+    }
+    Ok(files)
 }
 
 fn join<T: AsRef<str>>(xs: impl IntoIterator<Item = T>) -> String {

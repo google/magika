@@ -55,22 +55,22 @@ test_suite n --no-resolvers
 
 info "Test custom rules"
 ( cd ../../tests_data
-  magika --check-custom-rules 2>&1 | grep -q -- '--custom-rules-file' \
+  magika --check-custom-rules 2>&1 | grep -q -- '--custom-rules' \
     || error "custom rules check without file"
-  [ "$(magika --custom-rules-file=rules/custom.yar --check-custom-rules)" = \
+  [ "$(magika --custom-rules=rules/custom.yar --check-custom-rules)" = \
     'Rules { content_types: [Png] }' ] || error "custom rules check"
   [ "$(magika --no-model --format=%l basic/png/magika_test.png)" = png ] \
     || error "resolvers do not identify PNG"
   [ "$(magika --no-model --no-resolvers --format=%l basic/png/magika_test.png)" = unknown ] \
     || error "identified PNG without model or resolvers"
-  [ "$(magika --no-model --no-resolvers --custom-rules-file=rules/custom.yar --format=%l \
+  [ "$(magika --no-model --no-resolvers --custom-rules=rules/custom.yar --format=%l \
     basic/png/magika_test.png)" = png ] || error "custom rules do not identify PNG"
-  [ "$(magika --no-resolvers --custom-rules-file=rules/custom.yar --format=%l \
+  [ "$(magika --no-resolvers --custom-rules=rules/custom.yar --format=%l \
     basic/png/magika_test.png)" = png ] || error "custom rules do not apply without resolvers"
   broken=$(mktemp)
   trap "rm -f $broken" EXIT
   echo 'rule broken {' > "$broken"
-  magika --custom-rules-file="$broken" basic/png/magika_test.png 2>&1 | grep -q 'line 2, column 1' \
+  magika --custom-rules="$broken" basic/png/magika_test.png 2>&1 | grep -q 'line 2, column 1' \
     || error "invalid custom rules are not reported"
 )
 

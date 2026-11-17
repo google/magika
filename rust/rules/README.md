@@ -51,8 +51,8 @@ Metadata records the author's evidence; the crate cannot verify it.
 
 Magika checks custom rules before its built-in format resolvers (`rust/lib/src/resolvers/`) and
 deep learning model: `magika::Rules::compile` (or `Rules::from_files`, passed via
-`Options::use_custom_rules`) in the Rust library, `--custom-rules-file` (and `--custom-rules-check`
-to validate a file) in the CLI, `Magika(rules=..., rules_files=...)` in Python, and
+`Options::use_custom_rules`) in the Rust library, `--custom-rules` (and `--check-custom-rules`
+to validate rules) in the CLI, `Magika(rules=..., rules_files=...)` in Python, and
 `magika_rules_new` in C. Custom rules use this YARA subset and metadata, and their `label` values
 must be Magika content types. Custom rules identify a file when the ones that match agree;
 otherwise the built-in resolvers, then the model, decide as usual. When every enforced custom rule

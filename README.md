@@ -28,6 +28,18 @@ For more context you can read our initial [announcement post on Google's OSS blo
 You can try Magika without installing anything by using our [web demo](https://securityresearch.google/magika/demo/magika-demo/), which runs locally in your browser!
 
 
+> [!NOTE]
+> **We are actively working on a new major version of Magika on `main`, and help testing it is very welcome!**
+> Try it out from source and share feedback or misdetections via [GitHub Issues](https://github.com/google/magika/issues).
+>
+> **What's new and coming:**
+> - **Many more content types:** Expanded coverage to 1000+ content types (up from ~200).
+> - **New engine:** Native format resolvers (with built-in decompression for container formats) and custom YARA rules work alongside the ML model.
+> - **Faster, zero-dependency core:** A pure-Rust `tract` runtime replaces ONNX Runtime, removing external runtime dependencies (including in Python and other bindings) while delivering much faster startup and inference.
+> - **GPU support:** Supports GPU acceleration (Metal / CUDA) while identifying files on the CPU during GPU initialization.
+> - **Smaller/faster ML model, with better snippet detection:** A more compact model with stronger support for short snippets.
+
+
 # Highlights
 
 - Available as a command line tool written in Rust, a Python API, and additional bindings for Rust, JavaScript/TypeScript (with an experimental npm package, which powers our [web demo](https://securityresearch.google/magika/demo/magika-demo/)), and GoLang (WIP).

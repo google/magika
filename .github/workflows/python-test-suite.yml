@@ -44,7 +44,7 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh | sh
 
       - name: Cache Rust build
-        uses: ./.github/actions/rust-cache
+        uses: $/.github/actions/rust-cache
 
       - name: Build and stage magika CLI binary
         run: ./python/scripts/build_and_stage_cli.sh --profile release-fast

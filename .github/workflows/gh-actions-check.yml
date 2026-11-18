@@ -1,6 +1,11 @@
 # Verifies that every external GitHub Action in `.github/` is pinned to a 40-char commit SHA
-# with a `# vX.Y.Z` tag comment, and that the tag in the upstream git repository actually
-# resolves to that exact commit SHA (protecting against impostor commits and tag/SHA mismatches).
+# with a `# vX.Y.Z` tag comment, that the tag in the upstream git repository actually resolves
+# to that exact commit SHA (protecting against impostor commits and tag/SHA mismatches), and
+# that `.github/workflows/actions.lock` is in sync and passes `gh actions-lock --verify`.
+#
+# After adding, removing, or bumping an action in `.github/`:
+#   gh actions-lock --no-narrow
+# Keep inline `@<sha> # vX.Y.Z` pins intact, and use `$/...` for local actions under `.github/actions/`.
 name: GH Actions - Check pinned actions
 
 on:
@@ -36,3 +41,10 @@ jobs:
 
       - name: Verify all GitHub Actions are pinned to valid upstream release tag commit SHAs
         run: uv run scripts/check_gh_actions.py
+
+      - name: Verify GitHub Actions workflow lockfile
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh extension install github/gh-actions-lock --pin v0.4.1
+          gh actions-lock --verify

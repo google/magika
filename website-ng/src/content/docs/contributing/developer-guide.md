@@ -99,3 +99,27 @@ Do not add sample files to the repository as part of a resolver PR; if a sample 
 Magika's core is the Rust [`magika`](https://github.com/google/magika/tree/main/rust/lib) library. The Python package wraps it directly through [`rust/pyo3`](https://github.com/google/magika/tree/main/rust/pyo3); for other languages, the C API in [`rust/ffi`](https://github.com/google/magika/tree/main/rust/ffi) is the intended entry point. New bindings should wrap the core rather than reimplement feature extraction and inference, and should be validated against the reference outputs in [`tests_data/reference`](https://github.com/google/magika/tree/main/tests_data/reference).
 
 A new binding is a long-term maintenance commitment. Open an issue first so that we can agree on scope and ownership before any code is written.
+
+## Updating GitHub Actions
+
+Magika combines inline SHA pinning (verified by [`scripts/check_gh_actions.py`](https://github.com/google/magika/blob/main/scripts/check_gh_actions.py) and OpenSSF Scorecard) with a GitHub Actions workflow lockfile ([`.github/workflows/actions.lock`](https://github.com/google/magika/blob/main/.github/workflows/actions.lock)) that also pins transitive dependencies inside composite actions and records repository IDs.
+
+- **Pin external actions inline**: always write `uses: owner/repo[/subpath]@<40-char-sha> # vX.Y.Z` with an allowlisted owner in [`scripts/check_gh_actions.py`](https://github.com/google/magika/blob/main/scripts/check_gh_actions.py).
+- **Use `$/...` for local composite actions**: reference in-repo actions under `.github/actions/` as `uses: $/.github/actions/<name>` so `actions.lock` locks the actions they invoke. Keep `./.github/workflows/<name>.yml` for job-level reusable workflows.
+- **Regenerate the lockfile after workflow or version changes**: install `gh extension install github/gh-actions-lock --pin v0.4.1` once, then run:
+
+  ```bash
+  gh actions-lock --no-narrow
+  ```
+
+  Always pass `--no-narrow` so `gh actions-lock` preserves the inline `@<40-char-sha> # vX.Y.Z` pins in the workflow YAML instead of rewriting them to tags. If you want to advance already-locked transitive dependencies of a composite action whose ref moved, pass `--relock --no-narrow` and review the `actions.lock` diff carefully.
+- **Dependabot PRs**: Dependabot updates both workflow pins and `actions.lock` automatically; if you edit a Dependabot PR manually (or bump a SHA pin by hand), re-run `gh actions-lock --no-narrow`.
+- **Verify locally before pushing**:
+
+  ```bash
+  gh actions-lock --verify
+  uv run scripts/check_gh_actions.py --self-test
+  uv run scripts/check_gh_actions.py
+  ```
+
+  CI runs these checks in [`.github/workflows/gh-actions-check.yml`](https://github.com/google/magika/blob/main/.github/workflows/gh-actions-check.yml).

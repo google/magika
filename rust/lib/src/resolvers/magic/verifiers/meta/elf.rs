@@ -41,29 +41,58 @@ pub(crate) fn cubin(prefix: &[u8]) -> Option<Label> {
 pub(crate) fn elf(prefix: &[u8], size: u64) -> Option<Label> {
     const MIN_ELF_SIZE: u64 = 52; // 52B ELF32 header (64B for ELF64)
     const ELF_MAGIC: &[u8; 4] = b"\x7FELF";
+    const EI_CLASS: usize = 4; // @4: u8 — 1 = ELFCLASS32, 2 = ELFCLASS64
+    const EI_DATA: usize = 5; // @5: u8 — 1 = ELFDATA2LSB, 2 = ELFDATA2MSB
+    const EI_VERSION: usize = 6; // @6: u8 — EV_CURRENT (1)
+    const E_TYPE: usize = 16; // @16: u16 — object file type (ET_REL..=ET_CORE or >= ET_LOOS)
+    const ET_CORE: u16 = 4;
+    const ET_LOOS: u16 = 0xFE00;
+
+    static ELF_SUBFORMATS: [[Subformat; 5]; 4] = [
+        [
+            Subformat::with_ids("ELF 32-bit (little-endian)", "fmt/688", None),
+            Subformat::with_ids("ELF 32-bit relocatable object (little-endian)", "fmt/688", None),
+            Subformat::with_ids("ELF 32-bit executable (little-endian)", "fmt/688", None),
+            Subformat::with_ids("ELF 32-bit shared object (little-endian)", "fmt/688", None),
+            Subformat::with_ids("ELF 32-bit core dump (little-endian)", "fmt/688", None),
+        ],
+        [
+            Subformat::with_ids("ELF 32-bit (big-endian)", "fmt/689", None),
+            Subformat::with_ids("ELF 32-bit relocatable object (big-endian)", "fmt/689", None),
+            Subformat::with_ids("ELF 32-bit executable (big-endian)", "fmt/689", None),
+            Subformat::with_ids("ELF 32-bit shared object (big-endian)", "fmt/689", None),
+            Subformat::with_ids("ELF 32-bit core dump (big-endian)", "fmt/689", None),
+        ],
+        [
+            Subformat::with_ids("ELF 64-bit (little-endian)", "fmt/690", None),
+            Subformat::with_ids("ELF 64-bit relocatable object (little-endian)", "fmt/690", None),
+            Subformat::with_ids("ELF 64-bit executable (little-endian)", "fmt/690", None),
+            Subformat::with_ids("ELF 64-bit shared object (little-endian)", "fmt/690", None),
+            Subformat::with_ids("ELF 64-bit core dump (little-endian)", "fmt/690", None),
+        ],
+        [
+            Subformat::with_ids("ELF 64-bit (big-endian)", "fmt/691", None),
+            Subformat::with_ids("ELF 64-bit relocatable object (big-endian)", "fmt/691", None),
+            Subformat::with_ids("ELF 64-bit executable (big-endian)", "fmt/691", None),
+            Subformat::with_ids("ELF 64-bit shared object (big-endian)", "fmt/691", None),
+            Subformat::with_ids("ELF 64-bit core dump (big-endian)", "fmt/691", None),
+        ],
+    ];
 
     require!(
         size >= MIN_ELF_SIZE,
         prefix.len() >= 52,
         starts(prefix, ELF_MAGIC),
-        matches!(u8_at(prefix, 4)?, 1 | 2),
-        matches!(u8_at(prefix, 5)?, 1 | 2),
-        u8_at(prefix, 6)? == 1,
+        matches!(u8_at(prefix, EI_CLASS)?, 1 | 2),
+        matches!(u8_at(prefix, EI_DATA)?, 1 | 2),
+        u8_at(prefix, EI_VERSION)? == 1,
     );
-    let is_le = u8_at(prefix, 5)? == 1;
-    let e_type = if is_le { le16(prefix, 16)? } else { be16(prefix, 16)? };
-    require!((1..=4).contains(&e_type) || e_type >= 0xFE00);
-    static ELF32_LE: Subformat = Subformat::with_ids("ELF 32-bit (little-endian)", "fmt/688", None);
-    static ELF32_BE: Subformat = Subformat::with_ids("ELF 32-bit (big-endian)", "fmt/689", None);
-    static ELF64_LE: Subformat = Subformat::with_ids("ELF 64-bit (little-endian)", "fmt/690", None);
-    static ELF64_BE: Subformat = Subformat::with_ids("ELF 64-bit (big-endian)", "fmt/691", None);
-    let sub = match (u8_at(prefix, 4)?, is_le) {
-        (1, true) => &ELF32_LE,
-        (1, false) => &ELF32_BE,
-        (_, true) => &ELF64_LE,
-        (_, false) => &ELF64_BE,
-    };
-    with_subformat(Label::Elf, sub)
+    let is_le = u8_at(prefix, EI_DATA)? == 1;
+    let e_type = if is_le { le16(prefix, E_TYPE)? } else { be16(prefix, E_TYPE)? };
+    require!((1..=ET_CORE).contains(&e_type) || e_type >= ET_LOOS);
+    let variant = usize::from(u8_at(prefix, EI_CLASS)? == 2) * 2 + usize::from(!is_le);
+    let kind = if e_type <= ET_CORE { e_type as usize } else { 0 };
+    with_subformat(Label::Elf, &ELF_SUBFORMATS[variant][kind])
 }
 
 /// Disambiguates System V ELF binaries between NVIDIA CUDA `cubin` and generic `elf`.

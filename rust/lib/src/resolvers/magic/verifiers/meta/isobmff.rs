@@ -20,7 +20,8 @@ use crate::resolvers::magic::*;
 pub(crate) const FTYP_BOX: &[u8; 4] = b"ftyp"; // @4..8: ISO-BMFF file-type box tag
 
 /// ISO Base Media File Format `ftyp` box at `@4` (3GPP, AVIF, or HEIF/HEVC): 4-byte-aligned box
-/// length `16..=0x00FF_FFFF` at `@0`, `"ftyp"` at `@4`, and a 4-byte major brand at `@8`.
+/// length `16..=0x00FF_FFFF` at `@0`, `"ftyp"` at `@4`, and a 4-byte major brand at `@8`. The
+/// codec-agnostic HEIF structural brand `mif1` takes its codec from the compatible brands.
 pub(crate) fn ftyp(prefix: &[u8]) -> Option<Label> {
     static AVIF_STILL: Subformat = Subformat::new("AVIF still image");
     static AVIF_SEQUENCE: Subformat = Subformat::new("AVIF image sequence");
@@ -48,6 +49,21 @@ pub(crate) fn ftyp(prefix: &[u8]) -> Option<Label> {
     const BOX_LEN: usize = 0; // @0: u32 BE — ftyp box byte length (16..=0x00FF_FFFF, multiple of 4)
     const MAJOR_BRAND: usize = 8; // @8..12: 4-byte major brand code
     const MIN_LEN: usize = 16; // 8-byte box header + 4-byte major brand + 4-byte minor version
+    let image = |brand: &[u8]| -> Option<(Label, &'static Subformat)> {
+        Some(match brand {
+            b"avif" => (Label::Avif, &AVIF_STILL),
+            b"avis" => (Label::Avif, &AVIF_SEQUENCE),
+            b"heic" => (Label::Heif, &HEIF_HEIC),
+            b"heix" => (Label::Heif, &HEIF_HEIX),
+            b"heim" => (Label::Heif, &HEIF_HEIM),
+            b"heis" => (Label::Heif, &HEIF_HEIS),
+            b"hevc" => (Label::Heif, &HEIF_HEVC),
+            b"hevx" => (Label::Heif, &HEIF_HEVX),
+            b"hevm" => (Label::Heif, &HEIF_HEVM),
+            b"hevs" => (Label::Heif, &HEIF_HEVS),
+            _ => return None,
+        })
+    };
 
     require!(prefix.len() >= MIN_LEN, eq_at(prefix, 4, FTYP_BOX));
     let box_len = be32(prefix, BOX_LEN)?;
@@ -67,17 +83,17 @@ pub(crate) fn ftyp(prefix: &[u8]) -> Option<Label> {
         b"3gh9" => with_subformat(Label::_3gp, &THREEGP_AHS),
         b"3gm9" | b"3gmA" => with_subformat(Label::_3gp, &THREEGP_SEGMENT),
         b"3gt8" | b"3gt9" | b"3gtv" => with_subformat(Label::_3gp, &THREEGP_MOBILE_TV),
-        b"avif" => with_subformat(Label::Avif, &AVIF_STILL),
-        b"avis" => with_subformat(Label::Avif, &AVIF_SEQUENCE),
-        b"heic" => with_subformat(Label::Heif, &HEIF_HEIC),
-        b"heix" => with_subformat(Label::Heif, &HEIF_HEIX),
-        b"heim" => with_subformat(Label::Heif, &HEIF_HEIM),
-        b"heis" => with_subformat(Label::Heif, &HEIF_HEIS),
-        b"hevc" => with_subformat(Label::Heif, &HEIF_HEVC),
-        b"hevx" => with_subformat(Label::Heif, &HEIF_HEVX),
-        b"hevm" => with_subformat(Label::Heif, &HEIF_HEVM),
-        b"hevs" => with_subformat(Label::Heif, &HEIF_HEVS),
-        _ => None,
+        // `mif1` (ISO/IEC 23008-12 section 10.2) says nothing about the codec: AVIF and HEIC both
+        // use it. The AVIF or HEIF image brands among the compatible brands at `@16..box_len`
+        // decide, and the whole box must be in the prefix so no conflicting brand hides past it.
+        b"mif1" => {
+            let compatible = get_slice(prefix, MIN_LEN, box_len as usize)?;
+            let mut images = compatible.chunks_exact(4).filter_map(image);
+            let (label, subformat) = images.next()?;
+            require!(images.all(|(other, _)| other == label));
+            with_subformat(label, subformat)
+        }
+        _ => image(brand).and_then(|(label, subformat)| with_subformat(label, subformat)),
     }
 }
 

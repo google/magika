@@ -1310,6 +1310,31 @@ mod tests {
     }
 
     #[test]
+    fn resolvers_take_the_mif1_codec_from_compatible_brands() {
+        fn ftyp(box_len: u8, brands: &[&[u8; 4]]) -> Vec<u8> {
+            let mut buf = vec![0, 0, 0, box_len];
+            buf.extend_from_slice(b"ftypmif1\0\0\0\0");
+            brands.iter().for_each(|brand| buf.extend_from_slice(*brand));
+            buf
+        }
+        let subformat = |bytes: &[u8]| resolve_slice_with_metadata(bytes).1.remove("subformat");
+        // The #1439 sample: `ftyp` major brand `mif1`, compatible brands `mif1` and `heic`.
+        let heic = ftyp(24, &[b"mif1", b"heic"]);
+        assert_eq!(resolve_slice(&heic), vec![ContentType::Heif]);
+        assert_eq!(subformat(&heic).as_deref(), Some("HEIC image (heic)"));
+        let avif = ftyp(32, &[b"mif1", b"miaf", b"avif", b"MA1B"]);
+        assert_eq!(resolve_slice(&avif), vec![ContentType::Avif]);
+        assert_eq!(subformat(&avif).as_deref(), Some("AVIF still image"));
+        let avis = ftyp(28, &[b"mif1", b"msf1", b"avis"]);
+        assert_eq!(resolve_slice(&avis), vec![ContentType::Avif]);
+        assert_eq!(subformat(&avis).as_deref(), Some("AVIF image sequence"));
+        // No codec brand, conflicting codec brands, or a box cut short by the prefix: abstain.
+        assert_eq!(resolve_slice(&ftyp(20, &[b"mif1"])), vec![]);
+        assert_eq!(resolve_slice(&ftyp(24, &[b"avif", b"heic"])), vec![]);
+        assert_eq!(resolve_slice(&ftyp(32, &[b"mif1", b"heic"])), vec![]);
+    }
+
+    #[test]
     fn resolvers_populate_o1_header_subformats() {
         // Ogg: page_segments = 255 past prefix length falls back to bare Ogg
         let mut ogg_short = vec![0u8; 40];

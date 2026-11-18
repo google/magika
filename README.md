@@ -43,6 +43,7 @@ You can try Magika without installing anything by using our [web demo](https://s
 # Table of Contents
 
 1. [Getting Started](#getting-started)
+   1. [Requirements](#requirements)
    1. [Installation](#installation)
    1. [Quick Start](#quick-start)
 1. [Documentation](#documentation)
@@ -51,6 +52,29 @@ You can try Magika without installing anything by using our [web demo](https://s
 1. [Disclaimer](#disclaimer)
 
 # Getting Started
+
+## Requirements
+
+### Python
+
+The Python package requires **Python 3.10 or newer**. Python 3.8 and 3.9 are
+still accepted by the build, but they are only exercised in a legacy CI job and
+are not part of the supported matrix; use 3.10+ for a supported install.
+
+This matches `requires-python = ">=3.8"` in `python/pyproject.toml` together
+with the CI matrix in
+`.github/workflows/python-build-test-and-release-package.yml`, which tests
+3.10-3.14 on every push and 3.8-3.9 in a separate legacy job.
+
+### Command line tool
+
+The Rust CLI has no Python requirement. It ships as a prebuilt binary for
+Linux, macOS and Windows, and builds with a stable Rust toolchain.
+
+### JavaScript
+
+The npm package runs on Node.js; see the [npm page](https://www.npmjs.com/package/magika)
+for the supported versions.
 
 ## Installation
 

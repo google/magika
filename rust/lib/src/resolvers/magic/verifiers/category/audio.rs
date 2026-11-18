@@ -160,7 +160,24 @@ pub(crate) fn ogg(prefix: &[u8]) -> Option<Label> {
     let page_segments = u8_at(prefix, PAGE_SEGMENTS)?;
     require!(page_segments >= 1);
     let payload_off = HEADER_FIXED_LEN + usize::from(page_segments);
-    if let Some(sub) = prefix.get(payload_off..).and_then(bos_subformat) {
+    if let Some(mut sub) = prefix.get(payload_off..).and_then(bos_subformat) {
+        if core::ptr::eq(sub, &OGG_SKELETON)
+            && page_segments == 1
+            && let Some(seg_len) = u8_at(prefix, HEADER_FIXED_LEN)
+        {
+            let next = payload_off + usize::from(seg_len);
+            if eq_at(prefix, next, MAGIC)
+                && matches!(u8_at(prefix, next + HEADER_TYPE), Some(0x02 | 0x06))
+                && le32(prefix, next + PAGE_SEQ_NO) == Some(0)
+                && let Some(next_segs @ 1..) = u8_at(prefix, next + PAGE_SEGMENTS)
+                && let Some(media_sub) = prefix
+                    .get(next + HEADER_FIXED_LEN + usize::from(next_segs)..)
+                    .and_then(bos_subformat)
+                && !core::ptr::eq(media_sub, &OGG_SKELETON)
+            {
+                sub = media_sub;
+            }
+        }
         return with_subformat(Label::Ogg, sub);
     }
     Some(Label::Ogg)

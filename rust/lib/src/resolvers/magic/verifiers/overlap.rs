@@ -55,7 +55,7 @@ pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
 pub(crate) fn cafebabe(prefix: &[u8], size: u64) -> Option<Label> {
     static MACHO_UNIVERSAL: Subformat = Subformat::new("Mach-O Universal (Fat)");
     static JAVA_CLASS_VERSIONS: [Subformat; 27] = [
-        Subformat::new("Java 1.1 class file"),
+        Subformat::new("Java 1.0/1.1 class file"),
         Subformat::new("Java 1.2 class file"),
         Subformat::new("Java 1.3 class file"),
         Subformat::new("Java 1.4 class file"),
@@ -84,7 +84,7 @@ pub(crate) fn cafebabe(prefix: &[u8], size: u64) -> Option<Label> {
         Subformat::new("Java 27 class file"),
     ];
     const CAFEBABE_MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
-    const JAVA_MAJOR_MIN: u16 = 45; // @6: u16 BE — Java 1.1
+    const JAVA_MAJOR_MIN: u16 = 45; // @6: u16 BE — Java 1.0/1.1
     const JAVA_MAJOR_MAX: u16 = 80;
     require!(size >= 10, prefix.len() >= 10, starts(prefix, CAFEBABE_MAGIC));
     let nfat_or_minor_major = be32(prefix, 4)?;

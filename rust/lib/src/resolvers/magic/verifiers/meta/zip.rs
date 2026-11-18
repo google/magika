@@ -668,6 +668,7 @@ pub(crate) fn zip_subtypes_and_fallback(
     static TMDX_BINARY: Subformat = Subformat::new("TextMaker document (binary)");
     static TMDX_XML: Subformat = Subformat::new("TextMaker document (XML)");
     static ZIP_EMPTY: Subformat = Subformat::new("Empty ZIP archive");
+    const ZIP_EMPTY_EOCD_PREFIX: &[u8; 20] = bytes!(ZIP_EOCD_SIGNATURE, &[0u8; 16]);
     const ZIP_EMPTY_ARCHIVE: &[u8; 22] = bytes!(ZIP_EOCD_SIGNATURE, &[0u8; 18]);
 
     const CD_WORD_DOC: &[u8] = b"\nword/document.xml\n";
@@ -860,8 +861,11 @@ pub(crate) fn zip_subtypes_and_fallback(
         }
     }
 
-    if size >= 22 && prefix.len() >= 22 && starts(prefix, ZIP_EMPTY_ARCHIVE) {
+    if valid && starts(prefix, ZIP_EMPTY_EOCD_PREFIX) {
         return with_subformat(Label::Zip, &ZIP_EMPTY);
+    }
+    if size >= 22 && prefix.len() >= 22 && starts(prefix, ZIP_EMPTY_ARCHIVE) {
+        return if size == 22 { with_subformat(Label::Zip, &ZIP_EMPTY) } else { Some(Label::Zip) };
     }
     if valid {
         return zip_with_mimetype();

@@ -55,6 +55,23 @@ pub(crate) fn vib(prefix: &[u8]) -> Option<Label> {
     Some(Label::Vib)
 }
 
+/// Parses a BSD `#1/<len>` extended filename byte count (`>= 1`) from the 13-byte ASCII suffix of
+/// `ar_name` (`@11..24`).
+fn parse_bsd_ext_len(field: &[u8]) -> Option<usize> {
+    let digits = field.trim_ascii_end();
+    if digits.is_empty() {
+        return None;
+    }
+    let mut len = 0usize;
+    for &b in digits {
+        if !b.is_ascii_digit() {
+            return None;
+        }
+        len = len.checked_mul(10)?.checked_add(usize::from(b - b'0'))?;
+    }
+    (len >= 1).then_some(len)
+}
+
 /// Disambiguates Rust `.rlib` (`rust.metadata.bin` / `.rmeta` member) vs generic Unix `ar`
 /// (`!<arch>\n` with `` `\n `` member header terminator at `@66..68`) after `vib` and `deb`.
 pub(crate) fn rlib_or_ar(prefix: &[u8], size: u64) -> Option<Label> {
@@ -78,7 +95,13 @@ pub(crate) fn rlib_or_ar(prefix: &[u8], size: u64) -> Option<Label> {
         b"/SYM64/         " => with_subformat(Label::Ar, &AR_GNU_SYMTAB64),
         b"//              " => with_subformat(Label::Ar, &AR_GNU_LONGNAMES),
         n if n.starts_with(b"__.SYMDEF") => with_subformat(Label::Ar, &AR_BSD_SYMDEF),
-        n if n.starts_with(b"#1/") => with_subformat(Label::Ar, &AR_BSD_EXT),
+        n if n.starts_with(b"#1/") => match parse_bsd_ext_len(&n[3..]) {
+            Some(ext_len) if ext_len >= 9 && eq_at(prefix, 68, b"__.SYMDEF") => {
+                with_subformat(Label::Ar, &AR_BSD_SYMDEF)
+            }
+            Some(_) => with_subformat(Label::Ar, &AR_BSD_EXT),
+            None => Some(Label::Ar),
+        },
         _ => Some(Label::Ar),
     }
 }

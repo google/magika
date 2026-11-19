@@ -3,7 +3,6 @@
 This crate contains release tooling for the Rust tract runtime:
 
 - `convert-model` converts ONNX to a deterministic, optimized, gzip-compressed NNEF archive.
-- `verify-model` compares an arbitrary converted NNEF model with its ONNX source.
 - `magika-runtime-bench` measures the exact `magika-tract-runtime` implementation shipped by the
   Rust library and CLI. It does not rebuild or approximate the production graph.
 
@@ -13,7 +12,7 @@ Convert a compatible ONNX model:
 
 ```sh
 cargo run --manifest-path rust/tract-bench/Cargo.toml \
-  --no-default-features --features convert --bin convert-model -- \
+  --features convert --bin convert-model -- \
   model.onnx model.nnef.tgz
 ```
 
@@ -22,15 +21,13 @@ For the embedded release model, use the checked script:
 ```sh
 rust/tract-bench/scripts/convert-model.sh
 rust/tract-bench/scripts/convert-model.sh --check
-rust/tract-bench/scripts/verify-model-conversion.sh
 ```
 
 The release conversion also writes `model.probe.f32le`, the batch-one CPU score vector used to
 reject a GPU that loads successfully but computes incorrect results. The NNEF archive must
 regenerate byte-for-byte on every target. Floating-point probe scores can vary slightly by
 architecture, so the gate compares the checked probe numerically with the current CPU runtime
-instead. It also checks every bundled historical model against ONNX at batches 1, 8, 16, 32, and 64
-and runs the production CPU and GPU graph contracts.
+instead.
 
 The runtime embeds the graph exported from the `.nnef.tgz` file, which `rust/sync.sh` regenerates
 with it. For a
@@ -44,22 +41,16 @@ rust/tract-bench/scripts/measure-size.sh
 ## Runtime benchmark
 
 Each invocation measures one backend in an isolated process. CPU and GPU use the production
-`Runtime` and `Session`; ONNX Runtime uses independently pinned intra- and inter-op thread counts.
-`--threads` means resident inference threads, matching the production CLI.
+`Runtime` and `Session`. `--threads` means resident inference threads, matching the production CLI.
 
 ```sh
 # Production CPU runtime.
-cargo run --release --manifest-path rust/tract-bench/Cargo.toml \
-  --no-default-features -- --backend cpu --batch 8 --threads 4 --iterations 100
+cargo run --release --manifest-path rust/tract-bench/Cargo.toml -- \
+  --backend cpu --batch 8 --threads 4 --iterations 100
 
 # Production Metal runtime on macOS (or the compiled GPU implementation on another target).
-cargo run --release --manifest-path rust/tract-bench/Cargo.toml \
-  --no-default-features -- --backend gpu --batch 8 --threads 4 --iterations 100
-
-# ONNX Runtime reference with explicit thread ownership.
 cargo run --release --manifest-path rust/tract-bench/Cargo.toml -- \
-  --backend ort --batch 8 --threads 4 --iterations 100 \
-  --ort-intra-threads 1 --ort-inter-threads 1
+  --backend gpu --batch 8 --threads 4 --iterations 100
 ```
 
 The benchmark reports shared runtime preparation, per-thread session preparation and explicit
@@ -107,7 +98,7 @@ shared between hyperthreads, sweeping this is the way to check whether the defau
 ```sh
 for columns in 24 48 96 144 192; do
   MAGIKA_DIRECT_TILE_COLUMNS=$columns cargo run --release \
-    --manifest-path rust/tract-bench/Cargo.toml --no-default-features -- \
+    --manifest-path rust/tract-bench/Cargo.toml -- \
     --backend cpu --batch 8 --threads "$(nproc)" --iterations 100
 done
 ```

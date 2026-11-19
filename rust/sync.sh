@@ -24,7 +24,7 @@ info "Sync C FFI header"
 info "Sync embedded model"
 MODEL_NAME=$(tr -d '[:space:]' < ../assets/active_model.txt)
 ( cd tract-bench
-  cargo run --bin=convert-model --no-default-features --features=convert -- \
+  cargo run --bin=convert-model --features=convert -- \
     "../../assets/models/$MODEL_NAME/model.onnx" ../tract-runtime/models/model.{nnef.tgz,probe.f32le,graph.json,weights}
 )
 

@@ -15,18 +15,7 @@ name = "convert-model"
 path = "src/bin/convert_model.rs"
 required-features = ["convert"]
 
-[[bin]]
-name = "optimize-onnx"
-path = "src/bin/optimize_onnx.rs"
-required-features = ["ort-runtime"]
-
-[[bin]]
-name = "verify-model"
-path = "src/bin/verify_model.rs"
-required-features = ["verify"]
-
 [features]
-default = ["ort-runtime"]
 convert = [
   "dep:flate2",
   "dep:tract-core",
@@ -35,22 +24,15 @@ convert = [
   "dep:tract-onnx",
   "magika-tract-runtime/_export",
 ]
-ort-runtime = ["dep:ndarray", "dep:ort"]
-verify = ["ort-runtime", "dep:tract-core", "dep:tract-nnef"]
 
 [dependencies]
 anyhow = "1.0.104"
 flate2 = { version = "1.1.9", optional = true }
 magika-tract-runtime = { path = "../tract-runtime" }
-ndarray = { version = "0.17.2", optional = true }
 tract-core = { version = "=0.23.9", optional = true }
 tract-hir = { version = "=0.23.9", optional = true }
 tract-nnef = { version = "=0.23.9", optional = true }
 tract-onnx = { version = "=0.23.9", optional = true }
-
-[dependencies.ort]
-version = "=2.0.0-rc.12"
-optional = true
 
 [profile.release]
 codegen-units = 1

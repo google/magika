@@ -820,7 +820,7 @@ wheels = [
 
 [[package]]
 name = "magika"
-version = "2.0.0.dev0"
+version = "2.0.0rc0"
 source = { editable = "." }
 
 [package.dev-dependencies]

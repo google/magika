@@ -9,17 +9,34 @@ Note that for version number starting with a `0`, i.e., `0.x.y`, a bump of `x`
 should be considered as a major (and thus potentially breaking) change. See
 semver guidelines for more details about this.
 
-## [Unreleased]
-- Identify through the library's pipeline: `Magika()` returns at once and identifies on the CPU while the GPU is prepared, and `identify_paths` reads and identifies files in parallel.
-- Add the `rules` and `rules_files` arguments of `Magika` to identify with custom format rules before the built-in rules.
-- Replace the pure-Python ONNX Runtime implementation with native Rust bindings (`magika` crate via PyO3), removing all runtime Python dependencies (`onnxruntime`, `click`, `numpy`) while maintaining public API compatibility.
-- Bundle the updated Rust engine and CLI, which combine fast bounded format rules (`magika-rules`) with a heavily optimized pure-Rust inference runtime (`tract` with CPU SIMD and Metal/CUDA GPU support) for significantly faster startup and inference.
-- Expand pre-built `abi3-py38` binary wheel support to cover additional platforms and architectures:
+## [2.0.0rc0] - 2026-11-19
+
+### Overview
+
+Magika `2.0.0rc0` is the first release candidate for Magika 2.0. It introduces a major architectural upgrade: the pure-Python + ONNX Runtime engine is replaced by native Rust bindings (`magika` via PyO3) powered by an embedded `tract` runtime, adding native format resolvers, custom YARA rules, GPU acceleration, parallel batch identification, and nearly double the supported content types — all while preserving public Python API compatibility and dropping all Python runtime dependencies.
+
+> [!NOTE]
+> This release candidate still ships the `standard_v3_3` ML model (alongside 310 new native format resolvers, bringing total supported outputs to 401). A smaller, faster next-generation ML model with improved short-snippet detection and further expansion toward 1000+ content types is planned for subsequent 2.0 release candidates. Help testing `2.0.0rc0` and reporting feedback or misdetections via [GitHub Issues](https://github.com/google/magika/issues) is very welcome!
+
+### Key Features and Improvements
+
+- **Faster, zero-dependency Rust core:** Replaced the pure-Python ONNX Runtime implementation with native Rust bindings (`magika` crate via PyO3) running an embedded, natively compiled pure-Rust `tract` inference runtime. Removes all Python runtime dependencies (`onnxruntime`, `click`, `numpy`) while delivering significantly faster startup and inference and maintaining public API compatibility.
+- **New detection engine (native format resolvers & custom YARA rules):** Native Rust format resolvers (with built-in decompression for container formats and veto support for deterministic formats) now work alongside the ML model. Added `rules` and `rules_files` arguments to `Magika(...)` to evaluate custom YARA rules ahead of built-in resolvers.
+- **Many more supported content types (400+, up from 216):** Expanded supported output coverage to 401 content types — 310 covered by native format resolvers and 212 by the `standard_v3_3` ML model, plus filesystem heuristics (see the [full list of supported content types](https://securityresearch.google/magika/content-types/main/)) — adding formats such as AVIF, QOI, GGUF, DuckDB, and Microsoft Access.
+- **GPU acceleration & parallel batch pipeline:** Supports GPU acceleration (Metal on macOS; CUDA in the bundled CLI) with non-blocking initialization: `Magika()` returns immediately and identifies files on the CPU while the GPU is prepared in the background. `identify_paths()` now reads, extracts features, and runs inference in parallel batches inside the native Rust pipeline.
+- **New introspection APIs & metadata:** Added `Magika.get_content_type_info(label)`, detection-stage coverage fields on `ContentTypeInfo` (`in_heuristics`, `in_resolvers`, `in_ml_model`, `vetoed_by_resolvers`), `OverwriteReason.RESOLVERS_VETO` / `OverwriteReason.RULES_VETO`, and `ContentTypeLabel.UNSUPPORTED`.
+- **Updated bundled Rust CLI (`magika` `2.0.0-rc.0`):** Ships the updated native Rust CLI with `--custom-rules` / `--check-custom-rules`, `--no-resolvers` / `--no-model`, symlink-cycle detection during recursive traversal, and improved reporting for non-regular files.
+- **Expanded pre-built `abi3-py38` binary wheels:**
   - Linux (`glibc`): `x86_64` (`manylinux_2_28`), `aarch64` (`manylinux_2_28`), `armv7l` (`manylinux2014`), `riscv64` (`manylinux_2_31`).
   - Linux (`musl`): `x86_64` (`musllinux_1_2`), `aarch64` (`musllinux_1_2`).
   - macOS: `aarch64` (Apple Silicon) and `x86_64` (Intel).
-  - Windows: `x86_64`.
-- Add 62 content types to the knowledge base and `ContentTypeLabel`, such as AVIF, QOI, GGUF, DuckDB and Microsoft Access. The model's outputs are unchanged.
+  - Windows: `x86_64` and `aarch64` (ARM64).
+
+### Breaking Changes and Notes
+
+- **No pure-Python fallback wheel or legacy Python CLI:** The legacy `magika-python-client` fallback has been removed; installing `magika` now requires one of the pre-built native wheels (or building from source with Rust).
+- **Custom `model_dir` not supported:** Passing a custom `model_dir` to `Magika(model_dir=...)` currently raises `NotImplementedError`, as the model is natively embedded in the Rust backend.
+- **More specific content type detections:** With native format resolvers expanding coverage from 216 to 401 content types, files previously classified under broader or generic labels may now resolve to a more specific `ContentTypeLabel`. Use `get_output_content_types()` to retrieve supported labels dynamically.
 
 ## [1.0.3] - 2026-05-04
 - Update magika CLI binary.

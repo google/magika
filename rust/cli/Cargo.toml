@@ -1,6 +1,6 @@
 [package]
 name = "magika-cli"
-version = "2.0.0-dev"
+version = "2.0.0-rc.0"
 license = "Apache-2.0"
 edition = "2024"
 description = "Determines file content types using AI"
@@ -18,7 +18,7 @@ path = "src/main.rs"
 anyhow = "1.0.86"
 clap = { version = "4.5.9", features = ["cargo", "derive", "string"] }
 colored = "3.0.0"
-magika = { version = "2.0.0-dev", path = "../lib", features = ["cuda", "pipeline", "serde"] }
+magika = { version = "=2.0.0-rc.0", path = "../lib", features = ["cuda", "pipeline", "serde"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 

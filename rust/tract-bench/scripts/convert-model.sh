@@ -25,7 +25,7 @@ checked_graph="$repo_dir/rust/tract-runtime/models/model.graph.json"
 checked_weights="$repo_dir/rust/tract-runtime/models/model.weights"
 
 convert_model() {
-  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$@"
+  cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --features convert --bin convert-model -- "$source_model" "$@"
 }
 
 if [ "${1:-}" = "--check" ]; then
@@ -46,4 +46,4 @@ if [ "$#" -ne 0 ]; then
   exit 2
 fi
 
-cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --no-default-features --features convert --bin convert-model -- "$source_model" "$checked_model" "$checked_probe" "$checked_graph" "$checked_weights"
+cargo run --quiet --manifest-path "$bench_dir/Cargo.toml" --features convert --bin convert-model -- "$source_model" "$checked_model" "$checked_probe" "$checked_graph" "$checked_weights"

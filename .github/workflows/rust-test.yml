@@ -45,7 +45,11 @@ jobs:
       - run: ./test.sh
         working-directory: rust
   tract:
-    runs-on: ubuntu-26.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -73,8 +77,13 @@ jobs:
       - uses: ./.github/actions/rust-cache
       - run: cargo test --manifest-path rust/tract-bench/Cargo.toml --all-features
       - run: cargo clippy --manifest-path rust/tract-bench/Cargo.toml --all-features --all-targets -- --deny=warnings
+      # Require `--backend gpu` explicitly so Metal lowering and the GPU score probe fail closed
+      # instead of falling back to CPU as `--backend auto` does.
+      - run: cargo run --manifest-path rust/tract-bench/Cargo.toml -- --backend gpu --batch 8 --threads 1 --iterations 1
       - run: ./test.sh
         working-directory: rust/tract-runtime
+      - run: ./test.sh
+        working-directory: rust/lib
       - run: ./test.sh
         working-directory: rust/cli
       # The C library links the Metal backend only on macOS, so only this job checks its link line.
@@ -83,12 +92,15 @@ jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-26.04, macos-26, windows-2025]
+        # Keep aligned with the targets in dist-workspace.toml.
+        os: [ubuntu-26.04, ubuntu-24.04-arm, macos-26, windows-2025]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - run: rustup default stable
       - uses: ./.github/actions/rust-cache
       - run: cargo build --profile=release-fast
         working-directory: rust/cli

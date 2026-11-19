@@ -44,13 +44,16 @@ Usage (from anywhere in the repository):
 Release snapshots (`website-ng/src/content/docs/content-types/<artifact>-v*.md`)
 are driven by the versions declared in each artifact's own manifest
 (`rust/lib/Cargo.toml`, `rust/cli/Cargo.toml`, `python/pyproject.toml`,
-`js/package.json`). Between releases these carry a pre-release suffix (e.g.
-`2.0.0-dev`, `2.0.0.dev0`) and are ignored. The release PR drops the suffix;
-running this script then writes the snapshot of the new stable version and pins
-its sha256 in `assets/content_types_snapshots.sha256` (`--check` fails until
-it does). Pinned snapshots are frozen: `--check` fails if one is modified or
-deleted, or if an unpinned one appears. At publish time, `--verify-release`
-checks that the released tree reproduces its snapshot byte for byte.
+`js/package.json`). Pre-release versions (e.g. `2.0.0-dev`, `2.0.0.dev0`,
+`2.0.0rc0`, `2.0.0-rc.0`) never get frozen snapshots. For stable releases, the
+release PR drops the pre-release suffix; running this script then writes the
+snapshot of the new stable version and pins its sha256 in
+`assets/content_types_snapshots.sha256` (`--check` fails until it does). Pinned
+snapshots are frozen: `--check` fails if one is modified or deleted, or if an
+unpinned one appears. At publish time, `--verify-release` checks that stable
+releases reproduce their snapshot byte for byte, allows publishable release
+candidates (`rc`/`alpha`/`beta`) without a snapshot, and rejects `-dev`/`.dev`
+versions or tag/manifest mismatches.
 """
 
 from __future__ import annotations
@@ -180,8 +183,13 @@ MIME_TYPE_RE = re.compile(
 EXTENSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_+.-]*$")
 ACTIVE_MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 # A stable release version; anything else (e.g. `2.0.0-dev`, `2.0.0.dev0`,
-# `1.0.4rc1`) is a pre-release and never gets a snapshot.
+# `2.0.0rc0`, `2.0.0-rc.0`) is a pre-release and never gets a frozen snapshot.
 STABLE_VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+# A publishable pre-release version (PEP 440 `a`/`b`/`rc` or SemVer `-alpha`/`-beta`/`-rc`).
+# Dev versions (`-dev`, `.dev0`) are intentionally excluded and rejected by `--verify-release`.
+PRERELEASE_VERSION_RE = re.compile(
+    r"^[0-9]+\.[0-9]+\.[0-9]+(?:(?:a|b|rc)[0-9]+|-(?:alpha|beta|rc)(?:\.[0-9]+|[0-9]+))$"
+)
 _SNAPSHOT_FILE_NAME_RE = re.compile(r"^([a-z]+)-v([0-9]+)_([0-9]+)_([0-9]+)\.md$")
 
 VALID_GROUPS = frozenset(
@@ -363,9 +371,10 @@ class KbError(Exception):
     "--verify-release",
     type=click.Choice([artifact.key for artifact in RELEASE_ARTIFACTS]),
     default=None,
-    help="Release gate (run by the publishing workflows): check that ARTIFACT declares "
-    "a stable version whose release snapshot is pinned and reproduced byte for byte "
-    "by this tree, then exit.",
+    help="Release gate (run by the publishing workflows): verify that ARTIFACT "
+    "declares a releasable version (rejecting -dev/.dev) and, for stable "
+    "versions, that its release snapshot is pinned and reproduced byte for "
+    "byte by this tree, then exit.",
 )
 @click.option(
     "--expected-version",
@@ -421,19 +430,26 @@ def main(
 
         if verify_release is not None:
             artifact = RELEASE_ARTIFACTS_BY_KEY[verify_release]
+            declared_version = declared_versions[artifact.key]
             snapshot_path = verify_release_snapshot(
                 kb,
                 artifact,
-                declared_versions[artifact.key],
+                declared_version,
                 model_name,
                 expected_version=expected_version,
                 snapshots_dir=WEBSITE_CONTENT_TYPES_DIR,
                 manifest_path=SNAPSHOTS_MANIFEST_PATH,
             )
-            click.echo(
-                f"OK: {_display_path(snapshot_path)} is pinned and reproduced by this "
-                f"tree for {artifact.title} {declared_versions[artifact.key]}."
-            )
+            if snapshot_path is None:
+                click.echo(
+                    f"OK: {artifact.title} {declared_version} is a pre-release; "
+                    "no frozen release snapshot is required."
+                )
+            else:
+                click.echo(
+                    f"OK: {_display_path(snapshot_path)} is pinned and reproduced by this "
+                    f"tree for {artifact.title} {declared_version}."
+                )
             return
 
         manifest = _read_snapshots_manifest(SNAPSHOTS_MANIFEST_PATH)
@@ -606,8 +622,12 @@ def verify_release_snapshot(
     expected_version: str | None,
     snapshots_dir: Path,
     manifest_path: Path,
-) -> Path:
-    """Checks that this tree is a releasable state of `artifact`; returns its snapshot path."""
+) -> Path | None:
+    """Checks that this tree is a releasable state of `artifact`.
+
+    Returns the verified frozen snapshot path for stable releases, or `None`
+    for publishable pre-releases (which do not get frozen snapshots).
+    """
     version_file = _display_path(artifact.version_file)
     if expected_version is not None and expected_version != declared_version:
         raise KbError(
@@ -615,9 +635,12 @@ def verify_release_snapshot(
             f"expects {expected_version!r} (does the release tag match the release PR?)"
         )
     if not STABLE_VERSION_RE.match(declared_version):
+        if PRERELEASE_VERSION_RE.match(declared_version):
+            return None
         raise KbError(
-            f"{version_file} declares {declared_version!r}, which is not a stable release "
-            "version: the release PR must drop the pre-release suffix"
+            f"{version_file} declares {declared_version!r}, which is not a releasable "
+            "version (expected a stable X.Y.Z or pre-release such as X.Y.Zrc0 / "
+            "X.Y.Z-rc.0): the release PR must drop the -dev/.dev suffix"
         )
 
     name = snapshot_file_name(artifact.key, declared_version)
@@ -3497,6 +3520,42 @@ def _self_test_declared_versions() -> list[str]:
             ]
             == [True, False, False, False, False],
         ),
+        (
+            "publishable pre-releases",
+            [
+                bool(PRERELEASE_VERSION_RE.match(v))
+                for v in (
+                    "2.0.0rc0",
+                    "2.0.0-rc.0",
+                    "2.0.0-rc0",
+                    "2.0.0a1",
+                    "2.0.0b2",
+                    "2.0.0-alpha.0",
+                    "2.0.0-beta.1",
+                    "2.0.0",
+                    "2.0.0-dev",
+                    "2.0.0.dev0",
+                    "2.0.0.rc0",
+                    "2.0.0rc0.dev0",
+                    "v2.0.0rc0",
+                )
+            ]
+            == [
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+            ],
+        ),
     ]
     try:
         _parse_declared_version("pyproject.toml", '[project]\nname = "x"\n', "p")
@@ -3526,7 +3585,7 @@ def _self_test_frozen_snapshots() -> list[str]:
 
         def _gate(version: str, expected: str | None = None) -> str:
             try:
-                verify_release_snapshot(
+                path = verify_release_snapshot(
                     kb,
                     python,
                     version,
@@ -3537,7 +3596,7 @@ def _self_test_frozen_snapshots() -> list[str]:
                 )
             except KbError as e:
                 return str(e)
-            return "OK"
+            return "OK:prerelease" if path is None else "OK"
 
         try:
             write_frozen_snapshot(
@@ -3558,8 +3617,24 @@ def _self_test_frozen_snapshots() -> list[str]:
             ("clean state verifies", _verify() == (2, [])),
             ("release gate passes", _gate("1.0.4", "1.0.4") == "OK"),
             (
-                "gate rejects pre-release",
-                "not a stable release version" in _gate("1.0.5-dev"),
+                "gate allows Python rc without snapshot",
+                _gate("2.0.0rc0", "2.0.0rc0") == "OK:prerelease",
+            ),
+            (
+                "gate allows SemVer rc without snapshot",
+                _gate("2.0.0-rc.0", "2.0.0-rc.0") == "OK:prerelease",
+            ),
+            (
+                "gate rejects rc tag mismatch",
+                "but the release expects '2.0.0rc1'" in _gate("2.0.0rc0", "2.0.0rc1"),
+            ),
+            (
+                "gate rejects -dev version",
+                "not a releasable version" in _gate("1.0.5-dev"),
+            ),
+            (
+                "gate rejects .dev0 version",
+                "not a releasable version" in _gate("2.0.0.dev0"),
             ),
             (
                 "gate rejects tag mismatch",

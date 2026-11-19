@@ -4,7 +4,9 @@
 
 ### Major
 
-No major changes.
+- Identify files with built-in format resolvers before model inference (expanding supported outputs
+  from 216 to 401, with resolver matches reporting `dl` as `undefined` and `score` as `1.0`)
+- Update metadata (descriptions, MIME types, groups, and extensions) for 29 existing content types
 
 ### Minor
 
@@ -17,6 +19,7 @@ No major changes.
 
 ### Patch
 
+- Buffer standard output when printing results
 - Fix panic with JSON output when a file name is not UTF-8
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies

@@ -75,7 +75,8 @@ jobs:
       # functionality based on whether this is a pull_request, and whether it's from a fork.
       # (PRs run on the *source* but secrets are usually on the *target* -- that's *good*
       # but also really annoying to build CI around when it needs secrets to work right.)
-      - id: plan
+      - name: Plan release with cargo-dist
+        id: plan
         run: |
           dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', github.ref_name)) || 'plan' }} --output-format=json > plan-dist-manifest.json
           echo "dist ran successfully"
@@ -200,7 +201,8 @@ jobs:
           pattern: artifacts-*
           path: target/distrib/
           merge-multiple: true
-      - id: cargo-dist
+      - name: Build global cargo-dist artifacts
+        id: cargo-dist
         shell: bash
         run: |
           dist build ${NEEDS_PLAN_OUTPUTS_TAG_FLAG} --output-format=json "--artifacts=global" > dist-manifest.json
@@ -252,7 +254,8 @@ jobs:
           pattern: artifacts-*
           path: target/distrib/
           merge-multiple: true
-      - id: host
+      - name: Host release with cargo-dist
+        id: host
         shell: bash
         run: |
           dist host ${NEEDS_PLAN_OUTPUTS_TAG_FLAG} --steps=upload --steps=release --output-format=json > dist-manifest.json

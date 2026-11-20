@@ -26,7 +26,7 @@ set -e
 # This script relies on the repository disabling release immutability since this release is mutated.
 
 REPO=google/magika
-RELEASES=$(gh release list --repo=$REPO --json=tagName |
+RELEASES=$(gh release list --repo=$REPO --exclude-pre-releases --json=tagName |
              tr -d '[{}]' | tr , '\n' | sed 's/^.*"\([^"]*\)"$/\1/')
 info "Found the following releases"
 echo "$RELEASES"

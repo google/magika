@@ -34,6 +34,13 @@ If you intend to use Magika only as a command line, you may want to use `pipx in
 
 If you want to test out the latest release candidate, you can install it with `pip install --pre magika`.
 
+### Requirements
+
+- Python 3.8 or newer.
+- Linux, macOS or Windows. Pre-built wheels bundling the native Rust CLI are
+  published for the common architectures; a pure-Python wheel is also published
+  as a fallback for other platforms.
+
 ## Using Magika as a command-line tool
 
 > Beginning with version `0.6.0`, the magika Python package includes a pre-compiled Rust-based command-line tool, replacing the previous Python version. This binary is distributed as platform-specific wheels for most common architectures. For unsupported platforms, a pure-Python wheel is also available, providing the legacy Python client as a fallback.

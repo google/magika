@@ -39,6 +39,9 @@ pub(crate) fn flv(prefix: &[u8]) -> Option<Label> {
 /// Adobe Flash SWF (`"FWS"`, `"CWS"`, or `"ZWS"`): version 1..=50 at `@3`, declared file length
 /// ≥ 15 at `@4`, and compression-specific header fields at `@8`.
 pub(crate) fn swf(prefix: &[u8]) -> Option<Label> {
+    static SWF_FWS: Subformat = Subformat::new("SWF (uncompressed, FWS)");
+    static SWF_CWS: Subformat = Subformat::new("SWF (zlib compressed, CWS)");
+    static SWF_ZWS: Subformat = Subformat::new("SWF (LZMA compressed, ZWS)");
     const FWS_MAGIC: &[u8] = b"FWS";
     const CWS_MAGIC: &[u8] = b"CWS";
     const ZWS_MAGIC: &[u8] = b"ZWS";
@@ -51,27 +54,33 @@ pub(crate) fn swf(prefix: &[u8]) -> Option<Label> {
     let ver = u8_at(prefix, VERSION)?;
     require!((1..=50).contains(&ver));
 
-    let valid = if starts(prefix, FWS_MAGIC) {
+    let sub = if starts(prefix, FWS_MAGIC) {
         let rect0 = u8_at(prefix, PAYLOAD)?;
         let rect1 = u8_at(prefix, PAYLOAD + 1)?;
-        (8..=248).contains(&rect0) && rect0 % 8 == 0 && rect1 <= 31
+        require!((8..=248).contains(&rect0) && rect0 % 8 == 0 && rect1 <= 31);
+        &SWF_FWS
     } else if starts(prefix, CWS_MAGIC) {
-        ver >= 6
-            && u8_at(prefix, PAYLOAD)? == 0x78
-            && matches!(u8_at(prefix, PAYLOAD + 1)?, 0x01 | 0x5E | 0x9C | 0xDA)
+        require!(
+            ver >= 6
+                && u8_at(prefix, PAYLOAD)? == 0x78
+                && matches!(u8_at(prefix, PAYLOAD + 1)?, 0x01 | 0x5E | 0x9C | 0xDA)
+        );
+        &SWF_CWS
     } else if starts(prefix, ZWS_MAGIC) {
         const LZMA_PROPS: usize = 12; // @12: u8 — LZMA lc/lp/pb properties (0x5D = 93)
         const LZMA_DICT: usize = 13; // @13: u32 LE — LZMA dictionary size (4 KiB .. 1 GiB)
-        prefix.len() >= 17
-            && ver >= 13
-            && le32(prefix, PAYLOAD)? >= 5
-            && u8_at(prefix, LZMA_PROPS)? == 0x5D
-            && (4096..=1_073_741_824).contains(&le32(prefix, LZMA_DICT)?)
+        require!(
+            prefix.len() >= 17
+                && ver >= 13
+                && le32(prefix, PAYLOAD)? >= 5
+                && u8_at(prefix, LZMA_PROPS)? == 0x5D
+                && (4096..=1_073_741_824).contains(&le32(prefix, LZMA_DICT)?)
+        );
+        &SWF_ZWS
     } else {
-        false
+        return None;
     };
-    require!(valid);
-    Some(Label::Swf)
+    with_subformat(Label::Swf, sub)
 }
 
 /// MPEG-2 Transport Stream (`.ts` or Blu-ray `.m2ts`): 21 consecutive 188-byte packets starting
@@ -79,6 +88,10 @@ pub(crate) fn swf(prefix: &[u8]) -> Option<Label> {
 /// 4032), each with sync byte `0x47`, `transport_error_indicator == 0`, and nonzero
 /// `adaptation_field_control`.
 pub(crate) fn mpegts(prefix: &[u8]) -> Option<Label> {
+    static MPEG_TS: Subformat =
+        Subformat::with_ids("MPEG-2 Transport Stream (.ts)", "fmt/585", Some("fdd000635"));
+    static MPEG_M2TS: Subformat =
+        Subformat::with_ids("BDAV MPEG-2 Transport Stream (.m2ts)", "fmt/1055", Some("fdd000636"));
     const SYNC: u8 = 0x47; // MPEG-TS sync byte
     const PACKETS: usize = 21;
     const TS_STRIDE: usize = 188;
@@ -108,13 +121,13 @@ pub(crate) fn mpegts(prefix: &[u8]) -> Option<Label> {
         && u8_at(prefix, 0) == Some(SYNC)
         && valid_packets(prefix, 0, TS_STRIDE)
     {
-        return Some(Label::Mpegts);
+        return with_subformat(Label::Mpegts, &MPEG_TS);
     }
     if prefix.len() >= M2TS_MIN_LEN
         && u8_at(prefix, 4) == Some(SYNC)
         && valid_packets(prefix, 4, M2TS_STRIDE)
     {
-        return Some(Label::Mpegts);
+        return with_subformat(Label::Mpegts, &MPEG_M2TS);
     }
     None
 }

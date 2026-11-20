@@ -20,6 +20,8 @@ use crate::resolvers::magic::*;
 /// IETF pcapng Section Header Block: block type `0x0A0D0D0A`, byte-order magic `0x1A2B3C4D` at `@8`
 /// in either endianness with major version `1` at `@12`, and ≥ 28-byte minimum SHB.
 pub(crate) fn pcapng(prefix: &[u8]) -> Option<Label> {
+    static PCAPNG_LE: Subformat = Subformat::new("pcapng (little-endian)");
+    static PCAPNG_BE: Subformat = Subformat::new("pcapng (big-endian)");
     const SHB_TYPE: &[u8] = b"\x0a\x0d\x0d\x0a"; // @0..4: Section Header Block type
     const BYTE_ORDER_MAGIC: u32 = 0x1A2B_3C4D; // @8: u32 — endianness marker
     const BYTE_ORDER_OFFSET: usize = 8;
@@ -27,17 +29,27 @@ pub(crate) fn pcapng(prefix: &[u8]) -> Option<Label> {
     const MIN_LEN: usize = 28;
 
     require!(prefix.len() >= MIN_LEN, starts(prefix, SHB_TYPE));
-    let valid = (le32(prefix, BYTE_ORDER_OFFSET)? == BYTE_ORDER_MAGIC
-        && le16(prefix, MAJOR_VERSION)? == 1)
-        || (be32(prefix, BYTE_ORDER_OFFSET)? == BYTE_ORDER_MAGIC
-            && be16(prefix, MAJOR_VERSION)? == 1);
-    require!(valid);
-    Some(Label::Pcapng)
+    let sub = if le32(prefix, BYTE_ORDER_OFFSET)? == BYTE_ORDER_MAGIC
+        && le16(prefix, MAJOR_VERSION)? == 1
+    {
+        &PCAPNG_LE
+    } else if be32(prefix, BYTE_ORDER_OFFSET)? == BYTE_ORDER_MAGIC
+        && be16(prefix, MAJOR_VERSION)? == 1
+    {
+        &PCAPNG_BE
+    } else {
+        return None;
+    };
+    with_subformat(Label::Pcapng, sub)
 }
 
 /// libpcap capture file: microsecond (`0xA1B2C3D4`) or nanosecond (`0xA1B23C4D`) magic in either
 /// byte order, version 2.4 at `@4..8`, and nonzero `snaplen` at `@16`.
 pub(crate) fn pcap(prefix: &[u8]) -> Option<Label> {
+    static PCAP_USEC_LE: Subformat = Subformat::new("libpcap (microsecond, little-endian)");
+    static PCAP_NSEC_LE: Subformat = Subformat::new("libpcap (nanosecond, little-endian)");
+    static PCAP_USEC_BE: Subformat = Subformat::new("libpcap (microsecond, big-endian)");
+    static PCAP_NSEC_BE: Subformat = Subformat::new("libpcap (nanosecond, big-endian)");
     const MAGIC_USEC: u32 = 0xA1B2_C3D4; // microsecond-resolution pcap magic
     const MAGIC_NSEC: u32 = 0xA1B2_3C4D; // nanosecond-resolution pcap magic
     const MAJOR: usize = 4; // @4: u16 — major version (2)
@@ -46,16 +58,25 @@ pub(crate) fn pcap(prefix: &[u8]) -> Option<Label> {
     const HEADER_LEN: usize = 24;
 
     require!(prefix.len() >= HEADER_LEN);
-    let le_ok = matches!(le32(prefix, 0)?, MAGIC_USEC | MAGIC_NSEC)
+    let le_magic = le32(prefix, 0)?;
+    if matches!(le_magic, MAGIC_USEC | MAGIC_NSEC)
         && le16(prefix, MAJOR)? == 2
         && le16(prefix, MINOR)? == 4
-        && le32(prefix, SNAPLEN)? > 0;
-    let be_ok = matches!(be32(prefix, 0)?, MAGIC_USEC | MAGIC_NSEC)
-        && be16(prefix, MAJOR)? == 2
-        && be16(prefix, MINOR)? == 4
-        && be32(prefix, SNAPLEN)? > 0;
-    require!(le_ok || be_ok);
-    Some(Label::Pcap)
+        && le32(prefix, SNAPLEN)? > 0
+    {
+        return with_subformat(
+            Label::Pcap,
+            if le_magic == MAGIC_USEC { &PCAP_USEC_LE } else { &PCAP_NSEC_LE },
+        );
+    }
+    let be_magic = be32(prefix, 0)?;
+    require!(
+        matches!(be_magic, MAGIC_USEC | MAGIC_NSEC),
+        be16(prefix, MAJOR)? == 2,
+        be16(prefix, MINOR)? == 4,
+        be32(prefix, SNAPLEN)? > 0,
+    );
+    with_subformat(Label::Pcap, if be_magic == MAGIC_USEC { &PCAP_USEC_BE } else { &PCAP_NSEC_BE })
 }
 
 /// BitTorrent metainfo file (`.torrent`, BEP 3/12/52): bencoded dictionary opening with a known

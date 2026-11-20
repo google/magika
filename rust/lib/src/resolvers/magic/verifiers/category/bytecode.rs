@@ -35,6 +35,8 @@ pub(crate) fn dex(prefix: &[u8]) -> Option<Label> {
         get_slice(prefix, 4, 7)?.iter().all(u8::is_ascii_digit),
         u8_at(prefix, 7)? == 0,
     );
+    static DEX_STANDARD: Subformat = Subformat::new("Dalvik Executable (standard)");
+    static DEX_041_CONTAINER: Subformat = Subformat::new("Dalvik Executable (v041 container)");
     let expected_hdr = if be32(prefix, VERSION)? == VER_041 {
         require!(prefix.len() >= V041_HDR_LEN);
         V041_HDR_LEN as u32
@@ -46,7 +48,8 @@ pub(crate) fn dex(prefix: &[u8]) -> Option<Label> {
         || (be32(prefix, HEADER_SIZE)? == expected_hdr
             && be32(prefix, ENDIAN_TAG)? == ENDIAN_CONSTANT);
     require!(valid_endian);
-    Some(Label::Dex)
+    let sub = if expected_hdr == V041_HDR_LEN as u32 { &DEX_041_CONTAINER } else { &DEX_STANDARD };
+    with_subformat(Label::Dex, sub)
 }
 
 /// LLVM bitcode: 4-byte-aligned file size and either a raw bitcode stream (`"BC\xc0\xde"` with
@@ -66,7 +69,9 @@ pub(crate) fn llvm_bitcode(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         && le32(prefix, WRAP_OFFSET)? >= 16
         && le32(prefix, WRAP_SIZE)? >= 4;
     require!(raw || wrapper);
-    Some(Label::LlvmBitcode)
+    static LLVM_RAW: Subformat = Subformat::new("LLVM bitcode (raw)");
+    static LLVM_WRAPPER: Subformat = Subformat::new("LLVM bitcode wrapper");
+    with_subformat(Label::LlvmBitcode, if raw { &LLVM_RAW } else { &LLVM_WRAPPER })
 }
 
 /// Lua (v2.4..v5.5) and LuaJIT (v1/v2) compiled bytecode chunks.
@@ -75,6 +80,19 @@ pub(crate) fn luabytecode(prefix: &[u8]) -> Option<Label> {
     const LUAJIT_MAGIC: &[u8] = b"\x1bLJ"; // @0..3: LuaJIT bytecode dump signature
     const LUAC_DATA: &[u8] = b"\x19\x93\r\n\x1a\n"; // Lua 5.2+ conversion-check tail
     const MIN_LEN: usize = 8;
+    static LUA_2_4: Subformat = Subformat::new("Lua 2.4 bytecode");
+    static LUA_2_5: Subformat = Subformat::new("Lua 2.5 bytecode");
+    static LUA_3_1: Subformat = Subformat::new("Lua 3.1 bytecode");
+    static LUA_3_2: Subformat = Subformat::new("Lua 3.2 bytecode");
+    static LUA_4_0: Subformat = Subformat::new("Lua 4.0 bytecode");
+    static LUA_5_0: Subformat = Subformat::new("Lua 5.0 bytecode");
+    static LUA_5_1: Subformat = Subformat::new("Lua 5.1 bytecode");
+    static LUA_5_2: Subformat = Subformat::new("Lua 5.2 bytecode");
+    static LUA_5_3: Subformat = Subformat::new("Lua 5.3 bytecode");
+    static LUA_5_4: Subformat = Subformat::new("Lua 5.4 bytecode");
+    static LUA_5_5: Subformat = Subformat::new("Lua 5.5 bytecode");
+    static LUAJIT_2_0: Subformat = Subformat::new("LuaJIT 2.0 bytecode");
+    static LUAJIT_2_1: Subformat = Subformat::new("LuaJIT 2.1 bytecode");
 
     require!(prefix.len() >= MIN_LEN);
     if starts(prefix, LUA_MAGIC) {
@@ -144,7 +162,20 @@ pub(crate) fn luabytecode(prefix: &[u8]) -> Option<Label> {
             _ => false,
         };
         require!(ok);
-        return Some(Label::Luabytecode);
+        let sub = match ver {
+            0x23 => &LUA_2_4,
+            0x25 => &LUA_2_5,
+            0x31 => &LUA_3_1,
+            0x32 => &LUA_3_2,
+            0x40 => &LUA_4_0,
+            0x50 => &LUA_5_0,
+            0x51 => &LUA_5_1,
+            0x52 => &LUA_5_2,
+            0x53 => &LUA_5_3,
+            0x54 => &LUA_5_4,
+            _ => &LUA_5_5,
+        };
+        return with_subformat(Label::Luabytecode, sub);
     }
 
     require!(starts(prefix, LUAJIT_MAGIC), matches!(u8_at(prefix, 3)?, 1 | 2));
@@ -186,7 +217,8 @@ pub(crate) fn luabytecode(prefix: &[u8]) -> Option<Label> {
             matches!(u8_at(prefix, after + 1)?, 0x20..=0x7E),
         );
     }
-    Some(Label::Luabytecode)
+    let sub = if u8_at(prefix, 3)? == 1 { &LUAJIT_2_0 } else { &LUAJIT_2_1 };
+    with_subformat(Label::Luabytecode, sub)
 }
 
 /// WebAssembly binary module: `"\0asm"` magic followed by version 1 (`0x00000001` LE).
@@ -202,6 +234,10 @@ pub(crate) fn wasm(prefix: &[u8]) -> Option<Label> {
 /// at `@12` for 3.3..3.3a, or `'c'`/`0xE3` at `@12` for 3.4..3.6).
 pub(crate) fn pythonbytecode(prefix: &[u8]) -> Option<Label> {
     const MIN_LEN: usize = 9;
+    static PY_1_0: Subformat = Subformat::new("Python 1.0-1.2 bytecode");
+    static PY_1_3: Subformat = Subformat::new("Python 1.3-3.2 bytecode");
+    static PY_3_3: Subformat = Subformat::new("Python 3.3 bytecode");
+    static PY_3_4: Subformat = Subformat::new("Python 3.4-3.6 bytecode");
 
     require!(prefix.len() >= MIN_LEN);
     // All 89 magics end in either 0x99 0x00 (Python 1.0..1.2) or 0x0D 0x0A ("\r\n").
@@ -212,7 +248,7 @@ pub(crate) fn pythonbytecode(prefix: &[u8]) -> Option<Label> {
             matches!(u8_at(prefix, 0)?, 0x02 | 0x03),
             u8_at(prefix, 8)? == 0x43,
         );
-        return Some(Label::Pythonbytecode);
+        return with_subformat(Label::Pythonbytecode, &PY_1_0);
     }
     require!(marker == (0x0D, 0x0A));
     let ver = le16(prefix, 0)?;
@@ -227,12 +263,12 @@ pub(crate) fn pythonbytecode(prefix: &[u8]) -> Option<Label> {
         0xF2F9, 0xC4FC, 0xC4FD, 0x0BFF,
     ];
     if u8_at(prefix, 8) == Some(0x63) && TIMESTAMP_VERSIONS.contains(&ver) {
-        return Some(Label::Pythonbytecode);
+        return with_subformat(Label::Pythonbytecode, &PY_1_3);
     }
 
     // 3 sized-header magics (marshal 'c' = 0x63 at @12)
     if matches!(ver, 0x0C8A | 0x0C94 | 0x0C9E) && u8_at(prefix, 12) == Some(0x63) {
-        return Some(Label::Pythonbytecode);
+        return with_subformat(Label::Pythonbytecode, &PY_3_3);
     }
 
     // 25 reference-enabled magics (marshal 'c' = 0x63 or FLAG_REF|'c' = 0xE3 at @12)
@@ -242,7 +278,7 @@ pub(crate) fn pythonbytecode(prefix: &[u8]) -> Option<Label> {
         0x0CE4, 0x0CEE, 0x0CF8,
     ];
     require!(matches!(u8_at(prefix, 12), Some(0x63 | 0xE3)), REFERENCE_VERSIONS.contains(&ver),);
-    Some(Label::Pythonbytecode)
+    with_subformat(Label::Pythonbytecode, &PY_3_4)
 }
 
 /// Android Optimized Dalvik Executable (`odex`, 2008): `"dey\n035\0"`, `"dey\n036\0"`, or
@@ -259,7 +295,17 @@ pub(crate) fn odex(prefix: &[u8], size: u64) -> Option<Label> {
             || starts(prefix, ODEX_036_MAGIC)
             || starts(prefix, ODEX_037_MAGIC),
     );
-    Some(Label::Odex)
+    static ODEX_035: Subformat = Subformat::new("Optimized DEX 035");
+    static ODEX_036: Subformat = Subformat::new("Optimized DEX 036");
+    static ODEX_037: Subformat = Subformat::new("Optimized DEX 037");
+    let sub = if starts(prefix, ODEX_035_MAGIC) {
+        &ODEX_035
+    } else if starts(prefix, ODEX_036_MAGIC) {
+        &ODEX_036
+    } else {
+        &ODEX_037
+    };
+    with_subformat(Label::Odex, sub)
 }
 
 /// Khronos SPIR-V binary module: 4-byte-aligned size, 5-word header with magic `0x07230203` in
@@ -287,5 +333,7 @@ pub(crate) fn spirv(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         read_u32(prefix, BOUND)? > 0,
         read_u32(prefix, SCHEMA)? == 0,
     );
-    Some(Label::Spirv)
+    static SPIRV_LE: Subformat = Subformat::new("SPIR-V (little-endian)");
+    static SPIRV_BE: Subformat = Subformat::new("SPIR-V (big-endian)");
+    with_subformat(Label::Spirv, if le32(prefix, 0)? == MAGIC { &SPIRV_LE } else { &SPIRV_BE })
 }

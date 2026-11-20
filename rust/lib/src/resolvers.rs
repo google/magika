@@ -13,6 +13,9 @@
 // limitations under the License.
 
 mod magic;
+mod metadata;
+
+use std::collections::HashMap;
 
 use anyhow::Result;
 
@@ -20,12 +23,26 @@ use crate::{ContentType, Input};
 
 const PREFIX_LIMIT: usize = 4096;
 
+/// Returns the content types and metadata of a file without false positives.
+pub(crate) fn identify_with_metadata(
+    file: &mut Input,
+) -> Result<(Vec<ContentType>, HashMap<String, String>)> {
+    let content_types = identify(file)?;
+    let mut metadata = HashMap::new();
+    if let Some(&content_type) = content_types.first() {
+        let subformat = magic::take_subformat(content_type);
+        metadata::populate(content_type, subformat, &mut metadata);
+    }
+    Ok((content_types, metadata))
+}
+
 /// Returns the content types of a file without false positives.
 ///
 /// The returned list may have false negatives (the file should have a content type that's not
 /// returned). In particular, the list may be empty, in which case the model will also try to
 /// identify the file.
 pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
+    magic::clear_subformat();
     let size = file.length();
     if size == 0 {
         return Ok(Vec::new());
@@ -65,7 +82,7 @@ pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
     } else {
         None
     };
-    let ctx = magic::Ctx { prefix, size, tail };
+    let ctx = magic::Ctx { prefix, size, tail, path: file.path() };
     if let Some(content_type) = magic::identify(&ctx) {
         return Ok(vec![content_type]);
     }
@@ -98,17 +115,15 @@ pub(crate) fn identify(file: &mut Input) -> Result<Vec<ContentType>> {
 /// on "is_text" from the content type that was vetoed).
 #[cfg_attr(not(test), allow(dead_code))] // cannot use cfg(test) because of sync_kb.py
 pub(crate) const VETOS: &[ContentType] = &[
-    ContentType::Keras,
-    ContentType::Qgis,
-    ContentType::Visio,
-    ContentType::Xlsx,
     ContentType::_3dsm,
     ContentType::_3dsx,
     ContentType::_3gp,
     ContentType::Ace,
+    ContentType::Ani,
     ContentType::Applebplist,
     ContentType::Appledouble,
     ContentType::Applesingle,
+    ContentType::Arrow,
     ContentType::Au,
     ContentType::Avi,
     ContentType::Avif,
@@ -141,8 +156,11 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Hve,
     ContentType::Icc,
     ContentType::Icns,
+    ContentType::Javabytecode,
     ContentType::Jng,
+    ContentType::Keras,
     ContentType::Kml,
+    ContentType::Lha,
     ContentType::LlvmBitcode,
     ContentType::Lnk,
     ContentType::Lrz,
@@ -152,17 +170,22 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Mat,
     ContentType::Midi,
     ContentType::Minidump,
+    ContentType::Mkv,
     ContentType::Mpegts,
     ContentType::Npy,
     ContentType::Nrrd,
     ContentType::One,
+    ContentType::Osm,
     ContentType::Palmos,
     ContentType::Parquet,
     ContentType::Pbm,
+    ContentType::Pcapng,
     ContentType::Pgp,
     ContentType::Ply,
+    ContentType::Png,
     ContentType::PostgresDump,
     ContentType::Psd,
+    ContentType::Qgis,
     ContentType::Qoi,
     ContentType::Rar,
     ContentType::RedisRdb,
@@ -174,23 +197,23 @@ pub(crate) const VETOS: &[ContentType] = &[
     ContentType::Sketchup,
     ContentType::Spirv,
     ContentType::Spss,
+    ContentType::Squashfs,
     ContentType::Step,
     ContentType::Swf,
     ContentType::Uf2,
     ContentType::Vhd,
     ContentType::Vib,
+    ContentType::Visio,
     ContentType::Wad,
     ContentType::Wasm,
     ContentType::Wav,
+    ContentType::Webm,
     ContentType::Woff,
     ContentType::Woff2,
     ContentType::Xar,
     ContentType::Xcf,
-    ContentType::Zst,
-    ContentType::Ani,
-    ContentType::Arrow,
-    ContentType::Pcapng,
     ContentType::Xcoff,
+    ContentType::Zst,
 ];
 
 #[cfg(test)]
@@ -208,11 +231,17 @@ mod tests {
         identify(&mut input).unwrap()
     }
 
+    fn resolve_slice_with_metadata(bytes: &[u8]) -> (Vec<ContentType>, HashMap<String, String>) {
+        let mut input = Input::from_slice(bytes);
+        identify_with_metadata(&mut input).unwrap()
+    }
+
     #[test]
     fn vetos_are_distinct_and_complete() {
         let resolvers_vetos: HashSet<ContentType> = VETOS.iter().copied().collect();
-        assert_eq!(VETOS.len(), 93);
+        assert_eq!(VETOS.len(), 99);
         assert_eq!(resolvers_vetos.len(), VETOS.len());
+        assert!(VETOS.is_sorted_by_key(|ct| ct.info().label), "VETOS must be sorted by label");
     }
 
     #[test]
@@ -234,7 +263,8 @@ mod tests {
                 if !path.is_file() {
                     continue;
                 }
-                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                let mut input =
+                    Input::from_file(std::fs::File::open(&path).unwrap()).unwrap().with_path(&path);
                 let got = identify(&mut input).unwrap();
                 if let [ct] = got[..] {
                     assert_eq!(ct.info().label, expected, "mismatch on {}", path.display());
@@ -256,7 +286,8 @@ mod tests {
             .filter(|p| p.is_dir())
             .collect();
         dirs.sort();
-        let mut matched = 0usize;
+        let mut matched_primary = 0usize;
+        let mut matched_subformats = 0usize;
         for dir in dirs {
             let mut entries: Vec<_> =
                 std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().path()).collect();
@@ -265,16 +296,1264 @@ mod tests {
                 if !path.is_file() {
                     continue;
                 }
-                let stem = path.file_stem().unwrap().to_str().unwrap();
-                let expected = stem.strip_prefix('!').unwrap_or(stem);
-                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                let rel = path.strip_prefix(root).unwrap().to_str().unwrap().replace('\\', "/");
+                let expected = if let Ok(idx) =
+                    SUBFORMAT_FIXTURES.binary_search_by_key(&rel.as_str(), |c| c.0)
+                {
+                    matched_subformats += 1;
+                    SUBFORMAT_FIXTURES[idx].1.info().label
+                } else {
+                    matched_primary += 1;
+                    let stem = path.file_stem().unwrap().to_str().unwrap();
+                    stem.strip_prefix('!').unwrap_or(stem)
+                };
+                let mut input =
+                    Input::from_file(std::fs::File::open(&path).unwrap()).unwrap().with_path(&path);
                 let got = identify(&mut input).unwrap();
                 assert_eq!(got.len(), 1, "expected 1 match on {}, got {got:?}", path.display());
                 assert_eq!(got[0].info().label, expected, "mismatch on {}", path.display());
-                matched += 1;
+                let mut pathless = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                assert_eq!(
+                    identify(&mut pathless).unwrap(),
+                    got,
+                    "pathless mismatch on {}",
+                    path.display()
+                );
             }
         }
-        assert_eq!(matched, 310);
+        assert_eq!(matched_primary, 310);
+        assert_eq!(matched_subformats, SUBFORMAT_FIXTURES.len());
+    }
+
+    #[test]
+    fn resolvers_populate_standard_metadata() {
+        let png = std::fs::File::open("../../tests_data/resolvers/fixtures/image/png.png").unwrap();
+        let mut input = Input::from_file(png).unwrap();
+        let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+        assert_eq!(cts, vec![ContentType::Png]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PNG"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/11"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000153"));
+
+        let pdf =
+            std::fs::File::open("../../tests_data/resolvers/fixtures/document/pdf.pdf").unwrap();
+        let mut input = Input::from_file(pdf).unwrap();
+        let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF 1.3"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/17"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000316"));
+
+        // Non-matching inputs return empty metadata and do not leak prior subformat state.
+        let (cts, meta) = resolve_slice_with_metadata(b"plain text without any file signature");
+        assert!(cts.is_empty());
+        assert!(meta.is_empty());
+    }
+
+    #[test]
+    fn resolvers_fixtures_metadata_are_well_formed() {
+        let root = std::path::Path::new("../../tests_data/resolvers/fixtures");
+        let mut dirs: Vec<_> = std::fs::read_dir(root)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.is_dir())
+            .collect();
+        dirs.sort();
+        let mut with_puid = 0usize;
+        let mut with_fdd = 0usize;
+        let mut with_sub = 0usize;
+        for dir in dirs {
+            let mut entries: Vec<_> =
+                std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().path()).collect();
+            entries.sort();
+            for path in entries {
+                if !path.is_file() {
+                    continue;
+                }
+                let mut input = Input::from_file(std::fs::File::open(&path).unwrap()).unwrap();
+                let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+                assert_eq!(cts.len(), 1, "expected 1 match on {}", path.display());
+                for (k, v) in &meta {
+                    assert!(
+                        matches!(k.as_str(), "subformat" | "pronom_puid" | "loc_fdd"),
+                        "unexpected metadata key {k:?} on {}",
+                        path.display()
+                    );
+                    assert!(!v.is_empty(), "empty metadata value for {k:?} on {}", path.display());
+                }
+                if let Some(puid) = meta.get("pronom_puid") {
+                    let rest = puid
+                        .strip_prefix("fmt/")
+                        .or_else(|| puid.strip_prefix("x-fmt/"))
+                        .unwrap_or_else(|| panic!("invalid PUID {puid:?} on {}", path.display()));
+                    assert!(
+                        !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()),
+                        "invalid PUID digits {puid:?} on {}",
+                        path.display()
+                    );
+                    with_puid += 1;
+                }
+                if let Some(fdd) = meta.get("loc_fdd") {
+                    let rest = fdd
+                        .strip_prefix("fdd")
+                        .unwrap_or_else(|| panic!("invalid FDD {fdd:?} on {}", path.display()));
+                    assert!(
+                        rest.len() == 6 && rest.bytes().all(|b| b.is_ascii_digit()),
+                        "invalid FDD digits {fdd:?} on {}",
+                        path.display()
+                    );
+                    with_fdd += 1;
+                }
+                if meta.contains_key("subformat") {
+                    with_sub += 1;
+                }
+            }
+        }
+        assert!(with_puid >= 150, "expected broad PUID coverage, got {with_puid}");
+        assert!(with_fdd >= 90, "expected broad FDD coverage, got {with_fdd}");
+        assert!(with_sub >= 100, "expected broad subformat coverage, got {with_sub}");
+    }
+
+    #[test]
+    fn resolvers_populate_subformat_overrides() {
+        // GIF87a vs GIF89a
+        let mut gif87a = *b"GIF87a\x01\x00\x01\x00\x00\x00\x00;";
+        let (cts, meta) = resolve_slice_with_metadata(&gif87a);
+        assert_eq!(cts, vec![ContentType::Gif]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GIF 87a"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/3"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        gif87a[3..6].copy_from_slice(b"89a");
+        let (cts, meta) = resolve_slice_with_metadata(&gif87a);
+        assert_eq!(cts, vec![ContentType::Gif]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GIF 89a"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/4"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000133"));
+
+        // PDF 1.4, 1.7, 2.0, and minimal header
+        let (cts, meta) = resolve_slice_with_metadata(b"%PDF-1.4\n");
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF 1.4"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/18"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000122"));
+
+        let (cts, meta) = resolve_slice_with_metadata(b"%PDF-2.0\n");
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF 2.0"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1129"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000474"));
+
+        let (cts, meta) = resolve_slice_with_metadata(b"%PDF\n1 0 obj<<>>endobj\n");
+        assert_eq!(cts, vec![ContentType::Pdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PDF (non-standard header)"));
+        assert_eq!(meta.get("pronom_puid"), None);
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000030"));
+
+        // PE32 vs tiny collapsed MZPE
+        let (cts, meta) = resolve_slice_with_metadata(&build_pe32(0x0102, 0x1000));
+        assert_eq!(cts, vec![ContentType::Pebin]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PE32 console executable"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/899"));
+
+        let mut mzpe = vec![0u8; 97];
+        mzpe[..6].copy_from_slice(b"MZPE\0\0");
+        mzpe[6..8].copy_from_slice(&0x014Cu16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&mzpe);
+        assert_eq!(cts, vec![ContentType::Pebin]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("PE (tiny, header at offset 2)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/411"));
+
+        // TIFF vs BigTIFF
+        let mut tiff = vec![0u8; 32];
+        tiff[..8].copy_from_slice(b"II\x2A\x00\x08\x00\x00\x00");
+        let (cts, meta) = resolve_slice_with_metadata(&tiff);
+        assert_eq!(cts, vec![ContentType::Tiff]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("TIFF (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/353"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000022"));
+
+        let mut bigtiff = vec![0u8; 32];
+        bigtiff[..16].copy_from_slice(&[
+            b'I', b'I', 0x2B, 0x00, 0x08, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ]);
+        let (cts, meta) = resolve_slice_with_metadata(&bigtiff);
+        assert_eq!(cts, vec![ContentType::Tiff]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("BigTIFF (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1917"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000328"));
+
+        // DOCX vs DOCM
+        let docx = archive(
+            &[
+                stored(
+                    b"[Content_Types].xml",
+                    b"<Types>application/vnd.openxmlformats-officedocument.wordprocessingml.\
+                      document.main+xml</Types>",
+                ),
+                stored(b"word/document.xml", b"<w:document/>"),
+            ],
+            b"",
+        );
+        let (cts, meta) = resolve_slice_with_metadata(&docx);
+        assert_eq!(cts, vec![ContentType::Docx]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Word Open XML document (.docx)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/412"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000397"));
+
+        let docm = archive(
+            &[
+                stored(
+                    b"[Content_Types].xml",
+                    b"<Types>application/vnd.ms-word.document.macroEnabled.main+xml</Types>",
+                ),
+                stored(b"word/document.xml", b"<w:document/>"),
+            ],
+            b"",
+        );
+        let (cts, meta) = resolve_slice_with_metadata(&docm);
+        assert_eq!(cts, vec![ContentType::Docx]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Word Open XML macro-enabled document (.docm)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/523"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        // Stata 117 vs 118
+        let (cts, meta) = resolve_slice_with_metadata(
+            b"<stata_dta><header><release>117</release><byteorder>LSF</byteorder>",
+        );
+        assert_eq!(cts, vec![ContentType::Stata]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Stata DTA 117 (little-endian)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1036"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        let (cts, meta) = resolve_slice_with_metadata(
+            b"<stata_dta><header><release>118</release><byteorder>MSF</byteorder>",
+        );
+        assert_eq!(cts, vec![ContentType::Stata]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("Stata DTA 118 (big-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1037"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000471"));
+
+        // NetCDF-3 classic vs 64-bit
+        let mut nc = vec![0u8; 32];
+        nc[..4].copy_from_slice(b"CDF\x01");
+        let (cts, meta) = resolve_slice_with_metadata(&nc);
+        assert_eq!(cts, vec![ContentType::Netcdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("NetCDF-3 classic"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/282"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000330"));
+
+        nc[3] = 2;
+        let (cts, meta) = resolve_slice_with_metadata(&nc);
+        assert_eq!(cts, vec![ContentType::Netcdf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("NetCDF-3 64-bit offset"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/283"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000330"));
+
+        // ISO 9660 vs High Sierra
+        let mut iso = vec![0u8; 0x8020];
+        iso[0x8000..0x8006].copy_from_slice(b"\x01CD001");
+        let (cts, meta) = resolve_slice_with_metadata(&iso);
+        assert_eq!(cts, vec![ContentType::Iso]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ISO 9660"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/468"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000348"));
+
+        iso[0x8000..0x8006].fill(0);
+        iso[0x8008..0x800E].copy_from_slice(b"\x01CDROM");
+        let (cts, meta) = resolve_slice_with_metadata(&iso);
+        assert_eq!(cts, vec![ContentType::Iso]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("High Sierra"));
+        assert_eq!(meta.get("pronom_puid"), None);
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        // GeoPackage 1.0 vs 1.2+
+        let mut gpkg = vec![0u8; 100];
+        gpkg[..16].copy_from_slice(b"SQLite format 3\0");
+        gpkg[68..72].copy_from_slice(b"GP10");
+        let (cts, meta) = resolve_slice_with_metadata(&gpkg);
+        assert_eq!(cts, vec![ContentType::Geopackage]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GeoPackage 1.0"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1700"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000419"));
+
+        gpkg[68..72].copy_from_slice(b"GPKG");
+        let (cts, meta) = resolve_slice_with_metadata(&gpkg);
+        assert_eq!(cts, vec![ContentType::Geopackage]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("GeoPackage 1.2+"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/1700"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000520"));
+
+        // GGUF v1 / v2 / v3
+        let mut gguf = vec![0u8; 24];
+        gguf[..4].copy_from_slice(b"GGUF");
+        for (ver, puid) in [(1u32, "fmt/2096"), (2, "fmt/2097"), (3, "fmt/2098")] {
+            gguf[4..8].copy_from_slice(&ver.to_le_bytes());
+            let (cts, meta) = resolve_slice_with_metadata(&gguf);
+            assert_eq!(cts, vec![ContentType::Gguf]);
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some(puid));
+            assert_eq!(meta.get("loc_fdd"), None);
+        }
+
+        // ASPRS LAS 1.2 vs 1.4
+        let mut las = vec![0u8; 227];
+        las[..4].copy_from_slice(b"LASF");
+        las[24] = 1;
+        las[25] = 2;
+        let (cts, meta) = resolve_slice_with_metadata(&las);
+        assert_eq!(cts, vec![ContentType::Las]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ASPRS LAS 1.2"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/370"));
+        assert_eq!(meta.get("loc_fdd"), None);
+
+        las[25] = 4;
+        let (cts, meta) = resolve_slice_with_metadata(&las);
+        assert_eq!(cts, vec![ContentType::Las]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ASPRS LAS 1.4"));
+        assert_eq!(meta.get("pronom_puid"), None);
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000418"));
+    }
+
+    type SubformatFixture =
+        (&'static str, ContentType, &'static str, Option<&'static str>, Option<&'static str>);
+
+    /// Subformat fixtures stored alongside primary `<label>.<ext>` samples under
+    /// `tests_data/resolvers/fixtures/` (sorted by relative path; `!` marks spec-synthesized
+    /// fixtures, see `tests_data/README.md`).
+    const SUBFORMAT_FIXTURES: &[SubformatFixture] = &[
+        ("_ar/!ar_bsd_symdef.a", ContentType::Ar, "Unix ar (BSD/macOS symbol table)", None, None),
+        (
+            "_ar/!ar_gnu_longnames.a",
+            ContentType::Ar,
+            "Unix ar (GNU long filename table)",
+            None,
+            None,
+        ),
+        (
+            "_ar/!ar_gnu_sym64.a",
+            ContentType::Ar,
+            "Unix ar (GNU/SVR4 64-bit symbol table)",
+            None,
+            None,
+        ),
+        ("_ar/ar_bsd_ext.a", ContentType::Ar, "Unix ar (BSD extended filename)", None, None),
+        ("_ar/ar_gnu_symtab.a", ContentType::Ar, "Unix ar (GNU/SVR4 symbol table)", None, None),
+        (
+            "_elf/!elf32_be_rel.o",
+            ContentType::Elf,
+            "ELF 32-bit relocatable object (big-endian)",
+            Some("fmt/689"),
+            None,
+        ),
+        (
+            "_elf/!elf32_le_exec.elf",
+            ContentType::Elf,
+            "ELF 32-bit executable (little-endian)",
+            Some("fmt/688"),
+            None,
+        ),
+        (
+            "_elf/!elf64_be_exec.elf",
+            ContentType::Elf,
+            "ELF 64-bit executable (big-endian)",
+            Some("fmt/691"),
+            None,
+        ),
+        (
+            "_elf/!elf64_le_core.core",
+            ContentType::Elf,
+            "ELF 64-bit core dump (little-endian)",
+            Some("fmt/690"),
+            None,
+        ),
+        (
+            "_elf/!elf64_le_exec.elf",
+            ContentType::Elf,
+            "ELF 64-bit executable (little-endian)",
+            Some("fmt/690"),
+            None,
+        ),
+        (
+            "_elf/elf64_le_dyn.elf",
+            ContentType::Elf,
+            "ELF 64-bit shared object (little-endian)",
+            Some("fmt/690"),
+            None,
+        ),
+        (
+            "_elf/elf64_le_rel.o",
+            ContentType::Elf,
+            "ELF 64-bit relocatable object (little-endian)",
+            Some("fmt/690"),
+            None,
+        ),
+        ("_isobmff/!3gp_r6.3gp", ContentType::_3gp, "3GPP Release 6", Some("fmt/357"), None),
+        (
+            "_isobmff/!mp4_avc1.mp4",
+            ContentType::Mp4,
+            "MP4 AVC (avc1)",
+            Some("fmt/199"),
+            Some("fdd000137"),
+        ),
+        (
+            "_isobmff/!mp4_dash.mp4",
+            ContentType::Mp4,
+            "MPEG-DASH media segment",
+            Some("fmt/199"),
+            Some("fdd000155"),
+        ),
+        (
+            "_isobmff/!mp4_f4v.f4v",
+            ContentType::Mp4,
+            "Adobe Flash Video (.f4v)",
+            Some("fmt/199"),
+            Some("fdd000155"),
+        ),
+        (
+            "_isobmff/!mp4_m4a.m4a",
+            ContentType::Mp4,
+            "Apple M4A audio (.m4a)",
+            Some("fmt/2094"),
+            None,
+        ),
+        (
+            "_isobmff/!mp4_m4v.m4v",
+            ContentType::Mp4,
+            "Apple M4V video (.m4v)",
+            Some("fmt/199"),
+            Some("fdd000155"),
+        ),
+        (
+            "_isobmff/!mp4_mp41.mp4",
+            ContentType::Mp4,
+            "MP4 v1 (mp41)",
+            Some("fmt/199"),
+            Some("fdd000037"),
+        ),
+        (
+            "_isobmff/!mp4_mp42.mp4",
+            ContentType::Mp4,
+            "MP4 v2 (mp42)",
+            Some("fmt/199"),
+            Some("fdd000155"),
+        ),
+        ("_isobmff/3gp_r4.3gp", ContentType::_3gp, "3GPP Release 4", Some("fmt/357"), None),
+        (
+            "_isobmff/heif_heic.heic",
+            ContentType::Heif,
+            "HEIC image (heic)",
+            Some("fmt/1101"),
+            Some("fdd000526"),
+        ),
+        (
+            "_isobmff/heif_hevc.heic",
+            ContentType::Heif,
+            "HEVC image sequence (hevc)",
+            Some("fmt/1101"),
+            Some("fdd000525"),
+        ),
+        (
+            "_macho/!macho32_be_exec.macho",
+            ContentType::Macho,
+            "Mach-O 32-bit executable (big-endian)",
+            Some("fmt/692"),
+            None,
+        ),
+        (
+            "_macho/!macho64_le_dsym.dsym",
+            ContentType::Macho,
+            "Mach-O 64-bit dSYM (little-endian)",
+            Some("fmt/693"),
+            None,
+        ),
+        (
+            "_macho/!macho64_le_object.o",
+            ContentType::Macho,
+            "Mach-O 64-bit relocatable object (little-endian)",
+            Some("fmt/693"),
+            None,
+        ),
+        (
+            "_macho/macho64_le_bundle.bundle",
+            ContentType::Macho,
+            "Mach-O 64-bit bundle (little-endian)",
+            Some("fmt/693"),
+            None,
+        ),
+        (
+            "_macho/macho64_le_dylib.dylib",
+            ContentType::Macho,
+            "Mach-O 64-bit dynamic library (little-endian)",
+            Some("fmt/693"),
+            None,
+        ),
+        (
+            "_macho/macho64_le_exec.macho",
+            ContentType::Macho,
+            "Mach-O 64-bit executable (little-endian)",
+            Some("fmt/693"),
+            None,
+        ),
+        ("_ogg/!ogg_dirac.ogv", ContentType::Ogg, "Ogg Dirac", Some("fmt/944"), Some("fdd000026")),
+        ("_ogg/!ogg_flac.oga", ContentType::Ogg, "Ogg FLAC", Some("fmt/947"), Some("fdd000227")),
+        ("_ogg/!ogg_kate.ogx", ContentType::Ogg, "Ogg Kate", Some("fmt/944"), Some("fdd000026")),
+        ("_ogg/!ogg_opus.opus", ContentType::Ogg, "Ogg Opus", Some("fmt/946"), None),
+        (
+            "_ogg/!ogg_skeleton.ogx",
+            ContentType::Ogg,
+            "Ogg Skeleton",
+            Some("fmt/944"),
+            Some("fdd000026"),
+        ),
+        ("_ogg/!ogg_speex.spx", ContentType::Ogg, "Ogg Speex", Some("fmt/948"), Some("fdd000260")),
+        ("_ogg/!ogg_theora.ogv", ContentType::Ogg, "Ogg Theora", Some("fmt/945"), None),
+        ("_ogg/ogg_vorbis.ogg", ContentType::Ogg, "Ogg Vorbis", Some("fmt/203"), Some("fdd000117")),
+        ("_pe/!pe32_native.sys", ContentType::Pebin, "PE32 native image", Some("fmt/899"), None),
+        (
+            "_pe/!pe32_plus_console.exe",
+            ContentType::Pebin,
+            "PE32+ console executable",
+            Some("fmt/900"),
+            None,
+        ),
+        (
+            "_pe/!pe32_plus_efi_app.efi",
+            ContentType::Pebin,
+            "PE32+ EFI application",
+            Some("fmt/900"),
+            None,
+        ),
+        (
+            "_pe/!pe32_plus_efi_runtime.efi",
+            ContentType::Pebin,
+            "PE32+ EFI runtime driver",
+            Some("fmt/900"),
+            None,
+        ),
+        (
+            "_pe/!pe32_plus_native.sys",
+            ContentType::Pebin,
+            "PE32+ native image",
+            Some("fmt/900"),
+            None,
+        ),
+        (
+            "_pe/pe32_console.exe",
+            ContentType::Pebin,
+            "PE32 console executable",
+            Some("fmt/899"),
+            None,
+        ),
+        ("_pe/pe32_dll.dll", ContentType::Pebin, "PE32 DLL", Some("fmt/899"), None),
+        ("_pe/pe32_gui.exe", ContentType::Pebin, "PE32 GUI executable", Some("fmt/899"), None),
+        ("_pe/pe32_plus_dll.dll", ContentType::Pebin, "PE32+ DLL", Some("fmt/900"), None),
+        (
+            "_pe/pe32_plus_gui.exe",
+            ContentType::Pebin,
+            "PE32+ GUI executable",
+            Some("fmt/900"),
+            None,
+        ),
+        (
+            "_riff/!wav_bwf_v1.wav",
+            ContentType::Wav,
+            "Broadcast WAVE (BWF v1)",
+            Some("fmt/2"),
+            Some("fdd000356"),
+        ),
+        (
+            "_riff/!wav_bwf_v2.wav",
+            ContentType::Wav,
+            "Broadcast WAVE (BWF v2)",
+            Some("fmt/527"),
+            Some("fdd000357"),
+        ),
+        (
+            "_riff/!wav_extensible.wav",
+            ContentType::Wav,
+            "RIFF WAVE (Extensible)",
+            Some("fmt/143"),
+            Some("fdd000001"),
+        ),
+        (
+            "_riff/!wav_ima_adpcm.wav",
+            ContentType::Wav,
+            "RIFF WAVE (IMA ADPCM)",
+            Some("fmt/6"),
+            Some("fdd000001"),
+        ),
+        (
+            "_riff/!wav_mp3.wav",
+            ContentType::Wav,
+            "RIFF WAVE (MP3)",
+            Some("fmt/6"),
+            Some("fdd000001"),
+        ),
+        (
+            "_riff/!wav_ms_adpcm.wav",
+            ContentType::Wav,
+            "RIFF WAVE (Microsoft ADPCM)",
+            Some("fmt/6"),
+            Some("fdd000001"),
+        ),
+        ("_riff/!wav_rifx_pcm.wav", ContentType::Wav, "RIFX WAVE (PCM, big-endian)", None, None),
+        (
+            "_riff/wav_alaw.wav",
+            ContentType::Wav,
+            "RIFF WAVE (A-Law)",
+            Some("fmt/6"),
+            Some("fdd000001"),
+        ),
+        ("_riff/wav_bwf_v0.wav", ContentType::Wav, "Broadcast WAVE (BWF v0)", Some("fmt/1"), None),
+        (
+            "_riff/wav_ieee_float.wav",
+            ContentType::Wav,
+            "RIFF WAVE (IEEE float)",
+            Some("fmt/6"),
+            Some("fdd000001"),
+        ),
+        (
+            "_riff/wav_mulaw.wav",
+            ContentType::Wav,
+            "RIFF WAVE (mu-Law)",
+            Some("fmt/6"),
+            Some("fdd000001"),
+        ),
+        (
+            "_riff/wav_pcm.wav",
+            ContentType::Wav,
+            "RIFF WAVE (PCM)",
+            Some("fmt/141"),
+            Some("fdd000002"),
+        ),
+        ("_sqlite/!mbtiles_schema.mbtiles", ContentType::Mbtiles, "MBTiles (schema)", None, None),
+        (
+            "_sqlite/!sqlar.sqlar",
+            ContentType::Sqlite,
+            "SQLite Archive (.sqlar)",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/amd_dxcache.dxcache",
+            ContentType::Sqlite,
+            "AMD DirectX shader cache (.dxcache)",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/audacity_aup3.aup3",
+            ContentType::Sqlite,
+            "Audacity 3 project (.aup3)",
+            Some("fmt/1826"),
+            None,
+        ),
+        (
+            "_sqlite/bentley_besqlite.sqlite",
+            ContentType::Sqlite,
+            "Bentley BeSQLite database",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/bitcoin_wallet.sqlite",
+            ContentType::Sqlite,
+            "Bitcoin Core descriptor wallet",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/bndb.bndb",
+            ContentType::Sqlite,
+            "Binary Ninja analysis database (.bndb)",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/calibre.sqlite",
+            ContentType::Sqlite,
+            "Calibre library database",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/esri_st_geometry.sqlite",
+            ContentType::Sqlite,
+            "Esri ST_Geometry database",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/fossil_checkout.sqlite",
+            ContentType::Sqlite,
+            "Fossil SCM checkout",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/fossil_repo.fossil",
+            ContentType::Sqlite,
+            "Fossil SCM repository",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/gnome_tracker.sqlite",
+            ContentType::Sqlite,
+            "GNOME Tracker SPARQL store",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_sqlite/maple.maple",
+            ContentType::Sqlite,
+            "Maple workbook (.maple)",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        ("_sqlite/mbtiles_mpbx.mbtiles", ContentType::Mbtiles, "MBTiles (MPBX header)", None, None),
+        (
+            "_sqlite/reflet.reflet",
+            ContentType::Sqlite,
+            "Reflet database (.reflet)",
+            Some("fmt/729"),
+            Some("fdd000461"),
+        ),
+        (
+            "_tiff/!canon_cr2.cr2",
+            ContentType::Tiff,
+            "Canon RAW 2 (.cr2)",
+            Some("fmt/592"),
+            Some("fdd000241"),
+        ),
+        (
+            "_zip/!zip_empty.zip",
+            ContentType::Zip,
+            "Empty ZIP archive",
+            Some("x-fmt/263"),
+            Some("fdd000354"),
+        ),
+        (
+            "_zip/!zip_idml.idml",
+            ContentType::Zip,
+            "Adobe InDesign Markup Language (.idml)",
+            Some("fmt/1184"),
+            None,
+        ),
+        ("_zip/!zip_krita.kra", ContentType::Zip, "Krita document (.kra)", Some("fmt/999"), None),
+        (
+            "_zip/!zip_odb.odb",
+            ContentType::Zip,
+            "OpenDocument Database (.odb)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_odc.odc",
+            ContentType::Zip,
+            "OpenDocument Chart (.odc)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_odf.odf",
+            ContentType::Zip,
+            "OpenDocument Formula (.odf)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_odg.odg",
+            ContentType::Zip,
+            "OpenDocument Graphics (.odg)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_odi.odi",
+            ContentType::Zip,
+            "OpenDocument Image (.odi)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_odm.odm",
+            ContentType::Zip,
+            "OpenDocument Master Document (.odm)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_openraster.ora",
+            ContentType::Zip,
+            "OpenRaster image (.ora)",
+            Some("fmt/998"),
+            None,
+        ),
+        (
+            "_zip/!zip_otg.otg",
+            ContentType::Zip,
+            "OpenDocument Graphics Template (.otg)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_otp.otp",
+            ContentType::Zip,
+            "OpenDocument Presentation Template (.otp)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_ots.ots",
+            ContentType::Zip,
+            "OpenDocument Spreadsheet Template (.ots)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "_zip/!zip_ott.ott",
+            ContentType::Zip,
+            "OpenDocument Text Template (.ott)",
+            Some("x-fmt/263"),
+            Some("fdd000247"),
+        ),
+        (
+            "bytecode/!java_17.class",
+            ContentType::Javabytecode,
+            "Java 17 class file",
+            Some("x-fmt/415"),
+            Some("fdd000598"),
+        ),
+        (
+            "bytecode/!java_21.class",
+            ContentType::Javabytecode,
+            "Java 21 class file",
+            Some("x-fmt/415"),
+            Some("fdd000598"),
+        ),
+        (
+            "bytecode/!java_25.class",
+            ContentType::Javabytecode,
+            "Java 25 class file",
+            Some("x-fmt/415"),
+            Some("fdd000598"),
+        ),
+        (
+            "bytecode/!java_8.class",
+            ContentType::Javabytecode,
+            "Java 8 class file",
+            Some("x-fmt/415"),
+            Some("fdd000598"),
+        ),
+    ];
+
+    #[test]
+    fn resolvers_identify_subformat_fixtures() {
+        assert!(
+            SUBFORMAT_FIXTURES.windows(2).all(|w| w[0].0 < w[1].0),
+            "SUBFORMAT_FIXTURES must be sorted by relative path"
+        );
+        let root = std::path::Path::new("../../tests_data/resolvers/fixtures");
+        for &(rel, expected_ct, expected_sub, expected_puid, expected_fdd) in SUBFORMAT_FIXTURES {
+            let path = root.join(rel);
+            let mut input =
+                Input::from_file(std::fs::File::open(&path).unwrap()).unwrap().with_path(&path);
+            let (cts, meta) = identify_with_metadata(&mut input).unwrap();
+            assert_eq!(cts, vec![expected_ct], "content type mismatch on {rel}");
+            assert_eq!(
+                meta.get("subformat").map(String::as_str),
+                Some(expected_sub),
+                "subformat mismatch on {rel}"
+            );
+            assert!(expected_sub.is_ascii(), "non-ASCII subformat on {rel}");
+            assert_eq!(
+                meta.get("pronom_puid").map(String::as_str),
+                expected_puid,
+                "pronom_puid mismatch on {rel}"
+            );
+            assert_eq!(
+                meta.get("loc_fdd").map(String::as_str),
+                expected_fdd,
+                "loc_fdd mismatch on {rel}"
+            );
+        }
+    }
+
+    #[test]
+    fn resolvers_populate_magic32_subformats() {
+        // ISOBMFF: every brand in MP4, HEIF, and 3GP allowlists produces a non-empty ASCII subformat
+        let mp4_brands: &[&[u8; 4]] = &[
+            b"isom", b"iso2", b"iso3", b"iso4", b"iso5", b"iso6", b"iso7", b"iso8", b"iso9",
+            b"mp41", b"mp42", b"mp71", b"avc1", b"M4A ", b"M4V ", b"M4B ", b"M4P ", b"M4VH",
+            b"M4VP", b"f4v ", b"f4p ", b"dash", b"msdh", b"msix", b"ndas", b"ndsc", b"ndsh",
+            b"ndsm", b"ndsp", b"ndss", b"ndxc", b"ndxh", b"ndxm", b"ndxp", b"ndxs",
+        ];
+        for brand in mp4_brands {
+            let mut buf = [0u8; 16];
+            buf[3] = 16;
+            buf[4..8].copy_from_slice(b"ftyp");
+            buf[8..12].copy_from_slice(*brand);
+            let (cts, meta) = resolve_slice_with_metadata(&buf);
+            assert_eq!(cts, vec![ContentType::Mp4], "brand {brand:?}");
+            assert!(meta.get("subformat").is_some_and(|s| !s.is_empty() && s.is_ascii()));
+        }
+        let heif_brands: &[&[u8; 4]] =
+            &[b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs"];
+        for brand in heif_brands {
+            let mut buf = [0u8; 16];
+            buf[3] = 16;
+            buf[4..8].copy_from_slice(b"ftyp");
+            buf[8..12].copy_from_slice(*brand);
+            let (cts, meta) = resolve_slice_with_metadata(&buf);
+            assert_eq!(cts, vec![ContentType::Heif], "brand {brand:?}");
+            assert!(meta.get("subformat").is_some_and(|s| !s.is_empty() && s.is_ascii()));
+        }
+        let threegp_brands: &[&[u8; 4]] = &[
+            b"3gp1", b"3gp2", b"3gp3", b"3gp4", b"3gp5", b"3gp6", b"3gp7", b"3gp8", b"3gp9",
+            b"3gr6", b"3gr9", b"3gg6", b"3gg9", b"3gs6", b"3gs7", b"3gs9", b"3ge6", b"3ge7",
+            b"3ge9", b"3gh9", b"3gm9", b"3gmA", b"3gt8", b"3gt9", b"3gtv",
+        ];
+        for brand in threegp_brands {
+            let mut buf = [0u8; 16];
+            buf[3] = 16;
+            buf[4..8].copy_from_slice(b"ftyp");
+            buf[8..12].copy_from_slice(*brand);
+            let (cts, meta) = resolve_slice_with_metadata(&buf);
+            assert_eq!(cts, vec![ContentType::_3gp], "brand {brand:?}");
+            assert!(meta.get("subformat").is_some_and(|s| !s.is_empty() && s.is_ascii()));
+        }
+
+        // SQLite: unknown non-zero application_id falls back to bare Sqlite
+        let mut sq = vec![0u8; 100];
+        sq[..16].copy_from_slice(b"SQLite format 3\0");
+        sq[16..18].copy_from_slice(&4096u16.to_be_bytes());
+        sq[18..20].copy_from_slice(&[1, 1]);
+        sq[21..24].copy_from_slice(&[64, 32, 32]);
+        sq[44..48].copy_from_slice(&4u32.to_be_bytes());
+        sq[56..60].copy_from_slice(&1u32.to_be_bytes());
+        sq[68..72].copy_from_slice(&0xDEAD_BEEFu32.to_be_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&sq);
+        assert_eq!(cts, vec![ContentType::Sqlite]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/729"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000461"));
+
+        // ELF: OS-specific e_type >= 0xFE00 falls back to generic class/endianness subformat
+        let mut elf = vec![0u8; 64];
+        elf[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
+        elf[16..18].copy_from_slice(&0xFE00u16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&elf);
+        assert_eq!(cts, vec![ContentType::Elf]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("ELF 64-bit (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/690"));
+
+        // Mach-O: unknown filetype > MH_FILESET falls back to generic width/endianness subformat
+        let mut macho = vec![0u8; 32];
+        macho[..4].copy_from_slice(&[0xCF, 0xFA, 0xED, 0xFE]);
+        macho[12..16].copy_from_slice(&99u32.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&macho);
+        assert_eq!(cts, vec![ContentType::Macho]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Mach-O 64-bit (little-endian)")
+        );
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/693"));
+
+        // PE: uncommon valid subsystem (7 = POSIX CUI) falls back to generic PE32 executable
+        let mut pe_posix = build_pe32(0x0102, 0x1000);
+        pe_posix[0x80 + 24 + 68..0x80 + 24 + 70].copy_from_slice(&7u16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&pe_posix);
+        assert_eq!(cts, vec![ContentType::Pebin]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("PE32 executable"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/899"));
+
+        // Java .class: major 45 -> "Java 1.0/1.1 class file", 45..=71 named, 75 bare Javabytecode
+        let mut cls = vec![0u8; 16];
+        cls[..4].copy_from_slice(&[0xCA, 0xFE, 0xBA, 0xBE]);
+        cls[8..10].copy_from_slice(&1u16.to_be_bytes());
+        for minor in [0u16, 3u16] {
+            cls[4..6].copy_from_slice(&minor.to_be_bytes());
+            cls[6..8].copy_from_slice(&45u16.to_be_bytes());
+            let (cts, meta) = resolve_slice_with_metadata(&cls);
+            assert_eq!(cts, vec![ContentType::Javabytecode]);
+            assert_eq!(meta.get("subformat").map(String::as_str), Some("Java 1.0/1.1 class file"));
+        }
+        cls[4..6].copy_from_slice(&0u16.to_be_bytes());
+        for major in 45u16..=71 {
+            cls[6..8].copy_from_slice(&major.to_be_bytes());
+            let (cts, meta) = resolve_slice_with_metadata(&cls);
+            assert_eq!(cts, vec![ContentType::Javabytecode]);
+            assert!(meta.get("subformat").is_some_and(|s| s.starts_with("Java ")));
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/415"));
+            assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000598"));
+        }
+        cls[6..8].copy_from_slice(&75u16.to_be_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&cls);
+        assert_eq!(cts, vec![ContentType::Javabytecode]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/415"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000598"));
+    }
+
+    #[test]
+    fn resolvers_populate_o1_header_subformats() {
+        // Ogg: page_segments = 255 past prefix length falls back to bare Ogg
+        let mut ogg_short = vec![0u8; 40];
+        ogg_short[..6].copy_from_slice(b"OggS\x00\x02");
+        ogg_short[26] = 255;
+        let (cts, meta) = resolve_slice_with_metadata(&ogg_short);
+        assert_eq!(cts, vec![ContentType::Ogg]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/944"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000026"));
+
+        // Ogg: multi-segment BOS (page_segments = 2 -> payload at @29) & additional codecs
+        for (magic, expected_sub) in [
+            (b"fLaC".as_slice(), "Ogg FLAC"),
+            (b"CELT    ".as_slice(), "Ogg CELT"),
+            (b"\x80daala".as_slice(), "Ogg Daala"),
+            (b"OggMIDI\0".as_slice(), "Ogg MIDI"),
+            (b"PCM     ".as_slice(), "Ogg PCM"),
+        ] {
+            let mut ogg = vec![0u8; 64];
+            ogg[..6].copy_from_slice(b"OggS\x00\x02");
+            ogg[26] = 2;
+            ogg[29..29 + magic.len()].copy_from_slice(magic);
+            let (cts, meta) = resolve_slice_with_metadata(&ogg);
+            assert_eq!(cts, vec![ContentType::Ogg]);
+            assert_eq!(meta.get("subformat").map(String::as_str), Some(expected_sub));
+        }
+
+        // Ogg Skeleton (fishead\0) at Page 0 peeks at Page 1 BOS media codec (3.0 = 64B, 4.0 = 80B)
+        let build_ogg_two_pages = |seg0_len: u8, pay0: &[u8], ht1: u8, seq1: u32, pay1: &[u8]| {
+            let mut buf = vec![0u8; 28 + usize::from(seg0_len) + 28 + pay1.len()];
+            buf[..6].copy_from_slice(b"OggS\x00\x02");
+            buf[26] = 1;
+            buf[27] = seg0_len;
+            buf[28..28 + pay0.len()].copy_from_slice(pay0);
+            let p1 = 28 + usize::from(seg0_len);
+            buf[p1..p1 + 5].copy_from_slice(b"OggS\x00");
+            buf[p1 + 5] = ht1;
+            buf[p1 + 18..p1 + 22].copy_from_slice(&seq1.to_le_bytes());
+            buf[p1 + 26] = 1;
+            buf[p1 + 27] = pay1.len() as u8;
+            buf[p1 + 28..p1 + 28 + pay1.len()].copy_from_slice(pay1);
+            buf
+        };
+        for (seg0_len, ht1, pay1, expected_sub, expected_puid, expected_fdd) in [
+            (64u8, 0x02u8, b"\x80theora".as_slice(), "Ogg Theora", "fmt/945", None),
+            (80u8, 0x02u8, b"\x01vorbis".as_slice(), "Ogg Vorbis", "fmt/203", Some("fdd000117")),
+            (80u8, 0x06u8, b"OpusHead".as_slice(), "Ogg Opus", "fmt/946", None),
+        ] {
+            let mux = build_ogg_two_pages(seg0_len, b"fishead\0", ht1, 0, pay1);
+            let (cts, meta) = resolve_slice_with_metadata(&mux);
+            assert_eq!(cts, vec![ContentType::Ogg]);
+            assert_eq!(meta.get("subformat").map(String::as_str), Some(expected_sub));
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some(expected_puid));
+            assert_eq!(meta.get("loc_fdd").map(String::as_str), expected_fdd);
+        }
+        // Skeleton-only (non-BOS fisbone\0, seq_no != 0, duplicate fishead\0, or truncated) stays Ogg Skeleton
+        for fallback_ogg in [
+            build_ogg_two_pages(64, b"fishead\0", 0x00, 1, b"fisbone\0"),
+            build_ogg_two_pages(64, b"fishead\0", 0x02, 1, b"\x80theora"),
+            build_ogg_two_pages(64, b"fishead\0", 0x02, 0, b"fishead\0"),
+            build_ogg_two_pages(64, b"fishead\0", 0x02, 0, b"\x80theora")[..92].to_vec(),
+        ] {
+            let (cts, meta) = resolve_slice_with_metadata(&fallback_ogg);
+            assert_eq!(cts, vec![ContentType::Ogg]);
+            assert_eq!(meta.get("subformat").map(String::as_str), Some("Ogg Skeleton"));
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/944"));
+        }
+
+        // Unix ar: regular member falls back to bare Ar; inline & #1/<len> __.SYMDEF match BSD symtab
+        let mut ar_plain = vec![0u8; 68];
+        ar_plain[..24].copy_from_slice(b"!<arch>\nfoo.o           ");
+        ar_plain[66..68].copy_from_slice(b"`\n");
+        let (cts, meta) = resolve_slice_with_metadata(&ar_plain);
+        assert_eq!(cts, vec![ContentType::Ar]);
+        assert_eq!(meta.get("subformat"), None);
+
+        ar_plain[8..24].copy_from_slice(b"__.SYMDEF SORTED");
+        let (cts, meta) = resolve_slice_with_metadata(&ar_plain);
+        assert_eq!(cts, vec![ContentType::Ar]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Unix ar (BSD/macOS symbol table)")
+        );
+
+        for (hdr_name, payload_name) in [
+            (b"#1/9            ", b"__.SYMDEF".as_slice()),
+            (b"#1/12           ", b"__.SYMDEF\0\0\0".as_slice()),
+            (b"#1/16           ", b"__.SYMDEF_64\0\0\0\0".as_slice()),
+            (b"#1/20           ", b"__.SYMDEF SORTED\0\0\0\0".as_slice()),
+        ] {
+            let mut ar_bsd = vec![0u8; 68 + payload_name.len()];
+            ar_bsd[..8].copy_from_slice(b"!<arch>\n");
+            ar_bsd[8..24].copy_from_slice(hdr_name);
+            ar_bsd[66..68].copy_from_slice(b"`\n");
+            ar_bsd[68..68 + payload_name.len()].copy_from_slice(payload_name);
+            let (cts, meta) = resolve_slice_with_metadata(&ar_bsd);
+            assert_eq!(cts, vec![ContentType::Ar]);
+            assert_eq!(
+                meta.get("subformat").map(String::as_str),
+                Some("Unix ar (BSD/macOS symbol table)")
+            );
+        }
+        // Short #1/05 (< 9 name bytes) or truncated 68B #1/20 reports BSD extended filename, not symtab
+        let mut ar_short_ext = vec![0u8; 80];
+        ar_short_ext[..24].copy_from_slice(b"!<arch>\n#1/05           ");
+        ar_short_ext[66..77].copy_from_slice(b"`\n__.SYMDEF");
+        let (cts, meta) = resolve_slice_with_metadata(&ar_short_ext);
+        assert_eq!(cts, vec![ContentType::Ar]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Unix ar (BSD extended filename)")
+        );
+        ar_short_ext[8..24].copy_from_slice(b"#1/20           ");
+        let (cts, meta) = resolve_slice_with_metadata(&ar_short_ext[..68]);
+        assert_eq!(cts, vec![ContentType::Ar]);
+        assert_eq!(
+            meta.get("subformat").map(String::as_str),
+            Some("Unix ar (BSD extended filename)")
+        );
+        // Malformed #1/ without positive decimal length falls back to bare Ar
+        for bad_hdr in [b"#1/0            ", b"#1/             ", b"#1/abc          "] {
+            ar_short_ext[8..24].copy_from_slice(bad_hdr);
+            let (cts, meta) = resolve_slice_with_metadata(&ar_short_ext);
+            assert_eq!(cts, vec![ContentType::Ar]);
+            assert_eq!(meta.get("subformat"), None);
+        }
+
+        // WAV: leading JUNK chunk, short fmt chunk, and unknown wFormatTag fall back to RIFF WAVE
+        let mut wav_junk = vec![0u8; 44];
+        wav_junk[..16].copy_from_slice(b"RIFF\x24\x00\x00\x00WAVEJUNK");
+        let (cts, meta) = resolve_slice_with_metadata(&wav_junk);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("RIFF WAVE"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/6"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000001"));
+
+        let mut wav_short_fmt = vec![0u8; 44];
+        wav_short_fmt[..16].copy_from_slice(b"RIFF\x24\x00\x00\x00WAVEfmt ");
+        wav_short_fmt[16..20].copy_from_slice(&12u32.to_le_bytes());
+        wav_short_fmt[20..22].copy_from_slice(&1u16.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&wav_short_fmt);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("RIFF WAVE"));
+
+        // WAV: truncated bext (< 368B) falls back to generic Broadcast WAVE (BWF)
+        let mut wav_short_bwf = vec![0u8; 64];
+        wav_short_bwf[..16].copy_from_slice(b"RIFF\x38\x00\x00\x00WAVEbext");
+        wav_short_bwf[16..20].copy_from_slice(&602u32.to_le_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&wav_short_bwf);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("Broadcast WAVE (BWF)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/6"));
+
+        // WAV: big-endian RIFX unknown tag falls back to RIFX WAVE (big-endian)
+        let mut rifx = vec![0u8; 44];
+        rifx[..16].copy_from_slice(b"RIFX\x00\x00\x00\x24WAVEfmt ");
+        rifx[16..20].copy_from_slice(&16u32.to_be_bytes());
+        rifx[20..22].copy_from_slice(&0x1234u16.to_be_bytes());
+        let (cts, meta) = resolve_slice_with_metadata(&rifx);
+        assert_eq!(cts, vec![ContentType::Wav]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("RIFX WAVE (big-endian)"));
+
+        // TIFF: IFD0 at offset 8 whose bytes spell "CR\x02\x00" must NOT be classified as CR2
+        let mut tiff_off8 = vec![0u8; 32];
+        tiff_off8[..12].copy_from_slice(b"II*\x00\x08\x00\x00\x00CR\x02\x00");
+        let (cts, meta) = resolve_slice_with_metadata(&tiff_off8);
+        assert_eq!(cts, vec![ContentType::Tiff]);
+        assert_eq!(meta.get("subformat").map(String::as_str), Some("TIFF (little-endian)"));
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("fmt/353"));
+        assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000022"));
+
+        // ZIP: unknown stored mimetype falls back to bare Zip; legacy ODB aliases resolve
+        let unknown_zip = archive(&[stored(b"mimetype", b"application/octet-stream")], b"");
+        let (cts, meta) = resolve_slice_with_metadata(&unknown_zip);
+        assert_eq!(cts, vec![ContentType::Zip]);
+        assert_eq!(meta.get("subformat"), None);
+        assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/263"));
+
+        for odb_mime in [
+            b"application/vnd.oasis.opendocument.database".as_slice(),
+            b"application/vnd.sun.xml.base".as_slice(),
+        ] {
+            let odb = archive(&[stored(b"mimetype", odb_mime)], b"");
+            let (cts, meta) = resolve_slice_with_metadata(&odb);
+            assert_eq!(cts, vec![ContentType::Zip]);
+            assert_eq!(
+                meta.get("subformat").map(String::as_str),
+                Some("OpenDocument Database (.odb)")
+            );
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/263"));
+            assert_eq!(meta.get("loc_fdd").map(String::as_str), Some("fdd000247"));
+        }
+
+        // ZIP: empty archive with or without comment reports "Empty ZIP archive";
+        // 22-byte empty EOCD followed by trailing bytes stays bare Zip
+        for empty_zip in [archive(&[], b""), archive(&[], b"created by test")] {
+            let (cts, meta) = resolve_slice_with_metadata(&empty_zip);
+            assert_eq!(cts, vec![ContentType::Zip]);
+            assert_eq!(meta.get("subformat").map(String::as_str), Some("Empty ZIP archive"));
+            assert_eq!(meta.get("pronom_puid").map(String::as_str), Some("x-fmt/263"));
+        }
+        let mut empty_plus_trailing = archive(&[], b"");
+        empty_plus_trailing.extend_from_slice(b"trailing");
+        let (cts, meta) = resolve_slice_with_metadata(&empty_plus_trailing);
+        assert_eq!(cts, vec![ContentType::Zip]);
+        assert_eq!(meta.get("subformat"), None);
+
+        // Deterministic mutation & truncation sweep across ar, Ogg, ZIP, and 0xCAFEBABE seeds:
+        // guarantees zero panics and 100% ContentType parity with/without metadata.
+        let seeds: Vec<Vec<u8>> = vec![
+            build_ogg_two_pages(64, b"fishead\0", 0x02, 0, b"\x80theora"),
+            build_ogg_two_pages(80, b"fishead\0", 0x06, 0, b"OpusHead"),
+            b"!<arch>\n#1/20           0           0     0     644     20        `\n__.SYMDEF SORTED\0\0\0\0"
+                .to_vec(),
+            archive(&[], b"comment"),
+            b"\xCA\xFE\xBA\xBE\x00\x03\x00\x2D\x00\x01".to_vec(),
+        ];
+        for seed in &seeds {
+            for trunc in 0..=seed.len() {
+                let slice = &seed[..trunc];
+                let plain = resolve_slice(slice);
+                let (with_meta, meta) = resolve_slice_with_metadata(slice);
+                assert_eq!(plain, with_meta);
+                if plain.is_empty() {
+                    assert!(meta.is_empty());
+                }
+            }
+        }
+        let mut rng = 0x9E37_79B9_7F4A_7C15u64;
+        for (i, seed) in seeds.iter().cycle().take(10_000).enumerate() {
+            let mut buf = seed.clone();
+            for _ in 0..=(i % 4) {
+                rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                let idx = (rng as usize) % buf.len();
+                buf[idx] ^= (rng >> 32) as u8;
+            }
+            let plain = resolve_slice(&buf);
+            let (with_meta, meta) = resolve_slice_with_metadata(&buf);
+            assert_eq!(plain, with_meta);
+            if plain.is_empty() {
+                assert!(meta.is_empty());
+            }
+        }
     }
 
     fn stored<'a>(name: &'a [u8], data: &'a [u8]) -> (&'a [u8], &'a [u8]) {
@@ -375,8 +1654,9 @@ mod tests {
         let tail = &bytes[bytes.len() - magic::ZIP_TAIL_BYTES..];
         let start = magic::directory_start(tail, size).unwrap();
         assert!(start < size - tail.len() as u64);
-        let valid =
-            |tail| magic::identify(&magic::Ctx { prefix, size, tail: Some(tail) }).is_some();
+        let valid = |tail| {
+            magic::identify(&magic::Ctx { prefix, size, tail: Some(tail), path: None }).is_some()
+        };
         assert!(!valid(tail));
         assert!(valid(&bytes[start as usize..]));
     }
@@ -429,5 +1709,80 @@ mod tests {
         let mut iso_ad = isohybrid.clone();
         iso_ad[..512].fill(0xAD);
         assert_eq!(resolve_slice(&iso_ad), vec![ContentType::Iso]);
+
+        // 7. `MZ` stub that is not a valid PE but carries the AutoIt v3 `AU3!EA0` marker
+        let mut mz_au3 = vec![0u8; 64];
+        mz_au3[..2].copy_from_slice(b"MZ");
+        mz_au3[32..40].copy_from_slice(b"AU3!EA06");
+        assert_eq!(resolve_slice(&mz_au3), vec![ContentType::Pebin]);
+    }
+
+    #[test]
+    fn mid_file_bytes_not_mistaken_for_eof_footer_without_tail() {
+        // leveldb footer: 48 bytes ending with 0xDB4775248B80FB57 LE
+        let mut leveldb_prefix = vec![0u8; 48];
+        leveldb_prefix[40..48].copy_from_slice(&[0x57, 0xFB, 0x80, 0x8B, 0x24, 0x75, 0x47, 0xDB]);
+        assert_eq!(magic::leveldb(&leveldb_prefix, 100, None), None);
+        assert_eq!(
+            magic::leveldb(&leveldb_prefix, 48, Some(&leveldb_prefix)),
+            Some(ContentType::Leveldb)
+        );
+
+        // rocksdb footer: 53 bytes ending with ROCKSDB_BLOCK_MAGIC_LE
+        let mut rocksdb_prefix = vec![0u8; 53];
+        rocksdb_prefix[45..53].copy_from_slice(&[0x75, 0x3F, 0x6B, 0x98, 0xF7, 0x85, 0xB2, 0x88]);
+        assert_eq!(magic::rocksdb(&rocksdb_prefix, 100, None), None);
+        assert_eq!(
+            magic::rocksdb(&rocksdb_prefix, 53, Some(&rocksdb_prefix)),
+            Some(ContentType::Rocksdb)
+        );
+
+        // orc: starts with b"ORC\x82", postscript at the end of prefix
+        let mut orc_prefix = vec![0u8; 64];
+        orc_prefix[..4].copy_from_slice(b"ORC\x82");
+        orc_prefix[55..58].copy_from_slice(b"ORC");
+        orc_prefix[63] = 4;
+        assert_eq!(magic::orc(&orc_prefix, 1000, None), None);
+        assert_eq!(magic::orc(&orc_prefix, 64, Some(&orc_prefix)), Some(ContentType::Orc));
+
+        // pythonpar: shebang without local ZIP header, but EOCD in prefix
+        let mut pypar_prefix = vec![0u8; 64];
+        pypar_prefix[..22].copy_from_slice(b"#!/usr/bin/env python\n");
+        pypar_prefix[30..34].copy_from_slice(b"PK\x05\x06");
+        assert_eq!(magic::pythonpar(&pypar_prefix, 1000, None), None);
+        assert_eq!(
+            magic::pythonpar(&pypar_prefix, 64, Some(&pypar_prefix)),
+            Some(ContentType::Pythonpar)
+        );
+    }
+
+    #[test]
+    fn extension_fast_path_and_masqueraded_extensions() {
+        use std::path::Path;
+
+        let resolve_with_path = |bytes: &[u8], path: &str| {
+            let mut input = Input::from_slice(bytes).with_path(Path::new(path));
+            identify(&mut input).unwrap()
+        };
+
+        let srt = b"1\n00:00:01,000 --> 00:00:02,000\nHello\n";
+        assert_eq!(resolve_with_path(srt, "subtitles.srt"), vec![ContentType::Srt]);
+        assert_eq!(resolve_with_path(srt, "wrong.json"), vec![ContentType::Srt]);
+        assert_eq!(resolve_with_path(srt, "wrong.dbf"), vec![ContentType::Srt]);
+
+        let json = br#"{"hello": "world"}"#;
+        assert_eq!(resolve_with_path(json, "data.json"), vec![ContentType::Json]);
+        assert_eq!(resolve_with_path(json, "wrong.xml"), vec![ContentType::Json]);
+        assert_eq!(resolve_with_path(json, "wrong.srt"), vec![ContentType::Json]);
+        assert_eq!(resolve_with_path(json, "unknown.unknown_ext"), vec![ContentType::Json]);
+
+        // Text heuristics still enforce prefix pre-guards even when the extension matches.
+        let nul_bat = b"@echo off\n\0echo hi\n";
+        assert_eq!(resolve_with_path(nul_bat, "nul.bat"), resolve_slice(nul_bat));
+
+        // Magic formats ignore misleading heuristic extensions.
+        let pe = build_pe32(0x0102, 0x1000);
+        assert_eq!(resolve_with_path(&pe, "masqueraded.xml"), vec![ContentType::Pebin]);
+        assert_eq!(resolve_with_path(&pe, "masqueraded.tga"), vec![ContentType::Pebin]);
     }
 }

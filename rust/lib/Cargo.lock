@@ -614,7 +614,7 @@ dependencies = [
 
 [[package]]
 name = "magika"
-version = "2.0.0-dev"
+version = "2.0.0-rc.0"
 dependencies = [
  "anyhow",
  "cpu-time",
@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "magika-rules"
-version = "0.1.0-dev"
+version = "0.1.0"
 dependencies = [
  "memchr",
  "miniz_oxide",
@@ -643,7 +643,7 @@ dependencies = [
 
 [[package]]
 name = "magika-tract-runtime"
-version = "0.0.1-dev"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "cudarc",

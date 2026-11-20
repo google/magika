@@ -168,7 +168,7 @@ fn labels(held: &[u8], size: u64) -> Vec<String> {
         identify(&mut Input::from_slice(held)).unwrap()
     } else {
         let prefix = &held[..held.len().min(PREFIX_LIMIT)];
-        magic::identify(&magic::Ctx { prefix, size, tail: None }).into_iter().collect()
+        magic::identify(&magic::Ctx { prefix, size, tail: None, path: None }).into_iter().collect()
     };
     content_types.into_iter().map(|ct| ct.info().label.to_string()).collect()
 }

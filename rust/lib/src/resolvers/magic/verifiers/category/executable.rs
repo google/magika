@@ -28,21 +28,112 @@ pub(crate) fn macho(prefix: &[u8]) -> Option<Label> {
     const SIZEOFCMDS: usize = 20; // @20: u32 — total byte size of load commands
     const MIN_LEN_32: usize = 28;
     const MIN_LEN_64: usize = 32;
+    const MH_FILESET: u32 = 12;
+
+    static MACHO_SUBFORMATS: [[Subformat; 13]; 4] = [
+        [
+            Subformat::with_ids("Mach-O 32-bit (little-endian)", "fmt/692", None),
+            Subformat::with_ids(
+                "Mach-O 32-bit relocatable object (little-endian)",
+                "fmt/692",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 32-bit executable (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fixed VM library (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit core dump (little-endian)", "fmt/692", None),
+            Subformat::with_ids(
+                "Mach-O 32-bit preloaded executable (little-endian)",
+                "fmt/692",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 32-bit dynamic library (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic linker (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit bundle (little-endian)", "fmt/692", None),
+            Subformat::with_ids(
+                "Mach-O 32-bit dynamic library stub (little-endian)",
+                "fmt/692",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 32-bit dSYM (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit kernel extension (little-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fileset (little-endian)", "fmt/692", None),
+        ],
+        [
+            Subformat::with_ids("Mach-O 32-bit (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit relocatable object (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit executable (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fixed VM library (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit core dump (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit preloaded executable (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic library (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic linker (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit bundle (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dynamic library stub (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit dSYM (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit kernel extension (big-endian)", "fmt/692", None),
+            Subformat::with_ids("Mach-O 32-bit fileset (big-endian)", "fmt/692", None),
+        ],
+        [
+            Subformat::with_ids("Mach-O 64-bit (little-endian)", "fmt/693", None),
+            Subformat::with_ids(
+                "Mach-O 64-bit relocatable object (little-endian)",
+                "fmt/693",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 64-bit executable (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fixed VM library (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit core dump (little-endian)", "fmt/693", None),
+            Subformat::with_ids(
+                "Mach-O 64-bit preloaded executable (little-endian)",
+                "fmt/693",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 64-bit dynamic library (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic linker (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit bundle (little-endian)", "fmt/693", None),
+            Subformat::with_ids(
+                "Mach-O 64-bit dynamic library stub (little-endian)",
+                "fmt/693",
+                None,
+            ),
+            Subformat::with_ids("Mach-O 64-bit dSYM (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit kernel extension (little-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fileset (little-endian)", "fmt/693", None),
+        ],
+        [
+            Subformat::with_ids("Mach-O 64-bit (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit relocatable object (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit executable (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fixed VM library (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit core dump (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit preloaded executable (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic library (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic linker (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit bundle (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dynamic library stub (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit dSYM (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit kernel extension (big-endian)", "fmt/693", None),
+            Subformat::with_ids("Mach-O 64-bit fileset (big-endian)", "fmt/693", None),
+        ],
+    ];
 
     require!(prefix.len() >= MIN_LEN_32);
-    let (read_u32, is_64): (ReadU32, bool) = match le32(prefix, 0)? {
-        MH_MAGIC => (le32, false),
-        MH_MAGIC_64 => (le32, true),
+    let (read_u32, is_64, is_le): (ReadU32, bool, bool) = match le32(prefix, 0)? {
+        MH_MAGIC => (le32, false, true),
+        MH_MAGIC_64 => (le32, true, true),
         _ => match be32(prefix, 0)? {
-            MH_MAGIC => (be32, false),
-            MH_MAGIC_64 => (be32, true),
+            MH_MAGIC => (be32, false, false),
+            MH_MAGIC_64 => (be32, true, false),
             _ => return None,
         },
     };
-    require!(!is_64 || prefix.len() >= MIN_LEN_64, read_u32(prefix, FILETYPE)? >= 1);
+    let filetype = read_u32(prefix, FILETYPE)?;
+    require!(!is_64 || prefix.len() >= MIN_LEN_64, filetype >= 1);
     let (ncmds, sizeofcmds) = (read_u32(prefix, NCMDS)?, read_u32(prefix, SIZEOFCMDS)?);
     require!((ncmds == 0 && sizeofcmds == 0) || (ncmds >= 1 && sizeofcmds >= 8));
-    Some(Label::Macho)
+    let variant = usize::from(is_64) * 2 + usize::from(!is_le);
+    let kind = if filetype <= MH_FILESET { filetype as usize } else { 0 };
+    with_subformat(Label::Macho, &MACHO_SUBFORMATS[variant][kind])
 }
 
 /// Microsoft Program Database (PDB): MSF 7.00 header (`"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0"`)
@@ -63,13 +154,20 @@ pub(crate) fn pdb(prefix: &[u8]) -> Option<Label> {
     const MODERN_MIN_LEN: usize = 56;
     const OLD_MIN_LEN: usize = 60;
 
+    static EMBEDDED_PORTABLE_PDB: Subformat = Subformat::new("Embedded Portable PDB");
+    static PORTABLE_PDB: Subformat = Subformat::new("Portable PDB");
+    static MSF_7_00: Subformat = Subformat::with_ids("Microsoft PDB (MSF 7.00)", "fmt/1079", None);
+    static MSF_2_00: Subformat = Subformat::with_ids("Microsoft PDB (MSF 2.00)", "fmt/1078", None);
+    static NCB: Subformat = Subformat::new("Visual C++ NCB (MSF 2.00)");
+    static PDB_1_00: Subformat = Subformat::new("Microsoft PDB 1.00");
+
     fn valid_page_size(n: u32) -> bool {
         matches!(n, 0x0200 | 0x0400 | 0x0800 | 0x1000 | 0x2000 | 0x4000 | 0x8000)
     }
 
     if prefix.len() >= 8 && starts(prefix, MPDB_MAGIC) {
         require!(le32(prefix, 4)? >= 64);
-        return Some(Label::Pdb);
+        return with_subformat(Label::Pdb, &EMBEDDED_PORTABLE_PDB);
     }
     if prefix.len() >= 32 && starts(prefix, BSJB_MAGIC) {
         let vlen = le32(prefix, 12)? as usize;
@@ -78,7 +176,7 @@ pub(crate) fn pdb(prefix: &[u8]) -> Option<Label> {
             vlen.is_multiple_of(4),
             eq_at(prefix, 16, PDB_V1_0) || contains(prefix, PDB_STREAM),
         );
-        return Some(Label::Pdb);
+        return with_subformat(Label::Pdb, &PORTABLE_PDB);
     }
 
     let modern = prefix.len() >= MODERN_MIN_LEN
@@ -90,7 +188,16 @@ pub(crate) fn pdb(prefix: &[u8]) -> Option<Label> {
         && valid_page_size(le32(prefix, OLD_PAGE_SIZE)?);
     let pdb1 = prefix.len() >= MODERN_MIN_LEN && starts(prefix, PDB1_MAGIC);
     require!(modern || old || pdb1);
-    Some(Label::Pdb)
+    let sub = if modern {
+        &MSF_7_00
+    } else if old && starts(prefix, OLD_MAGIC) {
+        &MSF_2_00
+    } else if old {
+        &NCB
+    } else {
+        &PDB_1_00
+    };
+    with_subformat(Label::Pdb, sub)
 }
 
 /// IBM AIX XCOFF object/executable: magic `0x01F7` (XCOFF64) or `0x01DF` (XCOFF32) at `@0`,
@@ -105,14 +212,17 @@ pub(crate) fn xcoff(prefix: &[u8]) -> Option<Label> {
     const MIN_LEN: usize = 24;
 
     require!(prefix.len() >= MIN_LEN, (1..=1024).contains(&be16(prefix, N_SCNS)?),);
+    static XCOFF_32: Subformat = Subformat::new("XCOFF32");
+    static XCOFF_64: Subformat = Subformat::new("XCOFF64");
     let opt = be16(prefix, OPT_HDR)?;
-    let valid = match be16(prefix, MAGIC)? {
+    let magic = be16(prefix, MAGIC)?;
+    let valid = match magic {
         XCOFF64 => matches!(opt, 0 | 120),
         XCOFF32 => matches!(opt, 0 | 28 | 72),
         _ => false,
     };
     require!(valid);
-    Some(Label::Xcoff)
+    with_subformat(Label::Xcoff, if magic == XCOFF64 { &XCOFF_64 } else { &XCOFF_32 })
 }
 
 pub(crate) const MZ_MAGIC: &[u8; 2] = b"MZ";
@@ -121,43 +231,84 @@ pub(crate) const ZM_MAGIC: &[u8; 2] = b"ZM";
 
 pub(crate) const PE_MAGIC: &[u8; 4] = b"PE\0\0";
 
-/// Checks whether `prefix` (of an input of `size` bytes) holds a valid Windows PE/COFF image
-/// header with `IMAGE_FILE_EXECUTABLE_IMAGE` set, not a resource-only DLL (`is_dll &&
-/// entry_point == 0`), Windows subsystem in `1..=16`, and a shipping Windows `Machine`
-/// architecture.
-pub(crate) fn is_windows_pebin(prefix: &[u8], size: u64) -> bool {
+/// Validates a Windows PE/COFF image header (`IMAGE_FILE_EXECUTABLE_IMAGE` set, not a
+/// resource-only DLL where `is_dll && entry_point == 0`, Windows subsystem in `1..=16`, and a
+/// shipping Windows `Machine` architecture) and returns its PE32 / PE32+ subformat descriptor.
+pub(crate) fn windows_pe_subformat(prefix: &[u8], size: u64) -> Option<&'static Subformat> {
+    const PE32_MAGIC: u16 = 0x010B;
+    const PE32_PLUS_MAGIC: u16 = 0x020B;
+    const IMAGE_FILE_EXECUTABLE_IMAGE: u16 = 0x0002;
+    const IMAGE_FILE_DLL: u16 = 0x2000;
+    const SUBSYSTEM_NATIVE: u16 = 1;
+    const SUBSYSTEM_WINDOWS_GUI: u16 = 2;
+    const SUBSYSTEM_WINDOWS_CUI: u16 = 3;
+    const SUBSYSTEM_WINDOWS_CE_GUI: u16 = 9;
+    const SUBSYSTEM_EFI_APPLICATION: u16 = 10;
+    const SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER: u16 = 11;
+    const SUBSYSTEM_EFI_RUNTIME_DRIVER: u16 = 12;
+    const SUBSYSTEM_EFI_ROM: u16 = 13;
+    const SUBSYSTEM_WINDOWS_BOOT_APPLICATION: u16 = 16;
+
+    // [0] = PE32 (fmt/899), [1] = PE32+ (fmt/900)
+    static PE_SUBFORMATS: [[Subformat; 11]; 2] = [
+        [
+            Subformat::with_ids("PE32 executable", "fmt/899", None),
+            Subformat::with_ids("PE32 GUI executable", "fmt/899", None),
+            Subformat::with_ids("PE32 console executable", "fmt/899", None),
+            Subformat::with_ids("PE32 DLL", "fmt/899", None),
+            Subformat::with_ids("PE32 native image", "fmt/899", None),
+            Subformat::with_ids("PE32 Windows CE executable", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI application", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI boot service driver", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI runtime driver", "fmt/899", None),
+            Subformat::with_ids("PE32 EFI ROM image", "fmt/899", None),
+            Subformat::with_ids("PE32 Windows boot application", "fmt/899", None),
+        ],
+        [
+            Subformat::with_ids("PE32+ executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ GUI executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ console executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ DLL", "fmt/900", None),
+            Subformat::with_ids("PE32+ native image", "fmt/900", None),
+            Subformat::with_ids("PE32+ Windows CE executable", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI application", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI boot service driver", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI runtime driver", "fmt/900", None),
+            Subformat::with_ids("PE32+ EFI ROM image", "fmt/900", None),
+            Subformat::with_ids("PE32+ Windows boot application", "fmt/900", None),
+        ],
+    ];
+
     if !starts(prefix, MZ_MAGIC) {
-        return false;
+        return None;
     }
-    let Some(e_lfanew) = le32(prefix, 0x3C) else {
-        return false;
-    };
+    let e_lfanew = le32(prefix, 0x3C)?;
     let headers_end = u64::from(e_lfanew) + 24;
     if e_lfanew < 4 || headers_end > prefix.len() as u64 {
-        return false;
+        return None;
     }
     let sig = e_lfanew as usize;
     if !eq_at(prefix, sig, PE_MAGIC) {
-        return false;
+        return None;
     }
     let coff = sig + 4;
     let machine = le16(prefix, coff).unwrap_or(0);
     let sections = le16(prefix, coff + 2).unwrap_or(0);
     let soh = u64::from(le16(prefix, coff + 16).unwrap_or(0));
     let characteristics = le16(prefix, coff + 18).unwrap_or(0);
-    let is_dll = characteristics & 0x2000 != 0;
-    let is_executable_image = characteristics & 0x0002 != 0;
+    let is_dll = characteristics & IMAGE_FILE_DLL != 0;
+    let is_executable_image = characteristics & IMAGE_FILE_EXECUTABLE_IMAGE != 0;
     let opt = coff + 20;
     let magic = le16(prefix, opt).unwrap_or(0);
     let entry_point = le32(prefix, opt + 16).unwrap_or(0);
     let subsystem = le16(prefix, opt + 68).unwrap_or(0);
-    let fixed = match magic {
-        0x010B => 96u64,
-        0x020B => 112u64,
-        _ => return false,
+    let (fixed, is_plus) = match magic {
+        PE32_MAGIC => (96u64, 0usize),
+        PE32_PLUS_MAGIC => (112u64, 1usize),
+        _ => return None,
     };
     let table_end = (opt as u64) + soh + 40 * u64::from(sections);
-    soh >= fixed
+    let valid = soh >= fixed
         && (1..=96).contains(&sections)
         && table_end <= prefix.len() as u64
         && table_end <= size
@@ -183,13 +334,27 @@ pub(crate) fn is_windows_pebin(prefix: &[u8], size: u64) -> bool {
                 | 0xA642
                 | 0xA64E
                 | 0xAA64
-        )
+        );
+    require!(valid);
+    let kind = match subsystem {
+        SUBSYSTEM_EFI_APPLICATION => 6,
+        SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER => 7,
+        SUBSYSTEM_EFI_RUNTIME_DRIVER => 8,
+        SUBSYSTEM_EFI_ROM => 9,
+        SUBSYSTEM_NATIVE => 4,
+        SUBSYSTEM_WINDOWS_BOOT_APPLICATION => 10,
+        _ if is_dll => 3,
+        SUBSYSTEM_WINDOWS_GUI => 1,
+        SUBSYSTEM_WINDOWS_CUI => 2,
+        SUBSYSTEM_WINDOWS_CE_GUI => 5,
+        _ => 0,
+    };
+    Some(&PE_SUBFORMATS[is_plus][kind])
 }
 
 /// Windows PE/COFF executable (`taxonomy_pebin`).
 pub(crate) fn pe(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
-    require!(is_windows_pebin(prefix, ctx.size));
-    Some(Label::Pebin)
+    with_subformat(Label::Pebin, windows_pe_subformat(prefix, ctx.size)?)
 }
 
 /// Standalone Microsoft / DJGPP COFF Object File (`coff`): `Machine` (`0x014C` i386,
@@ -210,7 +375,8 @@ pub(crate) fn coff(prefix: &[u8], size: u64) -> Option<Label> {
             ],
         )
     {
-        return Some(Label::Coff);
+        static COFF_BIGOBJ: Subformat = Subformat::new("COFF object (/bigobj)");
+        return with_subformat(Label::Coff, &COFF_BIGOBJ);
     }
     const MIN_COFF_SIZE: u64 = 60; // 20B IMAGE_FILE_HEADER + 40B IMAGE_SECTION_HEADER
 
@@ -233,7 +399,8 @@ pub(crate) fn coff(prefix: &[u8], size: u64) -> Option<Label> {
         sec_name[..name_len].iter().all(|&b| (0x20..=0x7E).contains(&b)),
         sec_name[name_len..].iter().all(|&b| b == 0),
     );
-    Some(Label::Coff)
+    static COFF_OBJECT: Subformat = Subformat::new("COFF object");
+    with_subformat(Label::Coff, &COFF_OBJECT)
 }
 
 /// AutoIt v3 compiled script 16-byte signature (`A3 48 4B BE 98 6C 4A A9 99 4C 53 0A 86 D6 48 7D`).
@@ -244,29 +411,42 @@ pub(crate) const AUTOIT_V3_MAGIC: &[u8] = &[
 /// AutoIt v3 EA05/EA06 archive marker (`"AU3!EA0"`).
 pub(crate) const AUTOIT_EA0_MAGIC: &[u8] = b"AU3!EA0";
 
-/// Checks for AutoIt v3 compiled executable signature (`\xA3\x48\x4B\xBE...` or `"AU3!EA0"`)
-/// before falling back to Windows PE/DOS MZ (`pebin`).
+/// Windows PE / DOS MZ executable (`pebin`) that [`pe`] did not accept. An AutoIt v3 compiled
+/// executable signature (`\xA3\x48\x4B\xBE...` or `"AU3!EA0"`) is reported as a subformat.
 pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     const KKRUNCHY_TAG: &[u8] = b"KKRUNCHY";
     const DOS32_ADAM_MAGIC: &[u8; 4] = b"Adam";
     const TMT_STUB_TAG: &[u8; 3] = b"TMT";
+    static AUTOIT_EXE: Subformat = Subformat::new("AutoIt v3 compiled executable");
+    static PE_TINY: Subformat =
+        Subformat::with_ids("PE (tiny, header at offset 2)", "x-fmt/411", None);
+    static PE_NONSTANDARD: Subformat =
+        Subformat::with_ids("PE (non-standard header)", "x-fmt/411", None);
+    static NE: Subformat = Subformat::with_ids("NE executable", "x-fmt/410", None);
+    static LE: Subformat = Subformat::new("LE executable");
+    static LX: Subformat = Subformat::new("OS/2 LX executable");
+    static W3: Subformat = Subformat::new("Windows W3 executable");
+    static W4: Subformat = Subformat::new("Windows W4 executable");
+    static DOS32_ADAM: Subformat = Subformat::new("DOS32 Adam executable");
+    static DOS_MZ: Subformat = Subformat::with_ids("MS-DOS MZ executable", "x-fmt/409", None);
+    static DOS_ZM: Subformat = Subformat::with_ids("MS-DOS ZM executable", "x-fmt/409", None);
 
     if contains(prefix, AUTOIT_V3_MAGIC) || contains(prefix, AUTOIT_EA0_MAGIC) {
-        return Some(Label::Autoit);
+        return with_subformat(Label::Pebin, &AUTOIT_EXE);
     }
     if let Some(t) = ctx.tail
         && (contains(t, AUTOIT_V3_MAGIC) || contains(t, AUTOIT_EA0_MAGIC))
     {
-        return Some(Label::Autoit);
+        return with_subformat(Label::Pebin, &AUTOIT_EXE);
     }
-    if is_windows_pebin(prefix, ctx.size) {
-        return Some(Label::Pebin);
+    if let Some(sub) = windows_pe_subformat(prefix, ctx.size) {
+        return with_subformat(Label::Pebin, sub);
     }
     if prefix.len() >= 0x28
         && eq_at(prefix, 2, PE_MAGIC)
         && matches!(le16(prefix, 6), Some(0x014C | 0x8664 | 0xAA64))
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &PE_TINY);
     }
     if prefix.len() >= 0x40 {
         let e_lfanew = le32(prefix, 0x3C).unwrap_or(0) as usize;
@@ -286,21 +466,28 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
                 || (sections == 0 && soh == 0))
                 && matches!(le16(prefix, coff), Some(0x014C | 0x8664 | 0xAA64))
             {
-                return Some(Label::Pebin);
+                return with_subformat(Label::Pebin, &PE_NONSTANDARD);
             }
             return None;
         }
         if e_lfanew >= 0x40 && e_lfanew + 4 <= prefix.len() && starts(prefix, MZ_MAGIC) {
             let ext_sig = get_slice(prefix, e_lfanew, e_lfanew + 2)?;
             if matches!(ext_sig, b"NE" | b"LE" | b"LX" | b"W3" | b"W4") {
-                return Some(Label::Pebin);
+                let sub = match ext_sig {
+                    b"NE" => &NE,
+                    b"LE" => &LE,
+                    b"LX" => &LX,
+                    b"W3" => &W3,
+                    _ => &W4,
+                };
+                return with_subformat(Label::Pebin, sub);
             }
         }
     }
     if prefix.len() >= 0x36 && starts(prefix, DOS32_ADAM_MAGIC) && eq_at(prefix, 0x22, TMT_STUB_TAG)
     {
         let _ = get_slice(prefix, 0, 0x36);
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &DOS32_ADAM);
     }
     // Also support classic DOS MZ / Win16 NE / OS/2 LE/LX executables mapped to `pebin`
     require!(
@@ -316,7 +503,7 @@ pub(crate) fn pe_or_autoit(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         (1..=16384).contains(&e_cp),
         e_cparhdr >= 2 || starts(prefix, b"MZ\x00\x00")
     );
-    Some(Label::Pebin)
+    with_subformat(Label::Pebin, if starts(prefix, MZ_MAGIC) { &DOS_MZ } else { &DOS_ZM })
 }
 
 /// MS-DOS / CP/M-80 `.COM` flat binary executable (`ORG 0x0100`, mapped to `pebin`):
@@ -339,21 +526,32 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
         0x00, 0x01, 0xB9,
     ];
 
+    static COM_ICE: Subformat = Subformat::new("MS-DOS COM (ICE packed)");
+    static COM_TPACK: Subformat = Subformat::new("MS-DOS COM (T-PACK packed)");
+    static COM_SHRINK: Subformat = Subformat::new("MS-DOS COM (SHRINK packed)");
+    static COM_COMPACT: Subformat = Subformat::new("MS-DOS COM (COMPACT packed)");
+    static COM_UPX: Subformat = Subformat::new("MS-DOS COM (UPX packed)");
+    static COM_PARAGRAPH_RELOC: Subformat = Subformat::new("MS-DOS COM (paragraph relocation)");
+    static COM_THEDRAW: Subformat = Subformat::new("TheDraw ANSI art COM");
+    static COM_TURBO_PASCAL_DOS: Subformat = Subformat::new("Turbo Pascal 3.0 COM (MS-DOS)");
+    static COM_TURBO_PASCAL_CPM: Subformat = Subformat::new("Turbo Pascal 3.0 COM (CP/M-80)");
+    static COM_DOS_VERSION_CHECK: Subformat = Subformat::new("MS-DOS COM (DOS version check)");
+
     require!((16..=MAX_DOS_COM_SIZE).contains(&size), prefix.len() >= 16);
     if prefix.len() >= 512 && prefix[510] == 0x55 && prefix[511] == 0xAA {
         return None;
     }
     if size >= 64 && starts(prefix, &[0xEB, 0x0A]) && eq_at(prefix, 12, ICE_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_ICE);
     }
     if size >= 64 && starts(prefix, TPACK_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_TPACK);
     }
     if size >= 64 && starts(prefix, SHRINK_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_SHRINK);
     }
     if size >= 48 && starts(prefix, COMPACT_PEICHL_STUB) {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_COMPACT);
     }
     if size >= 56
         && prefix.len() >= 34
@@ -363,7 +561,7 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
         && u8_at(prefix, 14) == Some(0xBF)
         && eq_at(prefix, 17, &[0xFD, 0xF3, 0xA4, 0xFC])
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_UPX);
     }
     if size >= 32
         && (starts(prefix, &[0x9C, 0x55, 0x56, 0x8C])
@@ -371,14 +569,21 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
             || starts(prefix, &[0xE9, 0x79, 0x2C, 0x90])
             || starts(prefix, &[0xE9, 0x87, 0x2B, 0x90]))
     {
-        return Some(Label::Pebin);
+        let sub = if starts(prefix, &[0x9C, 0x55, 0x56, 0x8C]) {
+            &COM_PARAGRAPH_RELOC
+        } else if starts(prefix, &[0xEB, 0x3D, 0x90, 0x00]) {
+            &COM_THEDRAW
+        } else {
+            &COM_TURBO_PASCAL_DOS
+        };
+        return with_subformat(Label::Pebin, sub);
     }
     if size >= 64
         && prefix.len() >= 64
         && starts(prefix, &[0xC3, 0xE2, 0x20, 0xCD])
         && contains(get_slice(prefix, 4, 64)?, b"Copyright")
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_TURBO_PASCAL_CPM);
     }
     if starts(prefix, &[0xB4, 0x30, 0xCD, 0x21])
         && matches!(
@@ -386,7 +591,7 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
             0x3C | 0x72 | 0x73 | 0x74 | 0x75 | 0x80 | 0x86 | 0x8A | 0xA2 | 0xA3
         )
     {
-        return Some(Label::Pebin);
+        return with_subformat(Label::Pebin, &COM_DOS_VERSION_CHECK);
     }
     None
 }
@@ -394,7 +599,8 @@ pub(crate) fn dos_com(prefix: &[u8], size: u64) -> Option<Label> {
 /// Standalone AutoIt v3 compiled script (`\xA3\x48\x4B\xBE\x98\x6C\x4A\xA9...` at `@0`).
 pub(crate) fn autoit_compiled(prefix: &[u8], size: u64) -> Option<Label> {
     require!(size >= 24, prefix.len() >= 20, starts(prefix, AUTOIT_V3_MAGIC));
-    Some(Label::Autoit)
+    static AUTOIT_A3X: Subformat = Subformat::new("AutoIt v3 compiled script (A3X)");
+    with_subformat(Label::Autoit, &AUTOIT_A3X)
 }
 
 /// AutoIt v3 Script (`autoit`): `#cs`, `#include <`, `AutoItSetOption(`, or `Opt("` script markers.
@@ -421,12 +627,16 @@ pub(crate) fn autoit_script(prefix: &[u8], size: u64) -> Option<Label> {
                 || contains(prefix, AU3_COMMENT_END)),
         is_utf8_text_header(prefix, size as usize),
     );
-    Some(Label::Autoit)
+    static AUTOIT_SCRIPT: Subformat = Subformat::new("AutoIt v3 script");
+    with_subformat(Label::Autoit, &AUTOIT_SCRIPT)
 }
 
 /// Intel 8086 Relocatable Object Module Format (`omf`, 1981): `THEADR` (`0x80`), `LHEADR` (`0x82`),
 /// or `LIBHDR` (`0xF0`) record with length-prefixed printable module name or power-of-two library page.
 pub(crate) fn omf_intel(prefix: &[u8], size: u64) -> Option<Label> {
+    static OMF_LIBRARY: Subformat = Subformat::new("OMF library");
+    static OMF_OBJECT: Subformat = Subformat::new("OMF object module");
+
     require!(size >= 16, prefix.len() >= 12);
     if u8_at(prefix, 0)? == 0xF0 {
         let rec_len = le16(prefix, 1)? as usize;
@@ -449,7 +659,7 @@ pub(crate) fn omf_intel(prefix: &[u8], size: u64) -> Option<Label> {
             let pad = get_slice(prefix, 11, prefix.len().min(page_size))?;
             require!(pad.iter().all(|&b| b == 0));
         }
-        return Some(Label::Omf);
+        return with_subformat(Label::Omf, &OMF_LIBRARY);
     }
     require!(matches!(u8_at(prefix, 0)?, 0x80 | 0x82));
     let rec_len = le16(prefix, 1)? as usize;
@@ -464,7 +674,7 @@ pub(crate) fn omf_intel(prefix: &[u8], size: u64) -> Option<Label> {
     require!(name.iter().all(|&b| (0x20..=0x7E).contains(&b)));
     let next_tag = u8_at(prefix, 3 + rec_len)?;
     require!(matches!(next_tag, 0x88 | 0x8A | 0x96 | 0x98 | 0x99 | 0x9A | 0xA0 | 0xB0));
-    Some(Label::Omf)
+    with_subformat(Label::Omf, &OMF_OBJECT)
 }
 
 /// Self-executing Python Archive (`.par` / `.pyz`, `pythonpar`, 2015): `#!` Python shebang header
@@ -478,8 +688,10 @@ pub(crate) fn pythonpar(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Option
         prefix.len() >= 32,
         starts(prefix, SHEBANG_MAGIC) && contains(prefix, PYTHON_INTERP),
     );
-    let t = tail.unwrap_or(prefix);
-    require!(contains(prefix, ZIP_LOCAL_SIGNATURE) || contains(t, ZIP_EOCD_SIGNATURE));
+    require!(
+        contains(prefix, ZIP_LOCAL_SIGNATURE)
+            || tail.is_some_and(|t| contains(t, ZIP_EOCD_SIGNATURE))
+    );
     Some(Label::Pythonpar)
 }
 
@@ -508,10 +720,20 @@ pub(crate) fn aout(prefix: &[u8], size: u64) -> Option<Label> {
         b_sz <= 64 * 1024 * 1024,
     );
     let _ = get_slice(prefix, 0, 16);
-    Some(Label::Aout)
+    static AOUT_OMAGIC: Subformat = Subformat::new("a.out OMAGIC");
+    static AOUT_NMAGIC: Subformat = Subformat::new("a.out NMAGIC");
+    static AOUT_ZMAGIC: Subformat = Subformat::new("a.out ZMAGIC");
+    static AOUT_QMAGIC: Subformat = Subformat::new("a.out QMAGIC");
+    let sub = match (if is_be { m_be } else { m_le }) & 0xFFFF {
+        OMAGIC => &AOUT_OMAGIC,
+        NMAGIC => &AOUT_NMAGIC,
+        ZMAGIC => &AOUT_ZMAGIC,
+        _ => &AOUT_QMAGIC,
+    };
+    with_subformat(Label::Aout, sub)
 }
 
-/// Disambiguates `MZ`/`ZM` executables between Windows PE (`pebin`), AutoIt v3 (`autoit`), and DOS MZ (`pebin`).
+/// Identifies `MZ`/`ZM` executables (`pebin`): Windows PE, AutoIt v3 compiled executables, and DOS MZ.
 #[inline]
 pub(crate) fn pe_or_dos_mz(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     probe(|| pe(prefix, ctx)).or_else(|| probe(|| pe_or_autoit(prefix, ctx)))

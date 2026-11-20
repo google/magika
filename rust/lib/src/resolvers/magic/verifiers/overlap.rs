@@ -19,6 +19,9 @@ use crate::ContentType as Label;
 
 /// Evaluates `0xFF`-prefixed streams (`jpeg`, `jp2`, `jxl`, `mp3`).
 pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
+    static J2K_CODESTREAM: Subformat =
+        Subformat::with_ids("JPEG 2000 codestream", "fmt/1794", Some("fdd000138"));
+    static MP3_RAW: Subformat = Subformat::new("MP3 (raw frames)");
     const JPEG_SOI_LOW: u8 = 0xD8;
     const J2K_SOC_LOW: u8 = 0x4F;
     const JXL_SIG_LOW: u8 = 0x0A;
@@ -33,7 +36,7 @@ pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
         && eq_at(prefix, 0, &[0xFF, 0x4F, 0xFF, 0x51])
         && be16(prefix, 4).unwrap_or(0) >= 38
     {
-        return Some(Label::Jp2);
+        return with_subformat(Label::Jp2, &J2K_CODESTREAM);
     }
     if b1 == JXL_SIG_LOW {
         return verify_jxl_codestream(prefix, size);
@@ -42,7 +45,7 @@ pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
         return Some(Label::Mp2);
     }
     if verify_mpeg_audio_frames(prefix, 0) {
-        return Some(Label::Mp3);
+        return with_subformat(Label::Mp3, &MP3_RAW);
     }
     None
 }
@@ -50,8 +53,40 @@ pub(crate) fn stream_ff(prefix: &[u8], size: u64) -> Option<Label> {
 /// Disambiguates `CA FE BA BE` at `@0` between Apple Mach-O Universal Fat Binary (`macho`)
 /// and Sun / Oracle JVM `.class` bytecode (`javabytecode`, 1995).
 pub(crate) fn cafebabe(prefix: &[u8], size: u64) -> Option<Label> {
+    static MACHO_UNIVERSAL: Subformat = Subformat::new("Mach-O Universal (Fat)");
+    static JAVA_CLASS_VERSIONS: [Subformat; 27] = [
+        Subformat::new("Java 1.0/1.1 class file"),
+        Subformat::new("Java 1.2 class file"),
+        Subformat::new("Java 1.3 class file"),
+        Subformat::new("Java 1.4 class file"),
+        Subformat::new("Java 5 class file"),
+        Subformat::new("Java 6 class file"),
+        Subformat::new("Java 7 class file"),
+        Subformat::new("Java 8 class file"),
+        Subformat::new("Java 9 class file"),
+        Subformat::new("Java 10 class file"),
+        Subformat::new("Java 11 class file"),
+        Subformat::new("Java 12 class file"),
+        Subformat::new("Java 13 class file"),
+        Subformat::new("Java 14 class file"),
+        Subformat::new("Java 15 class file"),
+        Subformat::new("Java 16 class file"),
+        Subformat::new("Java 17 class file"),
+        Subformat::new("Java 18 class file"),
+        Subformat::new("Java 19 class file"),
+        Subformat::new("Java 20 class file"),
+        Subformat::new("Java 21 class file"),
+        Subformat::new("Java 22 class file"),
+        Subformat::new("Java 23 class file"),
+        Subformat::new("Java 24 class file"),
+        Subformat::new("Java 25 class file"),
+        Subformat::new("Java 26 class file"),
+        Subformat::new("Java 27 class file"),
+    ];
     const CAFEBABE_MAGIC: &[u8] = &[0xCA, 0xFE, 0xBA, 0xBE];
-    require!(size >= 24, prefix.len() >= 10, starts(prefix, CAFEBABE_MAGIC));
+    const JAVA_MAJOR_MIN: u16 = 45; // @6: u16 BE — Java 1.0/1.1
+    const JAVA_MAJOR_MAX: u16 = 80;
+    require!(size >= 10, prefix.len() >= 10, starts(prefix, CAFEBABE_MAGIC));
     let nfat_or_minor_major = be32(prefix, 4)?;
     // Mach-O Universal Fat binary: nfat_arch in 1..=32 and valid Mach-O cpu_type at @8
     if (1..=32).contains(&nfat_or_minor_major) && prefix.len() >= 28 {
@@ -60,13 +95,16 @@ pub(crate) fn cafebabe(prefix: &[u8], size: u64) -> Option<Label> {
             cpu_type & !0x0100_0000,
             7 | 12 | 18 // CPU_TYPE_X86 (7), CPU_TYPE_ARM (12), CPU_TYPE_POWERPC (18)
         ) {
-            return Some(Label::Macho);
+            return with_subformat(Label::Macho, &MACHO_UNIVERSAL);
         }
     }
     // Java .class file: major_version in 45..=80 at @6, constant_pool_count >= 1 at @8
     let major = be16(prefix, 6)?;
     let cp_count = be16(prefix, 8)?;
-    require!((45..=80).contains(&major), cp_count >= 1);
+    require!((JAVA_MAJOR_MIN..=JAVA_MAJOR_MAX).contains(&major), cp_count >= 1);
+    if let Some(sub) = JAVA_CLASS_VERSIONS.get((major - JAVA_MAJOR_MIN) as usize) {
+        return with_subformat(Label::Javabytecode, sub);
+    }
     Some(Label::Javabytecode)
 }
 
@@ -103,8 +141,9 @@ pub(crate) fn null_prefixed(prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
     probe(|| sas(prefix))
         .or_else(|| probe(|| duckdb(prefix)))
         .or_else(|| probe(|| mpegts(prefix)))
-        .or_else(|| probe(|| stl_binary(prefix, size)))
         .or_else(|| probe(|| dicom(prefix)))
+        .or_else(|| probe(|| icc(prefix)))
+        .or_else(|| probe(|| stl_binary(prefix, size)))
         .or_else(|| probe(|| iso(prefix, size)))
         .or_else(|| probe(|| dosmbr(prefix, size)))
         .or_else(|| probe(|| hfs(prefix, size)))

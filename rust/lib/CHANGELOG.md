@@ -1,27 +1,38 @@
 # Changelog
 
-## 2.0.0-dev
+## 2.0.0-rc.0
 
 ### Major
 
-- Add `{model,rules}_support` fields to `TypeInfo`
+- Identify files with built-in format resolvers before model inference by default
+- Follow symbolic links by default when identifying files (`Options::follow_symlink`)
+- Replace `FileType::{Inferred,Ruled}` and `InferredType` with `FileType::Regular(RegularFileType)`
+  and remove `FileType::score()`
+- Return `RegularFileType` instead of `FileType` from
+  `Session::identify_{content,features,features_batch}`
+- Replace `FeaturesOrRuled` with `FeaturesOr<T>`
+- Add `{in_heuristics,in_resolvers,in_ml_model,vetoed_by_resolvers}` fields to `TypeInfo`
 - Remove the dependency on the ONNX Runtime
 - Remove async support for `Session`
 - Remove the `_async` methods of `Session`
 - Remove the `_sync` suffix from the `Session` methods
-- Rename `SyncInput` to `Input`
+- Replace the `SyncInput` and `AsyncInput` traits with the `Input` struct
 - Remove `Error` and `Result` using the `anyhow` crate instead
 - Change all methods from `Builder` which now builds a `Runtime`
 - Remove `Session::builder()` in favor of `Runtime::builder()`
 
 ### Minor
 
-- Add `pipeline` feature identify many paths in parallel
-- Add `Rules` and `Options::custom_rules` for custom rules
+- Add 184 content types identified by the built-in format resolvers
+- Add `Options` (`use_custom_rules`, `use_resolvers`, `use_model`, `prediction_mode`,
+  `follow_symlink`, `debug_mode`) and `PredictionMode`
+- Add `RegularFileType::metadata` for format-specific metadata and `DebugInfo` for debugging
+- Add `OverwriteReason::{ResolversVeto,RulesVeto}` and `MODEL_{,TRAINING_}LABELS`
+- Add `pipeline` feature to identify many paths in parallel
+- Add `Rules` and `Options::use_custom_rules` for custom rules
 - Add `TypeInfo::{possible,model}_output()` to list possible outputs
-- Add the `rules` feature to identify files with format rules before inference
-- Add the 74 content types that the bundled format rules can identify
 - Add `ContentType::from_label()` to get a content type from its label
+- Generalize `Session::identify_features_batch()` to take `&[impl Borrow<Features>]`
 - Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
 - Add `Runtime` to prepare the model once and create one `Session` per inference thread
 - Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference
@@ -31,6 +42,7 @@
 
 ### Patch
 
+- Update metadata (descriptions, MIME types, groups, and extensions) for 29 existing content types
 - Read small files once when extracting features
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies

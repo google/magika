@@ -1,9 +1,17 @@
 # Changelog
 
-## 1.2.0-dev
+## 2.0.0-rc.0
+
+### Major
+
+- Identify files with built-in format resolvers before model inference (expanding supported outputs
+  from 216 to 401, with resolver matches reporting `dl` as `undefined` and `score` as `1.0`)
+- Update metadata (descriptions, MIME types, groups, and extensions) for 29 existing content types
 
 ### Minor
 
+- Add `--{,check-}custom-rules` to use and check custom rules
+- Add `--no-{resolvers,model}` to disable resolvers or model
 - Start identifying files on the CPU while the GPU is prepared
 - Report files that are not regular instead of trying to read them
 - Detect cycles through symbolic links during recursive traversal
@@ -11,6 +19,7 @@
 
 ### Patch
 
+- Buffer standard output when printing results
 - Fix panic with JSON output when a file name is not UTF-8
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies

@@ -43,6 +43,7 @@ import {
   ContentTypeLabel,
   MagikaNode as Magika,
 } from "../magika-node";
+import { Status } from "../src/status";
 
 /**
  * Returns a list of test files and their correct labels.
@@ -299,10 +300,12 @@ describe("Magika class", () => {
       const expectedMime =
         entry.mime_type ??
         (entry.is_text ? "text/plain" : "application/octet-stream");
+      const expectedGroup =
+        entry.group ?? (entry.is_text ? "text" : "application");
       expect(info).toStrictEqual({
         label: ct,
         mime_type: expectedMime,
-        group: entry.group ?? "unknown",
+        group: expectedGroup,
         description: entry.description ?? ct,
         extensions: entry.extensions,
         is_text: entry.is_text,
@@ -457,5 +460,19 @@ describe("Magika class", () => {
     expect(pyResAgain.prediction.output).toStrictEqual(
       Magika.getContentTypeInfo(pyResAgain.prediction.output.label),
     );
+  });
+});
+
+describe("Status enum", () => {
+  // These values are part of the public API and are shared with the other
+  // Magika implementations; they are pinned in python by
+  // `tests/test_magika_python_module.py::test_status_and_overwrite_reason_enums`
+  // and they appear in the reference artifacts consumed by
+  // `inference-vs-reference.test.ts`.
+  it("should use the same string values as the reference implementation", () => {
+    expect(Status.OK).toBe("ok");
+    expect(Status.FILE_NOT_FOUND_ERROR).toBe("file_not_found_error");
+    expect(Status.PERMISSION_ERROR).toBe("permission_error");
+    expect(Status.UNKNOWN).toBe("unknown");
   });
 });

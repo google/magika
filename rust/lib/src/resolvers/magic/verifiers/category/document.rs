@@ -83,58 +83,90 @@ pub(crate) fn rtf(prefix: &[u8], size: u64) -> Option<Label> {
 /// Microsoft Compiled HTML Help (`chm`, 1997): `"ITSF"` magic at `@0`, version `2..=4` LE
 /// at `@4`, header length `>= 56` LE at `@8`, and unknown_1 `== 1` LE at `@12`.
 pub(crate) fn chm(prefix: &[u8], size: u64) -> Option<Label> {
+    static ITSF_V2: Subformat = Subformat::new("CHM (ITSF v2)");
+    static ITSF_V3: Subformat = Subformat::new("CHM (ITSF v3)");
+    static ITSF_V4: Subformat = Subformat::new("CHM (ITSF v4)");
     const MIN_CHM_SIZE: u64 = 96; // 56B ITSF v2 / 96B ITSF v3 header
     const CHM_MAGIC: &[u8; 4] = b"ITSF";
 
-    require!(
-        size >= MIN_CHM_SIZE,
-        prefix.len() >= 56,
-        starts(prefix, CHM_MAGIC),
-        (2..=4).contains(&le32(prefix, 4)?),
-        le32(prefix, 8)? >= 56,
-        le32(prefix, 12)? == 1,
-    );
-    Some(Label::Chm)
+    require!(size >= MIN_CHM_SIZE, prefix.len() >= 56, starts(prefix, CHM_MAGIC));
+    let sub = match le32(prefix, 4)? {
+        2 => &ITSF_V2,
+        3 => &ITSF_V3,
+        4 => &ITSF_V4,
+        _ => return None,
+    };
+    require!(le32(prefix, 8)? >= 56, le32(prefix, 12)? == 1);
+    with_subformat(Label::Chm, sub)
 }
 
 /// Microsoft Outlook Personal Folders PST / OST (`outlook`, 1996): `"!BDN"` (`21 42 44 4E`)
 /// at `@0`, `"SM"` / `"SO"` client magic at `@8..10`, and `wVer` `14..=64` LE at `@10..12`.
 pub(crate) fn outlook_pst(prefix: &[u8], size: u64) -> Option<Label> {
+    static OUTLOOK_PST_ANSI: Subformat =
+        Subformat::with_ids("Outlook Personal Folders (PST, ANSI)", "x-fmt/248", Some("fdd000377"));
+    static OUTLOOK_PST_UNICODE: Subformat = Subformat::with_ids(
+        "Outlook Personal Folders (PST, Unicode)",
+        "x-fmt/249",
+        Some("fdd000378"),
+    );
+    static OUTLOOK_PST: Subformat = Subformat::new("Outlook Personal Folders (PST)");
+    static OUTLOOK_OST: Subformat = Subformat::new("Outlook Offline Folders (OST)");
     const PST_MAGIC: &[u8; 4] = b"!BDN";
     const PST_CLIENT_SM: &[u8; 2] = b"SM";
     const PST_CLIENT_SO: &[u8; 2] = b"SO";
 
-    require!(
-        size >= 512,
-        prefix.len() >= 16,
-        starts(prefix, PST_MAGIC),
-        eq_at(prefix, 8, PST_CLIENT_SM) || eq_at(prefix, 8, PST_CLIENT_SO),
-        (14..=64).contains(&le16(prefix, 10)?),
-    );
-    Some(Label::Outlook)
+    require!(size >= 512, prefix.len() >= 16, starts(prefix, PST_MAGIC));
+    let is_pst = if eq_at(prefix, 8, PST_CLIENT_SM) {
+        true
+    } else if eq_at(prefix, 8, PST_CLIENT_SO) {
+        false
+    } else {
+        return None;
+    };
+    let ver = le16(prefix, 10)?;
+    require!((14..=64).contains(&ver));
+    let sub = if !is_pst {
+        &OUTLOOK_OST
+    } else if ver <= 15 {
+        &OUTLOOK_PST_ANSI
+    } else if ver >= 23 {
+        &OUTLOOK_PST_UNICODE
+    } else {
+        &OUTLOOK_PST
+    };
+    with_subformat(Label::Outlook, sub)
 }
 
 /// Microsoft Word for DOS (`doc`, 1983): `31 BE 00 00 00 AB` at `@0..6`.
 pub(crate) fn word_dos(prefix: &[u8], size: u64) -> Option<Label> {
+    static WORD_DOS: Subformat = Subformat::new("Microsoft Word for MS-DOS");
     const WORD_DOS_MAGIC: &[u8] = &[0x31, 0xBE, 0x00, 0x00, 0x00, 0xAB];
 
     require!(size >= 128, prefix.len() >= 16, starts(prefix, WORD_DOS_MAGIC),);
-    Some(Label::Doc)
+    with_subformat(Label::Doc, &WORD_DOS)
 }
 
 /// Microsoft Word for Windows 1.x / 2.0 (`doc`, 1989): `wIdent` `9B A5` (v1) or `DB A5` (v2)
 /// at `@0`, `nFib` in `0x0021..=0x0045` at `@2`, and `lid` language ID at `@6`.
 pub(crate) fn word_win12(prefix: &[u8], size: u64) -> Option<Label> {
+    static WORD_WIN_1: Subformat =
+        Subformat::with_ids("Microsoft Word for Windows 1.x", "fmt/37", None);
+    static WORD_WIN_2: Subformat =
+        Subformat::with_ids("Microsoft Word for Windows 2.0", "fmt/38", None);
     const WORD_WIN1_MAGIC: &[u8] = &[0x9B, 0xA5];
     const WORD_WIN2_MAGIC: &[u8] = &[0xDB, 0xA5];
 
-    require!(
-        size >= 64,
-        prefix.len() >= 32,
-        starts(prefix, WORD_WIN1_MAGIC) || starts(prefix, WORD_WIN2_MAGIC),
-        (0x0020..=0x0065).contains(&le16(prefix, 2)?),
-    );
-    Some(Label::Doc)
+    require!(size >= 64, prefix.len() >= 32);
+    let sub = if starts(prefix, WORD_WIN1_MAGIC) {
+        &WORD_WIN_1
+    } else if starts(prefix, WORD_WIN2_MAGIC) {
+        &WORD_WIN_2
+    } else {
+        return None;
+    };
+    require!((0x0020..=0x0065).contains(&le16(prefix, 2)?));
+    with_subformat(Label::Doc, sub)
 }
 
 /// Standalone Microsoft Excel BIFF2/3/4/5/8 worksheet/workbook (`xls`, 1987):
@@ -142,14 +174,33 @@ pub(crate) fn word_win12(prefix: &[u8], size: u64) -> Option<Label> {
 /// `4..=20` LE at `@2`, and valid substream type (`0x0005`, `0x0006`, `0x0010`, `0x0020`,
 /// `0x0040`, `0x0100`) at `@6`.
 pub(crate) fn xls_biff(prefix: &[u8], size: u64) -> Option<Label> {
+    static EXCEL_BIFF2: Subformat =
+        Subformat::with_ids("Microsoft Excel 2.x (BIFF2)", "fmt/55", None);
+    static EXCEL_BIFF3: Subformat =
+        Subformat::with_ids("Microsoft Excel 3.0 (BIFF3)", "fmt/56", None);
+    static EXCEL_BIFF4_SHEET: Subformat =
+        Subformat::with_ids("Microsoft Excel 4.0 Worksheet (BIFF4)", "fmt/57", None);
+    static EXCEL_BIFF4_BOOK: Subformat =
+        Subformat::with_ids("Microsoft Excel 4.0 Workbook (BIFF4)", "fmt/58", None);
+    static EXCEL_BIFF5_8: Subformat = Subformat::new("Microsoft Excel BIFF5/BIFF8 (standalone)");
+
+    require!(size >= 16, prefix.len() >= 12);
+    let opcode = le16(prefix, 0)?;
     require!(
-        size >= 16,
-        prefix.len() >= 12,
-        matches!(le16(prefix, 0)?, 0x0009 | 0x0209 | 0x0409 | 0x0809),
+        matches!(opcode, 0x0009 | 0x0209 | 0x0409 | 0x0809),
         (4..=20).contains(&le16(prefix, 2)?),
-        matches!(le16(prefix, 6)?, 0x0005 | 0x0006 | 0x0010 | 0x0020 | 0x0040 | 0x0100),
     );
-    Some(Label::Xls)
+    let substream = le16(prefix, 6)?;
+    require!(matches!(substream, 0x0005 | 0x0006 | 0x0010 | 0x0020 | 0x0040 | 0x0100));
+    let sub = match opcode {
+        0x0009 => &EXCEL_BIFF2,
+        0x0209 => &EXCEL_BIFF3,
+        0x0409 if substream == 0x0100 => &EXCEL_BIFF4_BOOK,
+        0x0409 => &EXCEL_BIFF4_SHEET,
+        0x0809 => &EXCEL_BIFF5_8,
+        _ => unreachable!(),
+    };
+    with_subformat(Label::Xls, sub)
 }
 
 /// RFC 2557 MHTML Web Archive (`mht`, 1999): `"MIME-Version:"` or `"From: "` header with
@@ -186,10 +237,11 @@ pub(crate) fn asd(prefix: &[u8], size: u64) -> Option<Label> {
 
 /// Hancom Hangul Word Processor v3.0 document (`hwp`, 1995): `"HWP Document File V3.00 \x1A"` at `@0..25`.
 pub(crate) fn hwp_v3(prefix: &[u8], size: u64) -> Option<Label> {
+    static HWP_V3: Subformat = Subformat::with_ids("HWP 3.0", "fmt/1083", None);
     const HWP_V3_MAGIC: &[u8; 25] = b"HWP Document File V3.00 \x1A";
 
     require!(size >= 32, prefix.len() >= 30, starts(prefix, HWP_V3_MAGIC),);
-    Some(Label::Hwp)
+    with_subformat(Label::Hwp, &HWP_V3)
 }
 
 /// IETF RFC 5545 iCalendar (`ics`, 1998) / IMC vCalendar 1.0 (`vcs`, 1996): `"BEGIN:VCALENDAR"`

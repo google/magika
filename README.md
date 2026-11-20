@@ -1,5 +1,7 @@
 # Magika
 
+[English](README.md) | [简体中文](README.zh.md)
+
 [![image](https://img.shields.io/pypi/v/magika.svg)](https://pypi.python.org/pypi/magika)
 [![NPM Version](https://img.shields.io/npm/v/magika)](https://npmjs.com/package/magika)
 [![image](https://img.shields.io/pypi/l/magika.svg)](https://pypi.python.org/pypi/magika)

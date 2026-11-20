@@ -8,9 +8,11 @@
 - Follow symbolic links by default when identifying files (`Options::follow_symlink`)
 - Replace `FileType::{Inferred,Ruled}` and `InferredType` with `FileType::Regular(RegularFileType)`
   and remove `FileType::score()`
+- Mark `FileType` as `#[non_exhaustive]`
 - Return `RegularFileType` instead of `FileType` from
   `Session::identify_{content,features,features_batch}`
-- Replace `FeaturesOrRuled` with `FeaturesOr<T>`
+- Replace `FeaturesOrRuled` and `FeaturesOrRuled::extract_{sync,async}()` with `FeaturesOr<T>` and
+  `FeaturesOr::extract_{file,content}()`
 - Add `{in_heuristics,in_resolvers,in_ml_model,vetoed_by_resolvers}` fields to `TypeInfo`
 - Remove the dependency on the ONNX Runtime
 - Remove async support for `Session`
@@ -20,30 +22,38 @@
 - Remove `Error` and `Result` using the `anyhow` crate instead
 - Change all methods from `Builder` which now builds a `Runtime`
 - Remove `Session::builder()` in favor of `Runtime::builder()`
+- Bump Rust edition to 2024 and set MSRV to 1.93
 
 ### Minor
 
 - Add 184 content types identified by the built-in format resolvers
+- Report files that are not regular instead of trying to read them
 - Add `Options` (`use_custom_rules`, `use_resolvers`, `use_model`, `prediction_mode`,
   `follow_symlink`, `debug_mode`) and `PredictionMode`
+- Add `RegularFileType::content_types` and `{FileType,RegularFileType}::content_types()`
 - Add `RegularFileType::metadata` for format-specific metadata and `DebugInfo` for debugging
 - Add `OverwriteReason::{ResolversVeto,RulesVeto}` and `MODEL_{,TRAINING_}LABELS`
 - Add `pipeline` feature to identify many paths in parallel
 - Add `Rules` and `Options::use_custom_rules` for custom rules
 - Add `TypeInfo::{possible,model}_output()` to list possible outputs
 - Add `ContentType::from_label()` to get a content type from its label
+- Add `Input::from_{slice,box,vec,file}()` and `From`/`TryFrom` conversions
 - Generalize `Session::identify_features_batch()` to take `&[impl Borrow<Features>]`
 - Add `cuda` feature for GPU inference on CUDA (Metal is used automatically on macOS)
 - Add `Runtime` to prepare the model once and create one `Session` per inference thread
 - Add `Builder::with_backend()` to select automatic, CPU-only or GPU-required inference
 - Add `Builder::with_max_batch()` to prepare only the batch classes a caller can reach
+- Add `Builder::with_options()` and `{Runtime,Session}::options{,_mut}()` to configure options
 - Add `Backend` and `BackendInfo` for backend selection (CPU or GPU) and information
-- Add `Session::backend_info()` to get information about the backend
+- Add `{Runtime,Session}::backend_info()` to get information about the backend
+- Implement `Hash` for `ContentType`, `Copy`/`PartialEq`/`Eq` for `OverwriteReason`, and `Clone` for
+  `Builder`
 
 ### Patch
 
 - Update metadata (descriptions, MIME types, groups, and extensions) for 29 existing content types
 - Read small files once when extracting features
+- Use positional file reads on Unix and Windows
 - Remove deprecated `package.authors` field in `Cargo.toml`
 - Update dependencies
 

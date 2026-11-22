@@ -6,19 +6,23 @@
 
 - Identify files with built-in format resolvers before model inference (expanding supported outputs
   from 216 to 401, with resolver matches reporting `dl` as `undefined` and `score` as `1.0`)
-- Update metadata (descriptions, MIME types, groups, and extensions) for 29 existing content types
+- Veto model predictions for formats exhaustively covered by resolvers or custom rules (reporting
+  `[{Resolvers,Rules}-veto model best-guess: ...]` in default output and `%b`)
+- Bump Rust edition to 2024 and set MSRV to 1.93
 
 ### Minor
 
 - Add `--{,check-}custom-rules` to use and check custom rules
 - Add `--no-{resolvers,model}` to disable resolvers or model
-- Start identifying files on the CPU while the GPU is prepared
+- Support GPU inference (Metal on macOS and CUDA), starting on the CPU while the GPU is prepared
 - Report files that are not regular instead of trying to read them
-- Detect cycles through symbolic links during recursive traversal
+- Detect cycles through symbolic links during recursive traversal (reporting `directory_cycle` in
+  JSON output)
 - Remove the dependency on the ONNX Runtime
 
 ### Patch
 
+- Update metadata (descriptions, MIME types, groups, and extensions) for 29 existing content types
 - Buffer standard output when printing results
 - Fix panic with JSON output when a file name is not UTF-8
 - Remove deprecated `package.authors` field in `Cargo.toml`

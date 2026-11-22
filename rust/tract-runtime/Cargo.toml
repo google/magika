@@ -1,12 +1,20 @@
 [package]
 name = "magika-tract-runtime"
-version = "0.0.1-dev"
+version = "0.0.1"
 edition = "2024"
 rust-version = "1.91"
 description = "Internal tract inference runtime for Magika"
 repository = "https://github.com/google/magika"
 license = "Apache-2.0"
-include = ["/LICENSE", "/README.md", "/models", "/src", "/tests"]
+include = [
+  "/LICENSE",
+  "/README.md",
+  "/models/model.graph.json",
+  "/models/model.probe.f32le",
+  "/models/model.weights",
+  "/src",
+  "/tests",
+]
 
 [dependencies]
 anyhow = "1.0.104"

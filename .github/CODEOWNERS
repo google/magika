@@ -18,5 +18,5 @@
 /rust/tract-runtime/models/ @reyammer
 
 # Luca owns the JS code and docs
-/js/ @invernizzi
-/docs/js.md @invernizzi
+/js/ @invernizzi @reyammer
+/docs/js.md @invernizzi @reyammer

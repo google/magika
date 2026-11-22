@@ -41,8 +41,17 @@ pub(crate) fn pem_or_pgp(prefix: &[u8]) -> Option<Label> {
         b"CMS",
     ];
 
+    static PGP_ARMORED: Subformat = Subformat::new("OpenPGP ASCII armor");
+    static PEM_CERTIFICATE: Subformat = Subformat::new("PEM certificate");
+    static PEM_CERTIFICATE_REQUEST: Subformat = Subformat::new("PEM certificate request");
+    static PEM_CRL: Subformat = Subformat::new("PEM X.509 CRL");
+    static PEM_PUBLIC_KEY: Subformat = Subformat::new("PEM public key");
+    static PEM_PRIVATE_KEY: Subformat = Subformat::new("PEM private key");
+    static PEM_PARAMETERS: Subformat = Subformat::new("PEM parameters");
+    static PEM_PKCS7: Subformat = Subformat::new("PEM PKCS #7 / CMS");
+
     if starts(prefix, PGP_ARMOR) {
-        return Some(Label::Pgp);
+        return with_subformat(Label::Pgp, &PGP_ARMORED);
     }
     const END_DASHES: &[u8] = b"-----";
     let rest = prefix.strip_prefix(BEGIN)?;
@@ -51,7 +60,16 @@ pub(crate) fn pem_or_pgp(prefix: &[u8]) -> Option<Label> {
             && let Some(after_dashes) = after_label.strip_prefix(END_DASHES)
             && (starts(after_dashes, b"\n") || starts(after_dashes, b"\r\n"))
         {
-            return Some(Label::Pem);
+            let sub = match label {
+                b"CERTIFICATE" | b"TRUSTED CERTIFICATE" => &PEM_CERTIFICATE,
+                b"CERTIFICATE REQUEST" | b"NEW CERTIFICATE REQUEST" => &PEM_CERTIFICATE_REQUEST,
+                b"X509 CRL" => &PEM_CRL,
+                b"PUBLIC KEY" | b"RSA PUBLIC KEY" => &PEM_PUBLIC_KEY,
+                b"DSA PARAMETERS" | b"EC PARAMETERS" | b"DH PARAMETERS" => &PEM_PARAMETERS,
+                b"PKCS7" | b"CMS" => &PEM_PKCS7,
+                _ => &PEM_PRIVATE_KEY,
+            };
+            return with_subformat(Label::Pem, sub);
         }
     }
     None
@@ -83,5 +101,10 @@ pub(crate) fn openpgp_binary(prefix: &[u8], size: u64) -> Option<Label> {
     let ver = u8_at(prefix, hdr_len)?;
     let alg = u8_at(prefix, hdr_len + 5)?;
     require!(matches!(ver, 3..=6), matches!(alg, 1 | 2 | 3 | 16 | 17 | 18 | 19 | 22 | 27 | 28),);
-    Some(Label::Pgp)
+    static PGP_PUBLIC_KEY: Subformat = Subformat::new("OpenPGP public key (binary)");
+    static PGP_SECRET_KEY: Subformat = Subformat::new("OpenPGP secret key (binary)");
+    with_subformat(
+        Label::Pgp,
+        if matches!(b0, 0x99 | 0xC6) { &PGP_PUBLIC_KEY } else { &PGP_SECRET_KEY },
+    )
 }

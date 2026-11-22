@@ -100,29 +100,81 @@ fn is_msi_encoded_name(utf16_units: &[u16]) -> bool {
     !utf16_units.is_empty() && utf16_units.contains(&0x4840)
 }
 
-fn classify_clsid(clsid: &[u8]) -> Option<Label> {
-    if clsid == CLSID_WORD_97 || clsid == CLSID_WORD_95 {
-        Some(Label::Doc)
-    } else if clsid == CLSID_EXCEL_97 || clsid == CLSID_EXCEL_95 || clsid == CLSID_EXCEL_CHART {
-        Some(Label::Xls)
-    } else if clsid == CLSID_PPT_97 || clsid == CLSID_PPT_95 || clsid == CLSID_PPT_SHOW {
-        Some(Label::Ppt)
-    } else if clsid == CLSID_VISIO_2003 || clsid == CLSID_VISIO_2000 {
-        Some(Label::Visio)
-    } else if clsid == CLSID_MSI_PACKAGE || clsid == CLSID_MSI_PATCH {
-        Some(Label::Msi)
+static WORD_OLE2: Subformat = Subformat::with_ids("Word 6.0-2003 (OLE2)", "fmt/609", None);
+static WORD_97_2003: Subformat =
+    Subformat::with_ids("Word 97-2003 (OLE2)", "fmt/40", Some("fdd000509"));
+static WORD_6_95: Subformat = Subformat::with_ids("Word 6.0/95 (OLE2)", "fmt/39", None);
+static EXCEL_97_2003: Subformat =
+    Subformat::with_ids("Excel 97-2003 (OLE2)", "fmt/61", Some("fdd000510"));
+static EXCEL_5_95: Subformat = Subformat::with_ids("Excel 5.0/95 (OLE2)", "fmt/59", None);
+static EXCEL_CHART: Subformat = Subformat::new("Excel chart (OLE2)");
+static PPT_OLE2: Subformat = Subformat::new("PowerPoint (OLE2)");
+static PPT_95_2003: Subformat = Subformat::new("PowerPoint 95-2003 (OLE2)");
+static PPT_97_2003: Subformat =
+    Subformat::with_ids("PowerPoint 97-2003 (OLE2)", "fmt/126", Some("fdd000511"));
+static PPT_95: Subformat = Subformat::with_ids("PowerPoint 95 (OLE2)", "fmt/125", None);
+static PPT_4: Subformat = Subformat::with_ids("PowerPoint 4.0 (OLE2)", "x-fmt/88", None);
+static VISIO_OLE2: Subformat = Subformat::with_ids("Visio (OLE2)", "fmt/442", None);
+static VISIO_2003: Subformat = Subformat::with_ids("Visio 2003-2010 (OLE2)", "fmt/443", None);
+static VISIO_2000: Subformat = Subformat::with_ids("Visio 2000-2002 (OLE2)", "x-fmt/258", None);
+static MSI_PACKAGE: Subformat = Subformat::new("Windows Installer package (MSI)");
+static MSI_PATCH: Subformat = Subformat::new("Windows Installer patch (MSP)");
+static MSI_DATABASE: Subformat = Subformat::new("Windows Installer database");
+static OUTLOOK_MSG: Subformat =
+    Subformat::with_ids("Outlook item (MSG)", "x-fmt/430", Some("fdd000379"));
+static HWP_5: Subformat = Subformat::with_ids("HWP 5.0 (OLE2)", "fmt/1084", None);
+static THUMBS_DB: Subformat = Subformat::with_ids("Thumbs.db (OLE2)", "fmt/682", None);
+static SKETCHUP_OLE2: Subformat = Subformat::new("SketchUp (OLE2)");
+static MAX_3DS_OLE2: Subformat = Subformat::with_ids("3D Studio Max (OLE2)", "fmt/978", None);
+
+/// Root/storage CLSID match: label plus the subformat that the matched CLSID names.
+type ClsidHit = (Label, Option<&'static Subformat>);
+
+fn classify_clsid(clsid: &[u8]) -> Option<ClsidHit> {
+    if clsid == CLSID_WORD_97 {
+        Some((Label::Doc, Some(&WORD_97_2003)))
+    } else if clsid == CLSID_WORD_95 {
+        Some((Label::Doc, Some(&WORD_6_95)))
+    } else if clsid == CLSID_EXCEL_97 {
+        Some((Label::Xls, Some(&EXCEL_97_2003)))
+    } else if clsid == CLSID_EXCEL_95 {
+        Some((Label::Xls, Some(&EXCEL_5_95)))
+    } else if clsid == CLSID_EXCEL_CHART {
+        Some((Label::Xls, Some(&EXCEL_CHART)))
+    } else if clsid == CLSID_PPT_97 {
+        Some((Label::Ppt, Some(&PPT_97_2003)))
+    } else if clsid == CLSID_PPT_95 {
+        Some((Label::Ppt, Some(&PPT_95)))
+    } else if clsid == CLSID_PPT_SHOW {
+        Some((Label::Ppt, Some(&PPT_OLE2)))
+    } else if clsid == CLSID_VISIO_2003 {
+        Some((Label::Visio, Some(&VISIO_2003)))
+    } else if clsid == CLSID_VISIO_2000 {
+        Some((Label::Visio, Some(&VISIO_2000)))
+    } else if clsid == CLSID_MSI_PACKAGE {
+        Some((Label::Msi, Some(&MSI_PACKAGE)))
+    } else if clsid == CLSID_MSI_PATCH {
+        Some((Label::Msi, Some(&MSI_PATCH)))
     } else if clsid == CLSID_MSI_TRANSFORM || clsid == CLSID_MSI_TRANSFORM_OLD {
-        Some(Label::Mst)
+        Some((Label::Mst, None))
     } else if clsid == CLSID_OUTLOOK_MSG {
-        Some(Label::Outlook)
+        Some((Label::Outlook, Some(&OUTLOOK_MSG)))
     } else if clsid == CLSID_PUBLISHER {
-        Some(Label::Pub)
+        Some((Label::Pub, None))
     } else if clsid == CLSID_FLASHPIX {
-        Some(Label::Fpx)
+        Some((Label::Fpx, None))
     } else if clsid == CLSID_3DS_MAX {
-        Some(Label::Max)
+        Some((Label::Max, None))
     } else {
         None
+    }
+}
+
+/// Returns the label of a CLSID match, recording its subformat when the CLSID names one.
+fn clsid_label(hit: ClsidHit) -> Option<Label> {
+    match hit {
+        (label, Some(sub)) => with_subformat(label, sub),
+        (label, None) => Some(label),
     }
 }
 
@@ -201,7 +253,7 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
         }
     }
 
-    let mut clsid_hit: Option<Label> = None;
+    let mut clsid_hit: Option<ClsidHit> = None;
     let mut has_catalog = false;
     let mut has_thumb_num = false;
     let mut has_scene = false;
@@ -230,8 +282,8 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
             }
             if obj_type == 5 || obj_type == 1 {
                 let clsid = &entry[OLE2_DIR_OFF_CLSID..OLE2_DIR_OFF_CLSID + 16];
-                if let Some(lbl) = classify_clsid(clsid) {
-                    clsid_hit = Some(lbl);
+                if let Some(hit) = classify_clsid(clsid) {
+                    clsid_hit = Some(hit);
                 }
             }
             let name_len = u16::from_le_bytes([
@@ -249,22 +301,31 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
             }
             let units = &utf16[..unit_count];
             if is_msi_encoded_name(units) {
-                return Some(clsid_hit.unwrap_or(Label::Msi));
+                return match clsid_hit {
+                    Some(hit) => clsid_label(hit),
+                    None => with_subformat(Label::Msi, &MSI_DATABASE),
+                };
             }
             let name = String::from_utf16_lossy(units);
             match name.as_str() {
-                STREAM_WORD_DOCUMENT | STREAM_1TABLE | STREAM_0TABLE => return Some(Label::Doc),
+                STREAM_WORD_DOCUMENT => return with_subformat(Label::Doc, &WORD_OLE2),
+                STREAM_1TABLE | STREAM_0TABLE => return with_subformat(Label::Doc, &WORD_97_2003),
                 STREAM_WORKBOOK
                 | STREAM_WORKBOOK_UPPER
                 | STREAM_WORKBOOK_LOWER
-                | STREAM_WORKBOOK_CAMEL
-                | STREAM_BOOK => {
-                    return Some(Label::Xls);
+                | STREAM_WORKBOOK_CAMEL => {
+                    return with_subformat(Label::Xls, &EXCEL_97_2003);
                 }
-                STREAM_PPT_DOCUMENT | STREAM_PP40 | STREAM_CURRENT_USER => return Some(Label::Ppt),
-                STREAM_VISIO_DOCUMENT | STREAM_VISIO_INFORMATION => return Some(Label::Visio),
-                STREAM_SKETCHUP_MODEL => return Some(Label::Sketchup),
-                STREAM_OUTLOOK_PROPS => return Some(Label::Outlook),
+                STREAM_BOOK => return with_subformat(Label::Xls, &EXCEL_5_95),
+                STREAM_PPT_DOCUMENT | STREAM_CURRENT_USER => {
+                    return with_subformat(Label::Ppt, &PPT_95_2003);
+                }
+                STREAM_PP40 => return with_subformat(Label::Ppt, &PPT_4),
+                STREAM_VISIO_DOCUMENT | STREAM_VISIO_INFORMATION => {
+                    return with_subformat(Label::Visio, &VISIO_OLE2);
+                }
+                STREAM_SKETCHUP_MODEL => return with_subformat(Label::Sketchup, &SKETCHUP_OLE2),
+                STREAM_OUTLOOK_PROPS => return with_subformat(Label::Outlook, &OUTLOOK_MSG),
                 STREAM_QUILL | STREAM_QUILL_SUB | STREAM_ESCHER_STM => return Some(Label::Pub),
                 STREAM_FLASHPIX | STREAM_GLOBAL_INFO | STREAM_DATA_OBJECT_STORE => {
                     return Some(Label::Fpx);
@@ -286,7 +347,7 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
                 s if s.starts_with(STREAM_OUTLOOK_SUBSTG_PREFIX)
                     || s.starts_with(STREAM_OUTLOOK_NAMEID_PREFIX) =>
                 {
-                    return Some(Label::Outlook);
+                    return with_subformat(Label::Outlook, &OUTLOOK_MSG);
                 }
                 _ => {}
             }
@@ -294,7 +355,7 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
     }
 
     if has_hwp_header && has_hwp_docinfo {
-        return Some(Label::Hwp);
+        return with_subformat(Label::Hwp, &HWP_5);
     }
     if has_pub_objects && has_pub_contents {
         return Some(Label::Pub);
@@ -303,10 +364,10 @@ pub(crate) fn verify_ole2(prefix: &[u8], size: u64, tail: Option<&[u8]>) -> Opti
         return Some(Label::Max);
     }
     if has_scene && has_3dsm_marker {
-        return Some(Label::_3dsm);
+        return with_subformat(Label::_3dsm, &MAX_3DS_OLE2);
     }
     if has_catalog && has_thumb_num {
-        return Some(Label::Thumbsdb);
+        return with_subformat(Label::Thumbsdb, &THUMBS_DB);
     }
-    clsid_hit
+    clsid_label(clsid_hit?)
 }

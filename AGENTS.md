@@ -44,7 +44,7 @@ and a website (`website-ng/`).
   regenerating C FFI `rust/ffi/include/magika.h`, the embedded `tract` NNEF
   model, and CLI snapshot output), and `changelog` (`./changelog.sh`). Format
   resolvers live in `rust/lib/src/resolvers/` (`cd rust/lib && ./test.sh`), while
-  custom YARA rules support (`--custom-rules-file` / `use_custom_rules`) lives in
+  custom YARA rules support (`--custom-rules` / `use_custom_rules`) lives in
   `rust/rules/` (`cd rust/rules && ./test.sh`).
 - Python tasks (`python/justfile`, runnable via `just python <recipe>` from the
   root or `cd python && just <recipe>`): `sync-dev`, `check-source`,

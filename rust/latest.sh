@@ -26,16 +26,20 @@ set -e
 # This script relies on the repository disabling release immutability since this release is mutated.
 
 REPO=google/magika
-RELEASES=$(gh release list --repo=$REPO --json=tagName |
+RELEASES=$(gh release list --repo=$REPO --exclude-pre-releases --json=tagName |
              tr -d '[{}]' | tr , '\n' | sed 's/^.*"\([^"]*\)"$/\1/')
 info "Found the following releases"
 echo "$RELEASES"
 
 TAG=$(echo "$RELEASES" | grep cli/ | head -n1)
-COMMIT=$(git rev-parse $TAG)
-LATEST=cli-latest
 [ -n "$TAG" ] || error "No CLI release found"
 info "The latest CLI release is $TAG"
+
+# The script must either run locally or from a workflow triggered on the latest tag.
+[ -z "$GITHUB_REF" -o "$GITHUB_REF" = refs/tags/$TAG ] || \
+  success "Workflow not running from the latest release tag"
+COMMIT=$(git rev-parse $TAG)
+LATEST=cli-latest
 
 x gh release download $TAG --repo=$REPO --dir=assets
 

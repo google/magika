@@ -334,6 +334,72 @@ pub(crate) struct Ctx<'a> {
     pub(crate) prefix: &'a [u8],
     pub(crate) size: u64,
     pub(crate) tail: Option<&'a [u8]>,
+    pub(crate) path: Option<&'a std::path::Path>,
+}
+
+/// A finer-grained variant of a content type identified by a verifier.
+///
+/// Subformats either name branches that a verifier already takes (which signature, container
+/// stream, version byte, or byte order matched) or inspect O(1) fixed-offset header fields
+/// within an already-matched container without scanning or altering its `ContentType`. When
+/// the subformat has a more specific PRONOM PUID or Library of Congress FDD than its content
+/// type, it overrides it.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct Subformat {
+    pub(crate) name: &'static str,
+    pub(crate) pronom_puid: Option<&'static str>,
+    pub(crate) loc_fdd: Option<&'static str>,
+}
+
+impl Subformat {
+    /// A subformat without its own registry identifiers.
+    pub(crate) const fn new(name: &'static str) -> Self {
+        Subformat { name, pronom_puid: None, loc_fdd: None }
+    }
+
+    /// A subformat with its own PRONOM PUID (and optionally LoC FDD).
+    pub(crate) const fn with_ids(
+        name: &'static str, pronom_puid: &'static str, loc_fdd: Option<&'static str>,
+    ) -> Self {
+        Subformat { name, pronom_puid: Some(pronom_puid), loc_fdd }
+    }
+
+    /// A subformat with its own Library of Congress FDD and no PRONOM PUID.
+    pub(crate) const fn with_fdd(name: &'static str, loc_fdd: &'static str) -> Self {
+        Subformat { name, pronom_puid: None, loc_fdd: Some(loc_fdd) }
+    }
+}
+
+thread_local! {
+    /// Subformat recorded by the last verifier that matched on this thread.
+    static SUBFORMAT: core::cell::Cell<Option<(Label, &'static Subformat)>> =
+        const { core::cell::Cell::new(None) };
+}
+
+/// Returns `Some(label)` and records `subformat` as the subformat of `label`.
+///
+/// Call this only on the final `Some(..)` return path of a verifier.
+#[inline]
+pub(crate) fn with_subformat(label: Label, subformat: &'static Subformat) -> Option<Label> {
+    SUBFORMAT.set(Some((label, subformat)));
+    Some(label)
+}
+
+/// Forgets any recorded subformat (called before running the cascade).
+#[inline]
+pub(crate) fn clear_subformat() {
+    SUBFORMAT.set(None);
+}
+
+/// Takes the recorded subformat if it was recorded for `label`.
+///
+/// The label check discards subformats recorded by a verifier whose match was later rejected.
+#[inline]
+pub(crate) fn take_subformat(label: Label) -> Option<&'static Subformat> {
+    match SUBFORMAT.take() {
+        Some((recorded, subformat)) if recorded == label => Some(subformat),
+        _ => None,
+    }
 }
 
 /// Evaluates a candidate verifier closure.

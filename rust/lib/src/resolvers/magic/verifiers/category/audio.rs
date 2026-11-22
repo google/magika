@@ -20,6 +20,8 @@ use crate::resolvers::magic::*;
 /// Sun/NeXT (`.snd`, big-endian) or DEC (`dns.`, little-endian) AU audio file: 24-byte header,
 /// data offset ≥ 24, defined encoding code (1..=14 or 16..=27), nonzero sample rate and channels.
 pub(crate) fn au(prefix: &[u8]) -> Option<Label> {
+    static AU_BE: Subformat = Subformat::new("Sun/NeXT AU (big-endian)");
+    static AU_LE: Subformat = Subformat::new("DEC AU (little-endian)");
     const BIG_MAGIC: &[u8] = b".snd"; // @0..4: big-endian AU magic
     const LITTLE_MAGIC: &[u8] = b"dns."; // @0..4: little-endian AU magic
     const MIN_LEN: usize = 24; // 6 × u32 header
@@ -28,11 +30,12 @@ pub(crate) fn au(prefix: &[u8]) -> Option<Label> {
     const SAMPLE_RATE: usize = 16; // @16: u32 — sample rate in Hz (> 0)
     const CHANNELS: usize = 20; // @20: u32 — number of channels (> 0)
 
+    type ReadU32 = fn(&[u8], usize) -> Option<u32>;
     require!(prefix.len() >= MIN_LEN);
-    let read_u32: fn(&[u8], usize) -> Option<u32> = if starts(prefix, BIG_MAGIC) {
-        be32
+    let (read_u32, sub): (ReadU32, &Subformat) = if starts(prefix, BIG_MAGIC) {
+        (be32, &AU_BE)
     } else if starts(prefix, LITTLE_MAGIC) {
-        le32
+        (le32, &AU_LE)
     } else {
         return None;
     };
@@ -43,12 +46,15 @@ pub(crate) fn au(prefix: &[u8]) -> Option<Label> {
         read_u32(prefix, SAMPLE_RATE)? > 0,
         read_u32(prefix, CHANNELS)? > 0,
     );
-    Some(Label::Au)
+    with_subformat(Label::Au, sub)
 }
 
 /// Standard MIDI File (SMF): `"MThd"` chunk of length 6, valid format (`0` with 1 track, or
 /// `1..=2` with ≥ 1 track), valid time division, and first `"MTrk"` track chunk of length ≥ 4.
 pub(crate) fn midi(prefix: &[u8]) -> Option<Label> {
+    static MIDI_FMT0: Subformat = Subformat::new("Standard MIDI (format 0)");
+    static MIDI_FMT1: Subformat = Subformat::new("Standard MIDI (format 1)");
+    static MIDI_FMT2: Subformat = Subformat::new("Standard MIDI (format 2)");
     const HEADER: &[u8] = bytes!(b"MThd", &6u32.to_be_bytes()); // @0..8: MThd tag + 6-byte header length
     const FORMAT: usize = 8; // @8: u16 BE — MIDI format (0, 1, or 2)
     const TRACKS: usize = 10; // @10: u16 BE — number of tracks
@@ -69,7 +75,13 @@ pub(crate) fn midi(prefix: &[u8]) -> Option<Label> {
     let valid_div = (1..=32767).contains(&div)
         || (matches!(u8_at(prefix, 12)?, 226 | 227 | 231 | 232) && u8_at(prefix, 13)? >= 1);
     require!(valid_fmt, valid_div);
-    Some(Label::Midi)
+    let sub = match fmt {
+        0 => &MIDI_FMT0,
+        1 => &MIDI_FMT1,
+        2 => &MIDI_FMT2,
+        _ => unreachable!(),
+    };
+    with_subformat(Label::Midi, sub)
 }
 
 /// Free Lossless Audio Codec (FLAC): `"fLaC"` magic followed by a 34-byte `STREAMINFO` block
@@ -97,21 +109,77 @@ pub(crate) fn flac(prefix: &[u8]) -> Option<Label> {
 }
 
 /// Ogg bitstream (`"OggS"`): version 0, BOS flag (`0x02`, optionally EOS `0x06`) at `@5`, initial
-/// page sequence number `0` at `@18`, and ≥ 1 segment at `@26`.
+/// page sequence number `0` at `@18`, and ≥ 1 segment at `@26`. Names the logical bitstream codec
+/// from the O(1) BOS identification packet header at `@(27 + page_segments)` when present.
 pub(crate) fn ogg(prefix: &[u8]) -> Option<Label> {
     const MAGIC: &[u8] = b"OggS\x00"; // @0..5: Ogg capture pattern + stream_structure_version 0
     const HEADER_TYPE: usize = 5; // @5: u8 — BOS (0x02) or BOS|EOS (0x06)
     const PAGE_SEQ_NO: usize = 18; // @18: u32 LE — initial page sequence number (0)
     const PAGE_SEGMENTS: usize = 26; // @26: u8 — number of segment table entries (≥ 1)
+    const HEADER_FIXED_LEN: usize = 27; // fixed Ogg page header preceding the segment table
     const MIN_LEN: usize = 28; // 27-byte Ogg page header + ≥ 1 segment table byte
+
+    static OGG_VORBIS: Subformat = Subformat::with_ids("Ogg Vorbis", "fmt/203", Some("fdd000117"));
+    static OGG_OPUS: Subformat = Subformat::with_ids("Ogg Opus", "fmt/946", None);
+    static OGG_THEORA: Subformat = Subformat::with_ids("Ogg Theora", "fmt/945", None);
+    static OGG_FLAC: Subformat = Subformat::with_ids("Ogg FLAC", "fmt/947", Some("fdd000227"));
+    static OGG_SPEEX: Subformat = Subformat::with_ids("Ogg Speex", "fmt/948", Some("fdd000260"));
+    static OGG_SKELETON: Subformat = Subformat::new("Ogg Skeleton");
+    static OGG_KATE: Subformat = Subformat::new("Ogg Kate");
+    static OGG_CELT: Subformat = Subformat::new("Ogg CELT");
+    static OGG_DIRAC: Subformat = Subformat::new("Ogg Dirac");
+    static OGG_DAALA: Subformat = Subformat::new("Ogg Daala");
+    static OGG_MIDI: Subformat = Subformat::new("Ogg MIDI");
+    static OGG_PCM: Subformat = Subformat::new("Ogg PCM");
+
+    fn bos_subformat(payload: &[u8]) -> Option<&'static Subformat> {
+        match payload.first().copied()? {
+            0x01 if starts(payload, b"\x01vorbis") => Some(&OGG_VORBIS),
+            b'O' if starts(payload, b"OpusHead") => Some(&OGG_OPUS),
+            b'O' if starts(payload, b"OggMIDI\0") => Some(&OGG_MIDI),
+            0x80 if starts(payload, b"\x80theora") => Some(&OGG_THEORA),
+            0x80 if starts(payload, b"\x80kate\0\0\0") => Some(&OGG_KATE),
+            0x80 if starts(payload, b"\x80daala") => Some(&OGG_DAALA),
+            0x7F if starts(payload, b"\x7fFLAC") => Some(&OGG_FLAC),
+            b'f' if starts(payload, b"fLaC") => Some(&OGG_FLAC),
+            b'f' if starts(payload, b"fishead\0") => Some(&OGG_SKELETON),
+            b'S' if starts(payload, b"Speex   ") => Some(&OGG_SPEEX),
+            b'C' if starts(payload, b"CELT    ") => Some(&OGG_CELT),
+            b'B' if starts(payload, b"BBCD") => Some(&OGG_DIRAC),
+            b'P' if starts(payload, b"PCM     ") => Some(&OGG_PCM),
+            _ => None,
+        }
+    }
 
     require!(
         prefix.len() >= MIN_LEN,
         starts(prefix, MAGIC),
         matches!(u8_at(prefix, HEADER_TYPE)?, 0x02 | 0x06),
         le32(prefix, PAGE_SEQ_NO)? == 0,
-        u8_at(prefix, PAGE_SEGMENTS)? >= 1,
     );
+    let page_segments = u8_at(prefix, PAGE_SEGMENTS)?;
+    require!(page_segments >= 1);
+    let payload_off = HEADER_FIXED_LEN + usize::from(page_segments);
+    if let Some(mut sub) = prefix.get(payload_off..).and_then(bos_subformat) {
+        if core::ptr::eq(sub, &OGG_SKELETON)
+            && page_segments == 1
+            && let Some(seg_len) = u8_at(prefix, HEADER_FIXED_LEN)
+        {
+            let next = payload_off + usize::from(seg_len);
+            if eq_at(prefix, next, MAGIC)
+                && matches!(u8_at(prefix, next + HEADER_TYPE), Some(0x02 | 0x06))
+                && le32(prefix, next + PAGE_SEQ_NO) == Some(0)
+                && let Some(next_segs @ 1..) = u8_at(prefix, next + PAGE_SEGMENTS)
+                && let Some(media_sub) = prefix
+                    .get(next + HEADER_FIXED_LEN + usize::from(next_segs)..)
+                    .and_then(bos_subformat)
+                && !core::ptr::eq(media_sub, &OGG_SKELETON)
+            {
+                sub = media_sub;
+            }
+        }
+        return with_subformat(Label::Ogg, sub);
+    }
     Some(Label::Ogg)
 }
 
@@ -119,19 +187,25 @@ pub(crate) fn ogg(prefix: &[u8]) -> Option<Label> {
 /// minor `< 0xFF` at `@4`, flags `(b & 0x0F) == 0` at `@5`, and 4 synchsafe size bytes
 /// (`< 0x80`) at `@6..10`.
 pub(crate) fn id3_mp3(prefix: &[u8], size: u64) -> Option<Label> {
+    static MP3_ID3V2_2: Subformat = Subformat::new("MP3 (ID3v2.2)");
+    static MP3_ID3V2_3: Subformat = Subformat::new("MP3 (ID3v2.3)");
+    static MP3_ID3V2_4: Subformat = Subformat::new("MP3 (ID3v2.4)");
     const ID3V2_MAGIC: &[u8; 3] = b"ID3";
 
+    require!(size >= 14, prefix.len() >= 10, starts(prefix, ID3V2_MAGIC));
+    let sub = match u8_at(prefix, 3)? {
+        2 => &MP3_ID3V2_2,
+        3 => &MP3_ID3V2_3,
+        4 => &MP3_ID3V2_4,
+        _ => return None,
+    };
     require!(
-        size >= 14,
-        prefix.len() >= 10,
-        starts(prefix, ID3V2_MAGIC),
-        (2..=4).contains(&u8_at(prefix, 3)?),
         u8_at(prefix, 4)? < 0xFF,
         (u8_at(prefix, 5)? & 0x0F) == 0,
         ((u8_at(prefix, 6)? | u8_at(prefix, 7)? | u8_at(prefix, 8)? | u8_at(prefix, 9)?) & 0x80)
             == 0,
     );
-    Some(Label::Mp3)
+    with_subformat(Label::Mp3, sub)
 }
 
 /// Verifies at least two consecutive valid MPEG-1/2/2.5 Layer I/II/III audio frame headers.

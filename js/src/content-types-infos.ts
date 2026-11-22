@@ -51,6 +51,7 @@ const COMPACT_CONTENT_TYPES_INFOS: readonly CompactContentTypeInfo[] = [
   ["applebplist", "application/x-bplist", "", "Apple binary property list", ["bplist", "plist"], 28],
   ["appledouble", "multipart/appledouble", "", "AppleDouble", [], 20],
   ["appleplist", "application/x-plist", "application", "Apple property list", ["plist"], 13],
+  ["appleplj", "", "", "Apple Photos property list journal", ["plj"], 4],
   ["applesingle", "application/applefile", "", "AppleSingle", [], 20],
   ["ar", "application/x-archive", "archive", "AR Archive", ["a", "ar"], 4],
   ["arc", "application/x-arc", "archive", "ARC archive", ["arc"], 4],

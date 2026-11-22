@@ -31,7 +31,8 @@ pub(crate) fn probe(b0: u8, prefix: &[u8], ctx: &Ctx<'_>) -> Option<Label> {
         0x0A => protobuf(prefix, size), // Protocol Buffers FileDescriptorSet / FileDescriptorProto (2008) Google
         b'B' | b'G' | b'P' => printfox(prefix, size), // C64 Printfox / Pagefox RLE Bitmap (1986) Scanntronik
         b'>' => fasta(prefix, size), // FASTA Nucleotide / Peptide Sequence (1985) William R. Pearson
-        b'@' => fastq(prefix, size), // FASTQ Sequencing Reads with Phred Quality (2000) Sanger Institute
+        // Apple Photos Property List Journal / FASTQ Sequencing Reads with Phred Quality (2000) Sanger Institute
+        b'@' => appleplj(prefix, size).or_else(|| fastq(prefix, size)),
         _ => None,
     }
 }

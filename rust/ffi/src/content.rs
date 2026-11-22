@@ -172,6 +172,15 @@ use crate::MagikaTypeInfo;
     is_text: true,
 };
 
+#[rustfmt::skip] pub(crate) static APPLEPLJ: MagikaTypeInfo = MagikaTypeInfo {
+    label: c"appleplj".as_ptr(),
+    mime_type: c"application/octet-stream".as_ptr(),
+    group: c"application".as_ptr(),
+    description: c"Apple Photos property list journal".as_ptr(),
+    extensions: [c"plj".as_ptr(), ptr::null()].as_ptr(),
+    is_text: false,
+};
+
 #[rustfmt::skip] pub(crate) static APPLESINGLE: MagikaTypeInfo = MagikaTypeInfo {
     label: c"applesingle".as_ptr(),
     mime_type: c"application/applefile".as_ptr(),
@@ -3674,6 +3683,7 @@ pub(crate) fn content_type_info(content_type: magika::ContentType) -> &'static M
         magika::ContentType::Applebplist => &APPLEBPLIST,
         magika::ContentType::Appledouble => &APPLEDOUBLE,
         magika::ContentType::Appleplist => &APPLEPLIST,
+        magika::ContentType::Appleplj => &APPLEPLJ,
         magika::ContentType::Applesingle => &APPLESINGLE,
         magika::ContentType::Ar => &AR,
         magika::ContentType::Arc => &ARC,

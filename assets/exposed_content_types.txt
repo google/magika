@@ -15,6 +15,7 @@ apk
 applebplist
 appledouble
 appleplist
+appleplj
 applesingle
 ar
 arc

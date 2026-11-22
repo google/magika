@@ -34,6 +34,7 @@ export enum ContentTypeLabel {
   APPLEBPLIST = "applebplist",
   APPLEDOUBLE = "appledouble",
   APPLEPLIST = "appleplist",
+  APPLEPLJ = "appleplj",
   APPLESINGLE = "applesingle",
   AR = "ar",
   ARC = "arc",

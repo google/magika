@@ -32,7 +32,7 @@ Once we accept a request, the content type enters the [knowledge base](https://g
 
 ## Other bugs
 
-Crashes, wrong API behavior, CLI or bindings problems: open a regular issue with a minimal reproducer, the Magika version, the binding, and the platform. We often fix these ourselves; the reproducer is what we need from you.
+Crashes, wrong API behavior, CLI or bindings problems: open a regular issue with a minimal reproducer, the Magika version, the binding, and the platform. For performance issues or regressions, attaching the output of `python3 scripts/benchmark_perf.py` gives us standardized numbers and system info. We often fix these ourselves; the reproducer is what we need from you.
 
 ## Feature requests
 

@@ -15,6 +15,22 @@
 
 Magika is a novel AI-powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU. Magika has been trained and evaluated on a dataset of ~100M samples across 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set.
 
+> [!NOTE]
+> **Magika 2.0 release candidates are now on [PyPI](https://pypi.org/project/magika/#history) (`2.0.0rc0` and above) and [crates.io](https://crates.io/crates/magika) (`2.0.0-rc.0` and above for `magika` and [`magika-cli`](https://crates.io/crates/magika-cli)) — help testing is very welcome!**
+>
+> Try it with `pip install --pre -U magika` (Python API + bundled CLI) or `cargo install --locked magika-cli --version "^2.0.0-rc.0"` (Rust CLI; prebuilt binaries on [GitHub Releases](https://github.com/google/magika/releases)). Share feedback via [GitHub Issues](https://github.com/google/magika/issues); see the [Python](./python/CHANGELOG.md), [Rust CLI](./rust/cli/CHANGELOG.md), and [Rust library](./rust/lib/CHANGELOG.md) changelogs for details.
+>
+> **What's new in the 2.0 release candidates:**
+> - **Faster, zero-dependency Rust core (~5x smaller footprint):** A natively compiled pure-Rust `tract` runtime replaces ONNX Runtime across Rust and the PyO3 Python bindings — dropping external runtime deps (~5x smaller disk footprint overall) and speeding up startup and inference, even while still using `standard_v3_3` under the hood.
+> - **Cohesive pipeline (YARA rules, resolvers, & ML):** Custom YARA rules (bring your own detections for hotfixes while waiting for upstream patches, or other custom needs), native format resolvers (up to 500x faster on supported binary formats, with container decompression), and the ML model work together out of the box.
+> - **400+ supported content types (up from 216):** See the [full list](https://securityresearch.google/magika/content-types/main/).
+> - **GPU acceleration & parallel batching:** Metal (macOS) and CUDA (Rust CLI/crate) with non-blocking startup (classifying on CPU while GPU initializes), plus parallel batch identification in Rust.
+> - **Broader platform support:** Expanded pre-built wheels and binaries, including `musl` environments like Alpine Linux.
+>
+> **Coming in subsequent 2.0 release candidates:**
+> - **1000+ content types:** Further coverage expansion via additional native format resolvers.
+> - **Next-generation ML model:** A smaller, faster model with stronger short-snippet detection.
+
 Here is an example of what Magika command line output looks like:
 
 <p align="center">
@@ -26,18 +42,6 @@ Magika is used at scale to help improve Google users' safety by routing Gmail, D
 For more context you can read our initial [announcement post on Google's OSS blog](https://opensource.googleblog.com/2024/02/magika-ai-powered-fast-and-efficient-file-type-identification.html), you can consult [Magika's website](https://securityresearch.google/magika/), and you can read more in our [research paper](https://securityresearch.google/magika/additional-resources/research-papers-and-citation/), published at the IEEE/ACM International Conference on Software Engineering (ICSE) 2025.
 
 You can try Magika without installing anything by using our [web demo](https://securityresearch.google/magika/demo/magika-demo/), which runs locally in your browser!
-
-
-> [!NOTE]
-> **We are actively working on a new major version of Magika on `main`, and help testing it is very welcome!**
-> Try it out from source and share feedback or misdetections via [GitHub Issues](https://github.com/google/magika/issues).
->
-> **What's new and coming:**
-> - **Many more content types:** Expanded coverage to 1000+ content types (up from ~200).
-> - **New engine:** Native format resolvers (with built-in decompression for container formats) and custom YARA rules work alongside the ML model.
-> - **Faster, zero-dependency core:** A pure-Rust `tract` runtime replaces ONNX Runtime, removing external runtime dependencies (including in Python and other bindings) while delivering much faster startup and inference.
-> - **GPU support:** Supports GPU acceleration (Metal / CUDA) while identifying files on the CPU during GPU initialization.
-> - **Smaller/faster ML model, with better snippet detection:** A more compact model with stronger support for short snippets.
 
 
 # Highlights

@@ -1,0 +1,26 @@
+{
+ "added": 230,
+ "added_by_class": {
+  "arcgrid": 4,
+  "duckdb": 4,
+  "geoparquet": 5,
+  "pdb": 2,
+  "pub": 10,
+  "txtascii": 100,
+  "txtutf16": 4,
+  "txtutf8": 100,
+  "xml": 1
+ },
+ "label_status_counts": {
+  "validated_auto": 230
+ },
+ "leads": 3988,
+ "not_added": {
+  "class_full": 1409,
+  "repository_cap": 7,
+  "unavailable": 2,
+  "unverified": 2340
+ },
+ "policy": "GitHub leads come only from repositories the licence policy permits; VirusTotal origins are permitted by the corpus policy.",
+ "samples": 70773
+}

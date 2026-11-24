@@ -22,6 +22,7 @@ Practical notes for the contributions we accept; see [How to Contribute](/magika
 - JavaScript: `cd js && yarn install && yarn test`.
 - Documentation: `just check-docs` (or `uv run scripts/check_documentation.py`) validates links and version references across all Markdown files.
 - Copyright headers: `just check-copyright` (or `uv run scripts/check_copyright.py`) checks that source files carry a copyright notice.
+- Performance benchmarks: `python3 scripts/benchmark_perf.py` measures Python library and Rust CLI startup, latency, batched throughput, peak RSS, and system info.
 
 By default, Cargo builds into `rust/target/` inside each checkout ([`.cargo/config.toml`](https://github.com/google/magika/blob/main/.cargo/config.toml)). When working across multiple `git worktree`s on Python bindings, set `CARGO_TARGET_DIR` to a shared **absolute** path (for example, `export CARGO_TARGET_DIR="$HOME/.cache/cargo-target/magika"`) so external Rust crates compile once instead of rebuilding from scratch on every new worktree's `uv sync` or `just python sync-dev`.
 

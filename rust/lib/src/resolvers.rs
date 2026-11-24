@@ -231,6 +231,13 @@ mod tests {
         identify(&mut input).unwrap()
     }
 
+    #[test]
+    fn resolves_apple_photos_journal_deletion() {
+        let record = b"\x40\xcf\x03\x00\x14\x08\x02\x12\x10abcdefghijklmnop";
+        assert_eq!(resolve_slice(record), vec![ContentType::Appleplj]);
+        assert!(resolve_slice(&record[..record.len() - 1]).is_empty());
+    }
+
     fn resolve_slice_with_metadata(bytes: &[u8]) -> (Vec<ContentType>, HashMap<String, String>) {
         let mut input = Input::from_slice(bytes);
         identify_with_metadata(&mut input).unwrap()

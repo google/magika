@@ -281,6 +281,162 @@ pub(crate) fn applebplist(prefix: &[u8]) -> Option<Label> {
     Some(Label::Applebplist)
 }
 
+/// Apple Photos property list journal: a CRC-16/ARC protected protobuf record header,
+/// with a UUID or string identifier and an optional binary plist payload.
+pub(crate) fn appleplj(prefix: &[u8], size: u64) -> Option<Label> {
+    fn varint(data: &[u8], pos: &mut usize) -> Option<u64> {
+        let mut value = 0u64;
+        for shift in (0..=63).step_by(7) {
+            let byte = *data.get(*pos)?;
+            *pos += 1;
+            if shift == 63 && byte > 1 {
+                return None;
+            }
+            value |= u64::from(byte & 0x7f) << shift;
+            if byte & 0x80 == 0 {
+                return Some(value);
+            }
+        }
+        None
+    }
+
+    require!(prefix.first() == Some(&0x40));
+    let checksum = be16(prefix, 1)?;
+    let end = 5usize.checked_add(be16(prefix, 3)? as usize)?;
+    let header = prefix.get(5..end)?;
+    let mut crc = 0u16;
+    for &byte in header {
+        crc ^= u16::from(byte);
+        for _ in 0..8 {
+            crc = (crc >> 1) ^ if crc & 1 != 0 { 0xa001 } else { 0 };
+        }
+    }
+    require!(crc == checksum);
+
+    let (mut entry_type, mut identifier, mut payload_length, mut payload_crc, mut nil) =
+        (None, false, None, None, false);
+    let mut pos = 0;
+    while pos < header.len() {
+        let key = varint(header, &mut pos)?;
+        match (key >> 3, key & 7) {
+            (1, 0) => entry_type = Some(varint(header, &mut pos)?),
+            (4, 0) => {
+                varint(header, &mut pos)?;
+            }
+            (5, 0) => payload_length = Some(varint(header, &mut pos)?),
+            (6, 0) => payload_crc = Some(u32::try_from(varint(header, &mut pos)?).ok()?),
+            (field @ (2 | 3 | 7), 2) => {
+                let len = usize::try_from(varint(header, &mut pos)?).ok()?;
+                let next = pos.checked_add(len)?;
+                let value = header.get(pos..next)?;
+                match field {
+                    2 => {
+                        require!(len == 16);
+                        identifier = true;
+                    }
+                    3 => {
+                        require!(!value.is_empty(), std::str::from_utf8(value).is_ok());
+                        identifier = true;
+                    }
+                    7 => {
+                        require!(!value.is_empty(), std::str::from_utf8(value).is_ok());
+                        nil = true;
+                    }
+                    _ => unreachable!(),
+                }
+                pos = next;
+            }
+            _ => return None,
+        }
+    }
+    require!(matches!(entry_type, Some(0..=2)), identifier);
+    match (payload_length, payload_crc) {
+        (Some(length), Some(expected_crc)) if length >= 8 => {
+            require!(u64::try_from(end).ok()?.checked_add(length)? <= size);
+            require!(prefix.get(end..end.checked_add(8)?)? == b"bplist00");
+            if let Ok(length) = usize::try_from(length)
+                && let Some(payload) = end.checked_add(length).and_then(|n| prefix.get(end..n))
+            {
+                let mut crc = !0u32;
+                for &byte in payload {
+                    crc ^= u32::from(byte);
+                    for _ in 0..8 {
+                        crc = (crc >> 1) ^ if crc & 1 != 0 { 0xedb88320 } else { 0 };
+                    }
+                }
+                require!(!crc == expected_crc);
+            }
+        }
+        (None, None) => require!(entry_type == Some(2) || nil),
+        _ => return None,
+    }
+    Some(Label::Appleplj)
+}
+
+#[cfg(test)]
+mod appleplj_tests {
+    use super::*;
+
+    // Construct records with independent checksum calculation for structural cases.
+    fn record(header: &[u8], payload: &[u8]) -> Vec<u8> {
+        let mut crc = 0u16;
+        for byte in header {
+            crc ^= u16::from(*byte);
+            for _ in 0..8 {
+                crc = if crc & 1 == 1 { (crc >> 1) ^ 0xa001 } else { crc >> 1 };
+            }
+        }
+        let mut result = vec![0x40];
+        result.extend_from_slice(&crc.to_be_bytes());
+        result.extend_from_slice(&(header.len() as u16).to_be_bytes());
+        result.extend_from_slice(header);
+        result.extend_from_slice(payload);
+        result
+    }
+
+    fn check(data: &[u8]) -> Option<Label> {
+        appleplj(data, data.len() as u64)
+    }
+
+    #[test]
+    fn journal_records_and_rejections() {
+        // Header and payload prefix from apple-plj-parser's Album-change example.
+        let real_prefix = [
+            0x40, 0xb8, 0x6c, 0, 0x1f, 0x08, 0, 0x12, 0x10, 0x48, 0x3d, 0x65, 0x10, 0xbd, 0x05,
+            0x42, 0xb3, 0xb5, 0x28, 0x09, 0x66, 0x94, 0xc9, 0xc0, 0x75, 0x20, 0x01, 0x28, 0xfc,
+            0x02, 0x30, 0xf1, 0x8f, 0xc5, 0xa9, 0x04, b'b', b'p', b'l', b'i', b's', b't', b'0',
+            b'0',
+        ];
+        assert_eq!(appleplj(&real_prefix, 36 + 380), Some(Label::Appleplj));
+        assert_eq!(check(&real_prefix), None); // declared payload is truncated
+
+        let deletion = record(b"\x08\x02\x12\x10abcdefghijklmnop", b"");
+        assert_eq!(check(&deletion), Some(Label::Appleplj));
+        let nil_update = record(b"\x08\x01\x1a\x03key\x3a\x04name", b"");
+        assert_eq!(check(&nil_update), Some(Label::Appleplj));
+        let mut payload_record =
+            record(b"\x08\x00\x1a\x03key\x28\x08\x30\xb8\xf6\xf6\x9b\x02", b"bplist00");
+        assert_eq!(check(&payload_record), Some(Label::Appleplj));
+        *payload_record.last_mut().unwrap() ^= 1;
+        assert_eq!(check(&payload_record), None);
+        let bad_crc = record(b"\x08\x00\x1a\x03key\x28\x08\x30\x01", b"bplist00");
+        assert_eq!(check(&bad_crc), None);
+
+        // A header longer than 255 bytes exercises the full big-endian length.
+        let mut long_header = b"\x08\x01\x1a\x03key\x3a\xac\x02".to_vec();
+        long_header.extend_from_slice(&[b'a'; 300]);
+        assert_eq!(check(&record(&long_header, b"")), Some(Label::Appleplj));
+
+        let mut corrupt = deletion.clone();
+        corrupt[1] ^= 1;
+        assert_eq!(check(&corrupt), None);
+        assert_eq!(check(&deletion[..deletion.len() - 1]), None);
+        assert_eq!(check(&record(b"\x08\x02\x12\x02ab", b"")), None);
+        assert_eq!(check(&record(b"\x08\x01\x1a\x03key", b"")), None);
+        assert_eq!(check(b"@SEQ\nACGT\n+\n!!!!\n"), None);
+    }
+}
+
 /// Doom WAD archive: `"IWAD"` or `"PWAD"` magic plus lump count (`0..=1_000_000`) at `@4`
 /// and directory offset (`12..=0x0800_0000`) at `@8` (≥ 12 bytes).
 pub(crate) fn wad(prefix: &[u8]) -> Option<Label> {

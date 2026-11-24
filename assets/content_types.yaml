@@ -163,6 +163,13 @@
   extensions: ["plist"]
   is_text: true
 
+"appleplj":
+  mime_type: null
+  group: "application"
+  description: "Apple Photos property list journal"
+  extensions: ["plj"]
+  is_text: false
+
 "applesingle":
   mime_type: "application/applefile"
   group: "application"

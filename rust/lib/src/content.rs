@@ -244,6 +244,19 @@ pub(crate) static APPLEPLIST: TypeInfo = TypeInfo {
     vetoed_by_resolvers: false,
 };
 
+pub(crate) static APPLEPLJ: TypeInfo = TypeInfo {
+    label: "appleplj",
+    mime_type: "application/octet-stream",
+    group: "application",
+    description: "Apple Photos property list journal",
+    extensions: &["plj"],
+    is_text: false,
+    in_heuristics: false,
+    in_resolvers: true,
+    in_ml_model: false,
+    vetoed_by_resolvers: false,
+};
+
 pub(crate) static APPLESINGLE: TypeInfo = TypeInfo {
     label: "applesingle",
     mime_type: "application/applefile",
@@ -5277,7 +5290,7 @@ pub(crate) static ZST: TypeInfo = TypeInfo {
 
 impl TypeInfo {
     /// All file type information ordered by label.
-    pub const ALL: [&'static Self; 404] = [
+    pub const ALL: [&'static Self; 405] = [
         &_3DS,
         &_3DSM,
         &_3DSX,
@@ -5295,6 +5308,7 @@ impl TypeInfo {
         &APPLEBPLIST,
         &APPLEDOUBLE,
         &APPLEPLIST,
+        &APPLEPLJ,
         &APPLESINGLE,
         &AR,
         &ARC,
@@ -5723,6 +5737,8 @@ pub enum ContentType {
     Appledouble,
     /// Apple property list
     Appleplist,
+    /// Apple Photos property list journal
+    Appleplj,
     /// AppleSingle
     Applesingle,
     /// AR Archive
@@ -6514,6 +6530,7 @@ impl ContentType {
             "applebplist" => Self::Applebplist,
             "appledouble" => Self::Appledouble,
             "appleplist" => Self::Appleplist,
+            "appleplj" => Self::Appleplj,
             "applesingle" => Self::Applesingle,
             "ar" => Self::Ar,
             "arc" => Self::Arc,
@@ -6922,6 +6939,7 @@ impl ContentType {
             ContentType::Applebplist => &APPLEBPLIST,
             ContentType::Appledouble => &APPLEDOUBLE,
             ContentType::Appleplist => &APPLEPLIST,
+            ContentType::Appleplj => &APPLEPLJ,
             ContentType::Applesingle => &APPLESINGLE,
             ContentType::Ar => &AR,
             ContentType::Arc => &ARC,

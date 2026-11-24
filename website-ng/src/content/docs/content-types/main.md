@@ -8,9 +8,9 @@ This reference lists the supported output content types (`output.label`) and det
 
 ## Pipeline Coverage Summary
 
-- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **401** supported outputs (**398** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
+- **Native Rust pipeline (`magika` CLI, Rust `magika`, Python `magika`, C `magika-ffi`)**: **402** supported outputs (**399** regular-file `ContentType`s plus **3** filesystem path `FileType`s: `directory`, `symlink`, `unsupported`).
   - **Heuristics (`in_heuristics`)**: **6** content types (`directory`, `empty`, `symlink`, `txt`, `unknown`, `unsupported`) — path metadata checks, empty-file detection, and short-file / low-confidence fallbacks.
-  - **Format Resolvers (`in_resolvers`)**: **310** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
+  - **Format Resolvers (`in_resolvers`)**: **311** content types (**99** marked `vetoed_by_resolvers`, meaning the resolver matches all valid files of that format and vetoes unverified ML predictions).
   - **ML Model (`in_ml_model`)**: **212** content types predicted by [`standard_v3_3`](/magika/models/standard_v3_3) (after `overwrite_map`).
 - **JavaScript / TypeScript TensorFlow.js pipeline (`magika` on `main`)**: **214** supported outputs — runs byte/stream heuristics (`empty`, `txt`, `unknown`) plus the [`standard_v3_3`](/magika/models/standard_v3_3) ML model (`in_ml_model`), without filesystem `stat` checks or native Rust format resolvers (`in_resolvers`).
 
@@ -35,6 +35,7 @@ This reference lists the supported output content types (`output.label`) and det
 | `applebplist` | Apple binary property list | `application/x-bplist` | `application` | `bplist`, `plist` |  |  | ✓ | ✓ | ✓ |
 | `appledouble` | AppleDouble | `multipart/appledouble` | `application` | — |  |  | ✓ |  | ✓ |
 | `appleplist` | Apple property list | `application/x-plist` | `application` | `plist` | ✓ |  | ✓ | ✓ |  |
+| `appleplj` | Apple Photos property list journal | `application/octet-stream` | `application` | `plj` |  |  | ✓ |  |  |
 | `applesingle` | AppleSingle | `application/applefile` | `application` | — |  |  | ✓ |  | ✓ |
 | `ar` | AR Archive | `application/x-archive` | `archive` | `a`, `ar` |  |  | ✓ |  |  |
 | `arc` | ARC archive | `application/x-arc` | `archive` | `arc` |  |  | ✓ |  |  |

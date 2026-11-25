@@ -221,6 +221,7 @@ mod tests {
     mod corpus;
     mod dataset;
     mod regressions;
+    mod segy;
 
     use std::collections::HashSet;
 

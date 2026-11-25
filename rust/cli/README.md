@@ -179,6 +179,20 @@ Options:
             %b  The model output if overruled (empty otherwise)
             %%  A literal %
 
+      --custom-rules <PATH>
+          Enables custom rules from a file or directory (can be repeated).
+
+          When a directory is given, all .yar and .yara files directly inside it are used.
+
+      --check-custom-rules
+          Checks the rules of --custom-rules, prints the content types they identify, and exits
+
+      --no-resolvers
+          Disables the resolvers
+
+      --no-model
+          Disables model inference
+
   -h, --help
           Print help (see a summary with '-h')
 

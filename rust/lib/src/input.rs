@@ -58,10 +58,9 @@ impl<'a> Input<'a> {
         self
     }
 
-    // TODO: Uncomment to use by the resolvers.
-    // pub(crate) fn path(&self) -> Option<&Path> {
-    //     self.path.as_deref()
-    // }
+    pub(crate) fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
+    }
 }
 
 impl Input<'static> {

@@ -14,104 +14,30 @@
 
 //! Isolated throughput benchmark for the inference runtime shipped by Magika.
 
-#[cfg(feature = "ort-runtime")]
-use std::path::Path;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail, ensure};
-use magika_tract_runtime::{Backend, BackendRequest, Runtime};
-#[cfg(feature = "ort-runtime")]
-use ndarray::Array2;
+use magika_tract_runtime::{Backend, BackendRequest, Runtime, Session};
 
 const FEATURE_SIZE: usize = 2048;
 const NUM_LABELS: usize = 214;
 const PADDING_TOKEN: usize = 256;
 
 const USAGE: &str = "usage: magika-runtime-bench \
-    [--backend auto|cpu|gpu|ort] [--batch N] [--iterations N] [--threads N] \
-    [--onnx-model PATH] [--ort-intra-threads N] [--ort-inter-threads N]";
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum RequestedBackend {
-    Auto,
-    Cpu,
-    Gpu,
-    Ort,
-}
+    [--backend auto|cpu|gpu] [--batch N] [--iterations N] [--threads N]";
 
 #[derive(Debug)]
 struct Options {
-    backend: RequestedBackend,
+    backend: BackendRequest,
     batch: usize,
     iterations: usize,
     threads: Option<usize>,
-    onnx_model: Option<PathBuf>,
-    ort_intra_threads: usize,
-    ort_inter_threads: usize,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self {
-            backend: RequestedBackend::Auto,
-            batch: 8,
-            iterations: 100,
-            threads: None,
-            onnx_model: None,
-            ort_intra_threads: 1,
-            ort_inter_threads: 1,
-        }
-    }
-}
-
-trait InferenceSession {
-    fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>>;
-}
-
-impl InferenceSession for magika_tract_runtime::Session {
-    fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>> {
-        self.run(input, batch)
-    }
-}
-
-#[cfg(feature = "ort-runtime")]
-struct OrtSession {
-    session: ort::session::Session,
-}
-
-#[cfg(feature = "ort-runtime")]
-impl OrtSession {
-    fn load(model: Option<&Path>, intra_threads: usize, inter_threads: usize) -> Result<Self> {
-        let mut builder = ort::session::Session::builder()?
-            .with_intra_threads(intra_threads)
-            .map_err(|error| anyhow::anyhow!(error.to_string()))?
-            .with_inter_threads(inter_threads)
-            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
-        let session = match model {
-            Some(path) => builder
-                .commit_from_file(path)
-                .with_context(|| format!("loading ONNX model {}", path.display()))?,
-            None => builder
-                .commit_from_memory(include_bytes!(
-                    "../../../assets/models/standard_v3_3/model.onnx"
-                ))
-                .context("loading the embedded ONNX model")?,
-        };
-        Ok(Self { session })
-    }
-}
-
-#[cfg(feature = "ort-runtime")]
-impl InferenceSession for OrtSession {
-    fn run(&mut self, input: &[i32], batch: usize) -> Result<Vec<f32>> {
-        let input = Array2::from_shape_vec([batch, FEATURE_SIZE], input.to_vec())?;
-        let input = ort::value::Tensor::from_array(input)?;
-        let mut output = self.session.run(ort::inputs!("bytes" => input))?;
-        let output =
-            output.remove("target_label").context("ONNX output target_label is missing")?;
-        Ok(output.try_extract_array::<f32>()?.iter().copied().collect())
+        Self { backend: BackendRequest::Auto, batch: 8, iterations: 100, threads: None }
     }
 }
 
@@ -127,21 +53,8 @@ fn main() -> Result<()> {
     let input_len = options.batch.checked_mul(FEATURE_SIZE).context("--batch is too large")?;
     let input =
         (0..input_len).map(|index| (index % (PADDING_TOKEN + 1)) as i32).collect::<Vec<_>>();
-    match options.backend {
-        RequestedBackend::Ort => run_ort(&options, &input),
-        request => run_tract(&options, request, &input),
-    }
-}
-
-fn run_tract(options: &Options, request: RequestedBackend, input: &[i32]) -> Result<()> {
-    let request = match request {
-        RequestedBackend::Auto => BackendRequest::Auto,
-        RequestedBackend::Cpu => BackendRequest::Cpu,
-        RequestedBackend::Gpu => BackendRequest::Gpu,
-        RequestedBackend::Ort => unreachable!(),
-    };
     let preparing = Instant::now();
-    let runtime = Arc::new(Runtime::with_max_batch(request, options.batch)?);
+    let runtime = Arc::new(Runtime::with_max_batch(options.backend, options.batch)?);
     let shared_prepare = preparing.elapsed();
     let info = runtime.backend_info();
     let threads = options.threads.unwrap_or_else(|| default_threads(info.backend()));
@@ -151,27 +64,9 @@ fn run_tract(options: &Options, request: RequestedBackend, input: &[i32]) -> Res
         options.iterations,
         threads,
         shared_prepare,
-        input,
+        &input,
         || runtime.session(),
     )
-}
-
-#[cfg(feature = "ort-runtime")]
-fn run_ort(options: &Options, input: &[i32]) -> Result<()> {
-    ort::init().with_telemetry(false).commit();
-    let threads = options.threads.unwrap_or_else(host_threads);
-    bench("onnx-runtime", options.batch, options.iterations, threads, Duration::ZERO, input, || {
-        OrtSession::load(
-            options.onnx_model.as_deref(),
-            options.ort_intra_threads,
-            options.ort_inter_threads,
-        )
-    })
-}
-
-#[cfg(not(feature = "ort-runtime"))]
-fn run_ort(_options: &Options, _input: &[i32]) -> Result<()> {
-    bail!("this build does not include ONNX Runtime")
 }
 
 fn default_threads(backend: Backend) -> usize {
@@ -185,9 +80,9 @@ fn host_threads() -> usize {
     std::thread::available_parallelism().map(usize::from).unwrap_or(1).saturating_sub(1).max(1)
 }
 
-fn bench<S: InferenceSession>(
+fn bench(
     backend: &str, batch: usize, iterations: usize, threads: usize, shared_prepare: Duration,
-    input: &[i32], make_session: impl Fn() -> Result<S> + Sync,
+    input: &[i32], make_session: impl Fn() -> Result<Session> + Sync,
 ) -> Result<()> {
     let (thread_prepare, elapsed) = std::thread::scope(|scope| -> Result<(Duration, Duration)> {
         let preparing = Instant::now();
@@ -200,7 +95,7 @@ fn bench<S: InferenceSession>(
             let ready_sender = ready_sender.clone();
             let make_session = &make_session;
             handles.push(scope.spawn(move || -> Result<()> {
-                let prepared = (|| -> Result<S> {
+                let prepared = (|| -> Result<Session> {
                     let mut session = make_session()?;
                     for _ in 0..10 {
                         validate_output(&session.run(input, batch)?, batch)?;
@@ -283,10 +178,9 @@ fn parse_options(
             "-h" | "--help" => return Ok(None),
             "--backend" => {
                 options.backend = match value()?.as_str() {
-                    "auto" => RequestedBackend::Auto,
-                    "cpu" => RequestedBackend::Cpu,
-                    "gpu" => RequestedBackend::Gpu,
-                    "ort" => RequestedBackend::Ort,
+                    "auto" => BackendRequest::Auto,
+                    "cpu" => BackendRequest::Cpu,
+                    "gpu" => BackendRequest::Gpu,
                     backend => bail!("unknown backend {backend}"),
                 }
             }
@@ -295,15 +189,6 @@ fn parse_options(
                 options.iterations = value()?.parse().context("invalid --iterations")?
             }
             "--threads" => options.threads = Some(value()?.parse().context("invalid --threads")?),
-            "--onnx-model" => options.onnx_model = Some(PathBuf::from(value()?)),
-            "--ort-intra-threads" => {
-                options.ort_intra_threads =
-                    value()?.parse().context("invalid --ort-intra-threads")?
-            }
-            "--ort-inter-threads" => {
-                options.ort_inter_threads =
-                    value()?.parse().context("invalid --ort-inter-threads")?
-            }
             option => bail!("unknown option {option}\n{USAGE}"),
         }
     }
@@ -328,7 +213,7 @@ mod tests {
         ])
         .unwrap()
         .unwrap();
-        assert_eq!(options.backend, RequestedBackend::Gpu);
+        assert_eq!(options.backend, BackendRequest::Gpu);
         assert_eq!(options.batch, 8);
         assert_eq!(options.threads, Some(4));
         assert_eq!(options.iterations, 100);

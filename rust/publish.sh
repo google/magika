@@ -47,6 +47,9 @@ info "Verifying release snapshots of supported content types"
 info "Publishing the tract runtime"
 ( cd tract-runtime && cargo publish )
 
+info "Publishing the rules engine"
+( cd rules && cargo publish )
+
 info "Publishing the library"
 ( cd lib && cargo publish )
 

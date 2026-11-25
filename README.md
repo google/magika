@@ -15,6 +15,22 @@
 
 Magika is a novel AI-powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU. Magika has been trained and evaluated on a dataset of ~100M samples across 200+ content types (covering both binary and textual file formats), and it achieves an average ~99% accuracy on our test set.
 
+> [!NOTE]
+> **Magika 2.0 release candidates are now on [PyPI](https://pypi.org/project/magika/#history) (`2.0.0rc0` and above) and [crates.io](https://crates.io/crates/magika) (`2.0.0-rc.0` and above for `magika` and [`magika-cli`](https://crates.io/crates/magika-cli)) — help testing is very welcome!**
+>
+> Try it with `pip install --pre -U magika` (Python API + bundled CLI) or `cargo install --locked magika-cli --version "^2.0.0-rc.0"` (Rust CLI; prebuilt binaries on [GitHub Releases](https://github.com/google/magika/releases)). Share feedback via [GitHub Issues](https://github.com/google/magika/issues); see the [Python](./python/CHANGELOG.md), [Rust CLI](./rust/cli/CHANGELOG.md), and [Rust library](./rust/lib/CHANGELOG.md) changelogs for details.
+>
+> **What's new in the 2.0 release candidates:**
+> - **Faster, zero-dependency Rust core (~5x smaller footprint):** A natively compiled pure-Rust `tract` runtime replaces ONNX Runtime across Rust and the PyO3 Python bindings — dropping external runtime deps (~5x smaller disk footprint overall) and speeding up startup and inference, even while still using `standard_v3_3` under the hood.
+> - **Cohesive pipeline (YARA rules, resolvers, & ML):** Custom YARA rules (bring your own detections for hotfixes while waiting for upstream patches, or other custom needs), native format resolvers (up to 500x faster on supported binary formats, with container decompression), and the ML model work together out of the box.
+> - **400+ supported content types (up from 216):** See the [full list](https://securityresearch.google/magika/content-types/main/).
+> - **GPU acceleration & parallel batching:** Metal (macOS) and CUDA (Rust CLI/crate) with non-blocking startup (classifying on CPU while GPU initializes), plus parallel batch identification in Rust.
+> - **Broader platform support:** Expanded pre-built wheels and binaries, including `musl` environments like Alpine Linux.
+>
+> **Coming in subsequent 2.0 release candidates:**
+> - **1000+ content types:** Further coverage expansion via additional native format resolvers.
+> - **Next-generation ML model:** A smaller, faster model with stronger short-snippet detection.
+
 Here is an example of what Magika command line output looks like:
 
 <p align="center">

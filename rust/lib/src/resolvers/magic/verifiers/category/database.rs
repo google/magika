@@ -609,6 +609,10 @@ const SEGY_ENDIAN_LE: &[u8; 4] = &[0x04, 0x03, 0x02, 0x01];
 const SEGY_MAX_BAD_TEXT_BYTES: usize = 16;
 const SEGY_MIN_TEXT_CHARS: usize = 16;
 const SEGY_MAX_NUL_TRANSITIONS: usize = 64;
+/// Plausible Rev 2 extended sample intervals. The lower bound rejects subnormals, which is what
+/// any small integer stored in `@3272..3280` decodes to; `Range::contains` also rejects NaN,
+/// infinities, zero, and negatives.
+const SEGY_EXT_INTERVAL_RANGE: core::ops::Range<f64> = 1e-9..1e9;
 const SEGY_TEXT_CHUNK_LEN: usize = 64; // divides SEGY_TEXT_HEADER_LEN (3200 = 50 * 64)
 const SEGY_SWAR_LANE_MASK: u64 = 0x1FF; // 9 bits per lane (max 64 per 64-byte chunk)
 const SEGY_SWAR_HIGH_BITS: u64 = 0x8080_8080_8080_8080;
@@ -730,8 +734,7 @@ fn check_segy_bin_header(prefix: &[u8], size: u64, big_endian: bool) -> Option<S
     let dt16 = rd16(SEGY_BIN_INTERVAL)?;
     let dt_ext_bits = rd64(SEGY_BIN_EXT_INTERVAL)?;
     if dt_ext_bits != 0 {
-        let dt_ext = f64::from_bits(dt_ext_bits);
-        require!(dt_ext.is_finite(), dt_ext > 0.0, dt_ext < 1e9);
+        require!(SEGY_EXT_INTERVAL_RANGE.contains(&f64::from_bits(dt_ext_bits)));
     } else {
         require!(dt16 != 0);
     }
@@ -752,7 +755,9 @@ fn check_segy_bin_header(prefix: &[u8], size: u64, big_endian: bool) -> Option<S
     let ext_headers = rd16(SEGY_BIN_EXT_HEADERS)? as i16;
     require!((-1..=9).contains(&sorting_code), meas <= 2, fixed <= 1, ext_headers >= -1);
 
-    let header_end = if ext_headers > 0 {
+    // Extended textual headers declared by a positive count must fit in the file, wherever the
+    // traces start.
+    let implied_end = if ext_headers > 0 {
         let ext_bytes = (ext_headers as u64).checked_mul(SEGY_TEXT_HEADER_LEN as u64)?;
         let end = (SEGY_BINARY_HEADER_END as u64).checked_add(ext_bytes)?;
         require!(end <= size);
@@ -760,12 +765,16 @@ fn check_segy_bin_header(prefix: &[u8], size: u64, big_endian: bool) -> Option<S
     } else if ext_headers == 0 {
         Some(SEGY_BINARY_HEADER_END as u64)
     } else {
-        let first_trace = rd64(SEGY_BIN_FIRST_TRACE_OFFSET)?;
-        if (SEGY_BINARY_HEADER_END as u64..=size).contains(&first_trace) {
-            Some(first_trace)
-        } else {
-            None
-        }
+        None
+    };
+    // A non-zero Rev 2 first-trace offset overrides the offset implied by the count; zero means
+    // unknown.
+    let first_trace = rd64(SEGY_BIN_FIRST_TRACE_OFFSET)?;
+    let header_end = if first_trace != 0 {
+        require!((SEGY_BINARY_HEADER_END as u64..=size).contains(&first_trace));
+        Some(first_trace)
+    } else {
+        implied_end
     };
 
     let mut geom_ok = false;

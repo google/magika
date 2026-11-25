@@ -809,7 +809,10 @@ fn check_segy_bin_header(prefix: &[u8], size: u64, big_endian: bool) -> Option<S
 /// 3200-byte EBCDIC, ASCII, or zero textual file header followed by a 400-byte binary file header
 /// (`@3200..3600`) with consistent byte order, valid sample format code (`1..=12 | 15 | 16`),
 /// non-zero sample interval and sample count, valid control enums, and zeroed unassigned ranges
-/// (`@3300..3500` and `@3532..3600`).
+/// (`@3300..3500` and `@3532..3600`). Only a space-padded EBCDIC textual header is accepted on
+/// its own. An ASCII or NUL-padded header needs one of the Rev 2 byte-order constant, an exact
+/// trace geometry, or a matching first trace header; an all-zero header needs the constant, or
+/// both the geometry and the trace header.
 pub(crate) fn segy(prefix: &[u8], size: u64) -> Option<Label> {
     static SEGY_EBCDIC: Subformat = Subformat::new("SEG-Y (EBCDIC textual header)");
     static SEGY_ASCII: Subformat = Subformat::new("SEG-Y (ASCII textual header)");
@@ -851,6 +854,7 @@ pub(crate) fn segy(prefix: &[u8], size: u64) -> Option<Label> {
     let mut ascii_print_non_at = 0usize;
     let mut ascii_alnum = 0usize;
     let mut ascii_bad = 0usize;
+    let mut nul_bytes = 0usize;
     let mut nul_transitions = 0usize;
     let mut prev_nul_bit = 0u64;
 
@@ -873,6 +877,7 @@ pub(crate) fn segy(prefix: &[u8], size: u64) -> Option<Label> {
         ascii_alnum += ((acc >> 36) & SEGY_SWAR_LANE_MASK) as usize;
         ascii_bad += ((acc >> 45) & SEGY_SWAR_LANE_MASK) as usize;
         let chunk_nuls = ((acc >> 54) & SEGY_SWAR_LANE_MASK) as usize;
+        nul_bytes += chunk_nuls;
         if ebcdic_bad > SEGY_MAX_BAD_TEXT_BYTES && ascii_bad > SEGY_MAX_BAD_TEXT_BYTES {
             return None;
         }
@@ -899,10 +904,14 @@ pub(crate) fn segy(prefix: &[u8], size: u64) -> Option<Label> {
     }
 
     let corroborated = has_endian_magic || bin_match.geom_ok || bin_match.trace0_match;
+    // EBCDIC card images are padded with spaces. A header that is mostly NUL carries too little
+    // text to stand on its own, so NUL padding needs corroboration, as it does for ASCII.
+    let dense_ebcdic =
+        ebcdic_bad + nul_bytes <= SEGY_MAX_BAD_TEXT_BYTES && ebcdic_space >= SEGY_MIN_TEXT_CHARS;
     let is_ebcdic = ebcdic_bad <= SEGY_MAX_BAD_TEXT_BYTES
         && ebcdic_alnum >= SEGY_MIN_TEXT_CHARS
         && (ebcdic_space + ebcdic_alnum) > ascii_print_non_at
-        && (ebcdic_space >= SEGY_MIN_TEXT_CHARS || corroborated);
+        && (dense_ebcdic || corroborated);
     if is_ebcdic {
         return with_subformat(Label::Segy, &SEGY_EBCDIC);
     }

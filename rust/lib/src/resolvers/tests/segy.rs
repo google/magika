@@ -143,7 +143,7 @@ fn segy_variants_and_false_positive_regressions() {
     assert_eq!(meta.get("subformat").map(String::as_str), Some("SEG-Y (empty textual header)"));
 
     // Negative regressions:
-    // a) Uncorroborated short prefix with sparse binary header
+    // a) Too little text: three ASCII letters in a zero header, with a sparse binary header
     let mut bogus_pnt = vec![0u8; 3632];
     bogus_pnt[..3].copy_from_slice(b"PNT");
     bogus_pnt[3216..3218].copy_from_slice(&0xC600u16.to_be_bytes());
@@ -201,7 +201,7 @@ fn segy_variants_and_false_positive_regressions() {
     // g) Binary noise in textual header (e.g., bytecode/compiled binary), punctuation-only
     // header (e.g., EBCDIC space 0x40 / ASCII '@'), & pure printable ASCII
     let mut noisy = ebcdic.clone();
-    noisy[..64].fill(0x01);
+    noisy[64..128].fill(0x01); // after the first card, which keeps its 22 alphanumerics
     assert_eq!(resolve_slice(&noisy), Vec::<ContentType>::new());
     let mut at_only = vec![0u8; 3600 + 240 + 40];
     at_only[..32].fill(0x40);
@@ -209,6 +209,7 @@ fn segy_variants_and_false_positive_regressions() {
     at_only[3220..3222].copy_from_slice(&10u16.to_be_bytes());
     at_only[3224..3226].copy_from_slice(&5u16.to_be_bytes());
     assert_eq!(resolve_slice(&at_only), Vec::<ContentType>::new());
+    // Stops at the byte-order constant, which reads `AAAA`.
     assert_eq!(resolve_slice(&vec![b'A'; 4096]), Vec::<ContentType>::new());
 
     // h) Uncorroborated NUL-padded high bytes without EBCDIC spaces, and UTF-16LE / 16-bit arrays
@@ -239,6 +240,8 @@ fn segy_variants_and_false_positive_regressions() {
     assert_eq!(resolve_slice(&u16_ebcdic), Vec::<ContentType>::new());
 
     // i) Exact NUL-transition boundary across all-NUL, all-non-NUL, and mixed 64-byte chunks
+    // (runs ending on a word or chunk boundary are covered by
+    // `segy_nul_runs_are_counted_across_word_and_chunk_boundaries`)
     let mut nul_boundary = vec![0u8; 3632];
     for chunk_idx in 0..40 {
         let fill = if chunk_idx % 2 == 0 { 0x00 } else { 0x40 };
@@ -253,6 +256,7 @@ fn segy_variants_and_false_positive_regressions() {
     nul_boundary[3216..3218].copy_from_slice(&2000u16.to_be_bytes());
     nul_boundary[3220..3222].copy_from_slice(&1000u16.to_be_bytes());
     nul_boundary[3224..3226].copy_from_slice(&5u16.to_be_bytes());
+    nul_boundary[3296..3300].copy_from_slice(&[0x01, 0x02, 0x03, 0x04]); // NUL padding needs corroboration
     assert_eq!(resolve_slice(&nul_boundary), vec![ContentType::Segy]);
     nul_boundary[2560 + 88] = 0x00;
     nul_boundary[2560 + 89] = 0xC1; // 65 total transitions => rejected
@@ -403,20 +407,202 @@ fn segy_empty_textual_header_needs_the_endian_constant_or_both_trace_checks() {
     assert_segy(&both, "geometry and first trace header");
 }
 
+#[test]
+fn segy_nul_padded_ebcdic_header_needs_corroboration() {
+    // 16 EBCDIC letters and 16 EBCDIC spaces in an otherwise zero header, which is also what a
+    // short table of 16-bit values looks like.
+    let sparse = |len: usize| {
+        let mut file = zero_text_file(len, 10);
+        for pair in 0..16 {
+            file[4 * pair] = 0xC1;
+            file[4 * pair + 2] = 0x40;
+        }
+        file
+    };
+    assert_rejected(&sparse(3632), "no corroboration");
+
+    assert_subformat(&with_be_constant(sparse(3632)), EBCDIC, "byte-order constant");
+    assert_subformat(&sparse(3600 + 240 + 10 * 4), EBCDIC, "exact trace geometry");
+    let mut trace0 = sparse(3600 + 240 + 10 * 4 + 1);
+    set_be16(&mut trace0, TRACE0_SAMPLES, 10);
+    assert_subformat(&trace0, EBCDIC, "matching first trace header");
+}
+
+#[test]
+fn segy_textual_header_thresholds_are_exact() {
+    // Each header is one fill byte with runs of other bytes laid over its start; none of the
+    // files has a trace, so only the byte-order constant can corroborate.
+    let ebcdic = |parts: &[(u8, usize)]| header_of(0x40, parts);
+    let ascii = |parts: &[(u8, usize)]| with_be_constant(header_of(0x00, parts));
+    let cases = [
+        // Without corroboration, at most 16 bytes may be NUL or outside the EBCDIC text set.
+        ("EBCDIC, 16 NUL", ebcdic(&[(0xC1, 16), (0x00, 16)]), Some(EBCDIC)),
+        ("EBCDIC, 17 NUL", ebcdic(&[(0xC1, 16), (0x00, 17)]), None),
+        ("EBCDIC, 16 non-text", ebcdic(&[(0xC1, 16), (0x01, 16)]), Some(EBCDIC)),
+        ("EBCDIC, 17 non-text", ebcdic(&[(0xC1, 16), (0x01, 17)]), None),
+        ("EBCDIC, 10 NUL + 6 non-text", ebcdic(&[(0xC1, 16), (0x00, 10), (0x01, 6)]), Some(EBCDIC)),
+        ("EBCDIC, 10 NUL + 7 non-text", ebcdic(&[(0xC1, 16), (0x00, 10), (0x01, 7)]), None),
+        // Each encoding has its own budget, with corroboration too: an ASCII tab is outside
+        // the EBCDIC text set only, and EBCDIC `{` (0xC0) is outside ASCII text only.
+        (
+            "EBCDIC, 16 ASCII tabs, constant",
+            with_be_constant(ebcdic(&[(0xC1, 16), (b'\t', 16)])),
+            Some(EBCDIC),
+        ),
+        (
+            "EBCDIC, 17 ASCII tabs, constant",
+            with_be_constant(ebcdic(&[(0xC1, 16), (b'\t', 17)])),
+            None,
+        ),
+        ("ASCII, 16 EBCDIC braces, constant", ascii(&[(b'A', 16), (0xC0, 16)]), Some(ASCII)),
+        ("ASCII, 17 EBCDIC braces, constant", ascii(&[(b'A', 16), (0xC0, 17)]), None),
+        // At least 16 alphanumerics, with or without corroboration.
+        ("EBCDIC, 16 alphanumerics", ebcdic(&[(0xC1, 16)]), Some(EBCDIC)),
+        ("EBCDIC, 15 alphanumerics", ebcdic(&[(0xC1, 15)]), None),
+        ("EBCDIC, 15 alphanumerics, constant", with_be_constant(ebcdic(&[(0xC1, 15)])), None),
+        // At least 16 spaces: the fill is EBCDIC `{`, neither a space nor an alphanumeric.
+        ("EBCDIC, 16 spaces", header_of(0xC0, &[(0xC1, 16), (0x40, 16)]), Some(EBCDIC)),
+        ("EBCDIC, 15 spaces", header_of(0xC0, &[(0xC1, 16), (0x40, 15)]), None),
+        ("ASCII, 16 non-text, constant", ascii(&[(b'A', 16), (0x80, 16)]), Some(ASCII)),
+        ("ASCII, 17 non-text, constant", ascii(&[(b'A', 16), (0x80, 17)]), None),
+        ("ASCII, 16 alphanumerics, constant", ascii(&[(b'A', 16)]), Some(ASCII)),
+        ("ASCII, 15 alphanumerics, constant", ascii(&[(b'A', 15)]), None),
+        // ASCII `N` is also EBCDIC `+`: a header of it holds more printable ASCII than EBCDIC
+        // spaces and alphanumerics, so it is ASCII text and needs corroboration as such.
+        ("ASCII in the EBCDIC text set", header_of(b'N', &[(0xC1, 16), (0x40, 16)]), None),
+        (
+            "ASCII in the EBCDIC text set, constant",
+            with_be_constant(header_of(b'N', &[(0xC1, 16), (0x40, 16)])),
+            Some(ASCII),
+        ),
+    ];
+    for (case, file, expected) in cases {
+        match expected {
+            Some(subformat) => assert_subformat(&file, subformat, case),
+            None => assert_rejected(&file, case),
+        }
+    }
+}
+
+#[test]
+fn segy_nul_runs_are_counted_across_word_and_chunk_boundaries() {
+    // Each run is the last byte of an 8-byte word, so it ends where the next word begins, and
+    // every eighth one where the next 64-byte chunk begins. 64 runs are allowed.
+    let with_runs = |runs: usize| {
+        let mut file = ebcdic_file(3632, 1000);
+        for word in 0..runs {
+            file[1024 + 8 * word + 7] = 0x00;
+        }
+        with_be_constant(file)
+    };
+    assert_segy(&with_runs(64), "64 NUL runs");
+    assert_rejected(&with_runs(65), "65 NUL runs");
+}
+
+#[test]
+fn segy_binary_header_needs_an_interval_a_sample_count_and_valid_enums() {
+    let mut no_interval = ebcdic_file(3632, 1000);
+    set_be16(&mut no_interval, INTERVAL, 0);
+    assert_rejected(&no_interval, "zero interval, no extended interval");
+    assert_rejected(&ebcdic_file(3632, 0), "zero sample count, no extended count");
+
+    for (sorting, valid) in [(-2i16, false), (-1, true), (9, true), (10, false)] {
+        let mut file = ebcdic_file(3632, 1000);
+        set_be16(&mut file, SORTING, sorting as u16);
+        let case = format!("sorting code {sorting}");
+        if valid {
+            assert_segy(&file, &case);
+        } else {
+            assert_rejected(&file, &case);
+        }
+    }
+
+    let mut bad_count = ebcdic_file(3632, 1000);
+    set_be16(&mut bad_count, EXT_HEADERS, -2i16 as u16);
+    assert_rejected(&bad_count, "extended header count -2");
+}
+
+#[test]
+fn segy_trace_geometry_uses_the_sample_width_of_each_format() {
+    // One trace of 10 samples corroborates the ASCII header only at the exact file size.
+    let widths = [
+        (1u16, 4usize),
+        (2, 4),
+        (3, 2),
+        (4, 4),
+        (5, 4),
+        (6, 8),
+        (7, 3),
+        (8, 1),
+        (9, 8),
+        (10, 4),
+        (11, 2),
+        (12, 8),
+        (15, 3),
+        (16, 1),
+    ];
+    for (format, width) in widths {
+        let one_trace = 3600 + 240 + 10 * width;
+        let mut exact = ascii_file(one_trace, 10);
+        set_be16(&mut exact, FORMAT, format);
+        assert_segy(&exact, &format!("format {format}, one {width}-byte-sample trace"));
+        let mut stray = ascii_file(one_trace + 1, 10);
+        set_be16(&mut stray, FORMAT, format);
+        assert_rejected(&stray, &format!("format {format}, one stray byte"));
+    }
+
+    // No trace at all is not a geometry match.
+    assert_rejected(&ascii_file(3600, 10), "no trace");
+}
+
+#[test]
+fn segy_first_trace_header_corroborates_on_either_field_but_never_on_zeros() {
+    // One stray byte after the trace, so the geometry does not corroborate.
+    let len = 3600 + 240 + 10 * 4 + 1;
+    assert_rejected(&ascii_file(len, 10), "empty first trace header");
+
+    let mut samples_only = ascii_file(len, 10);
+    set_be16(&mut samples_only, TRACE0_SAMPLES, 10);
+    assert_segy(&samples_only, "sample count matches");
+    let mut interval_only = ascii_file(len, 10);
+    set_be16(&mut interval_only, TRACE0_INTERVAL, 2000);
+    assert_segy(&interval_only, "sample interval matches");
+
+    // A 16-bit field left at zero in favour of its Rev 2 extended field matches nothing.
+    let mut zero_count = ascii_file(len, 0);
+    zero_count[EXT_SAMPLES..EXT_SAMPLES + 4].copy_from_slice(&10i32.to_be_bytes());
+    assert_rejected(&zero_count, "zero 16-bit sample count against a zero trace header");
+    let mut zero_interval = ascii_file(len, 10);
+    set_be16(&mut zero_interval, INTERVAL, 0);
+    zero_interval[EXT_INTERVAL..EXT_INTERVAL + 8].copy_from_slice(&2000f64.to_be_bytes());
+    assert_rejected(&zero_interval, "zero 16-bit interval against a zero trace header");
+
+    // The first trace header is at @3600 only when the traces start there.
+    let mut moved = ascii_file(3600 + 3200 + 240 + 10 * 4 + 1, 10);
+    moved[FIRST_TRACE..FIRST_TRACE + 8].copy_from_slice(&6800u64.to_be_bytes());
+    set_be16(&mut moved, TRACE0_SAMPLES, 10);
+    assert_rejected(&moved, "traces start at 6800, match at @3714");
+}
+
 const INTERVAL: usize = 3216;
 const SAMPLES: usize = 3220;
 const FORMAT: usize = 3224;
+const SORTING: usize = 3228;
 const MEASUREMENT_SYSTEM: usize = 3254;
+const EXT_SAMPLES: usize = 3268;
 const EXT_INTERVAL: usize = 3272;
 const ENDIAN: usize = 3296;
 const EXT_HEADERS: usize = 3504;
 const MAX_ADD_TRACE_HEADERS: usize = 3506;
 const FIRST_TRACE: usize = 3520;
 const TRACE0_SAMPLES: usize = 3714;
+const TRACE0_INTERVAL: usize = 3716;
 const ENDIAN_BE: [u8; 4] = [0x01, 0x02, 0x03, 0x04];
 const ENDIAN_LE: [u8; 4] = [0x04, 0x03, 0x02, 0x01];
+const EBCDIC: &str = "SEG-Y (EBCDIC textual header)";
+const ASCII: &str = "SEG-Y (ASCII textual header)";
 
-/// A `len`-byte file with an EBCDIC textual header, which needs no corroboration.
+/// A `len`-byte file with a space-padded EBCDIC textual header, which needs no corroboration.
 fn ebcdic_file(len: usize, samples: u16) -> Vec<u8> {
     let mut file = zero_text_file(len, samples);
     file[..3200].fill(0x40);
@@ -432,6 +618,19 @@ fn ascii_file(len: usize, samples: u16) -> Vec<u8> {
     file
 }
 
+/// A 3,632-byte file, too short to hold a trace, whose textual header is `fill` with runs of
+/// `(byte, count)` laid over its start.
+fn header_of(fill: u8, parts: &[(u8, usize)]) -> Vec<u8> {
+    let mut file = zero_text_file(3632, 1000);
+    file[..3200].fill(fill);
+    let mut offset = 0;
+    for &(byte, count) in parts {
+        file[offset..offset + count].fill(byte);
+        offset += count;
+    }
+    file
+}
+
 /// A `len`-byte file with an all-zero textual header and a big-endian binary header: 2 ms
 /// sample interval, `samples` 4-byte IEEE samples per trace.
 fn zero_text_file(len: usize, samples: u16) -> Vec<u8> {
@@ -439,6 +638,11 @@ fn zero_text_file(len: usize, samples: u16) -> Vec<u8> {
     set_be16(&mut file, INTERVAL, 2000);
     set_be16(&mut file, SAMPLES, samples);
     set_be16(&mut file, FORMAT, 5);
+    file
+}
+
+fn with_be_constant(mut file: Vec<u8>) -> Vec<u8> {
+    file[ENDIAN..ENDIAN + 4].copy_from_slice(&ENDIAN_BE);
     file
 }
 
@@ -454,4 +658,11 @@ fn assert_segy(file: &[u8], case: &str) {
 #[track_caller]
 fn assert_rejected(file: &[u8], case: &str) {
     assert_eq!(resolve_slice(file), Vec::<ContentType>::new(), "{case}");
+}
+
+#[track_caller]
+fn assert_subformat(file: &[u8], subformat: &str, case: &str) {
+    let (content_types, metadata) = resolve_slice_with_metadata(file);
+    assert_eq!(content_types, vec![ContentType::Segy], "{case}");
+    assert_eq!(metadata.get("subformat").map(String::as_str), Some(subformat), "{case}");
 }

@@ -19,7 +19,7 @@
     "astro": "^7.1.5",
     "class-variance-authority": "^0.7.1",
     "highlight.js": "^11.11.1",
-    "magika": "^0.4.0",
+    "magika": "^1.0.0",
     "sharp": "^0.35.3",
     "svelte": "^5.56.8",
     "svelte-sonner": "^1.0.5",

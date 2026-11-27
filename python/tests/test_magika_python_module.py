@@ -447,6 +447,12 @@ def test_api_call_with_bad_types() -> None:
         _ = m.identify_paths([b"/non_existing.txt"])  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError):
         _ = m.identify_paths([Path("/non_existing.txt"), b"/not_existing2.txt"])  # ty: ignore[invalid-argument-type]
+    # A bare str is a Sequence, so it slipped past the guard and was iterated
+    # character by character, returning one bogus result per character (#1472).
+    with pytest.raises(TypeError):
+        _ = m.identify_paths("code.py")
+    with pytest.raises(TypeError):
+        _ = m.identify_paths(b"code.py")  # ty: ignore[invalid-argument-type]
 
     _ = m.identify_bytes(b"bytes content")
     with pytest.raises(TypeError):
